@@ -1,0 +1,2727 @@
+--- Page 1 ---
+1
+Streaming Tree Transducers
+RAJEEV ALUR, University of Pennsylvania
+LORIS D’ANTONI, University of Wisconsin-Madison
+The theory of tree transducers provides a foundation for understanding expressiveness and complexity of analysis problems for
+specification languages for transforming hierarchically structured data such as XML documents. We introduce streaming tree
+transducers as an analyzable, executable, and expressive model for transforming unranked ordered trees (and forests) in a single
+pass. Given a linear encoding of the input tree, the transducer makes a single left-to-right pass through the input, and computes the
+output in linear time using a finite-state control, a visibly pushdown stack, and a finite number of variables that store output chunks
+that can be combined using the operations of string-concatenation and tree-insertion. We prove that the expressiveness of the
+model coincides with transductions definable using monadic second-order logic (MSO). Existing models of tree transducers either
+cannot implement all MSO-definable transformations, or require regular look-ahead that prohibits single-pass implementation. We
+show a variety of analysis problems such as type-checking and checking functional equivalence are decidable for our model.
+CCS Concepts: •Theory of computation →Transducers ;
+Additional Key Words and Phrases: Nested words, tree transducers
+ACM Reference format:
+Rajeev Alur and Loris D’Antoni. 2017. Streaming Tree Transducers. 1, 1, Article 1 (May 2017), 43 pages.
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+1 INTRODUCTION
+Finite-state machines and logics for specifying tree transformations offer a suitable theoretical foundation for
+studying expressiveness and complexity of analysis problems for languages for processing and transforming XML
+documents. Representative formalisms for specifying tree transductions include finite-state top-down and bottom-up
+tree transducers, Macro tree transducers (MTT), attribute grammars, MSO (monadic second-order logic) definable
+graph transductions, and specialized programming languages such as XSLT andXDuce [5,6,9,12,16,21,22,28,29].
+In this paper, we propose the model of streaming tree transducers (STT), which has the following three properties:
+(1)Single-pass linear-time processing: an STT is a deterministic machine that computes the output using a single left-
+to-right pass through the linear encoding of the input tree processing each symbol in constant time; (2) Expressiveness:
+STTs specify exactly the class of MSO-definable tree transductions; and (3) Analyzability: decision problems such as
+type-checking and checking functional equivalence of two STTs, are decidable. The last two features indicate that our
+model has the commonly accepted trade-off between analyzability and expressiveness in formal language theory. The
+motivation for designing streaming algorithms that can process a document in a single pass has led to streaming
+models for checking membership in a regular tree language and for querying [ 25,29,31,34], but there is no previous
+model that can compute all MSO-definable transformations in a single pass (see Section 6 for detailed comparisons of
+STTs with prior models).
+The transducer model integrates features of visibly pushdown automata , equivalently nested word automata [3], and
+streaming string transducers [1,2]. In our model, the input tree is encoded as a nested word , which is a string over
+alphabet symbols, tagged with open/close brackets (or equivalently, call/return types) to indicate the hierarchical
+structure. The streaming tree transducer reads the input nested word left-to-right in a single pass. It uses finitely
+many states, together with a stack, but the type of operation applied to the stack at each step is determined by the
+This research was partially supported by NSF Expeditions in Computing award CCF 1138996. We thank Joost Engelfriet for his valuable feedback:
+not only he helped us navigate the extensive literature on tree transducers, but also provided detailed comments, including spotting bugs in proofs
+on an earlier draft of this paper. We also thank the anonymous reviewers for their comments.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are
+not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for
+components of this work owned by others than ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to
+post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+©2017 Association for Computing Machinery.
+XXXX-XXXX/2017/5-ART1 $15.00
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+, Vol. 1, No. 1, Article 1. Publication date: May 2017.
+
+--- Page 2 ---
+hierarchical structure of the tags in the input. The output is computed using a finite set of variables with values
+ranging over output nested words, possibly with holes that are used as place-holders for inserting subtrees. At each
+step, the transducer reads the next symbol of the input. If the symbol is an internal symbol, then the transducer
+updates its state and the output variables. If the symbol is a call symbol, then the transducer pushes a stack symbol,
+along with updated values of variables, updates the state, and reinitializes the variables. While processing a return
+symbol, the stack is popped, and the new state and new values for the variables are determined using the current
+state, current variables, popped symbol, and popped values from the stack. In each type of transition, the variables
+are updated using expressions that allow adding new symbols, string concatenation , and tree insertion (simulated by
+replacing the hole with another expression). A key restriction is that variables are updated in a manner that ensures
+that each value can contribute at most once to the eventual output, without duplication. This single-use-restriction is
+enforced via a binary conflict relation over variables: no output term combines conflicting variables, and variable
+occurrences in right-hand sides during each update are consistent with the conflict relation. The transformation
+computed by the model can be implemented as a single-pass linear-time algorithm.
+To understand the novel features of our model, let us consider two kinds of transformations. First, suppose we
+want to select and output the sequence of all subtrees that match a pattern, that is specified by a regular query over
+the entire input, and not just the prefix read so far. To implement this query, the transducer uses multiple variables
+to store alternative outputs, and exploiting regularity to maintain only a bounded number of choices at each step.
+Second, suppose the transformation requires swapping of subtrees. The operations of concatenation and tree-insertion
+allows an STT to implement this transformation easily. This ability to combine previously computed answers seems
+to be missing from existing transducer models. We illustrate the proposed model using examples such as reverse,
+swap, tag-based sorting, where the natural single-pass linear-time algorithms for implementing these transformations
+correspond to STTs.
+We show that the model can be simplified in natural ways if we want to restrict either the input or the output, to
+either strings or ranked trees. For example, to compute transformations that output strings it suffices to consider
+variable updates that allow only concatenation, and to compute transformations that output ranked trees it suffices to
+consider variable updates that allow only tree insertion. The restriction to the case of ranked trees as inputs gives the
+model of bottom-up ranked-tree transducers . As far as we know, this is the only transducer model that processes trees
+in a bottom-up manner, and can compute all MSO-definable tree transformations.
+The main technical result in the paper is that the class of transductions definable using streaming tree transducers
+is exactly the class of MSO-definable tree transductions. The starting point for our result is the known equivalence of
+MSO-definable tree transductions and Macro Tree Transducers with regular look-ahead and single-use restriction,
+over ranked trees [ 12]. Our proof proceeds by establishing two key properties of STTs: the model is closed under
+regular look-ahead and under sequential composition . These proofs are challenging due to the requirement that a
+transducer can use only a fixed number of variables and these variables can only be updated by assignments that
+obey the single-use-restriction rules. We develop them in a modular fashion by introducing intermediate results (for
+example, we establish that allowing variables to range over trees containing multiple parameters does not increase
+expressiveness).
+We show a variety of analysis questions for our transducer model to be decidable. Given a regular language L1
+of input trees and a regular language L2of output trees, the type-checking problem is to determine if the output of
+the transducer on an input in L1is guaranteed to be in L2. We establish an ExpTime upper bound for type-checking.
+We provide a NExpTime upper bound for checking functional inequivalence of two STTs, and when the number of
+variables is bounded the upper bound on the complexity becomes NP. Improving the NExpTime bound remains a
+challenging open problem.
+2 TRANSDUCER MODEL
+We first introduce some preliminary notions, then formally define streaming tree transducers, and finally provide few
+examples.
+2.1 Preliminaries
+In this section we first recall the notion of nested word and then introduce the basic building blocks of streaming tree
+transducers.
+2
+
+--- Page 3 ---
+Nested Words. Data with both linear and hierarchical structure can be encoded using nested words [ 3]. Given a set
+Σof symbols, the tagged alphabet ˆΣconsists of the symbols a,⟨a, and a⟩, for each a∈Σ. Anested word overΣis a
+finite sequence over ˆΣ. For a nested word a1···ak, a position j, for 1≤j≤k, is said to be a callposition if the symbol
+ajis of the form⟨a, areturn position if the symbol ajis of the form a⟩, and an internal position otherwise. The tags
+induce a natural matching relation between call and return positions, and in this paper, we are interested only in
+well-matched nested words in which all calls/returns have matching returns/calls. A string over Σis a nested word
+with only internal positions. Nested words naturally encode ordered trees. The empty tree is encoded by the empty
+stringε. The tree with a-labeled root with subtrees t1, . . .tkas children, in that order, is encoded by the nested word
+⟨a⟨⟨t1⟩⟩···⟨⟨ tk⟩⟩a⟩, where⟨⟨ti⟩⟩is the encoding of the subtree ti. This transformation can be viewed as an inorder
+traversal of the tree. The encoding extends to forests also: the encoding of a forest is obtained by concatenating
+the encodings of the trees it contains. An a-labeled leaf corresponds to the nested word ⟨aa⟩, we will use⟨a⟩as its
+abbreviation. Thus, a binary tree with a-labeled root for which the left-child is an a-labeled leaf and the right-child is
+ab-labeled leaf is encoded by the string ⟨a⟨a⟩⟨b⟩a⟩.
+Nested Words with Holes. A key operation that our transducer model relies on is insertion of one nested word
+within another. In order to define this, we consider nested words with holes, where a hole is represented by the
+special symbol ?. For example, the nested word ⟨a?⟨b⟩a⟩represents an incomplete tree with a-labeled root where its
+right-child is a b-labeled leaf such that the tree can be completed by adding a nested word to the left of this leaf. We
+require that a nested word can contain at most one hole, and we use a two types to keep track of whether a nested
+word contains a hole or not. A type-0 nested word does not contain any holes, while a type-1 nested word contains
+exactly one hole. We can view a type-1 nested word as a unary function from nested words to nested words. The set
+W0(Σ)of type-0 nested words over the alphabet Σis defined by the grammar
+W0:=ε|a|⟨aW 0b⟩|W0W0 fora,b∈Σ
+The set W1(Σ)of type-1 nested words over the alphabet Σis defined by the grammar
+W1:=?|⟨aW 1b⟩|W1W0|W0W1 fora,b∈Σ
+Anested-word language overΣis a subset LofW0(Σ), and a nested-word transduction from an input alphabet Σto an
+output alphabet Γis apartial function ffrom W0(Σ)toW0(Γ).
+Nested Word Expressions. In our transducer model, the machine maintains a set of variables with values ranging
+over output nested words with holes. Each variable has an associated binary type: a type- kvariable has type- knested
+words as values, for k=0,1. The variables are updated using typed expressions, where variables can appear on the
+right-hand side, and we also allow substitution of the hole symbol by another expression. Formally, a set Xof typed
+variables is a set that is partitioned into two sets X0andX1corresponding to the type-0 and type-1 variables. Given
+an alphabet Σand a set Xof typed variables, a valuationαis a function that maps X0toW0(Σ)andX1toW1(Σ). Given
+an alphabet Σand a set Xof typed variables, we define the sets Ek(X,Σ), fork=0,1, of type- kexpressions by the
+grammars
+E0:=ε|a|x0|⟨a E0b⟩|E0E0|E1[E0]
+E1:=?|x1|⟨a E1b⟩|E0E1|E1E0|E1[E1]
+where a,b∈Σ,x0∈X0, and x1∈X1. The clause e[e′]corresponds to substitution of the hole in a type- 1expression e
+by another expression e′. A valuation αfor the variables Xnaturally extends to a type-consistent function that maps
+the expressions Ek(X,Σ)to values in Wk(Σ), fork=0,1. Given an expression e,α(e)is obtained by replacing each
+variable xbyα(x): in particular, α(e[e′])is obtained by replacing the symbol ?in the type-1 nested word α(e)by the
+nested word α(e′).
+Single Use Restriction. The transducer updates variables Xusing type-consistent assignments. To achieve the
+desired expressiveness, we need to restrict the reuse of variables in right-hand sides. In particular, we want to disallow
+the assignment x:=xx(which would double the length of x), but allow the parallel assignment (x:=x,y:=x),
+provided the variables xandyare guaranteed not to be combined later. For this purpose, we assume that the set
+Xof variables is equipped with a binary relation η: ifη(x,y), then xandycannot be combined. This “conflict”
+relation is required to be reflexive and symmetric (but need not be transitive). Two conflicting variables cannot
+occur in the same expression used in the right-hand side of a variable update or as output. During an update, two
+3
+
+--- Page 4 ---
+conflicting variables can occur in multiple right-hand sides for updating conflicting variables. Thus, the assignment
+(x:=⟨a xa⟩[y],y:=a?)is allowed, provided η(x,y)does not hold; the assignment (x:=ax[y],y:=y)is not allowed;
+and the assignment (x:=ax,y:=x[b])is allowed, provided η(x,y)holds. Intuitively, the conflict relation allows the
+content of a variable to be temporarily copied into different variables as long as such variables are not combined later.
+We will use the examples in Section 2.3 to illustrate the usage of the conflict relation and argue in Section 3.2 that
+weaker notions of single use restrictions—e.g., allowing only purely reflexive conflict relations—limit expressiveness.
+Formally, given a set Xof typed variables with a reflexive symmetric binary conflict relation η, and an alphabet Σ,
+an expression einE(X,Σ)is said to be consistent withηif (1) each variable xoccurs at most once in e, and (2) if
+η(x,y)holds, then edoes not contain both xandy. Given sets XandYof typed variables, a conflict relation η, and an
+alphabet Σ, asingle-use-restricted assignment is a function ρthat maps each type- kvariable xinXto a right-hand
+side expression in Ek(Y,Σ), fork=0,1, such that (1) each expression ρ(x)is consistent with η, and (2) ifη(x,y)holds,
+ρ(x′)contains x, andρ(y′)containsy, thenη(x′,y′)must hold. The set of such single-use-restricted assignments is
+denotedA(X,Y,η,Σ).
+At a return, the transducer assigns the values to its variables Xusing the values popped from the stack as well
+as the values returned. For each variable x, we will use xpto refer to the popped value of x. Thus, each variable x
+is updated using an expression over the variables X∪Xp. The conflict relation ηextends naturally to variables in
+Xp:η(xp,yp)holds exactly when η(x,y)holds. However η(x,yp)does not hold for any x∈Xandyp∈Xp. Then, the
+update at a return is specified by assignments in A(X,X∪Xp,η,Σ).1
+2.2 Transducer Definition
+A streaming tree transducer is a deterministic machine that reads the input nested word left-to-right in a single pass.
+It uses finitely many states, together with a stack. The use of the stack is dictated by the hierarchical structure of the
+call/return tags in the input. The output is computed using a finite set of typed variables that range over nested words.
+Variables are equipped with a conflict relation that restricts which variables can be combined. Moreover, the stack
+can be used to store variable values. At each step, the transducer reads the next symbol of the input. If the symbol
+is an internal symbol, then the transducer updates its state and the nested-word variables. If the symbol is a call
+symbol, then the transducer pushes a stack symbol, updates the state, stores updated values of variables in the stack,
+and reinitializes the variables. While processing a return symbol, the stack is popped, and the new state and new
+values for the variables are determined using the current state, current variables, popped symbol, and popped variable
+values from the stack. In each type of transition, the variables are updated in parallel using assignments in which the
+right-hand sides are nested-word expressions. We require that the update is type-consistent and meets the single-use
+restriction with respect to the conflict relation. When the transducer consumes the entire input nested word, the
+output nested word is produced by an expression that is consistent with the conflict relation. These requirements
+ensure that at every step at most one copy of any value is contributed to the final output.
+STT syntax. Adeterministic streaming tree transducer (STT) Sfrom input alphabet Σto output alphabet Γconsists of
+•a finite set of states Q;
+•a finite set of stack symbols P;
+•an initial state q0∈Q;
+•a finite set of typed variables Xwith a reflexive symmetric binary conflict relation η;
+•a partial output function F:Q7→E0(X,Γ)such that each expression F(q)is consistent with η;2
+•an internal state-transition function δi:Q×Σ7→Q;
+•a call state-transition function δc:Q×Σ7→Q×P;
+•a return state-transition function δr:Q×P×Σ7→Q;
+•an internal variable-update function ρi:Q×Σ7→A (X,X,η,Γ);
+•a call variable-update function ρc:Q×Σ7→A (X,X,η,Γ);
+•a return variable-update function ρr:Q×P×Σ7→A (X,X∪Xp,η,Γ).
+1Given a particular variable update function, it is always possible to compute, if it exists, a conflict relation that is consistent with all updates.
+Although the conflict relation ηcould be inferred from the variable update, we will make it part of our definitions to simplify the presentation.
+2It is possible to relax the definition of the output function to support expressions that are not consistent with the conflict relation η, and this will
+not affect the expressiveness of the model. We use this restriction to simplify the presentation.
+4
+
+--- Page 5 ---
+STT semantics. To define the semantics of a streaming tree transducer, we consider configurations of the form
+(q,Λ,α), where q∈Qis a state,αis a type-consistent valuation from variables Xto typed nested words over Γ, and
+Λis a sequence of pairs (p,β)such that p∈Pis a stack symbol and βis a type-consistent valuation from variables in
+Xto typed nested words over Γ. The initial configuration is (q0,ε,α0), whereα0maps each type-0 variable to εand
+each type-1 variable to ?. The transition function δover configurations is defined as follows. Given an input a∈ˆΣ:
+(1)Internal transitions: ifais internal, and δi(q,a)=q′, thenδ((q,Λ,α),a)=(q′,Λ,α′), where
+•q′is the state resulting from applying the internal transition that reads ain state q,
+•the stack Λremains unchanged,
+•the new evaluation function α′=α·ρi(q,a)is the result of applying the variable update function ρi(q,a)
+using the variable values in α.
+(2)Call transitions: if for some b∈Σ,a=⟨b, andδc(q,b)=(q′,p), thenδ((q,Λ,α),a)=(q′,Λ′,α0), where
+•q′is the state resulting from applying the call transition that reads bin state q;
+•Λ′=(p,α·ρc(q,b))Λis the new stack resulting from pushing the pair (p,α′)on top of the old stack Λ,
+where the stack state pis the one pushed by the call transition function, and α′=α·ρc(q,b)is the new
+evaluation function α′resulting from applying the variable update function ρc(q,b)using the variable
+values inα,
+•α0is the evaluation function that sets every type-0 variable to εand every type-1 variable to ?.
+(3)Return transitions: if for some b∈Σ,a=b⟩, andδr(q,p,b)=q′, thenδ((q,(p,β)Λ,α),a)=(q′,Λ′,α′)
+where
+•q′is the state resulting from applying the return transition that reads bin state qwith pon top of the
+stack,
+•the stack Λ′=Λis the result of popping the top of the stack value from the current stack,
+•the new evaluation function α′=α·βp·ρr(q,p,b), whereβpis the valuation for variables Xpdefined
+byβp(xp)=β(x)forx∈X, is the result of applying the variable update function ρr(q,p,b)using the
+variable values in α, and the stack variable values in βp.
+For an input nested word w∈W0(Σ), ifδ∗((q0,ε,α0),w)=(q,ε,α)then if F(q)is undefined then so is JSK(w),
+otherwise JSK(w)=α(F(q)). We say that a nested word transduction ffrom input alphabet Σto output alphabet Γis
+STT-definable if there exists an STT Ssuch that JSK=f.
+2.3 Examples
+Streaming tree transducers can easily implement standard tree-edit operations such as insertion, deletion, and
+relabeling. We illustrate the interesting features of our model using operations such as reverse, swap, and sorting
+based on a fixed number of tags. In each of these cases, the transducer mirrors the natural algorithm for implementing
+the desired operation in a single pass.
+Reverse. Given a nested word a1a2···ak, its reverse is the nested word bk···b2b1, where for each 1≤j≤k,
+bj=ajifajis an internal symbol, bj=⟨aifajis a return symbol a⟩, and bj=a⟩ifajis a call symbol⟨a. As a
+tree transformation, reverse corresponds to recursively reversing the order of children at each node: the reverse of
+⟨a⟨b⟨d⟩⟨e⟩b⟩⟨c⟩a⟩is⟨a⟨c⟩⟨b⟨e⟩⟨d⟩b⟩a⟩. This transduction can be implemented by a streaming tree transducer
+with a single state, a single type-0 variable x, and stack symbols Σ: the internal transition on input aupdates xtoa x;
+the call transition on input apushes aonto the stack, stores the current value of xon the stack, and resets xto the
+empty nested word; and the return transition on input b, while popping the symbol aand stack value xpfrom the
+stack, updates xto⟨b x a⟩xp.
+Tree Swap. Figure 1 shows the transduction that transforms the input tree by swapping the first (in inorder
+traversal) b-rooted subtree t1with the next (in inorder traversal) b-rooted subtree t2, not contained in t1. For clarity of
+presentation, we assume that the input nested word encodes a tree: it does not contain any internal symbols and if a
+call position is labeled ⟨athen its matching return is labeled a⟩.
+The initial state is q0which means that the transducer has not yet encountered a b-label. In state q0, the STT
+records the tree traversed so far using a type-0 variable x: upon an a-labeled call, xis stored on the stack, and is reset
+toε; and upon an a-labeled return, xis updated to xp⟨a x a⟩. In state q0, upon a b-labeled call, the STT pushes q0along
+with the current value of xon the stack, resets xtoε, and updates its state to q′. In state q′, the STT constructs the
+5
+
+--- Page 6 ---
+a
+aa
+bb a
+a bbat2t1
+t1t2
+Fig. 1. Tree Swap
+firstb-labeled subtree t1in the variable x: as long as it does not pop the stack symbol q0, at a call it pushes q′andx,
+and at a return, updates xtoxp⟨a x a⟩orxp⟨b x b⟩, depending on whether the current return symbol is aorb. When
+it pops q0, it updates xto⟨b x b⟩(at this point, xcontains the tree t1, and its value will be propagated), sets another
+type-1 variable ytoxp?, and changes its state to q1. In state q1, the STT is searching for the next b-labeled call, and
+processes a-labeled calls and returns exactly as in state q0, but now using the type-1 variable y. At a b-labeled call, it
+pushes q1along with yon the stack, resets xtoε, and updates the state to q′. Now in state q′, the STT constructs
+the second b-labeled subtree t2in variable xas before. When it pops q1, the subtree t2corresponds to⟨b x b⟩. The
+transducer updates xtoyp[⟨b x b⟩]xpcapturing the desired swapping of the two subtrees t1andt2(the variable y
+is no longer needed and is reset to εto ensure the single use restriction), and switches to state q2. In state q2, the
+remainder of the tree is traversed adding it to x. The output function is defined only for the state q2and maps q2tox.
+Tag-based Sorting. Suppose that given a sequence of trees t1t2···tk(a forest) and a regular pattern, we want
+to rearrange the sequence so that all trees that match the pattern appear before the trees that do not match the
+pattern. For example, given an address book where each entry has a tag that denotes whether the entry is “private” or
+“public”, we want to sort the address book based on this tag: all private entries should appear before public entries,
+while maintaining the original order for entries with the same tag value. Such a transformation can be implemented
+naturally using an STT: variable xcollects entries that match the pattern, while variable ycollects entries that do
+not match the pattern. As the input is scanned, the state is used to determine whether the current tree tsatisfies the
+pattern; a variable zis used to store the current tree, and once tis read in its entirety, based on whether or not it
+matches the pattern, the update {x:=xz,z:=ε}or{y:=yz,z:=ε}is executed. The output of the transducer is the
+concatenation xy.
+Conditional Swap. Suppose that we are given a ternary tree, in which nodes have either three children or none, and
+the third child of a ternary node is always a leaf. We want to compute the transformation f:
+f(⟨c1x1x2⟨c2⟩c1⟩)=(⟨c1f(x2)f(x1)c1⟩ ifc2=a
+⟨c1id(x2)id(x1)c1⟩ ifc2=b
+id(⟨c1x1x2⟨c2⟩c1⟩)=⟨c1id(x1)id(x2)c1⟩
+Informally, while going top-down, fswaps the first two children and deletes the third one. Whenever ffinds a
+node for which the third child is a b, it copies the rest of the tree omitting the third child of each node. The STT
+implementing fuses four variables x1,y1,x2,y2. Given a tree c(t1,t2,t3), after finishing processing the first two
+children t1andt2, the variables x1andx2respectively contain the trees f(t1)andf(t2), and the variables y1andy2
+respectively contain the trees id(t1)andid(t2). When starting to process the third child t3all the variables are stored
+on the stack. At the corresponding return the variable values are retrieved from the stack (for every v∈X,v=vp),
+and the state is updated to qaorqbrepresenting whether t3is labeled with aorbrespectively. When processing the
+return symbol sof a subtree t, we have the following possibilities.
+(1)The current state is qa, and tis the first child of some node t′. The variables are updated as follows: x1:=
+⟨s x2x1s⟩,x2:=ε,y1:=⟨sy1y2s⟩,y2:=ε.
+(2)The current state is qa, and tis the second child of some node t′. The variables are updated as follows: x1:=xp
+1,
+x2:=⟨s x2x1s⟩,y1:=yp
+1,y2:=⟨sy1y2s⟩.
+(3)The current state is qb, and t=c(t1,t2,t3)is the first child of some node t′. In this case, since t3is labeled
+with bwe have f(t)=⟨s t2t1s⟩andid(t)=⟨s t1t2s⟩. In order to maintain the invariants that xi=f(ti)and
+yi=id(ti), we need to copy the values of y1andy2. The variables are updated as follows: x1:=⟨sy2y1s⟩,
+x2:=ε,y1:=⟨sy1y2s⟩,y2:=ε.
+6
+
+--- Page 7 ---
+(4)The current state is qb, and t2is the second child of some node t′. Following the same reasoning as for the
+previous case the variables are updated as follows: x1:=xp
+1,x2:=⟨sy2y1s⟩,y1:=yp
+1,y2:=⟨sy1y2s⟩.
+Sincey1andy2can be copied, the conflict relation ηis such that η(x1,y1)andη(x2,y2)hold.
+3 PROPERTIES AND VARIANTS
+In this section, we note some properties and variants of streaming tree transducers aimed at understanding their
+expressiveness. First, STTs compute linearly-bounded outputs, that is, the length of the output nested word is within
+at most a constant factor of the length of the input nested word. The single-use restriction ensures that, at every step
+of the execution of the transducer on an input nested word, the sum of the sizes of all the variables that contribute to
+the output term at the end of the execution, can increase only by an additive constant.
+Proposition 3.1 (Linear-Bounded Outputs). For an STT-definable transduction ffromΣtoΓ, for all nested words
+w∈W0(Σ),|f(w)|=O(|w|).
+Proof. Given an STT-definable transduction ffrom ΣtoΓ, letAf=(Q,q0,P,X,η,F,δ,ρ)be an STT defining
+f. We will show that for every input w,|JAfK(w)|=O(|Af|2|X||w|), and since|Af|and|X|do not depend on w,
+|f(w)|=O(|w|).
+Given a set X′⊆Xof variables, we say that X′is non-conflicting iff for all variables xandyinX′, it is not the case
+thatη(x,y). Also given a set of non-conflicting variables X1, and a variable assignment v∈A (X,Y,η,Σ), it is easy to
+see that the set of variables X2appearing in the right-hand sides of vfor variables in X1are also non-conflicting; if
+two variables in X2were conflicting, then X1should also contain two conflicting variables.
+We now show that for every word w, ifδ∗((q0,ε,α0),w)=(q,(p1,β1). . . (pn,βn),α), then for every set X′of
+non-conflicting variablesX
+x∈X′(|α(x)|+X
+1≤i≤n|βi(x)|)=O(|Af||X||w|)
+We proceed by induction on w. The case w=εis trivial since every variable has a value of constant size. Now assume
+w=w′a, such that δ∗((q0,ε,α0),w′)=(q,(p1,β1). . . (pn,βn),α)and by I.H. for every set X1of non-conflicting
+variablesX
+x∈X1(|α(x)|+X
+1≤i≤n|βi(x)|)=O(|Af||X||w′|)
+We have three possible cases:
+ais internal: given a set of non-conflicting variables X1, letX2be the set of variables appearing in the right-
+hand sides of ρi(q,a)for variables in X1. Since both X1andX2are non-conflicting we know that each variable
+x∈X2appears at most once in the right-hand side of X1. The right hand side also contains O(|Af|)symbols
+inΓ. Letα′=α·ρi(q,a), then
+X
+x∈X1(|α′(x)|+X
+1≤i≤n|βi(x)|)≤X
+x∈X2(|α(x)|+X
+1≤i≤n|βi(x)|)+O(|Af|)=O(|Af||X||w′|+|Af|)=O(|Af||X||w|)
+Notice that we can apply the induction hypothesis since X2is non-conflicting.
+a=⟨bis a call: given a set of non-conflicting variables X1, let X2be the set of variables appearing in the
+right-hand sides of ρc(q,b)for variables in X1. The right hand side also contains O(|Af|)symbols in Γ. Let
+βn+1=α·ρc(q,b). Then
+X
+x∈X1(|α′(x)|+X
+1≤i≤n+1|βi(x)|)≤X
+x∈X2(|α0(x)|+|α(x)|+X
+1≤i≤n|βi(x)|)+O(|Af|)=
+X
+x∈X2|α0(x)|+X
+x∈X2(|α(x)|+X
+1≤i≤n|βi(x)|)+O(|Af|)=O(|Af||X||w|)
+The equality follows since for every x,|α0(x)|≤1.
+a=b⟩is a return: given a set of non-conflicting variables X1, letX2be the set of variables appearing in the
+right-hand sides of ρr(q,b,pn)for variables in X1. We know that X2is non-conflicting and each variable
+7
+
+--- Page 8 ---
+x∈X2can appear at most once as xand once as xpin the right-hand sides of variables in X1inρr(q,b,pn).
+The right hand side also contains O(|Af|)symbols in Γ. Letα′=α·βp
+n·ρr(q,a,pn). Then
+X
+x∈X1(|α′(x)|+X
+1≤i≤n−1|βi(x)|)≤X
+x∈X2(α(x)+βn(x)+X
+1≤i≤n−1βi(x))+O(|Af|)=
+X
+x∈X2(|α(x)|+X
+1≤i≤n|βi(x)|)+O(|Af|)=O(|Af||X||w|).
+As a consequence, after processing a word w, every variable has a value of size O(|Af||X||w|). Since the output
+function has O(|Af|)symbols, the final output has size O(|Af|2|X||w|). This concludes the proof. □
+We now examine some of the features in the definition of STTs in terms of how they contribute to expressiveness.
+First, having multiple variables is essential: this follows from results on streaming string transducers [ 1,2]. Consider
+the transduction that rewrites a nested word wtown(that is, wrepeated ntimes). An STT with nvariables can
+implement this transduction. It is easy to prove that an STT with less than nvariables cannot implement this
+transduction. Second, the ability to store symbols in the stack at calls is essential. This is because nested word
+automata are more expressive than classical finite-state automata over strings.
+3.1 Regular Nested-Word Languages
+A streaming tree transducer with empty sets of string variables can be viewed as an acceptor of nested words: the
+input is accepted if the output function is defined in the terminal state, and rejected otherwise. In this case, the
+definition coincides with (deterministic, complete) nested word automata (NWA). The original definitions of NWAs
+and regular nested-word languages do not need the input nested word to be well-matched (that is, the input is a
+string over ˆΣ), but this distinction is not relevant for our purpose. A (deterministic, complete) nested word automaton
+Aover an input alphabet Σis specified by a finite set of states Q; a finite set of stack symbols P; an initial state q0∈Q;
+a set F⊆Qof accepting states; an internal state-transition function δi:Q×Σ7→Q; a call state-transition function
+δc:Q×Σ7→Q×P; and a return state-transition function δr:Q×P×Σ7→Q. A language L⊆W0(Σ)of nested
+words is regular if it is accepted by such an automaton. This class includes all regular string and tree languages, and
+is a subset of deterministic context-free languages [3].
+Given a nested-word transduction ffrom input alphabet Σto output alphabet Γ, the domain offis the set
+Dom (f)⊆W0(Σ)of input nested words wfor which f(w)is defined, and the image offis the set Img (f)⊆W0(Γ)of
+output nested words w′such that w′=f(w)for some w. It is easy to establish that, for STT-definable transductions,
+the domain is a regular language, but the image is not necessarily regular:
+Proposition 3.2 (Domain-Image Regularity). For an STT-definable transduction ffromΣtoΓ,Dom (f)is a
+regular language of nested words over Σ. There exists an STT-definable transduction ffromΣtoΓ, such that Img (f)is
+not a regular language of nested words over Γ.
+Proof. Given an STT-definable transduction ffromΣtoΓ, letAf=(Q,q0,P,X,η,F,δ,ρ)be an STT defining it.
+The NWA Aaccepting the domain Dom (f)offhas set of states Q′=Q, initial state q′
+0=q0, set of stack states P′=P,
+set of final states F′={q|F(q)is defined}, and transition function δ′=δ.
+We now construct an STT BfromΣ={a,b}toΓ={a,b}computing a function f′for which the image Img (f′)is
+not regular. The STT Bonly has one state qwhich is also initial and only has transition function δi(q,a)=δi(q,b)=q,
+and has only one type-0 variable xthat is updated as follows: ρi(q,a,x)=δi(q,b,x)=axb. The output function FB
+ofBis defined as FB(q)=x. The STT Bcomputes the following transduction f′: if the input word whas length n,B
+outputs the word anbn. The image Img (f′)off′is the language{anbn|n≥0}, which is not a regular language of
+nested words over Γ.□
+It is interesting to observe that the output language might not necessarily be context-free either, since it is easy to
+build an STT that on an input string wproduces the string ww. We refer the reader to [ 13] for an analysis of the
+output languages of many classes of tree transformations.
+3.2 Copyless STTs
+When the conflict relation ηis purely reflexive (i.e. {(x,x)|x∈X}) we call an STT copyless . The set of copyless
+assignments from YtoXis denoted byA(X,Y,Σ)where we drop the relation η. We now define the notion of atomic
+assignment, which will be fundamental in many proofs.
+8
+
+--- Page 9 ---
+Definition 3.3. A copyless assignment ρ∈A (X,X∪Y,Σ)isatomic iff it has one of the following forms:
+Reset: for some variable x∈X, and some a,b∈Σ,x:=ε,x:=?,x:=⟨a?b⟩, orx:=a, and for every variable
+y∈X, ify,x, theny:=y;
+Concatenation: for some two distinct variables x,y∈X,x:=xyorx:=yx,y:=εory:=?, and for every
+variable z∈X, ifz,xandz,y, then z:=z;
+Substitution: for some two distinct variables x,y∈X,x:=x[y]orx:=y[x],y:=?ory:=ε, and for every
+variable z∈X, ifz,xandz,y, then z:=z;
+Swap: for some two distinct variables x,y∈X,x:=y,y:=x, and for every variable z∈X, ifz,xandz,y,
+then z:=z.
+We then show that every copyless assignment can be broken into a sequence of simpler atomic assignments.
+Lemma 3.4. For every copyless assignment ρ∈A (X,X,Σ)there exists a set of variables Ydisjoint from X, and a
+sequence of assignments s=ρ1, . . . ,ρnsuch that:
+(1)for every variable x∈X,s(x)=ρ(x),
+(2)the assignment ρ1belongs toA(X∪Y,X,Σ)and it is atomic,
+(3)for every 2≤j≤n, the assignment ρjbelongs toA(X∪Y,X∪Y,Σ), and it is atomic.
+Proof. We sketch the proof and gloss over the fact the variables can be of both type-0 and type-1. Given an
+expression e∈E=E0∪E1we define the size of e,size (e), as the size of its parse tree:
+•ife∈{ε,a,⟨a?b⟩,?}, then size (e)=1;
+•if for some e1different from ?,e=⟨ae1b⟩, then size (e)=1+size (e1);
+•if for some e1,e2,e=e1e2, ore=e1[e2], then size (e)=1+size (e1)+size (e2).
+Given an assignment ρ∈ A (X1,X2,Σ), we define size (ρ)∈N×N×Nto be the value (a,b,c)such that a=
+max x∈X1size (ρ(x))is the maximum size of a expression on the right hand side of a variable, bis the number of
+variables for which the right-hand side is an expression of size a, and cis the size of the set {x|∃y.y,x∧ρ(x)=y}.
+We define the total order between two triplets (a,b,c),(a′,b′,c′)∈N3as (a,b,c)<(a′,b′,c′)ifa<a′, ora=a′and
+b<b′, ora=a′,b=b′, and c<c′.
+Given an assignment ρthat is not atomic, we show that ρcan always be transformed into a sequence of atomic
+assignments s=ρ1ρ2, such that size (ρ1)<size (ρ),ρ2is atomic, and for every x∈X,s(x)=ρ(x). The new
+assignments can have new variables. We proceed by case analysis on size (ρ)=(s1,s2,s3).
+•Ifs1=0the assignment is already atomic.
+•Ifs1=1we have the following possibilities.
+–Ifρis atomic, then we are done; or
+–s3≥1and there exist two distinct variables xandy, such that ρ(x)=y. Replaceρwith the sequence
+ρ1ρ2, such that ρ1(x)=ρ(y),ρ1(y)=y,ρ2(x)=y,ρ2(y)=x, and for every zdifferent from xandy,
+ρ1(z)=ρ(z), andρ2(z)=z. The size of ρ1is(s1,s2,s3−1)which concludes this case.
+•ifs1>1we have the following possibilities.
+–One variable xhas right-hand side e=w1w2, and ehas size s1. Replaceρwith the sequence ρ1ρ2, such
+thatρ1,ρ2∈A (X∪{v},X∪{v},Σ):ρ1(x)=w1,ρ1(v)=w2,ρ2(x)=xv,ρ2(v)=ε, and for each ysuch
+thaty,xandy,n,ρ1(y)=ρ(y)andρ2(y)=y. We then have that ρ2is atomic, and since w1andw2
+both have smaller size than e,size (ρ1)is smaller than size (ρ).
+–One variable xhas right-hand side e=w1[w2], and ehas size s1. Replaceρwith the sequence ρ1ρ2of
+assignment over X∪{n}such that:ρ1(x)=w1,ρ1(n)=w2,ρ2(x)=x[n],ρ2(x)=ε, and for each ysuch
+thaty,xandy,n,ρ1(y)=ρ(y)andρ2(y)=y. We then have that ρ2is atomic, and since w1andw2
+both have smaller size than e,size (ρ1)is smaller than size (ρ).
+–One variable xhas right-hand side e=⟨awb⟩,ehas size s1, and w,?. Replaceρwith the sequence ρ1ρ2
+of assignment over X∪{n}such that: 1) ρ1(x)=⟨a?b⟩,ρ1(n)=w, and for each y∈X, ify,x,ρ1(y)=y,
+2)ρ2(x)=x[n],ρ2(n)ε, and for each y∈X, such that y,x,ρ3(y)=y. The assignment ρ2is atomic.
+Since whas smaller size than e,size (ρ1)is smaller than size (ρ).
+It is easy to observe that every atomic assignment over nvariables has size (0,n,0)or (1,n′,k)with n≤n′andk≤2.
+We can therefore repeat the procedure we just described until the first assignment is also atomic. This concludes the
+proof.□
+9
+
+--- Page 10 ---
+Corollary 3.5. For every copyless assignment ρ∈A (X,X∪Y,Σ), with Xdisjoint from Y, there exists a set of
+variables Zdisjoint from X∪Yand a sequence of assignments s=ρ1, . . . ,ρnsuch that:
+(1)for every variable x∈X,s(x)=ρ(x),
+(2)the assignment ρ1belongs toA(X∪Y∪Z,X∪Y,Σ)and it is atomic,
+(3)for every 2≤j≤n, the assignment ρjbelongs toA(X∪Y∪Z,X∪Y∪Z,Σ), and it is atomic,
+(4)the assignment ρnbelongs toA(X,X∪Y∪Z,Σ)and it is atomic.
+Moreover, if two copyless assignments are composed, the resulting assignment is still copyless.
+Lemma 3.6. Given a copyless assignment ρ∈A (Y,X,Σ), and a copyless assignment ρ′∈A (Z,Y,Σ), the composed
+assignment ρ1=ρ·ρ′∈A (Z,X,Σ)is a copyless assignment in A(Z,X,Σ).
+Proof. Assume this is not the case. Then there exists a variable x∈Xthat appears twice in the right hand side of
+ρ1. This means that there exists two variables y1,y2∈Yappearing in the right hand side of ρ′, such that both ρ(y1)
+andρ(y2)contain x. Ify1,y2, the assignment ρcannot be copyless, since it would contain two occurrences of x. If
+y1=y2,ρ′cannot be copyless, since it would contain two occurrences of y1.□
+3.3 Bottom-up Transducers
+A nested-word automaton is called bottom-up if it resets its state along the call transition: if δc(q,a)=(q′,p)then
+q′=q0. The well-matched nested word sandwiched between a call and its matching return is processed by a bottom-up
+NWA independent of the outer context. It is known that bottom-up NWAs are as expressive as NWAs over well-
+matched nested words [ 3]. We show that a similar result holds for transducers also: there is no loss of expressiveness
+if the STT is disallowed to propagate information at a call to the linear successor. Notice that STTs reinitialize all
+the variables at every call. An STT Sis said to be a bottom-up STT if for every state q∈Qand symbol a∈Σ, if
+δc(q,a)=(q′,p)then q′=q0, and for every variable x∈X,ρc(q,a,x)=x.
+Theorem 3.7 (Bottom-up STTs). Every STT-definable transduction is definable by a bottom-up STT.
+Proof. LetS=(Q,q0,P,X,η,F,δ,ρ)be an STT. We construct an equivalent bottom-up STT S′=(Q′,q′
+0,P′,X′,η′,F′,δ′,ρ′).
+Intuitively, S′delays the application of a call transition of Sto the corresponding return. This is done by computing a
+summary of all possible executions of Son the subword between a call and the corresponding matching return. At
+the return this summary can be combined with the information stored on the stack to continue the summarization.
+Auxiliary Notions. Given a nested word w=a1a2. . .an, for each position 1≤i≤n, letwms (w,i)be the longest
+well-matched subword aj. . .aiending at position i. Formally, given a well-matched nested word w=a1a2. . .an, we
+define wms (w,i)as follows:
+•wms (w,0)=ε;
+•ifaiis internal, then wms (w,i)=wms (w,i−1)ai;
+•ifaiis a call, then wms (w,i)=ε;
+•ifaiis a return with matching call aj, then wms (w,i)=wms (w,j−1)ajaj+1. . .ai.
+The nested word wms (w,i)is always well-matched, and represents the subword from the innermost unmatched call
+position up to position i. For a well-matched nested word wof length n,wms (w,n)equals w. For example, in the
+nested word wex=⟨a⟨b b⟩a⟩, we have wms (wex,0)=wms (wex,1)=wms (wex,2)=ε,wms (wex,3)=⟨b b⟩, and
+wms (wex,4)=wex.
+Next, we define lc(w,i)as the last unmatched call at position i:
+•lc(w,0)=⊥is undefined;
+•ifaiis internal, then lc(w,i)=lc(w,i−1);
+•ifaiis a call, then lc(w,i)=i;
+•ifaiis a return, and wms (w,i)=aj. . .ai, then lc(w,i)=lc(w,j−1).
+In the example nested word wex, we have lc(wex,1)=1,lc(wex,2)=2,lc(wex,3)=1. and lc(wex,4)=⊥.
+State Components and Invariants. Each state fofQ′is a function from QtoQ. After reading the i-th symbol of
+w,S′is in state fsuch that f(q)=q′iff when Sprocesses wms (w,i)starting in state q, it reaches the state q′. The
+10
+
+--- Page 11 ---
+initial state of S′is the identity function f0mapping each state q∈Qto itself. A stack state in P′is a pair (f,a)where
+fis a function mapping QtoQandais a symbol in Σ.
+Next, we define the transition relation δ′. When reading an internal symbol a, starting in state f,S′goes to state
+f′such that for each q∈Q,f′(q)=δi(f(q),a). When reading a call symbol ⟨a, starting in state f,S′stores fon the
+stack along with the symbol aand goes to state f0. When reading a return symbol b⟩, starting in state f, and with
+(f′,a)on top of the stack, S′goes to state f′′defined as: for each q∈Q, iff′(q)=q1(the state reached by Swhen
+reading wms (w,lc(w,i−1))starting in q),δc(q1,⟨a)=(q2,p), and f(q2)=q3(the state reached by Swhen reading
+wms (w,i−1,) starting in q2), then f′′(q)=δr(q3,p,b).
+Variable Updates and Invariants. We now explain how S′achieves the summarization of the variable updates
+ofS. For each variable x∈Xand state q∈Q,X′contains a variable xq. After reading the i-th symbol, xqcontains
+the value of xcomputed by S, when reading wms (w,i)starting in state q. Given an assignment α∈A (X,X,Σ)∪
+A(X,X∪Xp,Σ), a state q∈Q, and a set of variables Y⊆X∪Xp, we define subq,Y(α)to be the assignment
+α′∈A (X′,X′,Σ)∪A (X′,X′∪X′
+p,Σ), where X′=(X\Y)∪Y′with Y′={yq|y∈Y}, and each variable y∈Yis
+replaced by yq∈Y′.
+Initially, and upon every call, each variable xqis assigned the value ?orε, ifxis a type-1 or type-0 variable
+respectively. We use e{x/x′}to denote the expression ein which every variable xis replaced with the variable x′.
+When processing the input symbol a, starting in state f, each variable xqis updated as follows:
+ais internal: iff(q)=q′, then xq:=subq,X(ρi(q′,a,x))is the result of applying the variable update function
+ofSin state q′where each variable x∈Xis renamed to xq;
+ais a call: since S′is bottom-up, every variable is simply stored on the stack, and the update function at the
+call is delayed to the corresponding return, xq:=xq;
+a=b⟩is a return: if(f′,c)is the state popped from the stack, f′(q)=q1,δc(q1,c)=(q2,p), and f(q2)=q3,
+then xq:=subq2,X(subq,Xp(ρr(q3,b,p,x){yp/ρc(q1,c,y){z/zp}}))is the result of applying the call variable
+update function in state q1, followed by the return variable update function of Sin state q′where each variable
+x∈Xis renamed to xq2, and each variable x∈Xpis renamed to xq.
+Output Function. The output function F′ofS′is defined as follows: for each state f∈Q′,F′(f)=subq0,X(F(f(q0)))
+is the result of applying the output function of Sin state f(q0)where each variable x∈Xis renamed to xq0.
+Conflict Relation. The conflict relation η′contains the following rules.
+(1) Variable summarizing different states are in conflict: for all x,y∈X, for all q,q′∈Q,η′(xq,yq′).
+(2)Variables that conflict in Salso conflict in S′, for every possible summary: for all q∈Q, for all x,y∈X, if
+η(x,y), thenη′(xq,yq).
+Next, we prove that η′is consistent with the update function ρ′. We assume the current state f∈Q′to be fixed. We
+first show that two conflicting variables never appear in the same right hand side. Each assignment of S′has the
+form subq,Y(ρ(q,a,x)). Therefore if no variables of Sare conflicting in ρ(q,a,x)with respect to η, no variables are
+conflicting in subq(ρ(q,a,x))with respect to η′. Secondly, we show that for each x,y,x′,y′∈X′, ifη′(x,y)holds,
+xappears in ρ′(q,x′), andyappears in ρ′(q,y′), thenη(x′,y′)holds. From the definition of η′, we have that two
+variables in X′can conflict for one of the following reasons.
+•Two variables xq1,yq′
+1∈X′such that q1,q′
+1appear in two different assignments to wq2andzq′
+2respectively,
+for some w,z∈Xandq2,q′
+2∈Q. We need to show η′(wq2,zq′
+2). We now have two possibilities.
+–Ifq2=q′
+2, assuming the current symbol is internal, we have that wq2andzq2are updated to subq2(ρi(f(q2),a,w))
+andsubq2(ρi(f(q2),a,z)), where all variables are labeled with q2. This violates the assumption that
+q1,q′
+1. If the current symbol is a call or a return a similar reasoning holds.
+–Ifq2,q′
+2,η′(wq2,zq′
+2)follows from the first rule of η′.
+•Two variables xq1,yq1∈X′such thatη(x,y)appear in two different assignments to wq2andzq′
+2respectively,
+for some w,z∈X, and q2,q′
+2∈Q. We need to show η′(wq2,zq′
+2). Ifq2=q′
+2,η′(wq2,zq′
+2)follows from the
+second rule of η′, while if q2,q′
+2,η′(wq2,zq′
+2)follows from the first rule of η′.□
+3.4 Regular Look-ahead
+Now we consider an extension of the STT model in which the transducer can make its decisions based on whether
+the remaining (well-matched) suffix of the input nested word belongs to a regular language of nested words. Such
+11
+
+--- Page 12 ---
+a test is called regular look-ahead (RLA). A key property of the STT model is the closure under regular look-ahead.
+Furthermore, in the presence of regular-look-ahead, the conflict relation can be trivial, and thus, copyless STTs suffice.
+Definition of Regular Look-ahead. Given a nested word w=a1a2. . .an, for each position 1≤i≤n, letwmp (w,i)
+be the longest well-matched subword ai. . .ajstarting at position i. Formally given a well-matched nested word
+w=a1a2. . .an,wmp (w,n+1)=ε, and for each position isuch that 1≤i≤n:
+(1) if aiis internal, wmp (w,i)=aiwmp (w,i+1);
+(2) if aiis a call with matching return aj,wmp (w,i)=aiwmp (w,i+1)ajwmp (w,j+1);
+(3) if aiis a return, wmp (w,i)=ε.
+Given a symbol a∈Σ, we define the reverse of a tagged symbol as rev (a)=a,rev (⟨a)=a⟩, and rev (a⟩)=⟨a. We
+userev (w)=rev (an). . .rev (a1), for the reverse of w=a1. . .an, and rev (L)={rev (w)|w∈L}for the language
+of reversed strings in L.
+When reading the i-th symbol of w, a look-ahead checks whether a regular property of the nested word wmp (w,i)
+holds. Let Lbe a regular language of nested words, and let Abe a (deterministic) bottom-up NWA for rev (L)(such a
+NWA exists, since regular languages are closed under the reverse operation [ 3]). Then, while processing a nested word,
+testing whether the nested word wmp (w,i)belongs to Lcorresponds to testing whether the state of Aafter processing
+rev (wmp (w,i))is an accepting state of A. Since regular languages of nested words are closed under intersection, the
+state of a single bottom-up NWA Areading the input nested word in reverse can be used to test membership of the
+well-matched suffix at each step in different languages. Also note that, since Ais bottom-up, its state after reading
+rev (wmp (w,i)), is the same as its state after reading rev (ai. . .an). This motivates the following formalization. Let
+w=a1. . .anbe a nested word over Σ, and let Abe a bottom-up NWA with states Rprocessing nested words over
+Σ. Given a state r∈R, we define the (r,A)-look-ahead labeling of wto be the nested word wr=r1r2. . .rnover
+the alphabet Rsuch that for each position 1≤j≤n, the call/return/internal type of rjis the same as the type of
+aj, and the corresponding symbol is the state of the NWA Aafter reading rev (aj. . .an)starting in state r. Then,
+theA-look-ahead labeling of w, is the nested word wA=wr0. An STT-with-regular-look-ahead (STTR) consists of
+a bottom-up NWA AoverΣwith states R, and an STT Sfrom RtoΓ. Such a transducer defines a streaming tree
+transduction from ΣtoΓ: for an input nested word w∈W(Σ), the output JS,AK(w)is defined to be JSK(wA).
+Closure under Regular Look-Ahead. The critical closure property for STTs is captured by the next theorem, which
+states that regular look-ahead does not add to the expressiveness of STTs. This closure property is key to establishing
+that STTs can compute all MSO-definable transductions.
+Theorem 3.8 (Closure under Regular-Look-Ahead). The transductions definable by STTs with regular look-ahead
+are STT-definable.
+Proof. LetAbe an NWA with states R, initial state r0, stack symbols P′′, and state-transition function δ′′. Let SA
+be an STT from RtoΓ. We construct an STT S′=(Q′,q′
+0,P′,X′,η′,F′,δ′,ρ′)equivalent to the STTR (SA,A). Using
+Theorem 3.7, let S=(Q,q0,P,X,η,F,δ,ρ)be a bottom-up STT equivalent to SA. We use few definitions from the
+proof of Theorem 3.7: 1) wms (w,i)is the longest well-matched subword aj. . .aiending at position i; 2)subq,Y(α)is
+the function that substitutes each variable x∈Yin an assignment αwith the variable xq.
+First of all, we observe that for a well-matched nested word w, and an STT S, ifδ∗((q,Λ,α),w)=(q′,Λ′,α′), then
+Λ=Λ′, and the value Λdoes not influence the execution of S. Hence, for a well-matched nested word w, we can omit
+the stack component from configurations, and write δ∗((q,α),w)=(q′,α′).
+State Components and Invariants. Given the input nested word w=a1. . .an, when processing the symbol ai, the
+transition of the STT Sdepends on the state of Aafter reading rev (wmp (w,i)). Since the STT S′cannot determine
+this value based on the prefix read so far, it needs to simulate Sfor every possible choice of r∈R. We do this by
+keeping some extra information in the states of S′.
+Each state q′∈Q′is a pair (f,д), where f:R7→R, andд:R7→Q. After reading the input symbol ai, for every
+state r∈R,f(r)is the state reached by Aafter reading rev (wms (w,i))when starting in state r, andд(r)is the state
+reached by Safter reading wms (w,i)rstarting in state q0. Recall that wris the state labeling produced by A, when
+reading wstarting in state r. The initial state is q′
+0=(f0,д0), where, for every r∈R,f0(r)=rand,д0(r)=q0. Each
+stack state p′∈P′is a triplet (f,д,a), where the components fandдare the same as for Q′, and ais a symbol in Σ.
+We now describe the transition relation δ′. We assume S′to be in state q=(f,д), and processing the input symbol
+ai. There are three possibilities.
+12
+
+--- Page 13 ---
+aiis internal: δ′
+i(q,ai)=(f′,д′)where, for each r∈R, ifδ′′
+i(r,ai)=r′
+•iff(r′)=r′′, then f′(r)=r′′; the state reached by Awhen reading rev (wms (w,i)), starting in r, is the
+same as the state reached when reading rev (wms (w,i−1))starting in r′;
+•ifд(r′)=q, andδi(q,r′)=q′, thenд′(r)=q′; the state reached by Swhen reading wms (w,i)r, is the
+same as the state it reaches when reading wms (w,i−1)r′r′;
+ai=⟨ais a call:δ′
+c(q,a)=(q′
+0,p), where p=(f,д,a); the current state (f,д)is stored on the stack along with
+the current symbol a, and the control state is reset to q′
+0;
+ai=a⟩is a return: letaj=⟨bbe the matching call of ai, and let p=(f′,д′,b)be the state popped from the
+stack. Since Ais bottom-up for every r∈R,δ′′
+c(r,a)=(r0,pr)for some pr∈P′′. Let f(r0)=r1andд(r0)=q1.
+Informally, the state r1is the one reached by Awhen reading rev (wms (w,i−1))(i.e., the reversed subword
+sandwiched between the matching call and return) starting in state r0, while q1is the state reached by Safter
+processing wms (w,i−1)r0. Finally, we have δ′
+r(q,p,a)=(f′′,д′′), where for each r∈R, ifδ′′
+r(r1,pr,b)=r2,
+•iff′(r2)=r′, then f′′(r)=r′;
+•ifд′(r2)=q2,δ′
+c(q2,r2)=(q0,p′), andδ′
+r(q1,p′,r0)=q′, thenд′′(r)=q′.
+Variable Updates and Invariants. The STT S′has variable set X′={xr|x∈X,r∈R}. After processing the i-th
+symbol ai, the value of xris the same as the value of xcomputed by Safter reading wms (w,i)r. We can now describe
+the variable update function ρ′. We assume that S′is in state q=(f,д)and it is processing the symbol ai. For each
+variable xr∈X′,S′performs the following update:
+aiis internal: ifδ′′
+i(r,a)=r′, andд(r′)=q′, thenρ′(q,a,xr)=subr′(ρi(q′,r′,x))is the assignment of Stox
+where each variable xis replaced with xr′;
+ai=⟨ais a call: S′′perform the assignment ρ′
+c(q,b,xr)=xr, where we store all variable values on the stack,
+and delay the update to the matching return;
+ai=a⟩is a return: letaj=⟨bbe the corresponding call, and let p=(f′,д′,b)be the state popped from the
+stack. The update follows a similar reasoning to that of the transition function δ′. Assumeδ′′
+c(r,a)=(r0,p),
+f(r0)=r1,δ′′
+r(r1,p,b)=r2,д(r0)=q1,д′(r2)=q2,δc(q2,r2)=(q3,p′). For each x∈X, lettc(x)be the
+expression ρc(q2,r2,x), and tr(x)be the expression ρr(q1,r0,x);
+now for every x∈X, lett′
+c(x)=tc(x){y/yp}be the expression tc(x)in which every variable y∈Xis
+replaced with the corresponding stack variable yp, and let t′′(x)=tr(x){yp/t′
+c(y)}be the expression tr(x)in
+which every variable yp∈Xpis replaced with the expression t′
+c(y). The final update will be the expression
+ρ′(q,a,xr)=subr2,Xp(subr′,X(t′′(x)))where each non stack variable xis replaced with x′
+r, and each stack
+variableyis replaced with yr2.
+Output Function. The function output F′only outputs variables labeled with r0: for every state (f,д)∈Q′, if
+д(r0)=q, then F′(f,д)=subr0F(q).
+Conflict Relation. Finally, we define the conflict relation η′as follows:
+(1)Variables summarizing different lookahead states are in conflict: for all x,y∈X, for all r1,r2∈R, then
+η′(xr1,yr2).
+(2)Variables that conflict in Salso conflict in S′for every possible summary: for all x,y∈X, such that η(x,y),
+and for all r∈R,η′(xr,yr).
+The proof that ρ′is consistent with η′is analogous to the proof of Theorem 3.7. □
+Copyless STTs with RLA. Recall that an STT is said to be copyless if ηis the reflexive relation. In an STT, an
+assignment of the form (x,y):=(z,z)is allowed if xandyare guaranteed not to be combined, and thus, if only one
+ofxandycontributes to the final output. Using regular look-ahead, the STT can check which variables contribute to
+the final output, avoid redundant updates, and thus be copyless.
+Theorem 3.9 (Copyless STT with RLA). A nested-word transduction fis STT-definable iff it is definable by a
+copyless STT with regular look-ahead.
+Proof. The proof of the⇐direction is straightforward: given a copyless STT with regular look-ahead, we can use
+Theorem 3.8 to construct an equivalent STT.
+13
+
+--- Page 14 ---
+We now prove the ⇒direction. Let S1be an STT from ΣtoΓ. Using theorem 3.7, let S=(Q,q0,P,X,η,F,δ,ρ)be a
+bottom-up STT, equivalent to S1. We construct a bottom-up NWA A=(R,r0,P′′,δ′′), and a copyless STT S′from R
+toΓ, such that JS′,AKis equivalent to JSK.
+The NWA Akeeps in the state information about which variables will contribute to the final output. The STT S′
+uses such information to update only the variables that will contribute to the final output and reset all the ones that
+will not. This allows S′to be copyless.
+Auxiliary Notions. We use the notion wmp (w,i)of longest well-matched subword ai. . .ajstarting at position i.
+Given a nested word w=a1. . .an, we also define nr (w,i)to be the position of the first unmatched return in ai. . .an.
+By definition, nr (w,n+1)=n+1, and for each position isuch that 1≤i≤n:
+(1) if aiis internal, nr (w,i)=nr (w,i+1);
+(2) if aiis a call, with matching return aj,nr (w,i)=nr (w,j+1);
+(3) if aiis a return, nr (w,i)=i.
+For example, in the nested word wex=⟨a⟨b b⟩a⟩, we have nr (wex,1)=5,nr (wex,2)=4,nr (wex,3)=3, and
+nr (wex,4)=4.
+RLA Automaton Intuition. Since Aneeds to reset its state at every call, it is not enough to consider the variables
+appearing in the output function of Sas contributing variables. After reading the i-th input symbol in rev (w), the
+state r∈RofAcontains the following information: for every set of variables Y, ifYis the set of relevant variables
+after reading nr (w,i),rcontains the set of variables Y′that must be updated when reading the i-th symbol, in order
+to have all necessary information to update the variables Ywhen processing nr (w,i).
+Before presenting the construction in detail, we need few more definitions. We define the set of subsets of non-
+conflicting variables of Xas follows: UXdef={Y|Y⊆X∧∀x,y∈Y,ifx,y.(x,y)<η}. We then enrich it with a
+special variable xFthat represents the final output: UF
+Xdef=UX∪xF. Moreover, given an expression s∈E(X,Σ)(i.e. an
+assignment’s right hand side), we use x∈asto say that a variable x∈Xappears in s.
+Given a nested word w=a1. . .an, and an STT S, we define the function cvS,w:Q×{0, . . . , n}×UF
+X7→UF
+X, such
+that, for every state q∈Q, position i, and set of variables Y,cvS,w(q,i,Y)=Y′iffY′is the set of variables that must
+be updated by S′when reading ai+1in state q, if the set of relevant variables at nr (w,i)isY. For every Y∈UF
+X,
+cvS,w(q,n,Y)=Y. For every 0≤i≤n−1:
+ai+1is internal: ifδi(q,ai+1)=q′, and cvS,w(q′,i+1,Y1)=Y2, then cvS,w(q,i,Y1)=Y3where
+•ifY2=xF, then Y3={x|x∈aF(q′)};
+•ifY2,xFandai+2is a call⟨a, then Y3={x|∃y∈Y2.x∈aρc(q′,a,y)};Y3contains the variables that
+appear on the right-hand side of the variables Y2while reading the symbol ai+2;
+•ifY2,xFandai+2is internal, then Y3={x|∃y∈Y2.x∈aρi(q′,ai+2,y)};
+•ifai+2is a return, then Y3=Y2.
+ai+1=⟨ais a call: letaj+1=b⟩be the matching return; if δc(q,a)=(q0,p),δ∗(q0,(ai+2. . .aj))=q1,δr(q1,aj+1,p)=
+q2, and cvS,w(q2,j+1,Y1)=Y2, then cvS,w(q,i,Y1)=Y3where
+•ifY2=xF, then Y3={x|∃y∈aF(q2).xp∈aρr(q1,b,p,y)};
+•ifY2,xF, then Y3={x|∃y∈Y2∧xp∈aρr(q1,b,p,y)}.
+ai+1is a return: cvS,w(q,i,Y)=YifY,xF, and undefined otherwise.
+Before continuing we prove that the function cvS,walways returns a set of non-conflicting variables.
+Lemma 3.10. For every i∈{0, . . . , n−1},q∈Q,Y∈UF
+X, ifcvS,w(q,i,Y)=Y′then Y′∈UF
+X.
+Proof. We proceed by induction on i. The base case, i=nandcvS,w(q,n,Y)=Y, is trivial. We now have to show
+that for all i<n, ifcvS,w(q,i,Y)=Y′, then Y′∈UF
+X. We assume by induction hypothesis that, for all q′∈Q,Z∈UF
+X,
+ifcvS,w(q′,i+1,Z)=Z′then Z′∈UF
+X. We have the following three cases:
+ai+1is internal: we need to prove that Y3∈UF
+X. By IH, we know that Y2∈UF
+X. IfY2=xF,Y3={x|x∈aF(q′)}
+must be a set non-conflicting for F(q′)to be well defined. If Y2,xF, and ai+2=⟨ais a call, Y3={x|
+∃y∈Y3.x∈aρc(q′,a,y))}. Let’s assume by way of contradiction that there exist x,y∈Y2, such that η(x,y)
+holds. If this is the case there must exist either two variables x′,y′∈Y3such that x∈aρc(q′,ai+2,x′)and
+y∈aρc(q′,a,y′), or a variable x′∈Y2such that x,y∈aρc(q′,a,x′). In both cases, using the definition of
+conflict relation, we can show that the hypothesis that Y2∈UF
+Xcontains only conflict free variables is violated.
+14
+
+--- Page 15 ---
+ai+1is a call: similar to the previous case;
+ai+1is a return: trivial.□
+RLA Automaton Construction. We now construct the NWA Athat computes the function cvS,w. The NWA A
+mimics the definition of cvS,wwhile reading the input nested word backward. At every call (return for the input)
+the state of Ais reset to ensure that the Ais bottom-up and the current value of cvS,wis stored on the stack. At the
+matching return (call for the input), the value popped from the stack is used to compute the new value of cvS,w.
+In order for the construction to work, we also need Ato “remember”, while reading backward, what is the set of
+variables that will be relevant at the next call. Given a nested word w=a1. . .an, and a position i, we define nc (w,i)
+as the next call in wmp (w,i). Formally, nc (w,n+1)=⊥, and, for each 1≤i≤n,
+•ifaiis internal, then nc (w,i)=nc (w,i+1);
+•ifaiis a call, then nc (w,i)=i;
+•ifaiis a return, then nc (w,i)=⊥.
+Next, we define the set of states RofA. Each state r∈R, is a quadruple (s,f,д,h)where s∈Σ∪{⊥} ,f:Q×UF
+X7→UF
+X,
+д:Q7→Q, and h:Q×UF
+X7→ (UF
+X∪⊥ ), where fcomputes the function cvS,w(q,i,Y)=Y′,дsummarizes the
+execution of Sonwmp (w,i), and hcomputes which variables will be necessary at the return matching the next call,
+and therefore which variables must be stored on the stack. We formally present the invariants maintained by Aand
+then show its construction. Given the input nested word w=a1. . .an, after processing rev (ai. . .an),Ais in state
+(s,f,д,h), where:
+(1) for all Y∈UF
+X, and q∈Q, ifcvS,w(q,i,Y)=Y′, then f(q,Y)=Y′;
+(2) if aiis a return, then s=⊥, otherwise s=ai;
+(3) if q′=δ∗(q,wmp (w,i)), thenд(q)=q′;
+(4) for all Y∈UF
+X, and q∈Q,h(q,Y)=Y1, where
+•ifnc (w,i)=⊥, then Y1=⊥,
+•ifnc (w,i)=ic,aic=⟨ahas matching return air=b⟩,δ∗(q,ai. . .aic−1)=q1,δc(q1,aic)= (q0,p),
+δ∗(q0,wmp (w,ic+1)=q2,δr(q2,p,air)=q3, and cvS,w(q3,ir,Y)=Y2, then
+–ifY2=xF, then Y1={x|x<Xp∧∃y∈aF(q3).x∈aρr(q2,b,p,y)};
+–ifY2,xFandair+1=⟨cis a call, then Y1={x|x<Xp∧∃y∈Y2.∃z∈aρc(q3,c,y).x∈a
+ρr(q2,b,z)};
+–ifY2,xFandair+1is internal, then Y1={x|x<Xp∧∃y∈Y2.∃z∈aρi(q3,air+1,y).x∈a
+ρr(q2,b,z)};
+–ifY2,xFandair+1=c⟩is a return, then Y1={x|x<Xp∧∃y∈aY2.x∈aρr(q2,air,p,y)}.
+The initial state of Aisr0=(⊥,f0,д0,h0), where f0(q,Y)=Y,д0(q)=qandh0(q,Y)=⊥, for every q∈Q, and
+Y∈UF
+X.
+Next we define the transition relation δ′′ofA, that preserves the invariants presented above. For each r=
+(s,f,д,h)∈R,a∈Σ,δ′′(r,a)is defined as follows:
+ais internal: δ′′
+i(r,a)= (a,f1,д1,h1)where for each q∈Q,Y1∈UF
+X, ifδi(q,a)=q′, thenд1(q)=д(q′),
+h1(q,Y1)=h(q′,Y1), and f1(q,Y1)=Y3where
+•ifY2=xF, then Y3={x|x∈aF(q′)};
+•ifY2,xFands=⟨cis a call, then Y3={x|∃y∈Y2.∃z∈aρc(q3,c,y).x∈aρr(q2,b,z))};
+•ifY2,xFandsis internal, then Y3={x|∃y∈Y2.x∈aρi(q′,s,y)};
+•ifs=⊥, then Y3=Y2;
+ais a call⟨b(return reading backward): letr1=((s1,f1,д1,h1),s)be the state popped from the stack, then,
+δ′′
+r(r,r1,b)=(b,f2,д2,h2), where for each q∈Q,Y∈UF
+X,
+ifδc(q,b)=(q0,p),д(q0)=q1,δr(q1,s,p)=q2, and f1(q2,Y1)=Y2, then,
+д2(q)=д(q2),h2(q,Y1)=Y3∩X, and, f2(q,Y1)={x|xp∈Y3}, where
+•ifY2=xF, then Y3={x|∃y∈aF(q2)∧x∈aρr(q1,s,p,y)};
+•ifY2,xFands1=⟨cis a call, then Y3={x|∃y∈Y2.∃z∈aρc(q1,s1,y).x∈aρr(q2,s,z)};
+•ifY2,xFands1is internal, then Y3={x|∃y∈Y2.∃z∈aρc(q1,s1,y).x∈aρr(q2,s,z)};
+•ifY2,xFands1=c⟩is a return, then Y3={x|∃y∈Y2.x∈aρr(q1,s,p,y)};
+ais a return b⟩(call reading backward): δ′′
+c(r,b)=(r0,(r,b)).
+15
+
+--- Page 16 ---
+STT Construction. We finally need to define the STT S′from RtoΓ. When reading an input symbol in (a,f,д,h)∈R,
+S′uses the information stored in the function fto update only the variables that are relevant to the final output. The
+set of states of S′isQ′=Q×UF
+X, with initial state q′
+0=(q0,xF). When processing the symbol ri=(a,f,д,h),S′is in
+state (q,Y)iffSreaches the state qwhen processing a1. . .ai−1, starting in q0, and the set of relevant variables at the
+end of wmp (w,i)isY. Similarly, the set of stack states is P′=P×UF
+X. The set of variables is X′=X. The transition
+functionδ′is defined as follows. For each state (q,Y)∈Q′, stack state (p,Y′)∈P′, and symbol r=(a,f,д,h)∈Rwe
+have the following possibilities:
+ais internal: ifδi(q,a)=q′, thenδ′
+i((q,Y),r)=(q′,Y);
+ais a call: ifδc(q,a)=(q′,p), and h(q,Y)=Y′, thenδ′
+c((q,Y),r)=(q′,(p,Y′));
+ais a return: ifδr(q,p,a)=q′, thenδ′
+r((q,Y),(p,Y′),r)=(q′,Y′).
+Next, we define the variable update function ρ′. For each state (q,Y)∈Q′, stack state (p,Y′)∈P′, symbol r=
+(a,f,д,h)∈R, variable x∈X′;
+•ifx∈f(q,Y), then we have the following possibilities:
+ais internal: ρ′
+i(q,r,x)is the same as ρi(q,a,x);
+ais a call:ρ′
+c(q,r,x)is the same as ρc(q,a,x);
+ais a return: ρ′
+r(q,p,r,x)is the same as ρr(q,p,a,x);
+•ifx<f(q,Y), then we have the following possibilities:
+ais internal: ifxis a type-0 variable then ρ′
+i(q,r,x)=ε, otherwise ρ′
+i(q,r,x)=?;
+ais a call: ifxis a type-0 variable then ρ′
+c(q,r,x)=ε, otherwise ρ′
+c(q,r,x)=?;
+ais a return: ifxis a type-0 variable then ρ′
+r(q,r,p,x)=ε, otherwise ρ′
+r(q,r,p,x)=?.
+Last, the output function F′is the same as F. From the definition of cvS,wwe have that S′is copyless, and by
+construction JS′,AKis equivalent to JSK.□
+3.5 Multi-parameter STTs
+In our basic transducer model, the value of each variable can contain at most one hole. Now we generalize this
+definition to allow a value to contain multiple parameters. Such a definition can be useful in designing an expressive
+high-level language for transducers, and it is also used to simplify constructions in later proofs.
+We begin by defining nested words with parameters. The set H(Σ,Π)ofparameterized nested words over the
+alphabet Σusing the parameters in Π, is defined by the grammar
+H:=ε|a|π|⟨a H b⟩|H H fora,b∈Σandπ∈Π
+For example, the nested word ⟨aπ1⟨b⟩π2a⟩represents an incomplete tree with a-labeled root that has a b-labeled
+leaf as a child, such that trees can be added to its left as well as right by substituting the parameter symbols π1and
+π2with nested words. We can view such a nested word with 2 parameters as a function of arity 2 that takes two
+well-matched nested words as inputs and returns a well-matched nested word.
+In the generalized transducer model, the variables range over parametrized nested words over the output alphabet.
+Given an alphabet Σ, a set Xof variables, and a set Πof parameters, the set E(Σ,X,Π)of expressions is defined by
+the grammar
+E:=ε|a|π|x|⟨a E b⟩|E E|E[π7→E] fora,b∈Σ,x∈X,andπ∈Π
+A valuation αfrom XtoH(Σ,Π)naturally extends to a function from the expressions E(Σ,X,Π)toH(Σ,Π).
+To stay within the class of regular transductions, we need to ensure that each variable is used only once in the final
+output and each parameter appears only once in the right-hand side at each step. To understand how we enforce
+single-use-restriction on parameters, consider the update x:=xyassociated with a transition from state qto state q′.
+To conclude that each parameter can appear at most once in the value of xafter the update, we must know that the sets
+of parameters occurring in the values of xandybefore the update are disjoint. To be able to make such an inference
+statically, we associate, with each state of the transducer, an occurrence-type that limits, for each variable x, the
+subset of parameters that are allowed to appear in the valuation for xin that state. Formally, given parameters Πand
+variables X, anoccurrence-type φis a function from Xto2Π. A valuation αfrom XtoH(Σ,Π)is said to be consistent
+with the occurrence-type φif for every parameter π∈Πand variable x∈X, ifπ∈φ(x), then the parametrized
+nested word α(x)contains exactly one occurrence of the parameter π, and ifπ<φ(x), thenπdoes not occur in
+16
+
+--- Page 17 ---
+α(x). An occurrence-type from XtoΠnaturally extends to expressions in E(Σ,X,Π): for example, for the expression
+e1e2, if the parameter-sets φ(e1)andφ(e2)are disjoint, then φ(e1e2)=φ(e1)∪φ(e2), else the expression e1e2is not
+consistent with the occurrence-type φ. An occurrence-type φXfrom variables Xto2Πis said to be type-consistent
+with an occurrence-type φYfrom Yto2Πand an assignment ρfrom YtoX, if for every variable xinX:
+•the expression ρ(x)is consistent with the occurrence-type φY, and
+•the parameters resulting from performing the assignment to xare consistent: φY(ρ(x))=φX(x).
+Type-consistency ensures that for every valuation αfrom YtoH(Σ,Π)consistent with φY, the updated valuation
+α·ρfrom XtoH(Σ,Π)is guaranteed to be consistent with φX. Informally, if we take the union of the parameters
+associated to all variables appearing in ρ(x)we get exactly φX(x).
+Now we can define the transducer model that uses multiple parameters. A multi-parameter STT Sfrom input
+alphabet Σto output alphabet Γconsists of:
+•a finite set of states Q;
+•an initial state q0;
+•a set of stack symbols P;
+•state-transition functions δi,δc, andδr, that are defined in the same way as for STTs;
+•a finite set of typed variables Xequipped with a reflexive symmetric binary conflict relation η;
+•for each state q, an occurrence-type φ(q):X7→2Π, and for each stack symbol p, an occurrence-type
+φ(p):X7→2Π;
+•a partial output function F:Q7→E(X,Γ,Π)such that for each state q, the expression F(q)is consistent with
+η, andφ(q) (F(q))is the empty set;
+•for each state qand input symbol a, the update function ρi(q,a)from variables XtoXoverΓis consistent
+withηand is such that the occurrence-type φ(δi(q,a))is type-consistent with the occurrence-type φ(q)and
+the update ρi(q,a);
+•for each state qand input symbol a, the update function ρc(q,a)from variables XtoXoverΓis consistent
+withηand is such that, if δc(q,a)=(q′,p)the occurrence-types φ(p)andφ(q′)are type-consistent with the
+occurrence-type φ(q)and the update ρc(q,a);
+•for each state qand input symbol aand stack symbol p, the update function ρr(q,p,a)from variables X∪Xp
+toXoverΓis consistent with ηand is such that the occurrence-type φ(δr(q,p,a))is type-consistent with the
+occurrence-type φ(q)andφ(p)and the update ρr(q,p,a).
+We can assume that φ(q0)=∅, and therefore all variables are initialized to ε.
+Configurations of a multi-parameter STT are of the form (q,Λ,α), where q∈Qis a state,αis a valuation from
+variables XtoH(Γ,Π)that is consistent with the occurrence-type φ(q), andΛis a sequence of pairs (p,β)such that
+p∈Pis a stack symbol and βis a valuation from variables XtoH(Γ,Π)that is consistent with the occurrence-type
+φ(p). The clauses defining internal, call, and return transitions are as in the case of STTs, and the transduction JSKis
+defined as before. In the same way as before we define a copyless multi-parameter STT as a multi-parameter STT
+with a purely reflexive reflexive conflict relation (i.e. η={(x,x)|x∈X}) .
+Now we establish that multiple parameters do not add to expressiveness. We first prove the property for copyless
+STTs. Then we add regular look-ahead and show, through the closure under this operation, that the property holds
+for general STTs.
+Theorem 3.11 (Copyless Multi-parameter STTs). A nested-word transduction is definable by a copyless STT iff it
+is definable by a copyless multi-parameter STT.
+Proof. Given a copyless STT Sconstructing a multi-parameter copyless STT S′is trivial. The parameter set ΠofS′
+is the singleton{?}. For every state qofS, there is a corresponding state qinS′. For every type-0 variable xand state
+qinS,φ(q,x)=∅while for every type-1 variable y,φ(q,y)={?}.
+We now prove the other direction of the iff. Let Sbe a multi-parameter copyless STT with states Q, initial state
+q0, stack symbols P, parameters Πwith|Π|=k, variables Xwith|X|=n, occurrence-type φ, output function F,
+17
+
+--- Page 18 ---
+state-transition functions δi,δc, andδr, and variable-update functions ρi,ρc, andρr. We construct an equivalent
+copyless STT S′=(Q′,q′
+0,P′,X′,F′,δ′,ρ′).
+Variable Summarization Intuition. We need to simulate the multi-parameter variables using only variables with a
+single hole. We do this by using multiple variables to represent a single multi-parameter variable, and by maintaining
+in the state extra information on how to combine them.
+The construction maintains a compact representation of every multi-parameter variable. To understand the
+construction, consider a variable xwith value⟨a⟨bπ1b⟩⟨c⟩⟨bπ2b⟩a⟩. One possible way to represent xusing
+multiple variables, each with only one parameter in its value, is the following: x1=⟨a?a⟩,x2=⟨b?b⟩⟨c⟩, and x3=⟨b?b⟩.
+Next, we need to maintain in the state some information regarding how to combine these three values to reconstruct
+x. For this purpose, we use a function of the form f(x1)=(x2,x3),f(x2)=π1,f(x3)=π2, that tells us to replace the
+?inx1with x2x3and the holes in x2andx3, withπ1andπ2respectively. The state will also maintain a function дthat
+remembers the starting variable (the root of the tree): in this case д(x)=x1means that x1is the root of the symbolic
+tree representing the variable x.
+We now formalize this idea. The set of variables X′contains (2k−1)nvariables of type-1 and nvariables of type-0.
+When S′is in state q, for every variable x∈X,
+•ifφ(x),∅, the value of xis represented by 2|φ(x)|−1type-1 variables in X′;
+•ifφ(x)=∅, the value of xis represented by one type-0 variable in X′.
+Sinceφ(x)≤k, we can assume that for every variable x∈X, there are exactly 2k−1type-1 variables and one
+type-0 variable in S′corresponding to it. We denote this set by V(x)={x0,x1, . . . , x2k−1}, where x0is the only type-0
+variable. Therefore, the STT S′has the set of variables X′=S
+x∈XV(x).
+State Components and Invariants. Each state of Q′is a triplet (q,д,f), where q∈Qkeeps track of the current
+state of S,д:X7→X′keeps track of the root of the symbolic tree representing each variable, and f:X′7→
+(X′×X′)∪Π∪{ε}∪⊥ maintains information on the symbolic tree representing each variable. Given a variable
+x∈X′,f(x)=⊥means that xis not being used in any symbolic tree.
+We now define the unfolding f∗of the function fthat, given a variable in x∈X′provides the value in H(Σ,Π)
+corresponding to the symbolic tree rooted in x:
+•iff(x)=ε, then f∗(x)=x;
+•iff(x)=πi, then f∗(x)=x[πi];
+•iff(x)=(y,z), then f∗(x)=x[f∗(y)f∗(z)];
+•iff(x)=⊥, then f∗(x)=⊥.
+If we consider again our previous example in which f(x1)=(x2,x3),f(x2)=π1,f(x3)=π2, we have f∗(x1)=
+x1[f∗(x2)f∗(x3)]=x1[x2[π2]x3[π3]].
+Our construction maintains the following invariant: at every point in the computation, the value of f∗(д(x))inS′
+is exactly the same as the value of xinS. We can assume that at the beginning every variable x∈X′has valueε, and
+we represent this with д(x)=x0, and f(x0)=ε. For this base case the invariant holds.
+Similarly to what we did for STTs (Corollary 3.5), we observe that every assignment can be expressed as a sequence
+of elementary updates of the following form:
+Constant assignment x:=wwhere wis a constant ( wis of the form a,π,x,⟨aπb⟩);
+Concatenation{x:=xy;y:=ε}(and similar cases such as {x:=yx;y:=ε});
+Parameter substitution: {x:=x[π7→y];y:=ε}(and similar cases such as {x:=y[π7→x];y:=ε});
+Swap:{x:=y;y:=x}.
+Update Functions. We now describe at the same time the transition relation δ′and the variable update function
+ρ′ofS′. Consider a state (q,f,д). We call (q′,f′,д′)the target state and we only write the parts that are updated,
+skipping the trivial cases. Every time a variable vis unused we set f′(v)to⊥. We show that the state invariant is
+inductively preserved:
+{x:=w}:where wis a constant. Similarly to what we showed earlier in the informal description, the content of
+xcan be summarized using 2|φ(x)|−1variables.
+{x:=xy;y:=ε}:in order for the assignment to be well-defined φ(q′,x)must be the same as φ(q,x)∪φ(q,y),
+and|φ(q′,x)|=|φ(q,x)|+|φ(q,y)|≤k. Let’s assume wlog that both φ(q,x)andφ(q,y)are not empty. By IH
+xandyuse2|φ(x)|−1+2|φ(y)|−1=2(|φ(q,x)|+|φ(q,y)|)−2≤2k−2variables. First we assign each yiin
+18
+
+--- Page 19 ---
+x5
+x3x2x1 x′′
+x3x5
+x2 x7 x1x6
+x7
+x4 x4x6
+x′x:=ax[π1←π1π5]
+Fig. 2. Parameter tree for the variable x=π1π2π3π4. In this case (on the left) д(x)=x5and f(x5)= (x1,x6),f(x6)=
+(x2,x7),f(x7)=(x3,x4),f(x1)=π1,f(x2)=π2,f(x3)=π3,f(x4)=π4. Each variable is of type-1. After the update we have
+x5:=ax5, and we take two fresh variables x′,x′′to update the tree to the one on the right where we set f(x′′)=(x1,x′),f(x′)=π5.
+Since we have 5 parameters and 9 nodes, the counting argument still holds. Before the update f∗(x5)evaluates to π1π2π3π4and
+after the update f∗(x5)evaluates to aπ1π5π2π3π4.
+the tree rooted in д(y)to some unused xi′inV(x). Let a(yi)=xi′be such a mapping. From the IH we know
+that at least one type-1 variable xj∈V(x)is unused. We can use xjto concatenate the variables summarizing
+xandy. We can reflect such an update in the tree shape of xas follows: for every z∈V(x),
+•if there exists y′such that a(y′)=z, we copy the summary from y′tozand replace each variable in the
+summary with the corresponding one in V(x):f(z)=f(y){y′/a(y′)},z=y, andy′=ε;
+•ifz=xjwe concatenate the previous summaries of xandy: ifд(x)=x′, andд(y)=y′, and a(y′)=x′′,
+thenд′(x)=z, and f′(z)=x′x′′. Finally the variable zneeds to hold the ?:ρ(z)=?.
+Finally ify0is the type-0 variable in V(y),д′(y)=y′,f(y′)=ε, andy0=ε.
+{x:=x[π7→y];y:=ε}:in order for the assignment to be well-defined φ(q′,x)must be the same as (φ(q,x)\
+{π})∪φ(q,y), and|φ(q′,x)|=(|φ(q,x)|−1)+|φ(q,y)|≤k. Let’s assume wlog that both φ(q,x)andφ(q,y)
+are not empty. By IH xandyuse2|φ(x)|−1+2|φ(y)|−1=2(|φ(q,x)|+|φ(q,y)|)−2≤2(k+1)−2=2k
+variables. First we assign each yi,д(y)in the tree rooted in д(y)to some unused xi′inV(x). Let a(yi)=xi′
+be such a mapping. So far we used 2k−1variables in V(x). When performing the updates we show how
+the variable representing the root д(y)need not be copied allowing us to use at most 2k−1variables to
+summarize the value of x. The root of the tree summarizing xwill be the same as before: if д′(x)=д(x).
+Every variable z∈V(x)is updated as follows,
+•if there exists ysuch that a(y)=z, we copy the summary from ytozand replace each variable in the
+summary with the corresponding one in V(x):f(z)=f(y){y′/a(y′)},z=y, andy′=ε;
+•ifz=xπwe append the summary of yto it: ifд(y)=y′, then
+–iff(y′)=y1y2,a(y′)=x′,a(y1)=x1anda(y2)=x2, then f′(z)=(x1,x2), andρ(z)=z[y′];
+–iff(y′)=π′, and a(y′)=x′, then f′(z)=π′, andρ(z)=z[y′].
+Finally ify0is the type-0 variable in V(y),д′(y)=y′,f(y′)=ε, andy0=ε.
+{x:=y;y:=x}:we simply swap the summaries of xandy. Leta:V(x)7→V(y)be a bijection from V(x)toV(y),
+and let b:V(y)7→V(x)be the inverse of a. Thenд′(x)=a(д(y)),д′(y)=b(д(x),f′(x)=f(y){y′/a(y′)},
+f′(y)=f(x){x′/b(x′)}, for each x′∈V(x),x′=a(x′), and for each y′∈V(y),y′=b(y′).
+Figure 2 shows an example of update involving a combination of elementary updates. We still have to show how δ′
+andρ′are defined at calls and returns. The functions maintained in the state are stored on the stack at every call, and
+this information is used at the corresponding return to create the updated tree. Since all variables are reset at calls,
+this step is quite straightforward and we omit it. By inspection of the variable update function, it is easy to see that
+the assignments are still copyless.
+Output Function. Last, for every state (q,f,д)∈Q′, the output function F′(q,f,д)=f∗(F(q)), where f∗is
+naturally extended to sequences: f∗(ab)=f∗(a)f∗(b).□
+We can then equip Theorem 3.11 with regular look-ahead and get the following result.
+Corollary 3.12 (Copyless Multi-parameter STTs RLA). A nested-word transduction is definable by a copyless
+STT with regular look-ahead iff it is definable by a copyless multi-parameter STT with regular look-ahead.
+19
+
+--- Page 20 ---
+We then extend the result of Theorem 3.9 to multi-parameter STTs.
+Lemma 3.13. A nested-word transduction is definable by a copyless multi-parameter STT with regular look-ahead iff it
+is definable by a multi-parameter STT.
+Proof. The proof of Theorem 3.9 does not use parameter assignment and can therefore be used for this theorem as
+well.□
+Finally, we can conclude that multi-parameter STTs capture the class of STT-definable transformations.
+Theorem 3.14 (Multi-parameter STTs). A nested-word transduction is definable by an STT iff it is definable by a
+multi-parameter STT.
+Proof. From Theorems 3.13, 3.12, and 3.14. □
+3.6 Closure Under Composition
+We proceed to show that STTs are closed under sequential composition. Many of our results rely on this crucial
+closure property.
+Theorem 3.15 (Composition Closure). Given two STT-definable transductions, f1fromΣ1toΣ2andf2fromΣ2to
+Σ3, the composite transduction f2·f1fromΣ1toΣ3is STT-definable.
+Proof. Using Theorem 3.9, we consider S1andS2to be copyless STTs with regular look-ahead.
+•S1=(Q1,q01,P1,X1,F1,δ1,ρ1)with regular look-ahead automaton A1, and
+•S2=(Q2,q02,P2,X2,F2,δ2,ρ2)with regular look-ahead automaton A2=(R,r0,Pr,δr).
+We construct a multi-parameter STT Swith regular look-ahead automaton A1that is equivalent to S1composed with
+S2. Finally, we use Theorems 3.8 and 3.14, to remove the parameters and then regular look-ahead, proving that there
+exists an STT equivalent to S.
+Intuition Behind the Construction. The STT Shas to simulate all the possible executions of S2on the output of
+S1in a single execution. Skeeps in each state a summarization of the possible executions S2and uses a larger set of
+variables to consider all the possible variable values of such executions. At every point in the execution, for every
+state q∈Q2, and for every two variables x1∈X1andx2∈X2, the STT Shas to remember what would be the value
+ofx2ifS2read the content of x1starting in q. The construction relies on the fact that the content of a variable is a
+well-matched nested word (with parameters). Thanks to this property, Sdoes not need to collect any information
+about the stack of S2.
+We show the intuition with a simple example. Let’s assume for simplicity that S1has only one variable xandS2
+has only one variable y. We also assume that both the lookaheads consist of only one state, and therefore we ignore
+them. Let’s say that at some point in the computation xhas value ?and the next input symbol is a. When reading a,
+S1updates xtoax[?b]. We need to reflect this update on the variable yofS2— i.e. what is the value of ywhen S2
+reads ax[?b]. However, we do not know what is the current state of S2, and what value S1stores in the hole ?. For
+every possible state qofS2and variable xofS1, the STT Stracks what is the state reached by S2after processing the
+value in x, starting in state q. However, we still need to deal with the unknown value of the hole ?. We can extend the
+previous idea to solve this problem. Consider the value of xto be a?b, where aandbare the nested words respectively
+before and after the hole. The STT Smaintains a function fthat, for every two states q1andq2ofS2, keeps track of
+the state reached by S2when reading astarting in state q1, and the state reached by S2when reading bstarting in
+state q2knowing that awas read starting in state q1. In order to compute the second part of the function, Sneeds the
+stack computed by the first one and therefore needs to know that ais processed starting in state q1.
+Next, we describe how we summarize the variable updates of S2. Again, the update of ydepends on the state in
+which S2starts reading the value of x. Similarly to before, we need to deal with the unknown value of the hole ?.
+However this is not the only problem. Let’s assume the variable update function of S2is as follows: ρ2(q,y,b)=cy.
+We want to simulate the execution of S2, but at this point we do not know what is the previous value of y! We address
+this issue by treating the old value of yas a parameter. This tells us that the set of parameters contains a parameter x′
+for every variable in x∈X2. Similarly to what we did for the transition relation, for every two states q1andq2ofS2,
+and every variable yofS1, there is
+20
+
+--- Page 21 ---
+•a variableдL
+1(q1,x,y)representing the value of y, when S2reads the value of xon the left of ?, starting in
+state q1;
+•a variableдR
+1(q1,q2,x,y)representing the value of y, when S2reads the value of xon the right of ?, starting
+in state q2, assuming that the value of yon the left of ?was read by S2starting in state q1.
+Both these variables at the beginning are set to y′, a parameter that represents the value of ybefore processing the
+current input. The updates then mimic the transition relation. For example, for the case in which ρ2(q,y,b)=cy, the
+value ofдR
+1(q′,q,x,y)is set to cy′.
+Since S2itself uses type-1 variables, we use the parameter ?for such variable values. Let’s analyze this case in detail.
+When ?directly appears in the дrepresentation of a variable, we can treat it as a normal parameter. The problem
+occurs in the following case: let’s say at a particular step д(q,x,y)=y′butyis a type-1 variable. This can only mean
+that the ?appears iny′. Now let’s assume that the next update is of the form y:=y[a]. As we can see, we still do not
+have the ?appearing in the representation of y. We record this fact with a function and delay the substitution using
+an extra variable for the parameters. As an example, suppose that at some point the values of xandy, both of type 1,
+arex′,y′. We use the variables x?=?andy?=?to represent their parameters. Then, after processing a well-matched
+subword, we may have an update of this form x:=ax[cy[a?c]]bandy:=a?. Notice that the reflexivity of ηensures
+thatx′andy′can appear at most once in the valuation of a variable at any point. This configuration is captured by
+x:=axb,x?=cy,y?=a?candy=a?. In addition we need to keep information about where the actual parameter of
+every variable is. Let’s consider the case in which we are trying to summarize a type-0 variable yofS2. We keep in
+the state a function p0, such that p0(q,x,y)=εif the ?appears inд0(q,x,y), while p0(q,x,y)=xy, if, for example, in
+order to substitute the value of ?with the value v(x:=x[v]), we need to perform the following update, where we
+omit the state qand the variable xfor readability:
+x:=x[x′7→x?[y′7→y?[?7→v]]]
+Finally, we need to summarize the possible lookahead values of S2when reading the variable contents. For example
+if a variable xofS1contains the value s?t, we need to know, for every r1andr2inR, what state would A2reach
+when reading sandtbackward. We use two functions lL
+1andlR
+1, such that lR
+1(r2,x)=r′
+2andlL
+1(r1,r2,x)=r′
+1, iff
+δ∗
+R(r2,rev (t))=(r′
+2,Λ), andδ∗
+R(r1,Λ,rev (s))=r′
+1.
+State Components and Invariants. We denote with Xi,jthe set of type-j variables in Xi. Each state of Qis a tuple
+(q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,p0,pL
+1,pR
+1), where
+•q∈Q1keeps track of the current state of S1;
+•f0:Q2×R×X1,07→Q2is the summarization function for type-0 variable;
+•fL
+1:Q2×R×R×X1,17→Q2, and fR
+1:Q2×Q2×R×R×X1,17→Q2are the summarization functions for
+type-1 variables;
+•l0:R×X1,07→Ris the lookahead summarization function for type-0 variable;
+•lL
+1:R×R×X1,17→R, and lR
+1:R×X1,17→Rare the lookahead summarization functions for type-1 variables;
+•p0:Q2×R×X1,0×X2,17→X∗
+2,1is the function keeping track of the ?for type-0 variables;
+•pL
+1:Q2×R×R×X1,1×X2,17→X∗
+2,1, and pR
+1:Q2×Q2×R×R×X1,1×X2,17→X∗
+2,1are the function keeping
+track of the ?for type-1 variables.
+We first describe the invariants that Smaintains for the first 7 components: given an input nested word w=a1. . .an,
+after reading the symbol ai,Sis in state (q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,,,), such that:
+•qis the state reached by S1on the prefix a1. . .ai,δ∗
+1(q01,a1. . .ai)=q;
+•given q1∈Q2, and r∈R, ifxcontains the value s∈W0(Σ2), andδ∗
+2(q1,sr)=q′
+1, then f0(q1,r,x)=q′
+1;
+•given q1,q2∈Q2, and r1,r2∈Q2, ifxcontains the value s?t∈W1(Σ2),δ∗
+2(q1,sr1,Λr2,t)= (q′
+1,Λ), and
+δ∗
+2(q2,Λ,tr2)=q′
+2, then fL
+1(q1,r1,r2,x)=q′
+1, and fR
+1(q1,q2,r1,r2,x)=q′
+2. We use the notation sr1,Λr2,tto
+denote the run on sofA2starting in state r1assuming that A2has an initial stack value computed by A2ont
+starting in state r2;
+•given r1∈R, ifxcontains the value s∈W0(Σ2), andδ∗
+2(r1,rev (s))=r′
+1, then l0(r1,x)=r′
+1;
+•given r1,r2∈R, ifxcontains the value s?t∈W1(Σ2),δ∗
+2(r2,rev (t))=(r′
+2,Λ), andδ∗
+2(r1,Λ,rev (s))=r′
+1, then
+lL
+1(r1,r2,x)=r′
+1, and lR
+1(r2,x)=r′
+2.
+21
+
+--- Page 22 ---
+State Transition Function. We now show how we maintain the invariants defined above at every update. We first in-
+vestigate the update of all the components different from p0,pL
+1, and pR
+1. Let’s assume Sis in state (q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,p0,pL
+1,pR
+1).
+We are only going to write the parts that are updated, and as before we only consider atomic updates of S1. We
+analyze the type-1 case (the 0 case is easier). At every step we indicate with a prime sign the updated components.
+{x:=w}:we consider the case where w=⟨a?b⟩(the other cases are similar). For each q1andq2inQ2,r1,r2
+inR, ifδR(r2,⟨b)=(r′
+2,p)for some p∈Pr,δR(r1,p,a⟩)=r′
+1,δ∗
+2(q1,r′
+1)=(q′
+1,Λ), andδ∗
+2(q2,Λ,r′
+2)=q′
+2, then
+the new state has the following components: fL
+1′(q1,r1,r2,x)=q′
+1,fR
+1′(q1,q2,r1,r2,x)=q′
+2,lL
+1′(r1,r2,x)=r′
+1,
+andlR
+1′(r2,x)=r′
+2.
+{x:=xy;y:=ε}:without loss of generality, let ybe a type-0 variable, and xbe type-1 variables.
+For each qlandqrinQ2,rl,rrinR, ifl0(r1,y)=r1,lR
+1(r1,x)=r2,lL
+1(rl,r1,x)=r3,fL
+1(ql,rl,r1,x)=q1,
+fR
+1(qr,rl,r1,x)=q2, and f0(q2,rr,y)=q3, then for every q∈Q2, and r∈R, the new state has the following
+components: lL
+1′(rl,rr,x)=r3,lR
+1′(rr,x)=r2,l0′(r,y)=r,fL
+1′(ql,rl,rr,x)=q1,fR
+1′(ql,qr,rl,rr,x)=q3, and
+f0′(q,r,y)=q.
+{x:=x[y];y:=?}:letxandybe type-1 variables (the other cases are simpler). We need to “synchronize” the left
+and right parts to update the function f. For each qlandqrinQ2,rl,rrinR, assume lR
+1(rr,x)=r1,lR
+1(r1,y)=r2,
+lL
+1(rl,r1,y)=r3,lL
+1(r3,rr,z)=r4, and fL
+1(ql,r3,rr,x)=q1,fL
+1(q1,rl,r1,y)=q2,fR
+1(q1,qr,rl,r1,y)=q3, and
+fR
+1(ql,q3,r3,rr,x)=q4. For every q,q′∈Q2, and r,r′∈R, the new state has the following components:
+lL
+1′(rl,rr,x)=r4,lR
+1′(rr,x)=r2,lL
+1′(r,r′,y)=r,lR
+1′(r,y)=r,fL
+1′(ql,rl,rr,x)=q2,fR
+1′(ql,qr,rl,rr,x)=q4,
+fL
+1′(q,r,r′,y)=q, and fR
+1′(q,q′,r,r′,y)=q′.
+{x:=y;y:=x}:every component involving xis swapped with the corresponding component involving y.
+Variable Summarization. Similarly to what we did for state summarization, Swill have variables of the form
+д0(q,r,x,y)with the following meaning: if xcontains a nested word w,д0(q,r,x,y)is the value contained in y∈X2
+after reading wrstarting in state q. As we described earlier, there will also be variables of the form д0(q,r,x,y)?
+representing the value of the parameter of y. The set of variables XofSdescribed by the union of the following sets:
+•{д0(q,r,x,y)|(q,r,x,y)∈Q2×R×X1,0×X2};
+•{д0(q,r,x,y)?|(q,r,x,y)∈Q2×R×X1,0×X2,1};
+•{дL
+1(q,r1,r2,x,y)|(q,r1,r2,x,y)∈Q2×R×R×X1,1×X2};
+•{дL
+1(q,r1,r2,x,y)?|(q,r1,r2,x,y)∈Q2×R×R×X1,1×X2,1};
+•{дR
+1(q,q′,r1,r2,x,y)|(q,q′,r1,r2,x,y)∈Q2×Q2×R×R×X1,1×X2};
+•{дR
+1(q,q′,r1,r2,x,y)?|(q,q′,r1,r2,x,y)∈Q2×Q2×R×R×X1,1×X2,1}.
+Given a nested word w, and a stack Λ, we use wr,Λto denote the regular look-ahead labeling of wwhen processing
+rev (w)in the starting configuration (r,Λ). For every q1∈Q2,r1,r2∈R,x∈X1,1, andy∈X2, ifxcontains a nested
+wordv?w,δ∗
+r(r2,w)=(r′
+2,Λr2), andδ∗
+2(q1,vr1,Λr2)=(q2,Λq2), then
+•дL
+1(q1,r1,r2,x,y)is the variable representing the value of y, after S2readsvr1,Λr2starting in state q1;
+•дR
+1(q1,q2,r1,r2,x,y)is the variable representing the value of y, after S2reads wr2starting in the configuration
+(q2,Λq2).
+The parameters of Sare used to represent the values of the variables in X2when starting reading the values of a
+variable X1. At this point we do not know what the values of the variables in X2are and for every variable x∈X2,
+we use a parameter x′to represent the value of xbefore reading the value in X1. The STT S has set of parameters
+Π={x′|x∈X2}∪{?}.
+At any point in the execution the variable values and the state of Swill be related by the following invariant: for
+any starting valuation αof the variables in X2, state q∈Q2, look-ahead state r∈R, variabley∈X2, and variable
+x∈X1with value w, the value of yafter reading wrwith initial configuration αcan be retrieved from the variables
+inXand the state components p0,pL
+1,pR
+1.
+Given a nested word w=a1. . .an, we consider the configuration of SandS1right after processing the symbol ai.
+Let’s call (q1,Λ1,α1)the current configuration of S1, and (qS,Λ,α), with qS=(q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,p0,pL
+1,pR
+1), the
+current configuration of S. For every two states q2,q′
+2∈Q2, lookahead states r,r′∈R, variables x0∈X1,0,x1∈X1,1,
+y0∈X2,0, andy1∈X2,1:
+22
+
+--- Page 23 ---
+x0,y0:letα1(x0)=sx0be the current valuation of x0inS1,α(д0(q2,r,x0,y0))=tbe the current valuation of
+д0(q2,r,x0,y0)inS, and{v′
+1, . . . ,v′
+k}⊆Πbe the set of parameters in φ(д0(q2,r,x0,y0)); for every valuation
+α2over X2, ifδ∗((q2,α2),sx0r)=(q3,α′
+2), then:
+α′
+2(y0)=t[v′
+17→α2(v1)]. . .[v′
+k7→α2(vk)]
+x0,y1:letα1(x0)=sx0be the current valuation of x0inS1,α(д0(q2,r,x0,y1))=tbe the current valuation of
+д0(q2,r,x0,y1)inS,p0(q2,r,x0,y1)=z1. . .zibe the sequence of variables to follow to reach the hole ?in the
+representation of y1, and{v′
+1, . . . ,v′
+k}⊆Πbe the set of parameters in
+(φ(д0(q2,r,x0,y1))∪φ(д0(q2,r,x0,z1)?)∪. . .∪φ(д0(q2,r,x0,zi)?))\{z1, . . . , zi}
+then for every valuation α2over X2, ifδ∗((q2,α2),sx0r)=(q3,α′
+2), then:
+α′
+2(y1)=t[z′
+17→[д0(q2,x0,z1)?[. . .[z′
+i7→д0(q2,x0,zi)?]]]] )[v′
+17→α2(v1)]. . .[v′
+k7→α2(vk)]
+x1,y0:letα1(x1)=sxL
+1?sxR
+1be the current valuation of x1inS1,α(дL
+1(q2,r,r′,x1,y0))=tLbe the current valuation
+ofдL
+1(q2,r,r′,x1,y0)inS,α(дR
+1(q2,q′
+2,r,r′,x1,y0))=tRbe the current valuation of дR
+1(q2,q′
+2,r,r′,x1,y0)in
+S, let{vL
+1′, . . . ,vL
+k′}⊆Πbe the set of parameters in φ(дL
+1(q2,r,r′,x1,y0)), and let{vR
+1′, . . . ,vr
+l′}⊆Πbe the
+set of parameters in φ(дR
+1(q2,q′
+2,r,r′,x1,y0)); for every valuations α2,α′
+2over X2, ifδ∗((q2,α2),sxL
+1
+r,Λ′r,sx1,R)=
+(q3,Λ2,α3), andδ∗((q′
+2,Λ2,α′
+2),sxR
+1
+r′)= (q′
+3,α′
+3), thenα3(y0)=tL[vL
+1′7→α2(vL
+1)]. . .[vL
+k′7→α2(vL
+k)], and
+α′
+3(y0)=tR[vR
+1′7→α2(vR
+1)]. . .[vR
+l′7→α2(vR
+l)].
+x1,y1:letα1(x1)=sxL
+1?sxR
+1be the current valuation of x1inS1,α(дL
+1(q2,r,r′,x1,y1))=tLbe the current valuation
+ofдL
+1(q2,r,r′,x1,y1)inS,α(дR
+1(q2,q′
+2,r,r′,x1,y1))=tRbe the current valuation of дR
+1(q2,q′
+2,r,r′,x1,y1)inS,
+pL
+1(q2,r,r′,x1,y1)=zL
+1. . .zL
+ibe the sequence of variables to follow to reach the hole ?in the representation
+ofy1on the right of the ?,pR
+1(q2,q′
+2,r,r′,x1,y1)=zR
+1. . .zR
+jbe the sequence of variables to follow to reach
+the hole ?in the representation of y1on the right of the ?,{vL
+1′, . . . ,vL
+k′}⊆Πbe the set of parameters in
+φ(дL
+1(q2,r,r′,x1,y1)), and{vR
+1′, . . . ,vR
+l′}⊆Πbe the set of parameters in φ(дR
+1(q2,q′
+2,r,r′,x1,y1)); for every
+valuations α2,α′
+2over X2, ifδ∗((q2,α2),sxL
+1
+r,Λ′r,sxR
+1)=(q3,Λ2,α3), andδ∗((q′
+2,Λ2,α′
+2),sx1,R
+r′ )=(q′
+3,α′
+3), then:
+α3(y1)=tL[zL
+1′7→[дL
+1(q2,r,r′,x1,zL
+1)?[. . .[zL
+i′7→дL
+1(q2,r,r′,x1,zL
+i)?]]]] )
+[vL
+1′7→α2(vL
+1)]. . .[vL
+k′7→α2(vL
+k)]
+α′
+3(y1)=tR[zR
+1′7→[дR
+1(q2,q′
+2,r,r′,x1,zR
+1)?[. . .[zR
+i′7→дR
+1(q2,q′
+2,r,r′,x1,zR
+i)?]]]] )
+[vR
+1′7→α2(vR
+1)]. . .[vR
+k′7→α2(vR
+k)]
+Variable Update Function. We assume that Sis reading the symbol a, starting in state qS=(q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,p0,pL
+1,pR
+1).
+We only describe the components that are updated, and assume without loss of generality that x0,x1∈X1,0are type-0
+variable, and x2∈X2,1is a type-1 variable. We assume the occurrence-type function φ:Q×X7→2Πto be well
+defined according to the following assignments (we will prove consistency later).
+{x0:=w}:where without loss of generality wis a constant without a ?. We fix the variable components to be
+the state q∈Q2, lookahead state r∈R, and we are summarizing the values of y0∈X2,0andy1,y2∈X2,1,
+when reading the value in x0∈X1,0. We consider the variable updates performed by S2when reading the w,
+and assume u=u1. . .unto be the sequence of atomic updates (using Theorem 3.4) performed by S2when
+reading wrstarting in state q. We now provide the updates of Scorresponding to the updates in u. At the
+beginning of the procedure д0(q,r,x0,y1)=y′
+1, and p0(q,r,x0,y1)=y1.
+We denote with a prime the new state values and we only write the parts that are updated. Let’s assume
+the atomic update is of the following form:
+{y1:=w}:where w=⟨a?b⟩(the other cases are similar). We have p′
+0(q,r,x0,y1)=ε, and we define the
+current assignment to be д0(q,r,x0,y1):=w.
+{y0:=ε;y1:=y0y1}:p′
+0(q,r,x0,y1)=p0(q,r,x0,y1), and we define the current assignment to be д0(q,r,x0,y1):=
+д0(q,r,x0,y0)д0(q,r,x0,y1), andд0(q,r,x0,y0)=ε.
+{y1:=y1[y2];y2:=?}:the summary p0is updated as p′
+0(q,r,x0,y1)=p0(q,r,x0,y1)p0(q,r,x0,y2),p0(q,r,x0,y2)=
+ε; ifp0(q,r,x0,y1)=v1. . .vk, then we define the current assignment to be
+23
+
+--- Page 24 ---
+•ifk=0, then
+д0(q,r,x0,y1):=д0(q,r,x0,y1)[д0(q,r,x0,y2)], andд0(q,r,x0,y2)=?;
+•ifk>0, thenд0(q,r,x0,y1):=д0(q,r,x0,y1),д0(q,r,x0,vk?):=д0(q,r,x0,vk?)[д0(q,r,x0,y2)],
+andд0(q,r,x0,y2)=?.
+{y1:=y2;y2:=y1}:every component involving y1is swapped with the corresponding component involving
+y2.
+The final variable update is the result of composing all the atomic updates. As shown in Lemma 3.6, the
+composition of copyless updates is itself copyless.
+{x0:=x0x1;x1:=ε}:we need to substitute the values of the variables after reading x0in the corresponding
+parameters in x1in order to simulate the concatenation. Informally (we omit the states for readability) if
+д0(x1,y)contains the value az′, andд0(x0,z)contains the value bw′, the new summarization д′
+0(x0,y)will
+contain the value abw′where the parameter z′is being replaced with the corresponding variable values.
+For every state q2∈Q2, lookahead state r∈R, variabley1∈X2,1, ifl0(r,x1)=r1,f0(q2,r1,x0)=q3,
+φ(qS,д0(q3,r,x1,y1))={v′
+1, . . . ,v′
+k}, and p0(q2,r,x1,y1)=b1. . .bk′, then p0′(q2,r,x0,y1):=p0(q2,r1,x0,b1). . .p0(q2,r1,x0,bk′),
+andp0′(q2,r,x1,y1):=y1. The next step is collapsing all the parameters chains that can now be resolved with
+proper parameter substitution. For each assignment to a variable д′
+0(q2,r1,x0,v)we omit, unless interesting,
+the fact that every parameter v′is replaced with the corresponding variable value д0(q2,r1,x0,v′), and we
+iterate the following procedure starting with the sequence P=b1. . .bk′, and the variable v=y1.
+(1) let pibe the first element in P=p1. . .pnsuch that p0′(q2,r,x0,pi),ε
+(2) perform the following assignment
+д0′(q2,r,x0,v):=д0(q3,r,x1,v)[
+p′
+17→д0(q3,r1,x0,p1)[
+?7→д0(q3,r1,x1,p1)?[
+. . .p′
+i−17→д0(q3,r1,x0,pi−1)[
+?7→д0(q3,r1,x1,pi−1)?]. . .]]]
+д0′(q2,r,x0,pj)? :=?for each 1≤j<i;
+(3)P:=pi+1. . .pn, andv:=pi+1.
+Last,д0′(q2,r,x1,y1):=x′
+1.
+{x0:=x2[x0];x2:=?}:we need to “synchronize” the variables representing the left and right parts in a way
+similar to the previous case.
+{x0:=x1;x1:=x0}:every component involving x0is swapped with the corresponding x1component.
+Conflict Relation and Well-formedness. First of all we need to show that the assignments are consistent with
+respect to the parameters. Let’s assume by contradiction that at some point in the computation, for some q∈Qand
+x∈Xsome parameter u′∈Πappears twice in φ(q,x). This means that there exists a run of S2in which a variable u
+appears twice in a right hand side, violating the copyless assignment.
+Next, we show that there exists a conflict relation ηover Xconsistent with ρ. We’ll often use the fact that, in
+assignments of the form x:=yzorx:=y[z], it is always the case that y,z. The conflict relation ηis defined as
+follows: for all q1,q′
+1,q2,q′
+2∈Q2,r1,r′
+1,r2,r′
+2∈R,x∈X1,0,y∈X1,1,u,v∈X2,
+•if(q1,r1),(q′
+1,r′
+1), thenη(д0(q1,r1,x,u),д0(q′
+1,r′
+1,x,v));
+•if(q1,r1),(q′
+1,r′
+1), thenη(д0(q1,r1,x,u?),д0(q′
+1,r′
+1,x,v?));
+•if(q1,r1,r2),(q′
+1,r′
+1,r′
+2), thenη(дL
+1(q1,r1,r2,y,u),дL
+1(q′
+1,r′
+1,r′
+2,y,v));
+•if(q1,r1,r2),(q′
+1,r′
+1,r′
+2), thenη(дL
+1(q1,r1,r2,y,u?),дL
+1(q′
+1,r′
+1,r′
+2,y,v?));
+•if(q1,q2,r1,r2),(q′
+1,q′
+2,r′
+1,r′
+2), thenη(дR
+1(q1,q2,r1,r2,y,u),дR
+1(q′
+1,q′
+2,r′
+1,r′
+2,y,v));
+•if(q1,q2,r1,r2),(q′
+1,q′
+2,r′
+1,r′
+2), thenη(дR
+1(q1,q2,r1,r2,y,u?),дR
+1(q′
+1,q′
+2,r′
+1,r′
+2,y,v?)).
+We now show that the variable update function ρdoes not violate the conflict relation η. Inspecting the updates, we
+perform it is easy to see that the same variable never appears twice on the right-hand side of the same variable. Now,
+by way of contradiction, let’s assume there exists an assignment which violates the constraints (we indicate in bold
+the meta-variables of Sand in italic those of S2). There are two possibilities:
+(1)x,y,η(x,y), and both xandyoccur on the right-hand side of some variable;
+24
+
+--- Page 25 ---
+(2)η(x,y), and there exists two variables x′andy, such that x′:=f un (x),y′=f un (y)for whichη(x′,y′)
+doesn’t hold.
+Case (1) can be ruled out by simply inspecting all the possible assignments in the definition of ρ. The only interesting
+cases are{x0:=x0x1;x1:=ε}and{x0:=x2[x0];x2:=?}where the reasoning is the following. We first need to show
+that, for every q2∈Q2,r∈R,x0∈X1,0, ifX2,1={y1, . . . ,yn}is the set of type-1 variables in S2, then the sequence
+p0(q2,r,x0,y1). . .p0(q2,r,x0,yn)is repetition free. It is easy to show that this property holds by induction. After we
+have this, it is easy to show that the assignments do not violate the conflict relation.
+We now need to deal with the conflict case (2). Before starting we point out that every variable x∈X1appears in
+at most one of the assignments of S2due to the copyless restriction. We want to show that it cannot happen that two
+variables that are in conflict are assigned to two different variables that are not in conflict. Let’s try to analyze when
+two variables x,yassigned to different variables can be in conflict. The first case is x=y. The case for{x0:=w}can
+be ruled out by inspecting the assignments. For the cases {x0:=x0x1;x1:=ε}we observe the following: the only
+case in which two variables appearing on two different right hand sides conflict is when (looking at point two of the
+iteration) we perform the following update: {д0(q2,r,x0,v):=д0(q3,r,x1,v);д0(q3,r,x1,v):=. . .д0(q3,r,x1,v). . .}.
+The two left-hand side are in conflict, therefore ηis well defined. For the case x0:=x2[x0]the argument is analogous.
+Next, we show how the construction deals with calls and returns. As in the proof of Theorem 3.14, at every call, S
+stores the state containing the information about the current variable values on the stack, and, at the corresponding
+return we use them to construct the new values for the state. Since at every call variables are reset, this construction
+is quite straightforward. Using an argument similar to that of Theorem 3.14, assignments do not violate the single use
+restriction. Notice that the fact that the variables are reset at calls is crucial for this construction.
+Output Function. Finally, we define the output function F. When reaching the last symbol, we need to construct the
+final output, but now at this point, we know what states to use. We illustrate the construction with an example, since the
+general one is very similar to the construction of ρ. Let’s assume we are in state qS=(q,f0,fL
+1,fR
+1,l0,lL
+1,lR
+1,p0,pL
+1,pR
+1),
+then F(qS)is defined as follows. We assume without loss of generality that F1(q)=xfor some x0∈X1,0, since the
+other cases are similar to our previous constructions. If f0(q02,r0,x0)=qf, and F2(qf)=y0, withy0∈X2,0, then
+F(qS)=д0(q02,r0,x0,y0){v′7→ε}for everyv′∈φ(qS,д0(q02,r0,x0,y0)). This concludes the proof. □
+3.7 Restricted Inputs
+A nested word captures both linear and hierarchical structure. There are two natural subclasses of nested words:
+strings are nested words with only linear structure, and ranked trees are nested words with only hierarchical structure.
+Let us consider how the definition of STT can be simplified when the input is restricted to these two special cases.
+Mapping Strings. Suppose we restrict the inputs to contain only internal symbols, that is, strings over Σ. Then
+the STT cannot use its stack, and we can assume that the set Pof stack symbols is the empty set. This restricted
+transducer can still map strings to nested words (or trees) over Γwith interesting hierarchical structure, and hence, is
+called a string-to-tree transducer. This leads to the following definition: a streaming string-to-tree transducer (SSTT) S
+from input alphabet Σto output alphabet Γconsists of a finite set of states Q; an initial state q0∈Q; a finite set of
+typed variables Xtogether with a conflict relation η; a partial output function F:Q7→E0(X,Γ)such that for each
+state q, a variable xappears at most once in F(q); a state-transition function δ:Q×Σ7→Q; and a variable-update
+functionρ:Q×Σ7→A (X,X,η,Γ). Configurations of such a transducer are of the form (q,α), where q∈Qis a state,
+andαis a type-consistent valuation for the variables X. The semantics JSKof such a transducer is a partial function
+fromΣ∗toW0(Γ). We notice that in this setting the copyless restriction is enough to capture MSO completeness since
+the model is closed under regular look-ahead (i.e. a reflexive ηis enough).
+Theorem 3.16 (Copyless SSTTs are closed under RLA). A string-to-tree transduction is definable by an SSTT iff it
+is definable by a copyless SSTT.
+Proof. The⇐direction is immediate. For the ⇒direction, using Theorem 3.9 we consider the input to be a copyless
+SSTT with regular look-ahead. Given a DFA A=(R,r0,δA)over the alphabet Σ, and a copyless string-to-tree STT
+S=(Q,q0,X,F,δ,ρ)over R, we construct an equivalent copyless multi-parameter STT S′=(Q′,q′
+0,X′,Π,φ,F′,δ′,ρ′)
+overΣ. Thanks to Theorem 3.11 this implies the existence of a copyless SSTT.
+Auxiliary Notions. Given a finite set U, we inductively define the following sets:
+25
+
+--- Page 26 ---
+F(U):the set of forests over Udefined as: ε∈ F (U), and if s0, . . . , sn∈U, and f0, . . . , fn∈ F (U), then
+s0(f0). . .sn(fn)∈F (U);
+SF (f′):given a forest f′∈F (U), the set of sub-forests of f′, for shortSF (f′), is defined as follows:
+•iff′≡s′
+0(t′
+0). . .s′
+m(t′
+m), and there exists i≤msuch that f∈SF (t′
+i), then f∈SF (f′);
+•iff∈SFM (f′), then f∈SF (f′);
+SFM (f′):given a forest f′∈F (U), the set of exact match sub-forests of f′, for shortSFM (f′), is defined
+as follows:
+•the empty forest εbelongs toSFM (f′);
+•letf≡s0(t0). . .sn(tn), and f′≡s′
+0(t′
+0). . .s′
+m(t′
+m). If there exists 0≤i≤m−nsuch that s0. . .sn=
+s′
+i. . .s′
+i+n, and for every 0≤j≤n,tj∈SFM (t′
+i+j), then f∈SFM (f′).
+Intuitively, the first rule in the definition of SF allows to move down in the forest until an exact match in SFM
+is found by the other rules. We illustrate the definitions with an example. Given a forest f=a(b(c),e), we have
+SFM (f)={ε,a,a(b),a(e),a(b(c)),a(b,e)),a(b(c),e)}, andSF (f)={ε,a,a(b),a(e),a(b(c)),a(b,e)),a(b(c),e),b,e,(b,e),b(c),(b(c),e),c}
+Given two forests f1,f2∈F (U), we writeS(f1,f2)≡SF (f1)∩SF (f2)for the set shared sub-forests of f1andf2.
+Finally the set of maximal shared sub-forests is defined as
+M (t1,t2)={f|f∈S (t1,t2)∧¬∃ f′∈S (t1,t2).f′,f∧f∈SF (f′)}
+State Components and Invariants. The transition of the STT Sat a given step depends on the state of Aafter
+reading the reverse of the suffix. Since the STT S′cannot determine this value based on the prefix, it needs to simulate
+Sfor every possible choice. We denote by Xithe type-i variables of X. Every state q∈Q′is a tuple (l,f,д)where
+•l:R7→R, keeps track, for every possible state r∈R, of what would be the state of Aafter processing the
+string rev (w), where wis the string read so far;
+•f:R7→Q, keeps track, for every possible state r∈R, of what would be the state of Safter processing the
+string wr, where wis the string read so far;
+•д:(R×X)7→F(X′∪{?})keeps track of how the variables X′ofS′need to be combined in order to obtain
+the value of a variable of S.
+State Summarization Invariants. We first discuss the invariants of the first two components landfof a state,
+and how they are preserved by the transition function δ′ofS′. After reading a word w S′is in state (l,f,д)where
+•for every lookahead state r∈R,l(r)=r′,δ∗
+A(r,rev (w))=r′;
+•for every lookahead state r∈R,f(r)=q,δ∗(q0,wr)=q.
+At the beginning S′is in state (l0,f0,д0), where for every r∈R,l0(r)=rand f0(r)=q0. The component д0is
+discussed later.
+Next we describe the transition function δ′. We assume S′to be in state (l,f,д), and to be reading the input symbol
+a∈Σ; we denote with l′,f′the new values of the state components, and we only write the parts that change. For
+every lookahead state r∈R, ifδA(r,a)=r′,f(r)=q, andδ(q,r′)=q′, then l′(r)=l(r′)andf′(r)=q′.
+Variable Summarization. Next, we describe how S′keeps track of the variable values. The natural approach for
+this problem would be that of keeping, for each state r∈Rand variable x∈X, a variable д(r,x)containing the value
+ofxinS, assuming the prefix read so far, was read by Astarting in state r. This natural approach, however, would
+cause the machine not to be copyless. Consider, for example, the following scenario. Let r,r1andr2be look-ahead
+states in Rsuch that, for some a∈Σ,δ(r1,a)=δ(r2,a)=r. Assume Sonly has one state q∈Q, and one variable
+x∈X. IfSupdatesρ(q,r,x)tox, in order to perform the corresponding update in S′we would have to assign д(r,x)
+to bothд(r1,x)andд(r2,x), and this assignment is not copyless.
+Our solution to this problem relies on a symbolic representation of the update and a careful analysis of sharing. In
+the previous example, a possible way to represent such update is by storing the content of д(r,x)into a variable z, and
+then remembering in the state the fact that both д(r1,x)andд(r2,x), now contain zas a value. In the construction,
+the above update is reflected by updating the state, without touching the variable values.
+26
+
+--- Page 27 ---
+The set of variables X′contains|R|(4|X0||R|)type-0 variables, and |R|(4|X1||R|)type-1 variables. The set of
+parameters ΠofS′is{πi|0≤i≤4|X||R|}. We will show later how these numbers are obtained.
+Variables Semantics and Invariants. We next describe how we can recover the value of a variable in Xfrom
+the corresponding shape function д(x). Intuitively, the value of a variable xis recovered by merging together the
+variables appearing in the shape of x. We call this operation unrolling.
+We define the unrolling u:F(X′)7→E(X′,Σ)of a symbolic variable representation as follows. Given a forest
+f=s0(f0). . .sn(fn)∈F (X′), the unrolling of fis defined as u(f)≡ut(s0,f0). . .ut(sn,fn), where for every s∈X,
+andд0. . .дm∈X∗,ut(s,д0. . .дm)≡s[π07→u(д0), . . . ,πm7→u(дm)].
+After reading i-th symbol aiof an input word w,S′is in a configuration ((l,f,д),α)iff for every lookahead state
+r∈R, and variable x∈X, ifδ∗(q0,rev ((a1. . .ai)r))=(q,α1), and u(д(r,x))=s, thenα1(x)=α(s).
+Counting Argument Invariants. Next, we describe how we keep the shape function дcompact, allowing us to use
+a finite number of variables while updating them in a copyless manner. The shape function дmaintains the following
+invariants.
+Single-Use: each shape д(r,x)is repetition-free: no variable x′∈X′appears twice in д(r,x).
+Sharing Bound: for all states r,r′∈R,P
+x,y∈X|M (д(r,x),д(r′,y))|≤|X|.
+Hole Placement: for every type-1 variable x∈X1, and state r∈R, there exists exactly one occurrence of ?in
+д(r,x), and it does not have any children.
+Horizontal compression: for every f f′∈SF (д(r,x)), such that ?<f f′, then there must be a shape д(r′,x′),
+with (r′,x′),(r,x), such that either f∈SF(д(r′,x′))andf f′<SF (д(r′,x′)), orf′∈SF (д(r′,x′))and
+f f′<SF (д(r′,x′)).
+Vertical compression: for every s(f)∈SF (д(r,x)), such that ?<s(f), then there must be a shape д(r′,x′),
+with (r′,x′),(r,x), such that either s()∈SF (д(r′,x′))ands(f)<SF (д(r′,x′)), orf∈SF (д(r′,x′))and
+s(f)<SF (д(r′,x′)).
+The first invariant ensures the bounded size of shapes. The second invariant limits the amount of sharing between
+shapes and it implies that, for each r, and for each x,y,д(r,x)andд(r,y)are disjoint. The second invariant also
+implies that, for every state r, the treeд(r,x), for all xcumulatively, can have a total of |X||R|maximal shared
+sub-forests, with respect to all other strings. The third invariant says that the tree of each type-1 variable contains
+exactly one hole and this hole appears as a leaf. This helps us dealing with variable substitution. The fourth and fifth
+compression invariants guarantee that the shapes use only the minimum necessary amount of variables. Together
+they imply that the sumP
+x∈X|д(r,x)|is bounded by 4|X||R|. This is due to the fact that a shape can be updated only
+in three ways, 1) on the left, 2) on the right, and 3) below the ?. As a result it suffices to have |R|(4|X||R|)variables in
+Z.
+Variable and State Updates. Next we show how дand the variables in X′are updated and initialized.
+The initial value д0in the initial state, and each variable in X′are defined as follows: let X′
+0={z1, . . . , zk},
+X′
+1={z′
+1, . . . , z′
+k},X0={x1, . . . , xi},X1={x′
+1, . . . , x′
+j}. For each type-0 variable xi∈X0, for each type-1 variable
+x′
+i∈X1, and look-ahead state r∈R, we have that д0(r,xi)=zi,zi=ε,д0(r,x′
+j)=z′
+j(?), and z′
+j=π0.
+We assume S′to be in state (l,f,д), and to be reading the input symbol a∈Σ. We denote with д′the new value of
+д. We assume we are given a look-ahead state r∈R, such thatδA(r,a)to be equal to r′, and xandyare the variables
+to be the updated.
+{x:=w}:where without loss of generality w=⟨a?b⟩. We first assume there exists an unused variable, and
+then show that such a variable must exist. Let zfbe an unused variable. We update д′(r,x)=zf, and set
+zf:=⟨a?b⟩. Since the counting invariants are preserved, there must have existed an unused variable zf.
+{x:=xy,y:=ε}:we perform the following update: д′(r,x)=д(r′,x)д(r′,y). Letд(r′,x)=s1(f1). . .sn(fn)and
+д(r′,y)=s′
+1(f′
+1). . .s′
+m(f′
+m). We now have two possibilities,
+•there exists (r1,x1),(r,x)such thatд(r1,x1)contains snors′
+1, but not sns′
+1; or
+•there does not exist (r1,x1), (r,x)such thatд(r1,x1)contains snors′
+1, but not sns′
+1. In this case
+we can compress: if fn=t1. . .tiand f′
+1=t′
+1. . .t′
+k, then sn:=sns′
+1[π07→πi, . . . ,πk7→πk+i]and
+д′(r,x)=s1(f1). . .sn(fnf′
+1)s′
+2(f′
+2). . .s′
+m(f′
+m). In this new assignment to sn, the parameters in s′
+1have
+been shifted by ito reflect the concatenation with sn.
+In both cases, due to the preserved counting invariant, we can take an unused variable zfand use it to update
+д(r,y):zf:=ε, andд′(r,y)=zf.
+27
+
+--- Page 28 ---
+z1#z4#
+g(r1,x)#g(r2,x)#
+x:=x[y]#y:=?#
+?#z2#
+z8#z4#
+?#z2#
+z5#z7#
+g(r1,y)#g(r2,y)#
+?#z6#
+z10#z7#
+?#z6#
+z1#z4#
+g’(r1,x)#g’(r2,x)#
+z2#
+z8#z4#
+z5#
+g’(r1,y)#g’(r2,y)#
+?#z10#
+?#
+z3#
+z9#
+z3#z7#
+?#z6#
+z2#
+z9#z7#
+?#z6#
+z2#:=#z2[π0;>π0π1]##z2#:=#z2[π0;>π0π1]#z3#:=#z3[π0;>z5]##z9##:=#z9[π0;>z10]#z5#:=#π0###z10:=#π0#Fig. 3. Example of symbolic variable assignment. Every variable zibelongs to X′. The depicted update represents the case in
+which we are reading the symbol asuch thatδA(r1,a)=r1andδA(r2,a)=r1. Before reading a(on the left), the variables z2,
+z4,z6, and z7are shared between the two representations of the variables at r1andr2. In the new shape д′the hole ?inд(r1,x)
+(respectively д(r2,x)) is replaced by д(r1,y)(respectively д(r2,y)). However, since the sequence z3z5(respectively z9z10) is not
+shared, we can compress it into a single variable z3(respectively z9), and reflect such a compression in the variable update
+z3:=z3[π07→z5](respectively z9:=z9[π07→z10]). Now the variable z5(respectively z10) is unused and we can therefore use it
+to updateд′(r1,y)(respectively д′(r2,y)).
+{x:=x[y],y:=?)}:without loss of generality let xandybe type-1 variables. Let s(?)be the subtree of д(r′,x)
+containing ?. We perform the following update: д′(r,x)=д(r′,x){?/д(r′,y)}, where a{b/c}replaces the node
+bofawith c. Letд(r′,y)=s′
+1(f′
+1). . .s′
+m(f′
+m). For every sl, we now have two possibilities:
+•there exists p≤m′, and (r1,x1),(r,x)such thatд(r1,x1)contains sors′
+p, but not s(s′
+p); or
+•there does not exist p≤m′, and (r1,x1), (r,x)such thatд(r1,x1)contains sors′
+p; in this case
+we can compress: assume f′
+p=t1. . .tk, then s:=s[πi7→s′
+p[π07→πi, . . . ,πk7→πk+i],πi+17→
+πi+1+k, . . . ,πn+k+1], andд′(r,x)=д′(r,x){s(s′
+p)/s}.
+In both cases, due to the preserved counting invariant, we can take an unused variable zfand use it to update
+д(r,y):zf:=π0, andд′(r,y)=zf(?). Figure 3 shows an example of such an update.
+{x:=y,y:=x}:we symbolically reflect the swap. д′(r,x)=д(r′,y), andд′(r,y)=д(r′,x). Similarly to before,
+we compress if necessary.
+By inspection of the variable assignments, it is easy to see that S′is copyless.
+The output function F, ofS′simply applies the unrolling function. For example, let’s assume S′ends in state
+(l,f,д)∈Q′, with l(r0)=r,f(r)=q, and F(q)=xy. We have that F(l,f,д)=u(д(r0,x)д(r0,y)). This concludes the
+proof.□
+Mapping Ranked Trees. In a ranked tree, each symbol ahas a fixed arity k, and an a-labeled node has exactly k
+children. Ranked trees can encode terms, and existing literature on tree transducers focuses primarily on ranked
+trees. Ranked trees can be encoded as nested words of a special form, and the definition of an STT can be simplified
+to use this structure. For simplicity of notation, we assume that there is a single 0-ary symbol 0<Σ, and every
+symbol in Σis binary. The set B(Σ)ofbinary trees over the alphabet Σis then a subset of nested words defined by the
+grammar T:=0|⟨aT T a⟩, for a∈Σ. We will use the more familiar tree notation a⟨tl,tr⟩, instead of⟨a tltra⟩, to
+denote a binary tree with a-labeled root and subtrees tlandtras children. The definition of an STT can be simplified
+in the following way if we know that the input is a binary tree. First, we do not need to worry about processing of
+internal symbols. Second, we restrict to bottom-up STTs due to their similarity to bottom-up tree transducers, where
+the transducer returns, along with the state, values for variables ranging over output nested words, as a result of
+processing a subtree. Finally, at a call, we know that there are exactly two subtrees, and hence, the propagation of
+28
+
+--- Page 29 ---
+information across matching calls and returns using a stack can be combined into a unified combinator: the transition
+function computes the result corresponding to a tree a⟨tl,tr⟩based on the symbol a, and the results of processing the
+subtrees tlandtr.
+Abottom-up ranked-tree transducer (BRTT) Sfrom binary trees over Σto nested words over Γconsists of a finite set
+of states Q; an initial state q0∈Q; a finite set of typed variables Xequipped with a conflict relation η; a partial output
+function F:Q7→E0(X,Γ)such that for each state q, the expression F(q)is consistent with η; a state-combinator
+functionδ:Q×Q×Σ7→Q; and a variable-combinator function ρ:Q×Q×Σ7→A (X,Xl∪Xr,η,Γ), where
+Xldenotes the set of variables {xl|x∈X},Xrdenotes the set of variables {xr|x∈X}, and the conflict relation
+ηextends to these sets naturally: for every x,y∈X, ifη(x,y), thenη(xl,yl), andη(xr,yr). The state-combinator
+extends to trees in B(Σ):δ∗(0)=q0andδ∗(a⟨tl,tr⟩)=δ(δ∗(tl),δ∗(tr),a). The variable-combinator is used to map
+trees to valuations for X:α∗(0)=α0, whereα0maps each type-0 variable to εand each type-1 variable to ?, and
+α∗(a⟨tl,tr⟩)=ρ(δ∗(tl),δ∗(tr),a)[Xl7→α∗(tl)][Xr7→α∗(tr)]. That is, to obtain the result of processing the tree twith
+a-labeled root and subtrees tlandtr, consider the states ql=δ∗(tl)andqr=δ∗(tr), and valuations αl=α∗(tl)and
+αr=α∗(tr), obtained by processing the subtrees tlandtr. The state corresponding to tis given by the state-combinator
+δ(ql,qr,a). The value α∗(x)of a variable xcorresponding to tis obtained from the right-hand side ρ(ql,qr,a) (x)by
+setting variables in Xlto values given by αland setting variables in Xrto values given by αr. Note that the consistency
+with the conflict relation ensures that each value gets used only once. Given a tree t∈B(Σ), letδ∗(t)beqand let
+α∗(t)beα. Then, if F(q)is undefined then JSK(t)is undefined, else JSK(t)equalsα(F(q))obtained by evaluating the
+expression F(q)according to valuation α.
+Theorem 3.17 (Expressiveness of Ranked Tree Transducers). A partial function from B(Σ)toW0(Γ)is STT-
+definable iff it is BRTT-definable.
+Proof Sketch. From STT to BRTT ⇒.Using Theorem 3.7, let S=(Q,P,q0,X,F,η,δ,ρ)be a binary bottom-up
+STT. We construct a BRTT S′=(Q′,q′
+0,X′,F′,η′,δ′,ρ′)equivalent to S. We can assume w.l.o.g. that the set of variables
+Xis partitioned into two disjoint sets Xl={xL
+1, . . . , xL
+n}andXr={xR
+1, . . . , xR
+n}such that, given a tree t=a⟨tl,tr⟩, 1)
+after processing the left child tl, all the variables in Xldepend on the run over tl, while all the variables in Xrare
+reset to their initial values, and 2) after processing the second child, the values of Xronly depend on tr(do not use
+any variable xp∈Xp), and every variable x∈Xlis exactly assigned the corresponding value xpstored on the stack.
+In summary, every variable in Xronly depends on the second child, and every variable in XLonly depends on the
+first child. Such variables can only be combined at the return a⟩at the end of t. An STT of this form can be obtained
+by delaying the variable update at the return at the end trto the next step in which a⟩is read.
+Now that we are given a bottom-up STT, the construction of S′is similar to the one showed in Theorem 3.7. Each
+state q∈Q′contains a function f:Q7→Q, that keeps track of the executions of Sfor every possible starting state.
+After processing a tree t,S′is in state f, such that for every q∈Q,f(q)=q′iff when Sreads the tree tstarting in
+state q, it will end up in state q′. Similarly, the BRTT S′uses multiple variables to keep track of all the possible states
+with which a symbol could have been processed. The BRTT S′has set of variables X′={xq|x∈X,q∈Q}. After
+processing a tree t, for every x∈Xandq∈Q, if, after Sprocesses tstarting in state q,xcontains the value s, then xq
+also contains the value s.
+Next we describe how these components are updated. Let flandfrbe the states of S′after processing the children
+tlandtrof a tree a⟨tl,tr⟩. We denote with f′the new state after reading a. For every state q,∈Q, and variable x∈X,
+ifδc(q,⟨a)=(q1,p),fl(q1)=q2,fr(q2)=q3, andδr(q3,p,⟨a)=q4, then f′(q)=q4, and xqis assigned the value
+ρ(q3,p,⟨a,x), in which every variable in XlandXris replaced with the corresponding variables in X′
+landX′
+R. For
+every state f, the output function of F′ofS′is then defined as F′(f)=F(f(q0)). The conflict relation η′ofS′has the
+following rules:
+(1) for every x,y∈X, and q,q′∈Q,η′(xq,yq′);
+(2) for every q∈Q, and x,y∈X, ifη(x,y), thenη′(xq,yq).
+The proof of consistency is the same as for Theorem 3.7.
+From BRTT to STT ⇐.Given a BRTT S=(Q,q0,X,F,η,δ,ρ), we construct an STT S′=(Q′,P′,q′
+0,X′,F′,η′,δ′,ρ′)
+equivalent to S. The STT S′simulates the execution of Swhile reading the input nested word. The states and stack
+states of S′are used to keep track of whether the current child is a first or second child. The STT S′has set of states
+29
+
+--- Page 30 ---
+Q′=Q×({l,r}∪Q), initial state q′
+0=(q0,l), and set of stack state P′=Q×{l,r}. Given a tree⟨a tl,tra⟩, the STT S′
+maintains the following invariant:
+•right before processing the first child tl,S′is in state (q0,l);
+•right before processing the second child tr,S′is in state (q1,r);
+•right after processing the second child tr,S′is in state (q1,q2).
+We now define the transition relation δ′that preserves the invariant defined above. Let’s assume S′is in state
+q=(q1,d), and it is processing the symbol a.
+ais a call⟨b:the STT S′resets the control to the initial state and pushes q1on the stack: δ′(q1,b)=(q′
+0,q1).
+ais a return b⟩:we first of all observe that, since the input is a binary tree, dcannot have value rwhen reading
+a return symbol. If the state popped from the stack is p=(qp,dp)we have the following cases.
+End of First Child: ifdp=l, we have two cases:
+Leaf: ifd=l, andδ(q0,q0,b)=q2thenδ′(q,p,b)=(q2,r);
+Not a Leaf: ifd=q2∈Q, andδ(q1,q2,b)=q3, thenδ′(q,p,b)=(q3,r).
+End of Second Child: ifdp=r, we have two cases:
+Leaf: ifd=l, andδ(q0,q0,b)=q2, thenδ′(q,p,b)=(qp,q2);
+Not a Leaf: ifd=q2∈Q, andδ(q1,q2,b)=q3, thenδ′(q,p,b)=(qp,q3).
+The STT S′has set of variables X′=X′
+l∪X′
+r, where X′
+d={xd|x∈X}. We use one set of variables Xlfor the
+variable values after processing the left child, and Xrfor the variable values after processing the right child. The
+variables in XlandXrare combined when processing the parent. The STT S′maintains the following invariant:
+given a tree⟨a tl,tra⟩, and d∈{l,r}, after processing the child td, every variable xd∈X′
+dwill contain the value of x
+computed by Safter processing the tree td.
+We can now describe the variable update function ρ′ofS′. Given a variable x∈X′, let the function ini (x)be the
+function that returns the initial value of a variable x, that is defined as: 1) if xis a type-0 variable, then ini (x)=ε,
+and 2) if xis a type-1 variable, then ini (x)=?. Let’s assume S′is in state q=(q1,d), it is processing the symbol a, and
+updating the variable x∈X′:
+ais a call⟨b:every variable is copied on the stack ρ′(q,b,x)=x;
+ais a return b⟩:if the state popped from the stack is p=(qp,dp), we have the following cases.
+End of First Child: ifdp=lwe have two cases:
+•ifx∈XLwe have two more cases
+Leaf: ifd=l, thenρ′(q,p,b,x)=ρ(q0,q0,b,x);
+Not a Leaf: ifd=q2∈Q, thenρ′(q,p,b,x)=ρ(q1,q2,b,x).
+•ifx∈XR, thenρ′(q,p,b,x)=ini (x).
+End of Second Child: ifdp=rwe have two cases:
+•ifx∈XL, thenρ′(q,p,b,x)=xp;
+•ifx∈XRwe have two more cases
+Leaf: ifd=l, thenρ′(q,p,b,x)=ρ(q0,q0,b,x);
+Not a Leaf: ifd=q2∈Q, thenρ′(q,p,b,x)=ρ(q1,q2,b,x).
+The conflict relation η′ofS′is defined as: for every x,y∈X, and d∈{L,R}, ifη(x,y), thenη′(xd,yd). The consistency
+ofηis trivial. Finally, the output function F′is defined as follows. For every state (q,d)∈Q′, ifd=r,F′(q,d)=F(q),
+otherwise F′is undefined.□
+3.8 Restricted Outputs
+Let us now consider how the transducer model can be simplified when the output is restricted to the special cases of
+strings and ranked trees. The desired restrictions correspond to limiting the set of allowed operations in expressions
+used for updating variables.
+Mapping Nested Words to Strings. Each variable of an STT stores a potential output fragment. These fragments get
+updated by addition of outputs symbols, concatenation, and insertion of a nested word in place of the hole. If we
+disallow the substitution operation, then the STT cannot manipulate the hierarchical structure in the output. More
+specifically, if all variables of an STT are type-0 variables, then the STT produces outputs that are strings over Γ. The
+set of expressions used in the right-hand sides can be simplified to E0:=ε|a|x0|E0E0. That is, each right-hand side
+30
+
+--- Page 31 ---
+is a string over Γ∪X. Such a restricted form of STT is called a streaming tree-to-string transducer (STST). While less
+expressive than STTs, this class is adequate to compute all tree-to-string transformations, that is, if the final output of
+an STT is a string over Γ, then it does not need to use holes and substitution.
+Theorem 3.18 (STST Expressiveness). A partial function from W0(Σ)toΓ∗is STT-definable iff it is STST-definable.
+Proof Sketch. Since STSTs are also STTs the ⇐direction of the proof is immediate.
+We now prove the ⇒direction. Given an STT Sthat only outputs strings over Γ∗, we can build an equivalent
+STST S′as follows. The goal of the construction is eliminating all the type-1 variables from S. This can be done by
+replacing each type-1 variable xinSwith two type-0 variables xl,xrinS′representing the values to the left and to
+the right of the ?inx. If, after reading a nested word w, the type-1 variable xofScontains the value wl?wr, then the
+type-0 variables xlandxrofS′respectively contain the values wlandwr. Notice that this cannot be done in general
+for SSTs, because wlandwrmight not be well-matched nested words. The states, and state transition function of
+S′are the same as for S, and the variable update function and the output function can be easily derived. If ηis the
+conflict relation of S, then the conflict relation η′ofS′is defined as follows: for every variable x,η′(x,x), and given
+two variables x,yofS, ifη(x,y), and d,d′∈{l,r}, thenη′(xd,yd′).□
+If we want to compute string-to-string transformations, then the STT does not need a stack and does not need
+type-1 variables. Such a transducer is both an SSTT and an STST, and this restricted class coincides with the definition
+of streaming string transducers (SST) [2].
+Mapping Nested Words to Ranked Trees. Suppose we are interested in outputs that are binary trees in B(Γ). Then,
+variables of the transducer can take values that range over such binary trees, possibly with a hole. The internal
+symbols, and the concatenation operation, are no longer needed in the set of expressions. More specifically, the
+grammar for the type-0 and type-1 expressions can be modified as
+E0:=0|x0|a⟨E0E0⟩|E1[E0]
+E1:=?|x1|a⟨E0E1⟩|a⟨E1E0⟩|E1[E1]
+where a∈Γ,x0∈X0andx1∈X1. To define transformations from ranked trees to ranked trees, we can use the model
+of bottom-up ranked-tree transducers with the above grammar.
+4 EXPRESSIVENESS
+The goal of this section is to prove that the class of nested-word transductions definable by STTs coincides with the
+class of transductions definable using Monadic Second Order logic (MSO).
+We first show that any STT can be simulated by an MSO definable transduction. The other direction of the proof
+relies on the known equivalence between MSO and Macro Tree Transducers over ranked trees. Our first step is to lift
+STTs to operate over ranked trees. Next, to simulate a given Macro Tree Transducer, we show construct a sequence
+of STTs over ranked trees. Finally, using closure under composition, this sequence of STTs is composed into a single
+STT.
+4.1 MSO for Nested Word Transductions
+Formulas in monadic second-order logic (MSO) can be used to define functions from (labeled) graphs to graphs [ 6]. We
+adapt this general definition for our purpose of defining transductions over nested words. A nested word w=a1. . .ak
+overΣis viewed as an edge-labeled graph Gwwith k+1nodesv0. . .vksuch that (1) there is a (linear) edge from
+eachvj−1tovj, for 1≤j≤k, labeled with the symbol aj∈Σ, and (2) for every pair of matching call-return positions
+iandj, there is an unlabeled (nesting) edge from vi−1tovj−1. The monadic second-order logic of nested words is
+given by the syntax:
+ϕ:=a(x,y)|X(x)|x⇝y|ϕ∨ϕ|¬ϕ|∃x.ϕ|∃X.ϕ
+where a∈Σ,x,yare first-order variables, and Xis a second-order variable. The semantics is defined over nested
+words in a natural way. The first-order variables are interpreted over nodes in Gw, while set variables are interpreted
+over sets of nodes. The formula a(x,y)holds if there an a-labeled edge from the node xto nodey(this can happen
+only when yis interpreted as the linear successor position of x), and x⇝yholds if the nodes xandyare connected
+by a nesting edge.
+31
+
+--- Page 32 ---
+AnMSO nested-word transducer Φfrom input alphabet Σto output alphabet Γconsists of a finite copy set C, node
+formulasϕcfor each c∈C, each of which is an MSO formula over nested words over Σwith one free first-order
+variable x, and edge formulas ϕc,dandϕc,d
+afor each a∈Γandc,d∈C, each of which is an MSO formula over nested
+words over Σwith two free first-order variables xandy. Given an input nested word w, consider the following output
+graph: for each node xinGwandc∈C, there is a node xcin the output if the formula ϕcholds over Gw, and for all
+such nodes xcandyd, there is an a-labeled edge from xctoydif the formula ϕc,d
+aholds over Gw, and there is a nesting
+edge from xctoydif the formula ϕc,dholds over Gw. If this graph is the graph corresponding to the nested word u
+overΓthen JΦK(w)=u, and otherwise JΦK(w)is undefined. A nested word transduction ffrom input alphabet Σto
+output alphabet ΓisMSO-definable if there exists an MSO nested-word transducer Φsuch that JΦK=f.
+By adapting the simulation of string transducers by MSO [ 1,10], we show that the computation of an STT can be
+encoded by MSO, and thus, every transduction computable by an STT is MSO definable.
+Theorem 4.1 (STT-to-MSO). Every STT-definable nested-word transduction is MSO-definable.
+Proof. Consider a copyless STT Swith regular look-ahead automaton A. The labeling of positions of the input
+nested word with states of the regular look-ahead automaton can be expressed in MSO. The unique sequence of
+states and stack symbols at every step of the execution of the transducer Sover a given input nested word wcan be
+captured in MSO using second-order existential quantification. Thus, we assume that each node in the input graph is
+labeled with the corresponding state of the STT while processing the next symbol. The positions corresponding to
+calls and returns are additionally labeled with the corresponding stack symbol pushed/popped.
+i+1
+stack variablesvariablesjj−10kOutputReturnCallii−1Internal
+xoxi?
+xpoxi
+xpixo?
+xpi?
+xpo?◁
+ε
+εxp:=xx:=εx:=xxp[ε] x[b]
+ε
+ε
+ε εε
+ε
+εb
+εx:=ax[c?]
+a
+c
+ε
+εε
+ε
+ε
+ε
+Fig. 4. Encoding STT computation in MSO. The bold edges connect the current variable values to the values on top of the stack
+and they are added when processing the return position j.
+We explain the encoding using the example shown in Figure 4. Suppose the STT uses one variable xof type-1. The
+corresponding MSO transducer has eight copies in the copy set, four for the current value of the variable and four for
+the current value of the variable on the top of the stack. The current value of the variable xis represented by 4 copies
+in the copy set: xi,xo,xi?andxo?. At every step i(see top of Figure 4) the value of xcorresponds to the sequence of
+symbols labeling the unique path starting at xiand ending at xi?, followed by the hole ?and by the sequence labeling
+the unique path starting at xo?and ending at xo. At step ithe value of xon top of the stack ( xpin this example) is
+captured similarly using other 4 copies.
+32
+
+--- Page 33 ---
+We now explain how the STT variable updates are captured by the MSO transducer. At step 0,xis instantiated to
+?by adding an ε-labeled edge from the xinode to the xi?node and from the xo?node to the xonode. Consider an
+internal position iand the variable assignment x:=ax[c?]. This means that the value of xfor column iis the value of
+xin column i−1, preceded by the symbol a, where we add a cbefore the parameter position in i−1. To reflect this
+assignment, we insert an a-labeled edge from the xinode in column ito the xinode in column i−1, ac-labeled edge
+from the xi?node in column i−1to the xi?node in column i(this reflects adding to the left of the ?), anε-labeled
+edge from the xo?node in column ito the xo?node in column i−1, and anε-labeled edge from the xonode in column
+i−1to the xonode in column i.
+We again use Figure 4 to show how variables are stored on the stack. At the call step i+1, the assignment xp:=x
+is reflected by the ε-labeled edges between the xpnodes in column i+1and the xnodes in column i. The edges are
+added in a similar way as for the previous assignment. The value of xpin column i+1is preserved unchanged until
+the corresponding matching return position is found. At the return step j, the value of xcan depend on the values of
+xin column j−1, and the value of xpon the top stack, which is captured by the input/output nodes for xpin column
+j−1. The j−1position can be identified uniquely using the matching relation ⇝. Even though it is not shown in
+figure, at position jwe have to add εedges from the xpnodes at position jto the xpnodes at position ito represent
+the value of xpthat now is on the top of the stack.
+To represent the final output, we use an additional column k. In the example, the output expression is x[b]. We
+mark the first edge from xiby a special symbol ◁to indicate where the output string starts, a b-labeled edge from
+thexi?node to the xo?node of x. In the same way as before we connect each component to the corresponding k−1
+component using εedges.
+Notice that in this exposition, we have assumed that in the MSO transducer, edges can be labeled with strings over
+the output alphabet (including ε) instead of single symbols. It is easy to show that allowing strings to label the edges
+of the output graph does not increase the expressiveness of MSO transducers. Also notice that not every node will
+appear in the final output string. An MSO transducer able to remove the useless edges and nodes can be defined.
+Using closure under composition we can then build the final transducer. Some extra attention must be paid to add the
+matching edges in the output, but since the output at every point is always a well-matched nested word, the matching
+relation over the output nested word can be induced by inspection of each assignment (i.e. the matching edges are
+always between nodes in the same column). □
+Nested Words as Binary Trees. Nested words can be encoded as binary trees. This encoding is analogous to the
+encoding of unranked trees as binary trees. Such an encoding increases the depth of the tree by imposing unnecessary
+hierarchical structure, and thus, is not suitable for processing of inputs, however, it is useful to simplify proofs of
+subsequent results about expressiveness. The desired transduction nw_bt from W0(Σ)toB(Σ)is defined by
+nw_bt (ε)=0
+nw_bt (aw )=a⟨nw_bt (w),0⟩
+nw_bt (⟨a w 1b⟩w2)=a⟨nw_bt (w1),b⟨nw_bt (w2),0⟩⟩
+Notice that the tree corresponding to a nested word whas exactly one internal node for each position in w. Observe
+that nw_bt is a one-to-one function, and in particular, the encodings of the two nested words aaaand⟨a a a⟩differ:
+•nw_bt (aaa )=a⟨a⟨a⟨0,0⟩,0⟩,0⟩;
+•nw_bt (⟨aaa⟩)=a⟨a⟨0,0⟩,a⟨0,0⟩⟩.
+We can define the inverse partial function bt_nw from binary trees to nested words as follows: given t∈B(Σ), if
+tequals nw_bt (w), for some w∈W0(Σ)(and if so, the choice of wis unique), then bt_nw (t)=w, and otherwise
+bt_nw (t)is undefined. The next proposition shows that both these mappings can be implemented as STTs.
+Proposition 4.2 (Nested-Words Binary-Trees Correspondence). nw_bt :W0(Σ)7→B(Σ), and bt_nw :B(Σ)7→
+W0(Σ)are both STT-definable transductions.
+Proof. We prove the two statements in the order.
+STT for nw_bt .The transduction nw_bt can be performed by an STT Sthat basically simulates its inductive definition
+and only needs one type-1 variable x. When processing the input nested word w=a1. . .an, after reading the symbol
+ai,x[0]contains the value of nw_bt (wms (w,i))(see Theorem 3.7 for the definition of wms (w,i)). The STT Shas one
+33
+
+--- Page 34 ---
+state q, which is also initial. The set of stack states is the same as the input alphabet P=Σ, and the output function is
+F(q)=x[0]. Next we define the update functions. For every a,b∈Σ,
+•δi(q,a)=q,δc(q,a)=(q,a), andδr(q,a,b)=q;
+•ρi(q,a,x)=x[a⟨?,0⟩],ρc(q,a,x)=x, andρr(q,a,b)=xp[a⟨x[0],b⟨?,0⟩⟩].
+STT for bt_nw .The translation bt_nw can be implemented by the following BRTT S′. The BRTT S′has three type-0
+variables xi,xc,xrsuch that after processing the tree t, 1)xicontains the value of bt_nw (t), assuming t’s root was
+representing an internal symbol, 2) xccontains the value of bt_nw (t), assuming t’s root was representing a call, and
+3)xrcontains the value of bt_nw (t), assuming t’s root was representing a return. The BRTT S′has set of states
+Q′={q0}∪ ({qa|a∈Σ}×{C,IR}), and initial state q0. The{C,IR}component is used to remember whether the last
+symbol S′read was a call, or an internal or return symbol. The BRTT S′is in a state (qa,)after processing a tree
+rooted with the symbol a. The output function F′is defined as follows: for every a∈Σ,F′(qa,IR)=xi,F′(qa,C)=xc,
+andF′is undefined otherwise. Next we define the update functions. When a variable is not assigned, we assume it is
+set toε. For every symbol a∈Σ,
+Right Child is 0: for every q′∈Q,δ(q′,q0,a)=(qa,IR), and
+•ifq′=q0, thenρ(q0,q0,a,xi)=a;
+•q′=(qb,C)for some b∈Σ, thenρ((qb,C),q0,a,xi)=axl
+c,ρ((qb,IR),q0,a,xr)=xl
+c;
+•q′=(qb,IR)for some b∈Σ, thenρ((qb,IR),q0,a,xi)=axl
+i, andρ((qb,IR),q0,a,xr)=xl
+i.
+Right child is not 0: for every ql,qr∈Q,δ(ql,qr,a)=(qa,C), and qrmust be of the form (qb,IR)for some
+b∈Σ. The variable update is defined as follows:
+•ifql=q0, thenρ(q0,(qb,IR),a,xc)=⟨ab⟩xr
+r;
+•ql=(qc,C)for some c∈Σ, thenρ((qc,C),(qb,IR),a,xc)=⟨axl
+cb⟩xr
+r;
+•ql=(qc,IR)for some c∈Σ, thenρ((qc,IR),(qb,IR),a,xc)=⟨axl
+ib⟩xr
+r.
+Finally, the conflict relation of S′only contains η′(xi,xr)□
+For a nested-word transduction ffrom W0(Σ)toW0(Γ), we can define another transduction ˜fthat maps binary
+trees over Σto binary trees over Γ: given a binary tree t∈B(Σ), iftequals nw_bt (w), then ˜f(t)=nw_bt (f(w)), and
+otherwise ˜f(t)is undefined. The following proposition can be proved easily from the definitions of the encodings.
+Proposition 4.3 (Encoding Nested-Word Transductions). Iffis an MSO-definable transduction from W0(Σ)to
+W0(Γ), then the transduction ˜f:B(Σ)7→B(Γ)is an MSO-definable binary-tree transduction and f=bt_nw·˜f·nw_bt .
+Since STT-definable transductions are closed under composition, to establish that every MSO-definable transduction
+is STT-definable, it suffices to consider MSO-definable transductions from binary trees to binary trees.
+4.2 Macro Tree Transducers
+A Macro Tree Transducer (MTT) [ 12,16] is a tree transducer in which the translation of a tree may depend not only
+on its subtrees but also on its context. While the subtrees are represented by input variables, the context information
+is handled by parameters. We refer the reader to [ 12,16] for a detailed definition of MTTs, and present here the
+essential details. We only consider deterministic MTTs with regular look-ahead that map binary trees to binary trees.
+A(complete and deterministic) macro-tree transducer with regular look-ahead (MTTR) Mfrom B(Σ)toB(Γ)consists
+of a finite set Qof ranked states, a list Y=y1, . . .ynof parameter symbols, variables X={xl,xr}used to refer to input
+subtrees, an initial state q0, a finite set Rof look-ahead types, an initial look-ahead type r0, a look-ahead combinator
+θ:Σ×R×R7→R, and the transduction function ∆. For every state qand every look-ahead type r,∆(q,r)is a ranked
+tree over the alphabet (Q×X)∪Γ∪Y, where the rank of a label (q,x)is the same as the rank of q, the rank of
+an output symbol a∈Γis 2, and the rank of each parameter symbol is 0 (that is, only leaves can be labeled with
+parameters).
+The look-ahead combinator is used to define look-ahead types for trees: θ∗(0)=r0andθ∗(a⟨sl,sr⟩)=θ(a,θ∗(sl),θ∗(sr)).
+Assume that only the tree 0has the type r0, and for every state q,∆(q,r0)is a tree over Γ∪Y(the variables Xare
+used to refer to immediate subtrees of the current input tree being processed, and the type r0indicates that the input
+tree has no subtrees).
+The MTTR Mrewrites the input binary tree s0, and at every step the output tree is a ranked tree with nodes labeled
+either with an output symbol, or with a pair consisting of a state of the MTTR along with a subtree of the input
+34
+
+--- Page 35 ---
+tree. LetT(s0)denote the set of all subtrees of the input tree s0. Then, the output tat any step is a ranked tree over
+(Q×T (s0))∪Γ∪{0}. The semantics of the MTTR is defined by the derivation relation, denoted by ⇒, over such
+trees. Initially, the output tree is a single node labeled with [q0,s0]. Consider a subtree of the output of the form
+u=[q,s](t1, . . .tn), that is, the root is labeled with the state qof rank n, with input subtree s, and children of this
+node are the output subtrees t1, . . .tn. Suppose the look-ahead type of the input subtree sisr, and let slandsrbe the
+children of the root. Let χbe the tree obtained from the tree ∆(q,r)by replacing input variables xlandxrappearing
+in a node label with the input subtrees slandsrrespectively, and replacing each leaf labeled with a parameter ylby
+the output subtree tl. Then, in one step, the MTTR can replace the subtree uwith the tree χ. The rewriting stops when
+all the nodes in the output tree are labeled only with output symbols. That is, for s∈B(Σ)andt∈B(Γ),JMK(s)=t
+iff[q0,s]⇒∗t.
+In general, MTTs are more expressive than MSO. The restrictions needed to limit the expressiveness rely on the
+notions of single-use andfinite copying , which enforce an MTT to process every subtree in the input a bounded
+number of times. Let Mbe an MTTR.
+(1)The MTTR Missingle use restricted in the parameters (SURP) if for every state qand every look-ahead type r,
+each parameter yjoccurs as a node-label at most once in the tree ∆(q,r).
+(2)The MTTR Misfinite-copying in the input (FCI) if there exists a constant Ksuch that, for every tree soverΣ
+and subtree s′ofs, if the (intermediate) tree tis derivable from [q0,s], then tcontains at most Koccurrences
+of the label [q,s′](and thus, each input subtree is processed at most Ktimes during a derivation).
+The following theorem is proved in [12].
+Theorem 4.4 (Regularity for MTTs). A ranked-tree transduction fis MSO-definable iff there exists an MTTR M
+with SURP/FCI such that f=JMK.
+4.3 MSO Equivalence
+We first show that bottom-up ranked-tree transducers are as expressive as MTTs with regular-look-ahead and
+single-use restriction, and then conclude that STTs are equivalent to MSO-definable transducers.
+Theorem 4.5 (MTTs to BRTTs). If a ranked-tree transduction f:B(Σ)7→B(Γ)is definable by an MTTR with
+SURP/FCI, then it is BRTT-definable.
+Proof. In the same way as we did for STTs, we can extend BRTTs to multi-parameter BRTTs (MBRTT). We omit
+the definition, since it is straightforward. Using the proof for Theorem 3.17 we can show that these are equivalent to
+multi-parameter STTs and therefore using Theorem 3.14 to STTs.
+We are given a MTTR with SURP/FCI M=(Q,Y,q0,R,r0,θ,∆)with FCI constant Kcomputing a transduction f
+and we construct a BRTT Bequivalent to M.
+We divide the construction into several steps, each using one of the properties of the MTT.
+(1)We construct a BRTT S1, computing the transduction f1:B(Σ)7→B(R), where each input element is replaced
+by its regular look-ahead state.
+(2)We construct an STT S2, computing the transduction f2:B(R)7→B(R′), where each element of R′, contains
+information on the set of states in which the MTT processes the corresponding node.
+(3)We construct a multi-parameter BRTT S3, that computes the function f3:B(R′)7→B(Γ). This part relies on
+the SURP restriction.
+(4)Finally, we use the fact that STTs are closed under composition (Theorem 3.15), and the equivalence of STTs
+and BRTTs (Theorem 3.17), to show that f=f1·f2·f3is a BRTT definable transduction.
+Step 1. The BRTT S1simulates the look-ahead automaton of Mby following the transition relation θ. The set of states
+ofS1isR, with initial state r0, and it only has one type-0 variable x. For every symbol a∈Σ, and states r1,r2∈R, the
+transition function δ1, and the variable update function ρ1ofS1are as follows: if θ(r1,r2,a)=r, thenδ1(r1,r2,a)=r,
+andρ1(r1,r2,a,x)=r⟨xlxr⟩. Finally, for every r∈R,F(r)=x.
+Step 2. STTs can also be viewed as a top down machine, and f2is in fact a top-down relabeling. Every subtree s
+can be processed at most Ktimes, and we can therefore use S2to label swith the ordered sequence of states that
+processes it. So given a tree over B(R),S2outputs a tree over B(R′), where R′=R×Q≤K, and Q≤K=S
+0≤k≤KQk.
+The states and stack states of S2are defined by the set Q2=P2=Q≤K∪(Q≤K×Q≤K). The initial state q2
+0=q0∈Q≤K
+means that the root is only processed by q0. The construction of S2then maintains the following invariants: assume
+35
+
+--- Page 36 ---
+tlandtrare the left and right children of a node, ml∈Q≤Kis the sequence of states that processes tlinM, and
+mr∈Q≤Kis the sequence of states that processes trinM;
+•before processing tl,S2is in state (ml,mr);
+•before processing tr(after processing tl),S2is in state mr.
+The states mican be obtained directly from the right hand sides of the rules of the MTT. It’s now trivial to do the
+corresponding labeling using the information stored in the state. Given a state q∈Q, and a symbol r1∈R, let
+seqd(q,r1), with d∈{l,r}, be the sequence of states processing the child sdin∆(q,r1), assuming a linearization of
+such a tree. For every sequence m=q1. . .qn∈Q≤K, and symbol r1∈R,seqd(m,r1)=seqd(q1,r1). . .seqd(qn,r1).
+The STT S2only has one variable x.
+We can now define the transition relation δ2, and the variable update function ρ2ofS2. For every states m∈Q2,
+m′∈Q≤K,(m1,m2)∈Q≤K×Q≤K, and for every symbol r∈R:
+r1is a call⟨r2:store the variables on the stack and update the state consistently:
+•δ2(m′,r2)= (m1,m′), where m1= (seql(m′,r2),seqr(m′,r2)), andδ2((m1,m2),r2)= (m3,(m1,m2)),
+where m3=(seql(m1,r2),seqr(m1,r2));
+•ρ2(m′,r2,x)=x, andρ2((m1,m2),r2,x)=x;
+ris a return r2⟩:use the values on the stack to compute the labeling
+•δ2(m,(m1,m2),r2)=m2, andδ2(m,m′,r2)=m;
+•ρ2(m,(m1,m2),r2,x)=⟨(r,m1)x(r,m1)⟩, and
+ρ2(m,m′,r2,x)=xp⟨(r2,m′)x(r2,m′)⟩.
+Finally, the output function F2ofS2outputs xfor every possible q∈Q2.
+Step 3. This last step relies on the SURP property of the MTT M. We notice that, when processing bottom-up
+the MTT parameter updates behave in a different way as when processing top-down: to perform the top-down
+parameter update y1:=a(y2)in bottom-up manner, we need to use the multi-parameter BRTT parameter substitution
+x:=x[y17→a(y2)], where now, the new visible parameter is y2. We now formalize this idea.
+We construct a multi-parameter BRTT S3=(Q3,q03,Π3,η3,X3,F3,δ3,ρ3)from B(R′)7→B(Γ), that implements
+the transduction f3. The set of states Q3only contains one state q03, which is also initial. The transition function is
+therefore trivial.
+The set of variables X3={x1, . . . , xK}contains Kvariables. After processing a tree t,xicontains the result of
+Mprocessing the tree tstarting in qi, with the possible holes given from the parameters. At the beginning all the
+variable values are set to ε. The parameter set Π3isY.
+Next, we define the update functions of S3. We start from the leaf rules, in which both the 0children are labeled
+with the empty sequence. Let’s assume the current leaf is (r,m), where m=q1. . .qj. We assume w.l.o.g., that all the
+states have exactly Kparameters. For every qi∈m, if∆(qi,r)=ti(y1, . . . ,yK), we update xi:=ti(y1, . . . ,yK), where
+y1, . . . ,yK∈Π. Since the MTT is SURP, there is at most one occurrence of each yi.
+We now analyze the binary node rules. Let’s assume the node we are processing the input node (r,m), where
+m=q1. . .qj. For every qi∈m,∆(qi,r)is of the form
+ti(Y,(qi
+l,1,sl), . . . , (qi
+l,ai,sl),(qi
+r,1,sr), . . . , (qi
+r,bi,sr))
+where qi
+l,1. . .qi
+l,aiis the sequence of states processing the left subtree, and qi
+r,1. . .qi
+r,biis the sequence of states
+processing the right subtree.
+When picking the concatenation of all the ∆(qi,r), we have that by the construction of S2, the left child (similarly for
+the right), must have been labeled with the sequence ml=q1
+l,1. . .q1
+l,a1. . .qj
+l,1. . .qj
+l,ajsuch that|ml|≤K. Moreover,
+we have that for all xi∈Xl(similarly for Xr),xicontains the output of Mwhen processing the left child of the
+current node starting in state qi, where qiis the i-th element of the sequence mland assuming the parameter are not
+instantiated yet
+Now we have all the ingredients to complete the rule. The right hand side of a variable xicontains the update
+corresponding to the rule in Mwhere we replace every state with the corresponding variable in the linearization
+36
+
+--- Page 37 ---
+stated above and parameters are updated via substitution. Since ρis copyless η3is trivial. The output function FS
+simply outputs x1, i.e. the transformation of the input tree starting in q0.
+Step 4. We use Theorem 3.15, and Theorem 3.17 to compose all the transformations and build the final BRTT
+equivalent to the MTT M.□
+Theorem 4.6 (MSO Eqivalence). A nested-word transduction f:W0(Σ)7→W0(Γ)is STT-definable iff it is
+MSO-definable.
+Proof. From Theorems 3.15, 3.17, 4.1, 4.2, 4.4, and 4.5. □
+5 DECISION PROBLEMS
+In this section, we show that a number of analysis problems are decidable for STTs. Moreover, we show that STTs
+are the first model that capture MSO-definable transformations while enjoying an elementary upper bound for the
+problem of checking inequivalence ( NExpTime ).
+5.1 Output Analysis
+Given an input nested word woverΣ, and an STT SfromΣtoΓ, consider the problem of computing the output
+JSK(w). To implement the operations of the STT efficiently, we can store the nested words corresponding to variables
+in linked lists with reference variables pointing to positions that correspond to holes. Each variable update can be
+executed by changing only a number of pointers that is proportional to the number of variables.
+Proposition 5.1 (Computing Output). Given an input nested word wand an STT Swith kvariables, the output
+nested word JSK(w)can be computed in time O(k|w|)in a single pass.
+Proof. A naive implementation of the transducer would cause the running time to be O(k|w|2)due to possible
+variable sharing. Let’s consider the assignment (x,y):=(x,x). The naive implementation of this assignment would
+copy the value of the variable xin both xandy, causing the single step to cost O(k|w|)since every variable might
+contain a string of length O(|w|).
+We now explain how we achieve the O(k|w|)bound by changing the representation of the output. Instead of
+outputting the final string, we output a pointer graph representation of the run. The construction is exactly the same
+as in Theorem 4.1. In this case the transducer might not be copyless; however, we can construct the graph in the same
+way. The key of the construction is that due to the definition of sharing, each variable contributes only once to the
+final output. In this way, starting from the output variable, we can reconstruct the output string by just following the
+edges in the graph. Notice that the stack variables won’t cause a linear blow-up in the size of the graph because at
+every point in the run the graph only needs to represent the top of the stack. □
+The second problem we consider corresponds to type-checking : given a regular language Lpreof nested words
+overΣ, a regular language Lpostof nested words over Γ, and an STT SfromΣtoΓ, the type-checking problem is to
+determine if JSK(Lpre )⊆Lpost(that is, if for every w∈Lpre,JSK(w)∈Lpost).
+Theorem 5.2 (Type-Checking). Given an STT SfromΣtoΓ, a deterministic and complete NWA Aaccepting nested
+words over Σ, and a deterministic and complete NWA Baccepting nested words over Γ, checking JSK(L(A))⊆L(B)is
+solvable in ExpTime , and more precisely in time O(|A|3·|S|3·nkn2)where nis the number of states of B, and kis the
+number of variables in S.
+Proof Sketch. The construction is similar to the one of Theorem 3.15. Therefore we only present a sketch. Given
+S,A, and B, we construct an NWA P, that accepts a nested word wiffwis accepted by Aand JSK(w)is not accepted
+byB. This is achieved by summarizing the possible executions of Bon the variable values of S. The states of Pare
+triplets (qA,qS,f), such that:
+•qAis the current state of A;
+•qSis the current state of S;
+•for every variable xofS, and states q1,q2inB,f(x,q1,q2)is a pair of states (q′
+1,q′
+2)ofB, such that if the value
+ofxisw1?w2:
+–ifBreads w1starting in state q1, then it ends in state q′
+1and produces some stack Λ;
+–ifBreads w2starting in state q2, and with stack Λ, then it ends in state q′
+2.
+37
+
+--- Page 38 ---
+The final states of the machine are those where Ais final, and the summary of the output function of the current state
+ofQSofSleads to a non accepting state in B.□
+As noted in Proposition 3.2, the image of an STT is not necessarily regular. However, the pre-image of a given
+regular language is regular, and can be computed. Given an STT Sfrom input alphabet Σto output alphabet Γ,
+and a language L⊆W0(Γ)of output nested words, the set PreImg (L,S)consists of input nested words wsuch that
+JSK(w)∈L.
+Corollary 5.3 (Computing Pre-Image). Given an STT SfromΣtoΓ, and a deterministic and complete NWA Bover
+Γ, there is an ExpTime algorithm to compute an NWA AoverΣsuch that L(A)=PreImg (L(B),S). The NWA Ahas size
+O(|S|3·nkn2)where nis the number of states of B, and kis the number of variables in S.
+Proof. The construction follows from Theorem 5.2, but this time the final states of the machine are those where S
+is in a final configuration, and the summary of the output function of the current state qSofSleads to an accepting
+state in B.□
+5.2 Functional Equivalence
+Finally, we consider the problem of checking functional equivalence of two STTs: given two STTs SandS′, we want
+to check if they define the same transduction. Given two streaming string transducers SandS′, [1,2] shows how to
+construct an NFA Aover the alphabet {0,1}such that the two transducers are inequivalent exactly when Aaccepts
+some string wsuch that whas equal number of 0’s and 1’s. The idea can be adopted for the case of STTs, but Anow
+is a nondeterministic pushdown automaton. The size of Ais polynomial in the number of states of the input STTs,
+but exponential in the number of variables of the STTs. Results in [17, 23, 35] can be adopted to check whether this
+pushdown automaton accepts a string with the same number of 0’s and 1’s.
+Theorem 5.4 (Checking Eqivalence). Given two STTs S1andS2, it can be decided in NExpTime whether JSK,JS′K.
+Proof. Two STTs S1andS2are inequivalent if one of the following holds:
+(1) for some input u, only one of JS1K(u)and JS2K(u)is defined,
+(2) for some input u, the lengths of JS1K(u)and JS2K(u)are different, or
+(3)for some input u, there exist two symbols aandb, such that a,b,JS1K(u)=u1au2,JS2K(u)=v1bv2, and u1
+andv1have the same length.
+The first case can be solved in PTime using the techniques in [3]. The second case can be reduced to checking an
+affine relation over pushdown automata and this problem can be solved in polynomial PTime [30]. Informally, let A
+be a pushdown automaton where each transition computes an affine transformation. Checking whether a particular
+affine relation holds at every final state is decidable in polynomial time [ 30]. We can therefore take the product Spof
+S1andS2, where Spupdates the variables of S1andS2as follows. Let Xibe the set of variables in Si. For every state
+(q1,q2), symbol a∈Σand every x∈Xi,Spupdates the variable xto the sum of the number of constant symbols in the
+variable update of xinSiwhen reading ain state qi, and the variables appearing in such variable update. For every
+state (q1,q2)for which F1(q1)andF2(q2)are defined, we impose the affine relation F1(q1)=F2(q2)which checks
+whether the two outputs have the same length. We can then use the algorithm in [ 30] to check if such a relation holds.
+Let us focus on the third case, in which the two outputs differ in some position. Given the STT S1and a symbol a,
+we construct a nondeterministic visibly pushdown transducer (VPT) V1(a visibly pushdown automaton with output),
+fromΣto{0}such that V1produces 0non input u, ifJS1K(u)=u1au2and|u1|=n. Similarly, given S2, and a symbol
+b,a, we construct a VPT V2fromΣto{1}such that V2produces 1non input u, ifJS2K(u)=u1bu2and|u1|=n.
+Using V1andV2we then build the product V=V1×V2, which interleaves the outputs of V1andV2. IfVoutputs a
+string scontaining the same number of 0s and 1s, then there exists an input won which S1outputs a string α1aβ1,S2
+outputsα2bβ2, and|α1|=|α2|. Since in Vthe input labels are synchronized, they are no longer relevant. Therefore,
+we can view such machine as a pushdown automaton that generates/accepts strings over {0,1}∗. If a string swith the
+same number of 0s and 1s is accepted by V, it can be found by constructing the semi-linear set that characterizes the
+Parikh image of the context-free language of V[17,35]. A solution to such semi-linear set can be found in NP(in
+the number of states of V) [23]. However, as we will see, the number of states of Vis polynomial in the number of
+states of S1andS2, and exponential in their number of variables of S1andS2. This allows us to conclude that checking
+whether two STTs are inequivalent can be solved in NExpTime .
+38
+
+--- Page 39 ---
+The rest of the proof shows how to construct V1,V2, and V=V1×V2. We modify S1=(Q,q0,P,X,η,F,δ,ρ), so
+that we do not have to worry about the output function. We add to S1a new variable xf, and a new state qf, obtaining
+a new STT S′
+1. We can then add a special end-of-input symbol #, such that, for every state q∈Qfor which F(q)is
+defined, S′
+1goes from qtoqfon input #, and updates xftoF(q). This new STT S′
+1has the following property: for
+every input u,JS1K(w)=JS′
+1K(w#).
+Each state of V1is a pair (q,f), where qis a state of S′
+1, and fis a partition of the variables XofS′
+1into 6 categories
+{l,m1,m?,m2,r,n}, such that a variable xis in the set:
+l:ifxcontributes to the final output occurring on the left of a symbol awhere ais the symbol we have guessed
+the two transducers differ in the final output,
+m1:ifxcontributes to the final output and the symbol aappears in this variable on the left of the ?,
+m?:ifxcontributes to the final output and the symbol aappears in this variable in the ?(a future substitution
+will add ato the ?),
+m2:ifxcontributes to the final output and the symbol aappears in this variable on the right of the ?,
+r:ifxcontributes to the final output occurring on the right of a symbol a, or
+n:ifxdoes not contribute to the final output.
+At every step, V1nondeterministically chooses which of the previous categories each of the variables of S1belongs to.
+In the following, we use fpto denote a particular partition: for example fm1is the set of variables mapped by ftom1.
+A state (q,f)ofV1is initial, if q=q0is the initial state of S1, and fm1∪fm2=∅. A state (q,f)ofV1is final, if q=qf,
+fm1={xf}(the only variable contributing to the output is xf), and fl∪fr∪fm?∪fm2=∅.
+We now define the transition relation of V1. Given a state s, and a symbol b, a transition updates the state to some
+s′, and outputs a sequence in 0∗. We assume V1is in state (q,f), and it is processing the input symbol b. Given an
+expression α∈E(X,Σ)(i.e. an assignment right hand side), we use x∈aαto say that a variable x∈Xappears in α.
+bis internal: the VPT V1goes to state (q′,f′), whereδi(q,s)=q′. For computing f′we have three different
+possibilities.
+(1)The VPT V1guesses that in this transition, some variable xis going to contain the position on which
+the outputs differ. We show the construction with an example. Assume ρi(q,b,x)=α1cα2?α3, and cis
+the position on which we guess the output differs. The transition must satisfy the following properties,
+which ensures that the current labeling is consistent:
+•∀y∈aα1.y∈fl,∀y∈aα2α3.y∈fr,f′
+m1={x}, and fm=∅(the only variable that contributes in
+the middle now is x),
+•for everyy,x, all the variables appearing in ρi(q,b,y), on the left of the ?, belong to the same
+partition pl;
+•for everyy,xall the variables appearing in ρi(q,b,y), on the right of the ?, belong to the same
+partition pr;
+•ifpl=pr, thenybelongs to f′
+pl;
+•ifpl,pr, thenybelongs to f′
+m?.
+If a variable is assigned a constant we nondeterministically choose which category it belongs to in f′.
+The output of the transition is 0k, where kis the sum of the number of output symbols in α, and in
+{ρi(q,b,y)|y∈f′
+l}.
+(2)The transition is just maintaining the consistency of the partition, and the position on which the output
+differs has not been guessed yet. Similar to case (1).
+(3)The transition is just maintaining the consistency of the partition, and the position on which the output
+differs has already been guessed. Similar to case (1).
+bis a call: in this case the updates are similar to the internal case. The updated partition is stored on the stack,
+and a new partition is non-deterministically chosen for the variables that are reset.
+bis a return b′⟩:the VPT V1uses the partition in the state for the variables in X, and the partition on the stack
+state for the variables in Xp. We assume (p,f′)is the state on top of the stack. The VPT V1steps to (q′′,f′′),
+such thatδr(q,p,b)=q′. The computation of f′is similar to case in which ais internal.
+For every transition we also impose the following conditions: the cardinality of fm1∪fm2is always less or equal
+than 1, and if a variable xdoes not appear in the right hand side of any assignment then x∈fn. The first condition
+ensures that at most one variable contains the position on which the outputs differ. Due to the partitioning of the
+39
+
+--- Page 40 ---
+variables into the 6 categories V1will have exponentially many states. The VPT V2corresponding to S2and a symbol
+bsuch that b,acan be built in a similar manner.
+We finally show how to build the product VPT V=V1×V2that reads nested words over the alphabet Σand outputs
+strings over the alphabet {0,1}. The VPT Vis a simple product construction where:
+•each state of Vis a pair (q1,q2), where qiis a state of Vi;
+•each stack state of Vis a pair (p1,p2), where piis a stack state of Vi;
+•the initial state is (q0
+1,q0
+2), where q0
+iis the initial state of Vi;
+•a state (q1,q2)is final iff qiis a final state of Vi;
+•ifδ1andδ2are the transition functions of V1andV2respectively, then given a symbol a∈Σ, a state (q1,q2),
+and a stack state (p1,p2), the transition relation δofVis defined as
+–ifδ1
+i(q1,a)=q′
+1,0nandδ2
+i(q2,a)=q′
+2,1m, thenδi((q1,q2),a)=(q′
+1,q′
+2),0n1m;
+–ifδ1
+c(q1,a)=q′
+1,p′
+1,0nandδ2
+c(q2,a)=q′
+2,p′
+2,1m, thenδc((q1,q2),a)=(q′
+1,q′
+2),(p′
+1,p′
+2),0n1m;
+–ifδ1
+r(q1,p1,a)=q′
+1,0nandδ2
+r(q2,p2,a)=q′
+2,1m, thenδr((q1,q2),(p1,p2),a)=(q′
+1,q′
+2),0n1m.
+This concludes the proof. □
+If the number of variables is bounded, then the size of Vis polynomial, and this gives an upper bound of NP. For
+the transducers that map strings to nested words, that is, for streaming string-to-tree transducers (SSTT), the above
+construction yields a PSpace bound [2].
+Corollary 5.5 (Eqivalence of String-to-Tree Transducers). Given two SSTTs SandS′that map strings to
+nested words, the problem of checking whether JSK=JS′Kis solvable in PSpace .
+6 DISCUSSION
+We have proposed the model of streaming tree transducers to implement MSO-definable tree transformations by
+processing the linear encoding of the input tree in a single left-to-right pass in linear time. Below we discuss the
+relationship of our model to the rich variety of existing transducer models, and directions for future work.
+Executable models. A streaming tree transducer is an executable model, just like a deterministic automaton or a
+sequential transducer, meaning that the operational semantics of the machine processing the input coincides with
+the algorithm to compute the output from the input and the machine description. Earlier executable models for tree
+transducers include bottom-up tree transducers, visibly pushdown transducers (a VPT is a sequential transducer with
+a visibly pushdown store: it reads the input nested word left to right producing output symbols at each step) [ 33], and
+multi bottom-up tree transducers (such a transducer computes a bounded number of transformations at each node by
+combining the transformations of subtrees) [ 11]. Each of these models computes the output in a single left-to-right
+pass in linear time. However, none of these models can compute all MSO-definable transductions. In particular, swap
+and tag-based sorting cannot be computed by a left-to-right transducer model with a single output buffer and constant
+memory—i.e., finitely many states.
+Regular look-ahead. Attribute grammars over terms (ATT) can model tree transformations. Finite copying attribute
+grammars with regular look-ahead [ 4] were the first model shown to be equivalent in expressiveness to MSO-
+definable definable tree transductions. Engelfriet and Maneth used this result to show that finite copying Macro Tree
+Transducers (MTTs) with regular look-ahead [ 12] can also compute all MSO-definable ranked-tree-to-ranked-tree
+transductions. The “finite copying” restriction, namely, each input node is processed only a bounded number of times,
+can be equivalently replaced by the syntactic “single use restriction” which restricts how the variables and parameters
+are used in the right-hand sides of rewriting rules in MTTs. While attribute grammars and macro tree transducers
+only permit output trees to be built by substituting variables appearing in leaves with trees, STTs allow holes to be
+replaced with more complex contexts such as forests.
+Deterministic attributed pushdown machines (DAP) can execute the attributed translation defined by an attribute
+grammar in a left-to-right fashion [ 24]. Algorithms for processing attribute grammars in a left-to-right fashion are
+further studied in [ 36]. A DAP is similar to an ordinary pushdown machine, but it also has attributes that can be
+manipulated using any computable attribute transformation function. DAPs are strictly more expressive than STTs
+and, in a certain sense, STTs are a particular instance of DAPs where the input is restricted to nested words, the stack
+is a visibly pushdown one, and where the allowed operations on the attributes are the variable updates defined in
+40
+
+--- Page 41 ---
+Section 2.2. Due to the increase in expressiveness, DAPs do not enjoy several of the decidability properties discussed
+in this paper.
+For all ATT and MTT models that are equivalent in expressiveness to MSO, regular look-ahead cannot be eliminated
+without sacrificing expressiveness. In fact, MTTs process the input tree in a top-down manner, and it is well-known
+that deterministic top-down tree automata cannot specify all regular tree languages. A more liberal model, which uses
+a “weak finite copying” restriction, achieves closure under regular look-ahead, and MSO-equivalence, by allowing
+each input node to be processed an unbounded number of times, provided only a bounded subset of these contribute
+to the final output.
+It should be noted, however, that a linear time algorithm exists to compute the output [ 26]. This algorithm essentially
+uses additional look-ahead passes to label the input with the information needed to restrict attention to only those
+copies that contribute to the final output (in fact, [ 26] shows how relabeling of the input can be effectively used
+to compute the output of every MTT in time linear in the size of the input and the output). Finally, to compute
+tree-to-string transductions using regular look-ahead, MTTs need just one parameter (alternatively, top-down tree
+transducers suffice). In absence of regular look-ahead, even if the final output is a string, the MTT needs multiple
+parameters, and thus, intermediate results must be trees (that is, one parameter MTTs are not closed under regular
+look-ahead). Thus, closure under regular look-ahead is a key distinguishing feature of STTs.
+From SSTs to STTs. The STT model generalizes our earlier work on streaming string transducers (SST): an SST is a
+copyless STT without a stack [ 1,2]. While results in Section 5 follow by a natural generalization of the corresponding
+results for SSTs, the results in Section 3 and 4 require new approaches. In particular, equivalence of SSTs with
+MSO-definable string-to-string transductions is proved by simulating a two-way deterministic sequential transducer,
+a well-studied model known to be MSO-equivalent [ 10], by an SST. The MSO-equivalence proof in this paper first
+establishes closure under regular look ahead, and then simulates finite copying MTTs with regular look-ahead. The
+natural analog of two-way deterministic string transducers would be the two-way version of visibly pushdown
+transducers [ 33]: while such a model has not been studied, it is easy to show that it would violate the “linear-bounded
+output” property of Proposition 1, and thus, won’t be MSO-equivalent. While in the string case the copyless restriction
+does not reduce the expressiveness, in Section 2.3 we argue that the example conditional swap cannot be expressed
+by a copyless STT. Proving this result formally is a challenging open problem.
+Succinctness. To highlight the differences in how MTTs and STTs compute, we consider two examples. Let f1and
+f2be two MSO-definable transductions, and consider the transformation f(w)=f1(w)f2(w). An MTT at every node
+can send multiple copies to children, and this enables a form of parallelism. Therefore, it can compute fby having
+one copy compute f1, and one copy compute f2, and the size of the resulting MTT will be the sum of the sizes of
+MTTs computing f1andf2. STTs are sequential and, to compute f, one needs the product of the STTs computing f1
+andf2. This can be generalized to show that MTTs (or top-down tree transducers) can be exponentially more succinct
+than STTs. If we were to restrict MTT rules so that multiple states processing the same subtree must coincide, then
+this gap disappears. In the other direction, consider the transformation f′that maps input u#v#atouvifa=0and
+vuotherwise. The transduction f′can be easily implemented by an STT using two variables, one of which stores u
+and one which stores v. The ability of an STT to concatenate variables in any order allows it to output either uvor
+vudepending on the last symbol. In absence of look-ahead, an MTT for f′must use two parameters, compute (the
+tree encodings of) uvandvuseparately in parallel, and make a choice at the end. This is because, while an MTT
+rule can swap or discard output subtrees corresponding to parameters, it cannot combine subtrees corresponding to
+parameters. This example can be generalized to show that an MTT must use exponentially many parameters as well
+as states, compared to an STT.
+Input/output encoding. Most models of tree transducers process ranked trees (exceptions include visibly pushdown
+transducers [ 33] and Macro forest transducers [ 32]). While an unranked tree can be encoded as a ranked tree (for
+example, a string of length ncan be viewed as a unary tree of depth n), this is not a good encoding choice for
+processing the input, since the stack height is related to depth (in particular, processing a string does not need a stack
+at all). We have chosen to encode unranked trees by nested words; formalization restricted to tree words (that are
+isomorphic to unranked trees) would lead to a slight simplification of the STT model and the proofs.
+Streaming algorithms. Consistent with the notion of a streaming algorithm, an STT processes each input symbol
+in constant time. However, it stores the output in multiple chunks in different variables, rearranging them without
+41
+
+--- Page 42 ---
+examining them, making decisions based on finite-state control. Unlike a typical streaming algorithm, or a sequential
+transducer, the output of an STT is available only after reading the entire input. This is unavoidable if we want to
+compute a function that maps an input to its reverse. We would like to explore if the STT model can be modified so
+that it commits to output symbols as early as possible. A related direction of future work concerns minimization
+of resources (states and variables). Another streamable model is that of Visibly Pushdown Transducers (VPT) [ 18],
+which is however less expressive than STT. In particular VPTs cannot guarantee the output to be a well-matched
+nested word.
+Complexity. The problem of checking functional equivalence of MSO tree transducers is decidable with non-
+elementary complexity [ 14]. Decidability follows for MSO-equivalent models such as MTTs with finite copying,
+but no complexity bounds have been established. Polynomial-time algorithms for equivalence checking exist for
+top-down tree transducers (without regular look-ahead) and visibly pushdown transducers [ 5,15,33]. For STTs,
+we have established an upper bound of NExpTime , while the upper bound for SSTs is PSpace [2]. Improving these
+bounds, or establishing lower bounds, remains a challenging open problem. These challenges and long-standing
+open problems are further discussed by Maneth in his survey about equivalence problems for tree transducers [ 27].
+If we extend the SST/STT model by removing the single-use-restriction on variable updates, we get a model more
+expressive than MSO-definable transductions. Filiot and Reynier have shown that for SSTs without this restriction
+equivalence is decidable and it has the same complexity as the HDT0L equivalence problem [ 19], a hard problem with
+non-elementary complexity; it remains open whether the equivalence problem for STTs without single-use-restriction
+is decidable.
+The constructions presented in Sections 3 and 4 show the expressiveness of STTs and their variants. Since, in
+most cases, these constructions are super-exponential—e.g., the one for composing two STTs—we do not analyze
+their complexities in detail. Designing efficient constructions for subclasses of STTs and better understanding the
+complexities of the presented constructions is an open research direction.
+Application to XML processing. We have argued that SSTs correspond to a natural model with executable inter-
+pretation, adequate expressiveness, and decidable analysis problems, and in future work, we plan to explore its
+application to querying and transforming XML documents [ 20,21] (see also http://www.w3.org/TR/xslt20/). Our
+analysis techniques typically have complexity that is exponential in the number of variables, but we do not expect
+the number of variables to be the bottleneck. Before we start implementing a tool for XML processing, we want to
+understand how to integrate data values (that is, tags ranging over a potentially unbounded domain) in our model.
+A particularly suitable implementation platform for this purpose is the framework of symbolic visibly pushdown
+automata andsymbolic tree transducers that integrates automata-theoretic decision procedures with SMT solvers to
+support large or unbounded alphabets [7, 8].
+REFERENCES
+[1]R. Alur and P. Cerný. 2010. Expressiveness of streaming string transducers. In IARCS Annual Conference on Foundations of Software Technology
+and Theoretical Computer Science (LIPIcs 8) . 1–12.
+[2]R. Alur and P. Cerný. 2011. Streaming transducers for algorithmic verification of single-pass list-processing programs. In Proceedings of 38th
+ACM Symposium on POPL . 599–610.
+[3] R. Alur and P. Madhusudan. 2009. Adding Nesting Structure to Words. Journal of the ACM 56, 3 (2009).
+[4]R. Bloem and J. Engelfriet. 2000. A Comparison of Tree Transductions Defined by Monadic Second Order Logic and by Attribute Grammars.
+J. Comput. Syst. Sci. 61, 1 (2000), 1–50. https://doi.org/10.1006/jcss.1999.1684
+[5]H. Comon, M. Dauchet, R. Gilleron, D. Lugiez, S. Tison, and M. Tommasi. 2002. Tree automata techniques and applications. (2002). Draft,
+Available at http://www.grappa.univ-lille3.fr/tata/.
+[6] B. Courcelle. 1994. Monadic Second-Order Definable Graph Transductions: A Survey. Theor. Comput. Sci. 126, 1 (1994), 53–75.
+[7]L. D’Antoni and R. Alur. 2014. Symbolic Visibly Pushdown Automata. In Computer Aided Verification - 26th International Conference, CAV
+2014, Held as Part of the Vienna Summer of Logic, VSL 2014, Vienna, Austria, July 18-22, 2014. Proceedings . 209–225. https://doi.org/10.1007/
+978-3-319-08867-9_14
+[8]L. D’Antoni, M. Veanes, B. Livshits, and D. Molnar. 2015. Fast: A Transducer-Based Language for Tree Manipulation. ACM Trans. Program.
+Lang. Syst. 38, 1 (2015), 1:1–1:32. https://doi.org/10.1145/2791292
+[9]J. Engelfriet. 1975. Bottom-up and top-down tree transformations? a comparison. Mathematical systems theory 9, 2 (1975), 198–231.
+https://doi.org/10.1007/BF01704020
+[10] J. Engelfriet and H.J. Hoogeboom. 2001. MSO definable string transductions and two-way finite-state transducers. ACM Trans. Comput. Log.
+2, 2 (2001), 216–254.
+42
+
+--- Page 43 ---
+[11] J. Engelfriet, E. Lilin, and A. Maletti. 2008. Extended Multi Bottom-Up Tree Transducers. In Developments in Language Theory (LNCS 5257) .
+289–300.
+[12] J. Engelfriet and S. Maneth. 1999. Macro tree transducers, attribute grammars, and MSO definable tree translations. Information and
+Computation 154 (1999), 34–91.
+[13] J. Engelfriet and S. Maneth. 2002. Output String Languages of Compositions of Deterministic Macro Tree Transducers. J. Comput. System Sci.
+64, 2 (2002), 350 – 395. https://doi.org/10.1006/jcss.2001.1816
+[14] J. Engelfriet and S. Maneth. 2006. The equivalence problem for deterministic MSO tree transducers is decidable. Inf. Process. Lett. 100, 5
+(2006), 206–212.
+[15] J. Engelfriet, S. Maneth, and H. Seidl. 2009. Deciding equivalence of top-down XML transformations in polynomial time. J. Comput. Syst. Sci.
+75, 5 (2009), 271–286.
+[16] J. Engelfriet and H. Vogler. 1985. Macro tree transducers. J. Comput. System Sci. 31 (1985), 71–146.
+[17] J. Esparza. 1997. Petri Nets, Commutative Context-Free Grammars, and Basic Parallel Processes. Fundam. Inform. 31, 1 (1997), 13–25.
+[18] E. Filiot, O. Gauwin, P. Reynier, and F. Servais. 2011. Streamability of Nested Word Transductions.. In FSTTCS (LIPIcs) , Supratik Chakraborty
+and Amit Kumar (Eds.), Vol. 13. Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik, 312–324. http://dblp.uni-trier.de/db/conf/fsttcs/fsttcs2011.
+html#FiliotGRS11
+[19] E. Filiot and Pierre-Alain Reynier. 2014. On Streaming String Transducers and HDT0L Systems. CoRR abs/1412.0537 (2014). http://arxiv.org/
+abs/1412.0537
+[20] S. Hakuta, S. Maneth, K. Nakano, and H. Iwasaki. 2014. XQuery streaming by Forest Transducers. In IEEE 30th International Conference on
+Data Engineering, Chicago, ICDE 2014, IL, USA, March 31 - April 4, 2014 , I. F. Cruz, E. Ferrari, Y. Tao, Elisa Bertino, and Goce Trajcevski (Eds.).
+IEEE, 952–963. https://doi.org/10.1109/ICDE.2014.6816714
+[21] H. Hosoya. 2011. Foundations of XML Processing: The Tree-Automata Approach . Cambridge University Press.
+[22] H. Hosoya and B. C. Pierce. 2003. XDuce: A statically typed XML processing language. ACM Trans. Internet Techn. 3, 2 (2003), 117–148.
+[23] E. Kopczynski and A.W. To. 2010. Parikh Images of Grammars: Complexity and Applications. In Logic in Computer Science (LICS), 2010 25th
+Annual IEEE Symposium on . 80–89. https://doi.org/10.1109/LICS.2010.21
+[24] P. M. Lewis, D. J. Rosenkrantz, and R. E. Stearns. 1974. Attributed Translations. J. Comput. Syst. Sci. 9, 3 (1974), 279–307. https://doi.org/10.
+1016/S0022-0000(74)80045-0
+[25] P. Madhusudan and M. Viswanathan. 2009. Query Automata for Nested Words. In Mathematical Foundations of Computer Science 2009, 34th
+International Symposium (LNCS 5734) . 561–573.
+[26] S. Maneth. 2002. The Complexity of Compositions of Deterministic Tree Transducers. In FST TCS 2002: Foundations of Software Technology
+and Theoretical Computer Science, 22nd Conference (LNCS 2556) . 265–276.
+[27] S. Maneth. 2015. A Survey on Decidable Equivalence Problems for Tree Transducers. Int. J. Found. Comput. Sci. 26, 8 (2015), 1069–1100.
+https://doi.org/10.1142/S0129054115400134
+[28] W. Martens and F. Neven. 2005. On the complexity of typechecking top-down XML transformations. Theor. Comput. Sci. 336, 1 (2005),
+153–180.
+[29] T. Milo, D. Suciu, and V. Vianu. 2000. Typechecking for XML Transformers. In Proceedings of the 19th ACM Symposium on PODS . 11–22.
+[30] M. Müller-Olm and H. Seidl. 2004. Precise interprocedural analysis through linear algebra. SIGPLAN Not. 39 (2004), 330–341. Issue 1.
+[31] F. Neven and T. Schwentick. 2002. Query automata over finite trees. Theor. Comput. Sci. 275, 1-2 (2002), 633–674.
+[32] T. Perst and H. Seidl. 2004. Macro forest transducers. Inf. Process. Lett. 89, 3 (2004), 141–149.
+[33] J. Raskin and F. Servais. 2009. Visibly pushdown transducers. In Automata, Languages and Programming: Proceedings of the 35th ICALP (LNCS
+5126) . 386–397.
+[34] L. Segoufin and V. Vianu. 2002. Validating streaming XML documents. In Proceedings of the 21st ACM Symposium on PODS . 53–64.
+[35] H. Seidl, T. Schwentick, A. Muscholl, and P. Habermehl. 2004. Counting in Trees for Free. In Automata, Languages and Programming: 31st
+International Colloquium (LNCS 3142) . 1136–1149.
+[36] G. von Bochmann. 1976. Semantic Evaluation from Left to Right. Commun. ACM 19, 2 (1976), 55–62. https://doi.org/10.1145/359997.359999
+43

@@ -1,0 +1,429 @@
+--- Page 1 ---
+Rabinizer 4: From LTL to Your Favourite
+Deterministic Automaton
+Jan Kˇ ret´ınsk´y(B), Tobias Meggendorfer ,
+Salomon Sickert , and Christopher Ziegler
+Technical University of Munich, Munich, Germany
+jan.kretinsky@gmail.com, {meggendo,sickert }@in.tum.de
+Abstract. We present Rabinizer 4, a tool set for translating formulae of
+linear temporal logic to diﬀerent types of deterministic ω-automata. The
+tool set implements and optimizes several recent constructions, includ-ing the ﬁrst implementation translating the frequency extension of LTL.
+Further, we provide a distribution of PRISM that links Rabinizer and
+oﬀers model checking procedures for probabilistic systems that are notin the oﬃcial PRISM distribution. Finally, we evaluate the performance
+and in cases with any previous implementations we show enhancements
+both in terms of the size of the automata and the computational time,due to algorithmic as well as implementation improvements.
+1 Introduction
+Automata-theoretic approach [VW86 ] is a key technique for veriﬁcation and
+synthesis of systems with linear-time speciﬁcations, such as formulae of linear
+temporal logic (LTL) [ Pnu77 ]. It proceeds in two steps: ﬁrst, the formula is
+translated into a corresponding automaton; second, the product of the systemand the automaton is further analyzed. The size of the automaton is important
+as it directly aﬀects the size of the product and thus largely also the analysis
+time, particularly for deterministic automata and probabilistic model checkingin a very direct proportion. For veriﬁcation of non-deterministic systems, mostly
+non-deterministic B¨ uchi automata (NBA) are used [ EH00,SB00,GO01 ,GL02,
+BKˇRS12,DLLF+16 ] since they are typically very small and easy to produce.
+Probabilistic LTL model checking cannot proﬁt directly from NBA. Even
+the qualitative question, whether a formula holds with probability 0 or 1, requiresautomata with at least a restricted form of determinism. The prime example are
+the limit-deterministic (also called semi-deterministic) B¨ uchi automata (LDBA)
+[CY88] and the generalized LDBA (LDGBA). However, for the general quanti-
+tative questions, where the probability of satisfaction is computed, general limit-
+determinism is not suﬃcient. Instead, deterministic Rabin automata (DRA) have
+This work has been partially supported by the Czech Science Foundation grant No.
+P202/12/G061 and the German Research Foundation (DFG) project KR 4890/1-1
+“Veriﬁed Model Checkers” (317422601). A part of the frequency extension has been
+implemented within Google Summer of Code 2016.
+c/circlecopyrtThe Author(s) 2018
+H. Chockler and G. Weissenbacher (Eds.): CAV 2018, LNCS 10981, pp. 567–577, 2018.https://doi.org/10.1007/978-3-319-96145-3
+_30
+
+--- Page 2 ---
+568 J. Kˇ ret´ınsk´ye ta l .
+Fig. 1. LTL translations to diﬀerent types of automata. Translations implemented in
+Rabinizer 4 are indicated with a solid line. The traditional approaches are depicted asdotted arrows. The determinization of NBA to DRA is implemented in ltl2dstar [ Kle],
+to LDBA in Seminator [ BDK+17 ] and to (mostly) DPA in spot [ DLLF+16 ].
+been mostly used [ KNP11 ] and recently also deterministic generalized Rabin
+automata (DGRA) [ CGK13 ]. In principle, all standard types of deterministic
+automata are applicable here except for deterministic B¨ uchi automata (DBA),
+which are not as expressive as LTL. However, other types of automata, such
+as deterministic Muller and deterministic parity automata (DPA) are typically
+larger than DGRA in terms of acceptance condition or the state space, respec-tively.
+1Recently, several approaches with speciﬁc LDBA were proved applica-
+ble to the quantitative setting [ HLS+15 ,SEJK16 ] and competitive with DGRA.
+Besides, model checking MDP against LTL properties involving frequency oper-ators [ BDL12 ] also allows for an automata-theoretic approach, via deterministic
+generalized Rabin mean-payoﬀ automata (DGRMA) [ FKK15 ].
+LTL synthesis can also be solved using the automata-theoretic approach.
+Although DRA and DGRA transformed into games can be used here, the
+algorithms for the resulting Rabin games [ PP06] are not very eﬃcient in
+practice. In contrast, DPA may be larger, but in this setting they are the
+automata of choice due to the good practical performance of parity-game solvers
+[FL09,ML16 ,JBB+17 ].
+Types of Translations. The translations of LTL to NBA, e.g., [ VW86 ], are
+typically “semantic” in the sense that each state is given by a set of logical formu-
+lae and the language of the state can be captured in terms of semantics of these
+formulae. In contrast, the determinization of Safra [ Saf88] or its improvements
+[Pit06,Sch09 ,TD14,FL15] are not “semantic” in the sense that they ignore the
+structure and produce trees as the new states that, however, lack the logical inter-
+pretation. As a result, if we apply Safra’s determinization on semantically created
+NBA, we obtain DRA that lack the structure and, moreover, are unnecessarilylarge since the construction cannot utilize the original structure. In contrast, the
+1Note that every DGRA can be written as a Muller automaton on the same state
+space with an exponentially-sized acceptance condition, and DPA are a special case
+of DRA and thus DGRA.
+
+--- Page 3 ---
+Rabinizer 4: From LTL to Your Favourite Deterministic Automaton 569
+recent works [ KE12,KLG13 ,EK14,KV15 ,SEJK16 ,EKRS17 ,MS17,KV17 ]p r o -
+vide “semantic” constructions, often producing smaller automata. Further-more, various transformations such as degeneralization [ KE12], index appearance
+record [ KMWW17 ] or determinization of limit-deterministic automata [ EKRS17 ]
+preserve the semantic description, allowing for further optimizations of theresulting automata.
+Our Contribution. While all previous versions of Rabinizer [ GKE12 ,KLG13 ,
+KK14 ] featured only the translation LTL →DGRA →DRA, Rabinizer 4 now
+implements all the translations depicted by the solid arrows in Fig. 1.I ti m p r o v e s
+all these translations, both algorithmically and implementation-wise, and more-over, features the ﬁrst implementation of the translation of a frequency extension
+of LTL [ FKK15 ].
+Further, in order to utilize the resulting automata for veriﬁcation, we provide
+our own distribution
+2of the PRISM model checker [ KNP11 ], which allows for
+model checking MDP against LTL using not only DRA and DGRA, but also
+using LDBA and against frequency LTL using DGRMA. Finally, the tool canturn the produced DPA into parity games between the players with input and
+output variables. Therefore, when linked to parity-game solvers, Rabinizer 4 can
+be also used for LTL synthesis.
+Rabinizer 4 is freely available at http://rabinizer.model.in.tum.de together
+with an on-line demo, visualization, usage instructions and examples.
+2 Functionality
+We recall that the previous version Rabinizer 3 has the following functionality:
+– It translates LTL formulae into equivalent DGRA or DRA.
+– It is linked to PRISM, allowing for probabilistic veriﬁcation using DGRA
+(previously PRISM could only use DRA).
+2.1 Translations
+Rabinizer 4 inputs formulae of LTL and outputs automata in the standard HOA
+format [ BBD+15 ], which is used, e.g., as the input format in PRISM. Automata
+in the HOA format can be directly visualized, displaying the “semantic” descrip-tion of the states. Rabinizer 4 features the following command-line tools for the
+respective translations depicted as the solid arrows in Fig. 1:
+ltl2dgra and ltl2dra correspond to the original functionality of Rabinizer 3,
+i.e., they translate LTL (now with the extended syntax, including all common
+temporal operators) to DGRA and DRA [ EK14], respectively.
+2Merging these features into the public release of PRISM as well as linking the new
+version of Rabinizer is subject to current collaboration with the authors of PRISM.
+
+--- Page 4 ---
+570 J. Kˇ ret´ınsk´ye ta l .
+ltl2ldgba and ltl2ldba translate LTL to LDGBA using the construction of
+[SEJK16 ] and to LDBA, respectively. The latter is our modiﬁcation of the
+former, which produces smaller automata than chaining the former with the
+standard degeneralization.
+ltl2dpa translates LTL to DPA using two modes:
+– The default mode uses the translation to LDBA, followed by a LDBA-
+to-DPA determinization [ EKRS17 ] specially tailored to LDBA with the
+“semantic” labelling of states, avoiding additional exponential blow-up ofthe resulting automaton.
+– The alternative mode uses the translation to DRA, followed by our
+improvement of the index appearance record of [ KMWW17 ].
+ﬂtl2dgrma translates the frequency extension of LTL
+\GU, i.e. LTL \GU[KLG13 ]
+with G∼ρoperator3, to DGRMA using the construction of [ FKK15 ].
+2.2 Veriﬁcation and Synthesis
+The resulting automata can be used for model checking probabilistic systems
+and for LTL synthesis. To this end, we provide our own distribution of the prob-abilistic model checker PRISM as well as a procedure transforming automata
+into games to be solved.
+Model checking: PRISM distribution. For model checking Markov chains
+and Markov decision processes, PRISM [ KNP11 ] uses DRA and recently
+also more eﬃcient DGRA [ CGK13 ,KK14 ]. Our distribution, which links
+Rabinizer, additionally features model checking using the LDBA [ SEJK16 ,
+SK16] that are created by our ltl2ldba .
+Further, the distribution provides an implementation of frequency LTL
+\GU
+model checking, using DGRMA. To the best of our knowledge, there are no
+other implemented procedures for logics with frequency. Here, techniques of
+linear programming for multi-dimensional mean-payoﬀ satisfaction [ CKK15 ]
+and the model-checking procedure of [ FKK15 ] are implemented and applied.
+Synthesis: Games. The automata-theoretic approach to LTL synthesis requires
+to transform the LTL formula into a game of the input and output players.We provide this transformer and thus an end-to-end LTL synthesis solution,
+provided a respective game solver is linked. Since current solutions to Rabin
+games are not very eﬃcient we implemented a transformation of DPA intoparity games and a serialization to the format of PG Solver [ FL09]. Due to
+the explicit serialization, we foresee the main use in quick prototyping.
+3The frequential globally construct [ BDL12 ,BMM14 ]G∼ρϕwith ∼∈
+{≥,> ,≤,<},ρ∈[0,1] intuitively means that the fraction of positions satisfy-
+ingϕsatisﬁes ∼ρ. Formally, the fraction on an inﬁnite run is deﬁned using the
+long-run average [ BMM14 ].
+
+--- Page 5 ---
+Rabinizer 4: From LTL to Your Favourite Deterministic Automaton 571
+3 Optimizations, Implementation, and Evaluation
+Compared to the theoretical constructions and previous implementations, there
+are numerous improvements, heuristics, and engineering enhancements. We eval-
+uate the improvements both in terms of the size of the resulting automaton aswell as the running time. When comparing with respect to the original Rabinizer
+functionality, we compare our implementation ltl2dgra to the previous version
+Rabinizer 3.1, which is already a signiﬁcantly faster [ EKS16 ] re-implementation
+of the oﬃcial release Rabinizer 3 [ KK14 ]. All of the benchmarks have been exe-
+cuted on a host with i7-4700MQ CPU (4x2.4 GHz), running Linux 4.9.0-5-amd64
+and the Oracle JRE 9.0.4+11 JVM. Due to the start-up time of JVM, all timesbelow 2 s are denoted by <2 and not speciﬁed more precisely. All experiments
+were given a time-out of 900 s and mem-out of 4GB, denoted by −.
+Algorithmic improvements and heuristics for each of the translations:
+ltl2dgra and ltl2dra. These translations create a master automaton monitoring
+the satisfaction of the given formula and a dedicated slave automaton for
+each subformula of the form Gψ[EK14]. We (i) simplify several classes of
+slaves and (ii) “suspend” (in the spirit of [ BBDL+13 ]) some so that they
+appear in the ﬁnal product only in some states. The eﬀect on the size of
+the state space is illustrated in Table 1on a nested formula. Further, (iii)
+the acceptance condition is considered separately for each strongly connectedcomponent (SCC) and then combined. On a concrete example of Table 2,
+the automaton for i= 8 has 31 atomic propositions, whereas the number of
+atomic propositions relevant in each component of the master automaton is
+constant, which we utilize and thus improve performance on this family both
+in terms of size and time.
+ltl2ldba. This translation is based on breakpoints for subformulae of the form
+Gψ. We provide a heuristic that avoids breakpoints when ψis a safety or
+co-safety subformula, see Table 3.
+Besides, we add an option to generate a non-deterministic initial component
+for the LDBA instead of a deterministic one. Although the LDBA is then
+no more suitable for quantitative probabilistic model checking, it still is forqualitative model checking. At the same time, it can be much smaller, see
+Table 4which shows a signiﬁcant improvement on the particular formula.
+ltl2dpa. Both modes inherit the improvements of the respective ltl2ldba and
+ltl2dgra translations. Further, since complementing DPA is trivial, we can
+run in parallel both the translation of the input formula and of its negation,
+returning the smaller of the two results. Finally, we introduce several heuris-tics to optimize the treatment of safety subformulae of the input formula.
+dra2dpa. The index appearance record of [ KMWW17 ] keeps track of a permu-
+tation (ordering) of Rabin pairs. To do so, all ties between pairs have to be
+resolved. In our implementation, we keep a pre-order instead, where irrelevant
+
+--- Page 6 ---
+572 J. Kˇ ret´ınsk´ye ta l .
+ties are not resolved. Consequently, it cannot happen that an irrelevant tie
+is resolved in two diﬀerent ways like in [ KMWW17 ], thus eﬀectively merging
+such states.
+Table 1. Eﬀect of simpliﬁcations and suspension for ltl2dgra on the formulae ψi=
+Gφiwhere φ1=a1,φ(i)=( aiU(Xφi−1)), and ψ/prime
+i=Gφ/prime
+iwhere φ/prime
+1=a1,φ/prime
+1=
+(φ/prime
+i−1U(Xiai), displaying execution time in seconds/#states.
+ψ2ψ3 ψ4 ψ5 ψ6
+Rabinizer 3.1 [EKS16 ]<2/4<2/16 <2/73 3/332 60/1463
+ltl2dgra <2/3<2/7 <2/35 3/199 13/1155
+ψ/prime
+2ψ/prime
+3 ψ/prime
+4 ψ/prime
+5 ψ/prime
+6
+Rabinizer 3.1 [EKS16 ]<2/4<2/16 2/104 128/670 −
+ltl2dgra <2/3<2/10 <2/38 7/175 239/1330
+Table 2. Eﬀect of computing acceptance sets per SCC on formulae ψ1=x1∧φ1,
+ψ2=(x1∧φ1)∨(¬x1∧φ2),ψ3=(x1∧x2∧φ1)∨(¬x1∧x2∧φ2)∨(x1∧¬x2∧φ3) ,...,
+where φi=XG((aiUbi)∨(ciUdi)), displaying execution time in seconds/#acceptance
+sets.
+ψ1ψ2ψ3 ψ4ψ5...ψ8
+Rabinizer 3.1 [EKS16 ]<2/2<2/7<2/19 − − −
+ltl2dgra <2/1<2/1<2/1 <2/1<2/1 <2/1
+Table 3. Eﬀect of break-point elimination for ltl2ldba on safety formulae s(n, m)=/logicalandtextn
+i=1G(ai∨Xmbi) and for ltl2ldgba on liveness formulae l(n, m)=/logicalandtextn
+i=1GF(ai∧
+Xmbi), displaying #states (#B¨ uchi conditions)
+s(1,3)s(2,3)s(3,3) s(4,3) s(1,4)s(2,4)s(3,4) s(4,4)
+[SEJK16 ]20 (1) 400 (2) 8·103(3)16·104(4)48 (1) 2304 (2) 110592 (3) −
+ltl2ldba 8( 1 ) 64 (1) 512 (1) 4096 (1) 16 (1) 256 (1) 4096 (1) 65536 (1)
+l(1,1)l(2,1)l(3,1) l(4,1) l(1,4)l(2,4) l(3,4) l(4,4)
+[SEJK16 ]3( 1 ) 9( 2 ) 27 (3) 81 (4) 10 (1) 100 (2) 103(3) 104(4)
+ltl2ldgba 3( 1 ) 5( 2 ) 9( 3 ) 17 (4) 3( 1 ) 5( 2 ) 9( 3 ) 17 (4)
+Table 4. Eﬀect of non-determinism of the initial component for ltl2ldba on formulae
+f(i)= F(a∧XiGb), displaying #states (#B¨ uchi conditions)
+f(1)f(2)f(3) f(4) f(5) f(6)
+[SEJK16 ]4( 1 ) 6( 1 ) 10 (1) 18 (1) 34 (1) 66 (1)
+ltl2ldba 2( 1 ) 3( 1 ) 4( 1 ) 5( 1 ) 6( 1 ) 7( 1 )
+
+--- Page 7 ---
+Rabinizer 4: From LTL to Your Favourite Deterministic Automaton 573
+Table 5. Comparison of the average performance with the previous version of
+Rabinizer. The statistics are taken over a set of 200 standard formulae [ KMS18 ] used,
+e.g., in [ BKS13 ,EKS16 ], run in a batch mode for both tools to eliminate the eﬀect of
+the JVM start-up overhead.
+Tool Avg # states Avg # acc. sets Avg runtime
+Rabinizer 3.1 [EKS16 ]6.3 6.7 0.23
+ltl2dgra 6.2 4.4 0.12
+Implementation. The main performance bottleneck of the older implementa-
+tions is that explicit data structures for the transition system are not eﬃcient
+for larger alphabets. To this end, Rabinizer 3.1 provided symbolic (BDD) rep-
+resentation of states and edge labels. On the top, Rabinizer 4 represents the
+transition function symbolically, too.
+Besides, there are further engineering improvements on issues such as storing
+the acceptance condition only as a local edge labelling, caching, data-structure
+overheads, SCC-based divide-and-conquer constructions, or the introduction ofparallelization for batch inputs.
+Average Performance Evaluation. We have already illustrated the improve-
+ments on several hand-crafted families of formulae. In Tables 1and2we have
+even seen the respective running-time speed-ups. As the basis for the overall eval-
+uation of the improvements, we use some established datasets from literature, see
+[KMS18 ], altogether two hundred formulae. The results in Table 5indicate that
+the performance improved also on average among the more realistic formulae.
+4 Conclusion
+We have presented Rabinizer 4, a tool set to translate LTL to various determin-istic automata and to use them in probabilistic model checking and in synthesis.
+The tool set extends the previous functionality of Rabinizer, improves on previ-
+ous translations, and also gives the very ﬁrst implementations of frequency LTLtranslation as well as model checking. Finally, the tool set is also more user-
+friendly due to richer input syntax, its connection to PRISM and PG Solver,
+and the on-line version with direct visualization, which can be found at http://
+rabinizer.model.in.tum.de .
+References
+[BBD+15] Babiak, T., et al.: The hanoi omega-automata format. In: Kroening, D.,
+P˘as˘areanu, C.S. (eds.) CAV 2015. LNCS, vol. 9206, pp. 479–486. Springer,
+Cham (2015). https://doi.org/10.1007/978-3-319-21690-4 31
+
+--- Page 8 ---
+574 J. Kˇ ret´ınsk´ye ta l .
+[BBDL+13] Babiak, T., Badie, T., Duret-Lutz, A., Kˇ ret´ınsk´y, M., Strejˇ cek, J.: Com-
+positional approach to suspension and other improvements to LTL trans-
+lation. In: Bartocci, E., Ramakrishnan, C.R. (eds.) SPIN 2013. LNCS, vol.7976, pp. 81–98. Springer, Heidelberg (2013). https://doi.org/10.1007/
+978-3-642-39176-7
+6
+[BDK+17] Blahoudek, F., Duret-Lutz, A., Klokoˇ cka, M., Kˇ ret´ınsk´y, M., Strejˇ cek, J.:
+Seminator: a tool for semi-determinization of omega-automata. In: LPAR,
+pp. 356–367 (2017)
+[BDL12] Bollig, B., Decker, N., Leucker, M.: Frequency linear-time temporal logic.
+In: TASE, pp. 85–92 (2012)
+[BKˇRS12] Babiak, T., Kˇ ret´ınsk´y, M., ˇReh´ak, V., Strejˇ cek, J.: LTL to B¨ uchi
+automata translation: fast and more deterministic. In: Flanagan, C.,
+K¨onig, B. (eds.) TACAS 2012. LNCS, vol. 7214, pp. 95–109. Springer,
+Heidelberg (2012). https://doi.org/10.1007/978-3-642-28756-5 8
+[BKS13] Blahoudek, F., Kˇ ret´ınsk´y, M., Strejˇ cek, J.: Comparison of LTL to deter-
+ministic rabin automata translators. In: McMillan, K., Middeldorp, A.,
+Voronkov, A. (eds.) LPAR 2013. LNCS, vol. 8312, pp. 164–172. Springer,Heidelberg (2013). https://doi.org/10.1007/978-3-642-45221-5
+12
+[BMM14] Bouyer, P., Markey, N., Matteplackel, R.M.: Averaging in LTL.I n :B a l -
+dan, P., Gorla, D. (eds.) CONCUR 2014. LNCS, vol. 8704, pp. 266–280.Springer, Heidelberg (2014). https://doi.org/10.1007/978-3-662-44584-
+6
+19
+[CGK13] Chatterjee, K., Gaiser, A., Kˇ ret´ınsk´y, J.: Automata with generalized
+rabin pairs for probabilistic model checking and LTL synthesis. In: Shary-
+gina, N., Veith, H. (eds.) CAV 2013. LNCS, vol. 8044, pp. 559–575.
+Springer, Heidelberg (2013). https://doi.org/10.1007/978-3-642-39799-
+837
+[CKK15] Chatterjee, K., Kom´ arkov´a, Z., Kˇ ret´ınsk´y, J.: Unifying two views on mul-
+tiple mean-payoﬀ objectives in Markov decision processes. In: LICS, pp.244–256 (2015)
+[CY88] Courcoubetis, C., Yannakakis, M.: Verifying temporal properties of ﬁnite-
+state probabilistic programs. In: FOCS, pp. 338–345 (1988)
+[DLLF+16] Duret-Lutz, A., Lewkowicz, A., Fauchille, A., Michaud, T., Renault, ´E.,
+Xu, L.: Spot 2.0 — a framework for LTL and ω-automata manipulation.
+In: Artho, C., Legay, A., Peled, D. (eds.) ATVA 2016. LNCS, vol. 9938,pp. 122–129. Springer, Cham (2016). https://doi.org/10.1007/978-3-319-
+46520-3
+8
+[EH00] Etessami, K., Holzmann, G.J.: Optimizing B¨ uchi automata. In:
+Palamidessi, C. (ed.) CONCUR 2000. LNCS, vol. 1877, pp. 153–168.
+Springer, Heidelberg (2000). https://doi.org/10.1007/3-540-44618-4 13
+[EK14] Esparza, J., Kˇ ret´ınsk´y, J.: From LTL to deterministic automata: a safra-
+less compositional approach. In: Biere, A., Bloem, R. (eds.) CAV 2014.
+LNCS, vol. 8559, pp. 192–208. Springer, Cham (2014). https://doi.org/
+10.1007/978-3-319-08867-9 13
+[EKRS17] Esparza, J., Kˇ ret´ınsk´y, J., Raskin, J.-F., Sickert, S.: From LTL and
+limit-deterministic B¨ uchi automata to deterministic parity automata.
+In: Legay, A., Margaria, T. (eds.) TACAS 2017. LNCS, vol. 10205,
+pp. 426–442. Springer, Heidelberg (2017). https://doi.org/10.1007/978-
+3-662-54577-5 25
+
+--- Page 9 ---
+Rabinizer 4: From LTL to Your Favourite Deterministic Automaton 575
+[EKS16] Esparza, J., Kret´ ınsk´y, J., Sickert, S.: From LTL to deterministic
+automata - a safraless compositional approach. Formal Methods Syst.
+Des. 49(3), 219–271 (2016)
+[FKK15] Forejt, V., Krˇ c´al, J., Kˇ ret´ınsk´y, J.: Controller synthesis for MDPs and
+frequency LTL \GU. In: LPAR, pp. 162–177 (2015)
+[FL09] Friedmann, O., Lange, M.: Solving parity games in practice. In: Liu, Z.,
+Ravn, A.P. (eds.) ATVA 2009. LNCS, vol. 5799, pp. 182–196. Springer,
+Heidelberg (2009). https://doi.org/10.1007/978-3-642-04761-9 15
+[FL15] Fisman, D., Lustig, Y.: A modular approach for b¨ uchi determinization.
+In: CONCUR, pp. 368–382 (2015)
+[GKE12] Gaiser, A., Kˇ ret´ınsk´y, J., Esparza, J.: Rabinizer: small deterministic
+automata for LTL( F,G). In: Chakraborty, S., Mukund, M. (eds.) ATVA
+2012. LNCS, pp. 72–76. Springer, Heidelberg (2012). https://doi.org/10.
+1007/978-3-642-33386-6 7
+[GL02] Giannakopoulou, D., Lerda, F.: From states to transitions: improving
+translation of LTL formulae to B¨ uchi automata. In: Peled, D.A., Vardi,
+M.Y. (eds.) FORTE 2002. LNCS, vol. 2529, pp. 308–326. Springer, Hei-
+delberg (2002). https://doi.org/10.1007/3-540-36135-9 20
+[GO01] Gastin, P., Oddoux, D.: Fast LTL to B¨ uchi automata translation. In:
+Berry, G., Comon, H., Finkel, A. (eds.) CAV 2001. LNCS, vol. 2102,
+pp. 53–65. Springer, Heidelberg (2001). https://doi.org/10.1007/3-540-
+44585-4 6.http://www.lsv.ens-cachan.fr/ gastin/ltl2ba/
+[HLS+15] Hahn, E.M., Li, G., Schewe, S., Turrini, A., Zhang, L.: Lazy probabilistic
+model checking without determinisation. In: CONCUR. LIPIcs, vol. 42,
+pp. 354–367 (2015)
+[JBB+17] Jacobs, S., Basset, N., Bloem, R., Brenguier, R., Colange, M., Fay-
+monville, P., Finkbeiner, B., Khalimov, A., Klein, F., Michaud, T., P´ erez,
+G.A., Raskin, J.-F., Sankur, O., Tentrup, L.: The 4th reactive synthesis
+competition (SYNTCOMP 2017): benchmarks, participants & results.CoRR, abs/1711.11439 (2017)
+[KE12] Kˇ ret´ınsk´y, J., Esparza, J.: Deterministic automata for the (F,G)-fragment
+of LTL. In: Madhusudan, P., Seshia, S.A. (eds.) CAV 2012. LNCS, vol.7358, pp. 7–22. Springer, Heidelberg (2012). https://doi.org/10.1007/978-
+3-642-31424-7
+7
+[KK14] Kom´ arkov´a, Z., Kˇ ret´ınsk´y, J.: Rabinizer 3: safraless translation of LTL to
+small deterministic automata. In: Cassez, F., Raskin, J.-F. (eds.) ATVA
+2014. LNCS, vol. 8837, pp. 235–241. Springer, Cham (2014). https://doi.
+org/10.1007/978-3-319-11936-6 17
+[Kle] Klein, J.: ltl2dstar - LTL to deterministic Streett and Rabin automata.
+http://www.ltl2dstar.de/
+[KLG13] Kˇ ret´ınsk´y, J., Garza, R.L.: Rabinizer 2: Small Deterministic Automata
+for LTL \GU. In: Van Hung, D., Ogawa, M. (eds.) ATVA 2013. LNCS,
+vol. 8172, pp. 446–450. Springer, Cham (2013). https://doi.org/10.1007/
+978-3-319-02444-8 32
+[KMS18] Kˇ ret´ınsk´y, J., Meggendorfer, T., Sickert, S.: LTL store: repository of LTL
+formulae from literature and case studies. CoRR, abs/1807.03296 (2018)
+[KMWW17] Kˇ ret´ınsk´y, J., Meggendorfer, T., Waldmann, C., Weininger, M.: Index
+appearance record for transforming rabin automata into parity automata.In: Legay, A., Margaria, T. (eds.) TACAS 2017. LNCS, vol. 10205,
+pp. 443–460. Springer, Heidelberg (2017). https://doi.org/10.1007/978-
+3-662-54577-5
+26
+
+--- Page 10 ---
+576 J. Kˇ ret´ınsk´ye ta l .
+[KNP11] Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: veriﬁcation of
+probabilistic real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV 2011. LNCS, vol. 6806, pp. 585–591. Springer, Heidelberg (2011).https://doi.org/10.1007/978-3-642-22110-1
+47
+[KV15] Kini, D., Viswanathan, M.: Limit deterministic and probabilistic
+automata for LTL \GU. In: Baier, C., Tinelli, C. (eds.) TACAS 2015.
+LNCS, vol. 9035, pp. 628–642. Springer, Heidelberg (2015). https://doi.
+org/10.1007/978-3-662-46681-0 57
+[KV17] Kini, D., Viswanathan, M.: Optimal translation of LTL to limit determin-
+istic automata. In: Legay, A., Margaria, T. (eds.) TACAS 2017. LNCS,
+vol. 10206, pp. 113–129. Springer, Heidelberg (2017). https://doi.org/10.
+1007/978-3-662-54580-5 7
+[ML16] Meyer, P.J., Luttenberger, M.: Solving mean-payoﬀ games on the GPU.
+In: Artho, C., Legay, A., Peled, D. (eds.) ATVA 2016. LNCS, vol. 9938,pp. 262–267. Springer, Cham (2016). https://doi.org/10.1007/978-3-319-
+46520-3
+17
+[MS17] M¨ uller, D., Sickert, S.: LTL to deterministic Emerson-Lei automata. In:
+GandALF, pp. 180–194 (2017)
+[Pit06] Piterman, N.: From nondeterministic B¨ uchi and Streett automata to
+deterministic parity automata. In: LICS, pp. 255–264 (2006)
+[Pnu77] Pnueli, A.: The temporal logic of programs. In: FOCS, pp. 46–57 (1977)
+[PP06] Piterman, N., Pnueli, A.: Faster solutions of Rabin and Streett games.
+In: LICS, pp. 275–284 (2006)
+[Saf88] Safra, S.: On the complexity of omega-automata. In: FOCS, pp. 319–327
+(1988)
+[SB00] Somenzi, F., Bloem, R.: Eﬃcient B¨ uchi automata from LTL formulae. In:
+Emerson, E.A., Sistla, A.P. (eds.) CAV 2000. LNCS, vol. 1855, pp. 248–
+263. Springer, Heidelberg (2000). https://doi.org/10.1007/10722167 21
+[Sch09] Schewe, S.: Tighter bounds for the determinisation of B¨ uchi automata. In:
+de Alfaro, L. (ed.) FoSSaCS 2009. LNCS, vol. 5504, pp. 167–181. Springer,
+Heidelberg (2009). https://doi.org/10.1007/978-3-642-00596-1 13
+[SEJK16] Sickert, S., Esparza, J., Jaax, S., Kˇ ret´ınsk´y, J.: Limit-deterministic
+B¨uchi automata for linear temporal logic. In: Chaudhuri, S., Farzan, A.
+(eds.) CAV 2016. LNCS, vol. 9780, pp. 312–332. Springer, Cham (2016).
+https://doi.org/10.1007/978-3-319-41540-6 17
+[SK16] Sickert, S., Kˇ ret´ınsk´y, J.: MoChiBA: probabilistic LTL model checking
+using limit-deterministic B¨ uchi automata. In: Artho, C., Legay, A., Peled,
+D. (eds.) ATVA 2016. LNCS, vol. 9938, pp. 130–137. Springer, Cham(2016). https://doi.org/10.1007/978-3-319-46520-3
+9
+[TD14] Tian, C., Duan, Z.: Buchi determinization made tighter. Technical report
+abs/1404.1436, arXiv.org (2014)
+[VW86] Vardi, M.Y., Wolper, P.: An automata-theoretic approach to automatic
+program veriﬁcation (preliminary report). In: LICS, pp. 332–344 (1986)
+
+--- Page 11 ---
+Rabinizer 4: From LTL to Your Favourite Deterministic Automaton 577
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intended
+use is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.

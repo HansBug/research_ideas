@@ -1,0 +1,817 @@
+--- Page 1 ---
+Fault Diagnosis for Timed Automata
+Stavros Tripakis
+VERIMAG
+Centre Equation, 2, avenue de Vignate, 38610 Gi` eres, France
+tripakis@imag.fr
+Abstract. We study the problem of fault-diagnosis in the context of
+dense-time automata. The problem is, given the model of a plant as a
+timed automaton with a set of observable events and a set of unobserv-able events, including a special event modeling faults, to construct a de-terministic machine, the diagnoser, which reacts to observable events andtime delays, and announces a fault within a delay of at most ∆time units
+after the fault occurred. We deﬁne what it means for a timed automa-ton to be diagnosable, and provide algorithms to check diagnosability.The algorithms are based on standard reachability analyses in search ofaccepting states or non-zeno runs. We also show how to construct a di-agnoser for a diagnosable timed automaton, and how the diagnoser canbe implemented using data structures and algorithms similar to thoseused in most timed-automata veriﬁcation tools.
+Keywords: Fault diagnosis, Partial observability, Timed Automata.
+1 Introduction
+In this paper we study the problem of fault diagnosis in the context of dense-time
+automata . Our work is inspired from [21,22], who have studied the problem in
+the context of discrete event systems (DES) [19].
+In the DES framework, the fault diagnosis problem is as follows. We are
+given the description of the behavior of a plant, in the form of a ﬁnite-state
+automaton. A behavior of the plant corresponds to a run of the automaton,that is, a sequence of events. An event is either observable orunobservable . One
+or more special unobservable events model faults that may occur during the
+operation of the plant. The objective is to design a diagnoser . The diagnoser
+is a deterministic machine which reacts to observable events by changing stateinstantaneously. The requirements are as follows. If the plant performs a faultevent, the diagnoser should detect it after at most nsteps (i.e., moves of the
+plant), where nhas a known upper bound. Detection means, for instance, that
+the diagnoser enters a special state which announces that the fault has occurred.Another obvious requirement is that the diagnoser does not create any falsealarms, that is, whenever it announces a fault, the fault has indeed occurred.Finally, once a fault is announced, the diagnoser cannot stop announcing it (i.e.,on-line fault repairs are not modeled).
+W. Damm and E.-R. Olderog (Eds.): FTRTFT 2002, LNCS 2469, pp. 205–221, 2002.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2002
+
+--- Page 2 ---
+206 Stavros Tripakis/AI/AH
+/AJ/AG/AI/AH
+/AJ/AG/AI/AH
+/AJ/AG/AI/AH/AJ/AG
+/AI/AH
+/AJ/AG/AI/AH
+/AJ/AGꜴ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ/BM/CG/CG/CG/CG/CG/CG/CG/CG/DE
+/B9
+/B9
+/B9
+/B9
+/CQ/DC /AK /BF
+/CQ
+/D9
+/CU/DC /AK /BI/DC /AK /BF
+/DC /BM/BP /BC
+/CP
+/DC/BQ /BF/DC /AK /BI
+Fig. 1. A diagnosable timed automaton.
+Not every plant is diagnosable . For example, a plant with two behaviors,
+a, f, b anda, u, b, is not diagnosable if f,uare unobservable and fis the fault.
+Indeed, the diagnoser, observing only a, b, has no way to know whether a fault
+actually occurred or not. On the other hand, a plant with behaviors a, f, b, c and
+a, u, b, d is diagnosable: after seeing cord, the diagnoser can distinguish what
+happened.
+Our motivation has been to extend the above framework to dense-time au-
+tomata [3]. Such an extension is useful, since it permits us to model plants with
+timed behaviors, for example, “ afollowed by bwithin a delay of 7 time units”.
+It also allows for diagnosers to base their decisions not only on the sequencesof events observed, but also on the time delays between these events. That is,the diagnoser not only observes events, but can also measure the time elapsedbetween two successive events and, consequently, between any two events.
+For example, consider the plant modeled by the timed automaton of Figure 1.
+The plant has two sets of behaviors: faulty behaviors (where foccurs) and non-
+faulty behaviors. If events aandbare observable, then the plant is diagnosable.
+Indeed, in all behaviors, aandboccur, in that order. In every faulty behavior,
+the delay between aandbis greater than 3 time units, while in every non-
+faulty behavior, the delay is at most 3. Thus, a diagnoser observing aandb, and
+measuring their interarrival delay can tell whether a fault occurred or not.
+The contributions of this paper are as follows. First, we propose a notion of
+diagnosability for timed automata. This notion, called ∆-diagnosability, ensures
+that a fault can always be detected at most ∆time units after the time it
+occurs. Second, we provide an algorithm to check whether a given automatonAis diagnosable. The algorithm is based on a reachability analysis in search of
+non-zeno runs in a special product automaton of Awith itself. Third, we provide
+an algorithm to ﬁnd the minimum ∆such that Ais∆-diagnosable (assuming
+that it is already known that Ais diagnosable). The algorithm conducts a binary
+search on the constant ∆, each time performing a reachability analysis of the
+above product, composed with an observer automaton with one clock.
+Finally, we show how to build a diagnoser for A. The diagnoser works as a
+state estimator forA, that is, a state of the diagnoser is a set of all possible states
+thatAcould be in, according to what has been observed so far. The diagnoser
+changes state each time it observes an event aor a delay δ, and it is guaran-
+
+--- Page 3 ---
+Fault Diagnosis for Timed Automata 207
+teed not to produce any false alarms and to announce a fault at most ∆time
+units after the fault occurs. We also show how a diagnoser can be implemented
+eﬀectively using ﬁnitary data structures to represent its current state, and howthe transition function of the diagnoser can be eﬀectively computed on thesestructures.
+The rest of the paper is organized as follows. In Section 2, we present our
+model. In Section 3, we introduce the notion of diagnosability and show how itcan be algorithmically checked. In Section 4, we deﬁne diagnosers and show howthey can be implemented. Related work is discussed in Section 5.
+2 Timed Automata with Faults and Unobservable Events
+LetXbe a ﬁnite set of variables taking values in the set of non-negative reals,
+denoted R. We call these variables clocks .Avaluation onXis a function v:X→
+Rwhich assigns a value to each clock in X. Given a valuation vand adelayδ∈R,
+v+δdenotes the valuation v/primesuch that for all x∈X,v/prime(x)=v(x)+δ. Given
+a valuation vand a subset of clocks X⊆X,v[X:= 0] denotes the valuation v/prime
+such that for all x∈X,v/prime(x) = 0 and for all y∈X− X,v/prime(y)=v(y).
+Apolyhedron onXis a set of valuations which can be represented as a
+boolean expression with atomic constraints of the form x≤korx−y≤k,
+where x, y∈Xandkis an integer constant. For example, x=0∧y>3i sa
+polyhedron. By deﬁnition, polyhedra are closed by boolean operations ∧,∨,¬,
+which correspond to set intersection, union and complementation. Polyhedra arealso closed by existential quantiﬁcation: for x∈X,∃x.ζdenotes the polyhedron
+{v|∃v
+/prime∈ζ,∀y∈X,y/negationslash=x⇒v(y)=v/prime(y)}. For example, ∃x.(x≤3∧y≤x)
+is the polyhedron y≤3. We use trueto denote the polyhedron/logicalandtext
+x∈Xx≥0 and
+falseto denote the empty polyhedron. We also use 0to denote the singleton/logicalandtext
+x∈Xx=0 .
+Atimed automaton [3,15] is a tuple A=(Q,X,Σ,E,I ), where:
+–Qis a ﬁnite set of discrete states ;q0∈Qis the initial discrete state.
+–Xis a ﬁnite set of clocks.
+–Σis a ﬁnite set of events .Σis the union of two disjoint sets Σ=Σo∪Σu,
+andf∈Σuis a distinguished event, called the faultevent1. An event in Σo
+is called observable , otherwise, it is called unobservable .
+–Eis a ﬁnite set of transitions . Each transition is a tuple e=(q,q/prime,a ,ζ,X ),
+where q,q/prime∈Q,a∈Σ,ζis a polyhedron on XandX⊆X.W eu s e source (e)
+to denote q,dest(e) forq/prime,event(e) fora,guard(e) forζ, and reset(e) forX.
+Given an event a∈Σ,E(a) denotes the set of all transitions e∈Esuch
+that event(e)=a.
+–Iis the invariant function which associates with each discrete state q∈Qa
+polyhedron on X,I(q). We require that 0∈I(q0).
+1For simplicity, we assume a single type of fault. The deﬁnitions and results generalize
+directly to more than one fault types. In Section 3 we discuss how this can be done.
+
+--- Page 4 ---
+208 Stavros Tripakis
+AstateofAis a pair s=(q,v), where q∈Qandvis a valuation on X, such
+thatv∈I(q). We denote qbydiscrete (s). The initial state ofAiss0=(q0,0).
+Each delay δ∈Rdeﬁnes a partial function on the states of A:i fs=(q,v)i sa
+state of A, and ∀δ/prime≤δ,v+δ/prime∈I(q), then δ(s)=(q,v+δ), otherwise, δ(s)i s
+undeﬁned. Each transition e=(q,q/prime,a ,ζ,X )∈Edeﬁnes a partial function on
+the states of A:i fs=(q,v) is a state of Asuch that v∈ζandv[X:= 0]∈I(q/prime),
+thene(s)=(q/prime,v[X:= 0]), otherwise, e(s) is undeﬁned.
+Atimed sequence over a set of events Σis a ﬁnite or inﬁnite sequence
+γ1,γ2,···, where each γiis either an event in Σor a delay in R. We require
+that between any two events in ρthere is exactly one delay (possibly 0). For ex-
+ample, if aandbare events, a,0,b ,3,canda,1,1,1, ...are valid timed sequences,
+while a, banda,1,2,bare not. Let TSΣdenote the set of all timed sequences
+overΣ.
+Ifρis a ﬁnite timed sequence, time(ρ) denotes the sum of all delays in ρ.I fρ
+is inﬁnite, then time(ρ) denotes the limit of the sum (possibly ∞). We say that ρ
+isnon-zeno iftime(ρ)=∞. Note that a non-zeno timed sequence is necessarily
+inﬁnite, although it might contain only a ﬁnite number of events.
+We deﬁne a projection operator Pas follows. Given a (ﬁnite or inﬁnite) timed
+sequence ρand a set of events Σ/prime⊆Σ,P(ρ, Σ/prime) is the timed sequence obtained
+by erasing from ρall events in Σ/primeand summing the delays between successive
+events in the resulting sequence. For example, if ρ=1,a ,4,b ,1,c ,0,d ,3,e, then
+P(ρ,{b, d})=1,a ,5,c ,3,e. Note that, in the deﬁnition of P(ρ, Σ/prime),Σ/primeis the set
+of events to be erased. Also notice that, time(ρ)= time(P(ρ, Σ/prime)), for any ρand
+Σ/prime.
+Given a state sofA,arun of Astarting at s(or simply a run of A,i f
+s=s0) is a (ﬁnite or inﬁnite) timed sequence ρ=γ1,γ2,···, for which there
+exists a sequence of states s0,s1,s2,···, such that s0=sand for each i=1,2, ...,
+ifγiis a delay δ∈Rthensi=δ(si−1), whereas if γiis an event a∈Σ, then
+si=e(si−1), for some e∈E(a). Ifρis a ﬁnite run γ1,γ2,···,γnstarting from s,
+we say that snisreachable from sviaρ. A ﬁnite run ρdeﬁnes a function on the
+states of Aas follows. If sis a state of A,ρ(s) is the set of all states reachable
+fromsviaρ(note that ρ(s) might be empty). The set of all states of Areachable
+froms0via some run is denoted RA.
+Aiswell-timed if for all s∈RA, there is a non-zeno run of Astarting at s.
+A run ρ=γ1,γ2,···is called faulty if for some i=1,2, ...,γi=f. Let j
+be the smallest isuch that γi=f, and let ρ/prime=γj,γj+1,···. Given δ∈R,i f
+time(ρ/prime)≥δ, then we say that at least δtime units pass after the ﬁrst occurrence
+offinρ, or, in short, that ρisδ-faulty .
+The following lemma states an important property of the model, which will
+be used in the sequel.
+Lemma 1. If for all ∆∈N,Ahas a ∆-faulty run, then Ahas a non-zeno faulty
+run.Proof Our proof relies on the region graph [3] of A, call it G.Gis a ﬁnite
+quotient graph with respect to a time-abstracting bisimulation [28]. Each node
+ofG(called a region) contains a set of bisimilar states of A. The edges of G
+
+--- Page 5 ---
+Fault Diagnosis for Timed Automata 209
+correspond either to transitions of Aor to symbolic passage of time. We refer
+the reader to timed-automata papers for more details on the region graph. What
+is important for our proof is that every run of Ais inscribed in a path of Gand,
+vice-versa, every path of Gcontains a set of runs of A.
+LetRfbe the set of regions of Gwhich are reachable by a faulty path. Note
+that for every r∈Rf, all successors of rare also in Rf. LetGfbe the restriction
+ofGtoRf. We claim that Gfhas a strongly-connected component (SCC) Λ,
+such that for every clock x,xis either reset and can grow strictly greater than
+zero in Λ, or remains unbounded in Λ: this implies the existence of a faulty non-
+zeno run [4]. Suppose our claim is false, that is, for every SCC ΛinGf, there is
+a clock xwhich remains upper bounded in Λand is never reset or never grows
+above zero. In both cases, xnever grows in Λabove some constant ΓΛ(in the
+last case, ΓΛ= 0). Then, for every run ρinscribed in Λ,time(ρ)≤ΓΛ. Since
+there is a ﬁnite number of SCCs in a ﬁnite graph, the time spent in any faultyrun is bounded by some Γ(obtained as the maximum of Γ
+x
+Λ, plus the times
+spent in the ﬁnite paths linking the SCCs). But this contradicts the hypothesis.
+/intersectionsq /unionsq
+3 Diagnosability
+We assume that the behavior of the plant to be diagnosed can be modeled as atimed automaton A. We also assume that Ais well-timed. This is a reasonable
+assumption, since, in real plants, time elapses without upper bound. Therefore,ifAcan reach a state from which time cannot progress, this is due to a modeling
+error. Well-timedness can be algorithmically checked using, for instance, thetechniques proposed in [27].
+3.1 The Notion of Diagnosability for Timed Automata
+In discrete-event systems, diagnosability has been deﬁned with respect to a pa-
+rameter n(a natural constant), representing the maximum delay required for
+the diagnoser to detect a fault [21,22]. Since time is not an inherent part of theDES model, delays are captured by counting events: the diagnoser must detecta fault after at most nsteps of the plant, where a step corresponds to an event
+(observable or not).
+For timed automata, we propose a more natural deﬁnition: a timed automa-
+tonAis diagnosable with respect to a delay ∆, if a fault can be detected in A
+at most ∆time units after it occurs. Note that, since Ais well-timed, ∆time
+units will eventually elapse.
+Deﬁnition 2 (Diagnosability for Timed Automata). Consider a timed au-
+tomaton A. We say that Ais∆-diagnosable , for a natural number ∆∈N,i f
+for any two ﬁnite runs ρ
+1,ρ2ofA,i fρ1is∆-faulty, then either ρ2is faulty or
+P(ρ1,Σu)/negationslash=P(ρ2,Σu). We say that Ais diagnosable if there exists some ∆∈N,
+such that Ais∆-diagnosable.
+
+--- Page 6 ---
+210 Stavros Tripakis/AI/AH
+/AJ/AG/AI/AH/AJ/AG/AI/AH
+/AJ/AG/AI/AH/AJ/AG
+/AI/AH
+/AJ/AG/AI/AH/AJ/AGꜴ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ/BM/CG/CG/CG/CG/CG/CG/CG/CG/DE
+/B9
+/B9
+/B9
+/B9
+/CQ/DC /AK /BF
+/CQ
+/D9
+/CU/DC /AK /BI/DC /AK /BF
+/DC /BM/BP /BC
+/CP
+/DC/BQ /BE/DC /AK /BI
+Fig. 2. A non-diagnosable timed automaton.
+Example 3. Assuming that events aandbare observable, fanduare unobserv-
+able and fis the fault, the timed automaton of Figure 1 is 3-diagnosable. On
+the other hand, the slightly modiﬁed automaton shown in Figure 2 is not di-
+agnosable. Indeed, the two runs a,2.5,f,0.1,banda,2.5,u ,0.1,bhave the same
+projection a,2.6,b, but only the ﬁrst one is faulty. Moreover, an arbitrary amount
+of time can elapse after bin both runs, and their projections will remain identical.
+We make some remarks about Deﬁnition 2.For the sake of simplicity, we consider only one type of fault. This is not
+an essential assumption. The framework can be extended in a straightforwardmanner so that a number of diﬀerent faults are considered, modeled by a set ofevents Σ
+f⊆Σu. Then, the diagnosability deﬁnition would state that for each
+f∈Σf, there should not be two runs ρ1andρ2, such that foccurs in ρ1and
+at least ∆time passes afterwards2, the projections of ρ1andρ2to observable
+events are the same, but fdoes not occur in ρ2. Checking diagnosability with
+multiple faults can be done by checking diagnosability separately for each fault.Building diagnosers which detect multiple faults can also be done by a simpleextension of the single-fault construction.
+We do not model on-line “repairs” of faults, that is, we assume that faults
+cannot be “undone”. This means that, once a fault has occurred, we considerthe behavior erroneous and we would like to detect the fault, no matter whatthe plant does afterwards.
+We deﬁne diagnosability with respect to a natural constant ∆, rather than,
+say, a real number. This allows us to speak of ∆
+minin the lemma that follows.
+If∆is taken to be real, we can ﬁnd plants which are diagnosable for all ∆>3,
+say, but not for ∆= 3. Assuming ∆natural also gives a simple enumerative
+procedure to ﬁnd ∆min, as we show in Section 3.3.
+Lemma 4. LetAbe∆-diagnosable. Then, for any ∆/prime>∆,Ais∆/prime-diagnosable.
+Also, there exists ∆minsuch that Ais∆min-diagnosable and for all ∆/prime<∆ min,
+Ais not ∆/prime-diagnosable.
+2We could also consider a deﬁnition with a diﬀerent delay ∆ffor each fault f∈Σf.
+
+--- Page 7 ---
+Fault Diagnosis for Timed Automata 211
+Lemma 5. Ais∆-diagnosable iﬀ there exists a function φ:TSΣo→{0,1},
+such that for every ﬁnite run ρofA,i fρis not faulty, then φ(P(ρ, Σu) )=0 ,
+whereas if ρis∆-faulty, then φ(P(ρ, Σu) )=1.
+Proof Assume Ais∆-diagnosable. Deﬁne φas follows. Given π∈TS Σo,i f
+there exists a ﬁnite run τofA, such that P(τ,Σu)=πandτis∆-faulty, then
+φ(π) = 1, otherwise, φ(π) = 0. Now, consider some ﬁnite run ρofAand let
+π=P(ρ, Σu). Ifρis∆-faulty, then φ(π) = 1, by deﬁnition of φ.I fρis not
+faulty, then we claim that φ(π) = 0. Suppose not. Then, there exists a ﬁnite
+runτofA, such that τis∆-faulty and P(τ,Σu)=π. But this means that
+P(τ,Σu)=P(ρ, Σu), which contradicts the hypothesis that Ais∆-diagnosable.
+Conversely, assume Ais not ∆-diagnosable, that is, there exist two ﬁnite
+runsρ1andρ2ofA, such that ρ1is∆-faulty, ρ2is not faulty, and P(ρ1,Σu)=
+P(ρ2,Σu)=π.N o w , φ(π) cannot be 0, because φ(P(ρ1,Σu)) must be 1, and
+φ(π) cannot be 1 either, because φ(P(ρ1,Σu)) must be 0. So, φcannot exist. /intersectionsq /unionsq
+3.2 Checking Diagnosability
+Checking diagnosability and building diagnosers are well-known problems for
+ﬁnite-state models. Diagnosability can be decided in polynomial time, whereasbuilding a diagnoser relies on a subset construction and is exponential in the
+worst case [29].
+In the dense-time case, in order to check whether a given timed automaton
+Ais diagnosable or not, we ﬁrst form a special parallel product of Awith itself.
+This product, denoted ( A/bardbl
+ΣoA)−f2, has as set of states the cartesian product of
+the states of Aand contains twice as many clocks as A. Checking diagnosability
+ofAwill be reduced to ﬁnding non-zeno faulty paths in ( A/bardblΣoA)−f2.
+(A/bardblΣoA)−f2is obtained in two phases. First, we build a product A/bardblΣoAas
+follows:
+1. We make two “copies” of A,A1andA2, by renaming unobservable events,
+discrete states and clocks of A:
+–Each discrete state qofAis renamed q1inA1andq2inA2. The initial
+stateq0is copied into q0
+1andq0
+2.
+–Each clock xofAis renamed x1inA1andx2inA2.
+–Each unobservable event uofAis renamed u1inA1andu2inA2. LetΣ1
+u
+andΣ2
+udenote the corresponding sets of renamed unobservable events.
+Observable events are not renamed.
+–The transitions are copied and renamed accordingly. For example, e=
+(q,q/prime,u ,x≤3,{y}) becomes e1=(q1,q/prime
+1,u1,x1≤3,{y1})i nA1(assum-
+ing the event uis unobservable, otherwise it would not be renamed).
+2.A/bardblΣoAis obtained as the usual parallel composition of A1andA2, where
+transitions of A1andA2labeled with the same (observable) event are forced
+tosynchronize . For example, if ei=(qi,q/prime
+i,a ,ζ i,Xi) are transitions of Ai,
+fori=1,2, and ais an observable event, then e=( (q1,q2),(q/prime
+1,q/prime
+2),a ,ζ 1∧
+ζ2,X1∪X2) is the synchronized transition of A/bardblΣoA. All other transitions
+interleave . The invariant of a product state ( q1,q2)i sI(q1)∧I(q2).
+
+--- Page 8 ---
+212 Stavros TripakisÆ/AD
+/AF /ACÆ/AD/AF/AC
+/B9
+/CQÆ/AD
+/AF /ACÆ/AD/AF/AC
+/B9
+/CQ
+/CM/DC/BE
+/AK /BI
+/DC/BD
+/AK /BI/CM/DC/BE
+/AK /BI
+/DC/BD
+/AK /BF
+/CM/DC/BE
+/AK /BI
+/DC/BD
+/AK /BI/CM/DC/BE
+/AK /BF
+/DC/BD
+/AK /BI/CM/DC/BE
+/AK /BF
+/DC/BD
+/AK /BF
+/CM/DC/BE
+/AK /BF
+/DC/BD
+/AK /BIÆ/AD
+/AF/ACÆ/AD/AF/ACÆ/AD/AF/AC
+Æ/AD
+/AF/ACÆ/AD
+/AF/AC
+/B9
+ /B9
+/AH
+/AH
+/AH
+/AH
+/AH
+/AH
+/AH/BF
+/B9/C0/C0/C0/C0/C0/C0/C0/C0/CY
+/C8/C8/C8/C8/C8/C8/C8/C8/D5Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ/BM/C8/C8/C8/C8/C8/C8/C8/C8/D5Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ
+Ꜵ/BM
+/CU/BD/DC/BD
+/BQ /BF/D9/BE
+/CU/BD/DC/BD
+/BQ /BF/DC/BE
+/AK /BF/D9/BD/DC/BD
+/AK /BF
+/DC/BE
+/AK /BF
+/D9/BE/DC/BD
+/AK /BF
+/D9/BD/DC/BE
+/AK /BF
+/D9/BE
+/DC/BD
+/BM/BP /BC/DC/BE
+/BM/BP /BC
+/CP
+Fig. 3. The product ( A/bardblΣoA)−f2for the timed automaton of Figure 1.
+Now, let ( A/bardblΣoA)−f2be the timed automaton obtained from A/bardblΣoAby removing
+all transitions labeled f2from the latter. An example is shown in Figure 3.
+The intuition is that every run of ( A/bardblΣoA)−f2corresponds to two runs of
+Awhich yield the same observation, that is, the same projection to observable
+events. We obtain this property by synchronizing the two copies in all observable
+events. (Note that time advances synchronously in both copies.)
+To prove this, we need some notation. Let ρbe a run of ( A/bardblΣoA)−f2.ρis
+called faulty if f1appears in it. We denote by ρ1(resp., ρ2) the timed sequence
+obtained by taking the projection P(ρ, Σ2
+u) (resp., P(ρ, Σ1
+u)) and then renaming
+each event u1∈Σ1
+u(resp., u2∈Σ2
+u) back into u. That is, ρ1andρ2are timed
+sequences over Σ. For example, if ρ=a,1,u2,3,u1, then ρ1=a,4,uandρ2=
+a,1,u ,3.
+Lemma 6. ρis a run of (A/bardblΣoA)−f2iﬀρ1andρ2are runs of A,ρ2is not
+faulty and P(ρ1,Σu)=P(ρ2,Σu). For such ρ, ρ1,ρ2, the following also hold:
+1.ρis faulty iﬀ ρ1is faulty.
+2.time(ρ)= time(ρ1)= time(ρ2).
+Proposition 7 (Diagnosability Check). Ais diagnosable iﬀ every faulty run
+of(A/bardblΣoA)−f2is zeno.
+Proof Letρbe a non-zeno faulty run of ( A/bardblΣoA)−f2. Pick some ∆∈N. Let
+ρ∆be the ﬁnite preﬁx of ρup to exactly ∆time units after the ﬁrst occurrence
+off1inρ. Since ρis non-zeno, ρ∆is well-deﬁned and it is clearly a run of
+(A/bardblΣoA)−f2. Thus, by Lemma 6, ρ1
+∆andρ2∆are both runs of A,ρ2∆is not
+faulty, and P(ρ1∆,Σu)=P(ρ2∆,Σu). Moreover, ρ1∆is∆-faulty: this is because
+the time elapsing after f1inρ∆is equal to the time elapsing after finρ1∆.
+Because of ρ1∆,ρ2∆,Ais not ∆-diagnosable. Since such runs can be found for any
+∆,Ais not diagnosable.
+
+--- Page 9 ---
+Fault Diagnosis for Timed Automata 213/AI/AH
+/AJ/AG/AI/AH/AJ/AG/AI/AH/AJ/AG/CV
+/B9
+ /B9
+ /B9
+/A1
+/A1
+ /BT/BT/CD/CU/BD/DE /BM/BP /BC /DE /AL /A1
+/CU/BD/D9
+Fig. 4. Observer automaton Obs(∆).
+In the other direction, assume Ais not diagnosable. This means that for any
+∆∈N, there exist two ﬁnite runs ρ1
+∆andρ2∆ofA, such that ρ1∆contains f,
+ρ2∆does not, P(ρ1∆,Σu)=P(ρ2∆,Σu), and at least ∆time units elapse after the
+ﬁrst occurrence of finρ1∆. Therefore, by Lemma 6, for any ∆∈N, there exists a
+runρ∆of (A/bardblΣoA)−f2such that ρ∆is∆-faulty. By Lemma 1, Ahas a non-zeno
+faulty run. /intersectionsq /unionsq
+From Proposition 7, it follows that checking diagnosability for timed au-
+tomata is decidable. Indeed, ( A/bardblΣoA)−f2can be automatically generated from
+Ausing simple copying and renaming operations, and the standard syntactic
+parallel composition of timed automata. Finding non-zeno runs of a timed au-
+tomaton was ﬁrst shown to be decidable in [4] using the region graph construc-tion, with a worst-case complexity of PSPACE. Since the size of ( A/bardbl
+ΣoA)−f2is
+polynomial in the size of A, it follows that the worst case complexity of checking
+diagnosability is also PSPACE.
+In practice, non-zeno runs can be found more eﬃciently, using the algorithms
+proposed in [8]. These algorithms work on the simulation graph , which is a much
+coarser graph than the region graph, and can be constructed on-the-ﬂy using,for instance, a depth-ﬁrst search . The above algorithms have been implemented
+in the model-checking tool Kronos [26,9].
+3.3 Finding the Maximum Delay for Fault Detection
+In the previous section we showed how to check whether a given timed automaton
+Ais diagnosable. Now, we show how to ﬁnd the required delay for fault detection,
+∆
+min, introduced in Lemma 4.
+Consider the observer automaton shown in Figure 4. The automaton is pa-
+rameterized by the constant ∆∈N, that is, for each given ∆, there is a diﬀerent
+automaton, which will be denoted Obs(∆). The clock zofObs(∆) is a new
+clock, diﬀerent from all clocks in Aor (A/bardblΣoA)−f2. The event uis a new un-
+observable event, diﬀerent from all events in Aor (A/bardblΣoA)−f2. The rightmost
+discrete state of Obs(∆) (drawn with two concentric circles) is its accepting state.
+Let (A/bardblΣoA)−f2/bardblf1Obs(∆) be the parallel product of ( A/bardblΣoA)−f2and Obs(∆),
+where the two automata synchronize only on the transitions labeled f1. Then,
+we have the following result.
+
+--- Page 10 ---
+214 Stavros Tripakis
+Proposition 8 (Maximum Delay for Fault Detection). For any timed
+automaton Aand any ∆∈N,Ais∆-diagnosable iﬀ the accepting state of
+(A/bardblΣoA)−f2/bardblf1Obs(∆)is unreachable.
+If we know that a given automaton Ais diagnosable, then we can use Propo-
+sition 8 in the following way. We check repeatedly, for ∆=0,1,2, ..., whether
+the accepting state of ( A/bardblΣoA)−f2/bardblf1Obs(∆) is reachable. Since Ais diagnos-
+able, reachability will eventually fail. This will happen for the ﬁrst time when
+∆=∆min.
+The above method is simple, but not very eﬃcient (especially when ∆minis
+large), since it requires ∆min+ 1 reachability tests. An alternative way is to use
+the well-known binary search technique, which involves O(log∆min) reachability
+tests. The binary search starts by performing the reachability test repeatedly for∆=0,1,2,4,8, ..., until the ﬁrst time the test fails. Assume this happens for
+∆=2
+k. Then, we know that Ais 2k-diagnosable but not 2k−1-diagnosable, so,
+∆minmust lie in the interval [2k−1+1,2k]. We search this interval by “splitting”
+it in two, [2k−1+1,M] and [ M,2k], checking reachability for the middle value
+M, and repeating the procedure recursively, for [2k−1+1,M], if the test fails,
+and for [ M,2k], if it succeeds.
+4 Diagnosers
+For this section, we ﬁx a timed automaton A, which is well-timed and ∆-
+diagnosable.
+Our objective is to construct a diagnoser forA, as illustrated in Figure 5.
+The diagnoser is a deterministic machine which instantaneously observes eachobservable event generated by the plant and measures delays between successiveevents. It is also realistic to assume that the diagnoser sets a time-out , so that,
+even if no event happens for some time, the diagnoser will still react to thepassage of time.
+Each time an event or a delay is observed, the diagnoser changes its state.
+A state of the diagnoser is marked yes(a fault has been detected) or not-yet (no
+fault has been detected so far). A valid diagnoser should announce a fault onlyif a fault indeed occurred. Moreover, when a fault occurs, the diagnoser shouldannounce it at most ∆time units later. Finally, a diagnoser should never stop
+announcing a fault once it has announced it.
+Deﬁnition 9 (Diagnoser). A diagnoser for a timed automaton Ais a tuple
+(W,W
+0,fe,ft,fd), where Wis a set of states, W0∈W is the initial state,
+fe:W×Σo→W is the event transition function ,ft:W× R→W is the time
+transition function , and fd:W→{ not-yet ,yes}is the decision function . The
+time transition function must satisfy the usual semi-group property , that is, for
+allW∈W, for all δ, δ/prime,δ/prime/prime∈R,i fδ=δ/prime+δ/prime/prime, then ft(W, δ)=ft(ft(W, δ/prime),δ/prime/prime).
+A ﬁnite timed sequence ρ=γ1,γ2,···,γnoverΣodeﬁnes a function on the
+states Wof the diagnoser. If W∈W,ρ(W) is deﬁned to be the last state Wnin
+
+--- Page 11 ---
+Fault Diagnosis for Timed Automata 215/CV /CV /CV /CV /CV /CV /CV /CV/CV
+/CV/CV /CV /CV /CV
+/B9
+ /B9
+ /B9
+ /B9
+ /B9
+ /B9
+ /B9
+ /B9
+ /B9
+/B9
+/B9
+/BR
+/B9
+ /B9
+ /B9
+ /B9
+ /B9
+/CQ /CU /D9 /CP /BD /BE /BD /BM /BH /A1/A1/A1 /BD
+/C8/D0/CP/D2 /D8/CP/BN /BG /BM /BH /BN/CQ /BN /BD /BN /A1/A1/A1/BW/CX/CP/CV/D2/D3/D7/CT/D6/D2/D3/D8/B9/DD /CT/D8 /D2/D3/D8/B9/DD /CT/D8 /D2/D3/D8/B9/DD /CT/D8 /D2/D3/D8/B9/DD /CT/D8
+/A1/A1/A1/DD /CT/D7
+/BG /BM /BH /CP /BD /CQ
+Fig. 5. Illustration of a diagnoser.
+a sequence of states W0,W 1,···,Wn, where W0=W, and for each i=1,2, ...,
+ifγiis a delay δ∈R, then Wi=ft(Wi−1,δ), whereas if γiis an event a∈Σo,
+thenWi=ft(Wi−1,a).
+A diagnoser is called validif it satisﬁes the following conditions:
+1. Ifρis a non-faulty ﬁnite run of A, then fd(π(W0))= not-yet , where
+π=P(ρ, Σu).
+2. Ifρis a ﬁnite ∆-faulty run of A, then fd(π(W0))= yes, where π=P(ρ, Σu).
+3. Ifρ1,ρ2are ﬁnite runs of A,ρ1is a preﬁx of ρ2, and πi=P(ρi,Σu), for
+i=1,2, then, if fd(π1(W0))= yes, then fd(π2(W0))= yes. That is, once
+the diagnoser has output yes, it can no longer output not-yet .
+4.1 Constructing a Diagnoser
+We now show how to construct a diagnoser for A. The diagnoser will work as a
+state estimator forA, that is, each state of the diagnoser will correspond to a
+set of possible states of the timed automaton.
+For simplicity of the presentation, we will assume that the set of discrete
+states QofAis partitioned in two disjoint sets: Q=Qf∪(Q−Qf), such
+that, for every run ρofA,discrete (ρ(s0))∈Qfiﬀρis faulty. In other words,
+once a fault occurs, Amoves to Qfand never exits this set of discrete states,
+and while no fault occurs, Amoves inside Q−Qf. It is easy to transform any
+automaton to an automaton satisfying the above condition, possibly by having
+to duplicate some discrete states and transitions (the transformed automatonwill have at most twice as many discrete states as the original automaton). Anexample of such a transformation is shown in Figure 6. The motivation for thetransformation is to reduce the fault detection problem into a state estimation
+
+--- Page 12 ---
+216 Stavros Tripakis/D1/D1
+/D1
+/D1
+/D1
+/D1
+/D1
+/AG
+/AG
+/AG/BD
+/B9/C8/C8/C8/C8/D5
+/B9
+/B9
+/B9
+/B9
+/A6
+/A7
+/A5
+/A4
+/CU/CP/CR
+/CQ/CS/CS
+/C9/CU/D1/D1
+/D1 /D1 /D1
+/AG
+/AG
+/AG/BD /C8/C8/C8/D5
+/B9/C8/C8/C8/C8/D5/AG
+/AG
+/AG
+/AG/BD
+/B9
+/CU/CP
+/CQ/CR
+/CS/CP/CU/D8/CT/D6 /CQ /CT/CU/D3/D6/CT
+Fig. 6. Transforming an automaton.
+problem: a fault has been detected once the diagnoser is certain that the plant
+is in some state with discrete part in Qf.
+We are now ready to deﬁne the diagnoser. Recall that RAis the set of reach-
+able states of A. The state-space Wof the diagnoser is deﬁned to be W=2RA.
+The decision function fdof the diagnoser is deﬁned as follows:
+fd(W)=/braceleftbigg
+yes,if∀s∈W,discrete (s)∈Qf
+not-yet ,otherwise.(1)
+Recall that, for a given event a∈Σ,E(a) denotes the set of transitions of A
+labeled by a. Given a set of events Σ/prime⊆Σ, let Runs(A, Σ/prime) be the set of ﬁnite
+runs of Acontaining only events in Σ/prime. Then, the transition functions of the
+diagnoser are deﬁned as follows:
+fe(W, a)={e(s)|s∈W, e∈E(a)} (2)
+ft(W, δ)={ρ(s)|s∈W, ρ∈Runs(A, Σ u),time(ρ)=δ}. (3)
+It can be seen that ftdeﬁned as above satisﬁes the semi-group property.
+The initial state of the diagnoser is deﬁned to be
+W0={ρ(s0)|ρ∈Runs(A, Σ u),time(ρ)=0}, (4)
+that is, W0contains all states reached in zero delay from the initial state of the
+automaton, by performing only unobservable actions.
+The following lemma states that a diagnoser acts as a state estimator for A.
+Lemma 10. For every ﬁnite run ρofA,i fs=ρ(s0)andπ=P(ρ, Σu), then
+s∈π(W0). Conversely, for every ﬁnite run πof the diagnoser, for all s∈π(W0),
+there exists a ﬁnite run ρofA, such that s=ρ(s0)andP(ρ, Σu)=π.
+Proposition 11. IfAis a∆-diagnosable timed automaton, then the tuple
+(W,W0,fe,ft,fd)deﬁned above is a valid diagnoser for A.
+Proof Letρbe a ﬁnite run of Aand let π=P(ρ, Σu).
+Assume ﬁrst that ρis non-faulty. From the assumption about the structure
+ofA, it must be that for all s∈ρ(s0), we have discrete (s)/negationslash∈Qf. Also, ρ(s0)/negationslash=∅,
+
+--- Page 13 ---
+Fault Diagnosis for Timed Automata 217
+since ρis a run of A. Let s∈ρ(s0). By Lemma 10, s∈π(W0). Thus, by the
+deﬁnition of fd,fd(π(W0)) = not-yet . This proves the ﬁrst condition for validity.
+Now, assume that ρis∆-faulty. By Lemma 10, s=ρ(s0)∈π(W0) and,
+sinceρis faulty, discrete (s)∈Qf. Now, pick some s/prime∈π(W0). By Lemma 10,
+there exists a ﬁnite run ρ/primeofA, such that s/prime=ρ/prime(s0) and P(ρ/prime,Σu)=π. Since
+Ais∆-diagnosable, ρ/primehas to be faulty. Therefore, discrete (s/prime)∈Qf. That is,
+for all s/prime∈π(W0), we have discrete (s/prime)∈Qf. Thus, by the deﬁnition of fd,
+fd(π(W0)) = yes, which proves the second condition for validity.
+As for the third condition, recall that, once Aenters the set Qf, it never exits.
+Thus, if Wis a state of the diagnoser such that for all s∈W,discrete (s)∈Qf,
+then, at any future state W/prime, the same will hold, thus, the decision of the diag-
+noser will not change. /intersectionsq /unionsq
+4.2 Diagnoser Implementation and Run-Time Considerations
+In this section, we show how diagnoser states can be represented using ﬁnitary
+data structures and how the decision and transition functions can be eﬀectivelycomputed on these structures. In fact, we will use technology not much dif-ferent from that used in timed-automata model-checkers such as Kronos [9] orUppaal [1].
+A state of the diagnoser will be a list [( q
+1,ζ1), ...,(qk,ζk)], where qi∈Q
+andζiis a polyhedron on X, the set of clocks of A. Such a polyhedron can be
+eﬀectively represented using well-known data structures called diﬀerence bound
+matrices (DBMs) [13]. Set-theoretic operations on such polyhedra, such as union,
+intersection, test for emptiness, and so on, can be conducted on the correspondingDBMs. The initial state s
+0ofAcan be represented by the list [( q0,/logicalandtext
+x∈Xx= 0)].
+The decision function of the diagnoser can be easily computed by scanning
+the list: if the list contains some pair ( qi,ζi) such that qi/negationslash∈Qf, then the function
+returns not-yet , otherwise it returns yes.
+The event transition function fe(W, a) can be computed as follows. If W=
+[(q1,ζ1), ...,(qk,ζk)] is the current list, start with a new empty list W/prime, and for
+each ( qi,ζi)∈W, for each e∈E(a) such that source (e)=qi,i fζi∩guard(e)/negationslash=∅,
+then ( dest(e),ζ/prime) is added to r/prime, where ζ/primeis the polyhedron
+/parenleftBig
+(∃x∈reset(e).ζi)∩(/logicalanddisplay
+x∈reset (e)x=0 )/parenrightBig
+∩I(dest(e)),
+which contains all v[reset(e): =0 ] ∈I(dest(e)), such that v∈ζi∩guard(e). Since
+the number of pairs in Wis ﬁnite, and there is a ﬁnite number of transitions e,
+the number of pairs in W/primeis also ﬁnite.
+The time transition function ft(W, δ) can be computed for any delay δwhich
+is a rational number3, using a reachability procedure. There are two diﬀerences
+3In practice, the granularity of δwill be restricted by the numerical accuracy of the
+machine.
+
+--- Page 14 ---
+218 Stavros Tripakis
+between the standard reachability procedure for timed automata, and the one
+for computing ft(W, δ). For ft(W, δ), reachability is restricted only to unobserv-
+able transitions of A. Standard reachability can be easily modiﬁed to meet this
+condition: simply select only transitions labeled with unobservable events. Also,standard reachability computes the set of states reachable at any time, whereasreachability for f
+t(W, δ) computes the set of states reachable in exactly δtime
+units. This condition can be satisﬁed as follows.
+First, we compute the set of states reachable from Winat most δtime units .
+Call this set W≤δ.W≤δcan be represented as a ﬁnite list of DBMs, and can be
+computed by extending Wwith a new clock zinitially set to 0 and exploring
+only the states satisfying z≤δ. Once W≤δis computed, we take the intersection
+W≤δ∩(z=δ): this set contains all states reachable from Win exactly δtime
+units. Finally, the clock zis eliminated by existential quantiﬁcation, and the
+ﬁnal result is obtained:
+ft(W, δ)=∃z./parenleftBig
+W≤δ∩(z=δ)/parenrightBig
+. (5)
+setWtoW0; /* initialize diagnoser state */
+set timer xto 0 ; /* set an incrementing timer */
+loop
+if (fd(W)= yes) then
+announce fault ;
+end if ;
+await (event interrupt) or ( x=TO) ; /* await event or timer interrupt */
+if (event ainterrupt) then
+setWtofe(ft(W, x),a) ; /* update state by time and discrete step */
+else
+setWtoft(W, TO) ; /* update state by time step */
+end if ;set timer xto 0 ; /* reset timer for new time interrupt */
+end loop.
+Fig. 7. Diagnoser implementation loop.
+Figure 7 shows how the implementation of a diagnoser would look like, in
+pseudo-code. After initializing its state and setting a timer to 0, the diagnoser
+enters an inﬁnite loop. Inside the loop, the diagnoser checks whether a fault hasoccurred and if so it announces it. Then, it waits until an (observable) eventis received, or the timer times-out (this happens after TOtime units, where
+TOis a parameter), updates its state accordingly, and repeats the loop. Such
+an implementation requires an execution platform which provides some kind ofevent interrupts, time-outs and clock readings
+4.
+4The memory required for such an implementation is generally unbounded, since the
+set of reachable states of the diagnoser is generally unbounded. This is not surprising,
+
+--- Page 15 ---
+Fault Diagnosis for Timed Automata 219
+A diagnoser implemented like the one shown in Figure 7 will function cor-
+rectly, provided the loop can be executed suﬃciently fast. In practice, this means
+that the maximum time to compute the transition function should not be greaterthan the minimum delay between two observable events. This requirement is sim-ilar to the synchrony hypothesis , which implies the correct execution of programs
+written in synchronous languages such as Esterel [2] or Lustre [14].
+5 Related Work and Discussion
+Fault diagnosis has been studied by diﬀerent communities and in diﬀerent con-texts, e.g., see [20,21,24,7,6], and citations therein. We restrict our discussion towork closely related to timed systems.
+[11,32] study fault-diagnosis on a discrete-time model, called timed discrete-
+event systems (TDES). In TDES, time passing is modeled by a special (observ-
+able) event “tick” and the problem of diagnosis can be easily reduced to theuntimed case and solved using untimed techniques. Discretization of time is alsoused in [23], to reduce the problem into a ﬁnite-state diagnosis problem.
+[16] use a timed automaton model without clocks, but where time intervals
+are associated with discrete states. They propose template monitoring as a tech-
+nique for distributed fault diagnosis, where templates are sets of constraints onthe occurrence times of events.
+Fault diagnosis is closely related to observation and state estimation prob-
+lems. Such problems are considered in the context of hybrid automata in [6,17].These methods rely on an observable part of (or function of) the plant’s con-tinuous variables. Based on the observable continuous variables (and possiblydiscrete observations as well), the dynamics of the unobservable variables mustbe determined. This approach cannot be used to solve our problem, because weassume that noclock of the timed automaton is directly observable. Instead, the
+diagnoser must infer the values of clocks based only on the events it observes.This is a reasonable assumption, since the plant model is often an abstractionof a physical process, which has no clocks anyway.
+Fault-diagnosis is also related to the controller-synthesis problem, introduced
+for discrete-event systems in [19]. The problem has been studied for timed andhybrid models as well (e.g., see [31,10,12,5,18,30,25]). Some of these works arerestricted to a discrete-time framework, for example [10,18]. The rest make amajor assumption, namely, that the state of the plant (including the values ofall clocks) is fully observable . This is unrealistic, except for the case where the
+plant is deterministic and all its events are observable
+5.
+[30] discusses how partial observability of plant states can be taken into
+account, by assuming the existence of a function vis(·) from the state space of
+since the set of states of a timed automaton is also generally inﬁnite. Thus, even if
+the diagnoser was represented as a timed automaton, an unbounded memory wouldbe generally needed to implement clocks.
+5In this case, the controller can replicate the clocks of the plant and reset them
+whenever it sees the corresponding observable event.
+
+--- Page 16 ---
+220 Stavros Tripakis
+the plant to a domain of possible observations: when the plant is at state s,
+the controller observes vis(s). Then, [30] shows how to synthesize memoryless
+controllers in the above framework. The controllers are memoryless in the sense
+that their decision depends only on the current observation and not past ones.This is why the algorithm is incomplete: it might fail to synthesize a controller,even though one exists. Another drawback is that the function vis(·)i sn o t
+always easy to come up with, for example, when starting with an observationframework based on events, as we do here.
+Acknowledgements
+I would like to thank Eugene Asarin, Oded Maler and Peter Niebert.
+References
+1. Uppaal web-site: www.docs.uu.se/docs/rtmv/uppaal/ .
+2. Esterel web-site: www.esterel.org .
+3. R. Alur and D.L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126:183–235, 1994.
+4. Rajeev Alur. Techniques for Automatic Veriﬁcation of Real-Time Systems . PhD
+thesis, Department of Computer Science, Stanford University, 1991.
+5. E. Asarin, O. Maler, A. Pnueli, and J. Sifakis. Controller synthesis for timed
+automata. In Proc. IFAC Symposium on System Structure and Control . Elsevier,
+1998.
+6. A. Balluchi, L. Benvenuti, M. Di Benedetto, and A. Sangiovanni-Vincentelli. De-
+sign of observers for hybrid systems. In Hybrid Systems: Computation and Control ,
+2002. To appear.
+7. P. Baroni, G. Lamperti, P. Pogliano, and M. Zanella. Diagnosis of large active
+systems. Artiﬁcial Intelligence , 110, 1999.
+8. A. Bouajjani, S. Tripakis, and S. Yovine. On-the-ﬂy symbolic model checking for
+real-time systems. In Proc. of the 18th IEEE Real-Time Systems Symposium, San
+Francisco, CA , pages 232–243. IEEE, December 1997.
+9. M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine. Kronos:
+a model-checking tool for real-time systems. In Proc. of the 10th Conference on
+Computer-Aided Veriﬁcation, CAV’98 . LNCS 1427, Springer-Verlag, 1998.
+10. B.A. Brandin and W.M. Wonham. Supervisory control of timed discrete-event
+systems. IEEE Transactions on Automatic Control , 39(2), 1994.
+11. Yi-Liang Chen and Gregory Provan. Modeling and diagnosis of timed discrete
+event system s – a factory automation example. In ACC, 1997.
+12. D.D. Cofer and V.K. Garg. On controlling timed discrete event systems. In Hybrid
+Systems III: Veriﬁcation and Control . LNCS 1066, Springer-Verlag, 1996.
+13. D.L. Dill. Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems.
+In J. Sifakis, editor, Automatic Veriﬁcation Methods for Finite State Systems , Lec-
+ture Notes in Computer Science 407, pages 197–212. Springer–Verlag, 1989.
+14. N. Halbwachs, P. Caspi, P. Raymond, and D. Pilaud. The synchronous dataﬂow
+programming language Lustre. Procee dings of the IEEE , 79(9), September 1991.
+15. T.A. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine. Symbolic model checking
+for real-time systems. Information and Computation , 111(2):193–244, 1994.
+
+--- Page 17 ---
+Fault Diagnosis for Timed Automata 221
+16. L.E. Holl oway and S. Chand. Time templates for discrete event fault monitoring in
+manufacturing systems. In Proc. of the 1994 American Control Conference , 1994.
+17. S. Narasimhan and G. Biswas. An approach to model-based diagnosis of hybrid
+systems. In Hybrid Systems: Computation and Control , 2002. To appear.
+18. J. Raisch and S. O’Young. A DES approach to control of hybrid dynamical systems.
+InHybrid Systems III: Veriﬁcation and Control . LNCS 1066, Springer-Verlag, 1996.
+19. P. Ramadge and W. Wonham. Supervisory control of a class of discrete event
+processes. SIAM J. Control Optim. , 25(1), January 1987.
+20. Amit Kumar Ray and R. B. Misra. Real-time fault diagnosis - using occupancy
+grids and neural network techniques. In Industrial and Engineering Applications of
+Artiﬁcial Intelligence and Expert Systems, IEA/AIE . LNCS 604, Springer-Verlag,
+1992.
+21. M. Sampath, R. Sengupta, S. Lafortune, K. Sinnamohideen, and D. Teneketzis.
+Diagnosability of discrete event systems. IEEE Transactions on Automatic Control ,
+40(9), September 1995.
+22. M. Sampath, R. Sengupta, S. Lafortune, K. Sinnamohideen, and D. Teneketzis.
+Failure diagnosis using discrete event models. IEEE Transactions on Control Sys-
+tems Technology , 4(2), March 1996.
+23. J. Sztipanovits, R. Carnes, and A. Misra. Finite state temporal automata modeling
+for fault diagnosis. In 9th AIAA Conference on Computing in Aerospace , 1993.
+24. J. Sztipanovits and A. Misra. Diagnosis of discrete event systems using ordered
+binary decision diagrams. In 7th Intl. Workshop on Principles of Diagnosis , 1996.
+25. C. Tomlin, J. Lygeros, and S. Sastry. Synthesizing controllers for nonlinear hybrid
+systems. In Hybrid Systems: Computation and Control . LNCS 1386, Springer-
+Verlag, 1998.
+26. S. Tripakis. The formal analysis of timed systems in practice . PhD thesis, Univer-
+sit´e Joseph Fourrier de Grenoble, 1998.
+27. S. Tripakis. Verifying progress in timed systems. In ARTS’99 , LNCS 1601, 1999.
+28. S. Tripakis and S. Yovine. Analysis of timed systems using time-abstracting bisim-
+ulations. Formal Methods in System Design , 18(1):25–68, January 2001.
+29. J.N. Tsitsiklis. On the control of discrete event dynamical systems. Mathematics
+of Control, Signals and Systems , 2(2), 1989.
+30. H. Wong-Toi. The synthesis of controllers for linear hybrid automata. In Proc. of
+IEEE Conference on Decision and Control , 1997.
+31. H. Wong-Toi and G. Hoﬀmann. The control of dense real-time discrete event
+systems. In Proc. of the 30th IEEE Conference on Decision and Control , 1991.
+32. S. Hashtrudi Zad, R.H. Kwong, and W.M. Wonham. Fault diagnosis in ﬁnite-state
+automata and timed discrete-event systems. In 38th IEEE Conference on Decision
+and Control , 1999.

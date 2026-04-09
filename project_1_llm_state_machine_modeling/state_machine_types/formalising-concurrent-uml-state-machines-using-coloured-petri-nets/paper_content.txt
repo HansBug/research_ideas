@@ -1,0 +1,615 @@
+--- Page 1 ---
+F ormalising Concurren t UML State Mac hines
+Using Coloured P etri Nets?
+Étienne André, Mohamed Mahdi Benmoussa, and Christine Chopp y
+Univ ersité P aris 13, Sorb onne P aris Cité, LIPN, CNRS, Villetaneuse, F rance
+Abstract. While UML state mac hines are widely used to sp ecify dy-
+namic systems b eha viours, their seman tics is describ ed informally , whic h
+prev en ts the complex systems v erication. In this pap er, w e prop ose a
+formalisation of concurren t UML state mac hines using coloured P etri
+nets. W e consider in particular concurren t asp ects (orthogonal regions,
+forks, joins, shared v ariables), the hierarc h y induced b y comp osite states
+and their asso ciated activities, in ternal/external/lo cal transitions, and
+en try/exit/do b eha viours.
+1 In tro duction
+UML [OMG12] b ecame the de facto standard for mo delling systems, and fea-
+tures a v ery ric h syn tax with dieren t diagrams to mo del the dieren t asp ects of
+a system. UML b eha vioural state mac hine diagrams (SMDs) are transition sys-
+tems used to express the b eha viour of dynamic systems in resp onse to external
+in teractions. Although UML is widely used in the industry , its seman tics is not
+formally expressed, whic h prev en ts formal v erication to b e p erformed.
+R elate d W ork. V erication of SMDs has b een often tac kled. Some approac hes
+directly giv e UML a seman tics. The closest to the set of syn tactic constructs w e
+consider here is [JEJ04], where en try/exit b eha viours, activities, sync hronisation
+and history states are considered; ho w ev er, global v ariables are discarded, and
+no mo del c hec king is p erformed. In [LLA+13], an op erational seman tics is pro-
+p osed for UML SMDs with sync hronisation. Most syn tactic asp ects are tak en
+in to accoun t, except real-time asp ects and ob ject-orien ted issues, suc h as dy-
+namic in v oking and destro ying ob jects. A formalisation has also b een prop osed
+using UML-B [SB06]. Ho w ev er, these approac hes require the implemen tation of
+a standalone, dedicated to ol.
+Other approac hes translate UML sp ecication in to an in termediate mo del
+of some mo del c hec k er. Most of these approac hes consider quite restrictiv e sub-
+sets of the UML syn tax as dened b y the OMG [OMG12] (see [LA C+14] for
+a surv ey). Out of man y approac hes, for lac k of space, w e cite only the most
+recen t and related to our w ork. A translation of SMDs to SPIN is considered
+?This is the author v ersion of the pap er of the same name accepted for publication
+at the 6th In ternational Conference on Kno wledge and Systems Engineering (KSE
+2014). The nal v ersion is a v ailable at www.springer.com .
+1
+
+--- Page 2 ---
+2
+in [JDJ+06] with b oth hierarc hical and non-hierarc hical cases; history , fork, join
+pseudo-states, en try and exit activities and complex data structures are not sup-
+p orted. A seman tics is dened in [DJ07] for a syn tax subset, including deferring
+of messages, concurren t comp osite states and c hoice pseudo-state; v erication is
+p erformed using NuSMV. An automated translation from SMDs in to CSP ] (an
+extension of CSP) is prop osed in [ZL10]; mo delling tec hniques suc h as use of data
+structures, join/fork, history pseudo-states, en try/exit b eha viours (but with no
+v ariable) are considered, and prop erties are c hec k ed using P A T [SLDP09]. Note
+that these formalisms do not pro vide a graphical represen tation, in con trast
+to CPNs. Other approac hes (e.g. [K CBL10]) use an in termediary mo del (e.g.,
+at state mac hines) to formalise SMDs to coloured P etri nets (CPNs) [JK09].
+In [K CBL10], concurrency (fork/join, concurren t comp osite states) is tak en in to
+accoun t. The main dierence with our approac h is that [K CBL10] requires to
+atten the SMD, hence losing the hierarc h y . A translation from SMDs to P etri
+nets is prop osed in [CKZ11] w ere SMDs include sync hronisation, limited asp ects
+of hierarc h y , join and fork (with no in ter-lev el transitions) but history pseudo-
+states and v ariables are not considered.
+Contribution. W e in tro duce here a translation of concurren t SMDs in to CPNs.
+CPNs oer a detailed view of the pro cess with a graphical represen tation, and
+b enet from p o w erful to ols (suc h as CPN T o ols [W es13]) to test and c hec k
+the mo del. Our SMDs can comm unicate on sync hronised ev en ts; w e also tak e
+in to accoun t the most common syn tactic features, i.e. state hierarc h y with en-
+try/exit/do b eha viours, history pseudo-states, sync hronised ev en ts, fork/join,
+shared v ariables and lo cal/external/in ternal transitions. Our approac h partially
+relies on the w ork presen ted in [A CK12] where w e prop osed a rst attempt of
+formalising non-concurren t SMDs using CPNs. Here, w e extend this previous
+approac h to the concurrency (forks, joins, nested comp osite states). W e also add
+in ternal transitions. The addition of concurrency w as not easy , as the translation
+sc heme of [A CK12] hea vily relied on the assumption of non-concurrency , and w e
+had to en tirely reconsider our approac h, and rewrite our translation algorithms.
+Outline. W e presen t in Section 2 the formalisms w e use (viz. SMDs and CPNs).
+In Section 3, w e describ e our translation: w e rst describ e our general transla-
+tion sc heme, and recall the assumptions w e mak e (Section 3.1); then, w e dene
+functions used in our algorithms (Section 3.2), and giv e in details our algorithms
+translating states and b eha viours (Section 3.3), and transitions (Section 3.4). W e
+conclude and giv e some p ersp ectiv es in Section 4.
+2 Basic Concepts Used in This W ork
+2.1 Our Assumptions on UML State Mac hine Diagrams (SMDs)
+The underlying paradigm of UML SMDs [OMG12] is that of a nite automaton,
+that is eac h en tit y (or sub en tit y) is in one state at an y time and can mo v e to
+another state through a w ell-dened conditional transition. F or lac k of space,
+
+--- Page 3 ---
+3
+Fig. 1. Example of a state mac hine diagram
+w e assume the reader's kno wledge on SMDs, and w e only presen t here tec h-
+nical issues required for our w ork. The UML pro vides an extended range of
+constructs for SMDs, and w e tak e in to accoun t the follo wing syn tactical ele-
+men ts: simple/comp osite states, en try/exit/do b eha viours, concurrency (regions
+in comp osite states, fork/join transitions), shared v ariables, shallo w history pseu-
+dostates (not detailed for lac k of space) and hierarc h y (of states and b eha viours).
+In the follo wing, w e recall these elemen ts together with some assumptions w e
+need to set for our w ork.1W e use the SMD in Fig. 1 as a running example.
+States. W e consider t w o kinds of states: simple and comp osite. A comp osite
+state is a state that con tains at least one region and can b e a simple comp osite
+state or an orthogonal state. A simple comp osite state has exactly one region,
+that can con tain other states, allo wing to construct hierarc hical SMDs. An or-
+thogonal state (e.g. S1 ,S2 in Fig. 1) has m ultiple regions (regions can con tain
+other states), allo wing to represen t concurrency . regions (s) denotes the set of
+regions in comp osite state s , and NbRegions (s) the n um b er of regions in s . W e
+assume that a comp osite state m ust not b e empt y (A comp osite State con tains
+at least one region [OMG12, p.322]), and that eac h region con tains at least one
+state.
+An y state enclosed within a region of a comp osite state is called a substate
+of that comp osite state. It is called a dir e ct substate when it is not con tained b y
+an y other state; otherwise, it is referred to as an indir e ct substate . [OMG12, Sec-
+tion Kinds of States, p.319]. Giv en a comp osite state s , w e denote b y SubStates (s)
+the set of direct substates of s (including nal states), and b y SubStates(s) all
+substates of s , b oth direct and indirect. If s is not con tained in an y state, w e
+call it a r o ot state. Otherwise, parent (s) denotes the state con taining s . The set
+of all states of an SMD is denoted b y S .
+1A summary of our assumptions is a v ailable in App endix B.
+
+--- Page 4 ---
+4
+Fig. 2. Example of transitions tak en in to accoun t
+Behaviours. Beha viour expressions ma y b e dened when en tering, exiting states
+(or also when states ha v e a do b eha viour) or when ring transitions. As in [A CK12],
+w e abstract b eha viours using name b (corresp onding to the actual b eha viour ex-
+pression) and function f to express c hanges induced on the system v ariables. The
+b eha viour is denoted b y (b;f) . and when there are no mo dications on v ariables
+w e set f toid (id is the iden tit y function). When a transition has no b eha viour
+(b;f) = ( none;id) . W e assume that a do b eha viour is an atomic b eha viour that
+can b e executed as man y times as wished. This is a rather strong assumption
+in our setting. F urthermore, to simplify our algorithms (and a v oid complicated
+sub cases), w e mak e t w o further assumptions, (i) only simple states can ha v e a
+do b eha viour, and (ii) eac h state (b e simple or comp osite) alw a ys has an en try
+and an exit b eha viour. These t w o assumptions could b e lifted with no dicult y .
+Initial Pseudostates. W e require that eac h region con tains one and only one
+(direct) initial pseudostate, whic h has one and only one outgoing transition. W e
+also consider that the activ e state of the system cannot b e an initial pseudostate.
+Note that this is a mo delling c hoice only: if one w an ts to mo del an SMD where
+the system can stay in an initial pseudostate, it suces to add another state
+b et w een the initial pseudostate and its immediate successor.
+Final States. In eac h region r of a comp osite state, w e allo w exactly one nal
+state (denoted b y rF), whereas the sp ecication allo ws zero or one (Eac h re-
+gion [. . . ] ma y ha v e its o wn initial Pseudostate as w ell as its o wn FinalState.
+[OMG12, p.321]) Note that nal states are simple states, and th us are included
+in relation SubStates . W e dene function ToFinal (s) that returns the set of
+simple states with transitions to nal states of eac h region in comp osite state
+s . Similarly , ToFinal(s) returns the set of comp osite states (including s ) that
+ha v e transitions with the nal states of eac h region in comp osite state s or its
+substates.
+V ariables. W e allo w an y kind of v ariables in an y b eha viour and transition guard.
+Suc h v ariables (in tegers, lists, etc.) are often met in practice [OMG12].
+T r ansitions. A transition can ha v e a guard, a sync hronization ev en t, and a
+b eha viour; transitions can ha v e as source and destination an y (comp osite or
+
+--- Page 5 ---
+5
+simple) state, with some restrictions (e.g. a transition from an initial state cannot
+ha v e a b eha viour, etc.). Due to concurrency , v arious kinds of transitions exist:
+completion transitions (e.g. the transition from Machine toDelivered in Fig. 2)
+ha v e no ev en t and exit a comp osite state when all its regions are in their nal
+state. Exiting a comp osite state mac hine through an ev en t (e.g. the transition
+from Machine toCancelled in Fig. 2) results in the exiting of all substates
+of the comp osite State, executing an y dened exit Beha viors starting with the
+innermost States in the activ e state conguration [OMG12, Section T ransitions,
+p.325]. This is an exception-lik e transition. A join transition (e.g. the transition
+from Checking and Authorizing toRejected in Fig. 2) exits a giv en state
+in eac h comp osite state region. All these transitions are tak en in to accoun t in
+our w ork. The implicit join (e.g. the transition from Waiting toFailure in
+Fig. 2) exits some of the regions from a giv en state; the other regions are exited
+whatev er is their curren t activ e state. F or readabilit y sak e, w e do not tak e them
+in to accoun t in our algorithms, but our general sc heme can p erfectly adapt to
+this case.
+Concurrency can also app ear when en tering a comp osite state (cf. left-most
+transition in Fig. 2). If the T ransition terminates on the edge of the comp osite
+State (i.e. without en tering the State), then all the Regions are en tered using
+the default en try rule. [OMG12, Section En tering a State, p.323]. W e tak e in to
+accoun t forks (a transition with a giv en state in eac h region as destination),
+but not implicit forks (where only some of the regions ha v e an explicit des-
+tination), although our algorithms could b e trivially extended, at the cost of
+more complicated sub cases. W e also tak e in to accoun t in ternal/external/lo cal
+transitions.
+Finally , w e mak e the follo wing assumption: the execution of dieren t transi-
+tions in dieren t regions of the same state is done in parallel. F or instance, the
+transition from Checking toWaiting in the upp er region of Machine in Fig. 2
+(and that could in v olv e exit, do and en try b eha viours) is p erformed in an in-
+terlea ving manner with, e.g. the transition from authorizing toauthorized in
+the lo w er region. Although this not en tirely clear in [OMG12], this assumption
+migh t not conform to the notion of run-to-completion step. W e b eliev e that in-
+terlea ving is indeed a natural mec hanism b et w een t w o subsystems executed in
+parallel.
+The set of transitions is denoted b y T with transitions of the form t=
+(S1; e; g; (b;f);sLevel ;S2) , whereS1;S2S are the source and target set of
+states resp ectiv ely ( S1 orS2 can con tain at least one state  in the case of simple
+transitions b et w een t w o states  or more  in case of fork or join transitions), e
+is the ev en t, g is the guard, (b;f) is the b eha viour to b e executed while ring
+the transition, and sLevel2S is the lev el state con taining the transition.
+W e in tro duce a do cumen ted w a y to tra v el in the hierarc h y of states. W e
+indeed add the concept of level state (denoted b y sLevel ) of a transition from
+s1 tos2 , that is the innermost state in the hierarc hical SMD structure that
+con tains the transition (the lev el state can b e the SMD if s1 and s2 are ro ot
+states). F or example, let us consider that S1 and S2 in Fig. 1 are ro ot states
+
+--- Page 6 ---
+6
+and the transition lab elled b y a b et w een those states is encompassed b y the
+state mac hine S . Then S is the lev el state for this transition b ecause it is the
+innermost common ancestor of S1 andS2 that con tains transition a. Similarly ,
+for the transition (sa y t ) b et w een S13 andS14 , w e ha v e sLevel (t) =S1 .
+2.2 Coloured P etri Nets with Global V ariables
+CPNs [JK09] are also a kind of automaton represen ted b y a bipartite graph with
+t w o kinds of no des, places (e.g. p1 in Fig. 3 (left)) and transitions (e.g. t in Fig. 3
+(left)). Places hold tok ens, p ossibly of a complex v alue, and that should b e of
+the place t yp e (e.g. t yp e NB in Fig. 3 (left)).
+p1N
+t [i6= 2] v:=v+i
+p2NBi
+(i;true)p1N
+t [i6= 2]
+p2NBpvNi
+(i;true)v
+v+i
+Fig. 3. Global v ariable notation (left) and corresp onding seman tics (righ t)
+W e use here the concept of glob al variables , a notation that do es not add
+expressiv e p o w er to CPNs, but renders them more compact. Global v ariables
+can b e read in guards and up dated in transitions, and are supp orted b y some
+to ols (suc h as CPN T o ols). Otherwise, one can sim ulate a global v ariable using a
+global place, in whic h a single tok en (of the v ariable t yp e) enco des the curren t
+v alue of the v ariable. An example is giv en in Fig. 3 (left). V ariable v (of t yp e N )
+is a global v ariable up dated to the expression v+i .
+This construction is equiv alen t to the one in Fig. 3 (righ t). When a global
+v ariable is read in a guard, the tok en with v alue v+i is put bac k in place pv .
+The CPN curren t state (or marking) is the information on whic h tok ens are
+presen t in whic h places. The state ev olv es when a transition is red, and tok ens
+are consumed from its source places (according to the input arc expressions) and
+generated to its target places (according to the output arcs).
+3 T ranslation of Concurren t State Mac hines
+W e rst in tro duce our general translation sc heme (Section 3.1). Then, w e dene
+functions used in our algorithms (Section 3.2). W e then in tro duce the algorithms
+translating states and b eha viours (Section 3.3), and transitions (Section 3.4).
+3.1 General T ranslation Sc heme
+In this section, w e presen t the general view of our translation. W e dene a trans-
+lation sc heme where simple states, nal and history pseudostates are translated
+
+--- Page 7 ---
+7
+in to places, whereas b eha viour expressions (en try , exit and do) and ev en ts are
+translated in to CPN transitions. F urther places and transitions will also b e de-
+ned to connect these places and transitions together. The ring of transitions in
+SMDs is represen ted b y the ring of transitions with tok ens in CPNs. Note that
+comp osite states will not b e translated as suc h (no CPN place will corresp ond
+to a comp osite state), but their b eha viours and all their simple substates will b e
+considered. This is inline with the fact that the activ e state of an SMD is a (set
+of ) simple state(s). Similarly , initial pseudostates will not b e translated as suc h.
+Enc o ding and F actoring T r ansitions. A main issue in our translation is to enco de
+transitions b et w een comp osite states with dieren t regions, in particular the
+v arian ts of forks and joins. Eac h suc h transition (in particular for joins) ma y in
+fact corresp ond to a large n um b er of transitions. F or example, in Fig. 1, ring
+the transition lab elled with ev en t  a  corresp onds to 18 dieren t w a ys to lea v e
+S1 (3 p ossible activ e states in the upp er region of S1 , m ultiplied b y 4 in S13 and
+2 others in the lo w er region), and hence in 18 CPN transitions, together with all
+the en try/exit b eha viours. Giv en a transition t , let us denote b y combinations (t)
+the function that computes all p ossible com binations of outgoing substates. W e
+could translate eac h transition separately; but this w ould quic kly result in an
+explosion of the n um b er of CPN transitions corresp onding to the same en try/exit
+b eha viours and actions.
+F or sak e of readabilit y , main tainabilit y , and size of the translated CPN, this
+should b e factored. Hence, as in [A CK12], w e shall prop ose a sc heme suc h that
+eac h b eha viour is enco ded in to only one CPN transition. Since man y SMD tran-
+sitions go through the same b eha viours, w e need a memory mec hanism to
+remem b er from whic h place w e originate so as to nd the correct target. Unfortu-
+nately , the factoring sc heme of [A CK12] do es not easily extend to the concurren t
+case, and further studies sho w ed us that it could lead to a state space explosion
+when exploring branc hes that w ould lead to no end. W e reuse the idea of ha ving
+one unique transition for eac h b eha viour in the SMD, and w e dene a structure
+enco ding the hierarc h y of all en try (resp. exit) b eha viours together, in a sort of
+tree (resp. rev ersed tree). An example of t w o suc h trees will b e giv en in Fig. 5,
+with the blue part enclosed in a dashed b o x on the left (resp. turquoise part
+enclosed in a dotted b o x on the righ t) corresp onding to the en try (resp. exit)
+b eha viours. No w, in con trast from [A CK12], w e will na vigate in these trees of
+b eha viours using a memory mec hanism, based on guards. F or eac h p ossible w a y
+to lea v e a comp osite state when ring a transition, w e will create a path in
+these trees: this can b e easily obtained using t yp ed tok ens (e.g. using a unique
+in teger iden tier for eac h transition), and guards c hec king the t yp e of the tok en
+along all the CPN transitions on the considered path. Chec king a guard is v ery
+c heap when doing mo del c hec king, and this mec hanism a v oids state space ex-
+plosion, while k eeping the CPN small. F or example, in Fig. 5, when exiting from
+pF11 andpF12 , the tok en will reac h tbEn2 , and will b e duplicated in t w o tok ens
+inpbEn2 ; then, although there are three p ossible outputs, i.e. tbEn21 ,tbEn22
+andtbEn23 , w e exp ect from our translation that one tok en res tbEn21 and the
+other one tbEn22 , since these transitions corresp ond to the en try b eha viours of
+
+--- Page 8 ---
+8
+the initial states of the t w o regions of S2 . (F or sak e of conciseness, w e do not
+depict explicitly in the gures this mec hanism based on guards and tok ens.)
+Note that, in the case of the 18 com binations corresp onding to the transition
+lab elled with ev en t  a , w e still ha v e 18 CPN transitions; but all exit and en try
+b eha viours are factored, whic h considerably reduces the resulting CPN size.
+Finally , w e add a sync hronisation CPN transition (e.g. TEnS2 _t1 in Fig. 5)
+just b efore en tering the places corresp onding to the destination simple states,
+whic h ensures that only one transition res at a time in a giv en region (dieren t
+transitions can still re in an in terlea ving manner in dieren t regions).
+Enc o ding Shar e d V ariables. In [A CK12], the non-concurrency allo w ed us to store
+the v alue of all shared v ariables in a single tok en that enco ded also the curren t
+activ e simple state of the SMD. In the concurren t case, this approac h is no longer
+p ossible since sev eral simple states can b e activ e at the same time; enco ding the
+v alues of the same shared v ariables in dieren t tok ens w ould lead to consistency
+problems. Hence, w e use global v ariables in CPNs (see Section 2.2) to enco de the
+v alue of shared v ariables. Note that concurren t reading/writing of suc h v ariables
+can lead to strange executions (when a region reads a v ariable and then imme-
+diately c hanges its v alue, but in b et w een another region concurren tly c hanged
+its v alues), but these executions are also p ossible in the UML seman tics.
+3.2 F unctions
+W e no w describ e the functions used in our algorithms. First, w e consider t w o
+sp ecial places pin (resp. pout ), corresp onding to the ro ot of the tree of en try (resp.
+exit) b eha viours, that will b e used b y our algorithms. W e assume function p as-
+so ciates place p(s) with eac h state s , and place p(b) to eac h b eha viour b . W e also
+assume function t asso ciates CPN transition t(b) with eac h b eha viour b . F unc-
+tions SupEN (s) andSupEX (s) return the places represen ting en try b eha viour
+(p(bEN) ) and exit b eha viour ( p(bEX) ) of a giv en state, resp ectiv ely . F unction
+SubEN (s) returns the transition enco ding the en try b eha viour in case of a sim-
+ple state, or the en try b eha viour of eac h substate in case of a comp osite state.
+In the hierarc h y of en try or exit b eha viours, w e need to kno w from whic h
+b eha viour w e en ter and from whic h b eha viour w e lea v e the state. This dep ends
+on the lev el of the transition. W e th us dene t w o functions OutTo (sLevel ;s1)
+andInFrom (sLevel ;s2) that return the en try and exit b eha viour to en ter/lea v e
+the hierarc h y , resp ectiv ely . Note that s1 ofOutTo (sLevel ;s1) (resp ectiv ely s2 of
+InFrom (sLevel ;s2) ) can b e a set of states if the transition is a fork transition
+(resp ectiv ely a join transition).
+OutTo (sLevel ;s1) =pout When sLevel is the o v erall SMD
+SupEX (sLevel )) otherwise
+InFrom (sLevel ;s2) =pin When sLevel is the o v erall SMD
+SupEN (sLevel ) otherwise
+W e nally assume a function init(s) that returns the initial state of s , or
+the (recursiv e) set of initial states of the initial state if s is comp osite.
+
+--- Page 9 ---
+9
+en try/ bEN
+do/bDO
+exit/bEXs
+en try/ bEN
+do/bDO
+exit/bEXs
+Fig. 4. A simple state (left) and its translation (righ t)
+3.3 T ranslating States and Beha viours
+W e describ e here the translation of the states and their b eha viours (do, en try and
+exit). One the one hand, w e translate eac h simple, nal and history (pseudo)state
+in to a place. On the other hand, w e translate the purely hierarc hical structure
+of the SMD, so that to get a tree of en try and exit b eha viours, that will b e
+used later when connecting transitions. Eac h b eha viour expression is represen ted
+b y a transition and a place connected b y an arc. W e also connect the places
+corresp onding to simple states with their do b eha viour, if an y . Connecting the
+en try/exit b eha viours with the places corresp onding to simple states dep ends on
+the transitions and will b e done b y Algorithm 2.
+First, as an example, Fig. 4 sho ws a state s and its translation in to a CPN.
+State s is represen ted b y place p(s) , its en try b eha viour bENis represen ted b y
+place pbEn and transition tbEn , and its exit b eha viour bEXis represen ted b y
+place pbEx and transition tbEx . If the state has a do b eha viour bDOthen it will
+b e represen ted b y transition tbDo .
+W e use in our algorithms the follo wing graphical notation. Places and transi-
+tions generated at a giv en p oin t are denoted b y a solid line, whereas places and
+transitions already generated are denoted b y a dotte d line.
+Algorithm 1 translates states and b eha viours. T w o places pin andpout are
+created (line 1), then there are t w o main steps: Step 1 generates the CPN part
+corresp onding to do/en try/exit b eha viours as w ell as history pseudostates and
+nal states. Step 2 is comp osed of 3 substeps. Step 2.1 adds an arc b et w een the
+en try b eha viour place of a comp osite state and the en try b eha viour transitions of
+its substates. This represen ts the fact that, after executing an en try b eha viour,
+w e will execute the en try b eha viours of the substates. Step 2.2 adds an arc from
+place pin to the en try b eha viour transitions of the ro ot states, and from the exit
+b eha viours of the ro ot states to place pout . Step 2.3 adds an arc from the exit
+b eha viour transition to the exit b eha viour place of its paren t.
+After executing Algorithm 1, w e apply the follo wing initialisations to the
+result of the translation: All guards are initialised to false (and ma y b e later
+mo died during the translation).
+Fig. 5 sho ws the application of Algorithm 1 to a part of the example in
+Fig. 1. The blue part enclosed in a dashed b o x on the left of Fig. 5 represen ts the
+en try b eha viours of S2 in Fig. 1. The dotted/turquoise part on the righ t of Fig. 5
+
+--- Page 10 ---
+10
+Algorithm 1: Enco ding the states and b eha viours
+1 A ddpin pout
+// Step 1
+2 foreac h state s2S do
+3 A ddp(bEN) t(bEN)NbRegions (s)
+andp(bEX) t(bEX)NbRegions (s)
+4 ifs is a simple state and has a do b ehaviour (p(bDO); fDO) then
+5 A dd p(s) t(bDO)fDO
+6 foreac h r e gion r2regions (s) do
+7 ifr has a (dir e ct) history pseudostate then A dd p(rH)
+8 ifr has a (dir e ct) nal state then A dd p(rF)
+// Step 2
+9 foreac h state s2S do
+10 ifs is a c omp osite state then
+// Step 2.1
+11 foreac h s02SubStates (s) do
+12 foreac h tr ansition t02SubEN (s0) do connectp(bEN) t0
+13 ifs is r o ot then connectpout t(bEX) pin t(bEN) // Step 2.2
+14 else A dd SupEX (parent (s)) t(bEX) ; // Step 2.3
+represen ts the exit b eha viours of S1 in Fig. 1. W e also added places to represen t
+nal states (e.g. pF11 ), history pseudostates ( pH11 ) and states (e.g. pS11 ,pS22 ).
+3.4 T ranslating T ransitions
+Algorithm 2 describ es the translation of UML transitions, using three steps fol-
+lo w ed b y an initialisation function. Step 1 deals with exit b eha viours: Step 1.1
+deals with ev en t triggered transitions, while other transitions are pro cessed in
+Step 1.2 (exit from a comp osite state) and 1.3 (exit from a simple state). F or
+a giv en transition, Step 2 establishes the connection b et w een its source state
+exit b eha viour and its destination state en try b eha viour. Step 3 expresses the
+destination state en try .
+Line 19 up dates all relev an t guards, so as to guide the tok en within the hierar-
+c h y of b eha viour places and transitions. Finally , w e use a function Initialisation ()
+for tok en initialisation (line 20) to mo del the initial state in the global SMD.
+Fig. 5 sho ws the application of Algorithms 1 and 2 to S1 and S2 and also
+the transition without an ev en t in Fig. 1. In this translation, w e consider only
+the en try b eha viours of S2 , the exit b eha viour of S1 , the nal states of S1 , to
+get a clear picture to illustrate the algorithm. Step 1 adds transition TExSF _t1
+b et w een places pF11 and pF12 (that corresp ond to the region nal states) and
+place pbEx1 that corresp ond to the exit b eha viour of S1 . Step 2 adds transition
+
+--- Page 11 ---
+11
+Fig. 5. Application of Algorithms 1 and 2
+transit _t1 to connect exit place Pout to en try place Pin . Step 3 adds the
+transition TEnS2 _t1 to link places of S2 substates and their en try b eha viour.
+4 Conclusion and F uture W orks
+W e presen t here a formalization of UML concurren t SMDs b y translating them
+in to CPNs. W e tak e in to accoun t dieren t syn tactic elemen ts in our translation,
+sp ecially the concurrency , including simple and comp osite states, most kinds
+of transitions (including forks and joins), b eha viours (en try , exit, do), history
+pseudo-states, etc. Once our implemen tation is completed (see b elo w), this will
+allo w for automated mo del c hec king of SMDs.
+Our main future w ork is to dev elop a to ol automating the translation so
+as to b e able to p erform formal v erication of SMDs. W e implemen ted a rst
+protot yp e using A cceleo, but this tec hnology turned out to b e sligh tly inaccurate
+for our framew ork [ABC14]. Although w e could translate to y examples, w e will
+lik ely build a home-made to ol. Of course, this implemen tation m ust extend to
+the general case the assumptions made in order to simplify the description of our
+algorithms (e.g. eac h state alw a ys has b oth an en try and an exit b eha viours).
+Most syn tactic asp ects not tak en in to accoun t in our w ork (see App endix A)
+could b e added in a rather straigh tforw ard manner  except for timing asp ects.
+A dding them to our translation is an in teresting future w ork. Recall that some
+to ols (including CPN T o ols) allo w one to dened time(d) coloured P etri nets.
+Finally , although it go es b ey ond of the scop e of this pap er, a c hallenging
+future w ork w ould b e to formally pro v e the equiv alence b et w een the original
+SMD and the resulting CPN. Of course, the problem is that the OMG do es
+not formally dene a formal seman tics for SMDs. Ho w ev er, w e could reuse the
+
+--- Page 12 ---
+12
+Algorithm 2: Enco ding the transitions
+1 foreac h tr ansition t= (S1; e; g; (b;f);sLevel ;S2)2T do
+// Step 1
+2 ift has an event e then
+// Step 1.1
+3 foreac h c2combinations (t) do
+4 A ddeV:=f(V)
+5 foreac h simple state s2c do
+6 A ddp(s) SupEx (s) e
+7 else
+// Step 1.2
+8 ifS1 is a c omp osite state then
+9 A ddTExS1 _t
+10 foreac h state s2ToFinal (S1) do
+11 A ddp(s) SupEx (S1) TExS1F _t
+12 else
+// Step 1.3
+13 A ddp(S1) SupEx (S1) TExS1 _t
+// Step 2
+14 A ddOutTo (sLevel ;S1) InFrom (sLevel ;S2) transit _t
+// Step 3
+15 A dd TEnS2 _t
+16 foreac h state s22S2 do
+17 foreac h simple s2init(s2) do
+18 A dd SupEn (s) p(s) TEnS2 _t
+19 Up date all relev an t guards
+20Initialisation ()
+op erational seman tics that w e recen tly prop osed for SMDs [LLA+13], and dene
+a trace equiv alence taking in to accoun t activ e states, b eha viours and ev en ts.
+References
+ABC14. Étienne André, Mohamed Mahdi Benmoussa, and Christine Chopp y . T rans-
+lating UML state mac hines to coloured Petri nets using A cceleo: A rep ort.
+In ESSS . EPTCS, 2014. 11
+A CK12. Étienne André, Christine Chopp y , and Kais Klai. F ormalizing non-
+concurren t UML state mac hines using colored Petri nets. A CM SIGSOFT
+Soft. Eng. Notes , 37(4):18, 2012. 2, 4, 7, 8, 14
+
+--- Page 13 ---
+13
+CKZ11. Christine Chopp y , Kais Klai, and Hacene Zidani. F ormal v erication of
+UML state diagrams: a Petri net based approac h. A CM SIGSOFT Soft.
+Eng. Notes , 36(1):18, 2011. 2
+DJ07. Jori Dubro vin and T ommi A. Jun ttila. Sym b olic mo del c hec king of hierar-
+c hical UML state mac hines. T ec hnical Rep ort B23, Helsinki Univ ersit y of
+T ec hnology , 2007. 2
+JDJ+06. T oni Jussila, Jori Dubro vin, T ommi Jun ttila, Timo Latv ala, and Iv an P orres.
+Mo del c hec king dynamic and hierarc hical UML state mac hines. In MD V ,
+2006. 2
+JEJ04. Y an Jin, Rob ert Esser, and Jörn W. Jannec k. A metho d for describing the
+syn tax and seman tics of UML statec harts. Softwar e and System Mo deling ,
+3(2):150163, 2004. 1
+JK09. Kurt Jensen and Lars Mic hael Kristensen. Colour e d Petri Nets  Mo del ling
+and V alidation of Concurr ent Systems . Springer, 2009. 2, 6
+K CBL10. Elhillali Kerk ouc he, Allaoua Chaoui, El Ba y Bourennane, and Ouassila Lab-
+bani. A UML and colored Petri nets in tegrated mo deling and analysis ap-
+proac h using graph transformation. Journal of Obje ct T e chnolo gy , 9:2543,
+2010. 2
+LA C+14. Sh uang Liu, Étienne André, Christine Chopp y , Jin Song Dong, Y ang Liu,
+Jun Sun, and Bimlesh W adh w a. F ormalizing UML state mac hines seman tics
+for formal analysis  A preliminary surv ey , 2014. Researc h rep ort, a v ailable
+at lipn.fr/~andre/UML- SMD- survey.pdf . 1
+LLA+13. Sh uang Liu, Y ang Liu, Étienne André, Christine Chopp y , Jun Sun, Bimlesh
+W adh w a, and Jin Song Dong. A formal seman tics for the complete syn tax of
+UML state mac hines with comm unications. In iFM , v olume 7940 of LNCS ,
+pages 331346. Springer, 2013. 1, 12
+OMG12. OMG. Unied Mo deling Language Sup erstructure, V ersion 2.5, b eta 1.
+http://www.omg.org/spec/UML/2.5/Beta1/PDF/ , o ct 2012. 1, 2, 3, 4, 5,
+14, 15
+SB06. Colin F. Sno ok and Mic hael J. Butler. UML-B: F ormal mo deling and design
+aided b y UML. A CM TSEM , 15(1):92122, 2006. 1
+SLDP09. Jun Sun, Y ang Liu, Jin Song Dong, and Jun P ang. P A T: T o w ards exible
+v erication under fairness. In CA V , v olume 5643 of LNCS . Springer, 2009.
+2
+W es13. Mic hael W estergaard. CPN T o ols 4: Multi-formalism and extensibilit y . In
+Petri Nets , v olume 7927 of L e ctur e Notes in Computer Scienc e , pages 400
+409. Springer, 2013. 2
+ZL10. Shao jie Zhang and Y ang Liu. An automatic approac h to mo del c hec king
+UML state mac hines. In SSIRI-C , pages 16. IEEE, 2010. 2
+
+--- Page 14 ---
+14
+A Summary of the Syn tax T ak en in to A ccoun t
+W e recall in T able 1 the syn tactic elemen ts w e consider in our translation. Deep
+history pseudostates, submac hine states (seman tically equiv alen t to a comp osite
+state) and implicit forks/joins w ere discarded for sak e of simplicit y but can b e
+added in a v ery straigh tforw ard manner, and will b e part of our implemen tation.
+Also note that shallo w history pseudo states can b e considered in our w ork
+b y directly imp orting the mec hanism from [A CK12], as this mec hanism is not
+impacted b y the addition of concurrency . W e did not consider en try/exit p oin ts
+and c hoice/merge pseudostates, but w e b eliev e that there w ould b e no dicult y
+for adding them to our sc heme. Deferred ev en ts and timing asp ects w ere not
+considered at all, and ma y require more w ork, or ev en lead us to reconsider
+parts of our translation sc heme.
+Elemen t Considered?
+Simple / comp osite states Y es
+Orthogonal regions Y es
+Initial / nal (pseudo)states Y es
+T erminate pseudostate No (but trivially extensible)
+Shallo w history states Iden tical to [A CK12]
+Deep history states No (but trivially extensible)
+Submac hine states No (but trivially extensible)
+En try / exit p oin ts No (but probably easy)
+En try / exit / do b eha viours Y es
+Shared v ariables Y es
+External / lo cal / in ternal transitions Y es
+Basic fork / joins Y es
+Implicit fork/joins No (but trivially extensible)
+Choices / merges No (but probably easy)
+Deferred ev en ts No
+Timing asp ects No
+T able 1. Summary of the syn tactic asp ects considered
+B Assumptions
+W e recall here the assumptions w e made regarding [OMG12]. W e giv e for eac h
+of them the reason for the assumption (e.g. unclarit y in [OMG12]) and men tion
+whether this is or not a strong assumption in our translation.
+States. W e require that eac h region of a comp osite state con tains one and only
+one initial pseudostate, whic h has one and only one outgoing transition. In the
+
+--- Page 15 ---
+15
+sp ecication, it not compulsory: eac h region ma y ha v e its o wn initial Pseu-
+dostate as w ell as its o wn FinalState [OMG12, Section Regions, p.318]. F ur-
+thermore, a state that b ecomes activ e with no initial pseudostate is a seman tic
+v ariation p oin t. It seems natural to us to require exactly one initial pseudostate
+with one and only one outgoing transition. This is also a strong assumption in
+our setting.
+Similarly , w e also assume that eac h region in a comp osite state m ust con tain
+exactly one nal state. Again, this seems to b e a v ery natural assumption; note
+that it is a less strong assumption in our setting, since our translation w ould still
+w ork without nal states.
+W e also consider that the activ e state of the system cannot b e an initial
+pseudostate. (The sp ecication is rather unclear ab out it.) Note that this is a
+mo delling c hoice only: if one w an ts to mo del an SMD where the system can
+stay in an initial pseudostate, it suces to add another state b et w een the initial
+pseudostate and its immediate successor.
+W e also assume that eac h region in a comp osite state con tains at least one
+region (A comp osite State con tains at least one region [OMG12, p.322]), and
+that a region con tains at least one state. The sp ecication do es not explicitly
+men tion this latter p oin t, but the cardinalities in [OMG12, p. 317] seem to allo w
+0 state in a region. It seems natural to us that a region m ust b e non-empt y . This
+is also a rather strong assumption in our setting.
+Behaviours. W e assume that do b eha viour are atomic b eha viours that can b e
+executed as man y times wished; this ma y go against [OMG12] that seems to
+rely on the notion of a con tin uous b eha viour. This is a strong assumption in
+our setting, partially coming from the fact that CPNs are a discrete mo del. This
+assumption could b e lifted with the in tro duction of timing asp ects.
+F urthermore, w e assume that only simple states can ha v e a do b eha viour; this
+assumption could b e lifted without an y dicult y but simplies our algorithms.
+T r ansitions. It is clear that, when in the nal state in a region r of a comp osite
+state s , one can still p erform an outgoing transition from s . It also seems clear
+that an external self-transition on s can b e p erformed. Ho w ev er, although it is
+not explicit in [OMG12], w e b eliev e that, considering the seman tics of in ternal
+transitions and of nal states, an in ternal self-transition on s cannot b e p er-
+formed when the activ e state of the system is rF. This assumption w as made
+only b ecause the sp ecication is unclear ab out this, and either in terpretation
+could b e considered in our translation.
+Finally , w e mak e the follo wing assumption: the execution of dieren t transi-
+tions in dieren t regions of the same state is done in parallel. F or instance, the
+transition from Checking toWaiting in the upp er region of Machine in Fig. 2
+(and that could in v olv e exit, do and en try b eha viours) is p erformed in an in-
+terlea ving manner with, e.g. the transition from authorizing toauthorized in
+the lo w er region. Although this not en tirely clear in [OMG12], this assumption
+migh t not conform to the notion of run-to-completion step. W e b eliev e that in-
+
+--- Page 16 ---
+16
+terlea ving is indeed a natural mec hanism b et w een t w o subsystems executed in
+parallel.

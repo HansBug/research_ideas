@@ -1,0 +1,895 @@
+--- Page 1 ---
+Adriano PeronandCarla Piazza (Eds.):
+Proceedings of the FifthInternational Symposium on
+Games, Automata, Logics and FormalVeriﬁcation(GandALF20 14)
+EPTCS161, 2014, pp. 217–230,doi:10.4204/EPTCS.161.19c/circlecopyrtB. Finkbeiner and E.-R.Olderog
+Thiswork islicensed under the
+Creative Commons AttributionLicense.PetriGames:
+SynthesisofDistributedSystemswithCausalMemory
+Bernd Finkbeiner
+Universit¨ at des Saarlandes
+finkbeiner@cs.uni-saarland.deErnst-R¨ udigerOlderog
+CarlvonOssietzky Universit¨ atOldenburg
+olderog@informatik.uni-oldenburg.de
+We present a new multiplayer game model for the interaction a nd the ﬂow of information in a dis-
+tributed system. The players are tokens on a Petri net. As lon g as the players move in independent
+parts of the net, they do not know of each other; when they sync hronize at a joint transition, each
+player gets informed of the causal history of the other playe r. We show that for Petri games with a
+singleenvironmentplayerandanarbitraryboundednumbero fsystemplayers,decidingtheexistence
+ofa safetystrategyforthesystem playersisEXPTIME-compl ete.
+1 Introduction
+Gamesareanatural modeloftheinteraction betweenacomput er system anditsenvironment. Speciﬁca-
+tions are interpreted aswinning conditions, implementati ons as strategies. Animplementation iscorrect
+if the strategy is winning, i.e., it ensures that the speciﬁcation is met for all possib le behaviors of the
+environment. Algorithmsthat determine thewinner inthega mebetween thesystem anditsenvironment
+can be used to determine whether it is possible to implement a speciﬁcation (the realizability question)
+and, if the answer is yes, to automatically construct acorre ct implementation (the synthesis problem).
+Wepresent anewgamemodelfortheinteraction andtheﬂowofi nformation inadistributed system.
+Theplayers aretokens onaPetrinet. InPetrinets, causalit y isrepresented bytheﬂowoftokens through
+thenet. Itistherefore natural todesignate tokens alsoast hecarriers ofinformation. Aslong asdifferent
+playersmoveinconcurrentplacesofthenet,theydonotknow ofeachother. Onlywhentheysynchronize
+atajoint transition, eachplayer getsinformedofthehisto ry oftheother player, represented byallplaces
+andtransitionsonwhichthejointtransitioncausallydepe nds. Theideaisthataftersuchajointtransition,
+a strategy for a player can take the history of all other playe rs participating in the joint transition into
+account. Think of aworkﬂow where a document circulates in al arge organization with many clerks and
+has to be signed by everyone, endorsing it or not. Suppose a cl erk wants to make the decision whether
+or not to endorse it depending on who has endorsed it already. As long as the clerk does not see the
+document, he is undecided. Only when he receives the documen t, he sees all previous signatures and
+then makes hisdecision.
+WecallourextensionofPetrinets Petrigames . Theplayersareorganizedintotwoteams,thesystem
+players and the environment players, where the system playe rs wish to avoid a certain “bad” place (i.e.,
+theyfollowasafetyobjective),whiletheenvironmentplay erswishtoreachjustsuchaplace. Topartition
+the tokens into the teams, we label each place as belonging to either the system or the environment. A
+token belongs toateam whenever it is onaplace that belongs t othe team.
+In the tradition of Zielonka’s automata [28], Petri games mo del distributed systems with causal
+memory, i.e., distributed systems where the processes memorize th eir causal history and communicate
+it to each other during each synchronization [10,11,16]. Pe tri games thus abstract from the concrete
+content of acommunication inthat weassume that the process es always exchange the maximalpossible
+
+--- Page 2 ---
+218 Petri Games
+information, i.e., their entire causal history. This is use ful at a design stage before the details of the
+interface have been decided and one is more interested in res trictingwhena communication can occur
+(e.g.,whenadeviceisconnected toitsbasestation, whilea networkconnection isactive,etc.) than what
+may be communicated. The ﬁnal interface is then determined b y the information actually used by the
+winning strategies, which is typically only a small fractio n of the causal history. Note that even though
+we assume the players to communicate everything they know, t he ﬂow of information in a Petri game
+is far from trivial. At any point, the players of the Petri gam e may have a different level of knowledge
+about the global state of the game, and the level of informedn ess changes dynamically as a result of the
+synchronizations chosen by the players.
+Consider the development of a distributed se-
+curity alarm system. If a burglar triggers the
+alarm at one location, the alarm should go
+off everywhere, and all locations should re-
+port the location where the original alarm oc-
+curred. ThissituationisdepictedasaPetrinet
+in Fig. 1. The token that initially resides on
+placeEnvrepresents the environment, which
+is, in our example, the burglar, who can de-
+cide to break into our building either at loca-
+tionAorB.Thetokensthatinitially resideon
+placesAandBrepresent the distributed con-
+troller consisting oftwoprocesses, theoneon
+theleftforlocation Aandtheoneontheright
+for location B. In the following, we will re-
+fer to the Petri net of Fig. 1 as a Petri game ,
+to emphasize that the tokens in fact represent
+players and that the nondeterminism present
+in the net is to be restricted by the (yet to be
+determined) strategy of the system players.•
+Env
+tA tB
+EA •A
+•B
+EB
+tAA tBB
+pA pB
+AB AA BB BAA1A2A3
+A4 B4B3B2
+B1
+⊥
+Figure 1: Introductory example of a Petri game
+modeling a distributed security alarm. Places be-
+longing to the system players AandBare shown
+in gray. In the Petri game, the transitions to the bad
+place⊥are shown withdotted lines.
+The system players and the environment players move on separ ate places in the net, the places be-
+longing to the system players are shown in gray. In the exampl e, our goal is to ﬁnd a strategy for the
+system players that avoids a false alarm , i.e., a marking where the environment token is still on Envand
+at least one system token is on one of the places at the bottom, i.e.,AA,AB, etc., and a false report ,
+i.e., a marking where the environment token is on place EAand some system token is on ABorBBor a
+marking wherethe environment token ison EBand some system token ison AAorBA. Toidentify such
+undesirable markings we introduce a distinguished place ⊥. Fig. 1 shows (dashed) transitions towards
+⊥ﬁring at two instances of false reports, when tokens are on bo thEAandBBor on both EBandAA.
+Similar transitions for other erroneous situations are omi tted here to aid visibility.
+Suppose that, inour Petri game,the burglar breaks into loca tionAbytaking theleft transition. Once
+the system token in Ahas recorded this via transition tA, it has two possibilities: either synchronize
+with the system token in Bby taking transition tAA, or skip the communication and go straight to pAvia
+transition A1. Intuitively, only the choice to synchronize is a good move, because the system token in B
+has no other way of hearing about the alarm. Theonly remainin g movefor the system token in Bwould
+betomove“spontaneously” viatransition B2topB,atwhichpointitwouldneedtomoveto BA,because
+
+--- Page 3 ---
+B.Finkbeiner and E.-R.Olderog 219
+•
+Env
+tA tB
+EA •A
+•B
+EB
+tAA tBB
+pA pA pApA pB pB pB pB
+ABAAABAAABAAABAABBBABBBABBBABBBAA1A2A3 A4 B4 B3B2B1
+Figure2: Unfolding of thePetri gameinFig.1. Toaidvisibil ity, thetransitions leading to ⊥areomitted
+from the unfolding. If the transitions shown with dashed lin es are removed from the unfolding, the
+resulting net isawinning strategy for the system players.
+the combination of BBandEAwould constitute a false alarm. However, the token in pBhas no way of
+distinguishing this situation from one where the environme nt token is still on Env; in this situation, the
+movetoEAwould also reach afalse alarm.
+Our deﬁnition of strategies is based on the unfolding of the net, which is shown for our example
+in Fig. 2. By eliminating all joins in the net, net unfoldings [6,8,19] separate places that are reached
+via multiple causal histories into separate copies. In the e xample, place pBhas been unfolded into four
+separate copies, corresponding to the four different ways t o reachpB, via the transition arcs B1through
+B4. Each copy represents different knowledge: in B1, onlyBknows that there has been a burglary at
+locationB; inB2,Bknows nothing; in B3,Bknows that Aknows that there has been a burglary at
+positionB; inB4,Bknows that there has been a burglary at location A. (Symmetric statements hold
+forpAand the transition arcs A1–A4.) In the unfolding, it becomes clear that taking transition B2is
+a bad move, because reaching the bad marking containing Envand either BAorBBhas now become
+unavoidable. A strategyis a subprocess of the unfolding that preserves the local non determinism of
+the environment token. Fig. 2 shows a winning strategy for th e system players: by omitting the dashed
+arrows, they can makethe bad place ⊥unreachable and therefore winthe game.
+Weshowthatforasingleenvironmenttokenandanarbitrary( butbounded)numberofsystemtokens,
+deciding the existence of a safety strategy for the system pl ayers is EXPTIME-complete. This means
+that as long as there is a single source of information, such a s theinputof an algorithm or the senderin
+a communication protocol, solving Petri games is no more dif ﬁcult than solving standard combinatorial
+games under complete information [25]. The case of Petri gam es withtwo or more environment tokens,
+i.e., situations withtwo or more independent information sources, remains open.
+The remainder of the paper is structured as follows. In Secti on 3 we introduce the notion of Petri
+gamesanddeﬁnestrategies based onnet unfoldings. InSecti on4weshowthat forconcurrency preserv-
+ing games every strategy can be distributed over local contr ollers. In Section 5 we introduce the new
+notion of mcuts on net unfoldings. In Section 6 we show that th e problem of deciding the winner of a
+PetrigameisEXPTIME-complete. Relatedworkandconclusio ns arepresentedinSections7and8. Due
+to space limitations, proofs have been moved into the full ve rsion of this paper.
+
+--- Page 4 ---
+220 Petri Games
+2 Petrinets
+Werecall concepts fromPetrinettheory[4,6–8,14,18,19,2 3]. Aplace/transition (P/T)Petrinetorsim-
+plynetN=(P,T,F,In)consists ofpossibly inﬁnite, disjoint sets PofplacesandToftransitions,
+aﬂow relation F, which is a multiset over (P×T)∪(T×P), and aninitial marking In . In general,
+amarkingofNis a ﬁnite multiset over P. It represents a global state of N. By convention, a net
+named Nhasthecomponents N=(P,T,F,In),andanalogously fornetswithdecorated nameslike
+N1,N2,NU.
+The elements of P∪Tare called nodesofN, thereby referring to the bipartite graphic repre-
+sentation of nets, where places are drawn as circles and tran sitions as boxes. The ﬂow relation Fis
+represented by directed arrows between places and transiti ons. An arrow from aplace pto a transition t
+is decorated by a multiplicity k ifF(p,t) =k,and analogously, an arrow from a transition tto a place p
+isdecoratedbya multiplicityk ifF(t,p)=k. Weuseadoublearrowarcbetweenaplaceandatransition
+ifthere arearcsinboth directions. Amarking Misrepresented byplacing M(p)tokensineveryplace p.
+Nisﬁniteif it has only ﬁnitely many nodes, and inﬁniteotherwise. For nodes x,ywewritexFyif
+F(x,y)>0. Theprecondition ofyisthemultiset pre(y)overnodesdeﬁnedby pre(y)(x)=F(x,y). The
+postcondition ofxisthemultiset post(x)overnodesdeﬁnedby post(x)(y)=F(x,y). Whenstressingthe
+dependency on the net N, wewrite preN(y)andpostN(x)instead of pre(y)andpost(x). Asin [6] we
+requireﬁnite synchronization [4] and non-empty pre- and postconditions: pre(t)andpost(t)are ﬁnite,
+non-empty multisets for all transitions t∈T.
+A transition tisenabledat a marking Mif the multiset inclusion pre(t)⊆Mholds.Executing or
+ﬁringsuchatransition tatMyields thesuccessor marking M′deﬁnedby M′=M−pre(t)+post(t). We
+denote this by M[t/an}bracketri}htM′. The set of reachable markings of a net Nis denoted by R(N)and deﬁned by
+R(N)={M|∃t1,...,tn∈T:In[t1/an}bracketri}htM1[t2/an}bracketri}ht...[tn/an}bracketri}htMn=M}. Anet Nisk-boundedfor agiven k∈N
+ifM(p)≤kholds for all M∈R(N)and allp∈P. It isbounded if it isk-bounded for some given k
+andsafeif it is1-bounded.
+F+denotes the transitive closure and F∗the reﬂexive, transitive closure of F. Nodesxandyare
+in conﬂict , abbreviated by x♯y, if there exists a place p∈P, different from xandy, from which one can
+reachxandyviaF+,exitingpby different arcs. A node xis inself-conﬂict ifx♯x.
+Weusethe notations◦N={p∈P|pre(p)=/ 0}andN◦={p∈P|post(p)=/ 0}for thesets of
+places without incoming or outgoing transitions, respecti vely. For amultiset MoverPletN[M]result
+fromNby changing its initial marking IntoM. For a set Xof nodes we deﬁne the restriction ofNto
+Xas thenet N↾X=(P∩X,T∩X,F↾(X×X),In↾X).
+Considertwonets N1andN2. Then N1isaninitialsubnet orsimply subnetofN2,denotedby N1⊑
+N2, ifP1⊆P2,T1⊆T2,F1⊆F2, andIn1=In2. Ahomomorphism fromN1toN2is a mapping
+h:P1∪T1→P2∪T2withh(P1)⊆P2andh(T1)⊆T2, and with ∀t∈T1:h[pre(t)] =pre(h(t))
+andh[post(t)] =post(h(t)). If additionally h[In1]=In2, thenhis called an initialhomomorphism. An
+(initial)isomorphism is abijective (initial) homomorphism.
+Occurrence nets and unfoldings. Torepresent the occurrences of transitions with both their causal
+dependency and conﬂicts (nondeterministic choices), weco nsider occurrence nets, branching processes,
+and unfoldings of Petri nets as in [6,8,14,19]. We follow the axiomatic presentation in [6], taking [18]
+into account for dealing withP/TPetri nets.
+Anoccurrencenet isaPetrinet N,where∀t∈T:pre(t)andpost(t)aresets,∀p∈P:|pre(p)|≤1,
+theinverseﬂowrelation F−1iswell-founded, notransition t∈Tisinself-conﬂict, and In=◦N. Note
+that an occurrence net is asafe net. Twonodes x,yof an occurrence net are causally related ifxF∗yor
+yF∗x. They are concurrent if they are neither causally related nor in conﬂict. If xF+ythenxis called
+
+--- Page 5 ---
+B.Finkbeiner and E.-R.Olderog 221
+acausal predecessor ofy, abbreviated x<y. Wewrite x≤yifx<yorx=y. Thecausal past of anode
+yis the set past(y)={x|x≤y}.
+Abranching process of a net Nis a pairβ= (NU,λ), where NUis an occurrence net and λ
+is a “labeling”, i.e., a homomorphism from NUtoNthat is injective on transitions with the same
+precondition: ∀t1,t2∈TU:pre(t1)=pre(t2)∧λ(t1)=λ(t2)impliest1=t2. Ifλisinitial,βiscalledan
+initial branching process . Theunfolding of a net Nis an initial branching process βU=(NU,λ)that
+iscomplete in thesense that every transition of the net isrecorded inth e unfolding: ∀t∈T,∀C⊆PU:
+ifCis a set of concurrent places and λ[C] =pre(t), then there exists a transition tU∈TUsuch that
+pre(tU)=Candλ(tU)=t.
+Letβ1= (N1,λ1)andβ2= (N2,λ2)be two branching processes of N. A homomorphism from
+β1toβ2is a homomorphism hfromN1toN2withλ1=λ2◦h. It is called initialifhis initial; it is
+anisomorphism ifhis an isomorphism. β1andβ2areisomorphic if there exists an initial isomorphism
+fromβ1toβ2.β1approximates β2if there exists an initial injective homomorphism from β1toβ2.β1
+is asubprocess ofβ2ifβ1approximates β2with the identity on P1∪T1as the homomorphism. Thus
+N1⊑N2andλ1=λ2↾(P1∪T1). Ifβ1approximates β2thenβ1is isomorphic to asubprocess of β2.
+In [6] is shown that the unfolding βU=(NU,λ)of a net Nis unique up to isomorphism and that
+every initial branching process β1ofNapproximates βU. Thus up to isomorphism wecan assume that
+β1is asubprocess of βU.
+Cutsand sequential composition. Acutof an occurrence net Nisa maximal subset of the places
+thatarepairwiseconcurrent. Foracut CletC−={x∈P∪T|∃s∈C:x≤s}andC+={x∈P∪T|
+∃s∈C:s≤x}. AcutCsplitsNintothe twonets N↾C−and(N↾C+)[C]; it also splits abranching
+process(N,λ)into two branching processes (N1,λ1)and(N2,λ2), where N1=N↾C−andN2=
+(N↾C+)[C]andλ1=λ↾C−andλ2=λ↾C+.
+Twobranching processes (N1,λ1)and(N2,λ2)of agivenP/TPetrinet are compatible ifλ1[N1◦]=
+λ2[◦N2]. Given two compatible branching processes (N1,λ1)and(N2,λ2), we can up to isomorphisms
+ofN1and of N2assume that N1◦=◦N2and construct a unique branching process (N,λ)withN↾
+C−=N1and(N↾C+)[C] =N2, andλ↾C−=λ1andλ↾C+=λ2, for the cut C=N1◦=◦N2.
+This branching process is the sequential composition of(N1,λ1)and(N2,λ2), denoted by (N,λ) =
+(N1,λ1);(N2,λ2). If(N1,λ1)isan initial branching process, then so is (N,λ).
+Causal nets and concurrent runs. Executions of Petri nets are represented by causal nets and
+concurrent runs as in [4,19]. A causal net is an occurrence net N, where∀p∈P:|post(p)| ≤1.
+Thus in a causal net there are no (self-) conﬂicts. A ( concurrent )runorprocessofNis a special case
+of a branching process βR=(NR,ρ), where NRis a causal net. If ρis initial, βRis called an initial
+run. Note that every initial run of Napproximates the unfolding βU= (NU,λ)ofN. Thus up to
+isomorphism wecanassume the aninitial run of Nisasubprocess of βU.
+Themarking reachedby aﬁniteinitial run βR=(NR,ρ)ofNisdenotedby [βR/an}bracketri}htanddeﬁnedasthe
+multiset[βR/an}bracketri}ht=ρ[(NR)◦]. Weremark that the set R(N)of reachable markings of Ncan be obtained
+via the runs as follows: R(N)={[βR/an}bracketri}ht|βRis aﬁnite initial run of N}.
+3 PetriGames
+Wewishtomodel gameswhere theplayers proceed independent ly of eachother, without information of
+each others state, unless they explicitly communicate. To t his end, we introduce Petri games, deﬁned as
+place/transition (P/T) Petri nets, where the set of places i s partitioned into a subset PSbelonging to the
+system players and a subset PEbelonging to the environment . Additionally, the Petri game identiﬁes a
+
+--- Page 6 ---
+222 Petri Games
+setBofbadplaces(fromthepoint ofviewofthesystem), whichindicate avictory fortheenvironment.
+Formally, a Petri game is a structure G= (PS,PE,T,F,In,B), where the ( underlying )Petri net of
+the game GisN=(P,T,F,In)with places P=PS∪PE. Players are modeled by the tokens of
+N. Throughout this paper westipulate that there isonly one en vironment player.
+Example3.1 Fig. 3 shows the underlying P/T net Nof a
+small Petri game for two system players in place Sys and
+one environment player in place Env. Environment places
+are white and system places are gray. The environment
+chooses A or B by executing one of the transitions t 1ort2.
+Thegoal of the system players is toachieve the samedeci-
+sions as Env, i.e., both system players should choose A′if
+EnvchoosesA,andB′ifEnvchoosesB. Withoutcommuni-
+cation, the system players do not know which decision the
+environment has taken. However, when both system play-
+ersandtheenvironment communicatebysynchronizing via
+thetransitionstest 1ortest2,thesystemplayerslearnabout
+the decision taken by the environment and can mimic it. If
+test1wassuccessful, they choose A′viatransitiont′
+1,andif
+test2wassuccessful, they choose B′via transition t′
+2./squareEnv
+•
+t1 t2
+Atest1Sys
+••test2
+B
+EA t′
+1 t′
+2 EB
+A′B′2 2
+Figure 3: Petri game for achieving
+samedecisions, where EnvandSyscan
+synchronize via two transitions test1
+andtest2. Transitions from EAandB′
+andfrom EBandA′toabadplacehave
+been omitted toaid visibility.
+We wish to model that players learn about
+previous decisions of other players by com-
+munication. To this end, we use the unfold-
+ingof the net, where each place that is reach-
+able via several transition paths is duplicated
+into several copies of theplace, each onerep-
+resenting its causal past. The unfolding of
+a game Gis the unfolding of the underly-
+ing net N, denoted by the branching process
+βU=(NU,λ), where NUis an occurrence
+net andλis an initial homomorphism from
+NUtoN, which “labels” the places and
+transitions of NUwith the places and tran-
+sitions of N. In the graphic representation
+of games and unfoldings gray places denote
+elements of PSand white places elements
+ofPE.
+Example3.2 Fig. 4 shows the unfolding of
+the Petri game inFig. 3. /squareEnv
+•
+t1 t2
+ASys
+•Sys
+•
+Bt′
+1t′
+2t′
+1t′
+2
+test1 test2 A′B′A′B′
+EA SysSys Sys
+Sys EB
+t′
+1t′
+2t′
+1t′
+2t′
+1t′
+2t′
+1t′
+2
+A′B′A′B′A′B′A′B′
+Figure 4: Unfolding of the Petri game in Fig. 3. If
+thetransitions shownwithdashed linesareremoved
+from the unfolding, the resulting net represents a
+winning strategy for the system players, i.e., on the
+left-hand side, the system players choose A′, and on
+theright-hand side, the system players choose B′.
+Aglobal strategyisobtainedfromtheunfolding bydeleting someofthebranchesthatareundercon-
+trol of thesystem players. Wecall this a“global” strategy b ecause it looks at all players simultaneously.
+Note that nevertheless a strategy describes for each place w hich transitions the player in that place can
+take. Formally, this is expressed by the net-theoretic noti on of subprocess.
+
+--- Page 7 ---
+B.Finkbeiner and E.-R.Olderog 223
+Anunfolded (global)strategyfor the system players in Gis a subprocess σ= (Nσ,λσ)of the
+unfolding βU=(NU,λ)ofNsubject to the following conditions for all p∈Pσ:
+(S1) ifp∈Pσ
+Sthenσisdeterministic at p,
+(S2) ifp∈Pσ
+Ethen∀t∈TU:(p,t)∈FU∧|preU(t)|=1⇒(p,t)∈Fσ,i.e.,atanenvironment place
+thestrategy does not restrict any local transitions.
+HerePσ
+S=Pσ∩λ−1(PS)denotes the system places and Pσ
+E=Pσ∩λ−1(PE)the environment
+places in Pσ. A strategy σisdeterministic at a place p if for allM∈R(Nσ), the set of reachable
+markings in Nσ:
+p∈M⇒∃≤1t∈Tσ:p∈pre(t)⊆M.
+Due to the unfolding, a decision taken by σin a place pdepends on the causal past of p, which may
+be arbitrarily large. The adjective “global” indicates tha tσlooks at all players simultaneously. Local
+controllers are discussed inSection 4.
+Example3.3 Fig.4shows also aglobal strategy for the system players of t he Petri gamein Fig.3. /square
+A (concurrent )playof a Petri game Gis an initial concurrent run πof the underlying net N. If
+πcontains a place of B, theenvironment wins π. Otherwise, the system players win π. Note that up
+to isomorphism we can assume that πis a subprocess of the unfolding βU. A play πconforms to a
+strategyσifπisasubprocess of σ. Astrategy σfor thesystem players is winningif thesystem players
+winevery play that conforms to σ.
+Sincethewinningcondition ofagameisa safetyobjective , thesystemplayerscansatisfyitbydoing
+nothing. Toavoid such trivial solutions, we look for strate giesσthat aredeadlock avoiding in the sense
+that∀M∈R(Nσ):∃t∈TU:pre(t)⊆M⇒∃t∈Tσ:pre(t)⊆M,i.e.,iftheunfolding canexecutea
+transition the strategy σcan aswell, thus avoiding unnecessary deadlocks. A marking where there is no
+enabled transition inthe unfolding either isnot adeadlock . Thenwesay that the gamehas terminated .
+A (global)strategyfor the system players in Gis a pairσ=(Nσ,hσ)consisting of a safe net Nσ
+and an initial homomorphism hσfromNσtoNthat is injective on transitions with the same preset,
+i.e.,∀t1,t2∈TU:pre(t1) =pre(t2)∧λ(t1) =λ(t2)impliest1=t2, subject to the conditions (S1) and
+(S2) above. Aglobal strategy σmayhave cycles and thus beﬁnite, i.e.,have aﬁniteset Pσ∪Tσ.
+4 Distribution
+We show that for Petri games with a concurrency preserving un derlying net, every global strategy σis
+distributable overlocalcontrollers. Anet Nisconcurrency preserving ifeverytransition t∈Tsatisﬁes
+|pre(t)|=|post(t)|. Theparallel composition N1||N2of two nets Ni=(Pi,Ti,Fi,Ini),i=1,2, with
+P1∩P2=/ 0isdeﬁned asthe Petri net N1||N2=(P1∪P2,T1∪T2,F1∪F2,In1∪In2)obtained by
+taking the componentwise union. The two nets synchronize on each common transition t∈T1∩T2as
+in the process algebra CSP[13,20].
+LetN=(P,T,F,In)beaconcurrencypreserving,safenetwiththeplacespartit ionedintosystem
+andenvironment places P=PS∪PE. AsliceofNdescribesthecourseofonetokenin N. Formally,
+it is a net S= (PS,TS,FS,InS), where PS⊆PSorPS⊆PE,TS⊆T,FS⊆F,InS⊆Inare
+minimal subsets satisfying
+• |InS|=1and∀p∈PS:postN(p)⊆TSand∀t∈TS:|preS(t)|=|postS(t)|=1,
+•FS=F↾(PS×TS)∪(TS×PS).
+
+--- Page 8 ---
+224 Petri Games
+Thenet Niscalledreachable if every place and transition of Nisreachable from its initial marking.
+Lemma4.1(Parallel Composition of Slices) Every safe reachable net Nwhich is concurrency pre-
+serving is the parallel composition of slices: N=/bardblS∈SS,where Sis a family of slices of Nsuch
+that{PS|S∈S}isa partition of P.
+Alocal controller speciﬁes the moves of a single player in a Petri game. It is a pa irC=(NC,hC)
+consisting of a safe net NCwith one token, i.e., |InC|=1 and∀t∈TC:|preC(t)|=|postC(t)|=1,
+and aweak homomorphism hCfromNCtoN, the underlying net of the Petri game. A local controller
+CisﬁniteifPC∪TCis a ﬁnite set. It may have nondeterministic choices of trans itions that are
+resolved (later) by synchronization with other controller s working in parallel. Unfolding NCyields a
+branching process βC=(NCU,λC), whereλCis an initial homomorphism from NCUtoNC. Then
+CU=(NCU,hC◦λC)is anunfolded local controller .
+A (n unfolded) strategy σisdistributable ifσcan be represented as the parallel composition of
+(unfolded) local controllers for the environment and the sy stem players in the sense that the reachable
+part of the parallel composition is isomorphic to σ. Using Lemma4.1weshow:
+Lemma4.2(Distribution) Every unfolded global strategy for a concurrency-preservi ng Petri game is
+distributable.
+Example4.3 Theglobal strategy of Fig.4can be distributed into the loca l controllers of Fig. 5. /square
+• CE: • CS1: • CS2:
+t1 t2 test1 test2test1 test2
+A B
+test1 test2
+EA EB
+A′B′A′B′
+Figure 5: The local controllers CEfor the environment and CS1,CS2for the system players work in
+parallel and synchronize on the transitions test1andtest2. Applying the parallel composition /bardblto the
+three controller nets yields the winning strategy of Fig. 4.
+Theorem 4.4 Ifthesystemplayersinaboundedandconcurrency preservin g Petrigamehaveawinning
+strategy, then they have aﬁnite distributable winning strategy.
+5 Cuts
+In an unfolded strategy σ, a decision taken by σin a place pdepends on the causal past of p, which
+may be arbitrarily large. Similar to model checking approac hes based on net unfoldings [7], we use
+cuts(maximal subset ofpairwiseconcurrent places) assmallsum maries ofthecausal past. Thestandard
+notionofcutsis,however,problematicforgameswithmulti pleplayers,becauseitcollectsplaceswithout
+regard for the (possibly different) knowledge of the indivi dual players about the causal past. To solve
+this problem, weintroduce a new kind of cut, called mcut, which guarantees that the system players can
+be considered to beperfectly informed about the environmen t decisions.
+Throughout this section, we consider a Petri game Gwith underlying net N, unfolding βU=
+(NU,λ), and an unfolded strategy σ=(Nσ,λσ), soNσ⊑NUandλσ=λ↾(Pσ∪Tσ). Since
+
+--- Page 9 ---
+B.Finkbeiner and E.-R.Olderog 225
+inNσthe nondeterminism of NUhas been restricted, we distinguish for a node x∈Pσ∪Tσ
+the postconditions postσ(x)andpostU(x)taken in the nets NσandNU, respectively. Note that
+postσ(x)⊆postU(x). For preconditions we have preσ(x) =preU(x). Thus, while the postconditions
+of nodes maybedifferent in NσandNU, their preconditions areidentical.
+Futures, mcutsandecuts.
+For a cut Cof an occurrence net let C+=
+{x∈P∪T| ∃s∈C:s≤x}, where
+≤denotes the reﬂexive causal predeces-
+sorrelation given by F∗. For a subnet
+N′⊑NUand a cut CofN′we write
+N′
+C+=(N′↾C+)[C].
+Note that (NU
+C+,λ↾C+)is an initial
+branching process of the net N[λ[C]],
+which is like Nbut starts at the initial
+markingλ[C]. For cuts CandC′we write
+C≤C′if∀x∈C∃y∈C′:x≤y, and
+C<C′ifC≤C′andC/ne}ationslash=C′.
+Thefuture in Nσof a node xinNσis
+the setfutσ(x) ={y∈Pσ∪Tσ|x≤y}.
+Ap-cutisacut containing the place p.
+For an environment place p∈Pσwe in-
+troduce now mcut(p)as the w.r.t. ≤mini-
+malp-cutCsuch that for all places q∈C,
+either the system players have maximally
+progressed atq, in the sense that any fur-
+ther system transition would require an
+additional environment transition starting
+from place p, or the future starting at q
+does not depend onthe environment.σ: p0
+•
+q0• q0• p mcut(p)=
+q ecut(p,tt1)=
+mcut(q)=t1 t2
+p1 p2
+tt1 tt2
+p1q0q0 q0q0p2
+t′
+1t′
+1 t′
+2t′
+2
+q1q1 q2q2
+t111 t222
+p0q0q0 q0q0p0
+Figure6: Shownisaninitialpartofanunfolding. Consider
+the places pandqboth labeled with p1. Thenmcut(p)
+contains the upper places labeled p1,q0,q0andecut(p,tt1)
+containstheplaceslabeled p1,q0,q0inthemiddle,whereas
+mcut(q)containstheplaceslabeled p1,q1,q1,withthesys-
+tem players maximally progressed. Both mcuts have only
+places of type 1.
+The formal deﬁnition is as follows: For a p-cutCand a place q∈Cwe deﬁne type(q) =1 if∀t∈
+postσ(q):(treachable in Nσ
+C+⇒p≤t)andtype(q)=2if∀t∈futσ(q):(treachable in Nσ
+C+⇒p/ne}ationslash≤t).
+Note that type(p) =1. Bytype-1(C) we denote the set of all places in Cthat have type 1, and analo-
+gously for type-2(C) . Then we deﬁne: mcut(p) =min≤{C|Cis ap-cut of Nσ∧∀q∈C:type(q) =
+1∨type(q)=2}.Foran example, see Fig. 6.
+Lemma5.1(Existence of mcuts) For every environment place p ∈Pσ,mcut(p)is well-deﬁned.
+Anecutresults from an mcut by ﬁring a single environment transition. Formally, given an environ-
+ment place p∈Pσandatransition t∈postσ(p)withenvironment participation let ecut(p,t)bethecut
+Cobtained by ﬁring tatmcut(p), formally mcut(p)[t/an}bracketri}htC. Foran example, see Fig. 6.
+6 Deciding PetriGames
+Wenowreduce Petrigamestogamesoverﬁnitegraphs, whichca nsubsequently besolved byastandard
+ﬁxedpoint construction. UnlikethePetrigame,theﬁnite-g raph gamehasonlytwoplayers, Player 0and
+
+--- Page 10 ---
+226 Petri Games
+Player 1, which both act on complete information. We constru ct a ﬁnite-graph game that is equivalent
+to the Petri game in the sense that the system players have a de adlock-avoiding and winning strategy in
+thePetri gameiff Player 0hasawinning strategy intheﬁnite -graph game. Thekeyidea isthat Player 1,
+representing the environment, is only allowed to make a deci sion at mcuts, which guarantees that the
+system players learn about the decision before they have to m ake their next choice. In this way, the
+system players can beconsidered tobe perfectly informed.
+Aﬁnite-graph game (V,V0,V1,I,E,W0,W1)consists of a ﬁnite set V=V0∪V1of states, partitioned
+into Player 0’sstates V0and Player 1’s states V1,aset of initial states I⊆V,an edgerelation E⊆V×V,
+anddisjointsetsofwinningstates W0,W1⊆VforPlayer0andPlayer1,respectively. Aplayisapossibly
+inﬁnite sequence of states, constructed by letting Player 0 choose the next state from the E-successors
+whenever the play isin V0andletting Player 1choose otherwise. Player 0winsif thepl ay reaches W0or
+forever avoids visiting W1.
+Astrategyfor Player 0 is a function f:V∗·V0→Vthat maps a preﬁx of a play ending in a state
+owned by Player 0, i.e., a sequence of states that ends in a V0state, to some successor state according to
+E. A playconforms to a strategy f, if all successors of V0states in the play are chosen according to f.
+A strategy is winningfor Player 0 if there is an initial state v0∈Isuch that all plays that start in v0and
+conform to fare wonby Player 0.
+TosimulateaPetrigame G=(PS,PE,T,F,In,B),webuildaﬁnite-graph gamewherethestates
+are multisets consisting of triples (p,type,T), wherep∈Pis a place, typeis a type, i.e., 1 or 2, and
+T∈2T∪{⊤}iseither asetoftransitions representing thetransitions chosen byatokenin poraspecial
+symbol⊤, indicating that a new choice needs to be made. We call these m ultisetsdecision sets . For
+k-bounded Petrigames,welimitthecardinality ofthedecisi onsetsto |P|·k. AstatebelongstoPlayer1
+if the decision set corresponds to an mcut, and to Player 0 oth erwise; i.e., the states of Player 1 consist
+ofalldecision setswherethereisno ⊤symbol andtheoutgoing transitions fromtype-1places aree ither
+disabled or have an environment place in their precondition , the states of Player 0 consist of all other
+decision sets. Thegamestarts withsomeinitial marking, wh ichﬁxesanarbitrary classiﬁcation of types,
+alloutgoing transitions fortheenvironment placesandana rbitraryselection oftransitions forthesystem
+places. When there is a ⊤symbol, Player 0 makes a choice for the transition set. In oth er situations, the
+game continues by Player 0 choosing transitions from system places and Player 1 choosing transitions
+thatinvolve anenvironment place. Thechoices ofbothplaye rsarerestricted tothetransitions allowedin
+the decision set. There isan additional restriction based o n thetype of the places, which wewill discuss
+below. Whenever a transition has ﬁred, Player 0 chooses a new set of transitions for the newly reached
+system places. (Inenvironment places, all outgoing transi tions arealways allowed.)
+If nomoretransitions fromtype-1 places areenabled, thega meends. If thisisdue totermination, or
+if thedecision set includes type-2 places, Player 0wins. Pl ayer 1winsifthegameendsduetodeadlock,
+if nondeterminism is encountered (i.e., two separate trans itions, or two separate instances of the same
+transition, areenabledthatsharesomesystemplaceinthei rpreconditionandhavenoenvironment places
+in their precondition), or if abad place isvisited.
+Example6.1 Figure 7 shows (a part of) the ﬁnite-graph game correspondin g to the Petri game from
+Fig. 3. In Fig. 3, the transitions leading to bad places have b een omitted. For the purposes of this
+example, we assume that there is one additional transition t ⊥, which takes one token each from places
+EAandB′andputsonetokenonthebadplace ⊥andonetokenbackonEA. StatesofPlayer0areshown
+as rectangles, states of Player 1 as diamonds. Winning state s for Player 0 are shown with double lines,
+winning states for Player 1 with bold lines. In addition to th e initial state v 0shown in Fig. 7, the game
+has further initial states that are omitted here. Player 0 ha s a winning strategy from v 0(following the
+
+--- Page 11 ---
+B.Finkbeiner and E.-R.Olderog 227
+/parenleftbiggEnv,1,
+{t1,t2}/parenrightbigg
+:1,
+
+Sys,1,
+{test1,
+test2}
+:2v0:
+/parenleftbiggEA,1,
+{t⊥}/parenrightbigg
+:1,
+/parenleftbiggSys,1,
+⊤/parenrightbigg
+:2/parenleftbiggA,1,
+{test1}/parenrightbigg
+:1,
+
+Sys,1,
+{test1,
+test2}
+:2
+/parenleftbiggB,1,
+{test2}/parenrightbigg
+:1,
+
+Sys,1,
+{test1,
+test2}
+:2
+...v1:
+
+EA,
+1,
+{t⊥}
+:1,
+
+Sys,
+1,
+/ 0
+:2
+EA,
+1,
+{t⊥}
+:1,
+
+Sys,
+1,
+{t′
+1}
+:2
+EA,
+1,
+{t⊥}
+:1,
+
+Sys,
+1,
+{t′
+2}
+:2
+EA,
+1,
+{t⊥}
+:1,
+
+Sys,
+1,
+{t′
+1}
+:1,
+
+Sys,
+1,
+/ 0
+:1
+EA,
+1,
+{t⊥}
+:1,
+
+Sys,
+1,
+{t′
+1,t′
+2}
+:1,
+
+Sys,
+1,
+/ 0
+:1v2:
+...
+/parenleftbiggEA,
+1,{t⊥}/parenrightbigg
+:1,
+/parenleftbigg
+Sys,
+1,{t′
+1}/parenrightbigg
+:1
+/parenleftbiggA′,
+1,/ 0/parenrightbigg
+:1
+v3:
+/parenleftbiggEA,
+1,{t⊥}/parenrightbigg
+:1,
+/parenleftbiggA′,
+1,/ 0/parenrightbigg
+:2v4:/parenleftbiggEA,
+1,{t⊥}/parenrightbigg
+:1,
+/parenleftbigg
+Sys,
+1,{t′
+2}/parenrightbigg
+:1
+/parenleftbiggB′,
+1,/ 0/parenrightbigg
+:1
+/parenleftbiggEA,
+1,{t⊥}/parenrightbigg
+:1,
+/parenleftbiggB′,
+1,/ 0/parenrightbigg
+:2
+EA,
+1,
+{t⊥}
+:1,
+B′,
+1,
+{t⊥}
+:2
+EA,
+1,
+{t⊥}
+:1,
+Sys,
+1,
+{t′
+2}
+:1,
+B′,
+1,
+{t⊥}
+:1v5:
+
+EA,
+1,
+{t⊥}
+:1,
+B′,
+1,
+{t⊥}
+:1,
+B′,
+1,
+/ 0
+:1
+EA,
+1,
+{t⊥}
+:1,
+⊥,
+1,
+/ 0
+:1,
+B′,
+1,
+/ 0
+:1
+EA,
+1,
+{t⊥}
+:1,
+Sys,
+1,
+{t′
+2}
+:1,
+⊥,
+1,
+/ 0
+:1
+
+EA,
+1,
+{t⊥}
+:1,
+⊥,
+1,
+/ 0
+:1,
+B′,
+1,
+{t⊥}
+:1
+v7:v6:...
+Figure 7: Part of theﬁnite-graph game corresponding to the P etri gamefrom Fig.3.
+edges shown with solid lines). In state v 3, Player 0 wins, because the game terminates. In states v 1and
+v4, Player 1wins, because a deadlock is reached. In state v 2, Player 1wins, because nondeterminism is
+encountered. In states v 5,v6,and v7,Player 1 wins, because the bad place ⊥is reached.
+The ﬁnite-graph game as described so far does not yet ensure t he correctness of the classiﬁcation of
+theplaces intotypes 1and2. Weneed tomakesure that thePetr i gamecanindeed continue fromtype-2
+places without dependencies on the environment and without visits to bad places. For this purpose, we
+identify, in a preprocessing step, the largest subset Dof the set of decision sets that consists of only
+thosedecision setsthatareeitherterminating orhaveatle astonetransitionfromtype-2placestoanother
+decision set in Dthat does not contain a bad place. We restrict the game to Dand only allow (for both
+players) transitions that originate from type-1 places.
+Lemma6.2(Reduction to Finite-Graph Games) The system players have a deadlock-avoiding win-
+ning strategy in the Petri gameiff Player 0 has awinning stra tegy in theﬁnite-graph game.
+
+--- Page 12 ---
+228 Petri Games
+To prove Lemma 6.2, we translate a winning strategy for Playe r 0 in the ﬁnite-graph game into a
+deadlock-avoiding winning strategy for thesystem players inthe Petri gameand vice versa.
+Given a winning strategy fof the ﬁnite-graph game, we inductively build a strategy σfor the Petri
+game following the tree structure given by the possible choi ces of the environment token. In this way,
+we construct for each environment place in σa unique mcut, and for each subsequent ecut a causal net
+connecting the type-1 places of the ecut to the next mcut. The strategy isdeadlock-avoiding because the
+decision sets of mcuts with deadlocks are winning for Player 1. The strategy is winning, because the
+plays that conform to favoid bad places. If the play in the ﬁnite-graph game is inﬁni te, then the play
+in the Petri game is also inﬁnite, traversing an inﬁnite sequ ence of mcuts. If the play in the ﬁnite-graph
+game is ﬁnite, then this may be due to termination, in which ca se the play in the Petri game terminates
+as well; otherwise, the play must have reached adecision set with type-2 places, from which the play in
+the Petri gamecontinues inﬁnitely.
+Givenadeadlock-avoiding winning strategy σof thePetri gameandapreﬁx w∈V∗·V0of aplay of
+theﬁnite-graphgame,wecomputethechoice f(w)ofthestrategyfortheﬁnite-graphgamebysimulating
+winσ: startingwiththeinitialmarkingandﬁringthetransition sofwinσ,wearriveatacutof σwhichis
+notanmcut;wechooseanarbitraryenabledsystemtransitio nandchoosethedecisionsetoftheresulting
+cut asf(w). For a cut Cinσ, the decision set is the multiset dec[C] ={(λ(p),type(p),λ(postσ(p)))|
+p∈C}. Theresulting strategy fiswinning from thedecision set of the initial cut of σ.
+The size of the ﬁnite-graph game is exponential in the size of the Petri game; the Petri game can
+therefore be solved in single-exponential time. A matching lower bound follows from the EXPTIME-
+hardness of combinatorial games [25].
+Theorem 6.3(GameSolving) For bounded Petri games with one environment player and a bou nded
+numberofsystemplayers, thequestionwhetherthesystempl ayershaveawinningstrategyisEXPTIME-
+complete. If awinning strategy for thesystem players exist s, it can beconstructed in exponential time.
+Although the reachability problem is decidable also for unb ounded Petri nets [17], we cannot de-
+cide unbounded Petri games. This is an immediate consequenc e of the undecidability of VASS (Vector
+Addition Systems withStates) games[2].
+Theorem 6.4 ForunboundedPetrigames,thequestionwhetherthesystemp layershaveawinningstrat-
+egy isundecidable.
+7 RelatedWork
+Thereisasigniﬁcant bodyofworkonsynthesis andcontrolba sedonPetrinets(cf.[5,12,22,27]). These
+approaches differ from ours in that they solve supervisory c ontrol problems or two-player games on the
+state spacecreated bythePetrinet. Hence,these approache s solve thesingle-process synthesis problem,
+as opposed to the multi-process synthesis problem for concu rrent systems considered in this paper.
+For distributed systems, much work has focused on ﬁnding arc hitectures for which the realizabil-
+ity question is decidable. Most research on this problem is i n the setting of synchronous processes with
+shared-variable communication, introducedbyPnueliandRosner. Ageneralg amemodelforthesetypes
+of realizability problems are Walukiewicz and Mohalik’s distributed games [26]. While undecidable in
+general [21], the distributed synthesis problem can be solv ed in the Pnueli/Rosner setting for a number
+of interesting architectures, including pipelines [24], r ings [15], and generally all architectures where
+the processes can be orderedaccording to their informedness [9]. Unfortunately, all th ese decision pro-
+cedures have nonelementary complexity. For the asynchrono us games based on Zielonka’s automata,
+
+--- Page 13 ---
+B.Finkbeiner and E.-R.Olderog 229
+decidability has been also been established for speciﬁc cla sses of architectures such as trees [11]. An-
+other important line of work concerns the alternating-time temporal logics, which are interpreted over
+concurrent game structures [3]. The difference between Pet ri games and these approaches is that Petri
+gameslinkinformedness tocausality insteadofreferringt oaseparate, static, speciﬁcation oftherelative
+informedness inan architecture.
+In the literature on Petri nets, unfoldings have been used co nceptually to connect Petri net theory
+with event structures [4,6,18,19] and practically to obtai n algorithms for deciding reachability. These
+algorithms arebased onconstructing aﬁnite canonical preﬁ xof the ingeneral inﬁnite net unfolding that
+contain all reachable markings [7,8,14]. We use net unfoldi ngs as auniform conceptual basis to deﬁne
+strategies and plays as well as suitable cuts for analyzing t he strategies. Net unfoldings enable us to
+formalizetheintended degreeofinformedness ofeachplaye r atagivenplace: itisthecausal pastofthat
+place, concurrent activities beyond that past are not visib le. Such a causal view is also chosen in [10],
+for the setting of Zielonka’s automata [28].
+8 Conclusions
+We have introduced Petri games, an extension of Petri nets wh ere the tokens represent players who
+make individual, independent decisions. Using tokens as th e carriers of information, Petri games link
+information ﬂow to causality: decisions may only use inform ation resulting from decisions that they
+also depend on causally. This makes Petri games a convenient formalism to reason about asynchronous
+concurrent programs as well as manufacturing cells [27], bu siness work ﬂows [1], and other distributed
+applications. Our synthesis algorithm is applicable to Pet ri games where the number of system tokens
+is bounded by some arbitrary number, and the number of enviro nment tokens is bounded by 1. This
+leaves two important open problems. The ﬁrst open problem is whether Petri games with more than
+one environment token are decidable; if so, what is the preci se complexity? The decidability result
+for tree architectures [11] is both encouraging and discour aging; encouraging, because at least some
+architectures that areundecidable inthe Pnueli/Rosner se tting aredecidable for distributed systems with
+causal memory. Discouraging, because thecomplexity of the synthesis algorithm isnonelementary. The
+second open problem is to ﬁnd synthesis methods for unbounde d Petri games. While we have shown
+that the problem is in general undecidable, it is an interest ing challenge for future research to develop
+semi-algorithms forunbounded Petrigamesandtoﬁndother r estrictions besidesboundedness thatmake
+the synthesis problem decidable.
+References
+[1] W.M.P.v. Aalst (1998): The application of Petri nets to workﬂow management .J. of Circuits, Systems and
+Computers 8,pp.21–66,doi:10.1142/S0218126698000043.
+[2] P.A. Abdulla, A. Bouajjani & J. d’Orso (2003): Deciding Monotonic Games . In:Proc. CSL ,LNCS2803,
+Springer-Verlag,pp.1–14,doi:10.1007/978-3-540-45220 -11.
+[3] R. Alur, T.A. Henzinger & O. Kupferman (2002): Alternating-time temporal logic .Journal of the ACM
+49(5),pp.672–713,doi:10.1145/585265.585270.
+[4] E.Best &C. Fern´ andez(1988): NonsequentialProcesses . Springer,doi:10.1007/978-3-642-73483-0.
+[5] U. Buy, H. Darabi, M. Lehene & V. Venepally (2005): Supervisory Control of Time Petri Nets Using
+Net Unfolding .Annual International Computer Software and Applications C onference 2, pp. 97–100,
+doi:10.1109/COMPSAC.2005.148.
+
+--- Page 14 ---
+230 Petri Games
+[6] J. Engelfriet (1991): Branching processes of Petri nets .Acta Informatica 28(6), pp. 575–591,
+doi:10.1007/BF01463946.
+[7] J.Esparza(1994): Modelcheckingusingnetunfoldings .ScienceofComputerProgramming 23,pp.151–195,
+doi:10.1016/0167-6423(94)00019-0.
+[8] J. Esparza & K. Heljanko (2008): Unfoldings – A Partial-Order Approach to Model Checking . Springer,
+doi:10.1007/978-3-540-77426-6.
+[9] B. Finkbeiner&S. Schewe(2005): UniformDistributed Synthesis . In:Proc.LICS , IEEEComputerSociety
+Press, pp.321–330,doi:10.1109/LICS.2005.53.
+[10] P. Gastin, B. Lerman & M. Zeitoun (2004): Distributed Games with Causal Memory Are Decidable for
+Series-ParallelSystems . In:Proc.FSTTCS , pp.275–286,doi:10.1007/978-3-540-30538-5 23.
+[11] B.Genest,H.Gimbert,A.Muscholl&I.Walukiewicz(201 3):AsynchronousGamesoverTreeArchitectures .
+In:Proc.ICALP’13,PartII ,LNCS7966,Springer,pp.275–286,doi:10.1007/978-3-642-3921 2-226.
+[12] A. Giua (1992): Petri Nets as Discrete Event Models for Supervisory Control . Ph.D. thesis, Rensselaer
+PolytechnicInstitute.
+[13] C.A.R. Hoare(1985): CommunicatingSequentialProcesses . PrenticeHall,doi:10.1145/359576.359585.
+[14] V. Khomenko,M.Koutny&W. Vogler(2003): Canonicalpreﬁxesof Petri net unfoldings .Acta Informatica
+40,pp.95–118,doi:10.1007/3-540-45657-0 49.
+[15] O. Kupferman & M.Y. Vardi (2001): Synthesizing Distributed Systems . In:Proc. LICS , IEEE Computer
+SocietyPress, pp.389–398,doi:10.1109/LICS.2001.93251 4.
+[16] P. Madhusudan,P.S. Thiagarajan& S. Yang (2005): The MSO Theory of Connectedly CommunicatingPro-
+cesses. In:Proc.FSTTCS’05 ,LNCS3821,Springer,pp.201–212,doi:10.1007/11590156 16.
+[17] E.W. Mayr(1981): AnalgorithmforthegeneralPetri net reachabilityproblem . In:Proc.13thACM STOC ,
+ACM,pp.238–246,doi:10.1145/800076.802477.
+[18] J. Meseguer, U. Montanari & V. Sassone (1996): Process versus unfolding semantics for Place/Transition
+Petri nets .TCS153,pp.171–210,doi:10.1016/0304-3975(95)00121-2.
+[19] M. Nielsen, G.D. Plotkin & G. Winskel (1981): Petri Nets, Event Structures and Domains, Part I .Theor.
+Comput.Sci. 13,pp.85–108,doi:10.1016/0304-3975(81)90112-2.
+[20] E.R. Olderog (1991): Nets, Terms and Formulas: Three Views of Concurrent Process es and Their Relation-
+ship. CambridgeUniversityPress,doi:10.1017/CBO9780511526 589.
+[21] A. Pnueli & R. Rosner (1990): Distributed ReactiveSystems are Hard to Synthesize . In:Proc. FOCS , IEEE
+ComputerSocietyPress,pp.746–757,doi:10.1109/FSCS.19 90.89597.
+[22] J.F. Raskin, M. Samuelides& L.V. Begin (2003): Petri Games are Monotone but Difﬁcult to Decide . Tech-
+nicalReport,Universit´ eLibreDeBruxelles.
+[23] W. Reisig (1985): Petri Nets–AnIntroduction . Springer,doi:10.1007/978-3-642-69968-9.
+[24] R. Rosner (1992): Modular Synthesis of Reactive Systems . Ph.D. thesis, Weizmann Institute of Science,
+Rehovot,Israel.
+[25] L.J. Stockmeyer& A.K. Chandra (1979): Provably Difﬁcult CombinatorialGames .SIAM J. Comput. 8(2),
+pp.151–174,doi:10.1137/0208013.
+[26] I. Walukiewicz & S. Mohalik(2003): Distributed Games . In:Proc. FSTTCS’03 ,LNCS2914,pp.338–351,
+doi:10.1007/978-3-540-24597-1 29.
+[27] Q. Zhou, M. Wang & S.P. Dutta (1995): Generation of optimal control policy for ﬂexible manufactu r-
+ing cells: A Petri net approach .Intern. Journal of Advanced Manufacturing Technology 10, pp. 59–65,
+doi:10.1007/BF01184279.
+[28] W.Zielonka(1995): AsynchronousAutomata . InG.Rozenberg&V.Diekert,editors: BookofTraces ,World
+Scientiﬁc,pp.205–248,doi:10.1142/9789814261456 0007.

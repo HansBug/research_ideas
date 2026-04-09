@@ -1,0 +1,1097 @@
+--- Page 1 ---
+1A Behavioral Type System and Its Application in Ptolemy II
+Edward A. Lee and Yuhong Xiong
+Department of Electrical Engi neering and Computer Sciences
+University of California, Berkeley
+Berkeley, CA 94720, USA
+{eal, yuhong}@eecs.berkeley.edu
+Abstract . Interface automata [deH01] have  been introduced as an inte rface theory [deH01a] capable of
+functioning as a behavioral type system. Behavioral  type systems describe dynamic properties of com-
+ponents and their compositions. Like traditional (data) type systems, behavioral type systems can beused to check compatibility of comp onents. In this paper, we use interface automata to devise a behav-
+ioral type system for Ptolemy II, leveraging the contravariant and optimistic properties of interface
+automata to achieve behavioral subtyping and poly morphism. Ptolemy II is a software framework sup-
+porting concurrent co mponent composition acco rding to diverse models of computation. In this paper,
+we focus on representing the communication protocols used in component communication within thebehavioral type system. In building this type sy stem, we identify two key limitations in interface
+automata formalisms; we overcome these limitations with two extensions, transient states  and projec-
+tion automata . In addition to static type checking, we al so propose to extend the use of interface autom-
+ata to the on-line reflection of co mponent states and to run-time type checking, which enable dynamic
+component creation, morphing appli cation structure, and admission c ontrol. We discuss the trade-offs
+in the design of behavioral type systems.
+Keywords : Behavioral type; Behavioral subtyping; Component-based design;  Interface automata;
+Polymorphism; Alternating simulation
+1. Introduction
+Type systems are one of the mo st successful formal methods in software design. Modern poly-
+morphic type systems, with th eir early error detection capabili ties and the support for software
+reuse, have led to considerable  improvements in development pr oductivity and software quality.
+For embedded systems, concurrent component-b ased design is establ ished as an important
+approach to handle complexity. Many tools have been developed to suppor t this design methodol-
+ogy, including for example Simulink (from The Ma thWorks), SPW (the Signal Processing Work-
+system, from Cadence), CoCent ric System Studio (from Synopsys ), Metropolis [GoSa02], and
+Ptolemy II [BCD02]. In su ch tools, components are (at least conceptually) concurrent, and inter-
+act by sending messages according to some co mmunication protocol. Such component-based
+design has been termed actor oriented  [Lee02], to distinguish it fr om object oriented, where com-
+ponents (in practice) interact by method calls. The communication protocols and concurrency pol-
+icies together are called the model of computation .
+In any form of component-based  design, type systems can be us ed to greatly improve the qual-
+ity of design environments. Fundame ntally, a type system detects mismatches at component inter-
+faces and ensures component comp atibility. Interface mi smatch can happen at (at least) two
+different levels. One is th e data type level. For example, if a component expects to receive an inte-
+ger at its input, but another com ponent sends it a string, then the first component may not be able
+to function correctly. Many type system techniques in  general purpose languages can be applied
+effectively to ensure compatibilit y at this level (see [X iL00] and the references  therein). The other
+level of mismatch is the dynamic interaction behavior, such as the communication protocol theTo appear in Formal Aspects of Computing Journal , special issue on “Semantic 
+Foundations of Engineering Design Languages.” This version: November 10, 2003.
+
+--- Page 2 ---
+2components use to exchange data. Since embedde d systems often have many concurrent compu-
+tational activities and mix widely  differing operations, component s may follow widely different
+communication protocols. For ex ample, some might use sync hronous interaction (rendezvous)
+while others use asynchronous message passing (s ee [Lee02] for many more examples). So far,
+most type system research for component-based de sign concentrates on data types, and leaves the
+checking of dynamic behavi or to other techniques.
+Largely outside the component-based design co mmunity, type systems that capture various
+dynamic properties of programs have been studied under various settings, such as concurrent ML
+[NiN94], actor-based languages [CPS97] , object-oriented subtyping [LiW94], π-calculus and
+similar process algebras [IgK01][KPT96][NaN99][NNS99][P iS93][Pun96][RaR02], the CHAM
+formalism [IWY00], architectura l description language s [AlG97], and popular languages like C
+[STS01] and Java [LBR98][LNS00] . However, these systems do not address the challenges of
+component-based design directly, either because th e properties they capture  are not critical for
+component-based design, or because they are too abst ract to be implemente d in the existing tools
+directly.
+In this paper, we present a pr actical behavioral type system that captures the dynamic aspects
+of component interaction. In our  approach, different interacti on types and the dynamic behavior
+of components are described by automata, and type checking is  conducted through automata com-
+position. In this paper, we choose a particular auto mata model called interface automata  [deH01]
+to define types. Interface auto mata have two key stre ngths for our purposes. First, their composi-
+tion semantics uses an “optimistic” approach that  leads to simple com positions and straightfor-
+ward compatibility checking. Second, unlike most  automata formalisms, they treat inputs and
+outputs differently, in a manne r analogous to the co/contra-varia nce relation in function subtyp-
+ing; this enables a useful form  of subtyping that permits the de finition of behaviorally polymor-
+phic components. A third, less crit ical strength is that the vi sual representation of interface
+automata is more accessible than  the algebraic notations used in many methods, although the lat-
+ter are often more compact.
+Traditionally, automata models are used to perform model checking at  design time. Here, our
+emphasis is not on model checking to verify arbitrary user-defin ed behavior, but rather on com-
+patibility of the composition of pr e-defined types. In object-orient ed type systems, scalability is
+ensured by building compos ite types from a pre- defined set of primit ive types. Users do not
+extend the set of primitive type s (typically). We similarly propos e to define a set of primitive
+behavioral types that captures key properties of  models of computati on and the components that
+operate within them. Much as an object-oriented type system does not captu re all aspects of the
+static structure of an a pplication, our behavioral type system will not capture al l aspects of the
+dynamic behavior. If we design it well, however, it will capture enough aspects to greatly improve
+design. We also propose to extend the use of auto mata to on-line reflect ion of component state,
+and to do run-time type checking.
+To explore these concepts, we have built an experimental plat form based the Ptolemy II com-
+ponent-based design environment [BCD02]. This pl atform includes a visual  editor for defining
+behavioral types and a suite of tools for com posing and analyzing these type definitions. All
+graphics in this paper are take n from this visual editor. All compositions have been computed
+using its tools, and all subtyping relati ons have been checked using its tools.
+We have found that the design of behavioral types shares the same  goals and trade-offs with the
+design of a data-level type system. At the data level, research has been driven to a large degree by
+the desire to combine the flexib ility of dynamically typed language s with the security and early
+
+--- Page 3 ---
+3error-detection potential of st atically typed languages [Ode96] . As mentioned earlier, modern
+polymorphic type systems have ach ieved this goal to a large extent . At the behavioral level, type
+systems should also be polymor phic to support component reuse while ensuring component com-
+patibility. 
+In programming languages, there are several kinds of polymorphi sm. In [CaW85], Cardelli and
+Wegner distinguished two br oad kinds of polymorphism: universal  and ad hoc  polymorphism.
+Universal polymorphism is further divided into parametric  and inclusion  polymorphism. Para-
+metric polymorphism is obtained when a function works uniform ly on a range of types. Inclusion
+polymorphism appears in object or iented languages when a subclass can be used in place of a
+superclass. Ad hoc polymorphism is also further divided into overloading and coercion. In sys-
+tems with subtyping and coercion, types naturally form a partial order [D aP90]. For example, in
+object-oriented languages, the part ial order is the inheritance hier archy, and in languages that sup-
+port type conversion, the relation in the partia l order is the conversion relation, such as Int ≤ Dou-
+ble, which means that an integer can be converted to a double. This latter  relation is sometimes
+considered as subtyping between pr imitive data types [Mit84]. In th e Ptolemy II data type system,
+the type hierarchy if further cons trained to be a lattice, and type  constraints are formulated and
+solved over the lattice [XiL00][Xio02].
+We form a polymorphic type system  at the behavioral level thr ough an approach similar to sub-
+typing. Interface automata have an  alternating simulation relati on. This relation is analogous to
+the co/contra-variance relation in  function subtyping, and is natu ral for the subtyping relation in
+our system. Using this re lation, we organize all the interaction types in a pa rtial order. Given this
+hierarchy, if a component is co mpatible with a certain type A, it is also compatible with all the
+subtypes of A. This property can be used to facilita te the design of polymorphic components and
+simplify type checking.
+Even with the power of polymor phism, no type system can capt ure all the properties of pro-
+grams and allow type checking to be performed efficiently while keeping the language flexible.
+So the language designer always ha s to decide what properties to include in the system and what
+to leave out. Furthermore,  some properties that ca n be captured by types ca nnot be easily checked
+statically before the program r uns. This is either because the information available at compile
+time is not sufficient, or because that checking those properties is too co stly. Hence, the designer
+also needs to decide whether to check those properties st atically or at run time. Any type system
+represents some compromise. Fo r example, array bound checking is very helpful in detecting pro-
+gram errors, but it is hard, a nd sometimes even impossible, to do efficiently by static checks.
+Some languages, such as C, do not perform this  check. Other languages, such as ML and Java,
+perform the check, but at run time, and at the cost of run time pe rformance. Some researchers pro-
+pose to perform this check at compile time [XiP98], but the tec hnique requires the programer to
+insert annotations in the source  code, since modern languages do not include array bounds in their
+type systems.
+Type systems at the behavioral  level have similar trade-offs . Among all the properties in a
+component-based design e nvironment, we choose to check th e compatibility of communication
+protocols as the starting point. This is because communication pr otocols are the central piece in
+many models of computat ion [Lee02] and determine many othe r properties in the models. Our
+type system is extensible so other properties, such as deadlo ck in concurrent models, can be
+included in type checking. Another reason we c hoose to check the compat ibility of communica-
+tion protocols is that it can be done efficiently, when componen ts are connected. More compli-
+cated checking may need to  be postponed to run time.
+
+--- Page 4 ---
+4In our earlier work [LeX01], we use interface automata to specif y the interaction types and use
+alternating simulation as the subt yping relation. Recently, we obser ved that the original interface
+automata model needs some extensions to work be tter in more situations, and some of the rela-
+tions among behavioral types are not directly cap tured by alternating simulation. We include these
+extensions and some experime ntal results in this paper.
+The rest of this paper is orga nized as follows. Section 2 gives an overview of interface autom-
+ata. Section 3 discusse s our extensions. Secti on 4 describes Ptolemy II , with emphasis on the
+implementation of various communi cation protocols. Section 5 pres ents our behavioral type sys-
+tem, including the type definition, the type hierar chy and some type chec king examples. Section 6
+discusses some issues in the behavioral type systems and related works.  The last section con-
+cludes the paper and points out our  future research directions.
+2. Overview of Interface Automata
+2.1 An Example
+Interface automata were devised for capturing the temporal aspect s of software component inter-
+faces [deH01]. As w ith other automata models, interface au tomata consist of states and transi-
+tions1, and are usually depicted by bubble-and-arc di agrams. There are thr ee different kinds of
+transitions in interface automa ta: input, output, and internal tr ansitions. When modeling a soft-
+ware component, input transitions  correspond to the invocation of  methods on the component, or
+the returning of method calls fro m other components. Output tran sitions correspond to the invoca-
+tion of methods on other component s, or the returning of method calls from the component being
+modeled. Internal transiti ons correspond to computations inside the component.
+In behavioral-level modeling, one of the most frequently used examples is buffered communi-
+cation. We will use interface auto mata to model such a scenari o. Assume we have two software
+components, a Producer  and a Consumer , and that they communi cate through a one-place buffer.
+The buffer component has the fo llowing methods: put(), get(), hasRoom(), and hasToken(). The
+producer uses hasRoom() to check whether the buffer has room  for a token. If this method returns
+true, it calls the put() method to put  a token into the buffer. Simila rly, the consumer uses hasTo-
+ken() to check whether the buffer contai ns a token. If this method returns true, it calls get() to
+extract the token. For the moment, let’s just model the part of the buffer interface used by the con-
+sumer. We will add the interfac e for the producer in later exam ples. Figure 1 s hows the interface
+1Transitions are called actions in [deH01].Figure 1. Interface automaton mode l for a one-place buffer (only the consumer interface is modeled).
+BufferForConsumer
+
+--- Page 5 ---
+5automaton model for the buffer. Th is and the subsequent figures are drawn in the Ptolemy II soft-
+ware [BCD02], within which we have built a “domain” for repr esenting, composing, analyzing,
+and manipulating interface automata.
+The convention in interface automata is to labe l the input transitions wi th an ending “?”, the
+output transitions with an ending “!”, and internal  transitions with an e nding “;”. The block arrows
+on the sides of figure 1 denote the input s and outputs of the automaton. They are:
+•g: the invocation of the get() method of the buffer (an input);
+•t: the token returned in the get() call (an output);
+•hT: the invocation of the hasToken( ) method of the buffer (an input);
+•hTT: the value true returned from the hasToken() call, me aning that the buffer contains a token 
+(an output); and
+•hTF: the value false  returned from the hasT oken() call, meaning that the buffer does not con-
+tain a token (an output).
+Notice that the interact ion with the producer is abstract ed into one internal transition p_pR .
+Here, p denotes the invocation of the put() method, and pR denotes the return of the put() call. The
+initial state is state 0. When the ac tor is in this state, and the c onsumer queries whether there is a
+token by calling hasToken(),  the receiver returns false . This call and its return is modeled by the
+transition from state 0 to 4, and 4 to 0. If th e producer deposits a token, the automaton will move
+to state 2. At this state, th e hasToken() call will return true. If the consumer calls get() at state 2,
+the buffer will return a token for this call. This is modeled by th e transition from state 2 to 3, and
+3 to 0.
+This example illustrates an impor tant characteristic of interf ace automata. That is, they do not
+require all the states to accept all inputs. This characteristic makes them light-weight. In figure 1,
+the input g is only accepted at state 2, but  not in any other states. This  is different from I/O autom-
+ata [LyT81], which is synt actically similar to interface automa ta. By not requiring the model to be
+input enabled, interface automata models are usually  more concise, and do not include states that
+model error conditions. In fact, interface automata take an optim istic approach to modeling, and
+they reflect the intended behavi or of components under a good envi ronment. Under this philoso-
+phy, error conditions are usually not  explicitly modeled. For exampl e, in figure 1, we do not have
+states and transitions to describe the case  when get() is called on an empty buffer.
+2.2 Composition and Compatibility
+Two interface automata can be composed if the name s of their transitions (e xcluding the “?, !, ;”)
+are disjoint, except that an input  transition of one may coincide with an output transition of the
+other. These overlapping transitions  are called shared tr ansitions. Shared tran sitions are taken syn-
+chronously, and they become intern al transitions in the composition. Internal states are like the τ-
+step in CCS, or concealed states in CSP. 
+Figure 2 shows two consumer automata that can be composed with the automaton Buffer-
+ForConsumer  in figure 1. The Consumer  automaton in figu re 2(a) keeps calling the hasToken()
+method of the buffer until it returns true, then calls the get() met hod to extract the token. When
+composed with the BufferForConsumer  automaton, all the transitions  are shared transitions, and
+the composition result is shown in  figure 3(a). In figure 2(b), the c onsumer calls get( ) without first
+checking whether a token is availa ble. When this automaton is co mposed with the buffer, it may
+issue an output that the buffer does not accept. Fo r example, when both automata are in state 0,
+
+--- Page 6 ---
+6ConsumerNoHT  may issue g, which BufferForConsumer  does not accept. This means that the pair
+of states (0, 0) in the product automaton BufferForConsumer ⊗ConsumerNoHT  is illegal . 
+In interface automata, il legal states are pruned out in the composition. Furthermore, all states
+that can reach illegal st ates through output or internal transi tions are also pruned out. This is
+because the environment cannot prevent the automa ta from entering illegal states from these
+states. As a result, the composition of BufferForConsumer  and ConsumerNoHT  i s  a n  e m p t y
+automaton without any stat es, as shown in figure 3( b). This is a key property of interface autom-
+ata. More conventional automaton composition always results in a state space that is the product
+of the composed state spaces, and hence is signi ficantly larger. Interface automata often compose
+to form smaller automata.
+The above examples illust rate the key notion of compatibility  in interface automata. Two
+automata are compatible if their composition is not empty. This notion gi ves a formal definition
+for the informal statement “two  components can work together”. The composition automaton
+defines exactly how they can work  together. In behavi oral types, we use interface automata to
+describe various communication protocols, or th e interaction types for components. To check
+whether a certain component is compatible with  a communication protocol , we can simply com-
+pose the automata models of th e component and the protocol, a nd check whether the result is
+empty. This yields a straightfo rward algorithm for type checking, which is the main attraction of
+interface automata to behavioral types.
+Figure 2.  Two consumer automata.Consumer
+(a) (b)ConsumerNoHT
+Figure 3.  Composition of BufferForConsumer  in figure 1 and the two consumer automata in figure 2.(a) (b)BufferForConsumer_ConsumerNoHT
+ BufferForConsumer_Consumer
+
+--- Page 7 ---
+7The approach to composition in  interface automata is optimis tic. If two components are com-
+patible, there is some environment that can make them work together. In the traditional pessimis-
+tic approach, two components are compatible if they can work together in all environments.
+Although the guarantee provided by the optimistic approach appear s weaker, this approach is
+more natural for design purposes, because components are usually designed under assumptions
+about the environment. Also, the authors of interf ace automata pointed out that the composition of
+interface automata is often smaller and thus easier on the user, than the traditional pessimistic
+models, which must take all kinds of environment into account.
+2.3 Alternating Simulation
+Interface automata have a notion of alternating simulation , which, unlike the conventional simu-
+lation relation in automata theory, treats inputs a nd outputs differently to provide a co/contra-vari-
+ance relation like that found in function subtyping. We use alternat ing simulation to simplify type
+checking and to realize behavior ally polymorphic interfaces. Info rmally, for two interface autom-
+ata P and Q, there is an alternating simulation relation from Q to P if all the input transitions of P
+can be simulated by Q, and all the output  transitions of Q can be simulated by P. The formal defi-
+nition, which involve s the notions of ε-closure and externally enable d inputs and outputs, is given
+in [deH01]. These notions are for taking into acc ount the fact that the internal transitions of P and
+Q are independent. Since we  do not need this level of detail here, we om it the precise definition.
+Instead, we just give an exam ple of alternating simulation:
+The BufferWithDefault automaton in figure 4 models a buffe r that can return a default token
+when it is empty. This automat on has an additional state, 6, comp ared to the one in figure 1, and
+the transition between state 0 and th is state models the get() call and the return of the default token
+when the buffer is empty. If we compare BufferWithDefault  with BufferForConsumer , since all
+the transitions at the states 2, 3,  4, 5 are the same in them, the re quirement for alternating simula-
+tion is trivially satisfied. At stat e 0, all the input transitions of BufferForConsumer , which is just
+hT?, can be simulated by BufferWithDefault , and all the output  transitions of BufferWithDefault ,
+which is empty, can be trivially simulated by BufferForConsumer . So there is an alternating simu-
+lation relation from BufferWithDefault  to BufferForConsumer .
+If there is an alternating simulation relation from Q to P, a theorem states that if a third autom-
+aton R is compatible with P, and the input transitions of Q that are shared with  the output transi-
+tions of R is a subset of the input transitions of P that are shared with the output transitions of R,
+then Q and R are also compatible. In our example, since the Consumer  automaton is compatible
+with BufferForConsumer , it is also compatible with BufferWithDefault .
+Figure 4.  A buffer that can return a default token.BufferWithDefault
+
+--- Page 8 ---
+83. Extensions to Interface Automata
+In constructing our behavioral t ype system and attempting to use it to represent key properties of
+Ptolemy II domains and component s, we encountered two key obs tacles. First, modeling atomic
+actions that involved more than  one transition in an automat on proved extremely awkward, and
+yet was very commonly needed. Second, the usua l way of composing in terface automata, which
+matches inputs and outputs by name , does not provide sufficient  scoping constraints to handle
+practical designs; in particular, composing more th an two automata that interact through different
+interfaces is awkward. We describe  here two extensions to interfa ce automata that address these
+obstacles.
+3.1 Transient States
+Suppose we want to extend the buffer example above to include the producer in the model. Wecan design a buffer like the one in figure 5, and a producer like the one in figure 6. In both figures,
+p and pR represent the call to the put () method and its return, and hR, hRT, hRF represent the call
+to hasRoom() and the two possible return values, true and false . These are the interaction between
+the buffer and the producer. Now, if we compose the Producer  in figure 6, the Buffer  in figure 5,
+and the Consumer  in figure 2(a), the result is an empty automaton!
+This result may be surprising, but  if we examine these automata carefully, we can find many
+ways that the composition gets into illegal states. For example,  if the producer calls hasRoom(),
+the Producer  automaton moves to state 1, and the Buffer  moves to state 6. At this time, if the con-
+sumer calls hasToken(), the Buffer  automaton cannot accept this call at state 6, so the state (1, 6, 0)
+Figure 5.  A one-place buffer.Buffer
+Figure 6.  A producer.Producer
+
+--- Page 9 ---
+9in Producer⊗Buffer⊗Consumer  is illegal. Another situation wh ere we enter illegal state is that
+the producer calls put(), but befo re this call is returned, the c onsumer calls hasToken(). Since
+these illegal states are reachable from the initial states of the automata, the whole composition is
+empty.
+The issue here is that when we  design the buffer like figure 5, we  assume that its methods exe-
+cute atomically. In fact, when we implement such a buffer in so ftware, we probably will protect
+all of its methods, put(), get(), hasRoom(), and hasToken(), as cr itical sections. For example, if we
+implement these methods in Java , we will make them  synchronized methods  to achieve mutual
+exclusion. However, in interface automaton, there is  an intermediate state between the input tran-
+sition that represents a method call , and the output transition that re presents the return of the call.
+So in the interface automaton model, th e methods are not intrinsically atomic.
+ It is possible to modify these models to achieve mutual exclus ion. For example, if we want to
+model the synchronization mechanism in Java, we can add an output “lock”  and another “unlock,”
+and then any correct composition w ould have to check so that it never tries to send an automaton
+an input if it is locked. This would be very  cumbersome. Since such mutexes are so common, we
+want to support them in the au tomata formalism. Moreover, th ey are more commonly needed in
+interface automata than in ordinary automata because of the separati on of inputs and outputs.
+To do this, we introduce a notion of transient  state. These are the above  intermediate states. We
+denote these states with a “t” at the end of their names in our block diagrams , as shown in figure
+7. Transient states can only have  output and internal transiti ons emanating from them. When we
+compose two automata, and one of the automata is  in transient state, we do not take any output
+transition from the non-transient state, and just m ove along the output or inte rnal transitions of the
+transient state. That is, the mach ine that is in a non-tr ansient state stutters (remains in the same
+state and produces no output) or takes a transition in response to an  input. To illustra te this with a
+simple example, consider two automata in figur e 8(a) and 8(b). Without considering transient
+Figure 7.  A buffer with transient states.BufferWithTransient
+Figure 8.  Example of transient state.(a) (b) (c) (d)
+
+--- Page 10 ---
+10states, their composition is empty, as shown in fi gure 8(c). This is because that the automaton in
+(b) may send out b!, which is not en abled at state 0 in the automaton in (a). However, if we treat
+state 0 in the first automaton as transient, then the composition of the tw o automata is not empty,
+as shown in figure 8(d) . As a bigger example, the composition of the Producer  in figure 6, the
+BufferWithTransient  in figure 7, and the Consumer  in figure 2(a) is shown in figure 9. 
+We currently do not allow the com position to enter a pair  of states where bot h of them are tran-
+sient. Relaxing this constrai nt requires further research.
+Notice that transient state is not required for tradit ional finite state machine (FSM) models
+[LeV01]. In FSM, we can combine an input and an output into one transition, but then we lose the
+co/contra-variance relation like that found in f unction subtyping. For example, the FSM model for
+the buffer is shown in figure 10. By adding the not ion of transient states to interface automata, we
+achieve the ability in FSM to model atomic input and output.
+3.2 Explicit Connections  and Projection Automata
+In most formalisms for composing automata, including interface automata, an output of one
+automaton is matched to an input of anothe r by name matching. Unfort unately, there are only
+Figure 9.  Composition of the Producer  in figure 6, BufferWithTransient  in figure 7, and Consumer  in 
+figure 2(a).Producer_BufferWithTransient_Consumer
+Figure 10.  FSM model for the buffer in figure 7.FSMBuffer
+
+--- Page 11 ---
+11weak notions of scoping for such names, so the name s, in effect, become global. It is difficult to
+express that a particular output might be intended for consumpti on by a particular  other automa-
+ton, and be intended to be ignor ed by another automaton in a co mposition. Thus, we cannot easily
+distinguish the erroneous case, wh ere one automaton issues an out put that the other cannot accept,
+from the harmless case, where one automaton issues  an output that is i gnored by the other autom-
+aton and becomes an output of the composition. We give an example to illustrate the problems this
+creates.
+In BufferWithTransient  in figure 7, there are four methods: put(), get (), hasRoom(), and hasTo-
+ken(). Since the last tw o are not directly used for communica tion, they can be viewed as “over-
+head” of the communicat ion. Suppose we want to study the amount of this overhead; we can
+count the number of times these two met hods are called. To do this, we can update BufferWith-
+Transient  by sending out a “count” output every time hasRoom() or hasToken() is called. This
+buffer is shown in figure 11. Here, the output c represents the count even t. It goes to a certain
+counter component.
+Intuitively, BufferWithCounter  in figure 11 should function as a subtype of BufferWithTran-
+sient . That is, it should compose with any consumer that BufferWithTransient  can compose with.
+In interface automata, the subtype relation is the alternating si mulation relation. Regrettably, these
+two automata do not have an alte rnating simulation between them. If we analyze them carefully,
+we realize that the additional output c in BufferWithCounter  is “interfering” th e alternating simu-
+lation. Even though this output doe s not affect the consumer, it obscures the relation between the
+two buffer automata with respect to the consumer. 
+The problem here is weak sc oping. We wish for the output c to be ignored by the consumer,
+which should stutter when the BufferWithCounter  takes the transition that produces c. When Buff-
+erWithCounter  is composed with Consumer , the composition should have an output c.
+An alternative way to show that  the output of one automaton is destined for another is shown in
+figure 12, which shows a composition of BufferWithCounter  (figure 11) with Consumer (figure
+2a). When forming this composit ion, we wish to ignore all input s and outputs except those shared
+by the two automata. In figure 12, that sharing is indicated by explicitly connecting the ports
+rather than by name matching. Moreover, which inputs and outputs are exported to become inputs
+and outputs of the composition is al so shown explicitly. In  this example, it is all the inputs and
+output that are not shared by the two automata. It  is now become clear why our visual notation
+Figure 11.  A buffer that counts the overhead methods.BufferWithCounter
+
+--- Page 12 ---
+12shows the input and output symbols as ports as well as annotations on the transitions. These ports
+are essential to hierarchical de sign with strong scoping. Note furthe r that this notation eliminates
+the need to refer to an output by the same name as that of the corresponding input in another
+automaton, although we do not exploit that possibility here.
+Formally, to “ignore” some i nputs or outputs when forming a composition, we simply convert
+any transitions labeled with thes e inputs and outputs into internal  transitions. We can view this
+operation as a projection  of one automaton to the subset of inputs and out puts shared with another
+automaton. The projection of BufferWithTransient  and BufferWithCounter  to Consumer  are
+shown in figure 13 and figure 14, respectively.
+Now, if we compute the al ternating simulation between BufferWithTransientToConsumer  and
+BufferWithCounterToConsumer , there is indeed an alternating simulation from BufferWithCoun-
+terToConsumer  to BufferWithTransientToConsumer . So we have revealed the intuitive refinement
+relation between these two automata.
+In this case, we can check that Consumer  is compatible with BufferWithTransientToConsumer
+(figure 13), and from this, we can infer without checking that Consumer  is compatible with Buff-
+erWithCounterToConsumer  (figure 14). When usi ng explicit connections as  in figure 12, we can
+always tell which subset of the inputs and outputs is pertinen t to a compositi on, and hence how to
+check compatibility.
+Figure 12.  Explicit connections and hierarchy provid e scoping. Here, only th e shared inputs and out-
+puts (connected in the middle ) are involved in checkin g com patibilit y.BufferWithCounterConsumer
+Figure 13. The projection of BufferWithTransient  onto Consumer .BufferWithTransientToConsumer
+
+--- Page 13 ---
+13The key result is that if an au tomaton is compatible with a proj ection automaton, it is also com-
+patible with the original auto maton. More specifically, if P’ is the projection of P onto R, and P’
+and R are compatible, P and R are compatible. To see this, notice that the product automata P⊗R
+and P’⊗R have the same set of states and transitions, except that some  of the transition labels are
+different. In particular, some of the input and output transitions in P⊗R are changed to internal
+transitions in P’⊗R. Also, These two product automata have th e same set of ille gal states. Further-
+more, for all the states in P⊗R that can reach illegal  states through internal  and output transitions,
+there corresponding states in P’⊗R can also reach the correspondi ng illegal states. In another
+word, when we prune out all the illegal states a nd all the states that ca n reach the illegal states
+through internal and output trans itions in the two product automata , the set of states being pruned
+in P’⊗R is a super set of that of P⊗R. So if the composition of P’⊗R is not empty, P⊗R is not
+empty.
+Given this, we have the following:
+Given three interface automata P, Q, and R, let P’ and Q’ be the projections of P and Q onto R.
+If P’ is compatible with R, and there is an alte rnating simulation from Q’ to P’, then Q is compat-
+ible with R.
+In our example, P is BufferWithTransient , P’ is BufferWithTransientToConsumer , Q is Buffer-
+WithCounter , Q’ is BufferWithCounterToConsumer , and R is Consumer . Since Consumer  is com-
+patible with BufferWithTransientToConsumer , it is also compatible with BufferWithCounter .
+We can obtain similar result for the Producer  automaton by symmetry.
+The BufferWithTransient , Producer , and Consumer  automata discussed in this model can be
+viewed as a particular implementation of a model of computat ion. In this model, the communica-
+tion between the producer and the consumer is asynchronous, and their execu tion is not statically
+scheduled. There are many other models of comput ation with various nice properties, such as
+static schedulability and determinacy [Lee02]. So me of these models are implemented in the
+Ptolemy II environment.
+4. Ptolemy II - A Componen t-Based Design Environment
+Ptolemy II [BCD02] is a system -level design environment that supports component-based hetero-
+geneous modeling and design. The focus is on em bedded systems. In Ptolemy II, components are
+called actors , and the channel of communication betw een actors is implemented by an object
+Figure 14. The projection of BufferWithCounter  onto Consumer .BufferWithCounterToConsumer
+
+--- Page 14 ---
+14called a receiver , as shown in figure 15. Re ceivers are contained in IOPorts  (input/output ports),
+which are in turn contained in actors.
+Ptolemy II is implemented in Java. The methods in the receiver are defi ned in a Java interface
+called Receiver. This interface assumes a producer/consumer mode l, and communicated data is
+encapsulated in a class called T oken. The put() method is  used by the producer to deposit a token
+into a receiver. The get() method is  used by the consumer to extract  a token from the receiver. The
+hasToken() method, which returns a boolean, indicates whether a call to get() will trigger a NoTo-
+kenException.
+Aside from assuming a producer /consumer model, the Receive r interface makes no further
+assumptions. It does not, for ex ample, determine whether comm unication between actors is syn-
+chronous or asynchronous. Nor does it  determine the capacity of a receiver. These properties of a
+receiver are determined by  concrete classes that implement the Receiver interface. Each one of
+these concrete classes is  part of a Ptolemy II domain , which is a collection of classes implement-
+ing a particular model of computation. In each domain, the r eceiver determines the communica-
+tion protocol, and an  object called a director  controls the execution of actors. From the point of
+view of an actor, the director and the receiver form its exec ution environment. 
+Each actor has a fire() method that  the director uses to start the execution of the actor. During
+the execution, an actor may inter act with the receivers to rece ive or send data. Some of the
+domains in Ptolemy II are:
+•Communicating Sequenti al Processes (CSP) : As the name suggests, th is domain implements a 
+rendezvous-style communication (sometimes called synchronous message passing), as in 
+Hoare’s communicating sequential processes model [Hoa78]. In this domain, the producer and 
+consumer are separate threads executing the fi re() method of the actors. Whichever thread 
+calls put() or get() first blocks until the other thread calls get() or put(). Da ta is exchanged in 
+an atomic action when both the producer and consumer are ready.
+•Process Networks (PN) : This domain implements the Kahn process networks model of com-
+putation [Kah74]. The Ptolemy II  implementation is similar to that by Kahn and MacQueen 
+[KaM77]. In that model, just like CSP, the producer and cons umer are separate threads execut-
+ing the fire() method. Unlike CSP, however, th e producer can send data and proceed without 
+waiting for the receiver to be ready to receiv e data. This is implemented by a non-blocking 
+write to a FIFO queue with (conceptually) unbounded capacity. The put () method in a PN 
+receiver always succeeds and al ways returns immedi ately. The get method, however, blocks 
+the calling thread if no data is available. To maintain determinacy, it is important that pro-
+cesses not be able to test a receiver for the pr esence of data. So the hasToken() method always 
+returns true. Indeed, this return value is correct, si nce the get() method will never throw a 
+NoTokenException. Instead, it will block the calling thread until a token is available.
+•Synchronous Data Flow (SDF) : This domain supports a synchronous dataflow model of com-
+putation [LeM87]. This is different from the th read-based domains in that the producer and 
+Figure 15.  A simple model in Ptolemy II.producer
+actorconsumer
+actorIOPort
+Receiver
+
+--- Page 15 ---
+15consumer are implemented as fini te computations (firings of a dataflow actor) that are sched-
+uled (typically statically, and typi cally in the same thread). In this model, a c onsumer assumes 
+that data is always available when it calls get( ) because it assumes that it would not have been 
+scheduled otherwise. The capacity of the receiver can be made finite, statically determined, 
+but the scheduler ensures that wh en put() is called, there is r oom for a token. Thus, if schedul-
+ing is done correctly, both get() and put() succeed immediately and return.
+•Discrete Event (DE) : This domain uses timed events to  communicate between actors. Similar 
+to SDF, actors in the DE domai n implement finite computations  encapsulated in the fire() 
+method. However, the execution order among the acto rs is not statically scheduled, but deter-
+mined at run time. Also, when a consumer is fi red, it cannot assume that  data is available. 
+Very often, when an actor with multiple input ports is fired, only one of the ports has data. 
+Therefore, for an actor to work correctly in th is domain, it must check the availability of a 
+token using the hasToken() met hod before attempting to get a token from the receiver.
+As can be seen, different domains impose differ ent requirements for acto rs. Some actors, how-
+ever, can work in multiple domains. These actors are called domain-polymorphic  or behaviorally-
+polymorphic actors. One of the goals of th e behavioral type system is  to facilitate the design of
+behaviorally-polymorphic actors.
+In Ptolemy II, there are more than ten domains implementing va rious models of computation,
+including the ones discussed above. One of th ese domains implements interface automata.
+5. Behavioral Types
+5.1 Type Definition
+As we mentioned before, we use interface automata to descri be the behavior of Ptolemy II com-
+ponents. In figure 16, the automaton SDFConsumer  describes a consumer actor designed for the
+SDF (synchronous dataflow) domain. The i nputs and outputs of the automaton are:
+•fC: the invocation of the fire() method of the consumer actor.
+•fCR: the return from the fire() method.
+•g: the invocation of the get() method of the receiver at the input port of the actor.
+•t: the token returned in the get() call.
+•hT: the invocation of the hasToken() method of the receiver.
+•hTT: the value true returned from the hasToken() call, m eaning that the receiver contains one 
+of more tokens.
+Figure 16. Interface automata mo del for an SDF consumer actor.SDFConsumer
+
+--- Page 16 ---
+16•hTF: the value false  returned from the hasToken() call, meaning that the receiver does not con-
+tain any token.
+The initial state is state 0. When the actor is in this state, and th e fire() method is called, it calls
+get() on the receiver to obtain a token. After receiving the token in  state 3, it performs some com-
+putation, and returns from fire().
+In the SDF domain, an actor assumes that its fi re() method will not be ca lled again if it is
+already inside this met hod. Also, the scheduler guara ntees that data is available when a consumer
+is fired, so the transition from state 2 to state 3 assumes that the receiver will return a token. An
+error condition, such as the receive r throws NoTokenException when ge t() is called, is not explic-
+itly described in the model.
+The automaton shown in figure 17 describes an actor that can operate  in wider variety of
+domains. Since this actor is not designed under the assumption of the SDF domain, it does not
+assume that data are available wh en it is fired. Instead, it calls hasToken() on the receiver to check
+the availability of a t oken. If hasToken() returns false , it immediately returns from fire(). This is a
+simple form of behavioral polymorphism.
+In Ptolemy II, actors interact with the director and the receive rs of a domain. In figures 16 and
+17, the block arrows on the left si de denote the interface with th e director, and the ones on the
+right side denote the inte rface with the receiver. As discusse d in section 4, the implementation of
+the director and the receiver de termines the semantics of com ponent interaction in a domain,
+including the flow of control a nd the communication prot ocol. If we use an interface automaton to
+model the combined behavior of th e director and the receiver, this automaton is then the type sig-
+nature for the domain. Figure 18 shows such  an automaton for the SDF domain. Here, p and pR
+Figure 17. Interface automaton for a be haviorally-polymorphic consumer actor.PolyConsumer
+Figure 18.  Type signature of the SDF domain.SDFDomain
+
+--- Page 17 ---
+17represent the call and the return of the put() met hod of the receiver, they are abstracted out as an
+internal transition p_pR  in the figure. This automaton enc odes the assumption of the SDF domain
+that the consumer actor is fired only after a token is put into the receiver1.
+The type signature of the DE domain is shown in  figure 19. In DE, an ac tor may be fired with-
+out a token being put into the recei ver at its input. This is indicate d by the transition from state 0
+to state 7. Figures 18 and 19 also reflect the fact that both of the SDF and the DE domains have a
+single thread of execution, so the hasToken() que ry may happen only after the actor is fired but
+before it calls get(), during which time  the actor has the thread of control.
+CSP and PN are two domains  in Ptolemy II in which each ac tor runs in its own thread. Figures
+20 and 21 give the type signature of these two domains. These auto mata are simplified from the
+true implementation in Pt olemy II. In particular, CSPDomain  omits conditional rendezvous,
+which is an important feature in the CSP model of computati on. Conditional rendezvous is imple-
+1 This is a simplification of the SDF domain,  since an actor may require more than one token to be put in the receiver before it  is
+fired. This simplification makes our  exposition clearer, bu t otherwise makes no material difference.
+Figure 19.  Type signature of the DE domain.DEDomain
+Figure 20.  Type signature of the CSP domain.CSPDomain
+
+--- Page 18 ---
+18mented by a set of classes in Ptolemy II: ConditionalBranchController , ConditionalSend , and
+ConditionalReceive . Their operation can also be modeled by interface automata.
+In CSP, the communication is synchronous; the fi rst thread that calls get() or put() on the
+receiver will be stalled until the other thread ca lls put() or get(). The case where get() is called
+before put() is modeled by the transitions among the states 1, 3,  4, 5, 10. The case where put() is
+called before get() is modeled by the transitions among the states 1, 6, 8, 9, 10.
+In PN, the communication is asynchronous. So th e put() call always returns immediately, but
+the thread calling get() may be stalled until put()  is called. The case wher e get() is called first in
+PN is modeled by the transitio ns among the states 1, 3, 5, 10 in  figure 21, while the case where
+put() is called first is modeled by th e transitions among the states 1, 6, 9, 10.
+Given an automaton modeling an actor and the type signature of a domain, we can check the
+compatibility of the actor with the communicati on protocol of that dom ain by composing these
+two automata. Type checking examples will be shown below in section 5.3.
+5.2 Behavioral-Level Type  Order and Polymorphism
+If we compare the domain automata  described in the previous sect ion, we can see that they are
+closely related. This relationship can be captured by the alternat ing simulation relation of inter-
+face automata. In particular, there is an altern ating simulation relation fr om SDF to DE, from PN
+to DE, and from CSP to DE. Als o, there are alternating simulati on relations between any pair of
+automata among SDF, PN, and CSP, in any direction. This is show n by the directed graph in fig-
+ure 22. From a type system point of view, the alte rnating simulation relation denoted in this figure
+is the subtyping relation. For exam ple, SDF is a subtype of DE, and SDF and PN are subtypes of
+Figure 21.  Type signature of the PN domain.PNDomain
+Figure 22.  A directed graph showing the a lternating simulation relation among domain typeDE
+SDF
+CSP PN
+
+--- Page 19 ---
+19each other. This subtyping relation can help us design actors that can work in multiple domains.
+According to the theorem in s ection 2.3, if an acto r is compatible with a certain domain D, then
+the actor is also compatible with the subtypes of D. Therefore, this actor is behaviorally polymor-
+phic.
+In this formulation, the subtyping relation is not anti-symmetric. That is, two distinct types can
+be subtypes of each other.  This is different from some other t ype system, such as the data type sys-
+tem in Ptolemy II [XiL00]. When the subtyping re lation is anti-symmetric , the subtyping relation
+induces a partial order. But we do not have a partial order in figure 22. However, if we combine
+the strongly connected components (SCC) into one node, the component gr aph becomes a partial
+order. In figure 22, there is one SCC consisting of SDF,  PN, and CSP. The partial order induced by
+the component graph is shown in figure 23. In this  figure, we also adde d a top and a bottom ele-
+ment. They represent possible dom ain behavior in extr eme cases. One possi ble design of these
+two automata is shown in figure 24. In this fi gure, both automata have a single state. The BOT-
+TOM  automaton has all the i nput transitions, and the TOP  automaton has all th e output transitions.
+They may not be directly useful  in practice, but they provide helpful insights. We will discuss
+these two automata further in section 6.3.
+When studying the compatibility with actors, the behavioral type order gives a good descrip-
+tion for the relation among various beha vioral types. From fi gure 23, it is evident that if an actor is
+Figure 23.  An example of behavioral-level type order.SDF/PN/CSPDETOP
+BOTTOM
+Figure 24. Top and Bottom of the behavioral type order.TOP BOTTOM
+
+--- Page 20 ---
+20compatible with DE, it is also compatible  with any of SDF, PN, and CSP. Also, the TOP automa-
+ton has an alternating simulation relation from all the domain-specifi c automata. So if an actor is
+compatible with this automaton, it is compatible with all the domains.
+5.3 Type Checking Examples
+Let’s perform a few type checking operations using the actors and domains in the earlier sections.
+To verify that the SDFConsumer  in figure 16 can indeed work in the SDFDomain , we compose it
+with the SDFDomain  automaton in figure 18. The result is shown in figure 25. As expected, the
+composition is not empty so SDFConsumer  is compatible with SDFDomain .
+Now let’s compose DEDomain  with SDFConsumer . The result is an empty automaton shown
+in figure 26. This is becau se the actor may call get() when ther e is no token in the receiver, and
+this call is not accepted by an em pty DE receiver. The exact sequenc e that leads to this condition
+is the following: first, both au tomata take a shared transition fC. In this transition, DEDomain
+moves from state 0 to state 7, and SDFConsumer  moves from state 0 to state 1. At state 1, SDF-
+Consumer  issues g, but this input is not accepted by DEDomain  at state 7. So the pair of states (7,
+1) in DEDomain ⊗SDFConsumer  is illegal. Since this state can be reached from the initial state (0,
+0), the initial state is pruned out from the composition. As a re sult, the whole composition is
+empty. This means that the SDF consum er cannot be used in the DE Domain.
+The PolyConsumer  in figure 17 checks the availability of a token before attempting to read
+from the receiver. By composing it with DEDomain , we verify that this actor can be used in the
+DE Domain. This composition is shown in figure 27. Since SDFDomain  is below DEDomain  in
+the behavioral type order of figur e 23, we have also verified that PolyConsumer  can work in the
+SDF domain. Therefore, PolyConsumer  is behaviorally polymorphic. As a sanity check, we have
+composed SDFDomain  with PolyConsumer , and the result is shown in figure 28.
+We have also checked that PolyConsumer  and SDFConsumer  are compatible with CSPDomain
+and PNDomain . For the sake of brevity, we do not include these compositions in this paper.
+In Ptolemy II, there is a libr ary of about 100 behaviorally-p olymorphic actors. The way that
+many of these actors consume and proc ess tokens can be modeled by the PolyConsumer  automa-
+ton.
+Figure 25.  Composition of SDFDomain  in figure 18 and SDFConsumer  in figure 16.SDFDomain_SDFConsumer
+Figure 26.  Composition of DEDomain  in figure 19 and SDFConsumer  in 
+figure 16, which is an empty automaton.DEDomain_SDFConsumer
+
+--- Page 21 ---
+215.4 More Detailed Models  for Ptolemy II Domains
+In the previous sections, the domain automata are designed at a fairly abstr act level. That is, they
+model the combined behavior of a director and a re ceiver, and they only have  the interface to the
+consumer actor exposed. If we want to model the dom ains in a little more detail, we can model the
+directors and receivers separately , and explicitly expose the produc er interface. When we do so,
+we will have more than two automa ta in the system, so we will need to have transient states in the
+model.
+Starting from SDF again, figure 29 shows an SDF director for the producer/consumer model in
+figure 15. Here, fP and fPR represent the firing of the producer actor and the return of this fire()
+call. Obviously, the firing schedule in this simple model is just to fire the producer, followed by
+the consumer, then repeat the cycle indefinitely.
+Figure 30 shows an SDF receiver. This receiver is more genera l than the one described in SDF-
+Domain  in figure 18 in that it can hold multiple toke ns. In particular, at st ate 2, where a put() call
+is just returned, the receiver allows another put() call to come before get() is called. This is mod-
+Figure 27.  Composition of DEDomain  in figure 19 and PolyConsumer  in figure 17.DEDomain_PolyConsumer
+Figure 28.  Composition of SDFDomain  in figure 18 and PolyConsumer  in figure 17.SDFDomain_PolyConsumer
+Figure 29.  An SDF director.SDFDirector
+
+--- Page 22 ---
+22eled by the transition p from state 2 to state 1. Also, after a get() call,  the receiver may not be
+empty, so a transition t from state 3 may take the receiver back to state 2. Notice that states 1t, 3t,
+4t, and 5t are transient, for reasons sim ilar to the transient states in figure 7.
+The composition of SDFDirector  and SDFReceiver  represents the behavior of the SDF
+domain. This composition can be composed with  a producer actor and a consumer actor. Figure
+31 describes the behavior of  a typical producer actor. It simply calls put() in its fire() method. As a
+type checking example, we can compose SDFDirector , SDFReceiver , Producer , and SDFCon-
+sumer  together, as shown in figure 32.
+Figure 30.  An SDF receiver.SDFReceiver
+Figure 31.  A producer.Producer
+Figure 32.  The composition of SDFDirector , SDFReceiver , Producer , and SDFConsumer .SDFDirector_SDFReceiver_Producer_SDFConsumer
+
+--- Page 23 ---
+23Now let’s look at the DE domain. Figure 33 and 34 show a DE director and a DE receiver,
+respectively. Different from the SDFDirector, the DEDirector does not statically schedule the fir-
+ing of the producer and consumer . Also, since actor execution in  DE is scheduled based on the
+time events occur, a token put into a receiver may not be immediately av ailable for the consumer
+until the simulation time reaches the time of the token, so we have a transition pR from state 1 to 0
+in DEReceiver .
+If we want to check the subt yping relation between SDF and DE, we can use the compositional
+property of alternating simulation [deH01] to simplify the ch ecking. According to this property, if
+SDFDirector  is a subtype of DEDirector , and SDFReceiver  is a subtype of DEReceiver , we have
+the composition of SDFDirector  and SDFReceiver  to be a subtype of the composition of DEDi-
+rector  and DEReceiver . Indeed, we have verified the relati on between the direct ors and receivers,
+so we know that above result hol ds. This is shown in figure 35.
+For the producer/consumer model, the director in the PN domai n will create two threads to run
+the producer and consumer, as s hown in figure 36(a) and (b). The whole PN director is the com-
+Figure 33.  A DE director.DEDirector
+Figure 34.  A DE receiver.DEReceiver
+Figure 35.  Using th e compositional proper ty to show that SDFDomain  is a subtype of DEDomain .DEDirector
+SDFDirectorDEReceiver
+SDFReceiverSDFDirector II SDFReceiverDEDirector II DEReceiver
+
+--- Page 24 ---
+24position of these two, as shown in  figure 36(c). The receiv er for the PN domain is shown in figure
+37. It performs blocking read and non-blocking write. That is, if th e get() call arrives before put(),
+it blocks. But the put() call neve r blocks. This receiver  also allows multiple put() calls before
+get().
+If we want to check the subtyping relation betw een PN and SDF, we can check whether there is
+an alternating simulation between  the directors and receivers of these two domains. Unfortu-
+nately, they do not have the same  relation as we had with the s imple domain models in section 5.2.
+Here, the only alternating simula tion we have is one from the SDFDirector  to PNDirector . This
+example shows that the subtyping relation depends on the design of the domain automata. In the
+SDFReceiver  automaton in figure 30, th e hasToken() call returns false  at state 4t, while the PNRe-
+ceiver  in figure 37 returns true in the same state. This difference breaks the alternating simulation
+relation. However, this lack of  alternating simulati on does not mean that an SDF actor cannot
+work in the PN domain. In fact, with respect to the communication protocol, any SDF actor can
+work in the PN domain. It is just that the al ternating simulation does not capture this relation.
+Although there is no altern ating simulation from PNDirector  to SDFDirector , there is actually
+an alternating simulation when th ese automata are projected to the producer or consumer autom-
+ata. Figure 38(a) and (b ) show the projection of SDFDirector  and PNDirector  onto the Producer
+in figure 31. We can verify that (1) Th ere is an alterna ting simulation from PNDirectorToPro-
+ducer  to SDFDirectorToProducer ; (2) SDFDirectorToProducer  is compatible with Producer. So
+according to the result in section 3.2, we know that PNDirector  is compatible with Producer . This
+example shows that the projecti on automata can be used to e xpose some alternating simulation
+relations when the original auto mata do not have this relation.
+Figure 36.  PN director.(a)PNProducerDirector PNConsumerDirectorPNDirector
+(b) (c)
+Figure 37.  A PN receiver.PNReceiver
+
+--- Page 25 ---
+25We skip the director and receiver automata fo r the CSP domain. The CSP director automaton is
+the same as the PNDirector  in figure 36, and the CSP receiver performs both blocking read and
+blocking write.
+6. Discussion
+6.1 Reflection
+So far, interface automata have been used to  describe the operation of  Ptolemy II components.
+These automata can be used to perform compatibility check s between components. Another inter-
+esting use is to reflect the component state in a run-time environment. Fo r example, we can exe-
+cute the automaton SDFConsumer  of figure 16 in parallel with  the execution of the actor. When
+the fire() method of the actor is called, the auto maton makes a transition fr om state 0 to state 1. At
+any time, the state of the actor can be obtained by querying the state of the automaton. Here, the
+role of the automaton is reflection, as realized for example in Java. In Java, the Class class can be
+used to obtain the static struct ure of an object, while our automa ta reflect the dynamic behavior of
+a component. We call an auto maton used in this role a reflection automaton .
+6.2 Trade-offs in Type System Design
+The examples in sections 5.1 and 5.4 show that there is no canoni cal type repres entation because
+behavioral types can be specifie d at different abstraction leve ls. These examples focus on the
+communication protocol between one or two actors and their e nvironment. This scope can be
+broadened by including the automa ta of more actors and using an even more detailed domain
+model in the composition. Also, properties other than the communication protocol, such as dead-
+lock freedom in thread-based domains, can be in cluded in the type system . However, these exten-
+sions will increase the cost of type checki ng. So there is a trade-off between the amount of
+information carried by the type syst em and the cost of type checking.
+The previous examples also show that the subtyping rela tion among domain types can help
+simplify type checking. However, because the alternating simulati on relation is sensitive to the
+design of the domain automata, we  do not always have the same subtyping relations in different
+designs. In some cases, such as in section 5.4, we can increase the set of relations captured by
+using the projection automata, but this is not al ways possible. So the tr ade-off between the amount
+of information carried by the type s and the number and structure of  subtyping relations in the sys-
+tem also needs to be considered.
+Figure 38.  Projection of SDFDirector  and PNDirector  to Producer .SDFDirectorToProducerPNDirectorToProducer
+(a) (b)
+
+--- Page 26 ---
+26Another dimension of the trade-of fs is static versus run-time type checking. The examples in
+the last section are static type checking examples . If we extend the scope of  the type system, static
+checking can quickly become imprac tical due to the size of the co mposition. An alternative is to
+check some of the properties at run time. One way to pe rform run-time checki ng is to execute the
+reflection automata of the com ponents in parallel with the execution of the components. Along
+the way, we periodically check th e states of the reflection automa ta, and see if something has gone
+wrong.
+These trade-offs imply that ther e is a big design space for behavioral types.  In this space, one
+extreme point is complete static checking by composing the automata modeling all the system
+components, and check the composition. This am ounts to model checki ng. To explore the bound-
+ary in this direction, we did an  experiment by checking an implem entation of the classical dining
+philosophers model implemented in the CSP dom ain in Ptolemy II. Each philosopher and each
+chopstick is modeled by an actor running in its own thread. The c hopstick actor uses conditional
+send to simultaneously check which philosopher (t he one on its left or the one on its right) wants
+to pick it up. We created interface au tomata for the Ptolemy II components CSPReceiver , Philoso-
+pher, and Chopstick , and a simplified automa ton to model conditional se nd. We are able to com-
+pute the composition of all the components in a two-philosopher version of the dining philosopher
+model, and obtain a closed automaton with 2992 st ates. Since this automa ton is not empty, we
+have verified that the components in the composit ion are compatible with respect to the synchro-
+nous communication protocol in CSP.  We also checked for deadlock  inherent in the implementa-
+tion, and are able to identify two deadlock states  (states without any outgoing transitions) in the
+composition, which correspond to the situation where all the philosophers are holding the chop-
+sticks on their left and waiting for the ones on th e right, and the symmetri cal situation where all
+philosophers are waiting for the chopsticks on their left.
+Our goal here is not to do mo del checking, but to perform stat ic type checking on a non-trivial
+models. Obviously, when the model grows, comple te static checking will  become intractable due
+to the well-known state explosion problem.
+Another extreme point in the design space for be havioral types is to rely on run-time type
+checking completely. For deadlock detection, we can execute the reflecti on automata in parallel
+with the Ptolemy II model. When the model deadlocks, the states of  the automata will explain the
+reason for the deadlock. In this case, the type system  becomes a debugging tool. The point here is
+that a good type system is some where between these extremes. We  believe that a system that
+checks the compatibility of communication protocol s, as illustrated in sections 5, is a good start-
+ing point.
+6.3 Top and Bottom
+We have shown one possible design  for the top and bottom elements of the behavioral type order
+in figure 24. These two automata are very general in that they are not only the top and bottom ele-
+ments of the partial order in fi gure 23, but also the top and bottom of the partial orders formed by
+any set of automata with the same set of input and output transitions. In other words, there is an
+alternating simulation relation from any automaton to the TOP automaton in figure 24, and an
+alternating simulation relation from the BOTTOM  automaton in figure 24 to any automaton with
+the same inputs and outputs.
+The TOP automaton simply uses the signature of the component’s interf ace and abstracts from
+all specific behaviors. It allows all method calls in any order. If we can design an actor that is
+compatible with the TOP automaton, then that actor will be maximally polymorphic  in that it will
+
+--- Page 27 ---
+27be able to work in any domain that  may be created. However, it is easy to see that this is almost
+impossible. Since the TOP automaton may issue any output at  any time, no non-trivial actor can
+be compatible with it. This me ans that we cannot hope to desi gn a non-trivial actor that will be
+able to work in any environment.
+On the other hand, the BOTTOM  automaton is compatible w ith any actor automaton. For
+example, the compositions of BOTTOM  with the SDFConsumer  or the PolyConsumer  are shown
+in figure 39. The two com positions are the same. Intuitively, since the BOTTOM  automaton does
+not have any output transi tions, it does not call the fire()  method of the acto r, so there is no
+interaction between the BOTTOM  automaton and the actor automaton.
+The TOP and BOTTOM  automata represent two extremes of the possible environments for
+actors. The TOP is the most stringent e nvironment in which no non-triv ial actor can work, while
+BOTTOM  is the laxest environment in which an actor is not asked to do anything.
+6.4 Related Work
+6.4.1 Behavioral Types
+In traditional type systems, types abstract the values that  an expression may return. Many
+researchers have proposed extensions to capture  the execution behavior  for various languages.
+For example, the effect system [Nie96] augments  types with effects, wh ich describe the side-
+effects that an expression may have, such as read/write effects on the store, or ex ceptions that may
+be raised by the expression. One a pplication of effect an alysis is in parallel computers. If two
+expressions do not have interferi ng effects, then a compiler ca n schedule them in parallel. In
+[NiN94], Nielson and Niel son extended the effect system to capture the communication behavior
+of concurrent ML (CML ) programs. In their system, communi cation behaviors can be included in
+type inference, and the inferen ce result indicates whether a progr am only spawns a finite number
+of processes, or only creates a fi nite number of channels. In thes e cases, the compiler may allocate
+the processes to available pr ocessors or allocate communi cation resources statically.
+Behavior analysis has also been applied to  actor based languages. For example, Colaco et al.
+presented a type inference system  for a primitive actor calculus [CPS97]. In the actor model, the
+communication topology is dynamic, so some messages se nt out by actors ma y never be handled.
+The aim of the inference system is to detect these or phan messages. This sy stem is based on set
+constraints [Aik94]. It can det ect many orphan messages statical ly and the remaining messages
+dynamically based on the static type information.
+For object-oriented languages, various notions of behavioral subtyping have been proposed
+[LiW94][LeD00], which extends the conventional OO subtyping to support the specification and
+checking of invariants and pre and post conditions. For example, an invariant of a bag object is
+that its size is always less than  its bound, and a subtype of bag has to ensure that this invariant
+holds. While these kinds of proper ties are important and their viol ations are the source of many
+software errors, we are more interested in ch ecking the communication behavior in this work.
+Many authors have proposed  type systems based on π-calculus or similar calculi. These sys-
+tems check different properties. For example, Milner’s polyadic π-calculus just checks the arities
+Figure 39. Composition of BOTTOM and SDFConsumer  or PolyConsumer .BOTTOM_SDFConsumer  or BOTTOM_PolyConsumer
+
+--- Page 28 ---
+28of channels, that is, the number of inputs and outputs along the channel [M il91]. The extension by
+Pierce and Sangiorgi captures the pol arity, or directionality of ch annels [PiS93], and Kobayashi,
+et al. further capture multiplici ties, or the number of times the channels can be  used [KPT96].
+Sumii and Kobayashi proposed a system to ensure  deadlock freedom [KSS00]. The type model of
+Puntigam ensures that all the messages sent by a client proces s are understood by a server, and
+Puntigam and Peter late r extended it to ensure that the server sends the promised responses
+[PuP99].
+In Ptolemy II, some of these pr operties are handled by the data-l evel type system. For example,
+multiple inputs and outputs in  one communication are usually accomplished by passing record
+tokens and record types are checke d together with other data types. Separati ng the data-level and
+behavioral-level issues simplifies  the type systems. Some other pr operties, such as channel direc-
+tion, is naturally encoded in the interface automa ta representation, and are included in the compat-
+ibility check.
+Some type systems based on process algebras, such  as the behavioral t ype system of Najm, et
+al. [NaN99][NNS99] and the system of Ravara  and Vasconcelos [RaV 97] capture the non-uni-
+form service availability. In both systems, beha vioral types specify the set of methods (services)
+an objects supports. This set is dynamic since the set of supported methods may change after each
+method call. For example, an object implementing a one place buffer has a put()  and a get()
+method for writing and read ing data into and from the buffer. When the buffe r is empty, the set of
+supported methods includes only the put()  method. After put()  is called, the set includes only
+the get()  method, and so on. The basic goa l here is to ensure that an object does not receive a
+method call that is not supported. This error c ondition is analogous to the error condition that
+results in illegal states in th e composition of interface automata , but type checking in interface
+automata is easier. Also, since interface automata can be easily described in bubble and arc dia-
+grams, the type representation in  our system is easier to underst and than the algebraic form used
+in both approaches. In [RaV97], a type is define d as a graph with states and transitions, where the
+transitions represent invoked method s. In these transitions, input, output and internal transitions
+are not distinguished. We believe the distinction of I/ O transitions in interface automata makes
+them a better choice for modeling software, beca use there is a natural distinction between the
+caller and callee of a me thod, or the sender and re ceiver of a message. In [NaN99], the definition
+of subtyping distinguishes the sending and receiving of messages. If a type X2 is a subtype of a
+type X1, then all the receiving actions of X1 can be performed by X2, and all the sending actions of
+X2 can be performed by X1. This is analogous to the alternat ing simulation rela tion of interface
+automata and the co/contra-varia nce relation in function subtyping
+The systems of Igarashi and Kobayashi [IgK01] and Rajamani  and Rehof [RaR02] also sup-
+ports subtyping. The former is a meta type system for the π-calculus, from which a set of type sys-
+tems checking different proper ties can be derived. In this system, the subtyping relation Γ1&Γ2 ≤
+Γ1is true, where Γ1, Γ1, and Γ are process types, and & represent internal choice. This is not true
+in our system. In general,  if a certain environment Γ is compatible with Γ1, it may not be compat-
+ible with Γ1&Γ2 since Γ2 may issue output that is  not compatible with Γ. So our definition of sub-
+typing is more appropriate for our purpose. In [RaR02], Rajamani  and Rehof used a behavioral
+type system for checking π-calculus programs. In particular , they checked the conformance of
+software implementation against a specification. They were intere sted in checking whether a mes-
+sage-passing software is stuck- free, i.e., a message sent by a sender will not get stuck without
+received by a receiver, or  a receiver waiting for a message wi ll not get stuck w ithout receiving a
+message from some sender. To be able to check this property at an  abstract level, they defined a
+
+--- Page 29 ---
+29conformance relation stronger than  alternating simulation. In Pt olemy II, stuck-free is not an
+important property to check, because it is in gene ral not a failure condition. It could be normal for
+an actor to try to read a token, but not getting it.
+Extended type systems for chec king behavioral properties have  also been developed for popu-
+lar languages such as C [STS01]  and Java [LBR98][LNS00]. Ho wever, these systems do not
+check the compatibility of  communication protocols.
+6.4.2 Component Interfacing
+In hardware design, many people have proposed techniques of protocol synthesis  to connect com-
+ponents with different interfaces [COB92][C OB95][EiP00][ETT98][OrB97][PRS98]. There are
+two approaches to protocol synt hesis. One is library or templa te based. For example, Eisenring
+and Platzner [EiP00] develop a tool that provides a templa te and a corresponding generator
+method for each interface type. The other is to generate a converter  from the two interfaces to be
+connected. For example, Passerone et al.  [PRS98] describe the comm unication protocols of the
+two components to be interfaced by two finite stat e machines, and the convert er is essentially the
+product machine, with invalid st ates removed. Compared with this  approach of component inter-
+facing, our approach is to desi gn polymorphic components with tole rant interfaces, so that they
+can be used in different settings. We do not insert  converters in the middle.  Besides, there are two
+additional differences between our system  and the protocol synthesis techniques.
+One difference is that behavior al types cover multip le models of comput ation, while protocol
+synthesis usually concentrates on interfacing different implementa tions of one mo del of computa-
+tion. For example, Passerone et al.  [PRS98] focus on synchronous model (shared clock); Eisen-
+ring and Platzner [EiP00] stud y dataflow models implemente d by queues between component; in
+[ETT98], Eisenring et al.  design a system using synchronous dataflow; and in [OrB97], Ortega
+and Borriello use a communication protocol with a non-blocking writ e behavior, which is similar
+to the one in process networks.
+Another difference is on the level of abstraction.  Since design is a process of refinement, the
+description of a component may exist at different leve ls. In [ETT98], Eisenring, et al.  divide the
+possible abstractions into two levels: abstract communication types  and physical communication
+types . Abstract communication type s includes buffered versus non-buffered, blocking versus non-
+blocking, synchronous versus asynchronous communication. Phys ical communication types
+includes memory-mapped I/O, interrupt or  DMA-transfer. In [BLO98], Borriello, et al.  gave a
+more contiguous categorization of  interface levels: electrical, logical, sequencing, timing, data
+transaction, packet, and message. The behavioral type work addr esses the highest level in this
+classification: differen t mechanisms for message passing. It  covers the abstract communication
+types. On the other hand, most work on protocol s ynthesis is at the hardware or architecture lev-
+els. For example, reconfigurable  computing with FPGA is target ed in [EiP00]; [PRS98] is about
+RTL level interface synthesis; the problem of ma pping a high-level specific ation to an architec-
+ture is considered in [OrB97]; and a system to generate interface between a set of microprocessors
+and a set of devices is de scribed in [COB92][COB95].
+The differences between our type  system and the work in prot ocol synthesis make them com-
+plementary to each other. They may be used at the different stages of the design process.
+7. Conclusion and Future Work
+We have presented the use of inte rface automata to devise a beha vioral type system for Ptolemy
+II, a software framework for c oncurrent component composition. We have leveraged the contra-
+
+--- Page 30 ---
+30variant and optimistic properties of interface automata to achiev e behavioral subtyping and poly-
+morphism, and we have extended interface automa ta in two ways to d eal with atomicity in
+concurrent actions and with scoping problems. Transient states  allow us to model mutual exclu-
+sion easily, thus improving th e modeling of atomic actions. Projection automata  improve the
+scoping of named inputs and outputs.
+Based on the extended interface automata, we have  described a type system that captures the
+interaction dynamics in a component-based desi gn environment. The interaction types and com-
+ponent behavior are described by interface automa ta, and type checking is done through automata
+composition. Our approach  is behaviorally polym orphic in that a compone nt may be compatible
+with multiple interaction type s. The relation among the interact ion types is captured by a behav-
+ioral type order using the altern ating simulation relation of inte rface automata. We have shown
+that our system can be extended to capture more dyna mic properties, and th at the design of a good
+type system involves a se t of trade-offs. Our experimental plat form is the Ptolemy II design envi-
+ronment. All the automata in th is paper are built in Ptolemy II  and their compositions are com-
+puted in software, except that some manual layout is  applied for better read ability of the diagrams.
+We also proposed using automata  to do on-line reflection of component states. In addition to
+run-time type checking, the resul ting reflection automata can add value in a number of ways. For
+example, in a reconfigurable ar chitecture or distributed system, the state of the reflection autom-
+ata can provide information on when  it is safe to perform muta tion. Reflection automata can also
+be valuable debugging tools. This  is part of our future work.
+In addition to its usual use in type checking, our  type system may faci litate the design of new
+components or Ptolemy II domains. In Ptolemy II, domains can be combined hierarchically in a
+single model. Using behavioral t ypes, it might be possible to s how that the composition of a
+domain director and a group of actors behaves like a polymorphic actor in some other domains.
+This is also part of our future research.
+Acknowledgments
+We thank Xiaojun Liu for his help in the impleme ntation of interface automata in Ptolemy II.
+The discussion with Winthrop Willi ams was very helpful. We al so thank the anonymous review-
+ers for providing critical comments.
+This research is part of th e Ptolemy project, which is s upported by the National Science Foun-
+dation (NSF award number CCR- 00225610), the Defense Advanced  Research Projects Agency
+(DARPA), and Chess (the Center  for Hybrid and Embedded Soft ware Systems), which receives
+support from the State of California MICRO pr ogram, and the following companies: Daimler-
+Chrysler, Hitachi, Honeywell, Toyota and Wind River Systems.
+References
+[Agh86] G. A. Agha, Actors: A Model of Concurrent Computation in Distributed Systems , The MIT Press, 1986.
+[Aik94] A. Aiken, “Set Constraints: Re sults, Applications and Future Directions,” Proc. of the Second Workshop
+on the Principles and Practice of Constraint Programming, Orcas Island, Washington, May 1994.
+[AlG97] R. Allen and D. Garlan, “A Form al Basis for Architectural Connection,” ACM Transaction on Software
+Engineering and Methodology , July 1997.
+[BCD02] S. S. Bhattacharyya, E. Cheong, J. Davis II, M. Goel , C. Hylands, B. Kienhuis, E. A. Lee, J. Liu, X. Liu,
+L. Muliadi, S. Neuendorffer, J. Reekie, N. Smyth, J. Tsay , B. V ogel, W. Williams, Y . Xiong, and H. Zheng, “Het-
+erogeneous Concurrent Modeling and Design in Java,” Technical Memorandum UCB/ERL M02/23 , EECS, Uni-
+
+--- Page 31 ---
+31versity of California, Berkeley, August 5, 2002. (htt p://ptolemy.eecs.berkeley.e du/publications/papers/02/
+ptIIdesign/)
+[BLO98] G. Borriello, L. Lavagno, and R. B. Ortega, “Interface Synthesis: A Vertical Slice from Digital Logic to
+Software Components,” Proc. of International Confer ence on Computer Aided Design (ICCAD), San Jose, CA,
+USA, Nov. 8-12, 1998.
+[CAR97] L. Cardelli , “Type Systems,” The Computer Science and Engineering Handbook , CRC Press, 1997.
+[CaW85] L. Cardelli and P. Wegner, “On Understanding Types, Data Abstraction, and Polymorphism,” ACM Com-
+puting Surveys , V ol.17, No.4, Dec. 1985.
+[COB92] P. Chou, R. B. Ortega and G. Borriello, “Synthe sis of the Hardware/Software Interface in Microcontroller-
+Based Systems,” Proc. ICCAD , pp488-495, Nov. 1992.
+[COB95] P. Chou, R. B. Ortega and G. Borriello, “I nterface Co-Synthesis Techniqu es for Embedded Systems,”
+Proc. of the Int. Conf. on Computer Aided Design , Nov. 1995.
+[CPS97] J-L Colaco, M. Pantel and P. Salle, “A  Set-Constraint-Based Analysis of Actors,” International Workshop
+on Formal Methods for Open Ob ject-Based Distributed Systems , Canterbur, UK, July 21-23, 1997.
+[DaP90] B. A. Davey and H. A. Priestly, Introduction to Lattices and Order , Cambridge University Press, 1990.
+[deH01] L. de Alfaro and T. A. Henzinge r, “Interface Automata,” to appear in Proc. of the Joint 8th European Soft-
+ware Engineering Conference and 9th ACM SIGSOFT International Symposium on the Foundations of SoftwareEngineering (ESEC/FSE 01) , Austria, 2001.
+[deH01a] L. de Alfaro and T. A. Henzinger, “Int erface theories for compon ent-based design,” in Proceedings of the
+First International Workshop on Embedded Software  (EMSOFT), Lectur e Notes in Computer Science 2211,
+Springer-Verlag, 2001, pp. 148-165.
+[EiP00] M. Eisenring an d M. Platzner, “Synthesis of Interfaces an d Communication in R econfigurable Embedded
+Systems,” IEE Proc. Comput. Digit. Tech , 147(3), May 2000.
+[ETT98] M. Eisenring, J. Teich and L. Thiele, “Rapid Prototyping of Dataflow Pr ograms on Hardware/Software
+Architectures,” Proc. 31st Annual Hawaii International Conference on System Sciences , 1998.
+[FlF00] C. Flanagan and S. N. Freund, “Typed-Based Race Detection for Java,” ACM SIGPLAN Conf. on Pro-
+gramming Language Design and Implementation , PLDI 2000, Vancouver, British  Columbia, Canada, June 18-
+21, 2000.
+[GoSa02] G. Goessler and A. Sa ngiovanni-Vincentelli, “Compositional Modeling in Metropolis,” Proceedings of
+EMSOFT , Grenoble, France, October 7-9, 2002, Springer-Verlag LNCS.
+[Hoa78] C. A. R. Hoare, “Communicating Sequential Processes,” Communications of the ACM , 28(8), August
+1978.
+[IgK01] A. Igarashi and N. Kobayashi, “A Generic Type System for the Pi-Calculus,” 28th Annual ACM SIGPLAN
+- SIGACT Symposium on Principles of Programming Languages (POPL 2001) , London, Jan. 17-19, 2001.
+[IWY00] P. Inverardi, A. L. Wolf and D. Yankelevich, “Static Checking of System Behaviors Using Derived Com-
+ponent Assumptions,” ACM Transactions on Software Engineering and Methodology , 9(3), July 2000.
+[Kah74] G. Kahn, “The Semantics of a Simp le Language for Parallel Programming,” Proc. of the IFIP Congress
+74, North-Holland Publishing Co., 1974.
+[KaM77] G. Kahn and D. B. MacQueen, “Corout ines and Networks of Parallel Processes,” Information Processing
+77, B. Gilchrist, editor, North-Holland Publishing Co., 1977.
+[KPT96] N. Kobayashi, B. C. Pierce and D. N. Turner, “Linearity and the Pi-Calculus,” ACM Symposium on Prin-
+ciples of Programming Languages , 1996.
+[KSS00] N. Kobayashi, S. Saito and E. Sumii, “An Implicitly-Typed Deadlock-F ree Process Calculus,” 11th Inter-
+national Conference on Concurrency Theory, CONCUR 2000 , Pennsylvania, Aug. 22-25, 2000. LNCS 1877.
+
+--- Page 32 ---
+32[LeD00] G. T. Leavens and K. K. Dhar a, “Concepts of Behavioral Subtyping and a Sketch of Their Extension to
+Component-Based Systems,” Foundations of Component-B ased Systems, Cambridge University Press, 2000.
+Chapter 6, pp. 113-135.
+[LBR98] G. T. Leavens, A. L. Baker and C. Ruby, Preliminary Design of JML: A Behavioral Interface Specification
+Language for Java , Dept. of Computer Science, Iowa State Un iversity, Ames, Iowa 50011, TR #98-06, June
+1998.
+[Lee02] E. A. Lee, “Embedded Software,” to appear in Advances in Computers  (M. Zelkowitz, editor), V ol. 56,
+Academic Press, London, 2002.
+[LeM87] E. A. Lee and D. G. Messers chmitt, “Synchronous Data Flow,” Proc. of the IEEE , Sept., 1987.
+[LeV01] E. A. Lee and P. Varaiya, Stru cture and Interpretation of Signals and Systems, Book Draf t, U.C.Berkeley,
+2001. (http://ptolemy.eecs.berkeley. edu/eecs20/supplem ents/master.pdf)
+[LeX01] E. A. Lee and Y . Xiong, “System- Level Types for Component-Based Design,” First Workshop on Embed-
+ded Software , EMSOFT2001, Lake Tahoe, CA, USA, Oct. 8-10, 2001.
+[LNS00] K. Rustan M. Leino, G. Nelson an d J. B. Saxe, “ESC/Java User’s Manual,” Technical Note 2000-002 ,
+Compaq Systems Research Center, October, 2000.
+[LiW94] B. H. Liskov and J. M. Wing, “A Behavioral Notion of Subtyping,” ACM Transaction on Programming
+Languages and Systems , 16(6), Nov., 1994.
+[LyT81] N. Lynch and M. Tuttle, “Hierarchical Correctness Proofs for Distributed Algorithms,” Proc. 6th ACM
+Symp. Principles of Distributed Computing , pp 137-151, 1981.
+[Mil91] R. Milner, “The Polyadic π-calculus: a Tutorial,” Technical Re port ECS-LFCS-91-180, Dept. of Com-
+puter Science, Univ. of Edinburgh, UK, Oct. 1991. Reprinted in F. L. Bauer, W. Brauer, and H. Schwichtenberg,
+editors, Logic and Algebra of Specification , Springer-Verlag, 1993.
+[MPW92] R. Milner, J. Parrow, D. Walker, “A Calcul us of Mobile Processes (Part I and part II),” Information and
+Computation , 100:1-77, 1992.
+[Mit84] J. C. Mitchell, “Coercion and Type Inference,” 11th Annual ACM Symposium on Principles of Program-
+ming Languages , 175-185, 1984.
+[NaN99] E. Najm, A. Nimour, “Explicit Be havioral Typing for Object Interface,” Semantics of Objects as Pro-
+cesses, ECOOP’99 Workshop , Lisbon, Portugal, June, 1999.
+[NNS99] E. Najm, A. Nimour and J. -B. Stefani, “Infinite Types for Distributed Object Interfaces,” Third IFIP Conf.
+on Formal Methods for Open Object-B ased Distributed Systems (FMOODS’99) , Firenze, Italy, Feb., 1999.
+[Nie96] F. Nielson, “Annotated  Type and Effect Systems,” ACM Computing Surveys , 28(2), June, 1996.
+[NiN94] H. R. Nielson and F.  Nielson, “Higher-Order Concurrent Programs with Finite Communication Topol-
+ogy,” ACM Symp. on Principles of Programming Languages, Jan., 1994.
+[Ode96] M. Odersky, “Challenges in Type System Research,” ACM Computing Surveys , 28(4), 1996.
+[OrB97] R. B. Ortega and G. Borriello, “Communication Synthesis for Embedded Systems with Global Consider-
+ations,” Proc. of the 5th International Workshop on Hardware/Software Co-Design (Codes/CASHE’97) , March
+1997.
+[PRS98] R. Passerone, J. A. Rowson and A. Sangiovanni- Vincentelli, “Automatic Sy nthesis of Interfaces between
+Incompatible Protocols,” 35th Design Automation Conference , 1998.
+[PiS93] B. Pierce and D. Sangiorgi, “Typing and Subtyping for Mobile Processes,” in Logic in Computer Science ,
+1993.
+[Pun96] F. Puntigam, “Types for Activ e Objects Based on Trace Semantics,” Proc. of the Workshop on Formal
+Methods for Open Object-Oriente d Distributed Systems (FMOODS’96) , Paris, France, March, 1996.
+
+--- Page 33 ---
+33[PuP99] F. Puntigam and C. Peter, “Changeable Interfaces  and Promised Messages for Concurrent Components,”
+Proc. of the ACM Symposium on Applied Computing (SAC’99) , San Antonio, Texas, Feb. 1999.
+[RaR02] S. K. Rajamani and J. Rehof, “Conforman ce Checking for Models of Asynchronous Message Passing
+Software,” Conference on Computer Aided Verification , CA V2002, Copenhagen, Denmark, July 27-31, 2002.
+LNCS 2404.
+[RaV97] A. Ravara and V . T. Vascon celos, “Behavioural Types for a Calculus of Concurrent Objects,” 3rd Interna-
+tional Euro-Par Conference , 1997. LNCS 1300, pp. 554-561.
+[STS01] U. Shankar, K. Talwar, J. S. Foster and D. Wa gner, “Detecting Format-Stri ng Vulnerabilities with Type
+Qualifiers,” 10th USENIX Security Symposium , Aug. 2001.
+[XiP98] H. Xi and F. Pfenning, “Eliminating A rray Bound Checking Through Dependent Types,” Proc. of ACM
+SIGPLAN Conf. on Programming Language Design and Implementation (PLDI ‘98) , pp. 249-257, Montreal,
+June, 1998.
+[Xio02] Y . Xiong, “An Extensible Type System for Component-Based Design,” Ph.D. Thesis, Technical Memo-
+randum, UCB/ERL M02/13 , University of California, Berkeley, CA 94720, May 1, 2002.
+[XiL00] Y . Xiong and E. A. Lee, “An Extensible Type System for Component-Based Design,” 6th International
+Conference on Tools and Algorithms for the Construction and Analysis of Systems , Berlin, Germany, March/
+April 2000. LNCS 1785.

@@ -1,0 +1,741 @@
+--- Page 1 ---
+V ATA: A Library for Efﬁcient Manipulation
+of Non-deterministic Tree Automata⋆
+Ondˇrej Leng´ al1,J i ˇr´ıˇSim´aˇcek1,2,a n dT o m ´ aˇs V ojnar1
+1FIT, Brno University of Technology, IT4Innovations Centre of Excellence, Czech Republic
+2VERIMAG, UJF/CNRS/INPG, Gi` eres, France
+Abstract. In this paper, we present V ATA, a versatile and efﬁcient open-source
+tree automata library applicable, e.g., in formal veriﬁcation. The library sup-
+ports both explicit and semi-symbolic encoding of non-deterministic ﬁnite tree
+automata and provides efﬁcient implementation of standard operations on both.
+The semi-symbolic encoding is intended for tree automata with large alphabets.
+For storing their transition functions, a newly implemented MTBDD library is
+used. In order to enable the widest possible range of applications of the library
+even for the semi-symbolic encoding, we provide both bottom-up and top-down
+semi-symbolic representations. The library implements several highly optimised
+reduction algorithms based on downward and upward simulations as well as algo-
+rithms for testing automata inclusion based on upward and downward antichains
+and simulations. We compare the performance of the algorithms on a set of test
+cases and we also compare the performance of V ATA with our previous imple-
+mentations of tree automata.
+1 Introduction
+Several current formal veriﬁcation techniques are based on ﬁnite tree automata (TA).
+Some of these techniques are: (abstract) regular tree model checking [3,5] applied, e.g.,
+for veriﬁcation of programs with complex dynamic data structures [6,11], implemen-
+tation of decision procedures of several logics, such as MSO or WSkS [17], or veriﬁ-
+cation of programs manipulating heap stru ctures with data [18]. The success of these
+techniques often depends on the performance of the underlying implementation of TA.
+Currently, there exist several available tree automata libraries, they are, however,
+mostly written in OCaml (e.g., Timbuk/Taml [10]) or Java (e.g., LETHAL [9]) and they
+do not always use the most advanced algorithms known to date. Therefore, they are not
+suitable for tasks which require the available processing power be utilised as efﬁciently
+as possible. An exception from these libra ries is MONA [17] implementing decision
+procedures over WS1S/WS2S, which contains a highly optimised TA package written
+in C, but, alas, it supports only binary deterministic tree automata. At the same time, it
+turns out that determinisation is often a very signiﬁcant bottleneck of using TA, and a lot
+⋆This work was supported by the Czech Science Foundation within projects No. P103/10/0306
+and 102/09/H042, the Czech Ministry of Education within projects COST OC10009
+and MSM 0021630528, and the EU/Czech IT4Innovations Centre of Excellence project
+CZ.1.05/1.1.00/02.0070.
+C. Flanagan and B. K¨ onig (Eds.): TACAS 2012, LNCS 7214, pp. 79–94, 2012.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2012
+
+--- Page 2 ---
+80 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+of effort has therefore been invested into developing efﬁcient algorithms for handling
+non-deterministic tree automata without a need to ever determinise them.
+In order to allow researchers focus on developing veriﬁcation techniques rather than
+reimplementing and optimising a TA package, we provide V ATA1, an easy-to-use open-
+source library for efﬁcient manipulation of non-deterministic TA. V ATA supports many
+of the operations commonly used in automata-based formal veriﬁcation techniques over
+two complementary encodings: explicit and semi-symbolic. The explicit encoding is
+suitable for most applications that do not need to use alphabets with a large number
+of symbols. However, some formal veriﬁcation approaches make use of such alphabets,
+e.g., the approach for veriﬁcation of programs with complex dynamic data structures [5]
+or decision procedures of the MSO or WSkS logics [17]. Therefore, in order to address
+this issue, we also provide the semi-symbolic encoding of TA, which uses multi-terminal
+binary decision diagrams [8] (MTBDDs), an extension of reduced ordered binary de-
+cision diagrams [7] (BDDs), to store the transition function of a TA. In order to enable
+the widest possible range of applications of the library even for the semi-symbolic en-
+coding, we provide both bottom-up and top-down semi-symbolic representations.
+At the present time, the main application of the structures and algorithms imple-
+mented in V ATA for handling explicitly encoded TA is the Forester tool for veriﬁcation
+of programs with complex dynamic data structures [11]. The semi-symbolic encoding
+of TA has so far been used mainly for experiments with various newly proposed algo-
+rithms for handling TA.
+In this paper, we do not present all exact details of the algorithms implemented in the
+library as they can be found in the referenced literature. Rather, we give an overview
+of the algorithms available, while mentioning various interesting optimisations that we
+used when implementing them. Based on expe rimental evidence, we argue that these
+optimisations are crucial for the performance of the library.
+2 Preliminaries
+Aranked alphabet Σis a ﬁnite set of symbols together with a ranking function # : Σ→
+N.F o r a∈Σ,t h ev a l u e# ais called the rank ofa.F o ra n y n≥0, we denote by Σnthe set
+of all symbols of rank nfrom Σ.L e t εdenote the empty sequence. A tree t over a ranked
+alphabet Σis a partial mapping t:N∗→Σthat satisﬁes the following conditions: (1) the
+domain of t,dom(t), is a ﬁnite preﬁx-closed subset of N∗and (2) for each v∈dom(t),i f
+#t(v)=n≥0, then{i|vi∈dom(t)}={1,..., n}. Each sequence v∈dom(t)is called a
+node oft. For a node v,w ed e ﬁ n et h e ithchild ofvto be the node vi,a n dt h e ithsubtree
+ofvto be the tree t/primesuch that t/prime(v/prime)=t(viv/prime)for all v/prime∈N∗.Aleafoftis a node vwhich
+does not have any children, i.e., there is no i∈Nwith vi∈dom(t). We denote by TΣthe
+set of all trees over the alphabet Σ.
+A (ﬁnite, non-deterministic) tree automaton (abbreviated sometimes as TA in the
+following) is a quadruple A=(Q,Σ,Δ,F)where Qis a ﬁnite set of states, F⊆Qis
+a set of ﬁnal states, Σis a ranked alphabet, and Δis a set of transition rules. Each
+transition rule is a triple of the form ((q1,..., qn),a,q)where q1,..., qn,q∈Q,a∈Σ,
+1http://www.fit.vutbr.cz/research/groups/verifit/tools/libvata/
+
+--- Page 3 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 81
+and # a=n. We use equivalently (q1,..., qn)a−→ qandqa−→ (q1,..., qn)to denote
+that((q1,..., qn),a,q)∈Δ. The two notations correspond to the bottom-up andtop-
+down representation of tree automata, resp ectively. Note that we can afford to work
+interchangeably with both of them since we work with non-deterministic tree automata,
+which are known to have an equal expressive power in their bottom-up and top-downrepresentations. In the special case when n=0, we speak about the so-called leaf rules ,
+which we sometimes abbreviate asa−→qorqa−→.
+LetA=(Q,Σ,Δ,F)be a TA. A runofAover a tree t∈TΣis a mapping π:dom(t)→
+Qsuch that, for each node v∈dom(t)of rank # t(v)=nwhere q=π(v),i fqi=π(vi)
+for 1≤i≤n,t h e n Δhas a rule (q1,..., qn)t(v)−→q. We write tπ=⇒qto denote that πis
+a run of Aover tsuch that π(ε)=q.W eu s e t=⇒qto denote that tπ=⇒qfor some run
+π.T h e language accepted by a state qis deﬁned by LA(q)={t|t=⇒q}, while the
+language of a set of states S⊆Qis deﬁned as LA(S)=/uniontext
+q∈SLA(q). When it is clear
+which TA Awe refer to, we only write L(q)orL(S). The language of Ais deﬁned as
+L(A)=LA(F).
+Adownward simulation on TA A=(Q,Σ,Δ,F)is a preorder relation /precedesequalD⊆Q×Q
+such that if q/precedesequalDpand(q1,..., qn)a−→ q, then there are states p1,..., pnsuch that
+(p1,..., pn)a−→ pandqi/precedesequalDpifor each 1 ≤i≤n.G i v e naT A A=(Q,Σ,Δ,F)and
+a downward simulation /precedesequalD,a nupward simulation /precedesequalU⊆Q×Qinduced by /precedesequalDis a re-
+lation such that if q/precedesequalUpand(q1,..., qn)a−→q/primewith qi=qfor some 1 ≤i≤n,t h e n
+there are states p1,..., pn,p/primesuch that (p1,..., pn)a−→ p/primewhere pi=p,q/prime/precedesequalUp/prime,a n d
+qj/precedesequalDpjfor each jsuch that 1 ≤j/negationslash=i≤n.
+3 Design of the Library
+The library is designed in a modular way (see Fig. 1). The user can choose a module
+encapsulating her preferred automata encoding and its corresponding operations. Vari-
+ous encodings share the same general interface so it is easy to swap one encoding for
+another, unless encoding-speciﬁc functions or operations are taken advantage of.
+Thanks to the modular design of the library, it is easy to provide an own encoding of
+tree (or word) automata and effectively exploi t the remaining parts of the infrastructure,
+such as parsers and serializers from/to diff erent formats, the unit testing framework,
+performance tests, etc.
+The V ATA library is implemented in C++ using the Boost C++ libraries. In order to
+avoid expensive look-ups of entry points of virtual methods in the virtual-method table
+of an object and to fully exploit compiler’s capabilities of code inlining and optimisation
+of code according to static analysis, the lib rary heavily exploits polymorphism using
+C++ function templates instead of using virtual methods for core functions. We are
+convinced that this is the main reason why the performance of the optimised code (the
+-O3ﬂag ofgcc) is up to 10 times better than the performance of the non-optimised code
+(the-O0ﬂag ofgcc).
+
+--- Page 4 ---
+82 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+Encoding
+Core OperationsExplicit
+Core OperationsMTBDD Bottom-Up
+Core OperationsMTBDD Top-Down
+Core Operations<other>
+Core Operations
+Automata encodings
+Parser1
+Parser2
+... ParsersSerializer1
+Serializer2
+...SerializersProgram
+Fig. 1. The architecture of the V ATA library
+3.1 Explicit Encoding
+In the explicit representation of TA used in V ATA, top-down transitions having the form
+qa−→ (q1,..., qn)a r es t o r e di na hierarchical data structure similar to a hash table .
+More precisely, the top-level lookup table maps states to transition clusters . Each such
+cluster is itself a lookup table that maps alphabet symbols to a set of pointers to tuples
+of states. The set of pointers to tuples of st ates is represented using a red-black tree.
+The tuples of states are stored in a designated hash table to further reduce the requiredamount of space (by not storing the same tuples of states multiple times). An example
+of the encoding is depicted in Fig. 2.
+Hence, in order to insert the transition qa−→(q1,..., qn)into the transition table, one
+proceeds using the following algorithm:
+1. Find a transition cluster which corresponds to the state qin the top-level lookup
+table. If such a cluster does not exist, create one.
+2. In the given cluster, ﬁnd a set of poi nters to tuples of states reachable from qover
+a. If the set does not exist, create one.
+3. Obtain the pointer to the tuple (q1,..., qn)from the tuple lookup table and insert it
+into the set of pointers.
+If one ignores the worst-case time complexity of the underlying data structures (which,
+according to our experience, has usually a neg ligible real impact onl y), then inserting
+a single transition into the transition table requires a constant number of steps only.
+Yet the representation provides a more efﬁcient encoding than a plain list of transitionsbecause some transitions share the space required to store the parent states (e.g., state
+qin the transition qa−→(q1,..., qn)). Moreover, some transitions also share the alpha-
+bet symbol and each tuple of states appearing in the set of transitions is stored only
+
+--- Page 5 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 83
+Automata A B C
+Top-level
+Lookup Tablesq1q2q3 q1q2
+Transition Clustersab ce bc e
+Sets of
+Pointers to Tuples
+Tuples of States (q1,q1)( q1,q2)( q2,q2)( q3,q2) ()
+Fig. 2. An example of the V ATA’s explicit encoding of transition functions of three automata A,
+B,C. In particular, one can see that Acontains a transition q1c−→(q1,q2): it sufﬁces to follow
+the corresponding arrows. Moreover, Balso contains the same tra nsition (and the corresponding
+part of the transition table is shared with A). Finally, Chas the same transitions as B.
+once. Additionally, the encoding allows us to easily perform certain critical operations,
+such as ﬁnding a set of transitions qa−→(q1,..., qn)for a given state q.T h i si su s e f u l ,
+e.g., during the elimination of (top-down ) unreachable states or during the top-down
+inclusion checking.
+In some situations, one needs to manipulate many tree automata at the same time. As
+an example, we can mention the method for verifying programs with dynamic linkeddata structures introduced in [11] where (in theory) one needs to store one automaton
+representing a content of the heap for each reachable state of the program. To improve
+the performance of our library in such scenarios, we adapt the copy-on-write principle.
+Every time one needs to cr eate a copy of an automaton Ato be subsequently modiﬁed, it
+is enough to create a new automaton A
+/primewhich obtains a pointer to the transition table of
+A(which requires constant time). Subsequently, as more transitions are inserted into A/prime
+(orA), only the part of the shared transition table which gets modiﬁed is copied (Fig. 2
+provides an illustration of this feature).
+3.2 Semi-symbolic Encoding
+The semi-symbolic encoding uses multi-terminal binary decision diagrams (MTBDDs)
+to encode transition functions of tree automata. MTBDDs are an extension of binary
+decision diagrams (BDDs), a popular data structure for compact encoding and manipu-
+lation with Boolean formulae. In contrast to BDDs that are used to represent a function
+b:Bn→Bfor some n∈NandB={0,1}, MTBDDs extend the co-domain to an
+arbitrary set S, i.e., they represent a function m:Bn→S.
+
+--- Page 6 ---
+84 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+q
+{(r,s),(r,t)}
+{(s),(t),(u)}/0
+{(u,u,u)}
+a)
+top-down(q1,..., qn)
+{r,s}{s,t,u}/0{u}
+b) bottom-up
+Fig. 3. The (a) top-down and (b) bottom-up semi-symbolic encodings of transition functions.
+Paths in the MTBDD correspond to symbols.
+We support two representations of semi-symbolic automata: top-down and bottom-
+up. The top-down representation (see Fig. 3a) maintains for each state qof a tree
+automaton an MTBDD that maps the bin ary representation of each symbol fcon-
+catenated with the binary r epresentation of its arity nonto a set of tuples of states
+T={(q1,..., qn),...}such that for all (q1,..., qn)∈Tthere exist the transition qf−→
+(q1,..., qn)in the automaton. The arity is encoded in the MTBDD as a part of the sym-
+bol in order to be able to distinguish between several instances of the same symbol with
+different arity. The library thus supports a slight extension of tree automata in which
+a symbol does not have a ﬁxed arity.
+The bottom-up representation (see Fig. 3b), on the other hand, maintains for each
+tuple (q1,..., qn)∈Q∗an MTBDD that maps the binary representation of each symbol
+fonto a set of states S={q,...}such that, for all q∈S, it holds that the transition
+(q1,..., qn)f−→qis in the automaton. Note that the bottom-up representation does not
+need to encode the arity of the symbol finto the MTBDD as it is given by the arity of
+the tuple for which the MTBDD is maintained. It is easy to see that the two presented
+encodings are mutually convertible (see [13] for the algorithm).
+MTBDD Package. Our previous implementation of semi-symbolically represented
+tree automata used a customisation of the CUDD [20] library for manipulating
+MTBDDs. The experiments in [12] and proﬁling of the code showed that the over-
+head of the customised library is too large. Moreover, the customisation of CUDD did
+not provide an easy and transparent way of manipulating MTBDDs. These two facts
+showed that V ATA would greatly beneﬁt from a major redesign of the MTBDD back-
+end. Therefore, we created our own gener ic implementation of MTBDDs with a clean
+and simple-to-use interface.
+
+--- Page 7 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 85
+The new MTBDD package uses shared MTBDDs for each domain, which means
+that all MTBDDs for the given domain are connected in a single directed acyclic graph
+(DAG), and an MTBDD corresponds to a pointer to a node in the DAG. In order to
+prevent memory leaks, each node of the MTBDD contains a referen ce counter of other
+nodes or variables pointing to it. In case the counter reaches zero, the node is deletedfrom the memory. Because of these implementation choices, copying an MTBDD can
+be easily done by simply copying the pointer to the root node of the copied MTBDD
+and incrementing its reference counter.
+There are two types of nodes of the MTBDD: internal nodes andleaf nodes . A leaf
+node contains a value from the domain of the MTBDD, while an internal node containsa variable name and pointers to the lowandhigh children of the node. In addition,
+nodes of both types also contain the aforementioned reference counter. The nodes are
+manipulated using pointers to them only, and the distinction between a leaf node and aninternal node is done according to the least si gniﬁcant bit of the pointer (the compiler
+aligns these data structures to addresses which are multiples of 4, this bit can therefore
+be neglected and when accessing the val ue of a node pointer simply masked out).
+For our use, we implemented unary, binary, and ternary Apply operations, which
+are operations that, given a unary, binary, or ternary function and one, two, or three
+MTBDDs, respectively, generate a new MTBDD the leaves of which correspond to the
+values of the given function applied to the provided MTBDDs. Note that the provided
+function does not need to be a pure function but my also have a side-effect. Further, wealso provide VoidApply operations which are Apply operations that do not build a new
+MTBDD but that have a side-effect only. For operations that do not need to build new
+MTBDDs but rather, e.g., only collect data from the leaf nodes, using VoidApply saves
+a considerable and unnecessary ove rhead. During the execution of an Apply operation,
+both internal and leaf nodes are cached using hash tables.
+The newly implemented MTBDD package does not support MTBDD reordering so
+far, yet the library performs better when compared to our original implementation of
+a semi-symbolic encoding that used customised CUDD.
+4 Supported Operations
+As we described in the previous section, the V ATA library allows a user to choose oneof three available encodings: the explicit top-down, the semi-symbolic top-down, and
+the semi-symbolic bottom-up. Depending on the choice, certain TA operations may or
+may not be available. The following operations are supported by at least one of the
+representations: union, intersection, elim ination of (bottom-up, top-down) unreachable
+states, inclusion checking (bottom-up, top-down), computation of (maximum) simula-tion relations (downward, upward), and language preserving size reduction based on
+simulation equivalence. In some cases, multiple implementations of an operation are
+available, which is especially the case for la nguage inclusion. This is because the differ-
+ent implementations are based on different h euristics that may work better for different
+applications as witnessed also by our experiments described in Section 5.
+
+--- Page 8 ---
+86 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+Below, we do not discuss the relatively straightforward implementation of the most
+basic operations on TA and we comment on the more advanced operations only.
+4.1 Removing Unreachable States
+As the performance of many operations on automata depends on the size of the au-
+tomaton (in the sense of the size of the state set and the size of the transition table), itis often desirable to remove both bottom- up and top-down unreachable states. Indeed,
+such states are useless: bottom-up unreachab le states cannot be used to generate a ﬁnite
+tree and although top-down unreachable states can generate a ﬁnite tree, this tree cannot
+be a subtree of any tree accepted by the automaton.
+Removing both bottom-up unreachable states for the bottom-up representation and
+top-down unreachable states for the top-down representation can be easily done by
+a single traversal through the automaton. Nevertheless, sometimes, e.g., when checking
+language inclusion of the automata, it is use ful to also remove sta tes unreachable in the
+opposite direction.
+The procedure for removing top-down unreach able states from a tr ee automaton rep-
+resented in a bottom-up semi-symbo lic way generates a directed graph (Q,E)where Q
+is the state set of the input automaton and (q,r)∈Eif∃a∈Σ:qa−→(q1,..., qn),∃1≤
+i≤n:r=qi. When the graph is created, the stat es that are backward unreachable from
+the ﬁnal states are removed from the automaton in a simple traversal.
+Removing bottom-up unreachable states for t he top-down semi-symbolic represen-
+tation is more complex. First, the automaton is traversed in the top-down manner while
+creating an And-Or graph (N∀,N∃,E)where N∀=Q,Qis the state set of the input
+automaton and represents the And nodes of the graph, and N∃⊆Q∗represents the Or
+nodes. The set of edges Econtains the edge (q,(q1,..., qn))if there exists the transi-
+tionqa−→(q1,..., qn)for some a∈Σin the automaton, and the edge ((q1,..., qn),q)
+if∃1≤i≤n:qi=q. The algorithm starts by marking the node labelled by ()(which is
+an Or node) and proceeds by marking the nodes of the graph using the following rules:
+an Or node ois marked if there exists a marked node asuch that (o,a)∈E,a n da nA n d
+node ais marked if all nodes osuch that (a,o)∈Eare marked. When no new nodes
+can be marked, the states of the automaton are reduced to only those that correspond to
+marked And nodes in the graph.
+4.2 Downward and Upward Simulation
+Downward simulation relations can be com puted over two tree automata representa-
+tions in V ATA: the explicit top-down and the semi-symbolic top-down encoding. The
+explicit variant ﬁrst translates a tree automaton into a labelled transition system (LTS)
+as described in [1]. Then the simulation relation for this system is computed using an
+implementation of the state-of-the-art algorithms for computing simulations on LTSs[19,14] with some further optimisations mentioned in Section 4.6. Finally, the result is
+projected back to the set of states of the original automaton.
+The semi-symbolic variant uses a simpler simulation algorithm based on a generali-
+s a t i o no f[ 1 6 ]t ot r e e s .
+
+--- Page 9 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 87
+Upward simulation can currently be computed over the explicit representation only.
+The computation is again performed via a translation to an LTS (the details are in [1]),and the relation is computed using the engine for computing simulation relations on
+LTSs as above.
+4.3 Simulation-Based Size Reduction
+In a typical setting, one often wants to use a representation of tree automata that is as
+small as possible in order to reduce the memory consumption and/or speed up opera-
+tions on the automata (especially the potentially costly ones, such as inclusion testing).
+To achieve that, the classical approach is to use determinisation and minimisation. How-
+ever, the minimal deterministic tree automata can still be much bigger than the original
+non-deterministic ones. Therefore, V ATA of fers a possibility to reduce the size of tree
+automata without determinisation by their quotienting w.r.t. an equivalence relation—
+currently, only the downward simulation equivalence is supported.
+The procedure works as follows: ﬁrst, the downward simulation relation /precedesequal
+Dis com-
+puted for the automaton. Then, the symmetric fragment of /precedesequalD(which is an equivalence)
+is extracted, and each state appearing within the transition function is replaced by a rep-
+resentative of the corresponding equivalence class. A further reduction is then based
+on the following observation: if an automaton contains a transition qa−→(q1,..., qn),
+any additional transition qa−→(r1,..., rn)where ri/precedesequalDqican be omitted since it does
+not contribute to the language of the result (recall that, for the downward simulation
+preorder/precedesequalD, it holds that q/precedesequalDr=⇒L(q)⊆L(r)).
+4.4 Bottom-Up Inclusion
+Bottom-up inclusion testing is implemented for the explicit top-down and the
+semi-symbolic bottom-up representation in V ATA. As its name suggests, the algorithm
+naturally proceeds in the bottom-up way, th erefore the top-down encoding is not very
+suitable here. In the case of the explicit representation, however, one can afford to builda temporary bottom-up encoding since the overhead of such a translation is negligible
+compared to the complexity of following operations.
+Both the explicit and semi-symbolic version of the bottom-up inclusion algorithm
+are based on the approach introduced in [4]. He re, the main principle used for checking
+whether
+L(A)⊆L(B)is to search for a tree which is accepted by Aand not by B(thus
+being a witness for L(A)/negationslash⊆L(B)). This is done by simultaneously traversing both
+AandBfrom their leaf rules while generating pairs (pA,PB)∈QA×2QBwhere pA
+represents a state into which Acan get on some input tree and PBis the set of allstates
+into which Bcan get over the same tree. The inclusion then does clearly not hold iff it
+is possible to generate a pair c onsisting of an accepting state of Aand of exclusively
+non-accepting states of B.
+The algorithm collects the so far generated pairs (pA,PB)in a set called Visited .
+Another set called Next is used to store the generated pairs whose successors are still
+to be explored. One can then observe that whenever one can reach a counterexample toinclusion from (p
+A,PB), one can also reach a counterexample from any (pA,P/prime
+B⊆PB)
+
+--- Page 10 ---
+88 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+asP/prime
+Ballows less runs than PB. Using this observation, both mentioned sets can be rep-
+resented using antichains. In particular, one does not need to store and further explore
+any two elements co mparable w.r.t. (=,⊆), i.e., by equality on the ﬁrst component and
+inclusion on the other component.
+Clearly, the running time of the above algorithm strongly depends on the total num-
+b e ro fp a i r s (pA,PB)taken from Next for further processing. Indeed, this is one of the
+reasons why the antichain-based optimisations helps. According to our experience, the
+number of pairs which needs to be processed can further be reduced when processing
+the pairs stored in Next in a suitable order. Our experimental results have shown that
+we can achieve a very good improvement by preferring those pairs (pA,PB)which have
+smaller (w.r.t. the size of the set) second component.
+Yet another way that we found useful when improving the above algorithm is to op-
+timise the way the algorithm computes the successors of a pair from Next . The original
+algorithm picks a pair (pA,PB)from Next and puts it into Visited . Then, it ﬁnds all
+transitions of the form (pA,1,..., pA,n)a−→ pinAsuch that (pA,i,PB,i)∈Visited for
+all 1≤i≤nand ( pA,j,PB,j)=( pA,PB)f o rs o m e1 ≤j≤n. For each such transition,
+it ﬁnds all transitions of the form (q1,..., qn)a−→ qinBsuch that qi∈PB,ifor all
+1≤i≤n. Here, the process of ﬁnding the needed Btransitions is especially costly. In
+order to speed it up, we cache for each alphabet symbol a, each position i, and each set
+PB,i, the set of transitions {(q1,..., qn)a−→q∈ΔB:qi∈PB,i}at the ﬁrst time it is used
+in the computation of successors. Then, whenever we need to ﬁnd all transitions of the
+form (q1,..., qn)a−→qinBsuch that qi∈PB,ifor all 1≤i≤n, we ﬁnd them simply
+by intersecting the sets of transitions cached for each (PB,i,i,a).
+Next, we propose another modiﬁcation of the algorithm which aims to improve the
+performance especially in those cases where ﬁnding a counterexample to inclusion re-
+quires us to build representatives of trees with higher depths or in the cases where the
+inclusion holds. Unlike the original approach which moves only one pair (pA,PB)from
+Next toVisited at the beginning of each iteration of the main loop, we add the newly
+created pairs (pA,PB)intoNext andVisited at the same time (immediately after they
+are generated). This, accordin g to our experiments, allows Visited to converge faster
+towards the ﬁxpoint.
+Finally, another optimisation of the algorithm presented in [4] appeared in [2]. This
+optimisation maintains the sets Visited andNext as antichains w.r.t. (/precedesequalU,/followsequal∃∀
+U)2. Hence,
+more pairs can be discarded from these sets. Moreover, for pairs that cannot be dis-
+carded, one can at least reduce the sets on their right-hand side by removing states that
+are simulated by some other state in these sets (this is based on the observation that any
+tree accepted from an upward-simulation- smaller state is accepted from an upward-
+simulation-bigger state too). Finally, one can also use upward simulations between
+states of the two automata being compared. Then, one can discard any pair (pA,PB)
+such that there is some pB∈PBthat upward-simulates pAbecause it is then clear that
+no tree can be accepted from pAthat could not be accepted from pB. All these opti-
+2One says that P/precedesequal∃∀
+UQholds iff∀p∈P∃q∈Q:p/precedesequalUq. Note also that the upward simulation
+must be parameterised by the identity in this case [2].
+
+--- Page 11 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 89
+misations are also available in V ATA and can optionally be used—they are not used by
+default since the computation of the upward simulation can be quite costly.
+4.5 Top-Down Inclusion
+Top-down inclusion checking is supported by the explicit top-down and semi-symbolic
+top-down representations in V ATA. Note that when one tries to solve inclusion of TA
+languages top-down in a na¨ ıve way, using a plain subset-construction-like approach,
+one immediately hits a problem due to the top-down successors of particular states aretuples of states. Hence, after one step of the construction, one needs to check inclusion
+on tuples of states, then tuples of tuples of states, etc. However, there is a way how to
+get out of this trap as shown in [15,12]. Very roughly said, the main idea of the approach
+resembles a conversion from the disjunctive normal form (DNF) to the conjunctive nor-
+mal form (CNF) taking into account that top-down transitions of tree automata form a
+kind of and-or graphs (the disjunctions are between top-down transitions and conjunc-
+tions among the successors within particular transitions).
+V ATA contains an implementation of the top-down inclusion checking algorithm
+of [12]. This algorithm uses several optimisations, e.g., caching of results of auxiliary
+language inclusion queries between states of the automata whose languages are being
+compared. More precisely , when checking whether
+L(A)⊆L(B)holds for two tree au-
+tomata AandB, the algorithm stores a set of pairs (pA,PB)∈QA×2QBfor which the
+language inclusion L(pA)⊆L(PB)has been shown notto hold. As a further optimisa-
+tion, the set is stored as an antichain based on comparing the states w.r.t. the downward
+simulation preorder. The use of the downward simulation is one of the main advantages
+of this approach compared with the bottom-up inclusion checking since this preorder ischeaper to compute and usually richer than the upward simulation. Indeed, [12] shows
+that top-down inclusion checking is often—though not always—superior to bottom-up
+inclusion checking.
+Moreover, V ATA has recently been extended by a new version of the top-down in-
+clusion checking algorithm that extends th e original version by caching even the pairs
+(p
+A,PB)∈QA×2QBfor which the language inclusion L(pA)⊆L(PB)has been shown
+to hold. This extension is far from trivial since the caching must be done very carefully
+in order to avoid a sort of circular reasoning when answering the various auxiliarylanguage inclusion queries. A precise description of this rather involved algorithm is
+beyond the scope of this article, and so we refer an interested reader to [13]. As our
+experiments show, the new kind of cachin g comes with some overhead, which does not
+allow it to always win over the previous algorithm, but there are still many cases in
+which it performs signiﬁcantly better.
+4.6 Computing Simulation over LTS
+The explicit part of V ATA uses a highly optimised LTS simulation algorithm proposed
+in [19] and greatly improved in [14]. The main idea of the algorithm is to start with
+an overapproximation of the simulation preorder (a possible initial approximation is
+the relation Q×Q) which is then iteratively pruned whenever it is discovered that the
+simulation relation cannot hold for certain pairs of states. For a better efﬁciency, the
+
+--- Page 12 ---
+90 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+algorithm represents the current approximation Rof the simulation being computed
+using a so-called partition-relation pair . The partition splits the set of states into subsets
+(called blocks ) whose elements are equivalent w.r.t. R, and a relation obtained by lifting
+Rto blocks.
+In order to be able to deal with the partition-relation pair efﬁciently, the algorithm
+needs to record for each block a matrix of counters of size |Q||Σ|where, for the given
+LTS, Qis the set of states and Σis the set of labels. The counters are used to count
+how many transitions going from the given state via a given symbol alead to states in
+the given block (or blocks currently considered to be bigger w.r.t. the simulation). This
+information is then used to optimise re-computation of the partition-relation pair when
+pruning the current approximation of the simulation relation being computed (for details
+see, e.g., [19]). Since the number of blocks can (and often does) reach the number of
+states, the na¨ ıve solution requires |Q|2|Σ|counters in the worst case. It turns out that
+this is one of the main barriers which prevents the algorithm from scaling to systems
+with large alphabets and/or large sets of states.
+Working towards a remedy for the above problem, one can observe that the men-
+tioned algorithm actually works in several phases. At the beginning, it creates an ini-
+tial estimation of the partition-relation pair which typically contains large equivalence
+classes. Then it initialises the counters for each element of the partition. Finally, it
+starts the iterative partitio n splitting. During this last phase, the counters are only decre-
+mented or copied to the newly created blocks. Moreover, the splitting of some block is
+itself triggered by decrementing some set of counters to 0. In practice, late phases of
+the iteration typically witness a lot of small equivalence classes having very sparsely
+populated counters with 0 being the most abundant value.
+This suggests that one could use sparse matrices containing only the non-zero ele-
+ments. Unfortunately, according to our expe rience, this turns out to be the worst possi-
+ble solution which strongly degrades the performance. The reason is that the algorithm
+accesses the counters very frequently (it eith er increments them by one or decrements
+them by one), hence any data structure with non-constant time access causes the com-
+putation to stall. A somewhat better solution is to record the non-zero counters using
+a hash table, but the memory requirements of such representation are not yet reasonable.
+Instead, we are currently experimenting with storing the counters in blocks, using
+a copy-on-write approach and a zeroed-block deallocation. In short, we divide the ma-
+trix of counters into a list of blocks of some ﬁ xed size. Each block contains an additional
+counter (a block-level counter) which sums up all the elements within the block. As
+soon as a block contains a single non-zero counter only, it can safely be deallocated—
+the content of the non-zero counter is then recorded in the block-level counter.
+Our initial experiments show that, using the above approach, one can easily reduce
+the memory consumption by the factor of 5 for very large instances of the problem
+compared to the array-based representation used in [14]. The best value to be used as
+the size of blocks of counters is still to be st udied—after some initial experiments, we
+are currently using blocks of size/radicalbig
+|Q|.
+
+--- Page 13 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 91
+5 Experimental Evaluation of V ATA
+In order to illustrate the level of optimisation that has been achieved in V ATA and that
+can be exploited in its applications (like the Forester tool [11]), we compared its perfor-
+mance against Timbuk and the prototype library considered in [12], which—despite its
+prototype status—already contained a quite efﬁcient TA implementation.
+The comparison of performance of V ATA (using the explicit encoding) and Timbuk
+was done for union and intersection of more than 3,000 pairs of TA. On average, V ATA
+was over 20,000 times faster on union and over 100,000 times faster on intersection.
+When comparing V ATA with the prototype library of [12], we concentrated on lan-
+guage inclusion testing which is one of the most costly operations on non-deterministic
+TA. In particular, we conducted a set of experiments evaluating the performance of the
+V ATA’s optimised TA language inclusion algorithms on pairs of TA obtained from ab-
+stract regular tree model checking of the algorithm for rebalancing red-black trees after
+insertion or deletion of a leaf node (which is the same test set that was used in [12]).
+5.1 Experiments with the Explicit Encoding
+For the explicit encoding, we measured for each inclusion method the fraction of cases
+in which the method was the fastest among the evaluated methods on the set of al-
+most 2000 tree automata pairs. The results of this experiment are given in Table 1.
+The columns are labelled as follows: column expldown is for pure downward inclusion
+checking, column expldown+s is for downward inclusion using downward simulation,
+expldown-opt is a column for pure downward inclusion checking with the optimi-
+sation proposed in Section 4.5, and column expldown-opt+s is downward inclusion
+checking with simulation using the same optimisation. Columns explup andexplup+s
+give the results for pure upward inclusion checking and upward inclusion checking with
+simulation respectively. The timeout was set to 30 s.
+Table 1. Experiments with inclusion for the explicit encoding
+expldown
+ expldown+s
+ expldown-opt
+ expldown-opt+s
+ explup
+explup+s
+Winner
+ 36.35 %
+ 4.15 %
+ 32.20 %
+ 3.15 %
+ 24.14 %
+ 0.00 %
+Timeouts
+ 32.51 %
+ 18.27 %
+ 32.51 %
+ 18.27 %
+ 0.00 %
+ 0.00 %
+Table 2. Experiments with the explicit encoding for cases when inclusion does not hold
+expldown
+ expldown+s
+ expldown-opt
+ expldown-opt+s
+ explup
+explup+s
+Winner
+ 39.85 %
+ 0.00 %
+ 35.30 %
+ 0.00 %
+ 24.84 %
+ 0.00 %
+Timeouts
+ 26.01 %
+ 20.31 %
+ 26.01 %
+ 20.31 %
+ 0.00 %
+ 0.00 %
+Table 3. Experiments with the explicit encoding for cases when inclusion holds
+expldown
+ expldown+s
+ expldown-opt
+ expldown-opt+s
+ explup
+explup+s
+Winner
+ 0.00 %
+ 47.28 %
+ 0.00 %
+ 35.87 %
+ 16.85 %
+ 0.00 %
+Timeouts
+ 90.80 %
+ 0.00 %
+ 90.80 %
+ 0.00 %
+ 0.00 %
+ 0.00 %
+
+
+--- Page 14 ---
+92 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+We also checked the performance of the al gorithms for cases wh en inclusion either
+does ordoes not hold in order to explore the ability of the algorithms to either ﬁnd
+a counterexample in the case when inclusion does not hold, or prove the inclusion in
+case it does. These results are given in Table 2 and Table 3.
+When compared to our previous implemen tation, V ATA performed almost always
+better. The average speed-up was even as high as 200 times for pure downward inclu-
+sion checking. The old implementation was faster in about 2.5 % of the cases, and the
+difference was not signiﬁcant.
+5.2 Experiments with the Semi-symbolic Encoding
+We performed a set of similar experiments for the semi-symbolic encoding, the results
+of which are given in Table 4. The columns are labelled as follows: column symdown is
+for pure downward inclusion checking, column symdown+s is for downward inclusion
+using downward simulation, symdown-opt is a column for pure downward inclusion
+checking with the optimisation proposed in Section 4.5 and column symdown-opt+s
+is downward inclusion checking with simulation using the same optimisation. Column
+symup gives the results for pure upward inclusion checking. The timeout was again set
+to 30 s.
+As in the experiments for the explicit enc oding, we also checked the performance of
+the algorithms for cases when inclusion either does ordoes not hold. These results are
+given in Table 5 and Table 6.
+When compared to our previous implementa tion, V ATA again performs signiﬁcantly
+better, with the pure upward inclusion being on average over 300 times faster and the
+pure downward inclusion being even over 3000 times faster.
+Table 4. Experiments with inclusion for the semi-symbolic encoding
+symdown
+symdown+s
+ symdown-opt
+ symdown-opt+s
+ symup
+Winner
+ 44.02 %
+ 0.00 %
+ 31.73 %
+ 0.00 %
+ 24.25 %
+Timeouts
+ 5.87 %
+ 77.93 %
+ 5.87 %
+ 78.00 %
+ 22.26 %
+Table 5. Experiments with the semi-symbolic encoding for cases when inclusion does not hold
+symdown
+symdown+s
+ symdown-opt
+ symdown-opt+s
+ symup
+Winner
+ 45.03 %
+ 0.00 %
+ 33.06 %
+ 0.00 %
+ 21.91 %
+Timeouts
+ 2.48 %
+ 80.03 %
+ 2.48 %
+ 80.09 %
+ 23.39 %
+Table 6. Experiments with the semi-symbolic encoding for cases when inclusion holds
+symdown
+symdown+s
+ symdown-opt
+ symdown-opt+s
+ symup
+Winner
+ 19.74 %
+ 0.00 %
+ 0.00 %
+ 0.00 %
+ 80.26 %
+Timeouts
+ 72.37 %
+ 36.84 %
+ 72.37 %
+ 36.84 %
+ 0.00 %
+
+
+--- Page 15 ---
+V ATA: A Library for Efﬁcient Manipulation of Non-deterministic Tree Automata 93
+6C o n c l u s i o n
+This paper introduced and described a new efﬁcient and open-source non-deterministic
+tree automata library that supports both explicit and semi-symbolic encoding of the
+tree automata transition function. The semi-symbolic encoding makes use of our own
+MTBDD package instead of the previously used customisation of the CUDD library.
+We wish to continue in this work by attempting to implement a simulation-aware
+symbolic encoding of antichains using BDDs. Further, we wish to implement other op-
+erations, such as determinisation (which, however, is generally desired to be avoided),
+or complementation (which we so far do not know how to compute without ﬁrst deter-minising the automaton).
+Finally, we hope that a public release of our library will attract more people to use it
+and even better contribute to the code base. Indeed, we believe that the library is written
+in a clean and understandable way that should make such contributions possible.
+References
+1. Abdulla, P.A., Bouajjani, A., Hol´ ık, L., Kaati, L., V ojnar, T.: Composed Bisimulation for
+Tree Automata. In: Ibarra, O.H., Ravikumar, B. (eds.) CIAA 2008. LNCS, vol. 5148, pp.
+212–222. Springer, Heidelberg (2008)
+2. Abdulla, P.A., Chen, Y .-F., Hol´ ık, L., Mayr, R., V ojnar, T.: When Simulation Meets An-
+tichains (On Checking Language Inclusion of Nondeterministic Finite (Tree) Automata). In:Esparza, J., Majumdar, R. (eds.) TACAS 2010. LNCS, vol. 6015, pp. 158–174. Springer,
+Heidelberg (2010)
+3. Abdulla, P.A., Jonsson, B., Mahata, P., d’Orso, J.: Regular Tree Model Checking. In:
+Brinksma, E., Larsen, K.G. (eds.) CA V 2002. LNCS, vol. 2404, pp. 555–568. Springer, Hei-
+delberg (2002)
+4. Bouajjani, A., Habermehl, P., Hol´ ık, L., Touili, T., V ojnar, T.: Antichain-Based Universality
+and Inclusion Testing over Nondeterministic Finite Tree Automata. In: Ibarra, O.H., Raviku-mar, B. (eds.) CIAA 2008. LNCS, vol. 5148, pp. 57–67. Springer, Heidelberg (2008)
+5. Bouajjani, A., Habermehl, P., Rogalewicz, A., V ojnar, T.: Abstract Regular Tree Model
+Checking. In: ENTCS, vol. 149. Elsevier (2006)
+6. Bouajjani, A., Habermehl, P., Rogalewicz, A., V ojnar, T.: Abstract Regular Tree Model
+Checking of Complex Dynamic Data Structures. In: Yi, K. (ed.) SAS 2006. LNCS, vol. 4134,
+pp. 52–70. Springer, Heidelberg (2006)
+7. Bryant, R.E.: Graph-based Algorithms for Boolean Function Manipulation. IEEE Trans.
+Computers (1986)
+8. Clarke, E.M., McMillan, K.L., Zhao, X., Fujita, M., Yang, J.: Spectral Transforms for Large
+Boolean Functions with Applications to Technology Mapping. In: FMSD, vol. 10. Springer(1997)
+9. Claves, P., Jansen, D., Holtrup, S.J., Mohr, M., Reis, A., Schatz, M., Thesing, I.: The
+LETHAL Library (2009),
+http://lethal.sourceforge.net/
+10. Genet, T.: Timbuk/Taml: A Tree Automata Library (2003),
+http://www.irisa.fr/lande/genet/timbuk
+11. Habermehl, P., Hol´ ık, L., Rogalewicz, A., ˇSim´aˇcek, J., V ojnar, T.: Forest Automata for Veri-
+ﬁcation of Heap Manipulation. In: Gopalakrishnan, G., Qadeer, S. (eds.) CA V 2011. LNCS,
+vol. 6806, pp. 424–440. Springer, Heidelberg (2011)
+12. Hol´ ık, L., Leng´ al, O., ˇSim´aˇcek, J., V ojnar, T.: Efﬁcient Inclusion Checking on Explicit and
+Semi-Symbolic Tree Automata. In: Bultan, T., Hsiung, P.-A. (eds.) ATV A 2011. LNCS,
+vol. 6996, pp. 243–258. Springer, Heidelberg (2011)
+
+--- Page 16 ---
+94 O. Leng´ al, J. ˇSim´aˇcek, and T. V ojnar
+13. Hol´ ık, L., Leng´ al, O., ˇSim´aˇcek, J., V ojnar, T.: Efﬁcient Inclusion Checking on Explicit and
+Semi-Symbolic Tree Automata. Tech. rep. FIT-TR-2011-04, FIT BUT, Czech Rep. (2011)
+14. Hol´ ık, L., ˇSim´aˇcek, J.: Optimizing an LTS-Simulation Algorithm. In: Proc. of MEMICS
+2009, Znojmo, CZ, FI MU, pp. 93–101 (2009) ISBN 978-80-87342-04-6
+15. Hosoya, H., V ouillon, J., Pierce, B.C.: Regular Expression Types for XML. ACM Trans.
+Program. Lang. Syst. 27 (2005)
+16. Ilie, L., Navarro, G., Yu, S.: On NFA Reductions. In: Karhum¨ aki, J., Maurer, H., P˘ aun, G.,
+Rozenberg, G. (eds.) Theory Is Forever. LNCS, vol. 3113, pp. 112–124. Springer, Heidelberg
+(2004)
+17. Klarlund, N., Møller, A., Schwartzbach, M.I.: MONA Implementation Secrets. International
+Journal of Foundations of Computer Science 13(4) (2002)
+18. Madhusudan, P., Parlato, G., Qiu, X.: Decidable Logics Combining Heap Structures and
+Data. SIGPLAN Not. 46 (2011)
+19. Ranzato, F., Tapparo, F.: A New Efﬁcient Simulation Equivalence Algorithm. In: Proc. of
+LICS 2007. IEEE CS (2007)
+20. Somenzi, F.: CUDD: CU Decision Diagram Package Release 2.4.2 (May 2011)

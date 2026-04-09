@@ -1,0 +1,1077 @@
+--- Page 1 ---
+BRICS RS-97-31 Havelundetal.: FormalModeling andAnalysisofanAudio/Video ProtocolBRICS
+Basic ResearchinComputer Science
+Formal Modeling and Analysisof
+an Audio/Video Protocol:
+AnIndustrial CaseStudy UsingU PPAAL
+KlausHavelund
+Arne Skou
+KimG.Larsen
+KristianLund
+BRICSReport Series RS-97-31
+ISSN0909-0878 November1997
+
+--- Page 2 ---
+Copyright c/circlecopyrt1997, BRICS, Department ofComputer Science
+Universityof Aarhus. Allrights reserved.
+Reproduction ofall orpartofthis work
+ispermitted foreducational orresearch use
+onconditionthat this copyrightnotice isincluded inany copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer ScienceUniversityof AarhusNyMunkegade, building 540
+DK–8000Aarhus C
+Denmark
+Telephone:+45 89423360
+Telefax: +45 89423255Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dk
+This document insubdirectory RS/97/31/
+
+--- Page 3 ---
+FormalModelingandAnalysisof an
+Audio/VideoProtocol:
+AnIndustrialCaseStudyUsing U PPAAL
+KlausHavelund
+ArneSkou
+KimGuldstrandLarsen
+BRICS, AalborgUniversity,Denmark
+fhavelund,ask,kglg@cs.auc.dk
+KristianLund
+Bang &Olufsen,Denmark
+klu@bang-olufsen.dk
+November,1997
+Abstract
+A formal and automatic veriﬁcation of a real-life protocol is presented. The
+protocol, about 2800 lines of assembler code, has been used in products from theaudio/videocompany Bang&Olufsenthroughoutmorethanadecade,anditspur-
+pose is to control the transmission of messages between audio/video components
+overasinglebus. Suchcommunications maycollide,andoneessentialpurpose ofthe protocol is to detect such collisions. The functioning is highly dependent on
+real-timeconsiderations. Though the protocol wasknown tobe faultyinthatmes-
+sageswerelostoccasionally,theprotocolwastoocomplicatedinorderforBang&Olufsen to locate the bug using normal testing. However, using the real-time ver-iﬁcation tool U
+PPAAL, an error trace was automatically generated, which caused
+thedetectionof“theerror”intheimplementation. Theerrorwascorrectedandthe
+correction was automatically proven correct, again using U PPAAL. A future, and
+more automated, version of the protocol, where this error is fatal, willincorporate
+the correction. Hence, thiswork isan elegant demonstration of how model check-
+ing has had an impact on practical software development. The effort of modelingthis protocol has in addition generated a number of suggestions for enriching the
+U
+PPAALlanguage. Hence, it’salso an excellent example of the reverse impact.
+Basic Research in Computer Science, Centre of the Danish National Research Foundation.
+1
+
+--- Page 4 ---
+1 Introduction
+Since the basic results by Alur, Courcoubetis and Dill [1, 2] on decidability of model
+checking for real–time systems with dense time, a number of tools for automatic ver-
+iﬁcation of hybrid and real–time systems have emerged [5, 10, 8]. These tools have
+by now reached a state, where they are mature enough for application on industrial
+case–studiesaswehopeto demonstratein thispaper.
+One such tool is the real–time veriﬁcation tool U PPAAL1[5] developed jointly by
+BRICS atAalborgUniversityandDepartmentof ComputingSystemsatUppsalaUni-
+versity. The tool provides support for automatic veriﬁcation of safety and bounded
+liveness properties of real–time systems, and it contains a number of additional fea-tures including graphical interfaces for designing and simulating system models. The
+tool has been applied successfully to a number of case–studies [13, 3, 4, 12, 7] which
+can roughly be divided in two classes: real–time controllers and real–time communi-
+cationprotocols.
+Industrial developers of embedded systems have been following the above work
+with great interest, because the real–time aspects of concurrent systems can be ex-
+tremely difﬁcult to analyse during the design and implementation phase. One such
+companyis Bang &Olufsen – having developmentand productionof fully integrated
+homeaudio/videosystemsasamainactivity.
+In1996,BRICSandBang &Olufsen(B&O)agreedtocollaborateona casestudy
+based on one of the company’sexisting protocolsfor audio/videodevicecontrol. The
+protocol was of interest for three reasons: Firstly, it contained an unexplained error
+which occasionally caused data loss. The source of this error was unknown to ev-eryone, including B&O, prior to the exercise. That is, normal testing had not been
+sufﬁcient to identify the wrong code. Our goal should be to explain the error. Sec-
+ondly, the protocol documentation was very low level (consisting solely of assemblerlistingsandﬂowcharts)–sothecompanycouldexpectanimproveddocumentationas
+a byproductof the work. Thirdly, B&O is about to move (a corrected version of) the
+protocol to a different platform; thus the case–study will test the beneﬁts of the mod-
+eling and veriﬁcation abilities of U
+PPAALin a realistic development process. Finally,
+the company had no problems in publishing the results in full detail afterwards. Al-thoughtheprotocolisdesignedforuseinaudio/videonetworks,itisageneralpurpose
+protocolapplicablealso inothercontexts.
+This paper reports the preliminary results of our collaboration. We describe how
+the U
+PPAALtool has been applied in constructinga modelof the currentprotocolim-
+plementation. The model was developed via 5 major iteration steps during 3 months,
+where each new step was motivated by further clariﬁcation of the implementation –
+obtained by simulation, trial veriﬁcation,discussions and codeinspection. In the ﬁnal
+model,acceptedbyB&Oasvalidwithrespecttothecurrentimplementation,weiden-tiﬁed a timing error in the collision detection of the protocol implementation (via di-
+agnosticinformationprovidedautomaticallyby U
+PPAAL). Finally,a correctedversion
+1See URL: http://www.docs.uu.se/docs/rtmv/uppaal/index.shtml for information about U PPAAL.
+2
+
+--- Page 5 ---
+of the protocol was suggested and afterwards successfully veriﬁed. For each model
+version, the veriﬁcation was performed on a suitably reduced model, in order to bemanageablebythetoolwhilestill allowingtheerrorto beidentiﬁed.
+Duringthedevelopmentofmodels,wefoundthatthenotionoftimedautomataand
+theirgraphicalrepresentationservedextremelywellascommunicationmeansbetween
+the industrial protocol designer and the tool expert doing the simulation and veriﬁca-
+tion. Inaddition,the graphicalsimulationfeaturesof U
+PPAALleadtofast detectionof
+several(obvious)errorsintheearlymodels.
+Theresultingprotocoldocumentationconsistsof9timedautomata(afewpagesof
+drawings). This is shorter by an order of magnitude than the original documentation,i.e. a fewpagesof timed automatonsversus2800lines of assemblercode and3 pages
+ofﬂowcharts. Mostoftheoriginalinformationwasimmediatelyavailable–eithervia
+the ﬂowcharts or through discussions. However, a few times we had to walk throughtheassemblercodeinordertoobtainpreciseinformation. Thelackofamodel(formal
+or informal) and the fact that the diagnostic trace
+2of the protocol consisted of close
+to 2000transitions–steps,indicates thatthe errorprobablywould nothave been found
+withoutthe tool assistance. In fact, by using the diagnosticinformationfrom the tool,
+it was possible to provoke the error in B&O’s laboratory. The paper is organized asfollows: In sections 2 and 3, we present the U
+PPAALtool and the B&O protocol. In
+section 4 we present our model of the existing protocol, and in sections 5 and 6 we
+present the identiﬁcation of the protocol error and its correction. Section 7 providesconcludingremarks,evaluatesthe U
+PPAALtoolin retrospectiveandpointsoutfurther
+work.
+2T h eUPPAALmodeland tool
+UPPAALisatoolboxforsymbolicsimulationandautomaticveriﬁcationofreal–timed
+systems modeled as networks of timed automata [2] extended with integer variables.
+More precisely, a model consists of a collection of non–deterministic processes with
+ﬁnite control structure and real–valued clocks communicating through channels and
+sharedintegervariables. ThetoolboxisdevelopedincollaborationbetweenBRICSat
+AalborgUniversityandDepartmentofComputingSystemsatUppsalaUniversity,andhasbeenappliedtoseveralcase–studies[13, 3, 4,12, 7].
+Thecurrentversionof U
+PPAALisimplementedin C++, XF ORMSand MOTIFand
+includesthefollowingmainfeatures:
+AgraphicalinterfacebasedonAutograph[6] allowinggraphicaldescriptionsof
+systems.
+Acompilertransforminggraphicaldescriptionsinto a textualprogrammingfor-
+mat.
+2guaranteed by U PPAALto be the shortest such.
+3
+
+--- Page 6 ---
+Asimulator,whichprovidesagraphicalvisualizationandrecordingofthepossi-
+bledynamicbehaviorsofasystemdescription. Thisallowsforinexpensivefaultdetectionintheearlymodelingstages.
+Amodelcheckerforautomaticveriﬁcationofsafetyandbounded–livenessprop-
+ertiesbyon–the–ﬂyreachabilityanalysis.
+Generationof(shortest)diagnostictracesincaseveriﬁcationofaparticularreal–
+timesystem fails. Thediagnostictracesmaybegraphicallyvisualizedusingthe
+simulator.
+A system description (or model) in U
+PPAALconsists of a collection of automata
+modelingtheﬁnitecontrolstructuresofthe system. Inadditionthe modelusesa ﬁnite
+setof(global)real–valuedclocksandintegervariables.
+Consider the model of ﬁgure 1. The model consists of two components A and
+B with control nodes fA0;A1;A2;A3gandfB0;B1;B2;B3grespectively. In addition
+to these discrete control structures, the model uses two clocks xandy, one integer
+variable nanda channel aforcommunication.
+y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3y >= 3
+a!a!a!a!a!a!a!a!a!a!a!a!a!a!a!a!a!
+y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0y := 0 y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4y >= 4 n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5n == 5
+x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2x >= 2
+a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?
+n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5n := 5
+x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0x := 0n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1n := n + 1A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0
+(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)(y <= 6)A1A1A1A1A1A1A1A1A1A1A1A1A1A1A1A1A1 A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2A2 A3A3A3A3A3A3A3A3A3A3A3A3A3A3A3A3A3
+B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0
+(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)(x <= 4)c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1c:B1 B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2B2 B3B3B3B3B3B3B3B3B3B3B3B3B3B3B3B3B3AAAAAAAAAAAAAAAAA
+BBBBBBBBBBBBBBBBB
+Figure1: AnexampleU PPAALmodel
+The edges of the automata are decorated with three types of labels: a guard,e x -
+pressingaconditiononthevaluesofclocksandintegervariablesthatmustbesatisﬁed
+in order for the edge to be taken; a synchronization actionwhich is performed when
+theedgeistakenforcingasinCCS[15]synchronizationwithanothercomponentona
+complementaryaction3, and ﬁnally a number of clock resets andassignments to inte-
+ger variables. All three types of labels are optional: absence of a guard is interpreted
+3Given a channel name a,a!anda?denote complementary actions corresponding to sendingrespec-
+tivelyreceiving on the channel a.
+4
+
+--- Page 7 ---
+as the condition true, and absence of a synchronization action indicates an internal
+(non–synchronizing)edge similar to –transitions in CCS. Reconsider ﬁgure 1. Here
+theedgebetween A0andA1canonlybetaken,whenthevalueoftheclock yisgreater
+thanorequalto 3. Whentheedgeistakentheaction a!isperformedthusinsistingon
+synchronizationwithBonthecomplementaryaction a?;thatisforAtotaketheedge
+in question, B must simultaneously be able to take the edge from B0toB1. Finally,
+whentakingthe edge,the clock yis reset to 0. Theedgebetween A2andA3can only
+betakenif nequals 5.
+In addition, control nodes may be decorated with so–called invariants , which ex-
+pressconstraintsontheclockvaluesinorderforcontroltoremaininaparticularnode.Thus, in ﬁgure 1, control can only remain in A0as long as the value of yis no more
+than6.
+Formally, states of a U
+PPAALmodel are of the form (l;v),w h e r elis acontrol
+vectorindicating the current control node for each component of the network and v
+is anassignment giving the current value for each clock and integer variable. The
+initial state of a UPPAALmodelconsists of the initial node of all components4and an
+assignment giving the value 0for all clocks and integer variables. A U PPAALmodel
+determinesthefollowingtwotypesof transitions betweenstates:
+Delaytransitions As long as noneof the invariantsof the controlnodesin the current
+state are violated, time may progress without affecting the control node vector
+andwithallclockvaluesincrementedwiththeelapseddurationoftime. Inﬁgure1,fromtheinitialstate h(A0;B0);x=0;y=0;n=0itimemayelapse 3:5time
+units leading to the state h(A0;B0);x=3:5;y=3:5;n=0i. However, time
+cannotelapse 5time unitsasthiswouldviolatetheinvariantof B0.
+Actiontransitions If two complementary labeled edges of two different components
+are enabled in a state then they can synchronize. Thus in state h(A0;B0);x=
+3:5;y=3:5;n=0ithe two components can synchronize on aleading to the
+new stateh(A1;B1);x=0;y=0;n=5i(note that x,y,a n dnhave been
+appropriately updated). If a component has an internal edge enabled, the edge
+can be taken without any synchronization. Thus in state h(A1;B1);x=0;y=
+0;n=5i,theB–componentcanperformwithoutsynchronizingwithA,leading
+tothestateh(A1;B2;x=0;y=0;n=6i.
+Finally, in order to enable modelingof atomicity of transition–sequencesof a par-
+ticular component (i.e. without time–delay and interleaving of other components)
+nodes may be marked as committed (indicated by a c–preﬁx). If one of the com-
+ponentsin a state is in a controlnodelabeled as being committed,no delayis allowed
+to occur and any action transition (synchronizing or not) mustinvolve the particu-
+lar component (the component is so–to–speak committed to continue). In the stateh(A1;B1);x=0;y=0;n=5iB1iscommitted;thuswithoutanydelaythenexttran-
+sition mustinvolvethe B–component. Hence the two ﬁrst transitionsof B are guaran-
+4indicated graphically by a double circled node.
+5
+
+--- Page 8 ---
+teed to be performedatomically. Besides ensuring atomicity, the notion of committed
+nodesalso helpsinsigniﬁcantlyreducingthespace–consumptionduringveriﬁcation.
+Inthissectionandindeedinthemodelingof theaudio/videoprotocolpresentedin
+the following sections, the values of all clocks are assumed to increase with identical
+speed (perfect clocks). However, U PPAALalso supports analysis of timed automata
+with varyinganddriftingtime–speedofclocks. Thisfeaturewascrucial inthe model-
+ingandanalysisofthePhilipsAudio–Controlprotocol[3]using U PPAAL.
+3 Informalprotocoldescription
+In this section we provide an informal presentation of the device control protocol,which is used in existing B&O audio/video equipments. The description is split into
+protocol environment, protocol syntax, and dynamic protocol rules as advocated in
+[11].
+Audio CenterBroadcast BusOther Rooms Main Room
+MX-TV
+VX7000-VCR
+Figure2: ExampleB &Oconﬁguration
+3.1 Protocol environment
+Theaudio/videocomponentsin aB&Osystem areintegratedthroughabroadcastnet-
+work, called the bus, for command exchange as indicated in ﬁgure 2. Examples of
+commands are start and stop of a VCR initiated via a remote control5. Because the
+bus is shared, there is a risk of collision between component transmissions, and the
+protocolrulesmustensurethatcollisionsarerecognizedbyallinvolvedcomponentsin
+ordertopreventdatalossorduplication.
+5Typical devices are TV-sets, VCRs, radios, tape recorders, CDs, active loudspeakers etc.
+6
+
+--- Page 9 ---
+3.2 Protocol syntax andencoding
+The components exchange information via so–called frames, where each frame con-
+sists ofanumberof T-messages followingtheabstractsyntax:
+frame ::=T5fT1jT2jT3g15T4
+So, aframeconsists of a T5, followed by a sequence of at least 156symbols over
+the setfT1;T2;T3ga n dt e r m i n a t e db ya T4.T h eTi’s have the following roles: T5
+indicatesthestartofaframe(usedforbusreservation); T4indicatestheterminationof
+a frame (used for bus release); and T1,T2,a n dT3are used for the actual frame data.
+Thedetailedrulesforbusreservationandreleasearegiveninsection3.3.
+EachT-message( Ti)isrepresentedonthebusasvoltagelevels(0Voltsand5Volts)
+accordingtothepatternin ﬁgure3. Theﬁgureshowsthatthe Ti’sareseparatedby0V
+for 1562s– the so-called protocol period.T h eTi’s are identiﬁed by the length of
+the 5V signal between the 0V periods. Besides the Ti’s, there is an additional pattern
+calledajammingsignal ,whichisdeﬁnedasa 0Vsignalfor25ms.
+1562is0(0V)
+1562s1(5V)
+1562s
+Figure3: Physicalrepresentationofa Timessage.
+Each componentoutputs to and reads from the bus via a one–bitregister, where 0
+represents 0V, and 1 represents 5V. When two or more components are accessing the
+bus, the 0V has priority, that is, the bus changes states according to a logical andas
+described in ﬁgure 4. For the remainder of this paper, we use 0 and 1 to denote boththeregistervaluesandthevoltagelevelsofthebus.
+current bus state component output, component output,
+new bus state new bus state
+0( 0 V ) 0,0 1,0
+1( 5 V ) 0,0 1,1
+Figure4: Rulesforchangesofbusstate
+6Theheader size of a frame. A header consists of (format,address,command).
+7
+
+--- Page 10 ---
+3.3 Protocol rules
+Below we describe (in an informal way) the different rules, which must be obeyed
+when the bus is accessed by a component. We only deal with the sender aspects of a
+component,asthereceiverpartisstraightforward. Pleaseobservethateachcomponent
+has its own clock – running independently of all other clocks in the system. In orderto structure the descriptions, we deﬁne the following meta phases for a component:
+The
+idlephase, where it waits for a new frame to become ready for transmission, the
+initialization phase, where it waits for bus reservation, the transmission phase, where
+the frame transmission takes place, and the collision handlingphase , which is entered
+aftera collisiondetection.
+Bus Reservation Rule A network component reserves the bus by issuing a T5and
+releasesthebusbyissuinga T4orbydetectingacollisionandissuingajamming
+signal. That is, if a component has issued a T5, all other components consider
+thebusasbeingreserved.
+FrameGapRule Anetworkcomponentmustensurethedurationofatleast50msbe-
+tweenitstransmittedframes. However,ifacomponenthasgeneratedajamming
+signal,itmayresendits(destroyed)frameimmediatelyafterthejammingsignal.
+Frame Initialization Rule When a frame becomes ready for transmission (in the idle
+phase),the sendingcomponentdelays for 781s(thereaction delay ),enters the
+initialization phase, and waits for bus reservation. When reservation is possible
+(i.e. aT5has not been detected on the bus), the componentmust wait for addi-
+tional2 periodsand check that the bus state is 1 duringthe ﬁnal 781sof these
+2 periods. If this is not the case, bus reservation is retried. Otherwise, another781sisawaited,andthetransmissionphaseisentered,startingthetransmission
+ofaT
+5.
+Bus Sample Rule A sender must sample the bus contents for each period ( S1-points
+inﬁgure5)andinthemiddleofeachperiod( S2-pointsinﬁgure5).
+Bus Output Rule A sender must issue output to the bus in the beginning of each
+sample period (the W-points in ﬁgure 5). For a given period, the condition
+0<(W−S1)<600smust be satisﬁed.7In the actual model, we have
+estimated the quantity (W−S1)to 40s— the so-called output-delay of the
+protocol.
+Collision Detection Rule A sending component must check the bus for collision at
+eachS2-point(seeﬁgure5). Foragivenperiod, s1ands2denotethebusvalues
+sampledatpoints S1andS2. Furthermore, pnandpfdenotethevaluesoutputto
+thebusfromthecomponentatpoints Wofthegivenperiodanditspredecessor.
+A transmission is collision free, if the condition pf=s1^pn=s2is satisﬁed
+7Due to the physical laws of how fast the buscan change its state.
+8
+
+--- Page 11 ---
+foreachS2-point. Ifthis isnot thecase, the senderentersthecollision handling
+phase.
+Collision Handling Rule Due to the priority between voltage levels, a collision can
+only occur, when 0 is sampled from the bus. Moreover, if the duration of such
+an (inconsistent) 0 signal is less than 3 periods, the rule is that the component
+must issue a jamming signal and thereafter reenter the initialization phase. Ifthedurationisatleast3periods,anothercomponentisjamming. Theruleisthat
+thesending(non-jamming)componentmustwaitfor18periodsafterthe0signal
+hasdisappearedfromthebus,andthereafterreentertheinitializationphase. Thisdelaygivesa jammingcomponentthepossibilitytoretransmititsframewithout
+furthercollisions.
+pf s2pn781s 40s
+W
+s1S2 S1W S1 S1WS2 S2 S2 S1W
+s1:b u ss a m p l ea t S1
+pn: presentbusoutput at W
+pf: previous busoutput atWs2:b u ss a m p l ea t S2
+Figure 5: Relative ordering of the variables involved in the collision detection per-
+formedattherightmost S2-point
+TransmissionStopRule Wheneveracollisionhasbeendetected,thecomponentmust
+stopfromissuingfurtherbusoutputs(andenterthecollisionhandlingphase). Inthis way, it becomespossible to detect if the collision is caused by the jamming
+ofanothercomponent.
+DetectionStopRule Theﬁnalcollisiondetectionduringframetransmissionisthede-
+tectionperformed781 saftertheﬁrst0signaloftheterminatingsymbol T4.P u t
+in another way: When the detection has successfully passed both the period of
+theleading0of T4andalsothesuccessorperiod,thedetectionmustbestopped.
+Thisrule avoids ’false’ collisions, i.e. collisions, that are detected afterthe ﬁnal
+0ofaframe.
+Protocol Correctness A protocol implementation is correct with respect to collision
+if the following two conditions are satisﬁed: (1) if the frame transmitted by a
+senderXis destroyed (by another sender), then sender Xshall detect this; and
+(2) if one sender detects a collision, then all other simultaneously transmitting
+sendersshoulddetectit.
+9
+
+--- Page 12 ---
+4 A validatedformalmodelof theprotocol
+From the informal description given in the previous section it is by no means easy to
+determinewhethertheprotocoliscorrect,i.e. satisﬁesthe ProtocolCorrectness criteria.
+Thus, in this section we develop a model of the protocol in the U PPAALlanguage in
+order to enable a formal automated veriﬁcation of its correctness using the U PPAAL
+toolset. We willrefertothismodelas validated,meaningthatithasbeenapprovedby
+B&O asbeingacorrectabstractionoftheexistingimplementation.
+The model is – as all models – an abstraction of the real implemented protocol in
+the sense that it leaves outdetails regardedas unimportantfor the veriﬁcationtask. In
+ourcase,anadditionalchallengeinchoosingabstractionistheneedtoreducethestatespacetosearch,andhencetoreducetimeandspaceconsumptionduringtheautomatic
+veriﬁcation.
+The construction of a model was an iterative process. Several issues had to be
+right. First of all, the model should be valid, reﬂecting the code in the protocol, and
+not do something different. Second, the model should be as abstract as possible tomake veriﬁcation efﬁcient, but detailed enough in order to catch the error, the nature
+of which we were not aware. Third, the correctness criteria should itself be valid,
+reﬂecting a desired property; and fourth, the correctness criteria should be such thattheyetunknownerrorcouldbecaught. Thecorrectnesscriteriawentthroughacouple
+ofiterations,andwasconstantlyunderdebate.
+We present the complete validated model of the protocol, and from this we shall
+thenderiveareducedmodeltowhichthe U
+PPAALveriﬁerisapplied. Thisreductionis
+donebasicallybylimitingthenumberofframesasendercantransmit;andalsobylim-iting the contents of the individual frames: the number of contained T-messages, and
+their kind. Even with these reductions the protocol will turn out to exhibit erroneous
+behavior.
+4.1 Overview
+TheprotocolismodeledinU PPAALasanetworkof9timedautomata(ﬁgure6),which
+canbedividedintothreegroups: abus,asendersystemnamedA,andasendersystemnamed B. Note that there are no frame-receivers, as these are not regarded important
+fortheveriﬁcationtaskinhand. Thesendersystemsarecompletelysymmetricintheir
+construction,hence,we shallonlydescribeonesuch,namelysystemA.
+The sender system A consists of four automata: a sender Sender
+A, a detector
+Detector A, a frame generator Frame Generator A and an observer Observer A. The
+protocol itself (which is the one implemented in assembler), is here modeled by the
+senderandthedetector. Thesenderisthekeycomponentofthesystem,andisrespon-
+sible for transmitting the frames over the bus, while the detector, which is activatedfromthesenderatS
+2-points,representsthe collisiondetectionalgorithm.
+The frame generator and observer are part of what we will call the environment ,
+hence in principlenot componentsof the implemented protocol. The frame generator
+basicallygeneratesthe0’sand1’sofaframetobeoutputbythesender,henceitmodels
+10
+
+--- Page 13 ---
+/6/#1B/#1B
+/-/-
+/6/,/,/,/#09
+/@/@/@R
+/@/@/@R
+/@/@/@R
+/@/@/@R
+/,/,/,/#09
+/,/,/,/#09
+/,/,/,/#09Aobserve B observe BnewPn Bframezero
+onezero
+one
+BT4Detector A
+APf
+APn
+AS2AS1Ares
+Aerr
+SenderA
+Bus
+APn
+BPn
+Observer A
+APf
+APn
+AS1
+AS2Adiff A PnAno
+Amsg
+Astop
+AeofAstartFrameGenerator A
+AT4BPnBno
+Bmsg
+Bstop
+BeofBstartFrameGenerator BO b s e r v e r B
+BPf
+BPn
+BS1
+BS2BdiffSenderBDetector B
+BPf
+BPn
+BS2BS1Bres
+Berr
+AcAS2AS1APnAPf
+AerrAresBstart
+BcBS2BS1BPnBPf
+BerrBresAstart
+Astop
+AeofBstop
+Beof
+Aframe A reset B reset AnewPnBcheck Acheck
+Figure6: TheProtocol
+thesignalscomingforexamplefromaremotecontrolunit. Theobserverispurelyused
+toformulatethecorrectnesscriteria.
+The components communicate via channel synchronizations and via shared vari-
+ables. Theﬁgureillustratesthechannelconnectionsbyarcsgoingfromonecomponent
+(theonethatdoesasend“ !”) toanother(theonethatdoesareceive“ ?”). Asanexam-
+ple, Sender A reads the currentvalue of the bus by receiving on either channel zero
+(value is 0) or channel one(value is 1), whichever is enabled. In addition, for each
+component it is shown (written inside the box) which variables it accesses in whichmanner. A variable x is in bold ( x) if it is assigned to, and in normal font (x) if it is
+onlyreadfrom. Finally,ifavariableislocal,itisinitalic( x). Note,thatbyconvention
+a variable may be mentioned in several components if they share it. In a few cases,
+variablesthatareonlyinitializedina componenthavebeenomittedforclarity.
+4.2 The bus
+Thestatusoftheb usisdecidedbytwov ariables, APnandBPn,representingthebus
+registers,asshowninﬁgure7. Thetwovariables(initializedto1)aresetbythesender
+systems at W-points by the sending system performing one of the assignments APn
+:= 0orAPn := 1 . Thesenderscansampletheactualbuscontentsbysynchroniz-
+ingonchannels zeroandonerespectively.
+4.3 The frame generator
+Theframegenerator,ﬁgure8, is thecomponentthatconcretelysets thebusbyassign-
+ingvalues0and1tothevariable APnonrequestfromthesenderatitsW-points. The
+11
+
+--- Page 14 ---
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1B_Pn := 1
+A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0
+zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0B_Pn == 0
+zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!zero!
+A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1
+B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1B_Pn == 1
+one!one!one!one!one!one!one!one!one!one!one!one!one!one!one!one!one!c:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initializec:initialize
+activeactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveactiveBusBusBusBusBusBusBusBusBusBusBusBusBusBusBusBusBus
+Figure7: TheBus
+generatorisinitializedbyan Aframe! actionfromthesender,whereaftereachnew
+assignment to APnis triggered by an AnewPn!action from the sender, until con-
+trolreturnstothe startnode. Thegeneratordecideswhatvaluestoassigneachtime
+it is triggered by the sender. An Areset! action from the sender resets the frame
+generatorin casea collisionhasbeendetected. Of courseonecanarguethat assigningtoA
+Pnis not part of the environment; and we could certainly let the generator just
+produce0’sand1’s,andletthesenderperformtheassignmentsto thebusregisters. In
+fact, such a modelexisted on our way to the currentmodel, which is however smaller
+intermsofnumberofvariablesused.
+Besides APn, three other externally visible variables are assigned to: Aeof,
+AstopandAstart. First, the variable Aeofis set to 1 as soon as the last T4
+message in a framehas been transmitted. The sender will then stop transmitting. Sec-
+ond,accordingtothe DetectionStopRule ,thelastcollisiondetectionisperformed781
+safterthe0periodbeginningthelast T4message,andishereafterdisconnected. This
+is modeled by letting the generator assign the value 1 to the variable Astopat this
+point. Finally, according to the Bus Reservation Rule , a preconditionfor Sender Bt o
+begintransmissionofanewframeisthatno T5messagehasbeenoutputbySender A
+trying to reserve the bus. Hence, an accurate model would here let Sender B sample
+thebustodetect T5’s. Thiscomplicatesthemodelunnecessarily,andasanabstraction,
+weletsystemAsetthevariable Astartto1whensystemAhastransmitteda T5(to
+keep the graph simple: at every output of a 0 ending a T-message), and clear it againafter the last T
+4, when the bus is released. Sender B can then read this variable; and
+viceversa.
+Three local variables Ano,AmsgandAT4are used to control the ﬂow of the
+generator. A frame consists of a sequence of T-messages, which we number from 1
+and up. The current T-message number is stored in the variable Ano.T h ev a r i a b l e
+Amsgcontainstheremaininglength(intermsofperiods)ofthecurrentmessage;that
+is: theremainingnumberof1’sto beoutput. Recall, thatthe T5startmessageconsists
+of1’sfortenperiods(of1562 s)orsimplyten1’s;hencethisvariableisinitializedto
+12
+
+--- Page 15 ---
+A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1
+A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_msg >= 7A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1
+A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7A_msg < 7
+A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1 A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?
+A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0
+A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0
+A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0
+A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1
+A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1
+A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?
+A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1
+A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10
+A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0
+A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0
+A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1
+A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2
+A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4
+A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6
+A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16
+A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20
+A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8
+A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1
+c:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:continuec:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopc:set_stopfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirst
+msgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgstartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstart
+lastlastlastlastlastlastlastlastlastlastlastlastlastlastlastlastlastc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_A
+Figure8: TheGenerator
+10. Finally, the variable AT4is set to 1 when the last T4message is transmitted, just
+toinvoketheexitoftheframegeneration.
+As long as there are messages to transmit, control returns to the msgnode. From
+there the upper right loop is entered each time a 0 is output, and at the same time a
+non-deterministic choice is made of a new message (length). Note that the lengthsof T-messages (in terms of periods, and hence the number of 1’s to be output) are as
+follows:T
+1:2 ,T2:4 ,T3:6 ,T4:8 ,a n dT5: 10. The model is limited to transmit
+minimum17andmaximum20messages(includingthestarting T5andtheending T4).
+Thisistolimitthesearchspace. Thelowerrightloopisenteredforeach1outputtothe
+bus, calculating the value of the Astopvariable each time: when there are less than
+seven1’slefttobeoutputofthelast T4message,collisiondetectionisdisconnected.
+Note, that the frame generator can be regarded as providingthree procedures(the
+channels), which will be “called” from the sender. The intention is that when thesender“calls”oneofthese procedures,thesenderwaitsuntilthe“procedure’sreturn”.
+To model such procedure–calls (which are to be performed atomically) in U
+PPAAL,
+we haveused U PPAAL’s committednodes. Thisis evenmore the case for the detector
+describedbelow.
+13
+
+--- Page 16 ---
+4.4 The detector
+Thedetectorrepresentsthecollisiondetectionalgorithm,andistoberegardedasapro-
+cedure, which, according to the Collision Detection Rule , is “called” from the sender
+at S2-points, through an Acheck! action. As “arguments” it takes the samples s1
+ands2representedby the globalvariables AS1andAS2; and the outputs pfandpn
+representedby the globalvariables APfandAPn, whereafter it checkstherelation-
+ship between these values. The result of the check is written into the variables Aerr
+andAres. Basically Aerrcountsthenumberof0’ssampled,while Aresisset to
+0 if no action is to be taken, 1 if sender A should jam, and ﬁnally 2 if another sender
+(B in this case) is jamming. In the latter two cases, sender A should react. The de-tector is fully made up of committed nodes, hence it consumesno time, and “returns”
+instantlytothe wait
+callnodeafterbeingactivated. Thegraphcorrespondsclosely
+to a ﬂowchartextractedfrom the assembler code. The reader is not supposedto graspthedetails.
+A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0A_Pf == 0
+A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1 A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0
+A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0
+A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3
+A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1
+A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0
+A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1
+A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0
+A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3
+A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0
+A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3
+A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_err := A_err + 1A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0
+A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S1 == 1A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0
+A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_S2 == 1A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?A_check?
+A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0
+A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0
+A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0
+A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0
+A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3A_err <= 3
+A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_res := 1A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3A_err > 3
+A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2A_res := 2c:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pfc:ex_Pf
+c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1c:ex_S1
+c:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pnc:ex_Pn
+c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex_S2c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1c:ex1_S1
+c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2c:ex1_S2wait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_callwait_call
+c:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resc:calc_resDetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_ADetector_A
+Figure9: TheDetector
+14
+
+--- Page 17 ---
+4.5 The sender
+The sender is responsible for triggering outputs to the bus, and is the main and most
+complicatedcomponent,seeﬁgure10. Ithasasingleclock,named Ac,whichmainly
+is used to model the timer interrupts that arrive with intervals of 781 s. The sender-
+nodescanbedividedintothreegroups: the initializationphase ,thetransmissionphase ,
+and thecollision response phase (entered when a collision has been detected, and fur-
+thermorearesponsehasbeendecided).
+Initialization phase. This is the upper part of the diagram. The nodes exstart
+andother started modelthe ﬁrst part of the Frame Initialization Rule (related to
+theBus Reservation Rule ), which speciﬁes that no frame can be transmitted if a T5
+message coming from another sender, B in this case, has been detected on the bus.
+Recall,thatthisdetectionismodeled(abstracted)withthe Bstartvariablebeingset
+to1 byFrame Generator B.
+The loop at node other started represents the fact that in case a T5hasbeen
+detected, then we wait until a T4message is received, releasing the bus. This waiting
+is done by once every 3124 s to check whether the T4message has been received;
+hereat thisabstractlevelmodeledby Bstartbeingequalto0again,whereafterwe
+proceedwiththepreconditioncheck.
+The nodes exsilence1 andexsilence2 model the remaining part of the
+Frame Initialization Rule , where it is speciﬁed that the sender must wait further two
+periods(2*1562 s)aftertheT5reservationcheck;andinthelast781 softhesecond
+period, the bus must be silent (1). This is modeled by waiting 3*781 = 2343 s, and
+then check the bus value at the beginning and at the end of the remaining 781 s
+interval. Notehowthebusissampledbysynchronizingoneither zero?(busvalueis
+0)orone?(busvalueis 1).
+Transmission phase. This is the mid part of the diagram. The transmission starts in
+nodetransmit in case the precondition checked in the initialization phase is satis-
+ﬁed. Thetransitionto the check eofnodeinitializestheframegenerator
+(FrameGenerator A) viathe Aframe! action. Thesendernowentersa loop,where
+each iteration represents a period of 2*781 = 1562 s. Basically four variables are
+assigned to during one iteration of this loop: APnin W-points (as we have seen, by
+FrameGenerator A),APf, to hold the previous oldvalue of APn, and ﬁnally AS1
+andAS2to hold the samples in respectively S 1-points and S 2-points, as recorded in
+theBusSampleRule .
+Inthenode check eofit isexaminedwhetheran endofframe hasbeenreached,
+in which case the stopnode is entered, and according to the Frame Gap Rule ,5 0
+ms must then pass before a new frame is transmitted. Node check eoffurthermore
+representsanS 1-pointwhere AS1issampledif theframehasnotbeenﬁnished.
+15
+
+--- Page 18 ---
+A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116A_c == 28116
+A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1
+A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0A_Pn == 0
+A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_Pf := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000A_c == 25000
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0
+A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40
+A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0A_err > 0
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40A_c == 40
+A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0A_err == 0
+A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_new_Pn!A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0
+one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?
+A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1A_S1 := 1
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0A_eof == 0
+zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?
+A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0A_S1 := 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1A_eof== 1
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0 A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0A_err := 0
+A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0A_diff := 0
+A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1A_Pf := 1
+A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_frame!A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0A_res == 0
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2A_res == 2
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!
+A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1A_res == 1
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0
+A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!A_reset!
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000A_c == 50000
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124
+B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0B_start == 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124A_c == 3124
+B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1B_start == 1
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343
+one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343A_c == 2343
+zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?zero?
+A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_S2 := 0A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781A_c == 781
+one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?one?
+A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1A_S2 := 1
+A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_observe!A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0A_stop == 0
+A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!A_check!
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1A_stop == 1
+A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0A_res := 0
+A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0A_c := 0
+holdholdholdholdholdholdholdholdholdholdholdholdholdholdholdholdhold
+(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)(A_c <= 28116)c:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfc:nPfstartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstart
+jamjamjamjamjamjamjamjamjamjamjamjamjamjamjamjamjam
+(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)(A_c <= 25000)newPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPnnewPn
+(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)(A_c <= 40)c:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eofc:check_eof
+transmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmittransmit
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)idleidleidleidleidleidleidleidleidleidleidleidleidleidleidleidleidle
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)
+ex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jamex_jam
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)
+until_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silenceuntil_silence
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)stopstopstopstopstopstopstopstopstopstopstopstopstopstopstopstopstop
+(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)(A_c <= 50000)c:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_startc:ex_start
+other_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_startedother_started
+(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)(A_c <= 3124)ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1ex_silence1
+(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)(A_c <= 2343)
+ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2ex_silence2
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)c:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idlec:goto_idle
+samplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesamplesample
+(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)(A_c <= 781)
+c:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observec:call_observe c:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkc:call_checkSender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_ASender_A
+Figure10: TheSender
+16
+
+--- Page 19 ---
+After the sampling, in node newPn,4 0s elapses according to the Bus Output
+Rulebeforea new value is output, assigned to APnby Frame Generator A, which is
+triggered with the AnewPn!action. Note that in case the variable Aerrdiffers
+from 0, it meansthat a collision hasbeen detected, and accordingto the Transmission
+stop Rule , transmission should stop, here modeled by just outputting 1’s to the bus.
+In the node sample,AS2is sampled, reaching node callobserve .H e r e t h e
+observer and the collision detection, in case not disconnected, are activated. In theex
+jamnode the result Aresof the collision detection is examined, and collision
+response is begun in case it’s differentfrom 0, i.e. either is 1 or 2, as described in the
+nextparagraph.
+Collision response phase. Thisis the lower partof the diagram. Recall thatthe value
+ofAresdecidestheresponse. When1,Sender Amus tjamfor25msass tatedinthe
+Collision HandlingRule . When2, another(Sender B) mustbejamming,andwemust
+wait forthebusto besilent, whereafter18 periods(28116 s) must passaccordingto
+thesame rule.
+5 Error detection using UPPAAL
+Inthis sectionweshalldescribehowtheerrorwasfoundin thevalidatedprotocoljust
+presentedintheprevioussection. First,thecorrectnesscriteriawillbeformulated,and
+second,theresultofthe veriﬁcationofthiscriteria,anerrortrace,willbeexplained.
+5.1 The correctness criteria
+The correctness criteria is informally stated in the Protocol Correctness statement. It
+says, that (1) if the frame transmitted by a sender X is destroyed (by another sender),
+then sender X shall detect this; and (2) if one sender detects a collision, then every
+other simultaneously transmitting sender should detect it. In order to formulate rule(1), we must formulatewhat it means for a frame to be destroyed. We deﬁne a frame
+as
+destroyed if sampled values differ from output values. Hence, we introduce an
+observer automaton observing this for each sender, and ﬁgure 11 shows the observer
+forSender A.
+Recall,thatthisobserveriscommunicatedto fromthesenderin termsofan
+Aobserve! action at each S 2-point. In receiving this signal, the observer sets the
+variable Adiffto 1 if and only if there is a mismatch between sampled values and
+output values. That is, if either APf6=AS1orAPn6=AS2. This is formulated
+slightly different in the automaton since U PPAALdoes not allow negation in edge
+guards. Note,thatwecannotuseDetector A to observetherelationshipbetweensam-
+pledandoutputvalues,sincethisisoneofthecomponentswewanttoverify. Withthe
+observer,wearesuretoknowwhenoutput1’shavebeendestroyedby0’sfromanother
+sender. Itcaneasily beshown,thata framehasonlybeendestroyedif atthe endofits
+17
+
+--- Page 20 ---
+A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?
+A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1A_Pf == 1
+A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0A_S1 == 0
+A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?
+A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1A_Pn == 1
+A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0A_S2 == 0
+A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_diff := 1A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?A_observe?
+A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1A_Pf == A_S1
+A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2A_Pn == A_S2
+comparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecomparecompareObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_AObserver_A
+Figure11: TheObserver
+transmission Adiffequals1.
+Thecorrectnesscriteriacannowbeformulatedasfollows:
+A[] (A_eof == 1 imply
+(A_diff == 0 and B_res == 0))
+In order to understand this property, note that Aeofis set to 1 when A’s frame
+hasbeensent,that Adiffissetto 1ifA’sframehasbeendestroyed,andﬁnally,that
+Bresis set to 1 if B has detected a collision. The property then says, that when-
+ever (A[]) a frame has been sent ( Aeofequals 1), the sent frame must be intact
+(Adiffequals0), and other senders(B in this case) mustnot havediscovereda col-
+lision(Bresequals0). Asymmetricpropertyis alsoveriﬁedforsendersystem B.
+5.2 The error trace
+Inordertoobtainafastfeed-back(fewminutes)duringthedebuggingoftheprotocol,
+weworkedwithareducedmodel,wherebasicallyeachsenderonlytransmittedasingle
+frameofT1messages, surroundedby a T5and aT4. This was consideredharmlessas
+the purposewas to locate an existing error rather than to provesome property univer-sally true. The veriﬁer rejected the stated correctnesscriteria as being true, and ﬁgure
+12illustrates a condensedversionofthe errortraceproducedby U
+PPAAL8in termsof
+a bus–value diagram. U PPAALrequired 6,27 minutes of computation and 32 M bytes
+ofmemoryonaSparc10.
+It appeared to be the Detection Stop Rule that was unhealthy: collision detection
+seemed to be disconnectedtoo early with the result of messages being lost. The trace
+describesa scenario, where Sender A sends a frameof exactly15 T1messages, while
+SenderB sends 16T1messages. Hence, the two frames are different, although they
+areequalupthethelast T1ofA.
+8Theerror trace produced by U PPAALcontained 1998 basic transition–steps.
+18
+
+--- Page 21 ---
+L
+ce
+f dab
+T1
+T1T4
+T1jammingA
+BN
+Figure12: Theerrortrace visualized
+SenderB starts exactly 40 s after Sender A. Precisely this delay, which fatally
+equals the delay between a senders S 1-sampling and its bus output, allows the two
+senders to proceed without any of them discovering their simultaneous bus access.
+To see this, consider ﬁgure 12 which shows how all the 0-periods of the two frames
+are positioned relative to each other: at point (a) Sender A samples S 1and is ready
+to output a 0, but the output happens in point (b) due to the output delay (which is
+also 40s). In point (b) Sender B now also is ready to sample its S 1value. Now, if
+SenderA outputs its 0 beforeB‘s sampling, then B will sample a 0 while expectinga
+1,andBwill thenrecognizethecollision. However,ifSender Aoutputsits0 afterB‘s
+sampling,thennocollisionwill bedetectedbyB.
+Hence, there is a non-deterministic outcome of each pair of A and B 0-periods:
+eitherAwilloutputbeforeBsamples,andacollisionisdetectedbyB,orAwilloutput
+after,andnocollisionwillbedetected. ThismutualignoranceofthecollisioncontinuesuntilsenderAterminatesitslast T
+1message,asillustratedbyﬁgure12,andexplained
+inthe following.
+The ﬁgure in fact illustrates the beginning of the last T4message of Sender A,
+together with the beginning of yet another (the 16th) T1message of Sender B. Up to
+thatpointBhassampledbeforeAhasoutputandnocollisionhasbeendetected. Now,
+however,atpoint(b),senderAcomesﬁrstandoutputsa0,andthisisdetectedbyBin
+point(d)whenthecollisiondetectionisactivated( Berr := B err + 1 ). Inpoint
+(e), B then decides to jam ( Bres := 1 ), which happensin point (f). This is in fact
+after the last collision detection performed by A in point (L). Hence, sender A never
+observes the collision, while sender B does. Consequently, A’s message is lost and is
+notretransmitted.
+Putdifferently,andsimpler,since a senderdisconnectsits collisiondetectionearly
+in itsT4message, othersenderscanstart jammingafterthatpointwithoutitbeingde-
+tected. The trace violatesas well Adiff == 0 asBres == 0 at the pointwhere
+Aeof == 1 : sender A’s frame is destroyed (without A detecting it), and sender B
+hasdetectedthecollision.
+A question is: “how important is it that sender B starts exactly 40 s after A?”.
+Well, in the case where both senders send only T1messages, it isimportant, since if
+the delay is lessthan 40, no collision will ever be detected, and in case the delay is
+above 40, collision will be detected immediately by both. This is true in our model.
+In reality, however, clocks in the various audio/video components may have slightly
+19
+
+--- Page 22 ---
+different, and changing, speeds, so in practise senders do not need to start exactly 40
+sapartinordertocausetheerror.
+6 Correcting theprotocol
+Thus,as explainedin the previoussection,the sourceofthe errorwas identiﬁedas the
+too early disconnectionof the collision detection justafterthe 0beginning the lastT4
+message. Thatis: the last check is performed781 s after this 0 has been turnedback
+intoa1,atpoint(L)inﬁgure12. Thisallowsanothersendertostartjammingafterthis
+momentwithoutitbeingdetectedbythesenderhavingdisconnected.
+Thereasonfordisconnectingatthatearlymomentistopreventaframefrombeing
+sent twice, since if a collision is detected too late, the frame may in fact have come
+though,sincethecollisionmaynotbeframedestroying,andaretransmissionwillthen
+be a duplication. As an example, think of a frame with an information contents like:
+“go onechannelforward”. However,it hasapparentlybeen disconnectedto early,and
+hence, a solution to the problem is to move the disconnection to a later moment, butnottoofarsincewe stillwantto avoidaframeduplication.
+A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16A_no > 16
+A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20A_no <= 20
+A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8A_msg := 8
+A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_T4 := 1A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_msg := 6A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_msg := 4A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20A_no < 20
+A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2A_msg := 2
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1A_eof := 1
+A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_start := 0A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?A_frame?
+A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1A_no := 1
+A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10A_msg := 10
+A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0A_eof := 0
+A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0A_stop := 0
+A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0A_T4 := 0
+A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0A_msg > 0
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1A_Pn := 1
+A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_msg := A_msg - 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1A_T4 == 1
+A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0
+A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_stop := 1A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0A_T4 == 0
+A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0A_msg == 0
+A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1A_no := A_no + 1
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0
+A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1A_start := 1
+A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?A_reset?
+A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?A_new_Pn?
+A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0A_Pn := 0
+c:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msgc:set_msg
+lastlastlastlastlastlastlastlastlastlastlastlastlastlastlastlastlaststartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstartstart
+msgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgmsgfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstfirstFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_AFrame_Generator_A
+Figure13: Generatorwith Astop:=1 moved
+20
+
+--- Page 23 ---
+The solution is to move forward and perform the last collision detection 781 s
+beforethe0endingthe lastT4message, at point(N) in ﬁgure12. Hence,the collision
+detectionisthenonlydisconnectedduringthelast0ofthewholeframe. Inourmodel,
+thiscorrectionmustbeintroducedintheframegenerators,andﬁgure13showsthenew
+FrameGenerator A.
+The modiﬁcation consists of moving the assignment Astop := 1 to a later
+point, namely to the edge going from node msgto node last. That is, when the last
+0i nt h el a s t T4message is output. Consequently, the previousassignment to Astop
+must be removed resulting in the lower right loop edge leaving and returning to node
+msg. This edge was before broken into a number of edges over committed nodes,
+see ﬁgure 8. The observer is also disconnected when the collision detection is (is not
+shown).
+With these modiﬁcations, the model was veriﬁed correct with respect to the same
+correctness criteria as presented for the previous model. It required 30 minutes of
+computationand90MbytesofmemoryonaSparc10. Themodelveriﬁedwasdown-
+scaledtoaversionwhereeachsenderonlytransmittedoneframe,andwheresenderA
+onlytransmitted T1messages(surroundedbya T5andaT4ofcourse),whilesenderB
+couldtransmitthewholerangeofT-messages.
+7 Conclusions
+The case study clearly showed how model checking can be a help in tracking down
+undesired behavior in a highly non-deterministic real-time system. The example il-
+lustrated the conditions of a real-life problem in the sense that the source of the error
+(that messages were occasionally lost) was unknownto us, and hence it was not clear
+atwhatabstractionlevelthe modelshouldbeformulated. This questionof abstraction
+level was also central in the formulation of the correctness criteria. Another kind ofabstraction,performedin a secondround,consistedof reducingtheobtainedmodelto
+sub-models that could be veriﬁed within reasonable time and space. It would be use-
+ful to have a workbenchwhich could supporteasy derivationof veriﬁablesub-models
+fromasingle fullmodel. Itturnedout,thatallsub-modelswereobtainedfromthefull
+modelby adjustingthree differentparameters: (1)whetheror not a sender transmittedseveral frames, or just a single frame; (2) how many messages were sent in a single
+frame;andﬁnally(3)whatmessagescouldbetransmittedina singleframe.
+Choosingthe rightabstractionswere mainlyan activitybasedonintuition,andthe
+adjustmentoftheparametersmentionedwasinadditionbasedonexperimentswiththe
+modelchecker. Ofcourse,withsuchabstractions,onecannotensurethattheprotocolin
+itsfullcomplexityiscorrectevenifthemodelisveriﬁedtobe. However,suchamodel
+can be used to rejectthe protocolin case errors are found, and this is what happened.
+Hence,modelcheckingcanbe seen as a particularadvancedkind ofdebuggingwhereall execution paths in a limited world are examined, rather than some execution paths
+in a complete world, as in traditional testing. Furthermore, often the abstractions are
+of such a harmlesskind, thateventhoughthe correctnessof the modeldoes notimply
+21
+
+--- Page 24 ---
+thecorrectnessofthe protocol,it doesincreaseourconﬁdencein itscorrectness.
+Concerningthe errortrace, itcontained1998transitionsteps, infactguaranteedto
+the be shortesttrace leadingto a state breakingthe propertyto be veriﬁed. Examining
+suchalongtraceinthesimulatorturnsouttobeimpracticable,andhence,itwasdone
+in an ad hoc fashion (using emacs and its facilities). Research has been initiated to
+provide means for trace examination, for example by deﬁning a trace simpliﬁcation
+language.
+Concerningthe language for writing atomic edges between nodes, one could con-
+sider a Pascal-like programming language, with functions, procedures, control struc-
+tures like loop and case constructs, and, of course, general datatypes like enumeratedtypes, arrays and records. The Murphi-language[14] – applied to a protocol veriﬁca-
+tionin[9]–couldbeagoodcandidateforsuchalanguage,andfurtherresearchwillex-
+plorethispath. Asa generalcommentonthe graphicallanguageforwriting transitionsystems it was clearly concluded, that this formalism was ideal in the communication
+between the tool expert and the protocol designer. The simulator additionally turned
+outtobeofagoodhelpwhendevelopingandvalidatingthemodelbeforeapplyingthe
+veriﬁer.
+References
+[1] R. Alur, C. Courcoubetis, and D. Dill. Model-checkingfor Real-Time Systems.
+InProc. of Logic in Computer Science , pages 414–425.IEEE Computer Society
+Press, 1990.
+[2] R. Alur and D. Dill. Automata for Modelling Real-Time Systems. In Proc. of
+ICALP’90 ,volume443of LectureNotesin ComputerScience ,1990.
+[3] Johan Bengtsson, David Grifﬁoen, Kare Kristoffersen, Kim G. Larsen, Fredrik
+Larsson, Paul Pettersson, and Wang Yi. Veriﬁcation of an Audio Protocol with
+BusCollisionUsingU PPAAL.I nProc.ofCAV’96 ,volume1102of LectureNotes
+inComputerScience .Springer–Verlag,1996.
+[4] Johan Bengtsson, Kim G. Larsen, Fredrik Larsson, Paul Pettersson, and Wang
+Yi. UPPAAL— A Tool Suite for Symbolic and Compositional Veriﬁcation of
+Real-TimeSystems. In Proc.ofthe1 stWorkshoponToolsandAlgorithmsforthe
+ConstructionandAnalysisofSystems ,volume1019of LectureNotesinComputer
+Science.Springer–Verlag,May1995.
+[5] Johan Bengtsson, Kim G. Larsen, Fredrik Larsson, Paul Pettersson, and Wang
+Yi. UPPAALin 1995. In Proc. of the 2 ndWorkshop on Tools and Algorithms
+for the Construction and Analysis of Systems , number 1055 in Lecture Notes in
+ComputerScience,pages431–434.Springer–Verlag,March1996.
+[6] A. Bouali, A. Ressouche, and V. Roy R. de Simone. The FC2Toolset. Lecture
+NotesinComputerScience ,1102,1996.
+22
+
+--- Page 25 ---
+[7] P.R. D’Arenio, J.-P. Katoen, T. Ruys, and J. Tretmans. Modelling and Verify-
+ing a Bounded Retransmission Protocol. In Proc. of COST 247, International
+WorkshoponAppliedFormalMethodsin SystemDesign ,1996.
+[8] C. Daws, A. Olivero,andS. Yovine. VerifyingET-LOTOSprogramswith KRO-
+NOS.InProc.of 7thInternationalConferenceonFormalDescriptionTechniques,
+1994.
+[9] K. Havelund and N. Shankar. Experiments in Theorem Proving and Model
+Checking for Protocol Veriﬁcation. In M-C. Gaudel and J. Woodcock, editors,
+FME’96: Industrial Beneﬁt and Advances in Formal Methods , volume 1051 of
+LectureNotesinComputerScience ,pages662–681.Springer–Verlag,1996.
+[10] Pei-Hsin Ho and Howard Wong-Toi. Automated Analysis of an Audio Control
+Protocol. In Proc.ofCAV’95 ,volume939of LectureNotesinComputerScience .
+Springer–Verlag,1995.
+[11] Gerard Holzmann. The Design and Validation of Computer Protocols . Prentice
+Hall,1991.
+[12] H.E. Jensen, K.G. Larsen, and A. Skou. Modelling and Analysis of a Collision
+AvoidanceProtocol Using SPIN and UPPAAL. In The Second Workshop on the
+SPINVeriﬁcationSystem ,volume32of DIMACS,SeriesinDiscreteMathematics
+andTheoreticalComputerScience .AmericanMathematicalSociety,1996.
+[13] MagnusLindahl, Paul Pettersson, and Wang Yi. FormalDesign and Analysis of
+aGear-BoxController: anIndustrialCaseStudyusingUPPAAL. Inpreparation.,
+1997.
+[14] R. Melton, D.L. Dill, C. Norris Ip, and U. Stern. Murphi Annotated Reference
+Manual,Release3.0. Technicalreport,StanfordUniversity,PaloAlto,California,
+USA,July 1996.
+[15] R. Milner. Communication and Concurrency . Prentice Hall, Englewood Cliffs,
+1989.
+23
+
+--- Page 26 ---
+RecentBRICSReportSeriesPublications
+RS-97-31 Klaus Havelund, Arne Skou, Kim G. Larsen, and Kristian
+Lund.Formal Modeling and Analysis of an Audio/Video Proto-
+col: An IndustrialCase Study Using UPPAAL. November 1997.
+23 pp. To appear in The 18th IEEE Real-Time Systems Sympo-
+sium,RTSS ’97 Proceedings .
+RS-97-30 UlrichKohlenbach. ProofTheoryand ComputationalAnalysis .
+November 1997. 38pp.
+RS-97-29 Luca Aceto, Augusto Burgue ˜no, and Kim G. Larsen. Model
+CheckingviaReachabilityTestingforTimedAutomata . Novem-
+ber 1997. 29pp.
+RS-97-28 RonaldCramer,IvanB.Damg ˚ard,andUeliMaurer. SpanPro-
+gramsandGeneralSecureMulti-PartyComputation . November
+1997. 27 pp.
+RS-97-27 RonaldCramerandIvanB.Damg ˚ard.Zero-KnowledgeProofs
+forFiniteFieldArithmeticor: CanZero-KnowledgebeforFree?
+November 1997. 33pp.
+RS-97-26 LucaAcetoandAnnaIng ´olfsd´ottir.ACharacterizationofFini-
+tary Bisimulation . October 1997. 9 pp. To appear in Informa-
+tionProcessingLetters .
+RS-97-25 David A. Mix Barrington, Chi-Jen Lu, Peter Bro Miltersen,
+a n dS v e nS k y u m . Searching Constant Width Mazes Captures
+theAC0Hierarchy . September 1997. 20 pp. To appear in
+STACS ’98: 15th Annual Symposium on Theoretical Aspects ofComputer Science Proceedings ,LNCS, 1998.
+RS-97-24 SørenB.Lassen. RelationalReasoningaboutContexts . Septem-
+ber1997. 45pp.Toappearasachapterinthebook HigherOr-
+der Operational Techniques in Semantics , eds. Andrew D. Gor-
+don andAndrew M. Pitts, Cambridge University Press.
+RS-97-23 Ulrich Kohlenbach. On the Arithmetical Content of Restricted
+Formsof Comprehension, Choice and General UniformBound-edness. August1997. 35pp.
+RS-97-22 Carsten Butz. Syntax and Semantics of the logic L
+
+!!.J u l y
+1997. 14 pp.
+RS-97-21 Steve Awodey and Carsten Butz. TopologicalCompleteness for
+Higher-OrderLogic . July1997. 19 pp.

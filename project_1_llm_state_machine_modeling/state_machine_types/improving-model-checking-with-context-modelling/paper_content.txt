@@ -1,0 +1,857 @@
+--- Page 1 ---
+Hindawi Publishing Corporation
+Advances in Software Engineering
+V olume 2012, Article ID 547157, 13pages
+doi:10.1155/2012/547157
+Research Article
+Improving Model Checking with Context Modelling
+Philippe Dhaussy,1Fr´ed´eric Boniol,2Jean-Charles Roger,1and Luka Leroux1
+1Lab-STICC, UMR CNRS 6285, ENSTA Bretagne, 2 rue Franc ¸ois Verny, 29806 Brest, France
+2ONERA, 2 avenue Edouard Belin, 31000 Toulouse, France
+Correspondence should be addressed to Philippe Dhaussy, philippe.dhaussy@ensta-bretagne.fr
+Received 6 February 2012; Revised 18 May 2012; Accepted 22 May 2012
+Academic Editor: Gerardo Canfora
+Copyright © 2012 Philippe Dhaussy et al. This is an open access article distributed under the Creative Commons Attribution
+License, which permits unrestricted use, distribution, and repro duction in any medium, provided the original work is properly
+cited.
+This paper deals with the problem of the usage of formal techniques, based on model checking, where models are large and formal
+veriﬁcation techniques face the combinatorial explosion issue. The goal of the approach is to express and verify requirementsrelative to certain context situations. The idea is to unroll the context into several scenarios and successively compose each scenario
+with the system and verify the resulting composition. We propose to specify the context in which the behavior occurs using a
+language called CDL ( Context Description Language ), based on activity and message sequence diagrams. The properties to be
+veriﬁed are speciﬁed with textual patterns and attached to speciﬁc regions in the context. The central idea is to automatically spliteach identiﬁed context into a set of smaller subcontexts and to compose them with the model to be validated. For that, we have
+implemented a recursive splitting algorithm in our toolset OBP (Observer-based Prover). This paper shows how this combinatorial
+explosion could be reduced by specifying the environment of the system to be validated.
+1. Introduction
+Software veriﬁcation is an integral part of the software devel-
+opment lifecycle, the goal of which is to ensure that softwarefully satisﬁes all the expected requirements. Reactive systemsare becoming extremely complex with the huge increasein high technologies. Despite technical improvements, theincreasing size of the systems makes the introduction of awide range of potential errors easier. Among reactive systems,the asynchronous systems communicating by exchangingmessages via bu ﬀer queues are often characterized by a vast
+number of possible behaviors. T o cope with this di ﬃculty,
+manufacturers of industrial systems make signiﬁcant e ﬀorts
+in testing and simulation to successfully pass the certiﬁcationprocess. Nevertheless, revealing errors and bugs in this hugenumber of behaviors remains a very di ﬃcult activity. An
+alternative method is to adopt formal methods, and to useexhaustive and automatic veriﬁcation tools such as model-checkers.
+Model checking algorithms can be used to verify require-
+ments of a model formally and automatically. Several modelcheckers as [ 1–5] have been developed to help the veriﬁcationof concurrent asynchronous systems. It is well known that
+an important issue that limits the application of model
+checking techniques in industrial software projects is the
+combinatorial explosion problem [ 6–8]. Because of the
+internal complexity of developed software, model checkingof requirements over the system behavioral models couldlead to an unmanageable state space.
+The approach described in this paper presents an
+exploratory work to provide solutions to the problemsmentioned above. The proposed approach consists to reducethe set of possible behaviors (and then indirectly the statespace) by closing the system under veriﬁcation with awell-deﬁned environment. For this, we propose to specifythe behavior of the entities that compose the systemenvironment. These entities interact with the system. Thesebehaviors are described by use cases (scenarios) called herecontexts . They describe how the environment interacts with
+the system. Indeed, in the context of embedded reactivesystems, the environment of each system is ﬁnite and wellk n o w n .W ec l a i mt h a ti ti sm o r ee ﬃcient to ask the engineers
+to explicitly and formally express this context, than to searchto reduce the state space of the system to explore facing an
+
+--- Page 2 ---
+2 Advances in Software Engineering
+unspeciﬁed environment. In other words, the objective is to
+circumvent the problem of the combinatorial explosion byrestricting the system behavior with a speciﬁc surroundingenvironment describing the di ﬀerent conﬁgurations in which
+one wants to verify the system. Moreover, properties areoften related to speciﬁc use cases (such as initialization,
+reconﬁguration, and degraded modes) so that it is not
+necessary for a given property to take into account allpossible behaviors of the environment, but only the subpartconcerned by the veriﬁcation. The context description thusallows a ﬁrst limitation of the explored space search, andhence a ﬁrst reduction of the combinatorial explosion.Thesecond idea exploited is that, if the context is ﬁnite (i.e., thereis a noninﬁnite loop in the context) and in case of safety(invariant) properties, then the two following veriﬁcationprocesses are equivalent: (a) compose the context and thesystem, and then verify the resulting global system; (b) unrollthe context into Nscenarios (i.e., a sequence of events),
+and successively compose each scenario with the system andverify the resulting composition. In other words, the globalveriﬁcation problem can be transformed into Nsmaller
+veriﬁcation subproblems.
+Our approach is based on these two ideas. This paper
+presents a DSL (domain-speciﬁc language). called CDL(Context Description Language ) for formally describing the
+environment of the system to be veriﬁed. This languageserves to support our approach to reduce the state space. Weillustrate our reduction technique with our OBP ( Observer-
+based Prover ) (OBP is available on http://www.obpcdl.org/.)
+tool connected to two tools: the ﬁrst is an academic model
+checker TINA-SEL T (http://projects.laas.fr/tina/) [ 3] and the
+second is an explorer called OBP Explorer, integrated in OBP .We illustrate our approach with a partial case study providedby a industrial partner in the aeronautics domain.
+This paper is organized as follows: Section 2 presents
+the related techniques to improve model checking by statereduction. Section 3 presents the principles of our approach
+for context aware formal veriﬁcation. Section 4 describes the
+CDL language for contexts speciﬁcation and property spec-iﬁcation. Our toolset used for the experiments is presentedSection 5 .I n Section 6 , we give results on the industrial
+case study. In Section 7 , we discuss our approach and we
+conclude.
+2. Related Works
+Model checking is a technique that relies on building a ﬁnitemodel of a system of interest, and checking that a desiredproperty, speciﬁed as a temporal logic formula, holds inthat model. Since the introduction of this technology in theearly 1980s, several model checkers have been developed tohelp the veriﬁcation of concurrent asynchronous systems.For example, the SPIN model checker [ 1] based on the
+formal language PROMELA allows the veriﬁcation of L TLproperties encoded in “never claim” formalism and furtherconverted into Buchi automata. Since its introduction, modelchecking has advanced signiﬁcantly. For instance the statecompression method or partial-order reduction contributedto the further alleviation of combinatorial explosion [ 9].
+In [ 10], the partial-order algorithm based on a depth-ﬁrst
+search (DFS) has been adapted to the breadth ﬁrst search(BFS) algorithm in the SPIN model checker to exploitinteresting properties inherent to the BFS. Partial-ordermethods [ 9,11,12] aim at eliminating equivalent sequences
+of transitions in the global state space without modifying
+the falsity of the property under veriﬁcation. These methods,exploiting the symmetries of the systems, seemed to beinteresting and were integrated into many veriﬁcation tools(for instance SPIN).
+In the same way, the development of more e ﬃcient
+data structure, such as binary decision diagrams (BDD)[13], allows for automatic and exhaustive analysis of ﬁnite
+state models with several thousands of components or statevariables.
+Another approach deals with compositional veriﬁca-
+tion, for example, assume/guarantee reasoning or design-by-contract techniques. A lot of work exist in applyingthese techniques to model checking including, for example,[14–17]. These works deal with model checking/analyzing
+individual components (rather than whole systems) byspecifying, considering, or even automatically determiningthe interactions that a component has or could have withits environment so that the analysis can be restricted tothese interactions. Design-by-contract proposes to verify asystem by verifying all its components one by one. Using aspeciﬁc composition operator preserving properties, it allowsassuming that the system is veriﬁed.
+Many other techniques have been proposed for com-
+bating state explosion. On-the-ﬂy veriﬁcation constructs
+the state space in a demand-driven way, thus allowing thedetection of errors without a priori building the entirestate space. Distributed veriﬁcation [ 18] uses the computing
+resources of several machines connected by a network, thusallowing to scale up the capabilities of veriﬁcation tools. Inthe same objective, methods exploiting heuristic search [ 19]
+have been proposed for improving constraint satisfactionproblem and more generally for optimizing the explorationfor the behaviour of a model to verify.
+Combined together, the successful application of these
+methods to several case studies (see for instance [ 20]f o r
+noncritical application, or [ 21,22] for aerospace examples)
+demonstrates their maturity in the case of synchronousembedded systems. However, if these techniques are usefulto ﬁnd modelling errors, they still su ﬀer from combinatorial
+explosion in the case of large and complex asynchronoussystems (see [ 23] for an experiment of SPIN on a real asyn-
+chronous function showing that the veriﬁcation does notcomplete despite all the optimizations mentioned above).
+Our approach presented in this paper explores another
+way for reducing the combinatorial explosion. Conversely to“traditional” techniques in which contexts are often includedin the system model, we choose to explicit contexts separately
+from the model. It is about using the knowledge of the
+environment of a whole system (or model) to conduct averiﬁcation to the end. We propose to formally specify thecontext behavior in a way that allows a fully automaticdivide-and-conquer algorithm.
+
+--- Page 3 ---
+Advances in Software Engineering 3
+Another di ﬃculty is about requirement speciﬁcation.
+Embedded software systems integrate more and moreadvanced features, such as complex data structures, recur-sion, and multithreading. Despite the increased level ofautomation, users of ﬁnite-state veriﬁcation tools are stillconstrained to specify the system requirements in their spec-
+iﬁcation language which is often informal. While temporal
+logic-based languages (example L TL or CTL [ 6]) allow a
+great expressivity for the properties, these languages arenot adapted to practically describe most of the require-ments expressed in industrial analysis documents. Modaland temporal logics are rather rudimentary formalisms forexpressing requirements, that is, they are designed having inmind the straight for wardness of its processing by a toolsuch as a model checker rather than the user-friendliness.Their e ﬃcient use in practice is hampered by the di ﬃculty
+to write logic formula correctly without extensive expertisein the idioms of the speciﬁcation languages.
+In literature, many approaches have been proposed to
+enable software and hardware engineers to use temporallogic with ease and rigor. For instance [ 24,25]p r o p o s e da
+graphical interval logic (RTGIL) allowing visual an intuitivereasoning on real-time systems. From a textual point of view,[26–28] proposed to formulate requirements using textual
+patterns, that is, textual templates that capture commonlogical and temporal properties and that can be instantiatedin a speciﬁc context. They represent commonly occurringtypes of real-time properties found in several requirementdocuments for embedded systems. These two approacheshave been recently combined by De Francesco et al. in [ 29].
+The authors propose a user-friendly interface with the aim of
+simplifying the writing of concurrent system properties. Thisinterface supplies a set of patterns from the natural languagewhich are then automatically translated into the mu-calculustemporal logic.
+In this paper, we choose to follow this approach. In order
+to be as simple as possible, we only consider safety propertiesexpressed by using an extension of textual Dwyer’s patternsand translated into observer automata and invariants. Thew o r kc o u l db ee x t e n d e dt oo t h e rt y p e so rp r o p e r t i e sa sproposed in [ 29]. Such an extension is out of the scope of
+this article.
+3. Context Aware V eriﬁcation
+T o illustrate the explosion problem, let us consider the exam-ple in Figure 1 . We are trying to verify some requirements
+by model checking using the TINA-SEL T model checker [ 3]
+and OBP Explorer. We present the results for a part of theS
+CPmodel, which consists in reducing the set of. Then, we
+introduce our approach based on context speciﬁcations.
+3.1. An Illustration. We present one part of an industrial case
+study: the software part of an antiaircraft system ( SCP). This
+controller controls the internal modes, the system physicaldevices (sensors, actuators) and their actions in response toincoming signals from the environment. The S
+CP systemInitialisationSCP
+SCPInit
+maxD log
+maxD operDev 2Dev 1
+···
+Dev ii
+goInitDev
+login i
+ackOper(role)
+logout iDev
+ackLog (id)
+operate (op)
+Figure 1:SCPsystem: partial description during the initialization
+phase.
+interacts with devices ( Dev ) that are considered to be actors
+included in the SCPenvironment called here context .
+The sequence diagrams of Figure 2 illustrate interactions
+between context actors and the SCP system during an
+initialization phase. This context describes the environmentwe want to consider for the validation of the S
+CPcontroller.
+This context is composed of several actors Dev running
+in parallel or in sequence. All these actors interleave theirbehavior. After the initializing phase, all actors Dev
+i(i∈
+[1,...,n]) wait for orders goInitDev from the system.
+Then, actors Dev isend login iand receive either ackLog (id)
+(Figures 2(a) and 2(c) )o r nackLog (err)(Figure 2(b) )a s
+responses from the system. The logged devices can sendoperate(op) (Figures 2(a) and 2(c) ) and receive either
+ackOper (role )(Figure 2(a) )o rnackOper (err)(Figure 2(c) ).
+The messages goInitDev can be received in parallel in any
+order. However, the delay between messages login
+iand
+ackLog (id)(Figure 1 ) is constrained by maxD log.T h e
+delay between messages operate (op)a n d ackOper (role )
+(Figure 1 ) is constrained by maxD oper . And ﬁnally all Dev i
+send logout ito end the interaction with the SCPcontroller.
+As example, let’s see two requirements on the SCP
+system. These requirements were found in a document of ourpartner and are shown in Listings 1and 2.
+The ﬁrst requirement R1 is expressed by Listing 1.
+We choose to specify this requirement with SEL T lan-
+guage for the device Dev
+1. It is expressed by the following
+formula:
+Inv1: []((SM 1voperateAccepted1) = >
+(SM1vdevLogged1));
+SM 1i sap r o c e s so f SCP and operateAccepted 1
+and devLogged 1 are variables of this process. T o verify
+this requirement, we used the TINA-SEL T model checker(Figure 3 ).
+Let’s see in Listing 2, the second requirement R2.
+We choose to specify this requirement with an observer
+automaton ( Figure 4 ). An observer is an automaton which
+observes the set of events exchanged by the system Sand
+its context C(and thus events occurring in the executions
+(runs ) and which produces an event reject whenever the
+
+--- Page 4 ---
+4 Advances in Software Engineering
+Table 1: T able highlighting the veriﬁcation complexity for the case study with TINA-SEL T.
+N(Number of devices) Exploration and model checking time (sec) Number of L TS conﬁgurations Number of L TS transitions
+1 1 22,977 103,354
+2 3 172,095 759,094
+3 10 718,623 3,127,468
+4 27 2,174,997 9,371,5605 Explosion — —
+Dev 1
+goInitDev
+login 1
+logout 1SCP
+ackLog (id)
+ackOper(role)operate(op)
+(a)Dev 2
+goInitDev
+login 2
+nackLog(err)
+logout 2SCP
+(b)
+Dev 3
+goInitDev
+login 3
+ackLog(id)
+operate(op)
+logout 3nackOper(err)SCP
+(c)
+Figure 2: An example of SCPcontext scenario with 3 devices.
+System 
+model
+Model
+checker
+(SELT)Context
+Explorer
+(TINA)
+ResultsFiacrecodeTransitionsystemProperties
+(SELT formula)
+Figure 3: V eriﬁcation with TINA-SEL T.Reject 01
+2 Other
+ackLog(id)ackLog(id)
+SCPhasReachState Init
+login 1
+ck :=0
+operate(op)>maxD log Ck
+Figure 4: Observer automaton for requirement R2.
+property becomes false. With observers, the properties we
+can handle are of safety and bounded liveness type. Theaccessibility analysis consists of checking if there is a rejectstate reached by a property observer. In our example, thisreject node is reached after detecting the event sequence ofS
+CPhasReachState Init and login 1, in that order, if the
+sequence of one or more of ackLog is not produced before
+maxD log time units. Conversely, the reject node is not
+reached either if SCPhasReachState Init orlogin 1are never
+received, or if ackLog event above is correctly produced
+with the right delay. Consequently, such a property can beveriﬁed by using reachability analysis implemented in ourOBP Explorer.
+This observer is checked with OBP Explorer ( Figure 5 ).
+In both cases, the system model (Here by system model,
+we refer to the model to be validated) is translated intoFiacre format [ 30] to explore all the S
+CPmodel behaviors by
+simulation, SCPinteracting with its environment (devices).
+Model exploration generates a labeled transition system(L TS) which represents all the behaviors of the controller inits environment.
+3.2. Model Checking Results. Ta b l e 1 shows (tests were
+executed on Linux 32 bits—3 Go RAM computer, withTINA vers.2.9.8 and Frac parser vers.1.6.2.) the TINA-SEL Texploration time and the amount of conﬁgurations andtransitions in the L TS for di ﬀerent complexities ( Nindicates
+the number of considered actors). Over four devices, wesee a state explosion because of the limited memory of ourcomputer.
+Ta b l e 2 shows (tests were executed on Linux 32 bits—
+3 Go RAM computer, with OBP Explorer vers.1.0.) theOBP Explorer exploration analyze time and the amount ofconﬁgurations and transitions in the L TS. Over three devices,
+
+--- Page 5 ---
+Advances in Software Engineering 5
+R1:A device (Dev) can be authorized to execute a command “operate” if it
+has previously connected to the system.
+Listing 1: Permission requirement for command “operate” .
+R2:During initialization procedure, S CP shall associate an identiﬁer to
+each device (Dev), after login request and before maxD log time units.
+Listing 2: Initialization requirement for the SCPsystem.
+Transition
+systemObservers
+ContextSystem
+model
+Explorer
+(OBP
+explorer)Fiacre
+code
+Results
+Figure 5: V eriﬁcation with OBP Explorer.
+we see also a state explosion because of the limited memory
+of our computer.
+Note that the size of the L TS explored by OBP Explorer
+for verifying R2 is greater than the size of the related L TS
+explored by TINA-SEL T for verifying R1. This is due to
+the way chosen for modeling these two requirements. R1
+is formalized as a SEL T formula, and R2 is modeled as an
+observer automaton. In the second experiment ( R2 with OBP
+Explorer), the explorer begins by building the synchronizedproduct between the model of the system, each context andthe observer automaton. If this automaton contains severallocations and several clocks, taking into account the observeras an input of the synchronized product could signiﬁcantlyincrease the number of states and transitions explored.
+3.3. Combinatorial Explosion Reduction. When checking the
+properties, a model checker explores all the model behaviors
+and checks whether the properties are true or not. Mostof the time, as shown by previous results, the number ofreachable conﬁgurations is too large to be contained inmemory (Figures 3and 5). We propose to restrict model
+behavior by composing it with an environment that interactswith the model. The environment enables a subset of thebehavior of the model. This technique can reduce thecomplexity of the exploration by limiting the scope of theveriﬁcation to precise system behaviors related to somespeciﬁc environmental conditions.
+This reduction is computed in two stages: contexts
+are ﬁrst identiﬁed by the user ( context
+i,i∈[1,...,N]
+Model
+checker
+Model
+checker
+Model
+checkerContext NSystem
+model
+(ﬁacre)
+Properties NContext 2Properties 2Properties 1
+Context 1State space 1
+State space 2
+State space N
+···
+······×CDL
+CDL
+CDL
+Figure 6: Context-aware model checking.
+inFigure 6 ). They correspond to patterns of use of the
+component being modeled. The aim is to circumvent thecombinatorial explosion by restricting the behavior systemwith an environment describing di ﬀerent conﬁgurations in
+which one wishes check the requirements. Then each contextcontext
+iis automatically partitioned into a set of subcontexts.
+Here, we precisely deﬁne these two aspects implemented inour approach.
+3.3.1. Context Identiﬁcation. The context identiﬁcation
+focuses on a subset of behavior and a subset of properties. Inthe context of reactive embedded systems, the environmentof each component of a system is often well known. It istherefore more e ﬀective to identify this environment than
+trying reduce the conﬁguration space of the model system to
+explore. The proof relevance is based on a strong hypothesis:it is possible to specify the sets of bounded behaviors in acomplete way. This hypothesis not formally justiﬁed in our
+work. But, in this approach, the essential idea is the designer
+can correctly develop a software only if he knows the constraintsof its use. So, we suppose that the designer is able to
+identify all possible interactions between the system and itsenvironment.
+It’s particularly true in the ﬁeld of embedded systems,
+with the fact that the designer of a software component needsto know precisely and completely the perimeter (constraints,conditions) of its system for properly developing it.
+
+--- Page 6 ---
+6 Advances in Software Engineering
+Table 2: T able highlighting the veriﬁcation complexity for the case study with OBP Explorer.
+N(Number of devices) Exploration and analyze time (sec) Number of L TS conﬁgurations Number of L TS transitions
+1 1 43,828 321,002
+2 4 350,256 2,475,392
+3 19 1,466,934 6,430,265
+4 Explosion — —
+We also consider second hypothesis. It expresses that the
+contexts we describe are ﬁnite. There are no inﬁnite loopsin the interactions between the system and its environment.It is particularly true for instance with command systems orcommunication protocols.
+It would be necessary to study formally the validity of
+these working hypothesis based on the targeted applications.In this paper, we do not address this aspect that gives rise toa methodological work to be undertaken.
+Moreover, properties are often related to speciﬁc use
+cases (such as initialization, reconﬁguration, and degradedmodes). Therefore, it is not necessary for a given property totake into account all possible behaviors of the environment,but only the subpart concerned by the veriﬁcation. The
+context description thus allows a ﬁrst limitation of the
+explored space search, and hence a ﬁrst reduction in thecombinatorial explosion.
+3.3.2. Context Automatic Splitting. T h es e c o n di d e ai st o
+automatically split each identiﬁed context into a set ofsmaller subcontexts ( Figure 7 ). The principle of splitting
+is as following: each context is represented by an acyclicgraph as mentioned earlier. This graph is composed with themodel for exploration. In case of explosion, this context isautomatically split into several parts taking into account aparameter for the depth in the graph for splitting until theexploration succeeds.
+T o reach that goal, we implemented a recursive splitting
+algorithm in our OBP tool. Figure 7 illustrates the function
+explore
+mc() for exploration of a model ,w i t ha context iand
+model checking of a set of properties pty.
+We illustrate one execution of this algorithm in
+Figures 8and 9. One context context i,r e p r e s e n t e db ya n
+acyclic graph, is composed with the model Sfor exploration.
+In case of explosion, context iis automatically split into
+several parts (taking into account a parameter dwhich
+speciﬁes the depth in the graph for splitting) until the
+exploration succeeds. For example in Figure 8 , the graph of
+context iis split in four graphs context i1;context i2,context i3,
+andcontext i4. After splitting of context i, the subcontexts are
+composed with the model for exploration. If explorationfails, one subcontext is split, as context
+i3into context i31and
+context i32, taking into account parameter d.
+InFigure 9 ,w ei l l u s t r a t e context iwhich is split into
+Ci1,Ci2,a n d Ci3subcontexts and composed with model S.
+the exploration of model/bardblCi1successes (we note /bardblas
+composition operator). The explorations of model/bardblCi2and
+model/bardblCi3fail. So, Ci2(resp., Ci3) is split into subcontexts
+Ci21and Ci22(Ci31and Ci32resp.,). In the same way,Ci31is split into subcontexts Ci311,Ci312,a n d Ci313. This
+algorithm is executed until all the explorations succeed.Since the property set pty is associated with the context
+context
+i,pty is checked during the explorations with all
+subcontexts. We demonstrated in [ 31] that the veriﬁcation of
+property set (as pty) taking into account of model/bardblcontext i
+exploration is equivalent union of veriﬁcations taking into
+account each model/bardblCkexploration ( Ckis each subcon-
+text Ci1,Ci21,Ci22,Ci32,Ci311,Ci312,a n d Ci313as illustrated in
+Figure 9 ).
+The following veriﬁcation processes are then equivalent:
+(i) compose the context context iand the system, and then
+verify the resulting global system, (ii) partition the contextcontext
+iinto Kisubcontexts (scenarios), and successively
+deal each scenario with the model and check the properties
+on the outcome of each composition. Actually, we transformthe global veriﬁcation problem for context
+iinto Kismaller
+veriﬁcation subproblems. In our approach, the completecontext model can be split into pieces that have to becomposed separately with the system model.
+In summary, the context aware method provides three
+reduction axes: the context behavior is constrained, theproperties are focused, and the state space is split into pieces.Finally, the Nveriﬁcations for the set of Ncontexts is
+transformed into N
+/primeveriﬁcations with N/prime=/summationtextN
+i=1Kismall
+veriﬁcations.
+The reduction in the model behavior is particularly
+interesting while dealing with complex embedded systems,such as in avionic systems, since it is relevant to checkproperties over speciﬁc system modes (or use cases) whichis less complex because we are dealing with a subsetof the system automata. Unfortunately, only few existingapproaches propose operational ways to precisely capturethese contexts in order to reduce formal veriﬁcation com-plexity and thus improve the scalability of existing modelchecking approaches. The necessity of a clear methodologyhas also to be identiﬁed, since the context partitioningis not trivial, that is, it requires the formalization of thecontext of the subset of functions under study. An associatedmethodology must be deﬁned to help users for modelingcontexts (out of scope of this paper).
+4. CDL Language for Context and
+Property Speciﬁcation
+We propose a formal tool-supported framework that com-
+bines context description and model transformations toassist in the deﬁnition of requirements and of the environ-mental conditions in which they should be satisﬁed. Thus,
+
+--- Page 7 ---
+Advances in Software Engineering 7
+explore mc(model, context i, pty, d)
+{//----exploration -----
+lts explore (model, context i);
+//---- model-checking -----
+iflts ! error model check (lts, pty);
+else
+{setcsplit (context, d); // splitting
+fork:0to size of setc
+explore mc(model ,s e t ck,pty, d) ;
+}
+}Model
+to be
+validated
+(ﬁacre)Context iSplitting
+Global context iUnfolding,
+interleaving
+Kiexplorations
+and veriﬁcationsSet of KisubcontextsCDL
+=
+=
+=
+Figure 7: Context splitting and veriﬁcation for each partition (subcontext).
+1
+25
+26
+27
+28
+291
+10
+15
+16
+17
+21
+20 2322
+2418
+19
+11
+1010
+1515
+15
+1616
+16
+1717
+17
+1818
+1919
+2020 23242928272625
+2221
+21
+22
+24
+231
+1010
+1111
+1212
+1313
+1414
+11
+22
+33
+44
+55
+66
+77
+88
+99Context i3
+Context i2Context i1Context i4Context i
+Context i32
+Context i31d(depth)d
+Figure 8: Context splitting algorithm.
+we proposed [ 32] a context-aware veriﬁcation process that
+makes use of the CDL language. CDL was proposed to ﬁllthe gap between user models and formal models requiredto perform formal veriﬁcations. CDL is a (domain speciﬁclanguage) presented either in the form of UML like graphical
+diagrams (a subset of activity and sequence diagrams) or in
+a textual form to capture environment interactions.4.1. Context Hierarchical Description. CDL is based on Use
+Case Charts of [ 33] using activity and sequence diagrams.
+We extended this language to allow several entities (actors)to be described in a context ( Figure 10 ). These entities run in
+parallel. A CDL (For the detailed syntax, see [ 34]a v a i l a b l e
+on http://www.obpcdl.org/.) model describes, on the one
+hand, the context using activity and sequence diagrams
+
+--- Page 8 ---
+8 Advances in Software Engineering
+Fails
+Fails
+FailsFails Ok
+Ok Ok
+OkOk OkOk
+S∥Ci21 S∥Ci22 S∥Ci31 S∥Ci32S∥Ci3 S∥Ci2 S∥Ci1
+S∥Ci313 S∥Ci312 S∥Ci311model S∥Context i
+Figure 9: An example of context splitting execution.
+and, on the other hand, the properties to be checked using
+property patterns. Figure 10 illustrates a CDL model for the
+partial use cases of Figures 1and 2. Initial use cases and
+sequence diagrams are transformed and completed to create
+the context model. All context scenarios are represented,
+combined with parallel and alternative operators, in termsof CDL.
+A diagrammatical and textual concrete syntax is created
+for the context description and a textual syntax for theproperty expression. CDL is hierarchically constructed inthree levels: level 1 is a set of use case diagrams whichdescribes hierarchical activity diagrams. Either alternativebetween several executions (alternative/merge) or a paral-lelization of several executions (fork/join) is available. Level2 is a set of scenario diagrams organized in alternatives.Each scenario is fully described at level 3 by sequencediagrams. These diagrams are composed of lifelines, somefor the context actors and others for processes composingthe system model. Counters limit the iterations of diagramexecutions. This ensures the generation of ﬁnite contextautomata.
+From a semantic point of view, we can consider that the
+model is structured in a set of sequence diagrams (MSCs)connected together with three operators: sequence ( seq),
+parallel ( par), and alternative ( alt). The interleaving of
+context actors described by a set of MSCs generates a graphrepresenting all executions of the actors of the environment.This graph is then partitioned in such a way as to generate
+a set of subgraphs corresponding to the subcontexts as
+mentioned in Section 3.3 .
+The originality of CDL is its ability to link each
+expressed property to a context diagram, that is, a lim-ited scope of the system behavior. The properties canbe speciﬁed with property pattern deﬁnitions describedin [ 32,34]. For checking, properties are linked to one
+or several context descriptions. Listing 3,w ei l l u s t r a t e
+an example (textual version) of a scenario ( scenario
+ex)
+with linked properties: three observer-based propertiesP1,P2, and P3(Pi(i
+∈[1,...,3]) property specifying
+requirement R2) and three invariants Inv1,Inv2, and Inv1
+(Invi (i∈ [1,..., 3]) property specifying requirementR1). As example, properties P1a n d Inv1 are speciﬁed at
+Section 4.2 .
+The clause init speciﬁes an initialization with an activity.
+Actors DEV1, DEV2, and DEV3 are speciﬁed with activities,by Listing 4.
+In Listing 4, the operators “;” and “[]” are respectively
+the sequence ( seq) and alternative ( alt)o p e r a t o r s .C D L
+is designed so that formal artifacts required by existingmodel checkers could be automatically generated from it.This generation is currently implemented in OBP describedbrieﬂy in Section 5 . The CDL formal syntax and semantics
+are presented in [ 35].
+4.2. Property Speciﬁcation Patterns. Property specifying
+needs to use powerful yet easy mechanisms for expressingtemporal requirements of software source code. As example,requirements as R1o r R2 of the S
+CP system described in
+Section 3.1 can refer to many events related to the execution
+of the model or environment. Also, a requirement candepends on an execution history that has to be taken intoaccount as a constraint or precondition.
+If we want to express these kinds of requirements with
+a temporal logic based language as L TL or CTL, the logicalformulas are of great complexity and become di ﬃcult to read
+and to handle by engineers. So, for the property speciﬁcation,we propose to reuse the categories of Dwyer patterns [ 26]a n d
+extend them to deal with more speciﬁc temporal propertieswhich appear when high-level speciﬁcations are reﬁned.Additionally, a textual syntax is proposed to formalizeproperties to be checked using property description patterns[28]. T o improve the expressiveness of these patterns, we
+enriched them with options ( Prearity ,Postarity ,Immediacy ,
+Precedence ,Nullity ,a n d Repeatability ) using annotations as
+[27]. Choosing among these options should help the user
+to consider the relevant alternatives and subtleties associatedwith the intended behavior. These annotations allow thesedetails to be explicitly captured. During a future work, wewill adapt these patterns taking into account the taxonomyof relevant properties, if this appears necessary.
+We integrate property patterns description in the CDL
+language. Patterns are classiﬁed in families, which takeinto account the timed aspects of the properties to bespeciﬁed. The identiﬁed patterns support properties ofanswer ( Response ), the necessity one ( Precedence ), of absence
+(Absence ), of existence ( Existence ) to be expressed. The
+properties refer to detectable events like transmissions or
+receptions of signals, actions, and model state changes. Theproperty must be taken into account either during the entiremodel execution, before, after, or between occurrences ofevents. Another extension of the patterns is the possibility ofhandling sets of events, ordered or not ordered similar to theproposal of [ 36]. The operators AN andALL ,r e s p e c t i v e l y ,
+specify if an event or all the events, ordered (Ordered) or not(Combined), of an event set are concerned with the property.
+We illustrate these patterns with our case study. The
+given requirement R2 (Listing 2) must be interpreted and
+can be written with CDL in a property P1 as follow (cf.
+Listing 5).P1 is linked to the communication sequence
+
+--- Page 9 ---
+Advances in Software Engineering 9
+Level 2
+Level 1
+Level 3Dev i
+Dev i
+Dev i
+Dev iDev iDev iDev i
+Dev iSCP
+SCP
+SCP
+SCPSCPSCP
+SCPlogout iackOper(role)nackOper(err)nackLog(err)
+operate(op)ackLog(id)goInitDev
+alt
+altDev 1 Dev 2 Dev 3
+P3 P1par
+seqlogin i
+≪scope≫≪scope≫
+Figure 10:SCPcase study; partial representation of the context.
+cdl scenario ex is
+{
+properties P1, P2, P3 //references to observers
+assert Inv1, Inv2, Inv3 //references to invariants
+init is {initDevs } //initialization sequence
+main is {DEV1||DEV2||DEV3 } //body of scenario
+}
+Listing 3: A CDL scenario with several observer-based properties and invariants.
+between the SCP and device ( Dev 1). According to the
+sequence diagram of Figure 10 , the association to other
+devices has no e ﬀect on P1.
+P1 speciﬁes an observation of event occurrences in
+accordance with Figure 10 .login 1r e f e r st o login 1reception
+event in the model, ackLog refers to ackLog reception event
+byDev 1.SCPhasReachState Init refers a state change in the
+model under study.
+In CDL, we specify properties with events and predicates.
+For example, the event SCPhasReachState Init is deﬁned
+with predicate SCPState Init as follows:
+event S CPhasReachState Init is
+{SCPState Init becomes true }
+The predicate SCPState Init is deﬁned as follows:
+predicate S CPState Init is {{SM}
+1@State Init}
+with State Init as a state of process SM 1.Invariants are speciﬁed with CDL predicats. As example,
+invariant Inv1 is speciﬁed as in Listing 6.
+5. OBP Toolset
+T o carry out our experiments, we used OBP tool ( Figure 11 ).
+OBP is an implementation of a CDL language translationin terms of formal languages, that is, currently Fiacre [ 30].
+As depicted in Figure 11 , OBP leverages existing academic
+m o d e lc h e c k e r ss u c ha sT I N A - S E L T[ 3] or simulators such
+as OBP Explorer. From CDL context diagrams, the OBPtool generates a set of context graphs which represent the
+sets of the environment runs. Currently, each generated
+graph is transformed into a Fiacre automaton. Each graph
+represents a set of possible interactions between model and
+context. T o validate the model under study, it is necessary
+to compose each graph with the model. Each property on
+
+--- Page 10 ---
+10 Advances in Software Engineering
+activity DEV1 is
+{
+{event send login1 ;{event recv acklog1 []event recv nack log1}};
+{event send operate1 ;{event recv ackoper1 []event recv nack oper1}};
+{send logout1 to {SM}1}
+}
+Listing 4: An CDL activity.
+Property P1 ;
+ALL Ordered
+exactly one occurrence of S CPhasReachState Init
+exactly one occurrence of login1
+endeventually leads-to [0..maxD
+log]
+AN
+one or more occurrence of ackLog (id)
+endS
+CPhasReachState Init may never occurs
+login1 may never occurs
+one of ackLog (id) cannot occur before login1repeatability: true
+Listing 5: A response pattern from R2 requirement.
+each graph must be veriﬁed. In the case of TINA-SEL T, the
+p r o p e r t i e sa r ee x p r e s s e dw i t hS E L Tl o g i cf o r m u l a[ 3]. With
+OBP Explorer, OBP generates an observer automaton [ 37]
+from each property for OBP Explorer. With OBP Explorer,
+the accessibility analysis is carried out on the result of the
+composition between a graph, a set of observers and the
+system model as described in [ 32]. If for a given context,
+we face state explosion, the accessibility analysis, or model-checking is not possible. In this case, the context is split intoa subset of contexts and the composition is executed again asmentioned in Section 3.3 .
+T o import models with standard format such as UML,
+SysML, AADL, and SDL, we necessarily need to imple-
+ment adequate translators such as those studied in T op-
+Cased (http://www.topcased.org/) or Omega (http://www-omega.imag.fr/.) projects to generate Fiacre programs.
+6. Experiments and Results
+Our approach was applied to several embedded systemsapplications in the avionic or electronic industrial domain.These experiments were carried out with our French indus-trial partners. In [ 32], we reported the results of these
+experiments. For the S
+CPcase study, we constructed several
+CDL models with di ﬀerent complexities depending on the
+number of devices. The tests are performed on each CDLmodel composed with S
+CPsystem.Ta b l e 3 shows the amount of TINA-SEL T exploration and
+model checking (tests with same computer as for Ta b l e 1 )f o r
+checking of requirement R1 with the use of context splitting.
+The ﬁrst column depicts the number NofDev asking for
+login to the SCP. The third one indicates the number
+of subcontext after splitting by OBP . The other columnsdepict the exploration time and the cumulative amount ofconﬁgurations and transitions of all L TS generated duringexploration by TINA with context splitting. For example,with 7 devices, we needed to split the CDL context in 56 partsfor successful exploration. Without splitting, the explorationis limited to 4 devices by state explosion as shown Ta b l e 1 .
+It is clear that device number limit depends on the memorysize of used computer.
+Ta b l e 4 shows the amount of OBP Explorer exploration
+and analyze (tests with same computer as for Ta b l e 2 )f o r
+checking of requirement R2 with the use of context splitting.
+With 7 devices, we needed to split the CDL context in344 parts for successful exploration. Without splitting, theexploration is limited to three devices by state explosion asshown Ta b l e 2 .
+As mentioned previously in Section 3.2 , the size of the
+L TS explored by OBP Explorer for verifying R2i sg r e a t e r
+than the size of the related L TS explored by TINA-SEL T forverifying R1. In that case, being able to split the contexts
+in order to overcome this new source of combinatorialexplosion, as proposed by OBP , is of greater importance.
+
+--- Page 11 ---
+Advances in Software Engineering 11
+predicate Inv1 is
+{({SM}1:operateAccepted 1=false )o r({SM}1:devLogged1 = true )}
+Listing 6: A CDL invariant.
+OBPModel speciﬁcation
+(SysML, AADL, SDL)
+Context and
+requirements
+(informal)
+ResultsResultsTINA
+SELT
+OBP
+explorerModel to be
+validated
+(SysML,
+AADL, SDL)Fiacre
+codeFiacre
+code
+Data CDL
+Figure 11: CDL model transformation with OBP .
+The example given ( Figure 1 )i l l u s t r a t e sac a s ew h e r e
+there are lots of asynchrony in the behavior of environmentactors, causing an explosion in the number of states and thusan increase in the number of contextes generated. We obtaina good performance with this method in case the one hand,the contexts restrict signiﬁcantly the behavior of the modelto be validated (space-complexity reduction) and, secondly,in case the context number is not too large (time-complexity
+reduction).
+Exploration can easily be parallelized. In fact, the split-
+ting method allows contexts to be distributed on machinenetwork. We do not yet implement this parallelization tech-nique, but it can be very e ﬀective. Suppose we have a network
+ofNsimilar machines. We can divide by Ntime of global
+exploration. This is an approximation by considering that the
+context transfer delays and result return delays are negligiblecompared to the exploration time on a machine. We shouldtake into account the exploration time is not identicalfor all contexts. But parallelization can signiﬁcantly improvethe proof execution time. For example, in case shown inTa b l e 4 , with 20 machines (resp., 100), we can hope to
+obtain an execution time of approximately 5 minutes (resp. 1minute) instead of two hours on a single machine. We believeour method of context splitting is complementary with otherreduction methods. On some machine, for one subcontext,we can use another technique complementary way.
+7. Discussion and Conclusion
+C D Li sap r o t o t y p el a n g u a g et of o r m a l i z ec o n t e x t sa n dproperties. However, CDL concepts can be implemented inanother language. For example, context diagrams are easily
+described using full UML2. CDL permits us to study ourmethodology. In future work, CDL can be viewed as anintermediate language. T oday, the results obtained using thecurrently implemented CDL language and OBP are veryencouraging. For each case study, it was possible to buildCDL models and to generate sets of context graphs with OBP .
+During experiments, we noted that some contexts and
+requirements were often described in the available docu-mentation in an incomplete way. During the collaborationwith us, these engineers responsible for developing thisdocumentation were motivated to consider a more formalapproach to express their requirements, which is certainly apositive improvement.
+In case studies, context diagrams were built, on the one
+hand, from scenarios described in the design documentsand, on the other hand, from the sentences of requirementdocuments. T wo major di ﬃculties have arisen. The ﬁrst is
+the lack of complete and coherent description of the envi-ronment behavior. Use cases describing interactions betweenthe system ( S
+CPfor instance) and its environment are often
+incomplete. For instance, data concerning interaction modes
+may be implicit. CDL diagram development thus requires
+discussions with experts who have designed the modelsunder study in order to explicate all context assumptions.T h ep r o b l e mc o m e sf r o mt h ed i ﬃculty in formalizing system
+requirements into formal properties. These requirementsare expressed in several documents of di ﬀerent (possibly
+low) levels. Furthermore, they are written in a textual form,and many of them can have several interpretations. Othersimplicitly refer to an applicable conﬁguration, operational
+
+--- Page 12 ---
+12 Advances in Software Engineering
+Table 3: Exploration and model checking of R1 with TINA-SEL T with context splitting using OBP .
+Number of devices Exploration time (sec) Number of sub-con texts Number of L TS conﬁgurations Number of L TS transitions
+5 112 3 2,233,959 9,875,418
+6 2,150 42 32,185,530 158,230,583
+7 4,209 56 66,398,542 330,148,458
+Table 4: Exploration and analyze of R2 with OBP Explorer with context splitting using OBP .
+Number of devices Exploration time (sec) Number of sub-con texts Number of L TS conﬁgurations Number of L TS transitions
+4 954 22 16,450,288 75,362,832
+5 1,256 28 33,568,422 156,743,290
+6 3,442 242 68,880,326 368,452,864
+7 6,480 344 126,450,324 634,382,590
+phase, or history without deﬁning it. Such information,
+necessary for veriﬁcation, can only be deduced by manuallyanalyzing design and requirement documents and by inter-viewing expert engineers.
+The use of CDL as a framework for formal and explicit
+context and requirement deﬁnition can overcome these twodiﬃculties: it uses a speciﬁcation style very close to UML
+and thus readable by engineers. In all case studies, the
+feedback from industrial collaborators indicates that CDL
+models enhance communication between developers withdiﬀerent levels of experience and backgrounds. Addition-
+ally, CDL models enable developers, guided by behaviorCDL diagrams, to structure and formalize the environmentdescription of their systems and their requirements.
+One element highlighted when working on embedded
+software case studies with industrial partners, is the needfor formal veriﬁcation expertise capitalization. Given ourexperience in formal checking for validation activities itseems important to structure the approach and the datahandled during the veriﬁcations. That can lead to a bettermethodological framework, and afterwards a better integra-tion of validation techniques in model development pro-cesses. Consequently, the development process must includea step of environment speciﬁcation making it possible toidentify sets of bounded behaviors in a complete way.
+Although the CDL approach has been shown scalable
+in several industrial case studies, the approach su ﬀers from
+a lack of methodology. The handling of contexts, and thenthe formalization of CDL diagrams, must be done carefullyin order to avoid combinatorial explosion when generatingcontext graphs to be composed with the model to bevalidated. The deﬁnition of such a methodology will be
+addressed by the next step of this work.
+References
+[1] G. J. Holzmann, “The model checker SPIN, ” IEEE Transactions
+on Software Engineering , vol. 23, no. 5, pp. 279–295, 1997.
+[2] K. G. Larsen, P . Pettersson, and W. Yi, “UPPAAL in a nutshell, ”
+International Journal on Software Tools For Technology Transfer ,
+vol. 1, no. 1-2, pp. 134–152, 1997.[3] B. Berthomieu, P . O. Ribet, and F. V ernadat, “The tool TINA—
+construction of abstract state spaces for petri nets and time
+petri nets, ” International Journal of Production Research , vol.
+42, no. 14, pp. 2741–2756, 2004.
+[4] J. C. Fernandez, H. Garavel, A. Kerbrat, L. Mounier, R.
+Mateescu, and M. Sighireanu, “Cadp: a protocol validation
+and veriﬁcation toolbox, ” in Proceedings of the 8th Interna-
+tional Conference on Computer Aided Veriﬁcation( CA V ’96) ,
+pp. 437–440, London, UK, 1996.
+[5] A. Cimatti, E. Clarke, F. Giunchiglia, and M. Roveri, “Nusmv:
+an e ws y m b o l i cm o d e lc h e c k e r , ” The International Journal on
+Software Tools for Technology Transfer , vol. 2, no. 4, pp. 410–
+425, 2000.
+[6] E. M. Clarke, E. A. Emerson, and A. P . Sistla, “ Automatic veri-
+ﬁcation of ﬁnite-state concurrent systems using temporal logic
+speciﬁcations, ” ACM Transactions on Programming Languages
+and Systems , vol. 8, no. 2, pp. 244–263, 1986.
+[7] G. J. Holzmann and D. Peled, “ An improvement in formal
+veriﬁcation, ” in Proceedings of the Formal Description Tech-
+niques (FORTE ’94) , pp. 197–211, Chapman & Hall, Berne,
+Switzerland, October 1994.
+[8] S. Park and G. Kwon, “ Avoidance of state explosion using de-
+pendency analysis in model checking control ﬂow model, ” inProceedings of the 5th International Conference on Computa-
+tional Science and Its Applications (ICCSA ’06) , vol. 3984 of
+Lecture Notes in Computer Science , pp. 905–911, 2006.
+[9] P . Godefroid, “The Ulg partial-order package for SPIN, ” in
+Proceedings of the International Conference on Model Checking
+Software (SPIN ’95) ,M o n t r ´eal, Quebec, Canada, October
+1995.
+[10] D. Bo ˇsnaˇcki and G. J. Holzmann, “Improving Spin’s partial-
+order reduction for breadth-ﬁrst search, ” in Proceedings of the
+12th International SPIN Workshop on Model Checking Software(SPIN ’05) , pp. 91–105, August 2005.
+[11] D. Peled, “Combining partial-order reductions with on-the-
+ﬂy model-checking, ” in Proceedings of the 6th International
+Conference on Computer Aided Veriﬁation (CA V ’94) , pp. 377–
+390, Springer, London, UK, 1994.
+[12] A. Valmari, “Stubborn sets for reduced state space generation, ”
+inProceedings of the 10th International Conference on Applica-
+tions and Theory of Petri Nets , pp. 491–515, Springer, London,
+UK, 1991.
+[13] J. R. Burch, E. M. Clarke, K. L. McMillan, D. L. Dill, and L. J.
+Hwang, “Symbolic model checking: 1020 states and beyond, ”
+inProceedings of the 5th Annual IEEE Symposium on Logic in
+Computer Science , pp. 428–439, June 1990.
+
+--- Page 13 ---
+Advances in Software Engineering 13
+[ 1 4 ] E .M .C l a r k e ,D .E .L o n g ,a n dK .L .M c m i l l a n , Compositional
+Model Checking , MIT Press, 1999.
+[15] C. Flanagan and S. Qadeer, “Thread-modular model check-
+ing, ” in Proceedings of the 10th International Conference on
+Model Checking Software (SPIN ’03) , vol. 2648 of Lecture Notes
+in Computer Science , pp. 213–224, 2003.
+[16] O. Tkachuk and M. B. Dwyer, “ Automated environment gener-
+ation for software model checking, ” in Proceedings of the 18th
+International Conference on Automated Software Engineering ,
+pp. 116–129, 2003.
+[17] L. De Alfaro and T. A. Henzinger, “Interface automata, ” in
+Proceedings of the 8th Eiropean Engineering Conference and9th ACM SIGSOFT Symposium on the Foundations of Software
+Engineering (FSE ’01) , pp. 109–120, ACM Press, September
+2001.
+[18] J. Barnat, L. Brim, and J. St ˇr´ıbrn ´a, “Distributed ltl model-
+checking in spin, ” in Proceedings of the 8th International SPIN
+Workshop on Model Checking of Software (SPIN ’01) , pp. 200–
+216, Springer, New Y ork, NY , USA, 2001.
+[19] S. Edelkamp and S. Schroedl, Heuristic Search—Theory and
+Applications , Academic Press, 2012.
+[20] K. Havelund, A. Skou, K. G. Larsen, and K. Lund, “Formal
+modeling and analysis of an audio/video protocol: an indus-
+trial case study using UPPAAL, ” in Proceedings of the 18th IEEE
+Real-Time Systems Symposium , pp. 2–13, December 1997.
+[21] F. Boniol, V . Wiels, and E. Ledinot, “Experiences using model
+checking to verify real time properties of a landing gear controlsystem, ” in Proceedings of the 5th European Congress ERTS
+Embedded Real Time Software (ERTS ’06) , T oulouse, France,
+2006.
+[22] T. Bochot, P . Virelizier, H. Waeselynck, and V . Wiels, “Model
+checking ﬂight control systems: the Airbus experience, ” in
+Proceedings of the 31st International Conference on Software
+Engineering (ICSE ’09) , pp. 18–27, May 2009.
+[23] X. Dumas, P . Dhaussy, F. Boniol, and E. Bonnafous, “ Applica-
+tion of partial-order methods for the veriﬁcation of closed-
+loop SDL systems, ” in Proceedings of the 26th Annual ACM
+Symposium on Applied Computing (SAC ’11) ,W .C .C h u ,W .
+Eric Wong, M. J. Palakal, and C. C. Hung, Eds., pp. 1666–1673,March 2011.
+[ 2 4 ] L .E .M o s e r ,Y .S .R a m a k r i s h n a ,G .K u t t y ,P .M .M e l l i a r - S m i t h ,
+and L. K. Dillon, “ A graphical environment for the design of
+concurrent real-time systems, ” ACM Transactions on Software
+Engineering and Methodology , vol. 6, no. 1, pp. 31–79, 1997.
+[25] Y . S. Ramakrishna, L. K. Dillon, L. E. Moser, P . M. Melliar-
+Smith, and G. Kutty, “Real-time interval logic and its decision
+procedure, ” in Proceedings of the 13th Foundations of Soft-
+ware Technology and Theoretical Computer Science Conference
+(FSTTCS ’93) , vol. 761 of Lecture Notes in Computer Science ,
+pp. 173–192, 1993.
+[26] M. B. Dwyer, G. S. Avrunin, and J. C. Corbett, “Patterns in
+property speciﬁcations for ﬁnite-state veriﬁcation, ” in Pro-
+ceedings of the 21st International Conference on Software
+Engineering , pp. 411–420, IEEE Computer Society Press, May
+1999.
+[27] R. L. Smith, G. S. Avrunin, L. A. Clarke, and L. J. Osterweil,
+“PROPEL: an approach supporting property elucidation, ” in
+Proceedings of the 24th International Conference on Software
+Engineering (ICSE ’02) , pp. 11–21, St Louis, Mo, USA, May
+2002.
+[28] S. Konrad and B. H. C. Cheng, “Real-time speciﬁcation pat-
+terns, ” in Proceedings of the 27th International Conference onSoftware Engineering (ICSE ’05) , pp. 372–381, St Louis, Mo,
+USA, May 2005.
+[29] N. De Francesco, A. Santone, and G. Vaglini, “ A user-
+friendly interface to specify temporal properties of concurrentsystems, ” Information Sciences
+, vol. 177, no. 1, pp. 299–311,
+2007.
+[30] P . Farail, P . Gauﬁllet, F. Peres et al., “FIACRE: an intermediate
+language for model veriﬁcation in the TOPCASED environ-
+ment, ” in Proceedings of the European Congress on Embedded
+Real-Time Software (ERTS ’08) , T oulouse, France, Janvier
+2008.
+[31] J. C. Roger, Exploitation de contextes et d’observateurs pour
+la validation formelle de mod `eles [Ph.D. thesis] ,E N S I E T A ,
+Universit ´e de Rennes I., December 2006.
+[32] P . Dhaussy, P . Y . Pillain, S. Cre ﬀ, A. Raji, Y . Le T raon, and B.
+Baudry, “Evaluating context descriptions and property deﬁ-
+nition patterns for software formal validation, ” in Proceedings
+of the 12th IEEE/ACM Conference Model Driven EngineeringLanguages and Systems (Models ’09) , vol. 5795 of Lecture Notes
+in Computer Science , pp. 438–452, Springer, 2009.
+[33] J. Whittle, “Specifying precise use cases with use case charts, ”
+inProceedings of the International Conference on Satellite Events
+at the MoDELS (MoDELS ’06) , vol. 3844 of Lecture Notes in
+Computer Science , pp. 290–301, 2006.
+[34] P . Dhaussy and J. C. Roger, “Cdl (context description lan-
+guage): syntax and semantics, ” T ech. Rep., ENSTA, Bretagne,France, 2011.
+[35] P . Dhaussy, F. Boniol, and J.-C. Roger, “Reducing state explo-
+sion with context modeling for model-checking, ” in Proceed-
+ings of the 13th IEEE International High Assurance Systems
+Engineering Symposium (Hase ’11) ,B o c aR a t o n ,F l a ,U S A ,
+2011.
+[36] W. Janssen, R. Mateescu, S. Mauw, P . Fennema, and P . Van Der
+Stappen, “Model checking for managers, ” in Proceedings of the
+International SPIN Workshop on Model Checking of Software ,
+pp. 92–107, 1992.
+[37] N. Halbwachs, F. Lagnier, and P . Raymond, “Synchronous
+observers and the veriﬁcation of reactive systems, ” in Proceed-
+ings of the 3rd International Conference on Algebraic Method-
+ology and Software Technology (AMAST ’93) ,M .N i v a t ,C .
+Rattray, T. Rus, and G. Scollo, Eds., Workshops in Computing,
+Springer, T wente, The Netherlands, June 1993.

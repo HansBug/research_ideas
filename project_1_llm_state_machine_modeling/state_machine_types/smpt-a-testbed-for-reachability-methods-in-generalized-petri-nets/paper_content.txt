@@ -1,0 +1,407 @@
+--- Page 1 ---
+HAL Id: hal-04007410
+https://hal.laas.fr/hal-04007410
+Submitted on 28 F eb 2023
+HAL is a multi-disciplinary open access
+archive for the deposit and dissemination of sci-
+entific research documents, whether they are pub-
+lished or not. The documents may come from
+teaching and research institutions in F rance or
+abroad, or from public or private research centers.L’archive ouverte pluridisciplinaire HAL , est
+destinée au dépôt et à la diffusion de documents
+scientifiques de niveau recherche, publiés ou non,
+émanant des établissements d’enseignement et de
+recherche français ou étrangers, des laboratoires
+publics ou privés.
+Distributed under a Creative Commons Attribution| 4.0 International License
+SMPT: A T estbed for Reachability Methods in
+Generalized Petri Nets
+Nicolas Amat, Silvano Dal Zilio
+T o cite this version:
+Nicolas Amat, Silvano Dal Zilio. SMPT: A T estbed for Reachability Methods in Generalized Petri
+Nets. FM 2023 - 25th International Symposium on F ormal Methods„ Mar 2023, Lübeck, Germany .
+￿10.1007/978-3-031-27481-7_25￿. ￿hal-04007410￿
+
+--- Page 2 ---
+SMPT: A Testbed for Reachability Methods
+in Generalized Petri Nets
+Nicolas Amat1and Silvano Dal Zilio1
+1LAAS-CNRS, Université de Toulouse, CNRS, Toulouse, France
+Abstract
+SMPT (for Satisﬁability Modulo Petri Net) is a model checker for
+reachability problems in Petri nets. It started as a portfolio of methods
+to experiment with symbolic model checking, and was designed to be
+easily extended. Some distinctive features are its ability to beneﬁt from
+structural reductions and to generate verdict certiﬁcates. Our tool is quite
+mature and performed well compared to other state-of-the-art tools in the
+Model Checking Contest.
+Keywords— Model checking Reachability problem Petri nets
+1 Introduction
+SMPTis an open source model checker designed to answer reachability queries
+on generalized Petri nets, meaning that we do not impose any restrictions on
+the marking of places or the weight on the arcs. We can in particular handle
+unboundednets. Wealsosupportageneralizednotionofreachabilityproperties,
+in the sense that we can check if it is possible to reach a marking that satisﬁes a
+combination of linear constraints between places. This is more expressive than
+the reachability of a single marking and corresponds to the class of formulas
+used in the reachability category of the Model Checking Contest (MCC), a
+yearly competition of formal veriﬁcation tools for concurrent systems [7, 27].
+The tool name is an acronym that stands for Satisﬁability Modulo Petri
+Net. This choice underlines the fact that, for most of the new features we
+implemented, SMPTacts as a front-end to a SMT solver; but also that it adds
+speciﬁc knowledge from Petri net theory, such as invariants, use of structural
+properties, etc.
+The design of SMPTreﬂects the two main phases during its development
+process. The tool was initially developed as a testbed for symbolic model check-
+ing algorithms that can take advantage of structural reductions (see e.g. [2, 3]).
+This explains why it includes many “reference” implementations of fundamental
+reachability algorithms, tailored for Petri nets, such as Bounded Model Check-
+ing (BMC) [17, 22, 8] or k-induction [31]. It also includes new veriﬁcation
+methods, such as adaptations of Property Directed Reachability (PDR) [15, 16]
+for Petri nets [6]. One of our goal is to eﬃciently compare diﬀerent algorithms,
+on a level playing ﬁeld, with the the ability to switch on or oﬀ optimizations.
+This motivates our choice to build a tool that is highly customizable and easily
+extensible.
+1
+
+--- Page 3 ---
+In a second phase, since 2021, we worked to make SMPTmore mature, with
+the goal to improve its interoperability, and with the addition of new veriﬁcation
+methods that handle problems where symbolic methods are not the best suited.
+We discuss the portfolio approach implemented in SMPTin Sect. 3. This
+second set of objectives is carried by our participation in the last two editions of
+the MCC [25, 26], where we obtained a 100%conﬁdence level (meaning SMPT
+never returned an erroneous verdict). With this last evolution, we believe that
+SMPTleft its status of prototype to become a tool that can be useful to other
+researchers. This is what motivates the present paper.
+Thereareothertoolsthatperformsimilartasks. Weprovideabriefcompari-
+son of SMPTwith two of them in Sect. 5, ITS-Tools [32, 33] and Tapaal [19].
+All tools have in common their participation in the MCC and the use of sym-
+bolic techniques. They also share common input formats for nets and formulas.
+We can oﬀer two reasons for users to use SMPTinstead of—or more logically
+in addition to—these tools. First, SMPTtakes advantage of a new approach,
+calledpolyhedral reduction [2, 3], to accelerate the veriﬁcation of reachability
+properties. This approach can be extremely eﬀective in some cases where other
+methods do not scale. We describe this notion in Sect. 2. Another interesting
+feature of SMPTis the ability to return a verdict certiﬁcate . When a property
+is invariant, we can return a “proof” that can be checked independently by a
+SMT solver.
+2 Technical Background
+We brieﬂy review some theoretical notions related to our work. We assume basic
+knowledgeofPetrinettheory[30]. Inthefollowing, weuse Pforthesetofplaces
+ofanetN. Amarking, m,isamappingassociatinganon-negativeinteger, m(p),
+to every place pinP.SMPTsupports the veriﬁcation of safety properties over
+thereachablemarkingsofamarkedPetrinet (N;m 0). Properties, F, aredeﬁned
+as a Boolean combination of literals of the form , whereis a comparison
+operator (one of =,6or>) and,are linear expressions involving constants
+or places in P. For instance, (p+q>r)_(p65)is an example property.
+We say that property Fis valid at marking m, denotedmj=F, if the
+ground formula obtained by substituting places, p, bym(p)is true. As can be
+expected, we say that Fisreachable in(N;m 0)if there ismreachable such that
+mj=F. See [2, 3, 6] for more details. We support two categories of queries:
+EFF, which is true only if Fis reachable; and AG F, which is true when Fis an
+invariant, with the classic relationship that AG F:(EF:F). Awitnessfor
+property EF Fis a reachable marking such that mj=F; it is acounterexample
+for AG:F. Examples of properties we can express in this way include: checking
+if some transition tis enabled (quasi-liveness); checking if there is a deadlock;
+checking whether some linear invariant between places is always true; etc.
+SMPTimplements several methods that combine SMT-based techniques
+with a new notion, called polyhedral reduction. The idea consists in computing
+structural reductions [10, 11] of the form (N1;m1)BE(N2;m2), where (N1;m1)
+is the (initial) Petri net we want to analyse; (N2;m2)is a reduced version; and
+Eis a system of linear equations relating places in N1andN2. The goal is
+to preserve enough information in Eso that we can reconstruct the reachable
+markings of (N1;m1)by knowing only those of (N2;m2). Given a starting net,
+2
+
+--- Page 4 ---
+we can automatically compute a polyhedral reduction using the tool Reduce,
+which is part of Tina[12]. (But obviously there are many irreducible nets.)
+Polyhedral reductions are useful in practice. Given a property F1on the
+initial netN1, we can build a property F2onN2[2, 3] such that checking F1
+onN1(whether it is reachable or an invariant) is equivalent to checking F2on
+N2. We have observed very good speed-ups with this approach, even when we
+only have a moderate amount of reductions. This notion is also “compatible”
+with symbolic methods. In SMPT, we recast all constraints and relations into
+formulas of Quantiﬁer Free Linear Integer Arithmetic (the QF-LIA theory in
+the SMT-LIB standard [9]) and pass them to SMT solvers.
+Another important notion is that of inductive invariant . We say that Ris
+an inductive invariant of property Fif it is: (i) valid initially ( m0j=R); (ii)
+inductive (if m!m0andmj=Rthenm0j=R, for all markings m, even those
+that are not reachable); and (iii) RF. Given a pair (F;R)we can check these
+three properties automatically using a SMT solver (and with only one formula
+in each case). In some conditions, when property Fis an invariant, SMPT
+can automatically compute an inductive invariant from F. This provides an
+independent certiﬁcate that invariant Fholds.
+3 Design and Implementation
+SMPTis open-source, under the GNU GPL v3.0 licence, and is freely avail-
+able on GitHub (https://github.com/nicolasAmat/SMPT). The repository also
+provides examples of nets, formulas, and scripts to experiment with the tool.
+SMPTis a Python project of about 4 000lines of code, and is fully typed us-
+ing the static type checker mypy. The code is heavily documented ( 4 500lines)
+and we provide many tracing and debugging options that can help understand
+its inner workings. The project is packaged in libraries, and provides abstract
+classes to help with future extensions. We describe each library and explain
+how they can be extended.
+The ptio library deﬁnes the main data-structures of the model checker, for
+Petrinets( pt.py), reachabilityformulas( formula.py ), andreductionequations
+(system.py ). It also provides the corresponding parsers, for diﬀerent formats.
+The interface library includes interfaces to external tools and solvers. For ex-
+ample, we provide an integrated interface to z3[14] built around the SMT-LIB
+format [9]. We can also interface with MiniZinc [29], a solver based on con-
+straint programming techniques, and with a random state space explorer, walk,
+distributed with the Tinatoolbox. New tools can be added by implementing
+the abstract class Solver(solver.py ).
+The exec library provides a concurrent “jobs scheduler” that helps run multi-
+ple veriﬁcation tasks in parallel and manage their interactions.
+The checker library is the core of our tool. It includes a portfolio of meth-
+ods intended to be executed in parallel. All methods implement an abstract
+class ( abstractchecker.py ) which describes the abstract method prove. We
+currently support the following eight methods:
+(1)Induction : abasicmethodthatchecksifapropertyisaninductiveinvariant
+(seeSect.2). Thispropertyis“easy” tocheck, eventhoughinterestingproperties
+are seldom inductive. It is also useful to check verdict certiﬁcates.
+3
+
+--- Page 5 ---
+(2)BMC: Bounded Model Checking [13] is an iterative method to explore the
+state space of systems by unrolling their transitions. This method is only useful
+for ﬁnding counterexamples.
+(3)k-induction : [31] is an extension of BMC that can also prove invariants.
+(4)PDR: Property Directed Reachability [15, 16], also known as IC3, is a
+method to strengthen a property that is not inductive, into an inductive one.
+Thismethodcanreturnaverdictcertiﬁcate. Weprovidethreediﬀerentmethods
+of increasing complexity [6] (one for coverability and two for general reachabil-
+ity).
+(5)State Equation : is a method for checking that a property is true for
+all “potentially reachable markings” (solution of the state equation). This is a
+semi-decision method, found in many portfolio tools, that can easily check for
+invariants. We implement a reﬁned version [32, 33] that can over-approximate
+the resultwith thehelp oftrap constraints [20] andotherstructural information,
+such as NUPN speciﬁcations [21].
+(6)Random Walk : relies on simulation tools to quickly ﬁnd counterexamples.
+It is also found in many tools that participate in the MCC [27]. We currently
+usewalk, distributed with the Tinatoolbox, but we are developing a new tool
+to take advantage of polyhedral reductions.
+(7)Constraint Programming : is a method speciﬁc to SMPTin the case
+where nets are “fully reducible” (the reduced net has only one marking). In this
+case, reachable markings are exactly the solution of the reduction equations ( E)
+and verdicts are computed by solving linear system of equations.
+(8)Enumeration : performs an exhaustive exploration of the state space and
+relies on the Tinamodel checker. It can be used as a fail-safe, or to check the
+reliability of our results.
+4 Commands, Basic Usage and Installation
+SMPTrequires Python version 3.7 or higher. The easiest method for experi-
+menting with the tool is to directly run the smptmodule as a script, using a
+command such as python3 -m smpt . Our repository includes a script to sim-
+plify the installation of the tool and all its dependencies. It is also possible to
+ﬁnd disk images with a running installation in the MCC website and in arti-
+facts archived on Zenodo [4, 5]. As usual, option --helpreturns an abridged
+description of all the available options. We list some of them below, grouped by
+usage.
+Input formats. We accept Petri nets described using the Petri Net Markup
+Language (PNML) [23] and can also support colored Petri nets (using op-
+tion --colored ) by using and external unfolder [18]. For methods that rely
+on polyhedral reductions, it is possible to automatically compute the re-
+duction ( --auto-reduce ) or to provide a pre-computed version (with option
+--reduced-net <path> ). It is also possible to save a copy of the reduced net
+with the option --save-reduced-net <path> .
+Veriﬁcation methods. We support the veriﬁcation of three predeﬁned classes
+of safety properties: deadlock detection (--deadlock ), which is self-descriptive;
+quasi-liveness (--quasi-liveness t ), to check if it is possible to ﬁre transition
+4
+
+--- Page 6 ---
+t; andreachability (--reachability p ), tocheckifthereisareachablemarking
+where place pis marked (it has at least one token). It is also possible to check
+the reachability of several places, at once, by passing a comma-separated list of
+names, --reachability p1,...,pn ; and similarly for liveness. Finally, SMPT
+supports properties expressed using the MCC property language [28], an XML
+format encoding the class of formulas described in Sect. 2. Several properties
+can be checked at once.
+Output format. Results are printed in the text format required by the MCC,
+which is of the form FORMULA <id> (TRUE/FALSE) . There are also options to
+output more information: --debug to print the SMT-LIB input/output code ex-
+changed with the SMT solver; --show-techniques , to return the methods that
+successfully computed a verdict; --show-time , to print the execution time per
+property; --show-reduction-ratio , to get the reduction ratio; --show-model ,
+to print the counterexample if it exists; --check-proof , to check verdict cer-
+tiﬁcates (when we have one); --export-proof , to export verdict certiﬁcates
+(inductive invariants, traces leading to counterexamples, etc.).
+Tweaking options. We provide a set of options to control the behaviour of our
+veriﬁcation jobs scheduler. We can add a timeout, globally ( --global-timeout
+<int>) or per property ( --timeout <int> ). We can also restrict the choice
+of veriﬁcation methods ( --methods <method_1> .... <method_n> ). Finally,
+option --mccputs the tool in “competition mode”.
+5 Comparison with Other Tools
+We report on some results obtained by SMPT,ITS-Tools [32, 33], and
+Tapaal [19] during the 2022 edition of the MCC [26]. We created a public
+repository [1] containing the scripts used to generate the statistics and oracles
+for the 2022 edition of the Model Checking Contest for the Reachability cate-
+gory.
+SMPTprovides a default competition mode that implements a basic strat-
+egy that should be eﬀective in the conditions of the MCC. Basically, we start
+by running the Random Walk and State Equation methods in parallel with a
+timeout of 120 s, on all formulas, in order to catch easy counterexamples and
+invariants as quickly as possible. Then we run more demanding methods: BMC,
+k-induction, PDR, etc. The rationale is that queries used in the reachability
+competition are randomly generated and usually exhibit a bias towards “coun-
+terexamples” (CEX), meaning false AG properties or true EF ones. Also, when
+the formula is an invariant (INV), for instance a “true AG property”, it can often
+be decided with the State Equation method.
+Our tool is quite mature. It achieved a perfect reliability score (all answers
+are correct) and ranked at the third position, behind Tapaal andITS-Tools .
+We display the results in a Venn diagram where we make a distinction between
+CEX and INV properties. There is a total of 50 187answered queries (with
+almost 60%CEX). We observe that a vast majority of these queries ( 41 006) are
+computed by all tools, and can be considered “easy”. Conversely, we have 9 181
+diﬃcult queries, solved by only one or two tools.
+We also provide a bar chart where we distinguish between easy/diﬃcult, and
+CEX/INV queries. We observe that, while SMPTranks last in the number of
+5
+
+--- Page 7 ---
+Figure 1: Comparison of tools on all computed queries
+uniquequeries, itbehavesquitewellwithinvariants(INV);whichisthecategory
+wetargetwithourmostsophisticatedmethods. Overall, weobservethat SMPT
+performs well compared to other state-of-the-art tools in the Model Checking
+Contest and that it is a sensible choice when we try to check invariants.
+6 Future Work
+Work on SMPTis still ongoing. At the moment, we concentrate on methods
+to quickly discover counterexamples. The idea is to combine polyhedral reduc-
+tions and random exploration in order to ﬁnd counterexamples directly in the
+reduced net. We also plan to improve our use of the “state equation” method,
+in particular by identifying new classes of Petri nets for which all potentially
+reachablemarkingsareindeedreachable. Aproblemwealreadystartedtostudy
+in a diﬀerent setting [24].
+References
+[1] Amat, N.: Oracles and Report for the Reachability category of
+the Model Checking Contest. https://github.com/nicolasAmat/MCC-
+Reachability (2022)
+[2] Amat, N., Berthomieu, B., Dal Zilio, S.: On the Combination of
+Polyhedral Abstraction and SMT-based Model Checking for Petri nets.
+In: International Conference on Application and Theory of Petri Nets
+and Concurrency (Petri Nets). LNCS, vol. 12734. Springer (2021).
+https://doi.org/10.1007/978-3-030-76983-3_9
+[3] Amat, N., Berthomieu, B., Dal Zilio, S.: A Polyhedral Abstrac-
+tion for Petri Nets and its Application to SMT-Based Model
+Checking. Fundamenta Informaticae 187(2-4), 103–138 (2022).
+https://doi.org/10.3233/FI-222134 , publisher: IOS Press
+[4] Amat, N., Dal Zilio, S.: Artifact for FM 2023 Paper: SMPT: A
+Testbed for Reachability Methods in Generalized Petri Nets (Nov 2023).
+https://doi.org/10.5281/zenodo.7341426
+6
+
+--- Page 8 ---
+[5] Amat, N., Dal Zilio, S., Hujsa, T.: Artifact for TACAS 2022 Paper:
+Property Directed Reachability for Generalized Petri Nets (Jan 2022).
+https://doi.org/10.5281/zenodo.5863379
+[6] Amat, N., Dal Zilio, S., Hujsa, T.: Property Directed Reachability for
+Generalized Petri Nets. In: Tools and Algorithms for the Construction
+and Analysis of Systems (TACAS). LNCS, vol. 13243. Springer (2022).
+https://doi.org/10.1007/978-3-030-99524-9_28
+[7] Amparore, E.G., Berthomieu, B., Ciardo, G., Dal-Zilio, S., Gallà, F.,
+Hillah, L., Hulin-Hubard, F., Jensen, P.G., Jezequel, L., Kordon, F., Bot-
+lan, D.L., Liebke, T., Meijer, J., Miner, A.S., Paviot-Adet, E., Srba, J.,
+Thierry-Mieg, Y., van Dijk, T., Wolf, K.: Presentation of the 9th Edition
+of the Model Checking Contest. In: Tools and Algorithms for the Construc-
+tion and Analysis of Systems - 25 Years of TACAS: TOOLympics. LNCS,
+vol. 11429, pp. 50–68. Springer (2019)
+[8] Armando, A., Mantovani, J., Platania, L.: Bounded Model Check-
+ing of Software Using SMT Solvers Instead of SAT Solvers. In:
+Model Checking Software (SPIN). LNCS, vol. 3925. Springer (2006).
+https://doi.org/10.1007/11691617_9
+[9] Barrett, C., Fontaine, P., Tinelli, C.: The SMT-LIB Standard: Version
+2.6. Tech. rep., Department of Computer Science, The University of Iowa
+(2017), available at http://www.smt-lib.org/
+[10] Berthelot, G.: Transformations and Decompositions of Nets. In: Petri
+Nets: Central Models and their Properties. LNCS, Springer (1987).
+https://doi.org/10.1007/978-3-540-47919-2_13
+[11] Berthomieu, B., Le Botlan, D., Dal Zilio, S.: Counting Petri net markings
+fromreductionequations.InternationalJournalonSoftwareToolsforTech-
+nology Transfer (2019). https://doi.org/10.1007/s10009-019-00519-1
+[12] Berthomieu, B., Ribet, P.O., Vernadat, F.: The tool TINA–construction
+of abstract state spaces for Petri nets and time Petri nets. International
+journal of production research 42(14) (2004)
+[13] Biere, A., Cimatti, A., Clarke, E., Zhu, Y.: Symbolic Model
+Checking without BDDs. In: Tools and Algorithms for the Con-
+struction and Analysis of Systems (TACAS). LNCS, Springer (1999).
+https://doi.org/10.1007/3-540-49059-0_14
+[14] Bjørner, N.: The Z3 Theorem Prover. https://github.com/Z3Prover/z3/
+(2020)
+[15] Bradley, A.R.: SAT-Based Model Checking without Un-
+rolling. In: Veriﬁcation, Model Checking, and Abstract In-
+terpretation (VMCAI), LNCS, vol. 6538. Springer (2011).
+https://doi.org/10.1007/978-3-642-18275-4_7
+[16] Bradley, A.R.: Understanding IC3. In: Theory and Applications
+of Satisﬁability Testing (SAT), LNCS, vol. 7317. Springer (2012).
+https://doi.org/10.1007/978-3-642-31612-8_1
+7
+
+--- Page 9 ---
+[17] Clarke, E., Biere, A., Raimi, R., Zhu, Y.: Bounded Model Checking Us-
+ing Satisﬁability Solving. Formal Methods in System Design 19(2001).
+https://doi.org/10.1023/A:1011276507260
+[18] Dal Zilio, S.: MCC: A Tool for Unfolding Colored Petri Nets in PNML
+Format. In: Janicki, R., Sidorova, N., Chatain, T. (eds.) Application and
+Theory of Petri Nets and Concurrency. pp. 426–435. Springer International
+Publishing (2020). https://doi.org/10.1007/978-3-030-51831-8_23
+[19] David, A., Jacobsen, L., Jacobsen, M., Jørgensen, K.Y., Møller,
+M.H., Srba, J.: TAPAAL 2.0: Integrated Development Envi-
+ronment for Timed-Arc Petri Nets. In: Tools and Algorithms
+for the Construction and Analysis of Systems. Springer (2012).
+https://doi.org/10.1007/978-3-642-28756-5_36
+[20] Esparza, J., Melzer, S.: Veriﬁcation of Safety Properties Using Integer Pro-
+gramming: Beyond the State Equation. Formal Methods in System Design
+16(2), 159–189 (2000). https://doi.org/10.1023/A:1008743212620 ,
+https://doi.org/10.1023/A:1008743212620
+[21] Garavel, H.: Nested-unit Petri nets. Journal of Logical and
+Algebraic Methods in Programming 104, 60–85 (Apr 2019).
+https://doi.org/10.1016/j.jlamp.2018.11.005
+[22] Heljanko, K.: Bounded reachability checking with process semantics.
+In: International Conference on Concurrency Theory (CONCUR). LNCS,
+vol.2154.Springer(2001). https://doi.org/10.1007/3-540-44685-0_15
+[23] Hillah, L.M., Kordon, F., Petrucci, L., Treves, N.: PNML Framework: an
+extendable reference implementation of the Petri Net Markup Language.
+In: International Conference on Applications and Theory of Petri Nets.
+Springer (2010). https://doi.org/10.1007/978-3-642-13675-7_20
+[24] Hujsa, T., Berthomieu, B., Dal Zilio, S., Le Botlan, D.: Checking marking
+reachability with the state equation in Petri net subclasses. arXiv preprint
+2006.05600 (2020)
+[25] Kordon, F., Bouvier, P., Garavel, H., Hillah, L.M., Hulin-Hubard, F.,
+Amat., N., Amparore, E., Berthomieu, B., Biswal, S., Donatelli, D., Galla,
+F., , Dal Zilio, S., Jensen, P., He, C., Le Botlan, D., Li, S., , Srba, J.,
+Thierry-Mieg, Y., Walner, A., Wolf, K.: CompleteResultsforthe2021Edi-
+tion of the Model Checking Contest. http://mcc.lip6.fr/2021/results.php
+(June 2021)
+[26] Kordon, F., Bouvier, P., Garavel, H., Hulin-Hubard, F., Amat., N., Am-
+parore, E., Berthomieu, B., Donatelli, D., Dal Zilio, S., Jensen, P., Jeze-
+quel, L., He, C., Li, S., Paviot-Adet, E., Srba, J., Thierry-Mieg, Y.:
+Complete Results for the 2022 Edition of the Model Checking Contest.
+http://mcc.lip6.fr/2022/results.php (2022)
+[27] Kordon, F., Hillah, L.M., Hulin-Hubard, F., Jezequel, L., Paviot-Adet, E.:
+Study of the eﬃciency of model checking techniques using results of the
+MCC from 2015 to 2019. International Journal on Software Tools for Tech-
+nology Transfer (2021). https://doi.org/10.1007/s10009-021-00615-1
+8
+
+--- Page 10 ---
+[28] LIP6: Model Checking Contest Property Language (Manual). Petri Nets
+(2020)
+[29] Nethercote, N., Stuckey, P.J., Becket, R., Brand, S., Duck, G.J., Tack, G.:
+MiniZinc: Towards a standard CP modelling language. In: International
+ConferenceonPrinciplesandPracticeofConstraintProgramming.pp.529–
+543. Springer (2007). https://doi.org/10.1007/978-3-540-74970-7_38
+[30] Reisig, W.: Petri nets: an introduction, vol. 4. Springer Science & Business
+Media (2012). https://doi.org/10.1007/978-3-642-69968-9
+[31] Sheeran, M., Singh, S., Stålmarck, G.: Checking Safety Proper-
+ties Using Induction and a SAT-Solver. In: Formal Methods in
+Computer-Aided Design. LNCS, Springer, Berlin, Heidelberg (2000).
+https://doi.org/10.1007/3-540-40922-X_8
+[32] Thierry-Mieg, Y.: Symbolic Model-Checking Using ITS-Tools. In: Tools
+and Algorithms for the Construction and Analysis of Systems (TACAS).
+Springer (2015). https://doi.org/10.1007/978-3-662-46681-0_20
+[33] Thierry-Mieg, Y.: Structural Reductions Revisited. In: Application and
+Theory of Petri Nets and Concurrency (Petri Nets). LNCS, vol. 12152.
+Springer (2020). https://doi.org/10.1007/978-3-030-51831-8_15
+9

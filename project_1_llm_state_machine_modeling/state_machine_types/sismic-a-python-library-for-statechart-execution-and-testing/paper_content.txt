@@ -1,0 +1,289 @@
+--- Page 1 ---
+SoftwareX12(2020)100590
+Contents lists available at ScienceDirect
+SoftwareX
+journal homepage: www.elsevier.com/locate/softx
+Originalsoftwarepublication
+Sismic—APythonlibraryforstatechartexecutionandtesting
+AlexandreDecan∗,TomMens
+Software Engineering Lab, University of Mons, Belgium
+a r t i c l e i n f o
+Article history:
+Received15May2019
+Receivedinrevisedform9March2020
+Accepted14September2020
+Keywords:
+Statechart
+Executablemodelling
+Behaviour-drivendevelopment
+Designbycontract
+Runtimeverificationa b s t r a c t
+Statechartsareawell-knownvisualmodellinglanguageforrepresentingtheexecutablebehaviourof
+complexreactiveevent-basedsystems.Theessentialcomplexityofstatechartmodelssolicitstheneed
+foradvancedmodeltestingandvalidationtechniques,suchastest-drivendevelopment,behaviour-
+driven development, design by contract, and property statecharts for monitoring of violations of
+behaviouralpropertiesduringstatechartexecution. Sismicisanopen-sourcePythonlibraryproviding
+atoolsuitetodefine,simulate,executeandteststatechartswithalloftheaforementionedtechniques.
+©2020TheAuthor(s).PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBYlicense
+(http://creativecommons.org/licenses/by/4.0/).
+Currentcodeversion
+Codemetadata
+Currentcodeversion 1.4.1(commitd61e748)
+Permanentlinktocode/repositoryusedforthiscodeversion https://github.com/ElsevierSoftwareX/SOFTX_2019_181
+CodeOceancomputecapsule Notapplicable
+LegalCodeLicence GNULesserGeneralPublicLicenceversion3.0(LGPLv3)
+Codeversioningsystemused git
+Softwarecodelanguages,tools,andservicesused Python
+Compilationrequirements,operatingenvironments&dependencies Python3.5 +;ruamel.yaml, schema, behave, typing
+IfavailableLinktodeveloperdocumentation/manual https://sismic.readthedocs.io
+Supportemailforquestions alexandre.decan@lexpage.net
+Currentexecutablesoftwareversion
+Softwaremetadata
+Currentsoftwareversion 1.4.1
+Permanentlinktoexecutablesofthisversion https://github.com/AlexandreDecan/sismic
+LegalSoftwareLicence GNULesserGeneralPublicLicenceversion3.0(LGPLv3)
+Computingplatforms/OperatingSystems Linux,OSX,MicrosoftWindows
+Installationrequirements&dependencies Python3.5 +;ruamel.yaml, schema, behave, typing
+Ifavailable,linktousermanual–ifformallypublishedincludeareferencetothe
+publicationinthereferencelisthttps://sismic.readthedocs.io
+Supportemailforquestions alexandre.decan@lexpage.net
+1. Motivation and significance
+Statechartsareavisualexecutablemodellinglanguageintro-
+ducedbyDavidHarel[1]asanextensionofhierarchicalfinite
+state machines with characteristics of both Mealy and Moore
+∗Correspondingauthor.
+E-mail addresses: alexandre.decan@umons.ac.be(A.Decan),
+tom.mens@umons.ac.be(T.Mens).automata.StatechartsarepartoftheUMLstandardandconstitute
+a popular notation for representing the executable behaviour
+of complex reactive event-based systems. They are frequently
+usedinindustryforthedevelopmentofreal-timesystemsand
+embedded systems, relying on commercial tools such as IBM
+Rational Rhapsody,TheMathworks Stateflow,itemis Yakindu Stat-
+echart Tools, IAR Systems visualSTATE, and QuantumLeaps QM.
+Mostofthesetoolssupportvisualisation,modificationandsim-
+ulationofstatecharts,aswellascodegenerationfromstatechart
+https://doi.org/10.1016/j.softx.2020.100590
+2352-7110/ ©2020TheAuthor(s). PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBYlicense(http://creativecommons.org/licenses/by/4.0/).
+
+--- Page 2 ---
+A. Decan and T. Mens SoftwareX 12 (2020) 100590
+models.Themoreadvancedtoolsalsoprovidesupportformodel
+debuggingandmodelverification.
+Awidevarietyoftestingtechniquesandassociatedtoolsis
+availablefordevelopingsourcecodeinprogramminglanguages.
+These techniques include test-driven development (TDD) [2],
+behaviour-driven development (BDD) [3],and design by contract
+(DbC)[4]. These techniques have proven their usefulness for
+‘‘classical’’programminglanguages.Sincethestatechartformal-
+ismisTuring-complete[5],suchtechniquescanalsobebeneficial
+duringthedevelopmentofexecutablestatecharts.
+For this purpose, we have developed Sismic(a recursive
+acronym for Sismic Interactive Statechart Model Interpreter and
+Checker), a modular Python library for executing, testing and
+validatingexecutablestatechartsbasedonthetechniquesofTDD,
+BDD, DbC, and property statecharts that allow to monitor for
+violationsofbehaviouralpropertiesduringstatechartexecution.
+Sismictargets both researchers and practitioners interested in
+exploring and putting these techniques into practice in their
+software development projects. Sismicprovides a flexible API
+to facilitate its use in regular Python code or to facilitate its
+extensionbyotherresearchers. Sismichasbeenvalidatedthrough
+acontrolleduserstudyin[6]andisusedbymultiplecompanies.
+2. Software description
+SismicisastatechartlibraryforPython(version3.5orhigher)
+providingasetoftoolstodefine,executeandteststatecharts.
+The library is distributed through the Python Package Index.1
+ItssourcecodeisavailableonGitHub2undertheopen-source
+licence LGPLv3. Sismicis extensively documented on sismic.re
+adthedocs.ioand comes with an extensivetest suite with high
+codecoverage.Thetests,examplesandcodefragmentsofthe
+documentationareautomaticallyexecutedaspartofacontinuous
+integrationprocess.
+2.1. Software functionalities
+Sismicprovidesaneasywaytodefineandimportstatecharts,
+basedonthehuman-friendlyYAMLmarkuplanguage.Visuali-
+sationofthesestatechartsisrealisedthroughaninterfacewith
+PlantUML.
+Sismic’sstatechartinterpreteroffersadiscrete,step-by-step,
+observable simulation engine, supporting the main statechart
+concepts.Thedefaultinterpreterusesaninner-first/source-state
+andrun-to-completionsemantics(a.k.a.bigstepsemantics[7]),
+butitcanbetunedtoothersemanticsbysubclassingthisin-
+terpreter.Tosupporttimedevents,theinterpretercomeswith
+controllablesimulationclockthatsupportsbothrealandsimu-
+latedtime.Statechartactionsandguardscanbeexpressedusing
+regularPythoncodeastheactionlanguage,but Sismiccanbe
+extendedtosupportotheractionlanguagesaswell. Sismicalso
+providessupportforcommunicationbetweenstatecharts,aswell
+as for allowing regular Python code to be called from within
+statechartsandviceversa.
+Withrespecttostatecharttesting, Sismicsupportsregularunit
+testingofstatecharts;aDbCapproachtospecifyinvariants,pre-
+andpostconditionsonstatesandtransitions[4];BDD[3];and
+runtimecheckingofbehaviouralpropertiesthatareexpressedas
+statechartsthemselves.
+1pypi.org/project/sismic.
+2github.com/AlexandreDecan/sismic.2.2. Software architecture
+Sismicprovidesamodular,easilyextensiblearchitecture,sum-
+marised in Fig. 1. Experienced Python developers may choose
+to directly create and manipulate statecharts through the sis-
+mic.modelAPI.Inpractice,itismoreconvenienttocreatestat-
+echartsusingeitheratext-basedmarkupeditororanexternal
+visual editor, and import these models through the sismic.io
+API.ThisAPIhassupportforexportingstatechartstoPlantUML
+(plantuml.com)inordertovisualisethembymeansofautomatic
+layoutfeatures.ThisishowFig.2hasbeengenerated.
+Sismic’smaincomponentisthe sismic.interpreter module.In
+order to execute a statechart model, an interpreter must be
+instantiated.Thisinterpreterreliesonan action code evaluator
+toexecuteanycodecontainedintheactionsorguardsofthe
+statechart specification. Module sismic.codeprovides such an
+evaluatortoexpressactioncodeusingregularPython.
+Theinterpretersupportsrun-timemonitoringofcontractvi-
+olations. Contracts are specified directly as part of the state-
+chart description using the language supported by the action
+code evaluator, and can use a range of predefined predicates.
+Theinterpreteralsoprovidesbuilt-insupportforruntimemon-
+itoringpropertiesexpressedasstatecharts.Thesepropertiesare
+expressedasstatechartsthatexpressfunctionalpropertiesofthe
+intendedbehaviourintermsoftheeventsthatareconsumedor
+sent,orintermsofthestatesthatareenteredorexitedbya
+statechartbeingmonitored.Finally,module sismic.bddprovides
+supportforBDDbyprovidingaflexiblewaytodefine,mapand
+execute BDDscenarios.
+3. Illustrative example
+To illustrate the use of Sismic, consider the example of a
+simplifiedmicrowavecontrollerinFig.2,visuallyrenderedwith
+PlantUML. The code fragment below shows part of the YAML
+descriptionofthisstatechart:
+statechart:
+name: Simple microwave controller
+root state:
+name: microwave controller
+initial: door closed
+on entry: timer = 0
+states:
+- name: door opened
+on entry: send(’lamp_on’)
+on exit: send(’lamp_off’)
+transitions:
+- event: door_closed
+target: door closed
+This statechart can be executed through API calls to Sismic’s
+interpreter:
+from sismic.io import import_from_yaml
+from sismic.interpreter import Interpreter
+statechart = import_from_yaml(filepath=’microwave.yaml’)
+interpreter = Interpreter(statechart)
+interpreter.queue(’timer_inc’, ’cooking_start’)
+interpreter.execute()
+assert ’cooking’ in interpreter.configuration
+Contractsaredefinedaspartofthestatechart.Atruntime,the
+interpreterwillverifytheconditionsspecifiedbythecontracts.
+Theexamplebelowshowsacontractforthe‘‘cooking’’stateof
+themicrowave:
+contract:
+- before: timer > 0
+- after: received(’door_opened’) or timer == 0
+2
+
+--- Page 3 ---
+A. Decan and T. Mens SoftwareX 12 (2020) 100590
+Fig. 1.High-levelarchitecturaloverviewof Sismic.
+Fig. 2.Visualrepresentationofasimplifiedmicrowavecontroller.
+Sismicsupports BDD to express scenarios or test cases by
+domain experts in natural language. This allows designers to
+focus on the purpose of the model rather than the technical
+details. Given an appropriate mapping, the following scenario
+canbeexecutedandcheckedby Sismicusingthecommand-line
+utility sismic-bdd:
+Scenario: Heating is on while cooking
+Given I open the door
+And I place an item in the oven
+And I close the door
+And I press increase timer button 5 times
+When I press start button
+Then heating turns on
+4. Impact
+Wehavecarriedoutacontrolleduserstudytoevaluatethe
+feasibility,usefulnessandadequacyofusing Sismicforthepur-
+poseofdefining,validatingandtestingexecutablestatecharts[6].
+Thethirteenparticipantstothestudyindicatedthatthetech-
+niquesimplementedby Sismicwereeasytouse.Thereceived
+feedback provided evidence that BDD scenarios and runtime
+monitoringofcontractsandpropertystatechartsarebeneficial
+duringstatechartdesign.Mostparticipantsindicatedthatthey
+werelikelytousethesetechniquesinthefutureforthepurpose
+ofcreatingnewstatecharts,orforverifyingormodifyingexisting
+ones.
+Sismicisbeingusedsuccessfullybyseveralcompanies,no-
+tablyformodel-in-the-looptestingandsimulations,forworkflow
+andbusinessprocesssupport,andfortheexecutionandvalida-
+tionofconcurrentdistributedstatecharts.Wealsouse Sismicin
+theclassroomforteachingexecutablebehaviouralmodellingto
+bachelorstudents.
+Since SismicisapurePythonimplementationofastatechart
+executionengine,itsperformancemainlydependsontheperfor-
+manceoftheunderlyingPythonengine.Byconstruction, Sismicis an interpreter inside an interpreter and as such, has some
+overhead compared to plain Python code. So far, none of the
+Sismicusershasreportedanylimitationrelatedtoperformance.
+Sismiccould be extended with more advanced automated
+supportforstatecharttesting,suchasthegenerationofstate-
+charts from scenarios, the generation of contracts for a given
+statechart(similartotheautomatedgenerationofcontractsover
+programmes[8]),thegenerationoftestsfromcontractspecifi-
+cations[9],theuseofmutationtestingandconcolictestingat
+thelevelofstatecharts[10,11],thedetectionandimprovement
+ofqualityproblemsinstatechartandcontractspecifications,and
+soon.
+5. Conclusions
+Toconclude, SismicisanopensourceandextensiblePython
+librarywithfull-fledgedsupportfordefiningandexecutingstat-
+echarts,andthesestatechartscanbevalidatedusingaportfolioof
+techniquesincludingunittesting,behaviour-drivendevelopment,
+designbycontract,andpropertystatechartsformonitoringof
+violationsofbehaviouralpropertiesduringexecution.
+Declaration of competing interest
+Theauthorsdeclarethattheyhavenoknowncompetingfinan-
+cialinterestsorpersonalrelationshipsthatcouldhaveappeared
+toinfluencetheworkreportedinthispaper.
+Acknowledgement
+ThispaperwascarriedoutinthecontextofExcellenceofSci-
+enceprojectO.0157.18F-RG43‘‘SECO-Assist’’financedbyFonds
+delaRechercheScientifique—FNRS.
+3
+
+--- Page 4 ---
+A. Decan and T. Mens SoftwareX 12 (2020) 100590
+References
+[1] Harel D. On visual formalisms. Commun ACM 1988;31(5):514–30. http:
+//dx.doi.org/10.1145/42411.42414.
+[2] BeckK.Test-drivendevelopmentbyexample.Addison-Wesley;2002,http:
+//dx.doi.org/10.5555/579193.
+[3] North D. Behavior modification: The evolution of behavior-driven
+development.BetterSoftw2006.
+[4] MeyerB.Applying‘‘designbycontract’’.IEEEComput1992;25(10):40–51.
+http://dx.doi.org/10.1109/2.161279.
+[5] Lu H, Yu S. On the computing power of statecharts. In: Proceedings of
+the international conference on foundations of computer science (FCS).
+Citeseer;2011,p.1.
+[6] Mens T, Decan A, Spanoudakis NI. A method for testing and validating
+executablestatechartmodels.SoftwSystModel2019;18(2):837–63.http:
+//dx.doi.org/10.1007/s10270-018-0676-3.[7] Esmaeilsabzali S,Day NA,Atlee JM,Niu J.Deconstructing thesemantics
+of big-step modelling languages. Requir Eng 2010;15(2):235–65. http:
+//dx.doi.org/10.1007/s00766-010-0102-z.
+[8] Ernst MD, Perkins JH, Guo PJ, McCamant S, Pacheco C, Tschantz MS,
+Xiao C. The daikon system for dynamic detection of likely invariants.
+SciComputProgram2007;69(1–3):35–45.http://dx.doi.org/10.1016/j.scico.
+2007.01.015.
+[9] Meyer B. Contract-driven development. In: Int’l conf. fundamental ap-
+proachestosoftwareengineering(FASE).Lect.notesincomputerscience,
+vol. 4422, Springer; 2007, p. 11. http://dx.doi.org/10.1007/978-3-540-
+71289-3_2.
+[10] FabbriSCPF,MaldonadoJC,SugetaT,MasieroPC.Mutationtestingapplied
+to validate specifications based on statecharts. In: Int’l symp. software
+reliability engineering (ISSRE). IEEE Computer Society; 1999, p. 210–9.
+http://dx.doi.org/10.1109/ISSRE.1999.809326.
+[11] Sen K. Concolic testing. In: Int’l conf. automated software engineering.
+ACM;2007,p.571–2.http://dx.doi.org/10.1145/1321631.1321746.
+4

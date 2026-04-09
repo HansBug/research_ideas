@@ -1,0 +1,702 @@
+--- Page 1 ---
+libFAUDES – An Open Source C++ Library for Discrete Event Sys tems
+Thomas Moor∗, Klaus Schmidt∗, Sebastian Perk∗
+∗Lehrstuhl f¨ ur Regelungstechnik, Universit¨ at Erlangen- N¨ urnberg, D-91058 Erlangen, Germany
+{thomas.moor,klaus.schmidt,sebastian.perk }@rt.eei.uni-erlangen.de
+Abstract—The libFAUDES (Friedrich-Alexander University
+Discrete Event Systems) library is an open source C++ softwa re
+library for discrete event systems (DES) that is developed
+at the University of Erlangen-Nuremberg. The core library
+supportsmethodsfortheDESanalysisandsupervisorsynthe sis,
+while a built-in plugin mechanism allows of specialized lib rary
+extensions. In this paper, we evaluate libFAUDES according
+to the benchmark examples provided for the Workshop on
+Discrete Event Systems 2008.
+I. INTRODUCTION
+The publicly available C++ software library libFAUDES
+(Friedrich-Alexander University Discrete Event Systems l i-
+brary) [1] has been developed at the Chair of Automatic
+Control,Universityof Erlangen-Nuremberg.The core libra ry
+provides basic algorithms for the manipulation of ﬁnite
+state automata and the supervisor synthesis in the Ra-
+madge/Wonham framework [2]. A plugin system facilitates
+extensions of the core library such as the methods for timed
+automata [3], I/O-based control [4] and hierarchical contr ol
+[5] that have already been implemented.
+In this paper, we evaluate the performance of libFAUDES
+by means of the WODES 2008 benchmark examples [6]. In
+addition to the monolithic supervisor synthesis, we apply lo-
+cally modular control [7] andhierarchical and decentralized
+control[5] to demonstrate the practical use of our library.
+The remainder of the paper is organized as follows. In
+Section II, we describe the features of the libFAUDES
+software library and its use for the benchmarking process.
+The evaluation of the “dining philosophers” example and
+the “cat-and-mouse” example with monolithic supervisory
+control is presented in Section III. Section IV provides our
+computational results for the application of locally modul ar
+control and hierarchical control to the benchmark problems ,
+and we give conclusions in Section V.
+II. THE LIBFAUDES S OFTWARE LIBRARY
+A. libFAUDES
+The libFAUDES library [1] provides a C++ environment
+for the implementation of algorithms for the analysis and
+synthesis of discrete event control systems. While we use
+Linux as our primary development platform, libFAUDES
+compiles ﬂawlessly under Microsoft Windows and Apple
+MacOsX.TheinitialversionwaswrittenbyBerndOpitzasa
+mastersproject[8],andsincethenhasbeenfurtherdevelop ed
+by numerous students and the authors of this paper.Technically, libFAUDES is built on top of the C++ Stan-
+dard Template Library (STL) to deﬁne container classes for
+eventsets, state sets and transition relations.When compa red
+to plain C arrays, using STL does introduce some overhead
+regarding memory usage. However, STL provides a rich set
+of efﬁcient basic algorithms (searching, sorting, etc), an d
+we feel that this is a worthwhile trade off. All libFAUDES
+containers take an attribute template parameter to support
+user deﬁned attributes. For example, an event set may use
+the attribute parameter to indicate whether individual eve nts
+are controllable and/or observable.
+For an application interface, the libFAUDES generator
+classmodelsﬁnite automata and provides access to states,
+events and transitions via indices, symbolic names and
+iterators as well as a human readable ﬁle IO. The library
+also implements a variety of general purpose operations on
+generators and the respective formal languages (union, int er-
+section, Kleene closure,projection,minimal state realiz ation,
+etc.). We include basic functions for supervisory controll er
+synthesis to demonstrate how the library can serve as an
+environmentforimplementationandevaluationofalgorith ms
+for the analysis and synthesis of discrete event systems.
+libFAUDESisdistributedasopensourceinthehopethatit
+may be useful for researchers in the DES ﬁeld. We are com-
+mitted to the further development and welcome suggestions
+and contributions. We chose the GNU Lesser General Public
+License (LGPL [9]) scheme since this protects external
+contributionswhile it imposes no restrictions on libFAUDE S
+based applications. In particular, there is no requirement to
+make the application open source. Furthermore, the build
+system supports a plugin mechanism to strictly separate the
+core library from library extensions. Authors are invited b ut
+not forced to contribute their algorithms to the core librar y.
+B. luaFAUDES
+The FAUDES library is supplemented by the console
+applicationluaFAUDES.It isbasedonthescriptinglanguag e
+Lua [10] and provides a comfortable console environmentto
+execute libFAUDES functions. All benchmark experiments
+in this paper have been coded as luaFAUDES scripts and
+can be found on the libFAUDES homepage [1]. The below
+script illustrates an example monolithic supervisor synth esis
+for a plant consisting of four components with associated
+speciﬁcations. This script may be typed (and executed) line -
+by-line in the luaFAUDES console; alternatively, it can be
+stored in a ﬁle and executed by luaFAUDES as a Lua script.
+
+--- Page 2 ---
+--read data of first plant/specification
+--from .gen-file
+plant = Generator.New("plant1.gen")
+spec = Generator.New("spec1.gen")
+--compose with plants/specifications 2-4
+for i = 2,4 do
+iplant = Generator.New(
+string.format("plant%d.gen",i))
+ispec = Generator.New(
+string.format("spec%d.gen",i))
+Parallel(plant,iplant,plant)
+Parallel(spec,ispec,spec)
+end
+--synthesize nonblocking supervisor
+super = Generator.New()
+SupConNB(plant,spec,super)
+--report statistics of result to console
+super:StatWrite()
+% Statistics for SupConNB(plant, spec)
+% States: 362
+% Init/Marked: 1/1
+% Events: 68
+% Transitions: 1159
+% StateSymbols: 362
+% Attrib. E/S/T: 60/0/0
+C. Further development and Applications
+There is a number of libFAUDES applications and add-
+ons in different stages of development, partly conducted as
+student projects.
+•Functions to support the hierarchical synthesis methods
+of the authors[4], [5], [11], [12] are implementedas the
+libFAUDES plugins “hiosys” and “schmidt”. Routines
+of general interest will be integrated in the library core
+in the near future.
+•Acode generator that translates libFAUDES generators
+into IEC 61131-3 code has been developed in collabo-
+ration with Infoteam Software GmbH [13]. It includes
+the libFAUDES plugin “timed” for timed automata [3]
+using set attributes to model time constraints.
+•Asimulator for synchronizedtimed generatorshasbeen
+developed as a libFAUDES application [14]. It supports
+both the interactive and the stochastic synchronous
+execution of timed generators.
+•Adevice driver intermediate layer has been designed
+to map physical sensor and actuator signals from digital
+IO hardware to libFAUDES events to enable hardware-
+in-the-loop simulation.
+•A Qt [15] widget for the graphical representation of
+generatorshas beendevelopedas a basisfor a graphical
+user interface to libFAUDES.
+D. Benchmark Experiments
+For the respective WODES’08 benchmark examples, the
+libFAUDES plugins “philosophers” and “cats-and-mice”
+havebeendeveloped.The pluginscompileto severalbinarie s
+(or executables). Each binary represents one of the ap-proachesinSectionsIII-IVandperformsthetasksannounce d
+on the WODES’08 website [6]:
+•construct plant model(s) and speciﬁcation(s) according
+to the command line options nandkand design
+nonblocking, maximally permissive supervisor(s)
+•output statistical data to the console
+•output supervisor(s) to human readable ﬁles
+The benchmark experiments were carried out under Linux,
+and a shell script was used to execute the respective binary
+looping over nandkwhile measuring the values TIME and
+MEMORY for each run. For the value TIME, we chose the
+total time that elapsed from starting the process that executes
+thebinarytocompletingtheﬁleoutput.ThevalueMEMORY
+represents the maximum amount of physical memory used
+by the process, which comprises the memory consumed by
+the executed code as well as the data generated during the
+process.For comparabilityof all benchmarkexperimentsan d
+to avoid swapping to virtual memory, all runs exceeding 1
+GB memory were regardedunsuccessful andterminated . The
+benchmarkexperimentswhere performedon customaryPC’s
+with 3 GHz CPU’s and 3 GB physical memory.
+The computational results and measurement values ob-
+tained for the approachespresented in the following sectio ns
+are summarized in Tables I - VI. The entries for each pair
+(n, k)contain three values: The above-mentioned values
+MEMORY and TIME are denoted by M and T, respectively.
+Besides the unit second(s), we also used the units millisec-
+ond(ms),minute(min),hour(h) andday(d) for the TIME
+value. In Tables I - III, the value S denotes the number of
+states of the closed loop that serves as a realization of the
+supervisor; in Tables IV - VI, S indicates the sum of states
+of all resulting supervisors.
+Besides some representative values for nandk, the tables
+also contain the highestvalues achieved using less than 1GB
+memory. Higher values for nandk, e.g., entries ﬁlled with
+“—”, exceed this memory limit.
+III. BENCHMARK EVALUATION : MONOLITHIC
+SUPERVISOR SYNTHESIS
+In this section, we apply the monolithic supervisor syn-
+thesis to both the “dining philosophers” and the “cat-and-
+mouse” benchmark example. To this end, we ﬁrst determine
+an overall plant automaton Gand an overall speciﬁcation
+automaton DwithLm(D)⊆Lm(G). Then, the libFAUDES
+routine SupConNB is invoked to synthesize the nonblocking
+andmaximally permissive supervisor automaton R, i.e.,
+R=SupConNB (G, D). (1)
+A. Dining philosophers Example
+The “diningphilosophers”benchmarkexample(cf. Exam-
+ple 2.17 in [16]) considers n≥2philosophers P1, . . . , P n
+sitting around a table such that philosopher Pnis a neighbor
+of philosopher P1. There is one fork Fi1,i2between any two
+philosophers Pi1andPi2representing a shared resource.
+A philosopher ican pick up the left fork ﬁrst (event
+ifl), then the right fork (event ifr), and then drop both
+
+--- Page 3 ---
+TABLE I
+MONOLITHIC APPROACH :DINING PHILOSOPHERS EXAMPLE
+n→ 2 3 4 5 6 7 8 9 10 11 12 13
+k
+=
+1M <1MB <1MB 1.2MB 1.2MB 1.3MB 1.6MB 2.3MB3.8MB 8.4MB19MB 48MB 122MB
+T <1ms <1ms <1ms 1ms 2ms 10ms 25ms66ms 2s 6s 19s 75s
+S3 12 30 78 190 470 1138 2770 6694 16206 39138 94578
+k
+=
+2M1.2MB 1.2MB 1.3MB 1.5MB 2.4MB4.7MB 141MB 47MB 166MB — — —
+T <1ms <1ms 1ms 6ms 1s 1s 9s65s 643s — — —
+S4 24 83 321 1082 3855 12863 44172 146675 — — —
+k
+=
+3M1.2MB 1.2MB 1.4MB2.1MB 5.5MB 22MB 99MB — — — — —
+T <1ms <1ms 3ms 19ms 2s 38s 724s — — — — —
+S5 40 178 932 4050 19292 82946 — — — — —
+k
+=
+9M1.2MB1.7MB 7.5MB 75MB 855MB — — — — — — —
+T <1ms 8ms 5s 1120s 1d13h — — — — — — —
+S11 220 2302 32150 331902 — — — — — — —
+k
+=
+15M1.3MB 3.4MB 42MB 774MB — — — — — — — —
+T <1ms 70ms350s 1d9h — — — — — — — —
+S17 544 8962 205136 — — — — — — — —
+k
+=
+1436M846MB — — — — — — — — — — —
+T1d8h — — — — — — — — — — —
+S1438 — — — — — — — — — — —
+forks (event if). The parameter kmeans that by picking
+up the left fork, a philosopher ireaches the ﬁrst of k
+intermediate states, conducts k−1intermediate transitions
+(events it1, .., itk −1) to reach intermediate state k, where
+the right fork is picked up. For the case n=k= 2,
+the philosopher model P2and the model F1,2of the fork
+between P1andP2aredepictedin Fig.1. Theuncontrollable
+events are ifl, forieven. The monolithic plant model is
+G:=Fn,1||P1||(||n
+i=2(Fi−1,i||Pi)). A deadlock situation
+occurs, when each philosopher holds the left fork.
+With the trivial speciﬁcation D:=G, the maximally per-
+missiveandnonblockingsupervisor Riscomputedaccording
+to (1) for different values of nandkas depicted in Table I.
+It can be seen that the computation is limited by the value
+ofn= 13fork= 1andk= 1436forn= 2.
+B. Cat-and-Mouse Example
+Our study is based on the “cat-and-mouse” example ini-
+tially described in [2]. We investigate two different model s
+for this example with its extension to nmaze levels and k
+cats and mice. In the ﬁrst case, we provideindividualmodels
+for each cat and mouse, while the second model does not
+distinguishbetweendifferentcatsandmice.Itrathercapt ures
+the number of cats and mice in each room of the maze.
+1) Individual Models for Cats and Mice: We model the
+i-th cat by an automaton Giand the i-th mouse by an
+automaton Gk+i, where 1≤i≤k,such thateachautomaton
+Gidescribes the behavior of the respective animal on all n
+levels of the maze. As an example, the automaton G1for
+the1-st cat on 2maze levels is shown in Fig. 2. Here, each
+1fr
+1f, 2f2fl2fl 2t1
+2fr 2fP2 F1,2
+12A 12U 2I21
+22
+2E
+Fig. 1. Fork model F1,2and philosopher model P2forn=k= 2eventcx-y( l,1)indicates that the cat 1moves from room
+xto room yon the maze level l, while cz(l,1)describes
+the movement of cat 1from level lto level z. Similarly, the
+model Gk+ifor the i-th mouse is determined. The overall
+plant is G:=||2k
+i=1Gi.
+Furthermore, it has to be speciﬁed that if a cat stays
+in a certain room of the maze, no mouse is allowed to
+enter and vice versa. We characterize this restriction by
+one speciﬁcation Di,1≤i≤kfor the i-th cat and one
+speciﬁcation Dk+i,1≤i≤kfor the i-th mouse. For the
+i-th cat, the speciﬁcation automaton Diis derived from the
+plant automaton Gias follows: in each state of Gi, all mouse
+events are added as a selﬂoop except for the mouse events
+entering the corresponding room. For the state 4 1 of the cat
+speciﬁcation D1, this means that all mouse events except for
+m0-4(1,1) ,...,m0-4(1,k) appearinaselﬂoop.Usingan
+analogousprocedureforthe mouse speciﬁcations,the overa ll
+speciﬁcation evaluates to D:=||2k
+i=1Di.
+Based on GandDderived as above, the maximally per-
+missiveandnonblockingsupervisor Riscomputedaccording
+to (1) for different values of nandkas depicted in Table
+II. It can be observed that the memory consumption grows
+rapidly with increasing k. Together, with the memory limit
+of 1 GB, no values for n >49andk >4could be obtained.
+c0-1(1,1) c0-2(1,1)
+c3-4(1,1)c4-0(1,1)
+c1-2(1,1)c2-0(1,1)
+c1-3(1,1)
+c3-1(1,1)c0-1(2,1) c0-2(2,1) c3-4(2,1)
+c4-0(2,1)c1-2(2,1)
+c2-0(2,1)c1-3(2,1)c3-1(2,1)
+c1(2,1) c2(1,1)G1
+01 11 21 31 4102 12 22 32 42
+Fig. 2. Individual cat model G1for cat 1on two maze levels
+
+--- Page 4 ---
+TABLE II
+MONOLITHIC APPROACH :INDIVIDUAL CATS AND MICE
+n→ 1 2 3 4 5 49
+k
+=
+1M <1MB1.3MB 1.6MB 2.0MB 2.6MB 955MB
+T <1ms1ms 3ms 5ms 12ms 57s
+S6 82199 362 58259609
+k
+=
+2M1.6MB 13MB 83MB 379MB — —
+T2ms 1s44s 474s — —
+S24459431247 108302 — —
+k
+=
+3M10MB — — — — —
+T31ms — — — — —
+S90 — — — — —
+k
+=
+4M284MB — — — — —
+T11s — — — — —
+S336 — — — — —
+2) IndividualModelsforMaze Levels: We derive nplants
+G1, . . ., G nfor the different maze levels. On each level
+l,1≤l≤n, there is a model Ck,i
+lfor each room
+i∈ {1, . . .,5}with maximally kcats. In the initial state,
+each room except for room 0on level 1is empty. As an
+example, Fig. 3 (a) shows the model for room 2on level 1
+of the maze with k= 2cats. Analogously, models Mk,i
+lfor
+the mice can be determined.
+In addition, cat counters ˆCk
+landmouse counters ˆMk
+l,1≤
+l≤n, capture the number of cats and mice that can be
+presentineachlevel lofthemaze,respectively.Theyobserve
+the changes between levels and the initial number of kcats
+in level 1,kmice in level n, and 0cats and mice in the
+remaining levels of the maze. The cat counter ˆC2
+1for2cats
+and level 1is shown in Fig. 3 (b). The events c2(1)and
+c1(2)describe the transition of a cat from level 1to2and
+from level 2to1, respectively.
+The model Glfor each maze level is hence
+Gl:=ˆCk
+l||ˆMk
+l||(||5
+i=1(Ck,i
+l||Mk,i
+l)), (2)
+and the overall plant model is G:=||n
+l=1Gl. Additionally,
+similar to the construction in the previous section, a speci ﬁ-
+cation Dlthat forbids cats and mice to enter the same room
+is determined for each maze level l,1≤l≤n. Hence, we
+arrive at the overall speciﬁcation D:=||n
+l=1Dl.
+TABLE III
+MONOLITHIC APPROACH :INDIVIDUAL MAZE LEVELS
+n→ 1 2 3 4 6 59
+kM1.2MB 1.8MB 1.9MB 1.9MB 2.5MB 946MB
+=T<1ms6ms 9ms 11ms 21ms 461min
+1S6 82 199 362 84586525
+kM5.2MB 43MB 43MB 47MB 310MB —
+=T17ms 3s 6s 45s 840s —
+2S151506 9184 30449 170036 —
+kM42MB 788MB 807MB — — —
+=T2s 68s3720s — — —
+3S2912446 184052 — — —
+kM254MB — — — — —
+=T11s — — — — —
+4S49 — — — — —
+kM512MB — — — — —
+=T27s — — — — —
+9S274 — — — — —c1-2(1)
+c1-2(1)
+c2-0(1)c2-0(1)c2(1)
+c2(1)
+c1(2)c1(2)C2,2
+1ˆC2
+1
+20 2 1
+2212 11
+10
+(a) (b)
+Fig. 3. (a) 2cats in room 2of level 1; (b) Cat counter for level 1
+Theresultsofthemonolithicsupervisorcomputationin(1)
+for different values of nandkare shown in Table III. Here,
+the maximum values for n= 59andk= 9are considerably
+larger than the corresponding values in Table II just becaus e
+of the different modeling paradigm.
+IV. BENCHMARK EVALUATION : METHODSUSING
+SYSTEMSTRUCTURE
+In this section, we employ the routines of libFAUDES
+to implement locally modular control [7] andhierarchical
+and decentralized control [5], [17], [18]. In particular, we
+investigate how the use of structural information about the
+given system affects the applicability of supervisory cont rol.
+A. Locally Modular Control
+Locally modularcontrol as introducedin [7], assumes that
+the plant is composed of ssubsystems G1, . . ., G swith dis-
+joint alphabets, i.e., ΣGi∩ΣGj=∅fori, j∈ {1, . . ., s }and
+i/ne}ationslash=j. Furthermore, there are mlocal speciﬁcation automata
+D1, . . . , D m. Accordingly, mmodular plants H1, . . . , H m
+are constructed from the subsystems that share events with
+the respective speciﬁcation such that
+Hi:= ||
+j,ΣGj∩ΣDi/ne}ationslash=∅Gjfori= 1, . . ., m. (3)
+ForHiandDi,mlocal supervisors are computed using (1):
+Ri=SupConNB (Hi, Di)fori= 1, . . ., m. (4)
+Finally, it has to be veriﬁed if the supervisors Riare
+nonconﬂicting, i.e., if R:=||m
+i=1Riis nonblocking. If R
+is blocking, a further nonblocking overall supervisor has t o
+be computed for the plant R. As has been shown in [7], this
+method results in a maximally permissive and nonblocking
+supervisor. The potential beneﬁts of the approach arise fro m
+the local evaluation of the supervisor synthesis in (4). Eve n
+if an overall supervisor has to be computed, the prior local
+synthesis can lead to smaller plant models.
+Locally modular control cannot be applied to the “dining
+philosophers” example in Section III-A and the “cat-and-
+mouse” example with individual models for maze levels in
+Section III-B.2 as in both cases, the subplants share events .
+However,the“cat-and-mouse”examplewithindividualcat
+and mouse models in Section III-B.1 is suitable for locally
+modular control. The subplants are given by G1, . . ., G 2k,
+and the cat and mouse speciﬁcations are D1, . . . , D 2k. Ac-
+cording to (4), the 2kmodular plants evaluate to
+Hi=/braceleftbiggGi||(||2k
+j=k+1Gj)fori= 1, . . . , k
+Gi||(||k
+j=1Gj)fori=k+ 1, . . .,2k.
+
+--- Page 5 ---
+The computation of the modular plants and the subse-
+quent local supervisor computation according to (4) has
+been implemented in libFAUDES. Our routine also includes
+the veriﬁcation of nonconﬂict and/or the synthesis of an
+overall supervisor based on the modular closed-loops Ri,
+i= 1, . . .,2k. Table IV depicts the computational results.
+TABLE IV
+LOCALLY MODULAR APPROACH :CAT-AND-MOUSE EXAMPLE
+n→ 1 2 3 4 49 55
+k
+=
+1M1.2MB 1.4MB 1.7MB 2.0MB 679MB 901MB
+T<1ms1ms 6ms 11ms 52s 901s
+S6 82 199 36259609 75162
+k
+=
+2M1.5MB 9.2MB 47MB 191MB — —
+T4ms 1s 12s 125s — —
+S244594 31247 108302 — —
+k
+=
+3M4.4MB 706MB — — — —
+T42ms 1198s — — — —
+S90185722 — — — —
+k
+=
+4M60MB — — — — —
+T6s — — — — —
+S336 — — — — —
+The main advantage of the locally modular approach
+compared to the monolithic approach in Section III-B.1 is
+thereducedmemoryconsumption.Asa result,thesupervisor
+synthesis can be carried out for values of up to n= 55.
+B. Hierarchical and Decentralized Control
+Hierarchical and decentralized control as presented in [5] ,
+[12],[18] isbasedon plantsthat arecomposedof ssubplants
+G1, . . ., G sthat potentially share events, i.e., ΣGi∩ΣGj/ne}ationslash=
+∅is permitted for any i, j∈ {1, . . ., s }. We denote the
+overall plant as G:=||s
+i=1Gi. The desired system behavior
+is speciﬁed by slocal speciﬁcation automata D1, . . ., D s,
+where Lm(Di)⊆Lm(Gi)fori= 1, . . ., s. Furthermore,
+there can be a speciﬁcation DhiwithΣDhi⊂ΣG. Hence,
+Dhiserves as a high-level speciﬁcation that only addresses
+events in a subset of the overall alphabet ΣG.
+First,slocal supervisors are computed:
+Ri:=SupConNB (Gi, Di)fori= 1, . . ., s. (5)
+Then, ahigh-level alphabet ΣGhi⊇ΣDhiand a natural
+projection phi: Σ∗
+G→Σ∗
+Gniare introduced in order to
+determine the high-level plant Ghiwith
+L(Ghi) :=phi(s
+||
+i=1L(Ri))andLm(Ghi) :=phi(s
+||
+i=1Lm(Ri)).
+(6)
+According to [19], the natural projection phidistributes
+over the parallel composition in (6) if ΣGhicontains all
+events that are shared among the local supervisors Ri,i=
+1, . . ., s, i.e., ΣGhi⊇Σ∩:=/uniontext
+i,j∈{1,...,s},i/ne}ationslash=j(ΣRi∩ΣRj).
+Hence, the abstraction can be computed for each local
+supervisor to avoid the computation of the overall plant G.
+Finally, the high-level supervisor Rhi=
+SupConNB (Ghi, Dhi)ensures that Dhiis met. Together,
+the overall supervisor evaluates to
+R:=Rhi||R1|| · · · || Rs. (7)To achieve that Ris nonblocking, it is sufﬁcient that
+phiis an Lm(R)-observer as deﬁned in [20]. In addition,
+maximalpermissivecontrolisensuredif phiislocallycontrol
+consistent and the subplants Gi,i= 1, . . ., saremutually
+controllable [12].
+In [12], it is also proved that the hierarchical and de-
+centralized method is applicable to an arbitrary number
+of hierarchical levels. In Section IV-B.1 and IV-B.2, we
+construct such a multi-level hierarchy as follows: we group
+pairs of neighboring abstracted plant models and compute a
+nonblockingsupervisorfor the groupedmodel, which in turn
+serves as the low-level model for a subsequent application
+of the hierarchical and decentralized approach. The iterat ive
+hierarchical construction terminates with the computatio n of
+a single highest-level supervisor. This concept is illustr ated
+in Fig. 4. The resulting overall supervisor is then given by
+the parallel composition of all supervisors in the hierarch y.
+Rhi
+1234
+Rhi
+12 Rhi
+34
+R1 R2 R3 R4 Rs−1 RsRhi
+s−1sRhi
+Fig. 4. Hierarchical multilevel construction
+The described approach has been implemented in lib-
+FAUDES. In order to fulﬁll the required conditions, our
+routine veriﬁes mutual controllability, and algorithmica lly
+determines a locally control consistent natural projectio nphi
+that satisﬁes the Lm(R)-observer property [12], [18].
+Thereareseveralpotentialgainsoftheapproachduetothe
+use of structural system information: ﬁrst, the overall pla nt
+Gdoes not have to be computed.Second, irrelevantbehavior
+is abstracted away before the supervisor Rhiis determined.
+Furthermore, the parallel composition in (7) does not have
+to be evaluated explicitly such that a set of distributed
+supervisors on small state spaces can be implemented.
+1) Dining Philosophers: Before constructing the supervi-
+sorhierarchyofFig.4forthe“diningphilosophers”proble m,
+mutual controllability of the subplants Gihas to be veriﬁed
+as premise for the overall supervisor to be nonblocking.
+Itholdsthatthephilosophermodels Piandtheirrespective
+left forks Fi−1,iarenotmutually controllable for ieven!
+This becomesclear when observingthat, e.g., fork F1,2(Fig.
+1) can prevent the uncontrollable event 2flinP2by being
+unavailable (i.e. by being in state 12U). This problem can
+be solved by composing each philosopher with its left fork
+to achieve nmutually controllable local models:
+G1:=Fn,1||P1, G2:=F1,2||P2, ..., G n:=Fn−1,n||Pn.
+Withthetrivialspeciﬁcations Di:=Gi,thelocalsupervisors
+in (5) are computed as Ri=Gi, i= 1, . . ., n. Applying
+the hierarchical construction in Section IV-B without an
+additional speciﬁcation Dhi, we obtain the following results.
+
+--- Page 6 ---
+TABLE V
+HIERARCHICAL APPROACH :DINING PHILOSOPHERS EXAMPLE
+n→ 2 3 5 8 13 16
+k
+=
+1M1.2MB 1.4MB 1.6MB 1.7MB 27MB 195MB
+T<1ms2ms 42ms 1s84min 248min
+S15 50 194 646 9142 87666
+Table V only depicts results for the value k= 1as it turns
+out that all inserted intermediate states for different val ues
+ofkare not relevant in the hierarchical synthesis. Hence, all
+computationsfor k >2leadtoequivalentresults.Comparing
+Table V with the monolithic evaluation in Table I, it can
+be seen that there is a potential computational overhead of
+hierarchical approach for very small values of n(e.g.n=
+2..5). However, for all larger values of n, the number of
+supervisor states is signiﬁcantly smaller (see, e.g., n= 13),
+and supervisors can be synthesized for values up to n= 16.
+2) Cat and Mouse Example: We consider the “cat-and-
+mouse” example with individual maze levels as introduced
+in Section III-B.2. The low-level plant consists of the maze
+level models G1, . . . , G n, where only neighboring maze
+levels share events. The low-level speciﬁcations are given
+asD1, . . . , D n, and there is no additional speciﬁcation Dhi.
+The computational results for different values of nand
+kare shown in Table VI. The beneﬁts of the hierarchical
+approach compared to the monolithic approach in Section
+III-B.2 can be seen in both the reduced state counts of the
+resulting supervisors and the higher maximum values that
+are achieved for nandk. In particular, for k= 1, a tower
+of up to 21 384maze levels is obtained.
+V. CONCLUSIONS
+In this paper, the open source C++ library libFAUDES
+has been presented, and its algorithms have been employed
+to study the supervisor synthesis problems provided for the
+benchmark session of the WODES 2008. In addition to the
+monolithic controller synthesis, locally modular control and
+hierarchical and decentralized control have been evaluated
+in order to demonstrate both the computational beneﬁts of
+synthesisapproachesthatrespectthesystemstructureand the
+TABLE VI
+HIERARCHICAL APPROACH :CAT-AND-MOUSE EXAMPLE
+n→ 2 3 4 17 5000 21384
+k
+=
+1M1.6MB 1.7MB 1.8MB 2.0MB 178MB 718MB
+T4ms 16ms 16ms 2s1380s 7d 11h
+S54 139 163 1078311884 1334229
+k
+=
+2M4.2MB 44MB 44MB 498MB — —
+T1s 19s 25s 3h — —
+S370 1204 1516 16170 — —
+k
+=
+3M27MB 792MB 276MB — — —
+T10s 900s 3794s — — —
+S1422 7643 8031 — — —
+k
+=
+4M467MB — — — — —
+T1440s — — — — —
+S4022 — — — — —incorporation of such synthesis approaches in libFAUDES.
+In particular, the “cat-and-mouse” example could be solved
+until up to 21 384maze levels.
+Future work aims at providing a graphical user interface
+to the libFAUDES routines.
+VI. ACKNOWLEDGMENT
+The development of libFAUDES did beneﬁt from con-
+tributions made in the context of student projects con-
+ducted by (in alphabetical order): R¨ udiger Berndt, Chris-
+tian Breindl, Christoph D¨ orr, Marc D¨ uvel, Silke Figgen,
+Norman Franchi, Jochen Hellenschmidt, Mihai Musunoi,
+Bernd Opitz, Thomas Rempel, Daniel Ritter, Berno Schlein,
+Johannes Tautz, Thomas Wittmann, Jorgos Zaddach.
+REFERENCES
+[1] Friedrich-Alexander University Discrete Event System s li-
+brary (libFAUDES). [Online]. Available: http://www.rt.e ei.uni-
+erlangen.de/FGdes/faudes/index.php
+[2] P. J. Ramadge and W. M. Wonham, “The control of discrete ev ent
+systems,” Proceedings IEEE, Special Issue Discrete Event Dynamic
+Systems, vol. 77, pp. 81–98, 1989.
+[3] R. Alur and D. Dill, “A theory of timed automata,” Theoretical
+Computer Science , vol. 126, pp. 183–235, 1994.
+[4] S. Perk, T. Moor, and K. Schmidt, “Controller synthesis f or an I/O-
+based hierarchical system architecture,” Workshop on Discrete Event
+Systems (WODES) , 2008.
+[5] K. Schmidt, T. Moor, and S. Perk, “Nonblocking hierarchi cal control
+of decentralized discrete event systems,” to appear in IEEE Transac-
+tions on Automatic Control , November 2008.
+[6] WODES08. Benchmarking Software Tools. [Online]. Avail able:
+http://www.wodes2008.org/pages/benchmark.php
+[7] M. H. de Queiroz and J. E. R. Cury, “Modular supervisory co ntrol
+of large scale discrete event systems,” Workshop on Discrete Event
+Systems, 2000.
+[8] B. Opitz, “Methods of supervisory control: A software im plemen-
+tation,”Master Thesis, Lehrstuhl f¨ ur Regelungstechnik, Universi t¨ at
+Erlangen-N¨ urnberg , 2006.
+[9] Gnu Lesser General Public License (GLPL). [Online]. Ava ilable:
+http://www.gnu.org/copyleft/lesser.html
+[10] The programming language Lua. [Online]. Available:
+http://www.lua.org/
+[11] S. Perk, T. Moor, and K. Schmidt, “Hierarchical discret e event
+systems with inputs and outputs,” Workshop on Discrete Event Systems
+(WODES) , 2006.
+[12] K. Schmidt and C. Breindl, “On maximal permissiveness o f hierar-
+chical and modular supervisory control approaches for disc rete event
+systems,” Workshop on Discrete Event Systems (WODES) , 2008.
+[13] B. Schlein, “Timed automata as a graphical programming language
+for the generation of IEC 61131-3 conform PLC code,” Diplomarbeit,
+Lehrstuhl f¨ ur Regelungstechnik, Universit¨ at Erlangen- N¨ urnberg , 2006.
+[14] C. D¨ orr, “Simulation and analysis of discrete event sy stems,”
+Diplomarbeit, Lehrstuhl f¨ ur Regelungstechnik, Universi t¨ at Erlangen-
+N¨ urnberg , 2008.
+[15] Trolltech. Qt: Cross-platform rich client developmen t framework.
+[Online]. Available: http://www.trolltech.com
+[16] C. G. Cassandras and S. Lafortune, “Introduction to dis crete event
+systems,” Kluwer, 1999.
+[17] K. Schmidt. (2005) Hierarchical control of decentrali zed discrete event
+systems: Theory and application. Phd-thesis, Lehrstuhl f¨ ur Regelung-
+stechnik, Universit¨ at Erlangen-N¨ urnberg. [Online]. Av ailable:
+http://www.rt.eei.uni-erlangen.de/FGdes/dissertatio n2005schmidt.pdf
+[18] K. Schmidt and T. Moor, “Computation of marked string ac cepting
+observers for discrete event systems,” Workshop on Discrete Event
+Systems (WODES) , 2006.
+[19] K. Schmidt, J. Reger, and T. Moor, “Hierarchical contro l of structural
+decentralized DES,” Workshop on Discrete Event Systems , 2004.
+[20] K. C. Wong and W. M. Wonham, “On the computation of observ ers
+in discrete-event systems,” Discrete Event Dynamic Systems , vol. 14,
+no. 1, pp. 55–107, 2004.

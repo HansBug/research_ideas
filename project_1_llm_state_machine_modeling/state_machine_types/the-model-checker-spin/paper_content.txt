@@ -1,0 +1,893 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997 1
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    27,136 05/29/97 4:13 PM 1 / 17The Model Checker S PIN
+Gerard J. Holzmann
+Abstract—SPIN is an efficient verification system for models of distributed software systems. It has been used to detect design
+errors in applications ranging from high-level descriptions of distributed algorithms to detailed code for controlling telephon e
+exchanges. This paper gives an overview of the design and structure of the verifier, reviews its theoretical foundation, and gi ves an
+overview of significant practical applications.
+Index Terms —Formal methods, program verification, design verification, model checking, distributed systems, concurrency.
+——————————   ✦   ——————————
+1INTRODUCTION
+PIN is a generic verification system that supports the
+design and verification of asynchronous process sys-
+tems [36], [38]. S PIN verification models are focused on
+proving the correctness of process interactions , and they at-
+tempt to abstract as much as possible from internal sequen-tial computations. Process interactions can be specified inS
+PIN with rendezvous primitives, with asynchronous mes-
+sage passing through buffered channels, through access toshared variables, or with any combination of these. In fo-cusing on asynchronous control in software systems, ratherthan synchronous control in hardware systems, S
+PIN distin-
+guishes itself from other well-known approaches to modelchecking, e.g., [12], [49], [53].
+As a formal methods tool, S
+PIN aims to provide:
+1) an intuitive, program-like notation for specifying de-
+sign choices unambiguously, without implementationdetail,
+2) a powerful, concise notation for expressing general
+correctness requirements, and
+3) a methodology for establishing the logical consistency
+of the design choices from 1) and the matching cor-rectness requirements from 2).
+Many formalisms have been suggested to address the
+first two items, but rarely are the language choices directlyrelated to a basic feasibility requirement for the third item.In S
+PIN the notations are chosen in such a way that the logi-
+cal consistency of a design can be demonstrated mechani-cally by the tool. S
+PIN accepts design specifications written
+in the verification language P ROMELA  (a Process Meta Lan-
+guage) [36], and it accepts correctness claims specified inthe syntax of standard Linear Temporal Logic (LTL) [60].
+There are no general decision procedures for unbounded
+systems, and one could well question the soundness of adesign that would assume unbounded growth. Models thatcan be specified in P
+ROMELA  are, therefore, always requiredto be bounded, and have only countably many distinct be-
+haviors. This means that all correctness properties auto-matically become formally decidable, within the constraintsthat are set by problem size and the computational re-sources that are available to the model checker to render theproofs. All verification systems, of course, do have physicallimitations that are set by problem size, machine memorysize, and the maximum runtime that the user is willing, orable, to endure. These constraints are an often neglectedissue in formal verification. We study the limitations of themodel checker explicitly and offer relief strategies forproblems that are outside the normal domain of exhaustiveproof. Such strategies are discussed in Sections 3.3 and 3.4of this paper
+1.1 Structure
+The basic structure of the S PIN model checker is illustrated
+in Fig. 1. The typical mode of working is to start with thespecification of a high level model of a concurrent system,or distributed algorithm, typically using S
+PIN’s graphical
+front-end XS PIN. After fixing syntax errors, interactive
+simulation is performed until basic confidence is gainedthat the design behaves as intended. Then, in a third step,S
+PIN is used to generate an optimized on-the-fly verification
+program from the high level specification. This verifier iscompiled, with possible compile-time choices for the typesof reduction algorithms to be used, and executed. If anycounterexamples to the correctness claims are detected,these can be fed back into the interactive simulator and in-spected in detail to establish, and remove, their cause.
+The remainder of this paper consists of three main parts.
+Section 2 gives an overview of the basic verification methodthat S
+PIN employs. Section 3 summarizes the basic algorithms
+and complexity management techniques that have been im-plemented. Section 4 gives three examples of typical applica-tions of the S
+PIN model checker to design and verification
+problems. The first example is the problem of devising a cor-rect process scheduler for a distributed operating system; thesecond problem is the verification of a leader election proto-col for a distributed ring; the third problem is the proof ofcorrectness of a standard sliding window flow control proto-col. Section 4 concludes with a summary of a range of othersignificant verification problems to which S
+PIN has been ap-
+plied. Section 5 concludes the paper.
+0098-5589/97/$10.00 © 1997 IEEE————————————————
+• G.J. Holzmann is with the Computing Sciences Research Center, Bell Labo-
+ratories, Murray Hill, NJ 07974. Email: gerard@research.bell-labs.com.
+Manuscript received Sept. 30, 1996.
+ Recommended for acceptance by L.K. Dillon and S. Sankar.For information on obtaining reprints of this article, please send e-mail to:transse@computer.org, and reference IEEECS Log Number 104928.0.S
+
+--- Page 2 ---
+2 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 2 / 17
+Fig. 1. The structure of S PIN simulation and verification.
+2FOUNDATION
+SPIN has its roots in the earliest protocol verification sys-
+tems based on on-the-fly reachability analysis from theearly ‘80s [32], [33] [34]. The purpose of these first verifiers
+was to provide an effective tool that could be used to solveproblems of practical significance. The fundamental com-putational complexity of the problem to be solved forcesone to choose carefully which features will be supported, orrisk compromising the practical significance of the tool it-self. The predecessors of S
+PIN therefore supported the veri-
+fication of only standard safety properties and a limitedrange of liveness properties.
+Work on logic model checking techniques, pioneered by
+Clarke and Emerson [12], and by Sifakis and Queille [61],laid the foundation for a new generation of model checkingtools, with a larger scope of verification capabilities. Vardiand Wolper extended this work with an automata theoreticmodel [77] that has become the formal basis for temporallogic model checking in the S
+PIN system. The framework is
+summarized below.
+The description of a concurrent system in P ROMELA  con-
+sists of one or more user-defined process templates, or
+proctype  definitions, and at least one process instantia-
+tion. The templates define the behavior of different types ofprocesses. Any running process can instantiate furtherasynchronous processes, using the process templates.
+S
+PIN translates each process template into a finite
+automaton. The global behavior of the concurrent system isobtained by computing an asynchronous interleavingproduct of automata, one automaton per asynchronousprocess behavior. The resulting global system behavior isitself again represented by an automaton. This interleaving
+product is often referred to as the state space  of the system,
+and, because it can easily be represented as a graph, it isalso commonly referred to as the global reachability graph .
+To perform verification, S
+PIN takes a correctness claim
+that is specified as a temporal logic formula, converts thatformula into a B üchi automaton, and computes the synchro-
+nous  product of this claim and the automaton representing
+the global state space. The result is again a B üchi automa-
+ton.1 If the language accepted by this automaton is empty,
+this means that the original claim is not satisfied for thegiven system. If the language is nonempty, it contains pre-cisely those behaviors that satisfy the original temporallogic formula. In S
+PIN, we use the correctness claims (and
+temporal logic formulae) to formalize systems erroneoussystem behaviors, i.e., behaviors that are undesirable . The
+verification process then either proves that such behaviorsare impossible or it provides detailed examples of behav-iors that match.
+In the worst case, the global reachability graph has the
+size of the Cartesian product of all component systems. Thespecification language P
+ROMELA  is defined in such a way
+that each component always has a strictly finite range. Thisapplies to processes (which can have only finitely manycontrol states), but also to all local and global variables(which can have only finitely many distinct values), and allmessage channels (each with bounded and user-definedcapacity).
+2 Although, in practice, the size of the global
+reachability never approaches the worst case size, thereachable portion of the Cartesian product can also easilybecome prohibitively expensive to construct exhaustively.A number of complexity management techniques havebeen developed to combat this problem. We will discuss theones that are included in S
+PIN in separate sections below.
+2.1 Temporal Logic Requirements
+SPIN accepts correctness properties expressed in linear tem-
+poral logic (LTL). Vardi and Wolper showed in 1983 thatany LTL formula can be translated into a B üchi automaton
+[78]. S
+PIN performs the conversion to B üchi automata me-
+chanically based on a simple on-the-fly construction [25].The automata that are generated formally accept  only those
+(infinite) system executions that satisfy the correspondingLTL formula.
+As noted briefly above, we use correctness requirements
+to formalize system behaviors that are claimed to be impos-
+sible, i.e., to formalize the potential violation of correct sys-
+tem behavior. Each positive LTL formula can, of course, beturned into a negative one, and vice versa, by prefixing itwith a logical negation operator. At first sight, it may seemthat it would not make much difference which form is cho-sen, but there is a difference, as first explained in [77].
+A positive claim requires us to prove that the language of
+the system (i.e., all its executions) is included in the languageof the claim. A negative claim, on the other hand, requires us
+1. A B üchi automaton is an automaton defined over infinite input se-
+quences, rather than finite ones as in standard finite state machine theory [73].
+2. Variables and message channels also have a state  that is selected from a
+finite domain. These passive  components can change state only as a syn-
+chronous side-effect of transitions that are made in the active  components in
+the verification model (i.e., instantiated processes).
+
+--- Page 3 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 3
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 3 / 17to prove that the intersection of the language of the system
+and of the claim is empty . The size of the statespace for a lan-
+guage inclusion proof is at most the size of the Cartesianproduct of the (automata representing) system and claim,and at least the size of their sum. The worst-case statespacesize to prove emptiness of a language intersection is still thesize of the Cartesian product of system and claim, but, in thebest case, it is zero. Note that if no initial portion of the invalid
+behavior represented by the claim appears in the system, theintersection contains no states. S
+PIN, therefore, works with
+negative correctness claims and solves the verification prob-lem by language intersection.
+A B üchi automaton accepts  a system execution if and
+only if that execution forces it to pass through one or moreof its accepting states infinitely often. We call such behav-iors acceptance  cycles. (Note that for an infinite execution to
+exist in a finite system, the behavior must be cyclic.) Toprove that no execution sequence of the system matches thenegated correctness claim, it suffices to prove the absence ofacceptance cycles in the combined execution of the systemand the B üchi automaton representing the claim. This com-
+bined execution is formally defined by a synchronous  prod-
+uct of the system and the claim.
+The entire computation, starting from the individual
+concurrent components and a single B üchi automaton rep-
+resenting the correctness claim, is done by S
+PIN in one sin-
+gle procedure, using a nested depth-first search algorithm[17], [36], [43]. The algorithm terminates when an accep-tance cycle is found (which then constitutes a counterex-ample to a correctness requirement), or, when no counter-example exists, when the complete intersection product hasbeen computed.
+2.2 Domain of Application
+The design of S PIN is focused on the efficient verification of
+asynchronous software systems. This focus affects manycentral tool characteristics, including the design of thespecification language, the logic, the verification procedure,the reduction techniques, and the state encoding methods.We take a closer look at some of these issues in the follow-ing sections.
+3ALGORITHMS
+SPIN’s verification procedure is based on an optimized
+depth-first graph traversal method. We summarize the ef-fect of the algorithms that are used to optimize this searchin the next few sections.
+3.1 Nested Depth-First Search
+The cycle detection method used in S PIN is of central im-
+portance. The method is required to be compatible with allmodes of verification, including exhaustive search, bit-statehashing, and partial order reduction techniques.
+The classical algorithm for finding a cycle in a graph is
+Tarjan ’s depth-first search algorithm [72], which constructs
+the strongly connected components in linear time by addingtwo integer numbers to every state reached: the dfs-number
+and the lowlink -number. Because the state spaces that S
+PIN
+can generate may contain billions of reachable states, these
+two integer numbers require at least 32 bits of storage each.If a strongly connected component in the reachability
+graph contains at least one accepting state, a reachable ac-ceptance cycle has been shown to exist. Tarjan ’s algorithm
+relies on the accuracy of the dfs and the lowlink  numbers and
+is not compatible with the bit-state hashing techniques thatare also part of S
+PIN (summarized below). Efficient alterna-
+tives to Tarjan ’s algorithm exist [36], [17], [43]. With these
+methods, one performs a nested depth-first search, possiblyvisiting every state twice, but storing every state only once.The nested depth-first search can be implemented with just2 bits of overhead per state, instead of the 64 bits of Tarjan ’s
+algorithm, using a simple encoding method [26].
+The principle of the nested depth-first search algorithm
+is as follows. For an accepting cycle to exist in the reach-ability graph, at least one accepting state must be bothreachable from the initial system state (the root of thegraph) and it must be reachable from itself. The first depth-first search establishes which accepting states are reachablefrom the initial system state. The second (nested) searchstarts at each accepting state thus detected, and it checkswhether or not that state is reachable from itself. If it is, acomplete execution sequence that includes the acceptancecycle has also been constructed: It is the concatenation of allthe steps that are on both the first and the second depth-first search stack. In the context of the S
+PIN model checker,
+this execution sequence always equates to a counterexam-ple of a user-defined correctness claim, and it can beprinted as proof that the correctness claim is invalid for thesystem as specified.
+The nested depth-first search algorithm does not pre-
+serve the capability to detect all possible acceptance cycles
+that may appear in the reachability graph. It can, however,be proven to detect at least one  such cycle if one or more
+cycles exists [17]. Because acceptance cycles in S
+PIN consti-
+tute counterexamples to correctness claims, establishingeither their absence or their presence always suffices for thepurposes of verification.
+The nested depth first search algorithm in S
+PIN is ex-
+tended with an optional weak fairness constraint, usingChoueka ’s flag construction method [14], [17]. Under the
+weak fairness constraint, every process that contains at leastone transition that remains enabled infinitely long, is guar-anteed to execute that transition within finite time.
+3.2 From LTL Formulae to Büchi Automata
+LTL formulae can be used to express both safety and live-ness properties. An LTL formula f may contain any lower-
+case propositional symbol p, combined with unary or bi-
+nary, Boolean and/or temporal operators, using the gram-mar shown in Fig. 2.
+For instance, the LTL property.
+[] (p U q)
+states that it is always guaranteed that p remains true at
+least until q becomes true. Similarly
+[] (<> p)
+states that at any point in an execution it is guaranteed thateventually 
+p will become true at least once more.
+
+--- Page 4 ---
+4 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 4 / 17
+Fig. 2. LTL grammar.
+The automata generated by S PIN for the above two for-
+mula are shown in Fig. 3, written in the syntax of P ROMELA .
+Both automata contain one nonaccepting state (the initial
+state of the B üchi automaton, T0) and one accepting state
+(named accept  here), as illustrated in Fig. 4.
+Both states contain a nondeterministic selection ( if..fi )
+construct. For states T0, the choice is made between two pos-
+sible transitions. For the accept  states, there is only one
+option, so, strictly seen, the selection constructs that enclosethese states are redundant. The selection of each transitionin the automata is conditional on a propositional formula,i.e., the conditions are placed on the transitions of theautomaton, not on the states themselves.
+The translation algorithm [25] computes the states for a
+Büchi automaton by computing the set of subformulas that
+must hold in each reachable state and in each of its succes-sor states. The formula is first converted into normal form,with negations only adjacent to atomic propositions. Aninitial state is created, marked with the formula that is to bematched and a dummy incoming edge. The remainder ofthe automaton is then computed recursively. At each stage,a subformula that remains to be satisfied is taken and, ac-cording to its leading operator, the current state may besplit into two states, with each copy inheriting a different
+part of the subformula. In the last phase of the translation,some of the states are identified as accepting according to thepresence or absence of subformulae with until operators.
+In the first released version of S
+PIN, it was the user ’s re-
+sponsibility to convert LTL formulae into automata. Themanual process, however, can be challenging and is error-prone. The built-in algorithm for this conversion that wasadded to S
+PIN removed these obstacles, and has signifi-
+cantly increased the accessibility of S PIN’s LTL checking
+capabilities.
+3.3 Partial Order Reduction
+SPIN uses a partial order reduction method [57] to reduce the
+number of reachable states that must be explored to completea verification. The reduction is based on the observation thatthe validity of an LTL formula is often insensitive to the or-der in which concurrent and independently executed eventsare interleaved in the depth-first search. Instead of generatingan exhaustive state space that includes all execution se-quences as paths, the verifier can generate a reduced statespace, with only representatives of classes of execution se-quences that are indistinguishable for a given correctnessproperty. The implementation of this reduction method isbased on a static reduction technique, described in [41], that,before the actual verification begins, identifies cases wherepartial order reduction rules can safely be applied when theverification itself is performed. This static reduction methodavoids the runtime overhead that has plagued partial orderreduction strategies in the past.
+Fig. 5 shows a measurement of the number of reachable
+states that has to be generated to complete the verification fora model of a leader election algorithm [18], discussed in moredetail in Section 4.2 and in Appendix B. It illustrates a best-case performance of the reduction algorithm, where expo-nential growth in the number of processes participating inthe protocol is reduced to linear growth. In more typicalcases, the reduction in the state space size and in the memoryrequirements is linear in the size of the model, yielding sav-ings in memory and runtime from 10 to 90 percent [41].
+Fig. 3. P ROMELA syntax for two LTL formulae.
+Fig. 4. Büchi automata for the LTL formulae [](pUq)  (left) and []<> p (right).
+
+--- Page 5 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 5
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 5 / 17An important characteristic of S PIN’s static reduction
+method is that it cannot lead to a noticeable increase of thememory requirements, compared to exhaustive searches.The reduction method is not sensitive to decisions aboutprocess or variable orderings. The alternative reductionmethods based on binary decision diagrams have beenshown to lack these two important features, e.g., [8].
+The correctness properties of the reduction algorithm it-
+self (i.e., the preservation of safety and liveness properties)were verified independently with the help of the theoremprover HOL [13].
+3.4 Memory Management
+The size of the interleaving product that S PIN computes can,
+in the worst case, grow exponentially with the number ofprocesses. Given the size of the product, expressed as thenumber of reachable system states R, we can place upper-bounds on the amount of memory (space) and time thatwould be required to complete various types of verificationtasks.
+To prove safety properties, such as absence of deadlock
+or user defined assertions, carries a computational cost thatis linear in the number of reachable states R, both in (CPU)time and in (memory) space. To prove simple livenessproperties, such as absence of starvation or of acceptancecycles, requires twice as much time, but no noticeable in-crease in the memory requirements, as explained above[26]. To prove LTL properties, the time requirements in-crease by a factor that can, in the worst case, itself againdepend exponentially on the number of temporal operatorsused in the formula [77]. The space requirements, however,remain largely unaffected [26]. Meaningful LTL propertiesrarely have more than two or three operators, so the in-crease in complexity is relatively small, compared to thecomplexity that is contributed by the system itself.
+Memory is a bounded resource on any system. It is not
+difficult to construct a model checker that uses only a smallamount of memory, but one can only do so at the expenseof unacceptable increases in runtime [35]. A main emphasisof the research in this area has therefore been on devisingtechniques that can economize the memory requirements ofa reachability analysis, without  incurring unrealistic in-
+creases in runtime requirements. Two such techniques arediscussed in the following two sections.
+3.4.1 State Compression
+To make state comparisons possible, a reachable state must
+be compressed in the same way, whether it is generated atthe beginning or at the end of a search. Dynamic Huffman
+coding or Lempel-Zvi & Welch compression techniques aretherefore not directly usable in this type of application. StaticHuffman encoding, and run-length coding do have the re-quired properties. Their effectiveness in model checkers wasstudied in [39]. It was found that run-length encoding addeda substantial runtime overhead (~400 percent) in return foronly a modest reduction of the memory requirements (10 to20 percent). Static Huffman encoding was found to add asmaller, but still substantial run time overhead (~300 percent)in return for a somewhat larger reduction of the memoryrequirements (60 to 70 percent). Greater compression typi-cally implies greater run time penalties, cf. [79], [29].
+A different state compression technique was added to
+the standard distribution of the S
+PIN software in late 1995. It
+delivers comparable reductions of the memory require-ments, but for a relatively small run time penalty (10 to 20percent). The method works on the premise that everyprocess and every channel in a P
+ROMELA  specification has
+only relatively small number of unique local states. Thelarge number of global states can often be attributed to thelarge number of possible combinations of local process andchannel states. By storing the local states separately fromthe global states, and, using unique indices into the localstate tables inside the global state table, one can then reducethe memory requirements without incurring much addi-tional run time overhead.
+Fig. 6 illustrates this method. Instead of storing the com-
+plete concatenation of all local state descriptors for variables,channels, and processes, the compression algorithm nowstores each separable element alone, and uses unique indicesto the local descriptors in the global state vector, see also [45].
+Fig. 6. State compression algorithm —indexing method.
+If there are 256 or fewer local process states, the index for
+that process can be just 8 bits, or a single byte of memory,independent of the true number of bytes that is needed tostore the complete local state. The 256 distinct local statesare stored only once, but they may be referred to manytimes, each referral costing only 1 byte of memory withinthe global state descriptor.
+The compression method implemented in S
+PIN allows
+the user to set the width of an index to 1, 2, 3, or 4 bytes. Ifthe index width is chosen too tightly, a local table will over-flow, a warning is issued, and the search must be repeatedwith a different width. The amount of reduction achieveddepends on the relative size of indices and local states,which can be arbitrarily large. In practice, the most com-monly observed reduction is 60 to 80 percent.
+Table 1 illustrates the performance of this compression
+technique for a typical application. The application is astandard go-back-n sliding window that we will examine
+Fig. 5. Effect of partial order reduction.
+
+--- Page 6 ---
+6 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 6 / 17more closely in Section 4. The full text of the protocol model
+in the input language of the verifier, P ROMELA , is given in
+Appendix C.
+TABLE 1
+EFFECT OF COMPRESSION
+The standard run, without compression, explores over
+2,000,000 reachable states, using 156 Mbytes of memory.When the compression algorithm discussed here is enabled,the memory requirements are reduced by 62 percent, for arun time penalty of about 15 percent. (The run times are fora 150 MHz SGI system.)
+3.4.2 Bit-State Hashing
+For problem sizes that preclude exhaustive verification, ahigh-coverage approximation of the results of an exhaus-tive run can be performed in relatively small amounts ofmemory. For this purpose, S
+PIN includes an implementa-
+tion of the bit-state hashing or supertrace  technique [34],
+[42]. With this algorithm, two bits of memory are used tostore a reachable state. The bit-addresses are computedwith two statistically independent hash functions.
+If storing one reachable system state requires S bytes of
+memory, and if our machine has M bytes of memory avail-able, the model checker exhausts its available memory aftergenerating M/S states. If the true number of reachable
+states Rexceeds M/S, then the problem coverage  of that veri-
+fication run is M/(R × S). If, for example, M is 10
+8 bytes, S is
+103 bytes, and R is 106 states, then the maximal problem
+coverage would be 0.1 (meaning that just 10 percent of the
+reachable states are inspected).
+The bit-state hashing technique can, under the same
+system constraints, produce an average problem coverageclose to 1 (meaning close to 100 percent coverage). In gen-eral, when M < R × S, the bit-state hashing technique typi-
+cally realizes a far superior problem coverage than stan-dard exhaustive searches [42].
+The effect of the bit-state hashing technique on problem
+coverage is illustrated in Fig. 7. In this case, the algorithmwas applied to a data transfer protocol that requires thegeneration of approximately 427,000 states (R), each taking1.3 Kbits of memory (S) to store for an exhaustive verifica-tion. The total memory requirements for a standard searchare R × S, or close to 73 Mbytes of memory (about 2
+29 bits).
+Fig. 7 shows that with only 1 percent of the memory re-quired for an exhaustive search, the bit-state hashing tech-nique can realize a problem coverage close to 100 percent.For still lower amounts of memory, the coverage for a sin-gle verification run also drops to zero. It can be increasedagain with a sequential bit-state hashing technique [42]. Insequential bit-state hashing, multiple runs with statisticallyindependent hashing functions can be performed until therequired coverage level is reached.
+Fig. 7. Measured problem coverage [34], [42] effect of the optional bit-
+state hashing technique in S PIN.
+The bit-state hashing techniques have been applied with
+good results in several large-scale industrial applications offormal verification, e.g., [11], [40].
+4PRACTICAL APPLICATIONS
+As typical examples of the application of S PIN to the verifica-
+tion of concurrent systems, we discuss three different typesof problems. The first is a protocol for scheduling processesin a distributed operating system, as discussed in [64]. Thesecond example is the algorithm for leader election in a uni-directional ring, as given in [18], [63]. The third example is astandard flow control protocol, as given in [71]. For a tutorialintroduction to the way in which design models such as thesecan be constructed, we refer to [36], [38].
+We conclude this section with a summary of other sig-
+nificant applications of S
+PIN, concentrating on those appli-
+cations that have appeared in the literature.
+4.1 Process Scheduling
+The first problem we consider is the problem of scheduling
+process executions in a distributed operating system. Theproblem can be remarkably hard to solve both correctly andin a manner that is also reasonably efficient. One attempt isdescribed in [64]. The solution originally given there can berepresented in the input language of the verifier withminimal effort. The complete verification model is includedin Appendix A. Fig. 8 shows the labeled transition systemsgenerated by S
+PIN from this specification.
+In this version of the code, there are two asynchronously
+executing processes, a client and a server, that repeatedlymake calls on the sleep and wakeup routines from the op-erating system. The client process consumes resources thatare provided, one by one, by the server. The availability of aresource is modeled here by a zero value of the global vari-able 
+r_lock . The client can set the value of r_lock  to one
+(line 22), but only the server can reset it to zero (line 30).
+If the resource is unavailable (line 12 in Appendix A), a
+flag is set to indicate the process ’s needs (line 13), its state is
+changed (line 14), and it is put to sleep by the operatingsystem until it is reawakened by the server (line 16). Theentire sequence is performed after first setting (line 10) andthen releasing (lines 15 and 23) a spinlock that guaranteesexclusive access to this section of the code.
+
+--- Page 7 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 7
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 7 / 17The server checks for a suspended client process each
+time that it makes a new resource available. If the clientprocess is asleep, it is reawakened. This sequence can beperformed without requiring the spinlock to be set explic-itly by the server process as well. It suffices to have theserver wait only until the client process has released thelock. The client process can safely reset it, even when theserver is in the middle of its wakeup routine.After a period of experimentation with the sleep-wakeup
+routines described, it was discovered that a race conditioncould allow a client process to be suspended without everbeing reawakened by the server. A fix was proposed (shownon line 39). Two questions were phrased by the designer ofthis code: 1) could a mechanical verification system havefound the original problem? and 2) is the modified versionindeed free from race conditions? Running the verification
+Fig. 8. Labeled transition systems for client (left) and server process (right).
+Fig. 9. An error scenario generated by S PIN (annotated).
+
+--- Page 8 ---
+8 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 8 / 17of the model as specified in Appendix A settles both issues
+in a few seconds: the answer to the first question is yes, the
+answer to the second question is no.
+With or without the proposed change from line 39, S PIN
+quickly generates the execution scenario from Fig. 9, prov-ing that a process can still remain suspended indefinitely.The first two columns in Fig. 9 show the statements exe-cuted by the client or the server process, in sequence fromtop to bottom. The third column gives the line number ofthat statement in the listing from Appendix A. The fourthcolumn gives the local states of the client and the server, asshown in Fig. 8. In this scenario, the client process executessome statements and pauses in its local state 6. The serverthen takes over and pauses in its local state 2. When theclient process then executes two more steps, the trap hasbeen set and closed.
+The scenario is reported by S
+PIN in a verification run for
+nonprogress cycles subject to the weak fairness constraint.The true cause of the error is that the client process can exe-cute the code between lines 12 and 15 without having firstobtained the critical lock from line 10. This happens eachtime a suspended client process is reawakened by theserver. In this case, the process will repeat the check for theavailability of the resource without first reclaiming the lock.The correct fix, that provably removes all erroneous be-haviors, is to add a jump 
+goto  sleep  directly after the cli-
+ent process resumes executing (i.e., between lines 16 and 17in Appendix A).
+The design problem discussed here is subtle enough that
+it can stump the most experienced designers for weeks ormore. Yet in this case the verification task is an almost triv-ial exercise that can be done within one hour from start tofinish. There are no more than 300 reachable states in theproduct state space for this verification model. None of theverification runs performed take more than 0.1 CPU/sec onan average workstation.
+4.2 Leader Election
+The second problem we consider is a standard algorithmfor leader election in a unidirectional ring. An efficient al-gorithm to solve this problem was published by Dolev,Klawe and Rodeh in 1982 [18], and can be found in manystandard textbooks. The description we have used is frompp. 37-40, [63].
+In this version of the algorithm, all processes will par-
+ticipate in the election; that is, they cannot decide to join inat a later point in the execution. The verification modelgiven in Appendix B is a direct translation of the algorithmfrom pp. 38 –39, [63]. There are several interesting proper-
+ties we may want to prove about this algorithm, but themost important one is that under no circumstance should itbe possible for more than one process to declare to be theleader of the ring.
+It is simple enough to add a global variable to the model
+that can be used to count the number of leaders in the sys-tem. This is done on lines 8 and 56 in Appendix B. The cor-rectness requirement itself can be specified with the tempo-ral property.
+[] (nr_leaders <= 1)but it can also (and more efficiently) be verified by addingan in-line assertion to the model.
+assert (nr_leaders == 1)
+at the point where a process claims to have won the election(i.e., at line 57 in Appendix B) and increments the variable
+nr_leaders .
+For the model as given in Appendix B, a verification run
+with S PIN is completed in under 0.1 CPU/sec, and the
+global state space (using partial order reduction, cf. Fig. 5)contains no more than 108 reachable system states.
+That the number of leaders can never exceed one does
+not guarantee, though, that eventually a leader is elected.To prove this property, we need a temporal logic formula,such as:
+<>[] (nr_leaders == 1)
+The negated version of this property is translated by S PIN
+into a simple two-state B üchi automaton. The verification
+that indeed this negated property is not part of the modeltakes under 0.1 CPU/sec. The number of reachable statesincreases to 202.
+4.1.1 A Modification
+As a separate issue we can ask how the algorithm should bemodified for processes to defer their decision to participatein the election. According to p. 38 [63], this could be doneprovided that “a process would decide to participate (only
+when) first receiving a message concerning the election .” An
+attempt to modify the model for this extension is to removeline 18, and to add the following additional option to themodel, between the current lines 19 and 20:
+:: atomic {
+     (!election_ started && !Active) ->
+          /* 1 process can start election */          /* by sending the first msg */          /* and becoming Active */     election_
+started = 1;
+     out!one(mynumber);     first_
+message = 0;
+     Active = 1}   }
+We also add the following code between lines 20 and 21,
+and lines 37 and 38, to allow a nonactive process to join inat the first received message:
+if
+:: (first_ message && !Active) ->
+     if     :: Active = 1; /* join election */        out!one(mynumber)     :: skip        /* or stand aside */     fi:: elsefi;first_
+message = 0;
+We have used two additional variables, a global variable
+election_started  (initial value zero), that allows one
+arbitrary process to start the election, and a local variable
+first_message  (initial value one) that limits the moment
+when a process can join the election to the first incomingmessage. The initial value of local variable 
+Active  is set to
+zero.
+
+--- Page 9 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 9
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 9 / 17It can quickly be shown by a model checker (and quite
+hard to show manually) that this extension does not pre-
+serve the critical correctness requirement. A verification rundemonstrates first that the assertion on line 29 is no longervalid: The winner of the election does not necessarily holdthe largest number of the ring, because not all processesnecessarily participate in the election. After removing theassertion, S
+PIN succeeds in proving that there can never be
+more than one leader (i.e., the assertion on line 57 remainsvalid). The proof of the second property, that inevitably oneof the processes must be elected leader, also proceeds with-out problems, taking just under 4 sec of CPU time for fiveparticipating processes.
+In the algorithm as given here, the initialization of the
+processes in the ring is predefined. A version with a ran-domized initialization requires 21 additional lines ofP
+ROMELA . Both versions of the algorithm can be found in
+the P ROMELA  distribution among the test-cases for the
+model checker.
+4.3 Flow Control
+Tanenbaum, in his book on computer networks [71], gives,among many others, a succinct description of a standardgo-back-n flow control protocol. The protocol can be trans-lated with little effort into the 50 line P
+ROMELA  specification
+shown in Appendix C. Its critical correctness properties canbe proven in a few minutes of CPU time.
+The first step in working with S
+PIN is to produce the verifi-
+cation model. This model has very much the role of an engi-neering prototype in the design of a new distributed algo-rithm, concurrent system, or, as in this case, protocol. Duringthe construction, S
+PIN can be used to provide quick checks of
+the syntactical correctness of the growing model. When themodel has been completely specified, random or interactivesimulations can be performed to check (test) its approximateworking. Debugging statements, such as  
+printf s and in-
+line assertions, can be added at this stage to help the userdevelop a better understanding of system behavior.
+The description from [71] was converted into P
+ROMELA  in
+about half an hour. The result of a first random simulationrun with this model, as displayed in a message sequencechart by XS
+PIN, is shown on the left-hand side of Fig. 10. The
+model contains two print statements (also included in Ap-pendix C) that are not part of Tanenbaum ’s description, but
+are used to help in debugging the model. The first printstatement records when a protocol entity accepts a correctlyreceived message, the second records when the sendingprotocol times out, waiting for acknowledgments.
+Inspecting the first message sequence chart, we notice
+that a 
+timeout  statement is executed, which correctly re-
+covers the protocol from a hang-state. Closer inspection,however, reveals that the first retransmitted message afterthe 
+timeout  is not recognized as a duplicate message by
+the receiver, but erroneously accepted. The cause of thiserror can be traced back to an incorrect modeling of theincrement operation 
+inc()  (i.e., with our macro Wrong ).
+The correct interpretation of this operation can be found 18pages earlier in Tanenbaum (shown as the macro 
+Right , in
+Appendix C). The difference between Right  and Wrong  in
+this case expressed precisely the essential property for thecorrect working of the go-back-n sliding window protocol:
+the range of the sequence numbers must be at least onegreater than the maximum window size. Correcting theproblem changes the simulation trace to the one shown onthe right-hand side in Fig. 10
+  
+                         (a)                                                      (b)
+Fig. 10. Two simulation runs.
+The simulation runs are of inestimable value in model
+building. They can, however, only give us an impression ofthe true properties of the protocol. To prove with mathe-matical certainty that the protocol correctly transfers mes-sages from sender to receiver, we must use model checkingtechniques.
+4.3.1 Safety Properties
+To get a first measure of the complexity of this protocol, we
+can perform an exhaustive verification run with S PIN to
+prove some basic safety properties, such as absence ofdeadlock, unreachable code, unspecified receptions, etc. Todo so, we can prompt S
+PIN to generate the C-code for an
+
+--- Page 10 ---
+10 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 10 /optimized, special purpose, model checking system for this
+specific protocol model. The code is compiled, with eitherthe default choices for reduction techniques and memorymanagement, or with explicit user overrides. If we compilethe basic verifier in this way for pure safety properties, withall reduction options enabled (i.e., with state compression,partial order reduction, and with a transition coarseningstrategy that we will discuss shortly), we can measure thesize of the state space that the S
+PIN verifier builds to com-
+plete the proof. The results, varying the range of the se-quence numbers from 3 to 5, are shown in Table 2.
+TABLE 2
+C
+OMPLEXITY INCREASE WITH RANGE OF SEQUENCE NUMBERS
+As can be expected, every increase in the sequence num-
+ber range increases the number of reachable states, thememory requirements and the time requirements for theproof. Depending on the size of the available machine, themaximum range of sequence numbers for which the correctworking of the protocol can be proven mechanically in thisfashion will be between 5 and 7. With special techniquesthat exploit specific knowledge about this application,greater reductions in the memory requirements may beobtained, so that the scope of this proof can be substantiallyextended [28], but we will limit ourselves here to only thebuilt-in capabilities of S
+PIN.
+To see what the relative effect is on the complexity of the
+verification of each of the complexity control measures wehave taken, Table 3 shows the effect of each of the threetechniques when applied in isolation.
+• The first row in Table 3 shows the number of reach-
+able states, and the memory and time requirements(user plus system time), for the same verification runas in Table 2, for the model exactly as given in Ap-pendix C, without the use of partial order reductionor compression.
+• The second row shows the effect of enabling the state
+compression method: the memory requirements arereduced to roughly 50 percent of the first run, whiletime time requirements remain largely unaffected inthis case.
+• The third row shows the effect of adding only the
+partial order reduction method: the number of reach-able states and the memory requirements drop bymore than 50 percent, and the run time reduces byapproximately 75 percent.
+• The fourth row shows the effect of transition coars-
+ening. To achieve coarsening, we can define some ofthe transition sequences in the protocol as indivisible,by marking them as either 
+atomic  or deterministic
+d_step sequences in P ROMELA . As one example, we can note that the timeout in
+the protocol is intended to prevent a potential dead-lock in the protocol, when messages are lost. The re-transmission sequence that is then initiated merelyretransmits all unacknowledged messages, in theiroriginal order. There is no interaction between senderand receiver in this phase, and nothing is gained byinterleaving the actions of sender and receiver proc-esses within it, e.g., by considering the cases wherethe receiver starts processing the first retransmittedmessages while the retransmission of other messagesis still in progress. In cases such as this one, markingthese local sequences as indivisible can help to reducethe complexity of the verification task considerably.At the same time, it places the additional responsibil-ity on the user of this technique to show by othermeans that this model reduction technique is justifiedand cannot mask errors
+• The last row combines the effect of all techniques, and
+matches the first entry in Table 2. Compared to thefirst row, all techniques combined succeed in reduc-ing the memory and time requirements of the searchby, respectively, a factor of 10 and 20. The differenceis not too important for the safety properties we haveconsidered so far, but it will be of value when wemove on to prove more complex correctness proper-ties for this protocol.
+4.3.2 Liveness Properties
+To prove liveness properties, such as faithful messagetransfer, we must extend the verification model further. Wecan, for instance, add two environment processes to themodel, one to submit data to be transferred by the protocol,and the other to check that the data accepted by the receivermatches the data that was submitted by the sender. Thequestion then is, how many different data items do we needto use to obtain a reliable proof? The minimal number turnsout to be independent of both the sequence number rangeand the window size: Just three distinct data items sufficefor any flow control protocol, as first shown by Wolper [82].Traditionally, three different colors are used, e.g., 
+red,
+white , and blue . The input data sequence consists of one
+red and one blue  message inserted randomly in an infinite
+sequence of white  messages. We check at the receiver that
+neither the red nor the blue  message can disappear from
+the data sequence, nor arrive out of order. If this is impos-sible, the correctly ordered delivery for any two messagesin the sequence is guaranteed.
+Fig. 11 shows the P
+ROMELA  description of an environ-
+ment process that supports this proof technique. The
+Source  process generates the infinite sequence of white
+data messages, with the red and blue  data items randomly
+inserted. It is a simple three state machine. In the first twostates, a nondeterministic choice is made at each step be-tween the sending of a white message without changingstate, or the sending of a colored message, followed by atransition to the next state. In the last state (labeled 
+end),
+only more white  messages can be generated.
+
+--- Page 11 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 11
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 11 /To complete this extension, we must also make some
+small modifications of the protocol processes itself. One ofthe processes must now retrieve a message to be sent fromthe 
+source  channel (which we have implemented as a
+zero-length rendezvous channel here). The other processcan simply send only white data messages. Immediatelyafter sending a colored message, the sending process ismade to update the global monitor variable 
+sent , and
+mark it with the color of the last data item transmitted.Similarly, the matching receiver process is modified to up-date the global monitor variable 
+rcvd  immediately after
+accepting an incoming data message. Since the protocol issymmetrical, only message transmissions in one directionneed to be marked and monitored in this way.
+We can now express the correctness requirements as LTL
+formulae by using the following six definitions of proposi-tional symbols:
+#define sw (sent == white)
+#define sr (sent == red)#define sb (sent == blue)
+#define rw (rcvd == white)
+#define rr (rcvd == red)#define rb (rcvd == blue)
+We would like to verify two properties:
+• Message can be lost. Violations of this requirement
+(remember, S PIN works with negated correctness re-
+quirements) can be expressed in the formula:
+![](sr -> <> rr)
+The last part of this formula states that the sending of a
+red message, sr, logically implies ( ->) its eventual ( <>)reception, rr. This condition is claimed to be always
+([]) true. The negated version, finally, formalizes all
+possible behaviors for which the condition is violated.
+• No messages can arrive our of order. We can express
+violations of this requirement in the formula:
+(!rr U rb)
+The U in this formula is the strong until formula (see
+Section 3.2). The formula then states that it is an errorif the  red message is not received until after (
+U) the
+blue  message was received.
+• The two properties can also trivially be combined into
+a single formula, formalizing the undesirable execu-tion sequences that are claimed to be impossible:
+(![](sr -> <> rr)) || (!rr U rb)
+In general, it is more efficient to separate orthogonal re-quirements, and to prove each property separately withsmaller verification runs [58]. Each of the first two formulaeabove separately translates into a two-state B üchi automaton.
+The combination of the two formulae, however, translatesinto a six-state automaton, which is more expensive to verify.
+As a rough estimate of the additional expense of the
+verification of these correctness requirements, we note thatwe have added an environment process of three states, twomonitor variables with three possible values each, and aBüchi automaton of two states. In addition, we have ex-
+tended the possible contents of a window full of messages,and hence of the receiver process ’s input queue, by a factor
+of roughly MaxSeq
+3, or 27 when MaxSeq = 3. Multiplying
+these factors give a potential increase in the size of thereachable state space of 3 × 3 × 3 × 2 × 27 or 1,458.TABLE 3
+E
+FFECT OF COMPLEXITY CONTROL MEASURES (MAXSEQ = 3)
+Fig. 11. Environment process for proving correctness of data transfer in the go-back-n protocol.
+
+--- Page 12 ---
+12 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 12 /Table 4 shows the size of the state space that S PIN con-
+structs to prove that the correctness requirements are in-deed satisfied for the go-back-n protocol.
+The runs shown in Table 4 were all performed with all
+reduction options listed in Table 3 enabled. The first tworuns did not include an explicit correctness requirementand are for comparison. For each property, we performedone run for ideal channels, and another for lossy channels.The protocol maintains its correctness for both choices. Forthe lossy channels, we have to extend the property to beverified somewhat to rule out pseudo-counterexamples(i.e., those that involve infinite repetition of message loss, orinfinite deferrals of the retransmission of messages). Thosechanges are included in the measurements shown above.
+TABLE 4
+V
+ERIFICATION OF THE GO-BACK-n PROTOCOL (MAXSEQ = 3)
+The second requirement is clearly more expensive to
+verify than the first. The maximum increase of the statespace size that is incurred when the properties are added,however, is only about 20 percent of the worst case increasewe estimated above. Including the possibility of messageloss can be seen to increase the expense of the verificationby up to an order of magnitude.
+4.4 Other Applications
+SPIN has been distributed3 freely, in source form, since early
+1991. Today, the system has been installed on several thou-sand machines worldwide, with a number of active usersthat can no longer be accurately counted. Work on the systemcan be classified in four broad categories:
+1) theoretical studies,
+2) empirical studies of the relative effectiveness of dif-
+ferent types of search and storage algorithms,
+3) extensions and revisions of the S
+PIN code, and
+4) significant practical applications.
+Examples in each category may be found in the pro-
+ceedings of the S PIN Workshops that have been held since
+1995 [68]. Examples of modifications of the S PIN software,
+for instance, include extensions for real-time verification[74], reactive systems modeling [54], bisimulation equiva-lence proofs [21], different types of partial order reduction[27], [76], process algebras [24], alternate state machinemodels [69], alternate compression techniques [79], [29],[28], [45], and implementation generation [5], [51].
+Applications of S
+PIN to real-life problems also span a
+broad range of problems. The obvious applications are toprove correctness of generic distributed algorithms, such asthe leader election algorithm illustrated in Fig. 1, nonstan-
+3. The Spin model checker software can be retrieved by anonymous ftp
+from directory /netlib/s;in on host  netlib.bell-labs.com .dard mutual exclusion algorithms [37], communications
+network design problems [65], or protocol design problems[2], [3], [22], [23], [7], [16], [36], [51]. In the course of thework on S
+PIN, we have also constructed verification models
+for, e.g., the Cambridge ring protocol [56], and the IEEElogical link control protocol LLC 802.2 [52]. Others con-structed fragments of larger protocol applications such asXTP [70] and TCP/IP. These and other unpublished modelsare available from the author.
+S
+PIN has also been applied to the verification of data
+transfer protocols [5], bus protocols [6], address registrationprotocols [55], error control protocols [66], requirementsanalysis [4], controllers for reactive systems [10], distrib-uted process scheduling algorithms [59], fault tolerant sys-tems [1], hardware-software codesign [80], asynchronoushardware designs [62], multiprocessor designs [76], localarea network controllers [30], microkernel design [19], [75],operating systems code [9], [64], railway signaling protocolsand circuitry [36], [20], [15], rendezvous algorithms [44],security protocols [47], flood surge control systems [48],feature interaction problems [50], ethernet collision avoid-ance techniques [46], and self-stabilizing protocols [67].
+5CONCLUSION
+Most mature engineering disciplines include a methodol-
+ogy for constructing and analyzing prototypes of designs.Concurrent systems is, compared to civil engineering orphysics, a relatively young discipline and it is not surpris-ing that comparable tools are still somewhat scarce. Still,the first attempts to develop the basic methodology for ofon-the-fly automated verification date back more than adecade, e.g., [31], [81], [32], [33]. The most recent versions ofthese algorithms, as captured in tools such as S
+PIN, begin to
+provide some of the required capability. The design meth-odology that is supported by S
+PIN can be summarized as
+follows:
+• A distinction is made between behavior and require-
+ments on behavior. The designer specifies the two as-pects of the design in an unambiguous way by defin-ing a verification or prototype in the languageP
+ROMELA .
+• The prototype is verified using the model checker
+SPIN. The requirements and behaviors are checked for
+both their internal and their mutual consistency.
+• The design is revised until its critical correctness
+properties can successfully be proven. Only then doesit make sense to refine the design decisions furthertoward a full systems implementation.
+The increasing number of applications of S
+PIN, and the
+growing acceptance of formal methods in general, arehopeful signs that this paradigm of design is maturing, andis gaining recognition where it counts: among the practitio-ners of distributed systems design.
+
+--- Page 13 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 13
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 13 /APPENDIX A – VERIFICATION MODEL OF A PROCESS SCHEDULING ALGORITHM
+The model below for implementing sleep and wakeup routines in a distributed operating systems kernel is based on [64].
+1 mtype = {Wakeme, Running};            /* two symbolic names */
+23 bit    lk,  sleep _q;                   /* boolean variables */
+4 bit    r _lock,   r _want;
+5 mtype  State =   Running;            /* variable of type mtype */67 active proctype client()8{9 sleep:                                 /* the sleep routine */
+10   atomic { (lk == 0) -> lk = 1};      /* S
+PINlock(&lk) */
+11   do                                  /* while r.lock is set */12   :: (r _lock == 1) ->                 /* r.lock == 1 */
+13       r _want = 1;              /* set the want flag */
+14       State = Wakeme;          /* remember State */15       lk = 0;                  /* freelock(&lk) */16       (State == Running);      /* wait for wakeup */17   :: else ->                      /* r.lock == 0 */18       break                    /* break from do-loop */19   od;20 progress:                           /* progress label */21   assert(r _lock == 0);           /* should still be true */
+22   r _lock = 1;                    /* consumed resource */
+23   lk = 0;                        /* freelock(&lk) */24   goto sleep25 }2627 active proctype server()           /* interrupt routine */28 {29 wakeup:                            /* wakeup routine */30  r_lock = 0;                     /* r.lock = 0 */
+31  (lk == 0);                      /* waitlock(&lk) */32  if                              /* selection structure */33  :: r _want ->                    /* someone is sleeping */
+34       atomic {                 /* get spinlock on sleep queue */35             (sleep _q == 0) -> sleep _q = 1
+36       };                       /* end of indivisible fragment */37       r _want = 0;              /* reset the want flag */
+38 #ifdef PROPOSED _FIX
+39        (lk == 0);              /* waitlock(&lk) */40 #endif41        if                      /* selection structure */42        :: (State == Wakeme) -> /* the client process is asleep43              State = Running; /* wake-up the client process */44        :: else -> skip         /* else do nothing */45        fi;                     /* end of selection structure */46        sleep _q = 0             /* release spinlock on sleep queue */
+47   :: else -> skip                /* else do nothing */48   fi;                            /* end of selection structure */49   goto wakeup                    /* jump to the wakeup label */50 }
+APPENDIX B – VERIFICATION MODEL OF A LEADER ELECTION ALGORITHM
+The model below follows the description of the leader election protocol in a unidirectional ring from [82] as it is discussed
+and formalized in [63].
+1 #define N    5         /* nr of processes */
+2 #define I    3         /* node given the smallest number */3 #define L   10         /* size of buffer (>= 2*N) */45 mtype = {one, two, winner}; /* three symbolic msg names */6 chan q[N] = [L] of {mtype, byte}; /* asynchronous channel */78 byte nr _leaders = 0; /* count the number of process that
+9                         think they are leader of the ring */
+10 proctype node (chan in, out; byte mynumber)    /* process template */11 { bit Active = 1, know _winner = 0;
+12   byte nr, maximum = mynumber, neighbourR;13
+
+--- Page 14 ---
+14 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 14 /14   xr in;    /* claim exclusive recv access to channel in */
+15   xs out;   /* claim exclusive send access to channel out */1617   printf(“MSC: percentd\n,” mynumber);18   out!one(mynumber);    /* send msg of type one, with par mynumber */19 end:    do20   :: in?one(nr) ->      /* receive msg of type one, with par nr */21        if22        :: Active ->23             if24             :: nr != maximum ->25                  out!two(nr);26                  neighbourR = nr27             :: else ->28                  /* max is greatest number */29                  assert(nr == N);30                  know _winner = 1;
+31                  out!winner,nr;32             fi33         :: else ->34              out!one(nr)35         fi3637   :: in?two(nr) ->38        if39        :: Active ->40             if41             :: neighbourR > nr && neighbourR > maximum ->42                   maximum = neighbourR;43                   out!one(neighbourR)44             :: else ->45                  Active = 046             fi47        :: else ->48             out!two(nr)49        fi50   :: in?winner,nr ->51        if52        :: nr != mynumber ->53             printf(“MSC: LOST\n”);54        :: else ->55             printf(“MSC: LEADER\n”);56             nr _leaders++;
+57             assert(nr leaders == 1)
+58        fi;59        if60        :: know _winner
+61        :: else -> out!winner,nr62        fi;63        break64   od65 }6667 init {         /* the initial process */68   byte proc;69   atomic {   /* atomically activate N copies of proc template node */70        proc = 1;71        do72        :: proc <= N ->73             run node (q[proc-1], q[procpercentN], (N+I-proc)percentN+1);74             proc++75        :: proc > N ->76             break77        od78   }79 }
+
+--- Page 15 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 15
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 15 /APPENDIX C – VERIFICATION MODEL OF A SLIDING WINDOW PROTOCOL
+This model of a go-back-n sliding window protocol follows the description from p. 214, pp. 232-233, [71]. The model below
+includes some annotations to facilitate random and guided simulations with S PIN.
+1 #define MaxSeq      5    /* window size */
+2 #define Wrong(x)    x = (x+1) percent (MaxSeq)3 #define Right(x)    x = (x+1) percent (MaxSeq + 1)4 #define inc(x)           Right(x)56 chan q[2] = [MaxSeq] of { byte, byte };   /* message passing channel */78 active [2] proctype p5()     /* starts two copies of proctype p5 */9 { byte NextFrame, AckExp, FrameExp, r, s, nbuf, i;
+10   chan in, out;11   in = q[ _pid];
+12   out = q[1- _pid];
+13   xr in; xs out;        /* partial order reduction claims */1415   do16   :: nbuf < MaxSeq ->   /* outgoing messages */17        nbuf++;18        out!NextFrame,   (FrameExp + MaxSeq) percent (MaxSeq + 1);19        inc(NextFrame)2021   :: q[ _pid]?r,s ->       /* incoming messages */
+22        if23        :: r == FrameExp ->24             printf( “MSC: accept percentd\n, ” r);
+25             inc(FrameExp)26        :: else /* ignore message */27        fi;28        do29        :: ((AckExp <= s) && (s < NextFrame))30        || ((AckExp <= s) && (NextFrame < AckExp))31        || ((s < NextFrame) && (NextFrame < AckExp)) ->32              nbuf--;33              inc(AckExp)34        :: else -> break35        od3637   :: timeout -> &&    /* retransmission timeout */38         NextFrame = AckExp;39         printf( “MSC: timeout\n ”);
+40         i = 1;41         do42         :: i <= nbuf ->43               out!NextFrame, (FrameExp + MaxSeq) percent (MaxSeq + 1);44               inc(NextFrame);45               i++46         :: else -> break47         od48   od49 }
+ACKNOWLEDGMENTS
+The design and implementation of the S PIN model checker
+is based on contributions, ideas, and inspiration from manyfriends and colleagues over a long period of time, mostnotably Costas Courcoubetis, Peter Van Eijk, Michael Fer-guson, Patrice Godefroid, Doug McIlroy, Doron Peled, RobPike, Jim Reeds, Moshe Vardi, Pierre Wolper, and MihalisYannakakis.
+REFERENCES
+[1] A. Agarwal, “A Unified Approach to Fault-Tolerance in Commu-
+nication Protocols, Based on Recovery Procedures, ” PhD thesis,
+Computer Science Dept., Concordia Univ., Montreal, Canada,1995.[2] M. Alipour, “On the Application of an Automated Validation Tool
+to Realistic Protocols, ” MSc thesis, INRS-Telecommunications,
+Univ. du Quebec, Canada, Aug. 1994.
+[3] P.R. D ’Argenio, J.P. Katoen, T. Ruys, and J. Tretmans, “Modeling
+and Verifying a Bounded Retransmission Protocol, ’’ Proc. COST
+247 Int’l Workshop Applied Formal Methods in System Design , Mari-
+bor, Slovenia, June 1996.
+[4] A. Basu, M. Hayden, G. Morrisett, and T. von Eicken, “A Lan-
+guage-Based Approach to Protocol Construction, ’’ Proc. ACM
+SIGPLAN Workshop Domain Specific Languages (WDSL),  Paris, Jan.
+1997.
+[5] R. Bharadwaj and C. Hemeyer, “Verifying SCR Requirements Speci-
+fications Using State Exploration, ’’ Proc. First ACM/SIGPLAN Work-
+shop Automatic Analysis of Software , R. Cleaveland and D. Jackson,
+eds., pp. 9-24, Paris, Jan. 1997.
+[6] B. Boigelot and P. Godefroid, “Model Checking in Practice: An
+Analysis of the ACCESS Bus Protocol Using S
+PIN,’’ Proc. Formal
+Methods Europe (FME96 ), Oxford, England, Lecture Notes in Com-
+puter Science 1,051 , pp. 465-478. Springer-Verlag, Mar. 1996.
+
+--- Page 16 ---
+16 IEEE TRANSACTIONS ON SOFTWARE ENGINEERING,  VOL.  23,  NO.  5,  MAY  1997
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 16 /[7] L. Bouvin, “Design of Validation Models in P ROMELA  for the Me-
+dium, Access Protocol of the PTM Project, ” Report Royal Inst. of
+Technology, Stockholm, Sweden, Aug. 1991.
+[8] J.R. Burch, E.M. Clarke, K.L. McMillan, D.L. Dill, and L.J. Hwang,
+“Symbolic Model Checking: 1020 States and Beyond, ” Informatics
+Computing , vol. 98, no. 2, pp. 142-170, June 1992.
+[9] T. Cattel, “Modeling and Verification of a Multiprocessor Real-
+Time OS Kernel, ” Proc. Seventh Int ’l Conf. Formal Description Tech-
+niques , pp. 35-50, Berne, Switzerland, Oct. 1994.
+[10] T. Cattel, “Using Concurrency and Formal Methods for the De-
+sign of Safe Process Control, ” Proc. PDSE/ICSE018 Workshop , Ber-
+lin, Mar. 1996.
+[11] J. Chaves, “Formal Methods at AT&T, An Industrial Usage Re-
+port, ” Proc. Fourth FORTE Conf. Formal Description Techniques,  pp.
+83-90, Sydney, Australia, 1991.
+[12] E.M. Clarke, E.A. and Emerson, “Synthesis of Synchronization
+Skeletons for Branching Time Temporal Logic, ” Proc. Logic of Pro-
+grams: Workshop,  Y o r k t o w n  H e i g h t s ,  N . Y . ,  Lecture Notes in Com-
+puter Science 131 . Springer-Verlag, May 1981.
+[13] C-T. Chou, and D. Peled, “Verifying a Model-Checking Algo-
+rithm, ” Proc. Tools and Algorithms  for the Construction and Analysis
+of Systems (TACAS96),  Passau, Germany, Lecture Notes in Computer
+Science 1,055 , pp. 241-257. Springer-Verlag, Mar. 1996.
+[14] Y. Choueka, “Theories of Automata on Mega-Tapes: A Simplified
+Approach, ” J. Computer and System Science , vol. 8, pp. 117-141,
+1974.
+[15] A. Cimatti, A. Giunchiglia, G. Mongardi, D. Romano, F. Torielli,
+and P. Traverso, “Model Checking Safety Critical Software with
+SPIN: An Application to a Railway Interlocking System, ” Proc.
+Third S PIN Workshop , R. Langerak, ed., Twente Univ., The Neth-
+erlands, Apr. 1997.
+[16] J.C. Corbett, “Evaluating Deadlock Detection Methods for Concur-
+rent Software, ” IEEE Trans. Software Eng ., vol. 22, no. 3, pp. 161-180,
+Mar. 1996.
+[17] C. Courcoubetis, M.Y. Vardi, P. Wolper, M. Yannakakis,
+“Memory Efficient Algorithms for the Verification of Temporal
+Properties, ” Formal Methods in Systems Design , vol. I, pp. 275-288,
+1992.
+[18] D. Dolev, M. Klawe, and M. Rodeh, “An O(n log n) Unidirectional
+Distributed Algorithm for Extrema Finding in a Circle, ” J. Algo-
+rithms , vol. 3, pp. 245-260, 1982.
+[19] G. Duval and J. Julliand, “Modeling and Verification of the RUBIS
+Micro-Kernel with S PIN,” Proc. First S PIN Workshop , J.-Ch. Gre-
+goire, ed., INRS Quebec, Canada, Oct. 1995.
+[20] P. Van Eijk, “Verifying Relay Circus Using State Machines, ” Proc.
+Third S PIN Workshop , R. Langerak, ed., Twente Univ., The Nether-
+lands, Apr. 1997.
+[21] H. Erdogmus, “Verifying Semantic Relations in S PIN,” Proc. First
+SPIN Workshop , J.-Ch. Gregoire, ed., INRS Quebec, Canada, Oct.
+1995.
+[22] M.J. Ferguson, “Validation of the Radio Link Protocol, ” Data
+Services Task Group of ANSI Accredited TIA TR45-3, Contribu-tion TR45.3.2.5/93.08.25.02, Sept. 1993.
+[23] M.J. Ferguson, “Formalization and Validation of the Radio Link
+Protocol RLP1, ” Computer Networks and ISDN Systems , to appear,
+1997.
+[24] F. Gagnon, “Boulier, un validateur pour la language de sp écifica-
+tion Gaston, ” PhD thesis, Univ. de Quebec, Canada, July 1995.
+[25] R. Gerth, D. Peled, M.Y. Vardi, and P. Wolper, “Simple On-The-
+Fly Automatic Verification of Linear Temporal Logic, ” Proc.
+IFIP/WG6.1 Symp. Protocol Specification , Testing, and Verification
+(PSTV95),  pp. 3-18, Warsaw, Poland, Chapman & Hall, June 1995.
+[26] P. Godefroid, and G.J. Holzmann, “On the Verification of Tempo-
+ral Properties, ” Proc. IFIP/WG6.1 Symp. Protocol Specification , Test-
+ing, and Verification (PSTV93),  pp. 109-124, Liege, Belgium, North-
+Holland, June 1993.
+[27] P. Godefroid, “Partial Order Methods for the Verification of Con-
+current Systems, ” Lecture Notes in Computer Science  1,032 .
+Springer-Verlag, 1996.
+[28] P. Godefroid, “Symbolic Protocol Verification with Queue BDDs, ”
+Proc. Logic in Computer Science , pp. 198-206, Rutgers Univ., New
+Brunswick, N.J., July 1996.
+[29] J.-C. Gregoire, “State Space Compression in S
+PIN with GETSs, ”
+Proc. Second S PIN Workshop , Rutgers Univ., New Brunswick, N.J.,
+DIMACS/32, Am. Math. Soc., Aug. 1996.[30] M. Griffioen, “Specification and Verification of a Wireless LAN
+Controller Chip Using P ROMELA  and S PIN,” Technical Report,
+AT&T Network Wireless Systems, The Netherlands, 1996.
+[31] J. Hajek, “Automatically Verified Data Transfer Protocols, ” Proc.
+Fourth ICCC , pp. 749-756, Kyoto, Aug. 1978.
+[32] G.J. Holzmann, “PAN: A Protocol Specification Analyzer, ” Tech-
+nical Report TM81-11271-5, AT&T Bell Laboratories, Mar. 1981.
+[33] G.J. Holzmann, “Tracing Protocols, ” AT&T Technical J.,  vol. 64,
+pp. 2,413-2,434, Dec. 1985.
+[34] G.J. Holzmann, “An Improved Protocol Reachabily Analysis Tech-
+nique, ” Software, Practice and Experience , vol. 18, no. 2, pp. 137-161,
+Feb. 1988.
+[35] G.J. Holzmann, “Algorithms for Automated Protocol Verifica-
+tion, ” AT&T Technical J.,  vol. 69, no. 1, pp. 32-44, Jan. 1990.
+[36] G.J. Holzmann, Design and Validation of Computer Protocols .
+Englewood Cliffs, N.J.: Prentice Hall, 1991.
+[37] G.J. Holzmann, “Protocol Design: Redefining The State of the
+Art,” IEEE Software , pp. 17-22, Jan. 1992.
+[38] G.J. Holzmann, P. Godefroid, and D. Pirottin, “Coverage Pre-
+serving Reduction Strategies for Reachabily Analysis, ” Proc.
+IFIP/WG6.1 Symp. Protocol Specification , Testing, and Verification
+(PSTV92),  pp. 349-364, Orlando, Fla., North-Holland, June 1992.
+[39] G.J. Holzmann, “Design and Validation of Protocols: A Tutorial, ”
+Computer Networks and ISDN Systems , vol. 25, no. 9, pp. 981-1,017,
+1993.
+[40] G.J. Holzmann, “The Theory and Practice of a Formal Method:
+NewCoRe, ” Proc. 13th IFIP World Computer Congress , pp. 35-44,
+Hamburg, Germany, North-Holland, Aug. 1994.
+[41] G.J. Holzmann and D. Peled, “An Improvement in Formal Verifi-
+cation, ” Proc. Seventh FORTE Conf. Formal Description Techniques,
+pp. 177-194, Bern, Switzerland, Oct. 1994.
+[42] G.J. Holzmann, “An Analysis of Bit-State Hashing, ” Proc.
+IFIP/WG6.1 Symp. Protocol Specification , Testing, and Verification
+(PSTV95), pp. 301-314, Warsaw, Poland, Chapman & Hall, June
+1995.
+[43] G.J. Holzmann, D. Peled, and M. Yannakakis, “On Nested Depth-
+First Search, ” Proc. Second S PIN Workshop , Rutgers Univ., New
+Brunswick, N.J., DIMACS/32, Am. Math. Soc., Aug. 1996.
+[44] G.J. Holzmann, “Designing Bug-Free Protocols with S PIN,” The
+Computer Comm. J ., to appear 1997.
+[45] G.J. Holzmann, “State Compression in S PIN: Recursive Indexing
+and Compression Training Runs, ” Proc. Third S PIN Workshop ,
+Twente Univ., R. Langerak, ed., The Netherlands, Apr. 1997.
+[46] H.E. Jensen, K. Larsen, and A. Skou, “Modeling and Analysis of a
+Collision Avoidance Protocol Using S PIN and UPPAAL, ” Proc.
+Second S PIN Workshop , Rutgers Univ., New Brunswick, N.J., DI-
+MACS/32, Am. Math. Soc., Aug. 1996.
+[47] A. Joesang, “Security Protocol Verification Using S PIN,” Proc. First
+SPIN Workshop , J.-Ch. Gregoire, ed., INRS Quebec, Canada, Oct.
+1995.
+[48] P. Kars, “The Application of P ROMELA  and S PIN in the BOS Proj-
+ect,” Proc. Second S PIN Workshop , Rutgers Univ., New Brunswick,
+N.J., DIMACS/32, Am. Math. Soc., Aug. 1996.
+[49] R.P. Kurshan, Computer-Aided Verification of Coordinating Processes .
+Princeton Univ. Press, 1994.
+[50] F.J. Lin, “Two Applications of P ROMELA /SPIN,” Proc. First S PIN
+Workshop , J.-Ch. Gregoire, ed., INRS Quebec, Canada, Oct. 1995.
+[51] S. Loeffler and A. Serhrouchni, “Protocol Design: From Specifica-
+tion to Implementation, ” Proc. Fifth Open Workshop for High Speed
+Networks , Paris, Mar. 1996.
+[52] “IEEE Std. 802-2-1985, ISO DIS 8802/2, ” IEEE Standards for Local
+Area Networks: Logical Link Control, Published by the IEEEStandards Board, 345 E. 47th Street, New York, NY 10017, USA,111 pp., ISBN 471-82748-7, 1984. Revised as 802-2-1989 in Aug.1989.
+[53] K.L. McMillan, Symbolic Model Checking . Boston: Kluwer Aca-
+demic, 1993.
+[54] E. Najm and F. Olsen, “Reactive EFSMs, Reactive P
+RO-
+MELA /RSPIN, ” Proc. Tools and Algorithms for the Construction and
+Analysis of Systems (TACAS96),  pp. 349-368, Passau, Germany, Lec-
+ture Notes In Computer Science  1,055 , Springer-Verlag, Mar. 1996.
+[55] T. Nakatani, “Verification of a Group Address Registration Proto-
+col using P ROMELA  and S PIN,” Proc. Third S PIN Workshop , R.
+Langerak, ed., Twente Univ., The Netherlands, Apr. 1997.
+[56] R.M. Needham and A.J. Herbert, The Cambridge Distributed Com-
+puting System . London: Addison-Wesley, 1982.
+
+--- Page 17 ---
+HOLZMANN:  THE MODEL CHECKER SPIN 17
+J:\PRODUCTION\TSE\2-INPROD\MAY\104928.0\104928_1.DOC regularpaper97.dot S    19,968 05/29/97 4:13 PM 17 /[57] D. Peled, “Combining Partial Order Reductions with On-The-Fly
+Model-Checking, ” Proc. Sixth Int ’l Conf. Computer Aided Verifica-
+tion (CAV94 ), pp. 377-390, Stanford, Calif., Lecture Notes In Com-
+puter Science  818. Springer-Verlag, 1994.
+[58] D. Peled, “On Projective and Separable Properties, ” Colloquium on
+Trees in Algebra and Programming , pp. 291-307, Edinburgh, Scot-
+land, Lecture Notes In Computer Science  787. Springer-Verlag, 1994.
+[59] R. Pike, D. Presotto, K. Thompson, and G.J. Holzmann, “Process
+Sleep and Wakeup on a Shared-Memory Multiprocessor, ” Proc.
+the Spring  EurOpen Conf., pp. 161-166, Tromso, Norway, 1991.
+[60] A. Pnueli, “The Temporal Logic of Programs, ” Proc. 18th IEEE
+Symp. Foundations of Computer Science , Providence, R.I., pp. 46-57,
+1977.
+[61] J.P. Queille and J. Sifakis, “Specification and Verification of Con-
+current Systems in Cesar, ” Proc. Fifth Int ’l. Symp. Programming , pp.
+195-220, Lecture Notes In Computer Science  137. Springer-Verlag,
+1981.
+[62] B. Rahardjo, “SPIN as a Hardware Design Tool, ” Proc. First S PIN
+Workshop , J.-Ch. Gregoire, ed., INRS Quebec, Canada, Oct. 1995.
+[63] M. Raynal, Distributed Algorithms and Protocols . New York: John
+Wiley & Sons, 1992.
+[64] L.M. Ruane, “Process Synchronization in the UTS Kernel, ” Com-
+puting Systems , Proc. Usenix Conf.,  vol. 3, no. 3, pp. 387-421, 1990.
+[65] T.C. Ruys and R. Langerak, “Validation of Bosch ’s Mobile Com-
+munication Network Architecture with S PIN,” Proc. Third S PIN
+Workshop , R. Langerak, ed., Twente Univ., The Netherlands, Apr.
+1997.
+[66] T.S. Chan and I. Gorton, “Formal Validation of a High Perform-
+ance Error Control Protocol Using S PIN,” Software, Practice and Ex-
+perience, ” vol. 26, no. 1, pp. 105-124, Jan. 1996.
+[67] S. Shukla, D.J. Rosenkrantz, and S.S. Ravi, “Simulation and Vali-
+dation of Self-stabilizing Protocols, ” Proc. Second S PIN Workshop ,
+Rutgers Univ., New Brunswick, N.J., DIMACS/32, Am. Math.Soc., Aug. 1996.
+[68] Proc. First S
+PINWorkshop , J.-Ch. Gregoire, ed., INRS Quebec, Can-
+ada, Oct. 1995.
+ Proc. Second S PIN Workshop , J.-Ch. Gregoire, G.J. Holzmann, and
+D. Peled, eds., Rutgers Univ., New Brunswick, N.J., DIMACS/32,
+Am. Math. Soc.,  Aug. 1996.
+ Proc. Third S PIN Workshop , R. Langerak, ed., Twente Univ., The
+Netherlands, Apr. 1997.
+[69] M. Staskauskas, “Tales from the Front: Industrial Experience with
+Formal Validation, ” Proc. First S PIN Workshop , J.-Ch. Gregoire, ed.,
+INRS Quebec, Canada, Oct. 1995.
+[70] W.T. Strayer, B.J. Dempsey, and A.C. Weaver, XTP —The Xpress
+Transfer Protocol . Reading, Mass.: Addison-Wesley, 1992.
+[71] A. Tanenbaum, Computer Networks , second edition. Englewood
+Cliffs, N.J.: Prentice Hall, 1989.
+[72] R.E. Tarjan, “Depth First Search and Linear Graph Algorithms, ”
+SIAM J. Computing , vol. 1, no. 2, pp. 146-160, 1972.
+[73] W. Thomas, “Automata on Infine Objects, ” Handbook of Theoretical
+Computer Science , J. Van Leeuwen, ed., pp. 133-187, Elsevier Sci-
+ence, 1990.
+[74] S. Tripakis and C. Courcoubetis, “Extending P ROMELA  and S PIN
+for real-time, ” Proc. Tools and Algorithms for the Construction and
+Analysis of Systems (TACAS96),  pp. 329-348, Passau, Germany, Lec-
+ture Notes In Computer Science 1,055 . Springer-Verlag, Mar. 1996.
+[75] P. Tullmann, J. Turner, J. McCorquodale, J. Lepreau, A. Chitturi,
+and G. Back, “Formal Methods: A Practical Tool for OS Imple-
+menters, ” Proc. HotOS-VI, Sixth IEEE Workshop Hot Topics in Oper-
+ating Systems , Cape Cod, Mass., May 1997.
+[76] R. Nalumasu and G. Gopalakrishnan, “Explicit Enumeration
+Based on Verification Made Memory Efficient, ” Proc. Conf. Com-
+puter Hardware Description Languages (CHDL ’95), pp. 617-622,
+Chiba, Japan, 1995.
+[77] M.Y. Vardi and P. Wolper, “An Automata-Theoretic Approach to
+Automatic Program Verification, ” Proc. First IEEE Symp. Logic in
+Computer Science , pp. 322-331, 1986.
+[78] M.Y. Vardi and P. Wolper, “Reasoning About Infinite Computa-
+tions, ” Information and Computation , vol. 115, pp. 1-37, 1994, ap-
+peared as a conference paper in 1983.
+[79] W. Visser, “Memory Efficient Storage in S PIN,” Proc. Second S PIN
+Workshop,  Rutgers Univ., New Brunswick, N.J., DIMACS/32, Am.
+Math. Soc., Aug. 1996.
+[80] A.S. Wenban, J.W. O ’Leary, and G.M. Brown, “Codesign of
+Communication Protocols, ” Computer , vol. 26, no. 12, pp. 46-52,
+Dec. 1993.[81] C.H. West, “General Technique for Communications Protocol
+Validation, ” IBM J. Research and Development , vol. 22, no. 3, pp.
+393-404, 1978.
+[82] P. Wolper, “Expressing Interesting Properties of Programs in
+Propositional Temporal Logic, ” Proc. 13th ACM  Symp. Principles of
+Programming Languages , pp. 148-193, St. Petersburg, Fla., Jan. 1986.
+Gerard J. Holzmann  received an MSc degree in
+electrical engineering in 1976 and a PhD degree intechnical sciences in 1979 from the University ofTechnology in Delft, The Netherlands. He joinedthe Computing Sciences Research Center at BellLaboratories, Murray Hill, New Jersey, in 1980,where today he is a distinguished member oftechnical staff (DMTS) in the Computing PrinciplesResearch Department. In 1980, Holzmann wroteone of the first automated protocol verificationsystems, called P
+AN Since then, he has written
+several other on-the-fly verification systems for a variety of applica-tions. His latest system, S
+PIN, is considered to be one of the most effi-
+cient and most widely used LTL model checking systems Dr. Holz-mann has written books on digital image editing, on the history ofcommunications, and on protocol verification. He serves as an editorfor the journal,
+ Formal Methods in Systems Design  (Kluwer).
+

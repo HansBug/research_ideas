@@ -1,0 +1,500 @@
+--- Page 1 ---
+OpenFst: A General and Eﬃcient Weighted
+Finite-State Transducer Library
+Cyril Allauzen1, Michael Riley2,3, Johan Schalkwyk2, Wojciech Skut2, and
+Mehryar Mohri1
+1Courant Institute of Mathematical Sciences
+251 Mercer ST, New York, NY 10012, USA
+{allauzen,mohri }@cs.nyu.edu
+2Google, Inc.
+111 Eighth AV, New York, NY 10011, USA
+{riley,johans,wojciech }@google.com
+3Corresponding author
+Abstract. We describe OpenFst , an open-source library for weighted
+ﬁnite-state transducers (WFSTs). OpenFst consists of a C++ template
+library with eﬃcient WFST representations and over twenty- ﬁve oper-
+ations for constructing, combining, optimizing, and searc hing them. At
+the shell-command level, there are corresponding transduc er ﬁle repre-
+sentations and programs that operate on them. OpenFst is des igned to be
+both very eﬃcient in time and space and to scale to very large p roblems.
+This library has key applications speech, image, and natura l language
+processing, pattern and string matching, and machine learn ing.
+We give an overview of the library, examples of its use, detai ls of its
+design that allow customizing the labels, states, and weigh ts and the
+lazy evaluation of many of its operations.
+Further information and a download of the OpenFst library ca n be ob-
+tained from http://www.openfst.org .
+Keywords: Weighted automata; ﬁnite-state transducers; rational pow er
+series.
+1 Introduction
+Aweighted ﬁnite-state transducer (WFST) is a ﬁnite automaton for which each
+transition has an input label, an output label, and a weight. Figure 1 depicts a
+weighted ﬁnite state transducer:
+0 1a:x/0.5
+b:y/1.52/3.5c:z/2.5
+Fig.1. An example weighted ﬁnite-state transducer.
+The initial state is labeled 0. The ﬁnal state is 2 with ﬁnal we ight of 3.5. Any
+state with non-inﬁnite ﬁnal weight is a ﬁnal state. There is a transition from
+state 0 to 1 with input label a, output label x, and weight 0.5. This machine
+
+--- Page 2 ---
+Semiring Set ⊕⊗01
+Boolean {0,1} ∨∧01
+Probability R+ +×01
+Log R∪ {−∞ ,+∞}⊕log++∞0
+Tropical R∪ {−∞ ,+∞}min++∞0
+String Σ∗∪ {∞} lcp·∞ǫ
+Table 1. Semiring examples. ⊕logis deﬁned by: x⊕logy=−log(e−x+e−y).
+transduces, for instance, the string actoxzwith weight 6.5 (the sum of the arc
+and ﬁnal weights).
+Weighted ﬁnite-state transducers have been used in speech r ecognition and
+synthesis, machine translation, optical character recogn ition, pattern matching,
+string processing, machine learning, information extract ion and retrieval among
+others. Having a comprehensive software library of weighte d transducer repre-
+sentations and core algorithms is key for using weighted tra nsducers in these
+applications and for the development of new algorithms and a pplications.
+To our knowledge, the ﬁrst such software library was the AT&T FSM Library
+developed by Mohri, Pereira, and Riley for their work on tran sducer algorithms
+and applications [1]. It is available from AT&T for non-comm ercial use as ex-
+ecutable binary programs. Since then, there have been vario us other weighted
+transducer library eﬀorts [2–5]. Our motivation for OpenFs t was to create a li-
+brary as comprehensive and eﬃcient as the AT&T FSM Library, b ut that was
+an open-source project. We also sought to make this library a s ﬂexible and cus-
+tomizable as possible given the wide range of applications W FSTs have enjoyed
+in recent years. It is a C++ template library, allowing it to b e both very cus-
+tomizable and eﬃcient.
+This paper is an overview of this new library. Section 2 intro duces some def-
+initions and notation. Section 3 describes the representat ion and construction
+of transducers in this library. Section 4 brieﬂy outlines th e available algorithms.
+Section 5 provides examples of the library’s use and discuss es some new, sim-
+pliﬁed implementations of several algorithms. Section 6 gi ves more detail about
+the transducer representation and discusses the lazy evalu ation of algorithms.
+The OpenFst library is available for download from http://www.openfst.org
+and is released under the Apache license. Detailed document ation is also avail-
+able at this site.
+2 Deﬁnitions and Notation
+The OpenFst Library closely parallels its mathematical fou ndations in the theory
+of rational power series [6–8]. The library user can deﬁne th e alphabets and
+weights that label transitions. The weights may represent a ny set so long as
+they form a semiring .
+A semiring ( K,⊕,⊗,0,1) is speciﬁed by a set of values K, two binary op-
+erations ⊕and⊗, and two designated values 0 and 1. The operation ⊕is as-
+
+--- Page 3 ---
+sociative, commutative, and has 0 as identity. The operation ⊗is associative,
+has identity 1, distributes with respect to ⊕, and has 0 as annihilator: for all
+a∈K, a⊗0 =0⊗a=0. If⊗is also commutative, we say that the semiring is
+commutative .
+Table 1 lists some common semirings. All but the last are deﬁn ed over subsets
+of the real numbers (extended with positive and negative inﬁ nity). In addition
+to the familiar Boolean semiring, and the probability semir ing used to combine
+probabilities, two semirings often used in applications ar e thelog semiring which
+is isomorphic to the probability semiring via the negative- log mapping, and the
+tropical semiring which is similar to the log semiring except the ⊕operation is
+min. The left (right) string semiring , which is deﬁned over strings, has longest
+common preﬁx (suﬃx) and concatenation as its operations, an d has the (ex-
+tended element) inﬁnite string and the empty string for its identity elements. It
+only distributes on the left (right).
+Aweighted ﬁnite-state transducer T= (A,B, Q, I, F, E, λ, ρ ) over a semiring
+Kis speciﬁed by a ﬁnite input alphabet A, a ﬁnite output alphabet B, a ﬁnite
+set of states Q, a set of initial states I⊆Q, a set of ﬁnal states F⊆Q, a ﬁnite
+set of transitions E⊆Q×(A ∪ {ǫ})×(B ∪ {ǫ})×K×Q, an initial state weight
+assignment λ:I→K, and a ﬁnal state weight assignment ρ:F→K.E[q]
+denotes the set of transitions leaving state q∈Q.
+Given a transition e∈E,p[e] denotes its origin or previous state, n[e] its
+destination or next state, i[e] its input label, o[e] its output label, and w[e] its
+weight. A pathπ=e1···ekis a sequence of consecutive transitions: n[ei−1] =
+p[ei],i= 2, . . ., k . The functions n,p, and won transitions can be extended
+to paths by setting: n[π] =n[ek] and p[π] =p[e1] and by deﬁning the weight
+of a path as the ⊗-product of the weights of its constituent transitions: w[π] =
+w[e1]⊗ ··· ⊗ w[ek]. More generally, wis extended to any ﬁnite set of paths R
+by setting w[R] =/circleplustext
+π∈Rw[π]; if the semiring is closed, this is deﬁned even for
+inﬁnite R. We denote by P(q, q′) the set of paths from qtoq′and by P(q, x, y, q′)
+the set of paths from qtoq′with input label x∈ A∗and output label y∈
+B∗. These deﬁnitions can be extended to subsets R, R′⊆QbyP(R, R′) =
+∪q∈R, q′∈R′P(q, q′),P(R, x, y, R′) =∪q∈R, q′∈R′P(q, x, y, q′).
+A transducer Tisregulated if the weight associated by Tto any pair of
+input-output string ( x, y) given by:
+[ [T] ](x, y) =/circleplusdisplay
+π∈P(I,x,y,F )λ[p[π]]⊗w[π]⊗ρ[n[π]] (1)
+is well-deﬁned and in K. IfP(I, x, y, F ) =∅, then T(x, y) =0. A weighted
+transducer without ǫ-cycles is regulated.
+3 Transducer Representation and Construction
+In the OpenFst Library, a transducer can be constructed from either the C++
+level using class constructors and mutators or from a shell- level program using
+a textual ﬁle representation. We describe the former here.
+
+--- Page 4 ---
+This C++ code creates the transducer in Figure 1:
+// A vector FST is a general mutable FST
+VectorFst <StdArc >fst;
+// Add state 0 to the initially empty FST and make it the initia l state
+fst.AddState(); // 1st state will be state 0 (returned by AddState)
+fst.SetStart(0); // arg is state ID
+// Add two arcs exiting state 0
+// Arc constructor args: ilabel, olabel, weight, dest state ID
+fst.AddArc(0, StdArc(1, 1, 0.5, 1)); // 1st arg is src state ID
+fst.AddArc(0, StdArc(2, 2, 1.5, 1));
+// Add state 1 and its arc
+fst.AddState();
+fst.AddArc(1, StdArc(3, 3, 2.5, 2));
+// Add state 2 and set its ﬁnal weight
+fst.AddState();
+fst.SetFinal(2, 3.5); // 1st arg is state ID, 2nd arg weight
+The steps consist of ﬁrst constructing an empty VectorFst , which is a
+general-purpose transducer that uses an adjacency list rep resentation (stored
+in STL vectors). Next, its mutator member functions are used to add states and
+transitions (‘arcs’) and to set the intial state4and ﬁnal weights. States are identi-
+ﬁed by integer labels. The result can be saved to a ﬁle with fst.Write(‘out.fst’) .
+TheVectorFst , like all transducer representations and algorithms in thi s
+library, is templated on the transition type. This permits c ustomization of the
+labels, state IDs and weights in a transducer. StdArc deﬁnes the library-standard
+transition representation:
+struct StdArc {
+typedef int Label;
+typedef TropicalWeight Weight;
+typedef int StateId;
+Label ilabel; // Transition input label
+Label olabel; // Transition output label
+Weight weight; // Transition weight
+StateId nextstate; // Transition destination state
+};
+This uses 32-bit integer labels and state IDs and the class TropicalWeight
+for its weight.
+A Weight class holds the set element and provides the semirin g operations.
+TropicalWeight uses a single-precision ﬂoat to hold the set element, has mem ber
+4Only one initial state is permitted and it has weight 1.
+
+--- Page 5 ---
+functions that deﬁne the identity elements 0 and 1 and has associated functions
+PlusandTimes that implement ⊕and⊗, respectively:
+class TropicalWeight {
+public:
+TropicalWeight(float f) : value (f){}
+static TropicalWeight Zero() {return TropicalWeight(Infinity); }
+static TropicalWeight One() {return TropicalWeight(0.0); }
+private:
+float value ;
+};
+TropicalWeight Plus(TropicalWeight x, TropicalWeight y) {
+return w1.value <w2.value ? w1 : w2;
+};
+The class LogWeight is also deﬁned in this library. Users may deﬁne their
+own weight classes and transition types. So long as the weigh ts form a semiring,
+either a library algorithm will work correctly, or in the cas e where additional
+requirements are placed on the weights (such as commutivity ), an error will be
+signalled if the condition is not met.
+One simple customization is to use smaller or larger precisi on labels, state IDs
+or weights for a more compact or higher capacity representat ion, respectively.
+A less trivial extension is to use the ProductWeight template, also provided by
+the library:
+template <typename W1, typename W2 >
+class ProductWeight {
+public:
+ProductWeight(W1 w1, W2 w2) : value1 (w1), value2 (w2) {}
+static ProductWeight Zero() {
+return ProductWeight(W1::Zero(), W2::Zero());
+}
+static ProductWeight One() {
+return ProductWeight(W1::One(), W2::One());
+}
+private:
+W1 value1 ;
+W2 value2 ;
+};
+For instance, the product semiring of the tropical semiring with itself can be
+created with
+ProductWeight <TropicalWeight, TropicalWeight >.
+Deﬁned over ( R∪ {−∞ ,+∞})×(R∪ {−∞ ,+∞}), this weight class could be
+used, for example, in speech recognition applications to st ore both the acoustic
+and language model scores in recognizer output hypothesis s et (‘lattice’).
+
+--- Page 6 ---
+Another example of a semiring deﬁned on pairs is the expectation semiring .
+LetKdenote ( R∪{+∞,−∞})×(R∪{+∞,−∞}). For pairs ( x1, y1) and ( x2, y2)
+inK, deﬁne the following :
+(x1, y1)⊕(x2, y2) = (x1+x2, y1+y2)
+(x1, y1)⊗(x2, y2) = (x1x2, x1y2+x2y1)
+The system ( K,⊕,⊗,(0,0),(1,0)) deﬁnes a commutative semiring. [9] show how
+to use this semiring to compute the relative entropy between probabilistic au-
+tomata. This algorithm is trivially implemented in this lib rary by adding the
+expectation semiring and using the intersection and shorte st-distance library
+algorithms.
+4 Transducer Algorithms
+4.1 Algorithm Implementation Types
+The algorithms in the library fall into three implementatio n types. The destruc-
+tivealgorithms modify in place. e.g., “ Invert(&fst) ”. The constructive algo-
+rithms copy their result into a provided mutable transducer , e.g., “Reverse(fst,
+&inverted fst)”. Both have a complexity that is a function of the number of
+states and transitions in the result. The lazy(ordelayed ) algorithms are sepa-
+rate transducer C++ classes, e.g., “ InvertFst <StdArc >inverted fst(fst) ”.
+They do no computation on construction and their complexity is a function of
+the number of states and transitions visited . This is useful in applications where
+the whole result may not be visited, e.g., with Dijsktra’s al gorithm (with pos-
+itive weights) or in a pruned search. In Section 6, the implem entation of lazy
+algorithms is described.
+4.2 Available Algorithms
+The library provides over twenty-ﬁve transducer operation s. We brieﬂy describe
+some of them below.
+Table 2 shows the library operations for the sum, product, an d Kleene closure
+of weighted transducers. Both destructive implementation s, using the Thompson
+construction, and lazy implementations are provided.
+Operation Definition
+Union [ [T1⊕T2] ](x, y) = [ [T1] ](x, y)⊕[ [T2] ](x, y)
+Concat [ [T1⊗T2] ](x, y) =M
+x=x1x2,y=y1y2[ [T1] ](x1, y1)⊗[ [T2] ](x2, y2)
+Closure [ [T∗] ](x, y) =∞M
+n=0[ [T] ]n(x, y)
+Table 2. The rational operations.
+
+--- Page 7 ---
+Table 3 shows the elementary unary operations for reversing the strings in
+an automaton, inverting a transduction, and projecting a tr ansduction onto its
+domain or range. Invert andProject have both destrucive and lazy imple-
+mentations, while Reverse has a constructive implementati on. In Section 6, we
+outline the implementation of both forms of Invert .
+Operation Definition and Notation Lazy
+Reverse [ [eT] ](x, y) = [ [T] ](ex,ey) No
+Invert [ [T−1] ](x, y) = [ [T] ](y, x) Yes
+Project [ [A] ](x) =M
+y[ [T] ](x, y) Yes
+Table 3. Elementary unary operations.
+Table 4 shows several binary operations based on the composi tion algorithm:
+the composition of transducers, the intersection of accept ors, and the diﬀerence
+of an acceptor and an unweighted, deterministic acceptor [6 ,7]. Composition is
+a fundamental operation used to apply or cascade transducti ons (see Section 5).
+All have lazy implementations.
+Operation Definition and Notation Condition
+Compose [ [T1◦T2] ](x, y) =M
+z[ [T1] ](x, z)⊗[ [T2] ](z, y)Kcommutative
+Intersect [ [A1∩A2] ](x) = [ [A1] ](x)⊗[ [A2] ](x) Kcommutative
+Diﬀerence [ [A1−A2] ](x) = [ [A1∩A2] ](x) A2unweighted &
+deterministic
+Table 4. Fundamental binary operations.
+Table 5 shows operations that optimize transducers: trimmi ng, epsilon-removal,
+and weighted determinization and minimization. Several of these algorithms have
+speciﬁc semiring conditions for their use. Not all weighted transducers can be
+determinized [10–12].
+Operation Description Lazy
+Connect Removes non-accessible/non-coaccessible states No
+RmEpsilon Removes ǫ-transitions Yes
+Determinize Creates equivalent deterministic transducr Yes
+Minimize Creates equivalent minimal deterministic transducer No
+Table 5. Optimization operations.
+Table 6 shows operations for sorting a transducer’s transit ions or states, for
+pushing their weights and labels toward the initial or ﬁnal s tates, for placing all
+input ǫ’s after the non- ǫ’s and for synchronizing the ǫdelay [13,12].
+
+--- Page 8 ---
+Operation Description Lazy
+TopSort Topologically sorts an acyclic transducer No
+ArcSort Sorts state’s arcs given an order relation Yes
+Push Creates equivalent pushed/stochastic machine No
+EpsNormalize Places input ǫ’s after non- ǫ’s on paths No
+Synchronize Produces monotone ǫdelay Yes
+Table 6. Normalization operations.
+Table 7 shows operations that search for shortest paths or di stances in a
+weighted automaton or prune away states and transitions on p aths that have
+weights that exceed a threshold [13].
+Operation Description
+ShortestPath Finds n-shortest paths
+ShortestDistance Finds single-source shortest-distances
+Prune Prunes states and transitions by path weight
+Table 7. Search operations.
+Usage information, graphical examples, and complexities o f all library opera-
+tions are provided in the documentation available at http://www.openfst.org .
+5 Examples
+In this section, we give examples of the use of the library alg orithms. First, we
+give a simple example of transducer application:
+// Reads in an input FST.
+StdFst *input = StdFst::Read("input.fst");
+// Reads in the transduction model.
+StdFst *model = StdFst::Read("model.fst");
+// The FSTs must be sorted along the dimensions they will be jo ined.
+// In fact, only one needs to be so sorted.
+// This could have instead been done for ”model.fst” when it w as created.
+ArcSort(input, StdOLabelCompare());
+ArcSort(model, StdILabelCompare());
+// Container for composition result.
+StdVectorFst result;
+// Create the composed FST
+Compose(*input, *model, &result);
+// Just keeps the output labels
+Project(&result, PROJECT OUTPUT);
+
+--- Page 9 ---
+An input automaton and a transducer to which the input will be applied
+are ﬁrst read from ﬁles. Then these automata are sorted as req uired by the
+composition algorithm. Next, they are composed and the resu lt is projected
+onto the output labels.
+Next we give an example of using diﬀerent semirings to comput e the shortest
+distance from the initial state to each state q[13]:
+// Tropical semiring
+Fst<StdArc >*input = Fst <StdArc >::Read("input.fst");
+vector <StdArc::Weight >distance;
+ShortestDistance(*input, &distance);
+// Log semiring
+Fst<LogArc >*input = Fst::Read("input.fst");
+vector <LogArc::Weight >distance;
+ShortestDistance(*input, &distance);
+// Right string semiring
+typedef StringArc <TropicalWeight, STRING RIGHT >SR;
+Fst<SR>*input = Fst::Read("input.fst");
+vector <SR::Weight >distance;
+ShortestDistance(*input, &distance);
+// Left string semiring
+typedef StringArc <TropicalWeight, STRING LEFT>SL;
+Fst<SL>*input = Fst::Read("input.fst");
+vector <SL::Weight >distance;
+ShortestDistance(*input, &distance);
+ERROR: ShortestDistance: Weights need to be right distribu tive
+With the tropical semiring, the minimum path weight to qis computed.
+With the log semiring, the (log) sum of path weights to qis computed. With the
+right string semiring, the longest common suﬃx among paths t oqis computed.
+With the left string semiring, an error is signalled, since t he semiring is only
+left-distributive.
+We have represented a transition as:
+e∈Q×(A ∪ {ǫ})×(B ∪ {ǫ})×K×Q.
+This treats the input and output labels symmetrically, is sp ace-eﬃcient since
+there is a single output-label per transition, and is the nat ural representation
+for the composition algorithm whose eﬃciency is critical in many applications.
+However, an alternative representation of a transition is:
+e∈Q×(A ∪ {ǫ})× B∗×K×Q.
+or equivalently,
+e∈Q×(A ∪ {ǫ})×K′×Q, K′=B∗×K.
+
+--- Page 10 ---
+This treats string and Koutputs uniformly and is the natural representation
+for weighted transducer determinization, minimization, l abel pushing, and ep-
+silon normalization [10,11,13,12]. Implementing these al gorithms in the original
+transition representation is awkward and complex.
+We can use the alternative transition representation in thi s library, combining
+each transitions output label and weight into a new product w eight, with:
+typedef ProductWeight <StringWeight, TropicalWeight >CompositeWeight;
+The following shows how this composite weight is used to impl ement weighted
+determinization:
+Fst<StdArc >*input = Fst::Read("input.fst");
+// Converts into alternative transition representation
+MapFst <StdArc, CompositeArc >composite(*input, ToCompositeMapper);
+WeightedDeterminizeFst <CompositeArc >det(composite);
+// Ensures only one output label per transition (functional input)
+FactorWeightFst <CompositeArc >factor(det);
+// Converts back from alternative transition representati on
+MapFst <CompositeArc >result(factor, FromCompositeMapper);
+First, the input is converted to the alternate representati on using an op-
+eration that maps a conversion function (object) across all transitions. Next,
+generic weighted (acceptor) determiniztaion is applied, a nd then the result is
+converted back to the original transition representation. Performance is not sac-
+riﬁced given eﬃcient lazy computation and string semiring i mplementations.
+Weighted transducer minimization, label pushing and epsil on normalization are
+easily implemented in a similar way using this change of tran sition represen-
+tation and the generic (acceptor) weighted minimization, w eight pushing, and
+ǫ-removal algorithms.
+6 Transducer Class Design and Lazy Evaluation
+In this section, the details of the transducer representati ons used and the im-
+plementation of lazy evaluation are described. In this libr ary there are many
+transducer represenations. Some are mutable containers li keVectorFst , oth-
+ers are immutable containers like ConstFst , while others implement the lazy
+evaluation of operations like InvertFst . They all share the abstract base Fst
+class:
+template <class Arc >
+class Fst {
+public:
+virtual StateId Start() const = 0; // Initial state
+virtual Weight Final(StateId) const = 0; // State’s ﬁnal weight
+static Fst <Arc>*Read(const string filename);
+}
+
+--- Page 11 ---
+Two companion classes, StateIterator andArcIterator , are deﬁned that
+each have methods Next,Done, andValue . These classes provide the minimum
+information needed to specify a transducer. This includes i ts initial state, ﬁnal
+weights, and operations to step through the states of the tra nsducer and the
+transitions of a state. Any class that derives from Fstand correctly implements
+these methods can be used with any algorithm that accepts thi s base type as its
+argument.
+The destructive algorithms mutate their input. They use as a rguments an-
+other abstract class, MutableFst , that derives from Fst. This class adds meth-
+odsSetStart ,SetFinal .AddState , andAddArc and has a companion class
+MutableArcIterator that adds method SetValue toArcIterator .
+The following shows the implementation of destructive Invert using these
+classes. The states and transitions are traversed and the in put and output
+swapped in place:
+template <class Arc >void Invert(MutableFst <Arc>*fst) {
+for (StateIterator <MutableFst <Arc> >siter(*fst);
+!siter.Done();
+siter.Next()) {
+StateId s = siter.Value();
+for (MutableArcIterator <MutableFst <Arc> >aiter(fst, s);
+!aiter.Done();
+aiter.Next()) {
+Arc arc = aiter.Value();
+Label l = arc.ilabel;
+arc.ilabel = arc.olabel;
+arc.olabel = l;
+aiter.SetValue(arc);
+}
+}
+}
+The following shows the implementation of lazy InvertFst :
+template <class Arc >class InvertFst : public Fst <Arc>{
+public:
+virtual StateId Start() const {return fst ->Start(); }
+· · ·
+private:
+const Fst <Arc>*fst;
+}
+template <class F >Arc ArcIterator <F>::Value() const {
+Arc arc = arcs [i];
+Label l = arc.ilabel;
+arc.ilabel = arc.olabel;
+arc.olabel = l;
+return arc;
+}
+
+--- Page 12 ---
+This is a new class that derives from Fst. It forwards most of its methods
+to the input transducer. However, its companion ArcIterator swaps the input
+and output labels when a transition is requested. Note the in put transducer is
+not modiﬁed and no computation is performed until requested . While the lazy
+inversion operation is trivial, more complex operations li ke composition and
+determinization are naturally implemented in this way as we ll.
+7 Conclusion
+This paper has presented an overview of a new comprehensive a nd ﬂexible
+weighted ﬁnite-state transducer library whose source code is freely available. We
+encourage readers to visit http://www.openfst.org to download the library.
+There is an easy-to-use shell-level interface that we did no t describe here, but
+that is documented on the web site and is a good place to start. It is our hope
+that others will ﬁnd this library useful in the years to come.
+References
+1. Mohri, M., Pereira, F., Riley, M.: The Design Principles o f a Weighted Finite-State
+Transducer Library. Theoretical Computer Science 231(January 2000) 17–32
+2. Adant, A.: WFST: a ﬁnite-state template library in C++ .
+http://membres.lycos.fr/adant/tfe (2000)
+3. Hetherington, L.: The MIT ﬁnite-state transducer toolki t for speech and language
+processing. In: Proceedings of the ICSLP, Jeju, South Korea (2004)
+4. Kanthak, S., Ney, H.: FSA: An eﬃcient and ﬂexible C++ toolk it for ﬁnite state
+automata using on-demand computation. In: Proceedings of 4 2nd Meeting of the
+ACL. (2004) 510–517
+5. Lombardy, S., R´ egis-Gianas, Y., Sakarovitch, J.: Intro ducing VAUCANSON. The-
+oretical Computer Science 328(1-2) (November 2004) 77–96
+6. Salomaa, A., Soittola, M.: Automata-Theoretic Aspects o f Formal Power Series.
+Springer-Verlag, New York (1978)
+7. Kuich, W., Salomaa, A.: Semirings, Automata, Languages. Number 5 in EATCS
+Monographs on Theoretical Computer Science. Springer-Ver lag, Berlin, Germany
+(1986)
+8. Berstel, J., Reutenauer, C.: Rational Series and Their La nguages. Springer-Verlag,
+Berlin-New York (1988)
+9. Cortes, C., Mohri, M., Rastogi, A., Riley, M.: On the compu tation of the rela-
+tive entropy of probabilistic automata. International Jou rnal of Foundations of
+Computer Science (2007)
+10. Mohri, M.: Finite-State Transducers in Language and Spe ech Processing. Compu-
+tational Linguistics 23(2) (1997)
+11. Mohri, M.: Minimization algorithms for sequential tran sducers. Theoretical Com-
+puter Science 234(March 2000) 177–201
+12. Mohri, M.: Generic epsilon-removal and input epsilon-n ormalization algorithms for
+weighted transducers. International Journal of Foundatio ns of Computer Science
+13(1) (March 2002) 29–143
+13. Mohri, M.: Semiring Frameworks and Algorithms for Short est-Distance Problems.
+Journal of Automata, Languages and Combinatorics 7(3) (2002) 321–350

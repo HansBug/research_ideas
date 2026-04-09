@@ -1,0 +1,1385 @@
+--- Page 1 ---
+TEICE TRANS. INF. & SYST., VOL. E80-D, NO. 3 MARCH 1997
+
+315
+
+ 
+
+[PAPER Special Issue on Asynchronous Circuit and System Design
+Petrify: A Tool for Manipulating Concurrent
+Specifications and Synthesis of
+
+ 
+
+Asynchronous Controllers
+
+ 
+
+ 
+
+Jordi CORTADELLA!, Michael KISHINEVSKY*', Alex KONDRATYEVi,
+Luciano LAVAGNO'+t, and Alexandre YAKOVLEV'*t', Nonmembers
+
+SUMMARY Petrify is a tool for (1) manipulating concur-
+rent specifications and (2) synthesis and optimization of asyn-
+chronous control circuits. Given a Petri Net (PN), a Signal Tran-
+sition Graph (STG), or a Transition System (TS)* it (1) generates
+another PN or STG which is simpler than the original descrip-
+tion and (2) produces an optimized net-list of an asynchronous
+controller in the target gate library while preserving the speci-
+fied input-output behavior. An ability of back-annotating to the
+specification level helps the designer to control the design pro-
+cess. For transforming a specification petrify performs a token
+flow analysis of the initial PN and produces a transition sys-
+tem (TS). In the initial TS, all transitions with the same label
+are considered as one event. The TS is then transformed and
+transitions relabeled to fulfill the conditions required to obtain
+a safe irredundant PN. For synthesis of an asynchronous circuit
+petrify performs state assignment by solving the Complete State
+Coding problem. State assignment is coupled with logic mini-
+mization and speed-independent technology mapping to a target
+library. The final net-list is guaranteed to be speed-independent,
+ie., hazard-free under any distribution of gate delays and multi-
+ple input changes satisfying the initial specification. The tool has
+been used for synthesis of PNs and PNs composition, synthesis
+and re-synthesis of asynchronous controllers and can be also ap-
+plied in areas related with the analysis of concurrent programs.
+This paper provides an overview of petrify and the theory be-
+hind its main functions.
+
+key words: asynchronous circuit, speed-independence, technol-
+ogy mapping, Petri Net, event insertion
+
+1. Introduction
+
+Petri nets[28],[31] are a widespread formalism to
+model concurrent systems. By labeling transitions with
+symbols from a given alphabet, transitions can be inter-
+preted as the occurrence of events or the execution of
+tasks in a system. Labeled Petri Nets have been used
+in numerous applications: design and specifications of
+asynchronous circuits [7], [20], [23], [34], resource allo-
+cation problem in operating systems and distributed
+computation [35], analysis of concurrent programs [32],
+
+ 
+
+Manuscript received July 2, 1996.
+Manuscript revised October 2, 1996.
+The author is with University Politécnica de Catalunya,
+Barcelona, Spain.
+The authors are with The University of Aizu,
+Aizuwakamatu-shi, 965-80 Japan.
+tttThe author is with Politecnico di Torino, Italy.
+ttt The author is with University of Newcastle upon Tyne,
+United Kingdom.
+
+performance analysis and timing verification [19], [33],
+high-level design[16]. Petri Nets are popular due to
+their inherent ability to express both concurrent and
+non-deterministic behavior.
+
+State-based models are common languages for for-
+mal specification and verification of complex systems
+(FSMs [15],[22], Burst mode automata [30]). Even the
+forma! operational semantics for most of the event-based
+models (CSP [18], CCS [24], [25]) is given by means of
+states. The drawback of state-based models is that they
+represent causality, concurrency and conflict relations
+between events in terms of state sequences or state con-
+figurations (e.g., state diamonds). This is an undesirable
+characteristic for the designer, who always wants suc-
+cinct representations of a system that explicitly represent
+its properties. Therefore, it is very important to iden-
+tify, starting from a flat state-based representation, the
+set of causality relations, concurrent events and conflict
+conditions implicit in the representation itself, because
+they carry useful information for the designer or/and
+design algorithms.
+
+Tool petrify implements a method which, given a
+finite state model, called Transition System (TS) in the
+sequel, synthesizes a safe Petri Net with a reachability
+graph that is bisimilar to the original TS. In particular,
+the reachability graph can be either isomorphic to the
+original TS or isomorphic to a minimized version of
+the original TS. The synthesized PN is always place-
+irredundant, i.e., it is not possible to remove any place
+from the net without changing its behavior. The syn-
+thesis technique is based on constructing regions. A
+region in a TS is a set of states corresponding to a
+place in a PN. Transitions in and out of this set of
+states “mimic” the PN firing behavior (which un-marks
+predecessor places and marks successor places of a tran-
+sition).
+
+The notion of regions was introduced in[17] (and
+developed in [1], [3], [14], [26], [29]) as a basic interme-
+diate object between state-based and event-based speci-
+fications. These papers have been limited with the so-
+called class of elementary TSs which allow for PN repre-
+
+ 
+
+*Transition system is a directed graph with vertices la-
+beled as states and arcs labeled with events. Transition sys-
+tem can be viewed as an abstract state graph.
+
+
+--- Page 2 ---
+316
+
+ 
+    
+  
+                                                                                           
+ 
+
+oo)
+
+1
+1
+
+1
+
+1
+
+1
+
+，
+
+1
+
+1
+
+1
+
+1
+
+1
+
+1
+
+t
+
+'
+
+'            '
+1
+
+! (State Graphs,   s
+|
+
+1   7
+
+1
+
+|
+
+4  Burst-mode automata
+'
+
+，
+
+ 
+
+IEICE TRANS. INF. & SYST., VOL. E80-D, NO. 3 MARCH 1997
+
+Asynchronous circuit
+(net-list)
+
+Fig. 1 Petrify’s framework for manipulating specifications and for designing of asyn-
+
+chronous circuits.
+
+sentation with uniquely labeled transitions (each event
+has only one occurrence in the PN). We have shown [11]
+how theory of regions can be efficiently used for syn-
+thesizing place-irredundant and place-minimal PNs for
+elementary and non-elementary TSs.
+
+The method for synthesis of PNs provides a tech-
+nique for transforming specifications. Given a model
+which can be mapped into a TS, we can derive a PN
+which is bisimilar to the initial model of the process.
+In such a way we can create a tool which automati-
+cally translates CSP, CCS, FSM, Burst-mode machines
+and other models into labeled Petri Nets. Also, we can
+use this tool for the transformation of Petri Nets aimed
+at optimality under some criterion (place count, transi-
+tion count, number of places, PN graph complexity, etc.)
+or for deriving a net belonging to a given class (pure,
+free choice, unique choice, etc.). Such an interactive
+tool allows a designer to play with a PN-like specifi-
+cation, performing equivalent transformations of PNs,
+and/or transformations of other specifications into PNs
+under different design constraints and optimization cri-
+teria. Figure | shows our framework for synthesizing
+PNs and transforming specifications.
+
+In[8]-[10] we show that regions are tightly con-
+nected with the set of properties that must be preserved
+across the state encoding and technology mapping pro-
+cess for asynchronous circuits. Hence, regions and their
+intersections can be efficiently used for state signal in-
+
+sertion. Therefore, sets of states which correspond to
+places (and transitions) of PNs are useful for efficient
+synthesis techniques of digital circuits. For synthesis
+of asynchronous circuits petrify performs state as-
+signment by solving the Complete State Coding prob-
+lem[7],[23]. State assignment is coupled with logic
+minimization and speed-independent technology map-
+ping to a target library (Fig.l). The final net-list is
+guaranteed to be speed-independent, i.e., hazard-free un-
+der any distribution of gate delays and multiple input
+changes satisfying the initial specification.
+
+This paper is further organized as follows. Sec-
+tion 2 describes what petrify can do in more details.
+Section 3 describes how petrify manipulates concur-
+rent specifications. Section 4 shows to synthesize asyn-
+chronous control circuits with petrify. Section 5 con-
+cludes the paper and shows directions for the future
+development of the tool.
+
+2. What is Petrify
+2.1 Manipulating PNs and TSs
+
+Petrify has two basic functions that allow manipulat-
+ing concurrent specifications:
+
+e Synthesis of safe Petri Nets or Signal Transition
+Graphs from a given Transition System.
+
+
+--- Page 3 ---
+CORTADELLA et al: PETRIFY:A TOOL FOR MANIPULATING CONCURRENT SPECIFICATIONS AND SYNTHESIS
+
+   
+ 
+  
+
+sl
+at
+a            b
+s2
+Cc
+s3
+d
+84
+
+(a)
+
+317
+
+re
+ty
+
+和
+1
+
+  
+ 
+
+Eig. 3 (a) Transition system, (b} Minimal saturated and (c) place-irredundant nets.
+
+STGs are PNs with transitions interpreted as
+changes of the circuit signals. They are widely used
+in design of asynchronous circuits. TSs are abstract
+state graphs with labeled arcs. State Graphs are
+binary encoded TSs. An example of the transfor-
+mation performed by Petrify is shown in Fig. 2.
+
+e Re-synthesis of Petri Nets and Signal Transition
+Graphs.
+
+Behavior-preserving transformation of PNs can be
+aimed at optimality under some criterion (place
+count, transition count, number of places, PN
+graph complexity, etc.) or at deriving a net be-
+longing to a given class (safe, Free-Choice, Unique-
+Choice, etc.).
+
+Given a bounded PN (possibly with weighted arcs
+and inhibitor arcs) petrify will generate an equiv-
+alent safe place-irredundant PN. For example, given
+a PN in Fig.3(b), which corresponds to a TS
+from Fig. 3(a) petrify will produce as an output
+a place-irredundant (and place-minimal) safe PN
+shown in Fig. 3(c).
+
+2.2. Synthesis of Asynchronous Circuits
+
+A user view of the circuit synthesis is illustrated by the
+example shown in Fig. 4. Given an initial STG specifi-
+cation (the left part of the figure), the tool realizes that
+the immediate construction of a net-list is not possible.
+Indeed, the property of Complete State Coding is not
+satisfied: different states of the system are encoded with
+the same binary code although they imply contradic-
+tory next values for at least one of the output signals.
+To resolve this state conflict petrify automatically in-
+serts a new state signal (csc0). Transitions of this state
+signal (escO- and csc0+) are inserted in such way that
+the resulting logic is optimized according to a selected
+cost-function.
+
+After inserting this state signal no state conflicts
+exists in the system and a speed-independent circuit can
+be constructed with C-elementst and complex gates (in
+the middle). However, these complex gates may not
+
+ 
+
+*C-element is an asynchronous latch with a next func-
+tion c = ab + ca + cb, where a,b are inputs to the latch and
+c is its output.
+
+
+--- Page 4 ---
+318
+
+Ns
+|
+
+TEICE TRANS. INF. & SYST., VOL. E80-D, NO. 3 MARCH 1997
+
+AES,          \    if
+
+17
+t                    {    t
+
+“9 aN     csc0-  x       map csc
+NES       |   t          if
+i i       yy         17%
+,      Je:        Vy
+ys }      te         入 了
+SS i        NY 4          Ni 人
+
+'     "
+
+No circuit
+
+{incomplete
+state encoding)
+
+rr1   Complex gates
+
+ 
+
+Fig. 4 State encoding and technology mapping.
+
+be available in the gate library. Assume, for example,
+that the library contains only simple gates with 2 in-
+puts and C-elements. In such case, petrify will au-
+tomatically perform combinational and sequential de-
+composition of the logic, preserving speed-independent
+properties and striving to minimize the logic. The final
+logic net-list for this library and the corresponding Sig-
+nal Transition Graph will be automatically derived by
+the tool (Fig. 4, the right part).
+
+3. Theory Behind Petrify
+
+The theory behind petrify is presented in[11], [12].
+Petrify strives to minimize the number of places, in
+
+order to make the final Petri Net more understandable
+by the designer. It either generates a complete set of
+minimal regions (which are analogous to prime impli-
+cants in Boolean minimization) or further removes re-
+dundant regions (which is similar to generating a prime
+irredundant cover in Boolean minimization).
+
+In the initial TS, all transitions with the same la-
+bel are considered as one event. Petrify solves the
+problem of merging and splitting “equivalent” labels,
+i.e., those labels which model the same event, but must
+be split in order to yield a valid Petri Net. Therefore,
+the synthesis method is not limited to elementary TSs,
+which are quite restricted; we can handle the full class
+of TSs by means of label splitting. In the following sec-
+
+
+--- Page 5 ---
+CORTADELLA et al: PETRIFY:A TOOL FOR MANIPULATING CONCURRENT SPECIFICATIONS AND SYNTHESIS
+
+tions we will briefly and informally review the theory
+behind petrify.
+
+3.1 Basic Models: Petri Nets and Transition Systems
+
+Informally, a TS ([29]) can be represented as an arc-
+labeled directed graph. A simple example of a TS is
+shown in Fig.2 (the left part). A TS is called deter-
+ministic if for each state s and each label a there can be
+at most one state s’ such that s “+ s’. A TS is called
+commutative if whenever two actions can be executed
+from some state in any order, then their execution al-
+ways leads to the same state, regardless of the order. For
+the purpose of synthesis of asynchronous circuits we are
+mainly interested only in deterministic and commutative
+TSs.
+
+A Petri Net is a quadruple N = (P,T,F,mo),
+where P is a finite set of places, T is a finite set of tran-
+sitions, FC (PxT) U (TP) is the flow relation, and
+‘mo is the initial marking. A transition t € T is enabled
+at marking mm, if all its input places are marked. An
+enabled transition t may fire, producing a new mark-
+ing m2 with one less token in each input place and one
+
+more token in each output place (denoted m, 4, M2).
+The right half of Fig.2 presents a PN expressing the
+same behavior as the TS shown in the left half of the
+same figure. Tokens represent the initial marking which
+corresponds to the top left state of the TS.
+
+The set of all markings reachable in N from the
+initial marking mo is called its Reachability Set. The
+graph with vertices corresponding to the markings of a
+PN and with arcs connecting markings reachable in one
+transition is called the Reachability Graph (RG) of the
+PN.
+
+A Signal Transition Graph (STG, [6],[34]) is a
+Petri net with transitions labeled with up and down
+transitions of signals (denoted by z+ and <7 for signal
+x).
+
+A PN is called
+
+e safe if no more than one token can appear in a
+place in any reachable marking,
+
+e free-choice if for each place p with more than one
+output transition each of this transitions has ex-
+actly one input place — place p, i.e., the enabling
+condition of conflicting transitions depends only
+on the marking of a single place.
+
+e place-irredundant if removing any place from the
+PN will change the set of possible sequences of fir-
+ing transitions (i.e., behavior of the net will be dis-
+turbed).
+
+A PN in Fig.2 is safe, free-choice and place-
+irredundant.
+
+319
+
+3.2. Regions and Excitation Regions
+
+Let S, be a subset of the states of a TS, S,CS. If
+
+s € S; and s’ € Sj, then we say that transition s © s
+enters Sy. If s € S; and s’ € Sj, then transition s © s’
+exits S,. Otherwise, transition s % s’ does not cross
+S,. A region is a subset of states with which a// tran-
+sitions labeled with the same event e have exactly the
+same “entry/exit” relation. This relation will become
+the predecessor/successor relation in the Petri net.
+
+Let us consider the TS shown in Fig. 3(a). The set
+of states ro = {s2, 83, 85} is a region, since all transitions
+labeled with a and with 6 enter r2, and all transitions
+labeled with d exit rz. Transitions labeled with c do
+not cross r2. On the other hand, {s2, 53} is not a region
+
+:        oe      d            四        四
+since transition s3 — s4 enters this set, while another
+
+transition also labeled with d, ss 4 $6, does not.
+
+A region r is a pre-region of event e if there is a
+transition labeled with e which exits r. A region r is
+a post-region of event e if there is a transition labeled
+with e which enters r. The set of all pre-regions and
+post-regions of e is denoted with °e and e° respectively.
+
+While regions in a TS are related to places in the
+corresponding PN, an excitation region for event a is a
+maximal set of states in which transition a is enabled.
+Therefore, excitation regions are related to transitions
+of the PN. More formally, a set of states is called a
+generalized excitation region (denoted by GE R(a)) for
+event a if it is a maximal set of states (a set of states
+with a given property is maximal if it is not a subset
+of any other set with this property) such that for every
+state s € GER(a) there is a transition s “+ . Sometimes
+it is more convenient to consider connected subsets of
+GERs. A set of states is called an excitation region (de-
+noted by ER;({a)) if it is a maximal connected set of
+states such that for every state s € ER,;(a) there is a
+transition s . Since any event a can have several sep-
+arated ERs, an index 7 is used to distinguish between
+different connected occurrences of a in the TS. In the
+TS from Fig.3(a) there are two excitation regions for
+event d: ER,(d) = {s3} and ER2(d) = {s5}, while
+GER(d) = {s3, 3s}.
+
+3.3. Deriving PNs Based on the Excitation Closure
+
+Given a set of all minimal regions (a region is called
+minimal if it is not a superset of any other region) let
+us build a PN following four rules:
+
+e For each event e of the TS a transition labeled with
+e is generated in the PN;
+
+e For each minimal region r a place r is generated;
+
+e Place r contains a token in the initial marking iff
+the corresponding region r contains the initial state
+of the TS;
+
+
+--- Page 6 ---
+320
+
+© The flow relation of the PN is as follows: transition
+labeled with e is an output transition for place r
+iff r is a pre-region of event e in the TS and e is an
+input transition of r iff region r is a post-region of
+e.
+
+As shown in [11], if the following two conditions
+hold then a PN derived by the four rules above is bisim-
+ilar to the original TS. Bisimilar [25] means that behav-
+ior of the TS and the PN cannot be distinguished by the
+external observer who can only see the events of these
+two models.
+
+e Excitation closure: For each event e the intersection
+of pre-regions is equal to its generalized excitation
+region.
+
+e Event effectiveness: For each event e there is at least
+one pre-region.
+
+Moreover, one may remove regions still preserving
+behavior of the PN until excitation closure is violated.
+By removing regions from the set of all minimal re-
+gions while still keeping the excitation closure condi-
+tion petrify generates a place-irredundant PN. By fur-
+ther merging of the minimal regions a place-minimal
+net can be generated.
+
+TEICE TRANS. INF. & SYST., VOL. E80-D, NO. 3 MARCH 1997
+
+3.4 Generating Minimal Regions and Label Splitting
+
+The set of minimal pre-regions of an event e is calcu-
+lated by gradually expanding its generalized excitation
+region to obtain sets of states that do not violate the
+“entry-exit” relationship. When the excitation closure
+is not fulfilled, i-e.
+
+() 7 + GER(e)
+
+YE Sa
+
+some events must be split to satisfy this condition.
+
+The strategy to split events is explained by the ex-
+ample shown in Fig. 5 for the pre-regions of event c. Ini-
+tially, GER(c) = {s2, ss} is taken for expansion. Event
+b violates the region conditions, since two transitions
+labeled with 6 exit {s2,s5} and two other transitions
+labeled with 6 are outside {s2,s5}. Next, two possible
+legalizations for event b are considered:
+
+e Two input states for transitions of b, which are not
+yet included into the constructed set of states, s3
+and sg, are added into the set. Now event b ex-
+its set {s2, 83,5, 86}. Since no other violations of
+region conditions are found this set is a region.
+
+e Two output states for transitions of b, {81,87},
+
+GER(c)=(s2,s5}
+b: exit, out
+
+ 
+ 
+ 
+ 
+  
+
+b exit
+add 33,56 x
+{s2,83,s5,s6}
+
+is region
+
+Fig. 5
+PN, (e) reachability graph of the PN.
+
+b no cross
+Ne s1,s7
+{s1,s2,s5,s7}
+
+b: enter, in, out
+d: enter, in, out
+
+|
+
+{sl,s2,s4,s5,s7}
+b: enter, in
+
+|
+
+{s1,s2,s3,s4,s5,s6,s7}
+is region
+
+d no cross
+add s4
+
+b no cross
+add s3,s6
+
+ 
+
+ 
+
+(a) TS, (b) expansion tree for pre-regions of event c, (c) excitation closed TS, (d)
+
+
+--- Page 7 ---
+CORTADELLA et al: PETRIFY:A TOOL FOR MANIPULATING CONCURRENT SPECIFICATIONS AND SYNTHESIS
+
+which are not yet included into the set are added
+to the set in the attempt to make b non-crossing.
+This attempt fails since more violations of the re-
+gion conditions are found and further expansions
+are applied until all branches of the search tree find
+a region.
+
+The example illustrates how all branches will eventually
+be pruned, in the worst case, when covering the whole
+set of states.
+
+Let us call r’ the intersection of the regions found
+in the expansion. We have
+
+r = {81, 82, 83, $4, 85, 86, 87} N {82, 83, $5, 86}
+= {82, 83, 85, 86}
+
+The strategy for label splitting will take all those ex-
+plored sets r such that
+
+{s2,8s}Cr cr’
+
+All three states explored before finding regions are good
+candidates. However, the set {82,55} is the best one by
+the fact that only one event violates the crossing condi-
+tions and it makes the intersection of pre-regions smaller
+(closer to GER). Thus, event 6 is split into two new
+events (b; and bz) for {s2, 85} to become a region. The
+new TS is equivalent to the original (up to renaming
+of the split events). The corresponding PN is shown in
+Fig. 5(d) and its RG in Fig. 5(e). Note that it contains
+one state less than the original TS, due to the implicit
+minimization for equivalent states s4 and s7 (states sq
+and s7 are equivalent since there is only one output
+transition for each of them, labeled with b, and each of
+these transitions enter state s,).
+
+3.5 Internal Representation of the Objects
+
+The proposed method requires a broad exploration of
+sets of states of a TS. Moreover, operations such as in-
+tersection, inclusion and equality among the explored
+sets must be executed often. An efficient representation
+of the TS and its states is thus crucial to cope with the
+complexity of such operations.
+
+Given an appropriate encoding of the states of the
+TS, we have chosen to use Ordered Binary Decision
+Diagrams [4] to represent sets of states (by means of
+characteristic functions) and the TS (by means of the
+
+© marking: pipopspaps
+© region, set of states: p,, pops
+
+@ flow relation (for t):
+(popsPspa) * (G2Isqsqa) «(pi > 41)
+
+ 
+
+Fig. 6
+
+Symbolic representation of Petri net objects in petrify.
+
+321
+
+disjunction of transition relations, one for each label).
+The algorithms to manipulate the sets of states of the
+TS are based on symbolic techniques for verification of
+sequential machines [13].
+
+For deriving a TS from the initial PN petrify per-
+forms a token fiow analysis of the initial STG and pro-
+duces a transition system in symbolic form, using Binary
+Decision Diagrams. The latter represent boolean char-
+acteristic functions of markings, states, sets of states and
+the flow relation as shown in Fig. 6.
+
+4. Theory behind Asynchronous Circuit Synthesis
+4.1 Asynchronous Circuits and Speed-Independence
+
+An asynchronous circuit is an arbitrary interconnection
+of logic gates such that no two gate outputs are con-
+nected together ([27],[36]). Each logic gate is charac-
+terized by a Boolean equation describing the gate output
+as a function of the gate inputs and (if the gate is se-
+quential, rather than combinational) of the gate output.
+
+The behavior of a circuit can be completely char-
+acterized by using a TS with one state for each Boolean
+vector representing the values of the gate outputs and of
+the primary inputs of the circuit (collectively called sig-
+nals). An example of an asynchronous circuit is given
+in Fig. 4.
+
+Roughly speaking, a circuit is defined to be speed-
+independent if its behavior remains correct under any
+changes of gate delays. No hazards are possible in
+speed-independent circuits under any input changes
+(possibly multiple input changes in non-fundamental
+mode) [20], [23].
+
+4.2 Property-Preserving Event Insertion
+
+Event insertion is informally seen as an operation on
+a TS which selects a subset of states, splits each state
+in it into two states and creates, on the basis of these
+new states, an excitation and switching region for a new
+event. Figure 7 shows the chosen insertion scheme, anal-
+ogous to that used by most authors in the area, in the
+three main cases of insertion with respect to the posi-
+tion of the states in the insertion set, denoted ER(x)
+(entrance to, exit from or inside ER(x)).
+
+State signal insertion must also preserve the speed-
+independence of the original specification, that is re-
+
+ 
+
+Fig. 7 Event insertion scheme.
+
+
+--- Page 8 ---
+322
+
+quired for the existence of a hazard-free asynchronous
+circuit implementation.
+
+Let a TS has a set of events & and a set of transi-
+tions T. An event a of the TS is said to be persistent
+in a subset S’ of states of S iff Vs; € S’,b€ E: [8) >
+
+A(s1 4, so) € T| > sz 4. An event is said to be
+persistent if it is persistent in S. For a binary encoded
+TS, determinism, commutativity and output event per-
+sistency guarantee speed-independence of its circuit im-
+plementation. Insertion sets should be chosen in such a
+way that persistency and commutativity of the original
+events are not violated.
+
+The following property of insertion sets, based on
+theory developed in [8], provides a rationale for our
+approach.
+
+Property 4.1: Regions, excitation regions and intersec-
+tions of pre-regions can be used as insertion sets in a
+commutative and deterministic TS.
+
+This property suggests that the good candidates for
+insertion sets should be sought on the basis of regions
+and their intersections. Since any disjoint union of re-
+gions is also a region, this gives an important corollary
+that nice sets of states can be built very efficiently, from
+“bricks” (regions) rather than “sand” (states).
+
+4.3 Selecting Excitation Regions for New Signals
+
+Assume that the set of states S in a TS is partitioned
+into two subsets which are to be encoded by means of
+an additional signal. This new signa! can be added ei-
+ther in order to satisfy the CSC condition, or to break
+up a complex gate into a set of smaller gates. In the lat-
+ter case, a new signal is added to represent the output
+of the intermediate gates added to the circuit and the
+speed-independent implementability of the decomposed
+specification is checked again ([5]).
+
+Let r and 7 = S — r denote the blocks of such a
+partition. In order to implement such an encoding, we
+need to insert appropriate transitions of the new signals
+in the border states between the two subsets.
+
+Petrify considers the so-called exit border (EB) of
+a partition block r, denoted by EB(r), which is infor-
+mally a subset of states of r with transitions exiting r.
+We call EB(r) well-formed if there are no transitions
+leading from states in EB(r) to states in r — EB(r).
+
+IEICE TRANS. INF. & SYST., VOL. E80-D, NO. 3 MARCH 1997
+
+Symmetrically, input borders can be handled. Figure 8
+illustrates the notions of exit and input borders.
+
+Note that we need each new signal x to orderly cy-
+cle through states in which it has value 0, 0*, 1 and 1*.
+We can formalize this requirement with the notion of
+L-partition ((37] used a similar definition).
+
+An I-partition divides a set of all states of a TS
+into four blocks: S°, $1, St and S~. S$°(S1) defines
+the states in which z will have the value 0 (1). St(S'~)
+defines GER(x-+) (GER(x—)). For a consistent encoding
+of x, the only allowed events crossing boundaries of the
+blocks are the following: S° — St 一9 4 S- = 9°,
+S+ — S- and S~ — S* (the latter two would cause a
+persistency violation, though). The problem of finding
+an I-partition is reduced to finding a bipartition S and
+is done in four steps:
+
+1. Find a bipartition of states {b, 5}
+
+2. Calculate EB(b) and EB(6) (similarly for input
+borders)
+
+3. Extend EBs to well-formed EBs by backward clo-
+sure
+
+4. Check that persistency condition is not violated
+
+Three first steps are shown in Fig. 9.
+4.4 Gate-Level Speed-Independence Conditions
+
+Necessary and sufficient conditions for speed-inde-
+pendent implementation using unbounded fanin and
+gates (with unlimited input inversions), bounded fanin
+or gates and C elements were given in [21] (extending
+
+ 
+ 
+   
+ 
+
+Input border
+
+Exit border “一
+C
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 9 From bipartition to I-partition.
+
+
+--- Page 9 ---
+CORTADELLA et al: PETRIFY:A FOOL FOR MANIPULATING CONCURRENT SPECIFICATIONS AND SYNTHESIS
+
+Ry 一|                                         ACT
+
+ 
+
+as J                                                RT 于
+
+ 
+
+ 
+
+ 
+
+ 
+
+AT)                                               RD
+
+  
+
+®
+Fig. 10 The standard-C architecture extended for complex
+gates.
+
+a previous result of [2]). Petrify uses a basic imple-
+mentation architecture, called the standard-C architec-
+ture (Fig. 10). Contrary to the previous tools instead of
+unbounded fanin gates for the first level, petrify can
+search for implementable gates, that is gates which exist
+in the chosen library.
+
+The basic idea of the standard-C implementation
+architecture is that every first-level gate implements an
+up or down transition of the user-specified signal behav-
+ior. In order to ensure speed-independent operation, a
+number of constraints that are collectively called the
+monotonous poly-term cover conditions ([21]) must be
+satisfied.
+
+In the following we will consider partitions of the
+set of excitation regions of a given signal a into joint ex-
+citation regions ER;(a*). The word “joint” here indi-
+cates that a few excitation regions can be joined together
+and implemented with one logic gate in the circuit.
+
+The joint quiescent region QR;(a*) of a given sig-
+nal transition with joint excitation region ER;(a*) is a
+maximal set of states s such that:
+
+e ais stable in s, and
+
+e s is reachable from F'R;(a*) only through states in
+which a is stable, and
+
+e s is not reachable from any other ER;,(a*) such
+that k # j without going through ER;(a*).
+
+Similarly, the backward region BR;(a*) is a maximal
+set of states s such that:
+
+e a is stable in s, and
+
+¢ ER;(a*) is reachable from s only through states in
+which a is stable, and
+
+@ no other ER,(a*) such that k ¥ 7 is reachable from
+s without going through ER,(a*).
+
+Let C;(a*) denote one of the first-level gates
+in the standard-C architecture. C;(a*) is a correct
+monotonous poly-term cover for the joint excitation re-
+gion ER,(a*) if:
+
+323
+
+1. C;(a*) covers (i.e., its Boolean equation evaluates
+to 1) all states of ER;(a*).
+
+2. Cj(a*) covers only states of ER;(a*) UQR;(a*)U
+BR;(a*).
+
+3. If Cj(a*) covers some state s of BR;(a*), then s
+is also covered by some other C;,(a*) such that a}
+and aj are complementary (up and down or down
+and up, respectively) and s € BR;(a*)M QR,(a*).
+
+4. C;(a*) has exactly one up and one down transi-
+tion in any sequence of states within ER,;(a*) U
+QR;(a*) U BR;(a*).
+
+Under these conditions, it is possible to show that the
+outputs of the first-level gates are one-hot encoded, and
+that means that any valid Boolean decomposition of the
+second-level or gates will be speed-independent.
+
+The chosen architecture is general enough to cover
+the case in which a signal in the specification admits
+a combinational implementation, because in that case
+the set and reset network are the complement of each
+other, and the C element with identical inputs can be
+simplified to a wire.
+
+4.5 Strategy for Technology Mapping
+
+The strategy for technology mapping which is im-
+plemented in the procedure for selecting the best I-
+partitions and in the cost function is based on two iter-
+ative steps:
+
+e Combinational decomposition and extraction of
+set and reset functions
+
+e If no valid combinational decomposition can be
+found, then additional state signals are inserted
+preserving speed-independence to increase the don’t
+care set and to simplify the logic.
+
+Special conditions for correct speed-independent
+decomposition must be preserved, since each signal tran-
+sition at the decomposed gate must be acknowledged by
+some other gate in the speed-independent circuit. Con-
+trary to conditions from [5] petrify allows gate shar-
+ing and fit well in our region-based partitioning of the
+states. The simple gate circuit shown in Fig.4 is ob-
+tained from the complex gate circuit by combinational
+decomposition. Note that some of the C-elements were
+eliminated.
+
+5. Conclusions
+
+Petri nets have shown to be an appropriate formalism
+to describe the behavior of systems with concurrency,
+causality and conflicts between events. For this type
+of systems, the method presented in this paper allows
+to transform different models (CSP, CCS, FSMs, PNs)
+
+
+--- Page 10 ---
+324
+
+into a unique formalism for which synthesis, analysis,
+composition and verification tools can be built.
+
+Synthesizing Petri nets from state-based models is
+a task of reverse engineering that abstracts the temporal
+dimension from a flat description of the sequences of
+events produced by the system. The synthesis method
+discovers the actual temporal relations between the
+events. The symbiosis among the notions of TS, region
+and excitation region in the same method has been cru-
+cial to derive efficient algorithms both for manipulating
+concurrent specifications and algorithms for synthesis
+and optimization of asynchronous circuits.
+
+For the future directions we consider extending
+petrify for handling:
+
+e unsafe, general PNs;
+e synthesis of synchronous parallel controllers;
+
+e applications to a hardware/software codesign of re-
+active controllers.
+
+How to get and use Petrify
+
+You can get the tool from the following www address:
+http://www.ac.upce.es/~ visi/petrify/petrify.html.
+
+There is a man page there describing the syntax
+for representing input PNs, STGs and TSs and possible
+options for petrify.
+
+References
+
+E. Badouel, L. Bernardinello, and Ph. Darondeau, “Poly-
+nomial algorithms for the synthesis of bounded nets,” Tech-
+nical Report 2316, INRIA, RENNES Cedex, France, 1994.
+2] P.A. Beerel and T.H-Y. Meng, “Automatic gate-level syn-
+thesis of speed-independent circuits,” Proc. the Interna-
+tional Conference on Computer-Aided Design, Nov. 1992.
+3] L. Bernardinello, G. De Michelis, K. Petruni, and S. Vigna,
+“On synchronic structure of transition systems,” Technical
+report, Universita di Milano, Milano, 1994.
+
+4] R. Bryant, “Symbolic boolean manipulation with or-
+dered binary-decision diagrams,” ACM Computing Sur-
+veys, vol.24, no.3, pp.293-318, Sept. 1992.
+
+5] S. Burns, “General conditions for the decomposition of
+state holding elements,” International Symposium on Ad-
+vanced Research in Asynchronous Circuits and Systems,
+Aizu, Japan, March 1996.
+
+6] T.-A. Chu, “On the models for designing VLSI asyn-
+chronous digital systems,” Integration: the VLSI journal,
+vol.4, pp.99—-113, 1986.
+
+7) T.-A. Chu, “Synthesis of Self-timed VLSI Circuits from
+Graph-theoretic Specifications,” Ph.D. thesis, MIT, June
+1987.
+
+8] J. Cortadella, M. Kishinevsky, A. Kondratyev, L. Lavagno,
+and A. Yakovlev, “Complete state encoding based on the
+theory of regions,” International Symposium on Advanced
+Research in Asynchronous Circuits and Systems, pp.36—47,
+March 1996.
+
+9] J. Cortadella, M. Kishinevsky, A. Kondratyev, L. Lavagno,
+and A. Yakovlev, “Coupling technology mapping, logic
+optimization and state encoding,” Technical report, Uni-
+versitat Politecnica de Catalunya, 1996.
+
+[10] J. Cortadella, M. Kishinevsky, A. Kondratyev, L. Lavagno,
+
+ 
+
+ 
+
+{ul
+
+[12
+
+[13
+
+[14
+
+[is
+
+[16
+
+[17
+
+[18
+
+[19
+
+[20
+
+(21
+
+(22
+
+[23
+
+(24
+
+[25
+
+[26
+
+(27
+
+[28
+
+[29
+
+[30
+
+[31
+
+ 
+
+IEICE TRANS. INF. & SYST., VOL, E80-D, NO. 3 MARCH 1997
+
+and A. Yakovlev, “Methodology and tools for state encod-
+ing in asynchronous circuit synthesis,” Proc. the Design
+Automation Conference, June 1996. to appear.
+
+J. Cortadella, M. Kishinevsky, L. Lavagno, and A.
+Yakovlev, “Synthesizing Petri nets from state-based mod-
+els,” Proc. of ICCAD’95, pp.164-171, Nov. 1995.
+
+J. Cortadella, M. Kishinevsky, L. Lavagno, and A.
+Yakovlev, “Synthesizing Petri nets from state-based mod-
+els,” Technical Report RR 95/09 UPC/DAC, Universitat
+Politecnica de Catalunya, April 1995.
+
+O. Coudert, C. Berthet, and J.C. Madre, “Verification of se-
+quential machines using boolean functional vectors,” in L.
+Claesen, ed., Proc, IFIP Int. Workshop on Applied Formal
+Methods for Correct VLSI Design, pp.111-128, Leuven,
+Belgium, Nov. 1989.
+
+J. Desel and W. Reisig, “The synthesis problem of Petri
+nets,” Technical Report TUM-I9231, Technische Univer-
+sitat Miinchen, Sept. 1992.
+
+D.L. Dill, “Trace Theory for Automatic Hierarchical Ver-
+ification of Speed-Independent Circuits,” The MIT Press,
+Cambridge, Mass., 1988. An ACM Distinguished Disser-
+tation 1988,
+
+D. Drusinsky, “Extended state diagrams and reactive sys-
+tems,” Dr.Dobb’s Journal, pp.72—80, 106-107, Oct. 1994.
+
+A. Ehrenfeucht and G. Rozenberg, “Partial (Set) 2-
+Structures,” Part I, I, Acta Informatica, vol.27, pp.315—-
+368, 1990.
+
+C.A.R. Hoare, “Communicating Sequential Processes,”
+Communications of the ACM, pp.666—677, Aug. 1978.
+
+H. Hulgaard and S.M. Burns, “Bounded delay timing anal-
+ysis of a class of CSP programs with choice,” Proc. In-
+ternational Symposium on Advanced Research in Asyn-
+chronous Circuits and Systems, pp.2—11, Nov. 1994,
+
+M. Kishinevsky, A. Kondratyev, A. Taubin, and V.
+Varshavsky, “Concurrent Hardware: The Theory and Prac-
+tice of Self-Timed Design,” John Wiley and Sons, London,
+1993.
+
+A. Kondratyev, M. Kishinevsky, B. Lin, P. Vanbekbergen,
+and A. Yakovlev, “Basic gate implementation of speed-
+independent circuits,” Proc. the Design Automation Con-
+ference, pp.56—62, June 1994.
+
+R.P. Kurshan, “Analysis of discrete event coordination,”
+Lecture Notes in Computer Science, Springer-Verlag, 1990.
+L. Lavagno and A. Sangiovanni-Vincentelli, “Algorithms
+for synthesis and testing of asynchronous circuits,” Kluwer
+Academic Publishers, 1993.
+
+R. Milner, “A calculus of communication systems,” Lec-
+ture Notes in Computer Science, vol.92. Springer-Verlag,
+1980.
+
+R. Milner, “Communication and Concurrency,” Prentice-
+Hall, 1989.
+
+M. Mukund, “Petri nets and step transition systems,” Int.
+Journal of Foundations of Computer Science, vol.3, no.4,
+pp.443-478, 1992.
+
+D.E. Muller and W.C. Bartky, “A theory of asynchronous
+circuits,” Annals of Computing Laboratory of Harvard
+University, pp.204-243, 1959.
+
+T. Murata, “Petri nets: Properties, analysis and applica-
+tions,” Proc. IEEE, vol.77, no.4, pp.541-580, April 1989.
+
+M. Nielsen, G. Rozenberg, and P.S. Thiagarajan, “Elemen-
+tary transition systems,” Theoretical Computer Science,
+vol.96, pp.3—33, 1992.
+
+S.M. Nowick and D.L. Dill, “Automatic synthesis of
+locally-clocked asynchronous state machines,” Proc. the In-
+ternational Conference on Computer-Aided Design, Nov.
+1991,
+
+C.A. Petri, “Kommunikation mit Automaten,” Ph.D. the-
+
+
+--- Page 11 ---
+CORTADELLA et al: PETRIFY:A TOOL FOR MANIPULATIING CONCURRENT SPECIFICATIONS AND SYNTHESIS
+
+sis, Bonn, Institut fir Instrumentelle Mathematik, 1962.
+(technical report Schriften des [IM Nr. 3).
+
+[32] M. Pezzé, R.N. Taylor, and M. Young, “Graph models
+for reachability analysis of concurrent programs,” ACM
+Transactions on Software Engineering and Methodology,
+vol.4, no.2, pp.171-213, 1995,
+
+[33] T.G. Rokicki, “Representing and Modeling Digital Cir-
+cuits,” Ph.D. thesis, Stanford University, 1993.
+
+[34] L.Y. Rosenblum and A.V. Yakovlev, “Signal graphs:
+From self-timed to timed ones,” International Workshop
+on Timed Petri Nets, Torino, Italy, 1985.
+
+[35] D.C. Tsichritzis and P.A. Bernstein, “Operating Systems,”
+Academic Press, London, 1974.
+
+{36] S.H. Unger, “Asynchronous Sequential Switching Cir-
+cuits,” Wiley Interscience, 1969.
+
+[37] P. Vanbekbergen, B. Lin, G. Goossens, and H. De Man, “A
+generalized state assignment theory for transformations on
+Signal Transition Graphs,” Proc. the International Confer-
+ence on Computer-Aided Design, pp.112—117, Nov. 1992.
+
+Jordi Cortadella   received the M.S.
+and Ph.D. degrees in computer science
+from the Polytechnic University of Cat-
+alonia, Barcelona, Spain in 1985 and
+1987. He is an Associate Professor at
+the Department of Computer Architec-
+ture, Polytechnic University of Catalonia.
+In 1988, he was a Visiting Scholar at the
+University of California, Berkeley. His
+tesearch interests include computer-aided
+design of VLSI systems with special em-
+phasis on synthesis and verification of asynchronous circuits,
+computer arithmetic and parallel architectures. Prof. Cortadella
+has coauthored more than 50 research papers in technical jour-
+nals and conferences.
+
+ 
+
+Michael Kishinevsky    holds his MSc
+and Ph.D. degrees in Computer Science
+from the Electrotechnical University of
+St.Petersburg, Russia. He has been a re-
+searcher at the St.Petersburg Mathemat-
+ical Economics Institute Computer De-
+partment, Russian Academy of Science in
+1979-1982 and 1987-1989. From 1982 to
+1987 he has been with a software company
+in St.Petersburg. From 1988 to 1992 he
+has been a senior researcher at the R&D
+Coop TRASSA. From 1992 to 1994 he worked as a visiting asso-
+ciate professor at the Department of Computer Science, Technical
+University of Denmark. Since the end of 1994 he is a professor
+at the University of Aizu. His present research interests are in the
+field of design of asynchronous and reactive systems and theory
+of concurrency. He coauthored two books in asynchronous de-
+sign and served at the Program Committees of a few conferences
+in this field.
+
+ 
+
+ 
+
+ 
+
+ 
+
+325
+
+Alex Kondratyev    received the M.S
+and Ph.D. degrees in computer science
+from the Electrotechnical University of
+St.Petersburg, Russia in 1983 and 1987,
+tespectively. He is an Associate profes-
+sor of the Hardware Department at the
+University of Aizu. From 1988 to 1993
+he was with the R&D Coop TRASSA,
+St.Petersburg, Russia, where he was a se-
+nior researcher. Previously, he held a po-
+sition of assistant professor in the Elec-
+trotechnical University of St.Petersburg. His research interests in-
+clude several aspects of the computer-aided design with particular
+emphasis on asynchronous design and theory of concurrency. He
+is a coauthor of Concurrent Hardware. The Theory and Practice
+of Self-Timed Design (J. Wiley & Sons, 1994). Dr. Kondratyev
+was a co-chair of Async’96 Symposium and has served as a mem-
+ber of the Program Committees for a few conferences.
+
+Luciano Lavagno   received the Doc-
+tor of Engineering (Dottore in Ingeg-
+neria) degree in Electrical Engineering,
+magna cum laude, from the Politecnico
+di Torino, Italy in 1983. From 1984 to
+1988 he was with CSELT Laboratories
+(Torino, Italy), where he was involved
+in an ESPRIT project that developed a
+complete high-level synthesis system. In
+1988 he joined the Department of Elec-
+trical Engineering and Computer Science
+of the University of California at Berkeley, where he worked on
+logic synthesis and testing of synchronous and asynchronous cir-
+cuits. In 1992 he received his Ph.D. in Electrical Engineering and
+Computer Science from the University of California at Berkeley.
+Dr. Lavagno is the author of a book on asynchronous circuit
+design and has published over 25 journal and conference papers.
+In 1991 he received the Best Paper award at the 28th Design Au-
+tomation Conference in San Francisco, CA. He has served on
+the technical committees of several international conferences in
+his field (namely the Design Automation Conference, the Inter-
+national Conference on Computer Aided Design, the European
+Design Automation Conference). He has also been a consultant
+for various EDA companies, such as Synopsys and Cadence. He
+is currently an Assistant Professor at the Politecnico di Torino,
+Italy and a research scientist at Cadence Berkeley Laboratories.
+His research interests include the synthesis of asynchronous and
+low-power circuits, the concurrent design of mixed hardware and
+software systems, and the formal verification of digital systems.
+
+Alexandre Yakovlev   holds his MSc
+and Ph.D. degrees in Computing Sci-
+ence from Electrotechnical University of
+St.Petersburg, Russia, where he worked in
+the area of asynchronous and concurrent
+systems from 1980. He first visited New-
+castle in 1984/85 for research in VLSI.
+After coming back to Britain in 1990 he
+worked for one year at the Polytechnic
+of Wales (now University of Glamorgan).
+Since 1991 he has been a lecturer at the
+Newcastle University Department of Computing Science, where
+he is now heading the VLSI Design research group. His current
+research interests and publications are in the field of modelling
+and synthesis of asynchronous, concurrent and fault-tolerant sys-
+tems.
+

@@ -1,0 +1,570 @@
+--- Page 1 ---
+On Timing Analysis of Combinational Circuits⋆
+Ramzi Ben Salah, Marius Bozga and Oded Maler
+VERIMAG , 2, av. de Vignate, 38610 Gieres, France
+Ramzi.Salah@imag.fr Marius.Bozga@imag.fr Oded.Maler@imag.fr
+Abstract. In this paper we report some progress in applying timed automata
+technology to large-scale problems. We focus on the problem of ﬁnding maximalstabilization time for combinational circuits whose inputs change only once and
+hence they can be modeled using acyclic timed automata. We develop a “divide-
+and-conquer” methodology based on decomposing the circuit into sub-circuitsand using timed automata analysis tools to build conservative low-complexity
+approximations of the sub-circuits to be used as inputs for the rest of the system.
+Some preliminary results of this methodology are reported.
+1 Introduction
+It is well known that timed automata (TA) [AD94] are well suited for model-
+ing delays in digital circuits [D89,L89,MP95]. Although some applications ofTA technology for solving timing-related problems for such circuits have beenreported [MY96,BMPY97,TKB97,TKY
++98,BMT99,BJMY02], the state- and
+clock-explosion associated with such models, restricted the applicability of TA
+to small circuits. In this work we try to treat larger combinational circuits byusing the old-fashioned recipe of abstraction and approximation. When viewedfrom a purely-functional point of view, combinational circuits realize instanta-neous Boolean functions. However, when gate delays are taken into account, the
+computation of that function is not considered anymore as an atomic action but
+rather as a process where changes in the inputs are gradually propagated to theoutputs. The question of ﬁnding the worst-case propagation delay of the circuit,that is, the maximal time that may elapse between a change in the inputs and thelast change in the outputs, is of extreme practical importance as it determines,for example, the frequency of the clock with which a circuit can operate. Static
+techniques currently practiced in industry are based on ﬁnding the longest (in
+terms of accumulated delays) path from inputs to outputs in the circuit. Whilethese bounds are easy to compute (polynomial in the size of the circuit), they canbe over pessimistic because they abstract from the particular logic of the circuit
+⋆This work was partially supported by a grant from Intel and by the European Com-
+munity Projects IST-2001-35304 AMETIST (Advanced Methods for Timed Systems),http://ametist.cs.utwente.nl
+
+--- Page 2 ---
+which may prevent such longest paths from being exercised.1On the other hand,
+models based on timed automata do express the interaction between logic andtiming and hence can lead to more accurate results. Alas, TA-based techniquesare still very far from being applicable to industrial-size circuits.
+The present paper attempt to ﬁnd a better trade-off between accuracy and
+tractability by using timed automata as an underlying semantic model and by
+applying abstraction techniques to parts of the circuit in order to build for them
+small over-approximating timed automata that can be plugged as inputs to otherparts of the circuit. Our abstraction technique takes advantage of the acyclicnature of the circuits and their corresponding automata, which implies, amongother things, that every variable changes ﬁnitely many times before stabilization
+in every run of the automaton.
+The rest of the paper is organized as follows: in Section 2 we give a formal
+deﬁnition of circuits, their “languages” and the maximal stabilization time prob-lem. In section 3 we explain the modeling of such circuits as timed automata.Section 4 is devoted to our abstraction technique, its properties and the way it isimplemented using the tools IF/Kronos and Aldebaran. Preliminary experimen-tal results are reported in Section 5 followed by a discussion of related work and
+future directions.
+2 Timed Boolean Circuits
+Throughout this paper we restrict ourselves to acyclic circuits.
+Deﬁnition 1 (Boolean Circuits). A Boolean circuit is C=(V,;,F)where V
+is a set of nodes, ;is an irreﬂexive and anti-symmetric binary relation and F
+is a function that assigns to every non-input node va Boolean function Fv
+Herev;v/primemeans that vinﬂuences v/primedirectly. The transitive closure of ;,
+∗;, induces a strict partial order (V,∗;)where the minimal elements are called
+input nodes and are denoted by Vx. The rest of the nodes are called non-input
+nodes and denoted by Vy. A subset VzofVconsists of output nodes, those that
+are observable from the outside. An example appears in Figure 1-(a). The set of
+immediate predecessors of a node is π(v)={v/prime:v/prime;v}and the set of its
+predecessors (backward cone) is π∗(v)={v/prime:v/prime∗;v}.
+By substitution we deﬁne for every node va function Gvdeﬁned on the in-
+puts in its backward cone, for example, Gy3(x1,x2)=f3(x1,f2(x1,x2)).We
+will use X=B|Vx|,Y=B|Vy|andZ=B|Vz|to denote the sets of possible
+1A lot of effort has been invested in the problem of detecting such “false paths”.
+
+--- Page 3 ---
+y1
+y2z2z1[10,30]
+[20,40]
+(a) (b)y1
+y2z
+[10,50]x1
+x2x1
+x2
+Fig. 1. (a) A Boolean circuit; (b) A timed Boolean circuit.
+assignments to input, non-input and output nodes, respectively. The whole cir-
+cuit can be viewed as computing a function G:X→Y. The stable state of the
+circuit associated with an input vector x∈Xisy=G(x).
+This concludes the formalization of Boolean circuits and their functions.
+These functions are instantaneous with no notion of time. The next step is to
+lift them to functions (operators) on signals, that is, on functions that specify theevolution of a value over (continuous) time.
+Deﬁnition 2 (Signals). LetAbe a set and let T=R
++be a time domain. An
+A-valued signal over Tis a partial function α:T→ Awhose domain of
+deﬁnition is an interval [0,r)for some r∈T.
+We use α[t]to denote the value of αatt, andα[t]=⊥to denote the fact that
+ais not deﬁned at t. When Ais ﬁnite, signals are piecewise-constant and make
+discontinuous jumps at certain points in time. This is formalized as follows. Theleft limit of a signal αat time tis deﬁned as α[t
+−] = lim t/prime→tα[t/prime]. For every
+piecewise-constant signal αwe deﬁne:
+–The ordered set of jump points ,J(α)={t:α[t−]/negationslash=α[t]}={t0,t1,...}.
+–The set of maximally-uniform intervals I(α)={I1,I2,...}where Ii=
+[ti−1,ti)forti−1,ti∈J(α).
+Clearly, the value of αis uniform over any subset of a maximally-uniform inter-
+val. We restrict our attention to well-behaving signals i.e. those for which J(α)
+has ﬁnitely-many elements in any ﬁnite interval. We denote the set of A-valued
+signals by S(A).
+When a gate or any other I/O device gets a signal as an input, it transforms
+it into an output signal. This is captured mathematically by what is called atransducer ,o ra signal operator , a function that maps signals to signals. We
+restrict such functions to be causal , that is, the value of the output at time tcan
+
+--- Page 4 ---
+depend only on the value of the input in times [0,t]and not on later values. The
+simplest type of operators are memoryless (instantaneous) operators deﬁned asfollows.
+Deﬁnition 3 (Memoryless Operators). A memoryless signal operator is a func-
+tionf:S(A)→S (B)obtained as a pointwise extension of a function f:A→
+B, that is, β=f(α)ifβ[t]=f(α[t])for every tin the domain of α.
+In reality, since gates are realized by continuous physical processes, it takes
+some time to propagate changes from input to output ports. To deﬁne this phe-nomenon mathematically we need the basic operator with memory for discrete-valued signals, the delay, which takes a signal and “shifts” it in time. One candeﬁne a variety of delay operators differing from each other in complexity and in
+physical faithfulness. The class of models that we consider is called bi-bounded
+inertial delays [BS94] and is characterized by an interval I=[l,u]which gives
+lower and upper bounds on the propagation delay. For the purpose of this pa-per we will use the model introduced in [MP95] but since the choice of thedelay model is orthogonal to the rest of the methodology we will defer the ex-
+act deﬁnition of the operator to Section 3 where it will be deﬁned in terms of
+its corresponding timed automaton and use meanwhile a general semi-formaldeﬁnition.
+Deﬁnition 4 (Delay Operators). A delay operator is a non-deterministic func-
+tion of the form D
+I:A×S(A)→2S(A)where I=[l,u]is a parameter of the
+operator with l>0. A signal βis inΔI(b, α)if
+1. The value of βisbat the initial interval [0,t);
+2. Changes in αare not propagated to βbefore ltime elapses;
+3. Changes in αmust be propagated to βif they persist for utime;
+4. Changes in αthat persist for less then ltime are not propagated at all to β.
+Figure 2 illustrates such an operator which, typically, will have uncountably-
+many output signals for an input signal. All signal operators can be lifted natu-
+rally into operators on sets of signals.
+A timed circuit model is obtained from a Boolean circuit by connecting
+the output of every non-input node to a delay operator which models the delayassociated with the computation of that node (see Figure 1-(b). In other words,a gate with a propagation delay is modeled as a composition of a memoryless
+Boolean operator and a delay operator (see [MP95]).
+Deﬁnition 5 (Timed Boolean Circuits). A timed Boolean circuit is C=(V,;
+,F,I )where (V,;,F)is a Boolean circuit and Iis a function assigning to
+every non-input node va delay interval I
+v=[lv,uv]such that 0<lv≤uv<
+∞.
+
+--- Page 5 ---
+tα
+... ...
+t+2 t+2<t/prime<t+3 t+3
+Fig. 2. An input signal αand few of the elements of D[2,3](0,α).
+The semantics of a timed circuit is given in terms of a non-deterministic
+transducer FC:Y×S(X)→2S(Y)such that β∈FC(y,α)ifαandβsatisfy
+the set of signal inclusions associated naturally with the circuit [MP95] and yis
+the initial state of the non-input part of the circuit.
+The stabilization time problem is motivated by the use of Boolean circuits
+in synchronous sequential machines (the hardware name for automata). At thebeginning of every clock cycle new input values together with the values ofmemory elements (computed in the previous cycle) are fed into the circuit andthe changes are propagated until the circuit stabilizes and the clock falls. The
+“width” of the clock needs to be large enough to cover the longest possible stabi-
+lization time of the circuit over all admissible inputs. In our modeling approachwe will consider primary inputs that change at most once and within a boundedamount of time and hence, due to acyclicity and the ﬁnite upper-bounds associ-ated with the delays, they induce ﬁnitely many changes throughout the circuit.
+Deﬁnition 6 (Ultimately-Constant Signals). A signal αisultimately-constant
+(u.c.) if it has a ﬁnite number of jump points (i.e. there is some time tsuch
+that the signal remains constant after t). The minimal such tforαis called
+its stabilization time and is denoted by θ(α). This deﬁnition extends to sets of
+signals by letting θ(L)=m a x {θ(α):α∈L}.
+The following properties hold for every u.c.signal α:
+1. The signal f(α)is also u.c. for every Boolean function f.
+2. For a delay operator D
+IwithI=[l,u]and for every β∈DI(α),θ(β)≤
+θ(α)+u.
+Consequently, u.c. inputs to acyclic timed circuits produce u.c. outputs. Con-
+stant signals constitute a special class of u.c. signals and we will use αxto
+denote a signal whose value is constantly x.
+We can now deﬁne the problem of maximal stabilization time of a circuit
+with respect to a pair of input vectors xandx/primewhere xis the input presented in
+the preceding cycle, and which determines the initial (stable) state, and x/primeis the
+
+--- Page 6 ---
+value of a new constant signal. We denote by L(C,x,x/prime)the set of Y-signals
+β∈FC(y,αx/prime)when the circuit is initialized with the stable state y=G(x).
+Deﬁnition 7 (Stabilization Time of a Circuit). Given a timed Boolean circuit
+C=(V,;,F,I )and two input vectors x,x/prime∈Xthe stabilization time associ-
+ated with (x,x/prime)isθ(C,x,x/prime)=m a x {θ(β):β∈L(C,x,x/prime)}and the maximal
+stabilization time of the circuit is θ(C)=m a x {θ(C,x,x/prime):x,x/prime∈X}.
+3 Modeling with Timed Automata
+Timed automata are automata augmented with continuous clock variables whose
+values grow uniformly at every state. Clocks can be reset to zero at certain transi-
+tions and tests on their values can be used in conditions for enabling transitions.
+Deﬁnition 8 (Timed Automaton). A timed automaton is A=(Q,C,I,Δ )
+where Qis a ﬁnite set of states, Cis a ﬁnite set of clocks, Iis the staying
+condition (invariant), assigning to every q∈Qa conjunction Iqof inequalities
+of the form c≤u, for some clock cand integer u, andΔis a transition relation
+consisting of elements of the form (q, φ, ρ, q/prime)where qandq/primeare states, ρ⊆C
+andφ(the transition guard) is a conjunction of formulae of the form (c≥l)for
+some clock cand integer l.
+Aclock valuation is a function v:C→R+∪{0}and a conﬁguration of
+the automaton is a pair (q,v)consisting of a discrete state (location) and a clock
+valuation. Every subset ρ⊆Cinduces a reset function Reset ρon valuations
+which resets to zero all the clocks in ρand leaves the other clocks unchanged.
+We use 1to denote the unit vector (1,..., 1)and0for the zero vector. We will
+use the term constraints to refer to both guards and staying conditions. A step
+of the automaton is one of the following:
+–A discrete step: (q,v)δ−→ (q/prime,v/prime), for some transition δ=(q, φ, ρ, q/prime)∈Δ,
+such that vsatisﬁes φandv/prime= Reset ρ(v).
+–A time step: (q,v)t−→ (q,v+t1),t∈R+such that v+t1satisﬁes Iq.
+Arunof the automaton starting from a conﬁguration (q0,v0)is a ﬁnite sequence
+of steps
+ξ:(q0,v0)t1−→ (q1,v1)t2− →···tn−→ (qn,vn).
+We model timed circuits as a composition of timed automata such that each
+automaton may observe the states of other automata and refer to them in its
+transition guards and staying conditions.2The automaton for a Boolean gate of
+2To avoid over-formalization we do not deﬁne “open” interacting automata. Such deﬁnitions
+can be found in [MP95].
+
+--- Page 7 ---
+the form y=f(x1,x2)is just a trivial one-state automaton that has self-looping
+transitions for all tuples (x1,x2,y)that satisfy the equation. In fact, this is not
+really an automaton but an instantaneous logical constraint that must always besatisﬁed. The automaton for the delay operator D
+[l,u](Figure 3) has four states,
+0,0/prime,1,1/prime. The 0and1states are stable, that is, the values of the output of the
+delay is consistent with its input x. When at state 0, if the input changes to 1, the
+automaton moves to an unstable state 0/primeand resets a clock Cto zero. It can stay
+at0/primeas long as C<u and can switch to stable state 1as soon as C≥l. If the
+input changes back to 0before the transition to 1the automaton returns to 0.W e
+call these three types of transitions excite ,stabilize andregret , respectively. Note
+that states 0and0/primeare indistinguishable from the outside and another automaton
+will see a change from 0to1only after the “stabilize” transition.
+x=0/C:= 00
+1
+x=1x=0x=1∧
+C<u
+x=0∧
+C<ux=1∧
+l≤C∧
+C≤ux=0∧C<u
+x=1∧C<ux=1/C:= 0
+x=0∧
+l≤C∧
+C≤u
+1/prime0/prime
+Fig. 3. The timed automaton for a delay element. The xvariable refers to the observable state of
+the input automaton which is 0at{0,0/prime}and 1at{1,1/prime}.
+Composing all the automata, together with the model of their inputs we ob-
+tain a closed automaton as in Deﬁnition 8 whose semantics is identical to thatof the timed circuit [MP95]. To be more precise, an automaton whose semantics
+isL(C,x,x
+/prime)is obtained by letting the initial state be the stable state corre-
+sponding to G(x)and composing it with a static automaton for the input x/prime. The
+obtained automaton is acyclic and all paths converge in ﬁnite time to the onlystable state that corresponds to G(x
+/prime). The maximal stabilization time is hence
+the maximal time that the automaton can stay in any unstable state. Note that
+
+--- Page 8 ---
+in such a state at least one of the components is in a 0/primeor1/primestate and hence its
+staying condition forces it to leave the state.
+We recall some deﬁnitions commonly-used in the veriﬁcation of timed au-
+tomata [HNSY94,Y97,LPY97,BDM+98,A99]. A zone is a set of clock valua-
+tions consisting of points satisfying a conjunction of inequalities of the form
+ci−cj≥dorci≥d.Asymbolic state is a pair (q,Z)where qis a discrete state
+andZis a zone. It denotes the set of conﬁgurations {(q,z):z∈Z}. Symbolic
+states are closed under the following operations:
+–Thetime successor of(q,Z)is the set of conﬁgurations which are reachable
+from (q,Z)by letting time progress without violating the staying condition
+ofq:
+Postt(q,Z)={(q,z+r1):z∈Z,r≥0,z+r1∈Iq}.
+We say that (q,Z)istime-closed if(q,Z)=Postt(q,Z).
+–Theδ-transition successor of(q,Z)is the set of conﬁgurations reachable
+from (q,Z)by taking the transition δ=(q, φ, ρ, q/prime)∈Δ:
+Postδ(q,Z)={(q/prime,Reset ρ(z)) :z∈Z∩φ}.
+–Theδ-successor of a time-closed symbolic state (q,Z)is the set of conﬁgu-
+rations reachable by a δ-transition followed by passage of time:
+Succδ(q,Z)=Postt(Postδ(q,Z)).
+The forward reachability algorithm for TA starts with an initial zone and gener-
+ates all successors until termination, while doing so it generates the reachability
+graph (also known as the simulation graph).
+Deﬁnition 9 (Reachability Graph). The reachability graph associated with a
+timed automaton starting from a state sis a directed graph S=(N,→)such
+thatNis the smallest set of symbolic states containing Postt(s,{0})and closed
+under Succδ. The edges are all pairs of symbolic states related by Succδ.
+The fundamental property of the reachability graph is that it admits a path from
+(q,Z)to(q/prime,Z/prime)if and only if for every v/prime∈Z/primethere exists v∈Zand a run of
+the automaton from (q,v)to(q/prime,v/prime). Hence the union of all reachable symbolic
+states gives exactly the reachable conﬁgurations.
+To compute the maximal stabilization time we add an auxiliary clock T
+which is never reset to zero and hence in every reachable conﬁguration its value
+represents the total time elapsed since the beginning of the run. The maximal
+value of Tover all reachable symbolic states (q,Z)withqunstable is the max-
+imal stabilization time (note that due to acyclicity the value of Tis bounded in
+all unstable states). Hence, the problem of maximal stabilization time can, inprinciple, be solved using standard TA veriﬁcation tools.
+
+--- Page 9 ---
+4 The Abstraction Technique
+Given the complexity of TA veriﬁcation we move to an abstraction methodology
+based on the following simple idea. We decompose the circuit into sub-circuits
+small enough to be handled completely by TA veriﬁcation tools. We take the
+automaton Awhich corresponds to such a sub-circuit and use its reachability
+graph to construct an automaton ˆAhaving two important properties:
+1. The set L(ˆA)of signals that it generates is a reasonable over-approximation
+of the projection of L(A)on the output variables of the circuit.
+2. It is much smaller than Ain terms of states and clocks.
+Hence if we replace AbyˆAas a model of the sub-circuit we are guaranteed
+to over-approximate the semantics of the circuit and hence to over-approximate
+the stabilization time.
+/C2:= 0C1∈[l1,u1] C2∈[l2,u2] T∈[l1,u1] T∈[l1+l2,u1+u2]
+(a) (b)
+Fig. 4. Projection on the absolute time introduces spurious runs.
+To better understand the technique it is worth looking at the reachability
+graph from a different angle. In timed automata, as in any other automata aug-mented with auxiliary variables, the transition graph is misleading because adiscrete state stands for many possible clock valuation which may differ in the
+constraints they satisfy and hence in the behaviors that can be generated from
+them. It might be the case that a state qwill never be reached with a clock val-
+uation satisfying some transition guard and hence the corresponding transitionwill never be taken. By performing the reachability algorithm for Astarting
+from an initial state we obtain a graph which represents the “feasible part” of
+A, excluding behaviors that violate timing constraints. Figure 5-(a) shows the
+reachability graph for the circuit of Figure 1-(b) where the inputs change from(0,1)to(1,0). In fact the reachability graph can serve as a skeleton of another
+timed automaton A
+/primewhose semantics in terms of runs is equivalent to that of A.
+To see that, one just has to associate with each symbolic state (q,Z)the staying
+condition Zand label each transition (q,Z)δ−→ (q/prime,Z/prime)by the guard and reset
+ofδ. The resulting automaton A/primediffers from Ain two aspects: certain states of
+Aare split into several copies according to clock values, and all transitions that
+are not possible in Adue to timing constraints do not appear in A/primeat all.
+
+--- Page 10 ---
+Now if we relax some timing constraints in A/primewe may introduce spuri-
+ous behaviors that violate these constraints, however we will notadd any new
+qualitative behavior (sequence of events) that was not possible in Abecause
+such behaviors have already been eliminated while computing the reachabilitygraph. The most straightforward way to relax timing constraints is to project
+the constraints on a subset of the clocks and discard the rest. In particular if we
+throw away all clocks except Twhich measures the absolute time, the relaxed
+guard for any transition will be of the form T∈[t
+1,t2]. Clearly, a transition
+can be taken in the new automaton iff there is a run of the original automatonin which the corresponding transition could be taken at some time t∈[t
+1,t2].
+However, this abstraction can add additional runs which are impossible in the
+original automaton as the following example shows. Consider the automaton ofFigure 4-(a) where the ﬁrst transition could take place in [l
+1,u1]while the sec-
+ond can take place between l2andu2after the occurrence of the ﬁrst. Applying
+the above procedure we obtain the automaton of Figure 4-(b) where the secondtransition could be taken anywhere in [l
+1+l2,u1+u2]regardless of the time of
+the ﬁrst.
+The next step is to hide transitions which are not observable from the out-
+side, i.e. all transitions of non-output variable and all non-visible transitions(“excite” and “regret”) of the output variables y
+2andz. The one-clock automa-
+ton thus obtained for our example appears in Figure 5-(b). We then apply a min-
+imization algorithm which merges states that are indistinguishable with respect
+to the remaining visible transitions. More formally we consider the congruencerelation ∼on the nodes of the labeled reachability graph deﬁned as the largest
+relation satisfying:
+q
+1∼q2iff∀δ, I q 1τ∗·(δ,I)
+−→q/prime
+1⇒(∃q/prime
+2s.t.q2τ∗·(δ,I)
+−→q/prime
+2∧q/prime
+1∼q/prime
+2).(1)
+Here (δ, I)stands for a transition-interval pair and τ∗to an arbitrary sequence of
+unobservable transition. This relation is the “safety bisimulation” of [BFG+91].
+The minimized automaton, whose states are congruence classes of ∼, can be
+seen in Figure 6-(a).
+Relation (1) looks at transition labels in a purely-syntactic manner, that is,
+the label −y2[20,30]in Figure 6-(a) is considered distinct from −y2[20,40]and
+hence the transitions are not merged. To obtain a more aggressive abstractionwe deﬁne a weaker equivalence ∼
+/primethat ignores differences in intervals:
+q1∼/primeq2iff∀δ, I q 1τ∗·(δ,I)
+−→q/prime
+1⇒(∃q/prime
+2,I/primes.t.q2τ∗·(δ,I/prime)
+−→q/prime
+2∧q/prime
+1∼/primeq/prime
+2).(2)
+The states of the minimized automaton are equivalence classes of ∼/primeand the
+transitions between these classes are labeled by (δ,¯I)where ¯Iis the join (con-
+vex hull) of all the intervals Iisuch that there are transition labeled by (δ, Ii)
+
+--- Page 11 ---
+between elements of the corresponding classes (see Figure 7).3The result of
+minimization with respect to ∼/primeappears in Figure 6-(b) and one can see that it
+gives a succinct over-approximation of the behavior of y2andz.
+We have implemented the above mentioned technique. Our tool chain starts
+with a circuit description as Boolean equations with delays and generates fromit automatically a network of interacting timed automata written in the IF for-mat [BGM02]. After generating the reachability graph with the interval labelswe apply the Aldebaran tool set ([BFKM97]), slightly modiﬁed to implementminimization with respect to ∼
+/primeto obtain the abstract model.
+5 Experimental Results
+We have conducted some preliminary experiments with our approach on some
+sample circuits that we have constructed. First, to demonstrate the semantic ad-vantage of timed automata we analyzed the circuit of Figure 8 which has a falsepath. We use delays of [83,85]for all gates (except the inverters that have zero
+delay) and compare our results with static timing analysis which gives stabiliza-
+tion time of 7×85 = 594 . Since our method works for the moment for one pair
+of input vectors, we repeat the analysis for all 12pairs and obtain the results
+of Table 1. As one can see, the TA-based analysis discovers that the maximalstabilization time is only 6×85 = 510 .
+x 00 01 10 11
+x/prime100111 110010 001101 011000
+stab-time 510340340 170510425 510 0255 255 0510
+Table 1. Maximal stabilization time for all input pairs for the circuit of Figure 8.
+The major set of experiments was conducted on circuits consisting of a se-
+quential concatenation of an increasing number of copies of the circuit of Fig-
+ure 1-(a) (the y3andy4of stage nare the x1andx2of stage n+1). We assume
+that input x1may rise anywhere in [10,35]andx2in[15,63]. In general, the
+complexity of the reachability graph is sensitive to the choice of delay bounds:for an interval [l,u], the larger is the ratio (u−l)/l, more “scenarios” are pos-
+sible and transitions at “deep” gates can precede transitions in gates closer to
+the input.
+4Table 2 shows the performance of our technique (computation time
+and size of the reachability graph) as a function of the number of stages for three
+3Another choice might be to join only intervals that have a non-empty intersection.
+4In fact, if we assume no lower-bound on the delay (the “up-bounded” model of [BS94]), events
+can happen in any order.
+
+--- Page 12 ---
+10010
+00010 -x1
+01010 +x2
+00010exc y1
+01010exc y2
+01010exc y1
+01010exc y1
+01010time
+time
+01000 -y2
+01110 +y1
+time
+01100 +y1
+01100time
+time-y2
+01110exc z
+01110time
+01100-y2
+time
+01111+z
+01100-y2
+time
+01101-y2
+01101exc z
+01101time
+time
+01100-z
+01100time
+time01100reg z
+01100time
+ timetime01100reg z
+timeexc y2+x210
+10
+10 10
+10 10
+10
+10
+00-y2 :[20,30]
+10
+00
+00
+00-y2 :[20,30]
+10
+10
+00-y2 :[20,30]
+11+z :[20,40]
+00-y2 :[20,40]
+01-y2 :[20,40]
+01
+01
+00-z :[30,90]
+00
+0000
+0000
+(a) (b)
+Fig. 5. (a) The reachability graph for the circuit of Figure 1-(b). The transition labels exc z ,reg
+z,+zand-zcorrespond, respectively, to excitation, regret, rising and falling of the variable z. (b)
+The corresponding one-clock automaton after hiding internal transitions. The label +z[20,30]
+means that zmay change from 0to1anytime inside the interval [20,30].
+
+--- Page 13 ---
+10
+00-y2 :[20,30] -y2 :[20,40]11+z :[20,40]
+01-y2 :[20,40]
+-z :[30,90]10
+00-y2 :[20,40]11+z :[20,40]
+01-y2 :[20,40]
+-z :[30,90]
+(a) (b)
+Fig. 6. (a) The results of applying standard minimization. (b) The result of minimization with
+interval fusion.
+[1,2]
+[1,7][4,7]
+[3,6]
+[3,5]
+Fig. 7. Minimization by joining intervals.
+Fig. 8. A circuit with a false path.
+
+--- Page 14 ---
+choices of gate delay intervals [1,2],[10,12]and[100,102]. All the experiments
+were stopped upon memory overﬂow (1GB). For the [100,102] interval we were
+able to analyze up to 22stages ( 88gates).
+[l,u] [1,2] [10,12] [100,102]
+no.states mintime states mintime states min time
+1 71 40:01 65 30:01 65 3 0:01
+2934 120:02 270 70:02 270 7 0:02
+3 –– – 2690 110:03 2690 11 0:04
+4 5397 230:05 4080 16 0:06
+5 217951 1449:44 21498 30 0:12
+6 –– –50543 39 0:30
+7 73502 48 1:01
+8 95619 57 1:54
+9 117736 66 3:12
+10 139853 75 5:08
+11 161970 84 7:32
+12 184087 93 10:05
+13 206204 102 14:42
+14 228321 111 20:39
+15 250438 120 28:15
+16 272555 129 36:46
+17 117736 138 49:36
+18 316789 1471:04:04
+19 338906 1561:21:48
+20 361023 1651:42:59
+21 383140 1741:58:56
+22 405257 1832:30:31
+23 –– –
+Table 2. Testing our technique with varying delay bounds. The ‘states’ column indicates the
+number of symbolic states in the model of stage nbefore the last minimization and the ‘min’
+columns indicate the number of states after minimization. The ‘time’ column indicates the time
+for computing the abstraction of all stages up to n−1and the reachability graph for stage n.
+As the results show, currently the analysis of circuits with few dozens of
+gates for one pair of input vectors is feasible using our technique. This is a sig-
+niﬁcant improvement for TA technology but still a small step toward industrial-
+size circuits. The current bottleneck is the memory consumption while generat-ing the reachability graph and we believe the situation can be improved signiﬁ-cantly if we modify the algorithm to take advantage of the acyclic nature of theautomata.
+
+--- Page 15 ---
+6 Discussion
+There have been numerous publications on abstraction in general and abstrac-
+tion of timed systems in particular, e.g. [AIKY95,WD94,B96,PCKP00], somebased on relaxing the timing constraints and reﬁning them successively if the ab-
+stract system cannot be veriﬁed. In [TAKB96] an assume-guarantee framework
+is deﬁned for timed automata, which is used later to verify a multi-stage asyn-chronous circuit [TB97] by using small abstractions for each stage. These ab-stractions are generated manually. The closest work to ours is [ZMM03] whichuses timed Petri nets for describing circuits and their desired properties. To ab-stract a circuit they apply “safe transformations” that consist of hiding of inter-
+nal actions and clocks, and possibly over-approximating the set of behaviors.
+This work does is not specialized to acyclic circuits and the formal properties ofthe abstraction (deﬁned in terms of trace theory ) seem to be more complicated.
+Other attempts to solve the maximal stabilization time using TA are reported in[TKB97,TKY
++98].
+Due to space limitation we do not discuss here possible variation of the
+techniques such as different abstraction styles, nor other important ingredientsof the methodology such as the partitioning strategy. The adaptation of the tech-nique to cyclic circuits and to open systems in general is a very challenging goalwhose achievement can have a big impact on the design of timed systems.Acknowledgment : Many colleagues have contributed throughout the years to
+the work described in this paper. In particular, Sergio Yovine and Stavros Tri-
+pakis helped us a lot in understanding various aspects of the veriﬁcation of timedautomata. They also participated in previous efforts to apply it to circuit analy-sis. The development of the abstraction methodology was carried out at certainpoints in time by Nishant Sinha, Fadhel Graiet, Olfa Ben Sik Ali and Bara Diop.
+Comments and criticism made by Avi Efrati, Ken Stevens and anonymous ref-
+erees improved the quality of the paper.
+References
+[A99] R. Alur, Timed Automata, Proc. CAV’99 LNCS 1633, 8-22, Springer, 1999.
+[AD94] R. Alur and D.L. Dill, A Theory of Timed Automata, Theoretical Computer Science
+126, 183–235, 1994.
+[AIKY95] R. Alur, A. Itai, R.P. Kurshan and M. Yanakakis, Timing Veriﬁcation by Successive
+Approximation, Information and Computation 118, 142-157, 1995.
+[B96] F. Balarin, Approximate Reachability Analysis of Timed Automata, Proc. RTSS’96 ,
+52-61, IEEE, 1996.
+[BGM02] M. Bozga, S. Graf and L. Mounier, IF-2.0: A Validation Environment for Component-
+Based Real-Time Systems, In Proc. of CAV’02 , LNCS 2404, Springer, 2002.
+[D89] D. Dill, Timing Assumptions and Veriﬁcation of Finite-State Concurrent Systems, in
+Automatic Veriﬁcation Methods for Finite State Systems , LNCS 407, Springer, 1989.
+
+--- Page 16 ---
+[BFKM97] M. Bozga, J.-C. Fernandez, A. Kerbrat and L. Mounier, Protocol Veriﬁcation with
+the Aldebaran Toolset, Software Tools for Technology Transfer 1, 166-183, 1997.
+[BDM+98] M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine, Kronos: a
+Model-Checking Tool for Real-Time Systems, Proc. CAV’98 , LNCS 1427, Springer,
+1998.
+[BJMY02] M. Bozga, H. Jianmin, O. Maler and S. Yovine, Veriﬁcation of Asynchronous Cir-
+cuits using Timed Automata, ENTCS 65, 2002.
+[BFG+91] A. Bouajjani, and J.-C. Fernandez, S. Graf, C. Rodriguez and J. Sifakis, Safety for
+Branching Time Semantics, Proc. ICALP’91 , LNCS 510, Springer, 1991.
+[BMPY97] M. Bozga, O. Maler, A. Pnueli, S. Yovine, Some Progress in the Symbolic Veriﬁca-
+tion of Timed Automata, in Proc. CAV’97 , 179-190, LNCS 1254, Springer, 1997.
+[BMT99] M. Bozga, O. Maler and S. Tripakis, Efﬁcient Veriﬁcation of Timed Automata using
+Dense and Discrete Time Semantics, in Proc. CHARME’99 , 125-141, LNCS 1703,Springer, 1999.
+[BS94] J.A. Brzozowski and C-J.H. Seger, Asynchronous Circuits , Springer, 1994.
+[HNSY94] T. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine, Symbolic Model-checking for
+Real-time Systems, Information and Computation 111, 193–244, 1994.
+[L89] H.R. Lewis, Finite-state Analysis of Asynchronous Circuits with Bounded Temporal
+Uncertainty, TR15-89, Harvard University, 1989.
+[LPY97] K.G. Larsen, P. Pettersson and W. Yi, UPPAAL in a Nutshell, Software Tools for
+Technology Transfer 1/2, 1997.
+[MP95] O. Maler and A. Pnueli, Timing Analysis of Asynchronous Circuits using Timed Au-
+tomata, in Proc. CHARME’95 , LNCS 987, 189-205, Springer, 1995.
+[MY96] O. Maler and S. Yovine, Hardware Timing Veriﬁcation using KRONOS, In Proc. 7th
+Israeli Conference on Computer Systems and Software Engineering , 1996.
+[PCKP00] M.A. Pena, J. Cortadella, A. Kondratyev and E. Pastor, Formal Veriﬁcation of Safety
+Properties in Timed Circuits, Proc. Async’00 , 2-11, IEEE Press, 2000.
+[TAKB96] S. Tasiran R. Alur, R.P. Kurshan and R. Brayton, Verifying Abstractions of Timed
+Systems, in Proc. CONCUR’96 , 546-562, Springer, 1996.
+[TB97] S. Tasiran and R.K. Brayton, STARI: A Case Study in Compositional and Hierarchical
+Timing Veriﬁcation, in Proc. CAV’97 , 191-201, LNCS 1254, Springer, 1997.
+[TKB97] S. Tasiran, Y . Kukimoto and R.K. Brayton, Computing Delay with Coupling using
+Timed Automata, Proc. TAU’97 , 1997.
+[TKY
++98] S. Tasiran, S. P. Khatri, S. Yovine, R.K. Brayton and A. Sangiovanni-Vincentelli, A
+Timed Automaton-Based Method for Accurate Computation of Circuit Delay in the
+Presence of Cross-Talk, FMCAD’98 , 1998.
+[WD94] H. Wong-Toi and D.L. Dill, Approximations for Verifying Timing Properties, in Theo-
+ries and Experiences for Real-Time System Development , World Scientiﬁc Publishing,
+1994.
+[Y97] S. Yovine, Kronos: A veriﬁcation tool for real-time systems, International Journal of
+Software Tools for Technology Transfer 1, 1997.
+[ZMM03] H. Zheng, E. Mercer and C. Myers, Modular Veriﬁcation of Timed Circuits using
+Automatic Abstraction, IEEE Trans. on CAD , to appear, 2003.

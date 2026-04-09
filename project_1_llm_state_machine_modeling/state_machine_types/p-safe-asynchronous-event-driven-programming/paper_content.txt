@@ -1,0 +1,1373 @@
+--- Page 1 ---
+P: Safe Asynchronous Event-Driven Programming
+Ankush Desai Vivek Gupta
+Ethan Jackson Shaz Qadeer
+Sriram Rajamani
+MicrosoftDamien Zufferey
+IST Austria
+Abstract
+We describe the design and implementation of P, a domain-speciﬁc
+language to write asynchronous event driven code. Pallows the
+programmer to specify the system as a collection of interacting
+state machines, which communicate with each other using events.
+Puniﬁes modeling and programming into one activity for the
+programmer. Not only can a Pprogram be compiled into executable
+code, but it can also be tested using model checking techniques. P
+allows the programmer to specify the environment, used to “close”
+the system during testing, as nondeterministic ghost machines.
+Ghost machines are erased during compilation to executable code;
+a type system ensures that the erasure is semantics preserving.
+ThePlanguage is designed so that a Pprogram can be checked
+for responsiveness—the ability to handle every event in a timely
+manner. By default, a machine needs to handle every event that
+arrives in every state. But handling every event in every state is im-
+practical. The language provides a notion of deferred events where
+the programmer can annotate when she wants to delay processing
+an event. The default safety checker looks for presence of unhan-
+dled events. The language also provides default liveness checks that
+an event cannot be potentially deferred forever.
+Pwas used to implement and verify the core of the USB device
+driver stack that ships with Microsoft Windows 8. The resulting
+driver is more reliable and performs better than its prior incarnation
+(which did not use P); we have more conﬁdence in the robustness of
+its design due to the language abstractions and veriﬁcation provided
+byP.
+Categories and Subject Descriptors D.2.4 [Software Engineer-
+ing]: Software/Program Veriﬁcation– Model checking; D.2.5
+[Software Engineering]: Testing and Debugging; D.3.2 [Pro-
+gramming Languages]: Language Classiﬁcations– Specialized
+application languages, Concurrent, distributed, and parallel lan-
+guages; D.3.3 [Programming Languages]: Language Constructs
+and Features– Concurrent programming structures, Control struc-
+tures
+Keywords domain-speciﬁc language; device driver; event-driven
+programming; state machine; veriﬁcation; systematic testing
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full citation
+on the ﬁrst page. To copy otherwise, to republish, to post on servers or to redistribute
+to lists, requires prior speciﬁc permission and/or a fee.
+PLDI’13, June 16–19, 2013, Seattle, WA, USA.
+Copyright c2013 ACM 978-1-4503-2014-6/13/06. . . $15.001. Introduction
+Asynchronous systems code that is both performant and correct is
+hard to write. Engineers typically design asynchronous code us-
+ing state machine notations, use modeling and veriﬁcation tools to
+make sure that they have covered corner cases, and then implement
+the design in a language like C. They use a variety of performance
+tricks, as a result of which the structure of the state machines is
+lost in myriad of details. Clean state machine diagrams that were
+initially written down become out-of-date with the actual code as it
+evolves, and the resulting system becomes hard to understand and
+maintain. During the development of Windows 8, the USB team
+took a bold step and decided to unify modeling and programming.
+Various components of the USB driver stack are now speciﬁed as
+state machines and asynchronous driver code is generated from
+these state machines. We are able to use state exploration tech-
+niques directly on the state machines to ﬁnd and ﬁx design bugs.
+Since the executable code was generated from the source, we could
+make changes at the level of state machines and perform both ver-
+iﬁcation and compilation from one description. This methodology
+is used to design, validate and generate code for the USB stack that
+ships with Windows 8. The resulting driver stack is not only more
+reliable, but also more performant.
+In this paper, we formalize and present the salient aspects of
+this methodology as a domain-speciﬁc language P. Though Phas a
+visual programming interface, we represent Pas a textual language
+with a simple core calculus, so that we can give a formal treatment
+of the language, compiler and veriﬁcation algorithms. A Pprogram
+is a collection of state machines communicating via events. Each
+state machine has a collection of states, local variables, and actions.
+The states and actions are annotated with code statements to read
+and update local variables, send events to other state machines,
+raise events locally, or call external C functions. The external C
+functions are used to write parts of the code that have do with
+data transfer. A machine responds to received events by executing
+transitions and actions which in turn causes the aforementioned
+code fragments to execute. For programming convenience, call
+transitions are used to factor out common code that needs to be
+reused (similar to nested modes in state charts [11]).
+Components in an operating system are required to be respon-
+sive. Consequently Pprograms are required to handle every mes-
+sage that can possibly arrive in every state. Our notion of respon-
+siveness is weaker than synchronous languages like Esterel [4]
+(which require input events to be handled synchronously during
+every clock tick, and are hence too strong to be implemented in
+asynchronous software), but stronger than purely asynchronous
+languages like Rhapsody [12] (where asynchronous events can be
+queued arbitrarily long before being handled). Thus, our notion
+of responsiveness lies in an interesting design point between syn-
+chrony and asynchrony. In practice, handling every event at every
+321
+
+--- Page 2 ---
+state would lead to combinatorial explosion in the number of con-
+trol states, and is hence impractical. The language provides a notion
+of deferred events to handle such situations and allow a program-
+mer to explicitly specify that it is acceptable to delay processing of
+certain events in certain states.
+Reactive systems, such as device drivers, typically interact with
+their environment, both synchonously via function calls and asyn-
+chronously via events. The reliability of the system depends crit-
+ically on the correct handling of all interactions via stateful pro-
+tocols. To allow reasoning about such interactions, we allow pro-
+grammers to model the environment of a Pprogram using ghost
+machines and variables. These ghost elements are used only during
+modeling and veriﬁcation and elided during compilation. The type
+system of Pensures that the ghost machines can be erased dur-
+ing compilation without changing the semantics of the program. It
+is worth noting that both the real and ghost parts of a Pprogram
+are based on the computational model of communicating state ma-
+chines. This aspect of the Planguage effectively blurs the distinc-
+tion between modeling and programming and makes the speciﬁca-
+tion capabilities in the language more accessible to programmers.
+APprogram is validated via systematic testing [9, 17] of its in-
+herent nondeterminism. Systematic testing is accomplished by in-
+terpreting the operational semantics of a Pprogram (closed using
+ghost machines) in the explicit-state model checker Zing [2]. All
+aspects of the operational semantics of the program are interpreted
+including the code statements labeling the states and actions of a
+Pmachine. The model checker takes care of systematically enu-
+merating all implicit scheduling and explicit modeling choices in
+the program. The number of states and executions of a Pprogram
+is unbounded in general (in fact, reachability analysis of Ppro-
+grams is undecidable). Therefore, in practice, the enumeration is
+controlled by bounding techniques.
+The simplest approach to bounding the exploration of nonde-
+terministic transition systems is depth-bounding [19]. We have im-
+plemented this approach and found it useful for discovering errors
+witnessed by short executions. However, the complexity of depth-
+bounded search increases exponentially with execution depth, and
+consequently does not scale for systematic testing of large Ppro-
+grams, in which errors may be lurking in long executions. We use
+delay-bounded scheduling [6] to overcome this problem. A delay-
+ing scheduler is a deterministic scheduler with a “delay” opera-
+tion, whose invocation causes the scheduler to change its default
+scheduling strategy. Given a delay budget d, a delaying scheduler
+naturally deﬁnes a set of schedules obtained by nondeterministi-
+cally invoking the “delay” operation at most dtimes; the number
+of generated schedules (under the assumption that scheduling is the
+only source of nondeterminism) is independent of execution length
+and exponential in d; thus arbitrarily long executions can be gen-
+erated even with a delay bound of 0. We expect most bugs that
+occur in practice to be found using low values of the delay bound.
+We have developed a new delaying scheduler for Pprograms; our
+scheduler prioritizes schedules that follow the causal sequence of
+events in the program. We provide empirical evidence to demon-
+strate that our scheduler indeed ﬁnds common errors with a small
+delay bound.
+In summary, our contributions are the following:
+We design a DSL Pto program asynchronous interacting state
+machines at a higher level of abstraction than detailed event
+handlers that lose the state machine structure.
+We present formal operational semantics and a compiler and
+runtime that enables Pprograms to run as KMDF (Kernel Mode
+Driver Framework) device drivers.
+We show how to validate Pprograms using delay-bounded
+scheduling and provide a novel delaying scheduler that, bydefault, attempts to schedule events according to their causal
+order.
+We report on the use of Pin a production environment; our case
+study is the USB stack in Windows 8.
+2. Overview
+Init
+Deferred:
+Action:
+Timer =new Timer (Elevator =this);
+Door =new Door (Elevator =this);
+raise (unit)start
+Closed
+Deferred:
+Action: ( CloseDoor ,Ignore )
+send (Door ,SendCmdToReset )
+Opening
+Deferred: CloseDoor
+Action: ( OpenDoor ,Ignore )
+send (Door ,SendCmdToOpen )
+Opened
+Deferred: CloseDoor
+Action:
+send (Door ,SendCmdToReset );
+send (Timer ,StartTimer )OkToClose
+Deferred: OpenDoor
+Action:
+send (Timer ,StartTimer )Closing
+Deferred: CloseDoor
+Action:
+send (Door ,SendCmdToClose )StoppingDoor
+Deferred: CloseDoor
+Action:
+(OpenDoor ,Ignore ),
+(ObjectDetected ,Ignore ),
+(DoorClosed ,Ignore )
+send (Door ,SendCmdToStop )
+StoppingTimer
+Deferred: OpenDoor ,
+ObjectDetected ,
+CloseDoorAction:
+send (Timer ,StopTimer )WaitingForTimer
+Deferred: OpenDoor ,
+ObjectDetected ,
+CloseDoorAction:
+skipReturnState
+Deferred:
+Action:
+raise (StopTimerReturned )unit
+OpenDoor
+DoorOpened
+TimerFiredStopTimerReturnedStopTimerReturned
+TimerFiredOpenDoor
+DoorClosed
+ObjectDetectedDoorOpenedDoorClosed
+DoorStopped
+OperationSuccess
+OperationFailureTimerFiredOpenDoorCloseDoor
+Figure 1: Elevator example
+Pis a domain-speciﬁc language for writing asynchronous event-
+driven programs. Protocols governing the interaction among con-
+currently executing components are essential for safe execution of
+such programs. The Planguage is designed to clearly explicate
+these control protocols; to process data and perform other func-
+tions irrelevant to control ﬂow, Pmachines have the capability to
+call external functions written in C. We call those functions foreign
+functions.
+APprogram is a collection of machines. Machines commu-
+nicate with each other asynchronously through events. Events are
+queued, but machines are required to handle them in a responsive
+manner (deﬁned precisely later)—failure to handle events is de-
+tected by automatic veriﬁcation.
+We illustrate the features of Pusing the example of an elevator,
+together with a model of its environment. The elevator machine
+is shown in Figure 1 and the environment machines in Figure 2.
+The environment is composed of ghost machines which are used
+only during veriﬁcation, and elided during compilation and actual
+execution. Machines that are not ghost are called real machines.
+We use the term machine in situations where it is not necessary to
+distinguish between real and ghost machines.
+Machines communicate with each other using events. An event
+can be sent from one machine to another and or raised within a
+machine. Each machine is composed of control states, transitions,
+actions, and variables. The elevator machine has events unit and
+StopTimerReturned (which are used for communication locally in-
+side the elevator machine), an action called Ignore, and two ghost
+322
+
+--- Page 3 ---
+Init
+Deferred:
+Action:
+Elevator =new Elevator ();
+raise (unit)startLoop
+Deferred:
+Action:
+if∗then
+send (Elevator ,OpenDoor );
+else if ∗then
+send (Elevator ,CloseDoor );
+raise (unit)unitunit(a)User ghost machine
+Init
+Deferred:
+Action: ( SendCmdToStop ,Ignore ),
+(SendCmdToReset ,Ignore )
+skipstart
+OpenDoor
+Deferred:
+Action:
+send (Elevator ,DoorOpened );
+raise (unit)ObjectEncountered
+Deferred:
+Action:
+send (Elevator ,ObjectDetected );
+raise (unit)
+CloseDoor
+Deferred:
+Action:
+send (Elevator ,DoorClosed );
+raise (unit)StopDoor
+Deferred:
+Action:
+send (Elevator ,DoorStopped );
+raise (unit)
+Reset
+Deferred:
+Action: ( SendCmdToOpen ,Ignore ),
+(SendCmdToClose ,Ignore ),
+(SendCmdToStop ,Ignore )
+skipConsiderClosingDoor
+Deferred:
+Action:
+if∗then
+raise (unit)
+else if ∗then
+raise (ObjectEncountered )
+SendCmdToOpen
+unitSendCmdToClose
+unitObjectEncountered
+SendCmdToStop
+unitunitunit
+SendCmdToReset
+(b)Door ghost machine
+Init
+Deferred:
+Action:
+(StopTimer ,Ignore )
+skipstartTimerStarted
+Deferred: StartTimer
+Action:
+if∗then
+raise (unit)
+SendTimerFired
+Deferred: StartTimer
+Action:
+send (Elevator ,TimerFired );
+raise (unit)ConsiderStopping
+Deferred: StartTimer
+Action:
+if∗then
+send (Elevator ,OperationFailure );
+send (Elevator ,TimerFired )
+else
+send (Elevator ,OperationSuccess );
+raise (unit)
+StartTimer
+unitStopTimer
+unitunit
+(c)Timer ghost machine
+Figure 2: Environment for elevator
+variables Timer andDoor. Ghost variables are used only during
+veriﬁcation and are used to hold references to ghost machines.
+Each state description consists of a 4-tuple (n;d;a;s ), where
+(1)nis a state name, (2) dis a set of events (called deferred
+set), (3)ais a set of (event, action) pairs (called action handlers),
+and (4)sis a statement (called entry statement), which gets exe-
+cuted when the state is entered. For instance, the Initstate in Fig-
+ure 1 has an empty deferred set, no action handlers, and an en-
+try statement that creates an instance of the Timer andDoor ma-
+chines and raises the event unit. As another example, the Open-
+ingstate hasfCloseDoorg as the deferred set, a single action han-
+dler (OpenDoor, Ignore), and send(Door;SendCmdToOpen )
+as the entry statement. If the state machine enters the Opening
+state, the following things happen: on entry to the state, the state-
+ment send (Door;SendCmdToOpen )is executed, which results
+in the event SendCmdToOpen being sent to the Door machine. On
+ﬁnishing the execution of the entry statement, the machine waits
+for events on the input buffer. The initial state of the Elevator
+machine is Init. Whenever an instance of the Elevator machineis created (using the new statement), the state of this machine in-
+stance is initialized to Init.
+Deferred events and action handlers. Events sent to a machine
+are stored in a FIFO queue. However, it is possible to inﬂuence
+the order in which the events are delivered. In a given state, some
+events can be deferred. When trying to receive an event a machine
+scans its event queue, starting from the front dequeuing the ﬁrst
+event that is not in the deferred set. A dequeued event is either
+processed by executing an action handler or executing an outgoing
+transition. An action is simply a named piece of code. The Elevator
+machine has a single action called Ignore that does nothing. For
+instance, in the Opening state, the event CloseDoor is deferred
+and therefore never dequeued. If the event OpenDoor is dequeued,
+theIgnore action is executed (which just drops the event on the
+ﬂoor) and control stays in Opening. If the event DoorOpened is
+dequeued, the outgoing transition labeled by DoorOpened is taken
+and control moves to state Opened.
+Step and call transitions. The edges in Figure 1 specify how the
+state of the Elevator machine transitions on events. There are two
+types of transitions: (1) step transitions, and (2) call transitions.
+Both these transition types have the form (n1;e;n 2), wheren1
+is the source state of the transition, eis an event name, and n2
+is the target state of the transition. Step transitions are shown by
+simple edges and call transitions by double edges. For instance,
+when the machine is in the Init state, if an unit event arrives the
+machine transitions to the Closed state. On the other hand, call
+transitions have the semantics of pushing the new state on the top of
+the call stack. Call transitions are used to provide a subroutine-like
+abstraction for machines. For instance, there is a call transition to
+theStoppingTimer state from the Opened state on the OpenDoor
+event, and a similar call transition to the StoppingTimer state
+from the OkToClose state on the CloseDoor event. One can think
+about the StoppingTimer state as the starting point of a subroutine
+that needs to be executed in both these contexts. This subroutine
+has 3 states: StoppingTimer, WaitingForTimer andReturnState.
+The “return” from the call happens when ReturnState raises the
+StopTimerReturned event. This event gets handled by the callers of
+the subroutine Opened andOkToClose respectively.
+Unhandled events. ThePlanguage has been designed to aid the
+implementation of responsive systems. Responsiveness is under-
+stood as follows. If an event earrives in a state n, and there is
+no transition deﬁned for e, then the veriﬁer ﬂags an “unhandled
+event” violation. There are certain circumstances under which the
+programmer may choose to delay handling of speciﬁc events or
+ignore the events by dropping them. These need to be speciﬁed ex-
+plicitly by marking such events in the associated deferred set, so
+that they are not ﬂagged by the veriﬁer as unhandled. The veriﬁer
+also implements a liveness check that prevents deferring events in-
+deﬁnitely. This check avoids trivial ways to silence the veriﬁer by
+making every event deferred in every state.
+Environment modeling. Figure 2 shows the environment ma-
+chines (which are ghost machines) and initialization statement
+for the elevator. There are 3 ghost machines: User, Door and
+Timer. These machines are used to model the environment dur-
+ing veriﬁcation, but no code is generated for these machines. For
+the purpose of modeling, the entry statements in the states of
+these machines are allowed to include nondeterminism. For ex-
+ample, the entry statement of the TimerStarted state is speciﬁed
+as “ifthen raise(unit)”. The expression evaluates nondeter-
+ministically to true or false. Thus, when the Timer machine enters
+this state, it can nondeterministically raise the unitevent. The ver-
+iﬁer considers both possibilities and ensures absence of errors in
+both circumstances. In the real world, the choice between these
+323
+
+--- Page 4 ---
+program ::= evdecl machine+m(init)
+machine ::= optghost machinem
+vrdeclactdeclstdecl
+spdeclcldeclacdecl
+optghost ::=jghost
+evdecl ::= event edecl+
+vrdecl ::= optghost varvdecl+
+actdecl ::= action (a;stmt)+
+stdecl ::= state (n;fe1;e2;:::;e kg;stmt;stmt )+
+spdecl ::= step (n;e;n)+
+cldecl ::= call (n;e;n)+
+acdecl ::= act (n;e;a)+
+edecl ::=e(type )
+vdecl ::=x:type
+type ::= voidjbooljintjeventjid
+stmt ::= skip
+jx:=expr
+jx:=newm(init)
+jdelete
+jsend (expr;e;expr )
+jraise (e;expr )
+jleave
+jreturn
+jassert(expr )
+j stmt ;stmt
+jifexprthen stmt else stmt
+jwhile expr stmt
+init ::=x=expr
+expr ::= thisjmsgjargjbjcj?jxj
+juop exprjexpr bop expr
+c2int b2bool
+:;2 uop +;;^;_2 bop
+r2expr a;e;m;x2name
+Figure 3: Syntax
+possibilities depends on environmental factors (such as timing),
+which we choose to ignore during modeling.
+In this example, the initial machine is the User machine, and
+this is the starting point for a model checker to perform veriﬁcation.
+Note that the initial state of the User machine creates an instance of
+Elevator, and the Elevator instance in turn creates instances of
+Timer andDoor (in Figure 1). During execution, the external code
+is responsible for creating an instance of the Elevator machine.
+3.PSyntax and Semantics
+Figure 3 shows the syntax of the core of P. Some of the features
+presented in the examples of Section 2 can be compiled using a pre-
+processor into this core language. In particular, state descriptions in
+the core language are triples of the from (n;d;s 1;s2), wherenis
+a state name, dis a set of deferred events, s1is an entry statement,
+ands2is an exit statement.
+A program in the core language consists of declaration of
+events, a nonempty list of machines, and one machine creation
+statement. Each event declaration also speciﬁes a list of types,
+which are types of data arguments that are sent along with the
+event (can be thought of as “payload” of the event).
+A machine declaration consists of (1) a machine name, (2) a list
+of events, (3) a list of variables, (4) a list of actions, (5) a list of
+states, (6) a list of transitions, and (7) a list of action bindings. Each
+variable has a declared type, which can be int, byte, bool, event or
+machine identiﬁer type (denoted id). Actions associate an actionname with a statement. Transitions are one of two types: steps or
+calls, and action bindings associate state-event pairs with actions.
+A machine can optionally be declared as ghost by preﬁxing its
+declaration by the keyword ghost. Variables can be also declared
+asghost. Events sent to ghost machines are (implicitly) ghost
+events. Ghost machines, events and ghost variables are used only
+during veriﬁcation, and are elided during compilation and execu-
+tion of the Pprogram.
+As mentioned in Section 2, a state declaration consists of a name
+n, a set of events (called deferred set), and two statements: (1) an
+entry statement and (2) an exit statement. Each state declaration
+must have a distinct name. Thus, we can use the name nto denote
+the state. The entry statement associated with a state nis executed
+whenever control enters n, and the exit statement associated with
+statenis executed whenever control leaves n. Given a machine
+namemand a stateninm, letDeferred (m;n) denote the associ-
+ated set of deferred events and let Action (m;n;e) be an that action
+ais associated with event ein staten, if such a binding exists or ?
+otherwise. Let Entry (m;n) denote the associated entry statement,
+and let Exit(m;n) denote the associated exit statement. The ini-
+tial state of the machine mis the ﬁrst state in the state list and is
+denoted by Init(m).
+Each action declaration consists of an action name and a state-
+ment. Let Stmt(m;a) denote the statement associated with action
+ain machinem.
+Transition declarations describe how a state responds to events.
+The list of transitions is partitioned into step transitions, and call
+transitions. A step transition from state nto another state n1in-
+volves executing the exit statement of nand the entry statement of
+n1. A call transition is similar to function calls in programming lan-
+guages and is implemented using a stack (more details below). The
+set of transitions of mmust be deterministic, that is, if (n;e;n 1)
+and(n;e;n 2)are two transitions then n1=n2.
+An action binding does not change the state, but merely executes
+the statement associated with the action.
+A statement (be it an entry statement or exit statement associ-
+ated with a state, or associated with an action) is obtained by com-
+posing primitive statements using standard control ﬂow constructs
+such as sequential composition, conditionals, and loops. Primitive
+statements are described below. The skip statement does nothing.
+The assignment x:=revaluates an expression rand writes the
+result intox. The statement x:=newm(init)creates a new
+machine and stores the identiﬁer of the created machine into x.
+The initializers give the initial values of the variables in the cre-
+ated machine. The delete statement terminates the current ma-
+chine (which is executing the statement) and release its resources.
+The statement send (r1;e;r 2)sends eventeto the target machine
+identiﬁed by evaluating the expression r1, together with arguments
+obtained by evaluating r2. Whenedoes not have any argument
+null is expected. In the examples, we use send (r1;e)as syntactic
+sugar for send(r 1;e;null). The statement raise(e;r )terminates
+the evaluation of the statement raising an event ewith arguments
+obtained by evaluating r. The eventemust be a local event. The
+leave statement jumps control to end of the entry function to wait
+for an event to be dequeued. The return statement terminates the
+evaluation of the statement and returns to the caller (see below for
+more details). The statement assert(r )moves the machine to an
+error state of the expression revaluates to false, and behaves like
+skip otherwise.
+Expressions and evaluation. The expressions in the language, in
+addition to the declared variables, can also refer to three special
+variables—this, msg andarg. While this is a constant contain-
+ing the identiﬁer of the executing machine, msg contains the event
+that is last received from the input buffer of the machine, and arg
+contains the payload from the last event. Expressions also include
+324
+
+--- Page 5 ---
+constantsc, the special constant ?, variables, and compound ex-
+pressions constructed from unary and binary operations on primi-
+tive expressions. Binary and unary operators evaluate to ?if any
+of the operand expressions evaluate to ?. The value?arises ei-
+ther as a constant, or if an expression reads a variable whose value
+is uninitialized, and propagate through operators in an expression.
+The expressionrepresents nondeterministic choice of a Boolean
+value. Nondeterministic expressions are allowed only in ghost ma-
+chines to conveniently model the environment.
+Memory management. Pprograms manage memory manually
+by using the new anddelete commands. The new command
+allocates a new instance of a machine and returns its reference, and
+thedelete command terminates the machine which executes the
+command and frees its resources. It is the responsibility of the P
+programmer to perform cleanup and ensure absence of dangling
+references, or pending message exchanges before calling delete.
+Manually managing the memory add some complexity in order to
+retain a precise control over the footprint of the program.
+3.1 Operational semantics
+The role played by the environment is different during execution
+and veriﬁcation of a Pprogram. During execution, the environ-
+ment is responsible for creating initial machines in the Pprogram,
+sending some initial messages to it, and responding to events sent
+by the Pmachines. During veriﬁcation, the environment is speci-
+ﬁed using ghost machines, and the program starts execution with a
+single machine instance of the machine speciﬁed by the initializa-
+tion statement at the end of the program, and this machine begins
+execution in its initial state with an empty input queue. However,
+once the initial conﬁguration is speciﬁed (which is different during
+execution and veriﬁcation), the transition rules are the same for ex-
+ecution as well as veriﬁcation. We formally specify the transition
+semantics using a single set of transition rules below.
+Since our language allows dynamic creation of machines, a
+global conﬁguration would contain, in general, a collection of
+machines. A machine identiﬁer idrepresents a reference to a
+dynamically-created machine; we denote by Name (id)the name
+of the machine with identiﬁer id. A global conﬁguration Mis a
+map from a machine identiﬁer to a tuple representing the machine
+conﬁguration. A machine conﬁguration corresponding to identiﬁer
+idis of the form (;;s;q )with components deﬁned as follows:
+is a sequence of pairs (n;), where nis a state name, and is
+map from events to A[f>;?g, whereAis the set of all actions
+declared in machine Name (id). This sequence functions as
+a call stack, to implement call and return, and the values
+are used to inherit deferred events and actions from caller to
+callee. For an event e,(e) can be an action a, or the value
+>indicating that the event is deferred, or the value ?which
+indicates that the event does not have an associated action and
+it is not deferred.
+is a map from variables declared in machine Name (id)to
+their values; this map contains an entry for the local variables
+this, msg andarg.
+sis the statement remaining to be executed in machine id.
+qis a sequence of pairs of a event-argument pairs representing
+the input buffer of machine id.
+Our type checker veriﬁes that for any event eand staten, there is at
+most one outgoing transition labeled with eout ofnand at most one
+action bound to eins. We deﬁne Step(m;n;e )to be equal to n0if
+there is a step transition labeled ebetweennandn0in machinem
+and?otherwise. Similarly, we deﬁne Call(m;n;e )to be equal to
+n0if there is a call transition labeled ebetweennandn0in machine
+mand?otherwise. We deﬁne Trans (m;n;e )to be the unionM[id] = (;;S [x:=r];q)(r)#v
+M!M[id:= (;[x:=v];S[skip];q )](ASSIGN )
+M[id] = (;;S [x:=newm0(x1=r1;x2=r2;:::;x n=rn)];q)
+id0=fresh (m0)n0=Init(m0)
+o=e:?(r1)#v1(r2)#v2(rn)#vn
+0=x:?[this:=id0][x1:=v1][x2:=v2][xn:=vn]
+M!M[id:= (;[x:=id0];S[skip];q)]
+[id0:= ((n0;o);0;Entry (m0;n0);)](NEW)
+M[id] = (;;S [delete];q)
+M!M[id:=?](DELETE )
+M[id] = (;;S [assert(r)];q)(r)#true
+M!M[id:= (;;S [skip];q )](ASSERT -PASS)
+M[id] = (;;S [skip;s];q)
+M!M[id:= (;;S [s];q)](SEQ)
+M[id] = (;;S [ifrthens1elses2];q)(r)#true
+M!M[id:= (;;S [s1];q)](IF-THEN)
+M[id] = (;;S [ifrthens1elses2];q)(r)#false
+M!M[id:= (;;S [s2];q)](IF-ELSE)
+M[id] = (;;S [whilers];q)(r)#true
+M!M[id:= (;;S [s;whilers];q)](WHILE -ITERATE )
+M[id] = (;;S [whilers];q)(r)#false
+M!M[id:= (;;S [skip];q)](WHILE -DONE)
+M[id] = (;;S [send(r 1;e;r 2)];q)
+(r1)#id0(r2)#v M [id0] = (0;0;C0;q0)
+M!M[id:= (;;S [skip];q )][id0:= (0;0;C0;q0(e;v))](SEND)
+Figure 4: Operational semantics: statement execution
+ofStep(m;n;e) andCall(m;n;e ). Note that Trans (m;n;e )is
+the static transition in state son evente,Action (m;n;e )is the
+static action bound with state nand evente, and Deferred (m;n)
+is the static set of events deferred in state n. During execution, both
+deferred events and actions associated with a state can be inherited
+from callers, and these are modeled in the second component of the
+call stack, which is a sequence of pairs (n;).
+LetSbe constructed according to the following grammar:
+S::=2jS;stmt
+The leftmost position in Sis ahole denoted by 2; there is exactly
+one2in any derivation for S. We denote by S[s]the substitution
+of statement s2stmt for the unique hole in S. Finally, we have
+jqj=S
+(e;v)2qfeg.
+The rules in Figures 4, 5, and 6 give the operational semantics of
+our programming language. The program starts execution in a con-
+ﬁgurationMdeﬁned at a single id0such that Name (id0) =m,
+wheremis the machine name speciﬁed in the program’s ini-
+tialization statement (at the end of the program). and M[id0]=
+((Init (m);e:?);x:?;Entry (m;Init(m));). The semantics
+is deﬁned as a collection of rules for determining transitions of the
+formM!M0. All existing state machines are running concur-
+rently retrieving events from their input queue, performing local
+computation, and possibly sending events to other machines. Each
+rule picks an existing machine with identiﬁer idand executes it for
+a step. To simplify the rule we use small steps (!) for statements
+and big steps (#) for the expression. The rules for expressions are
+as expected and therefore omitted.
+Figure 4 gives the rules for executing code statements inside a
+state. These rules execute small steps performed during the com-
+putation of the entry function of a state. During this computation,
+325
+
+--- Page 6 ---
+M[id] = ((n;);;S [raise (e;r)];q)
+(r)#v 0=[msg :=e][arg :=v]m=Name (id)
+s=ifPop(m;n;;e)_Step(m;n;e)6=?
+then Exit(m;n)
+else skip
+M!M[id:= ((n; );0;s;raise (e;v);q)](RAISE)
+M[id] = (;;S [leave];q )
+M!M[id:= (;;skip;q )](LEAVE)
+M[id] = (;;S [return];q)
+M!M[id:= (;;Exit(m;n); return;q )](RETURN )
+M[id] = ((n;);;skip;q 1(e;v)q2)m=Name (id)
+t=fejTrans (m;n;e)6=?_Action (m;n;e)6=?g
+d=fej(e) =>gd0= (d[Deferred (m;n))t
+jq1jd0e62d00=[msg :=e][arg :=v]
+s=ifPop(m;n;;e)_Step(m;n;e)6=?
+then Exit(m;n)
+else skip
+M!M[id:= ((n; );0;s;raise (e;v);q1q2)](DEQUEUE )
+M[id] = ((n;);;raise (e;v);q)
+m=Name (id)Step(m;n;e) =n0
+M!M[id:= ((n0;);;Entry (m;n0);q)](STEP)
+M[id] = ((n;);;raise (e;v);q)
+m=Name (id)Trans (m;n;e) =?
+((e) =a^Action (m;n;e) =?)_Action (m;n;e) = a
+a62f?;>g
+M!M[id:= ((n; );;Stmt (m;a);q )](ACTION )
+M[id] = ((n;);;raise (e;v);q)
+m=Name (id)Call(m;n;e) =n0
+0=e: if(Trans (m;n;e)6=?) then?
+else if (Action (m;n;e)6=?) then Action (m;n;e)
+else if (e2Deferred (m;n)) then>
+else(e)
+M!M[id:= ((n0;0)(n;);;Entry (m;n0);q)](CALL)
+M[id] = ((n;);;raise (e;v);q)
+m=Name (id)Pop(m;n;;e)
+M!M[id:= (;;raise (e;v);q)](POP1)
+M[id] = ((n;);;return;q )m=Name (id)
+M!M[id:= (;;skip;q )](POP2)
+Figure 5: Operational semantics: event handling
+M[id] = (;;S [assert(r )];q)(r)#false
+M!error(ASSERT -FAIL)
+M[id] = (;;S [send(r 1;e;r 2)];q)(r1)#?
+M!error(SEND-FAIL1)
+M[id] = (;;S [send(r 1;e;r 2)];q)
+(r1)#id0M[id0] =?
+M!error(SEND-FAIL2)
+M[id] = (;;s;q )
+M!error(POP-FAIL)
+Figure 6: Operational semantics: error transitionslocal variables could be modiﬁed and events could be sent to other
+state machines.
+The rule S END shows the semantics of the statement send(r 1;e;r 2).
+First, the target of the send id0=(r1), and the payload of the
+eventv=(r2)are evaluated and the event (e;v)is appended
+to the queue of the target machine identiﬁed by id0using the spe-
+cial append operator . The operatoris deﬁned as follows. If
+(e;v)62q, thenq(e;v)=q(e;v). Otherwise, q(e;v)=
+q. Thus, event-value pairs in event queues are unique, and if the
+same event-value pair is sent more than once to a machine, only
+one instance of it is added to the queue, avoiding ﬂooding of the
+queue due to events generated by hardware, for instance. In some
+cases, the programmer may want multiple events to be queued, and
+they can enable this by differentiating the instances of these events
+using a counter value in the payload.
+Figure 5 gives the rules for how events are generated and pro-
+cessed. These rules use raise andreturn, which are dynamic in-
+stances of raise andreturn statements respectively. The compu-
+tation terminates either normally via completion of all statements
+in the entry statement, execution of leave to jump control to the
+end of the entry function, execution of a return statement (which
+results in popping from the call stack), or by raising an event e. In
+the ﬁrst two cases, the machine attempts to remove an event from
+the input queue via the rule D EQUEUE prior to raising the retrieved
+event.
+Each state in a state machine can opt to defer a set of events
+received from the outside world. The logic for dequeuing an event
+from the input buffer is cognizant of the current set of deferred
+events and skips over all deferred events from the front of the
+queue. The deferred set of a stack of states is the union of the
+deferred set at the top of the call stack with the value resulting
+from evaluating the deferred set expression declared with that state.
+In case an event eis both in the deferred set and has a deﬁned
+transition from a state, the deﬁned transition overrides, and the
+eventeis not deferred (see rule D EQUEUE ).
+Once an event is raised, using either dequeuing or a raise state-
+ment, it is handled using one of the three transition rules S TEP, AC-
+TION or C ALL. The S TEPtransition results in leaving the current
+statenand entering a target state n0. The A CTION transition picks
+an appropriate action aeither from Action (m;n;e )or from the
+partial mapon the call stack, with the caveat that an action bound
+on the current state using Action (m;n;e )overrides the action in-
+herited in the call stack using . Once a suitable action is picked,
+the statement Stmt(m;a) is executed. Also, if Step(m;n;e )or
+Call(m;n;e )is deﬁned, it takes higher priority over actions. The
+CALL transition computes new values for the map 0in terms of
+the existing value of the map on the top of the stack and the set
+of transitions and actions deﬁned on the current state n. The map
+0(e)is deﬁned as follows: if a transition is deﬁned for ethen it is
+bound to?, otherwise if the event eis bound to an action in nthen
+that binding is used, otherwise if event eis deferred in nthen it is
+mapped to>, and all the other events are mapped to the old value
+(e). As a result of the transition, the machine enters the target
+staten0by pushing the pair (n0;0)on the stack.
+If these transition rules are not applicable due to the unavail-
+ability of a suitable transition, then the top most state on the ma-
+chine stack is popped via the rules P OP1 and P OP2 to allow the
+next state to continue processing. These rules use the predicate
+Pop(m;n;;e )to represent the condition under which a state is
+popped.
+Pop(m;n;;e ) = Step(m;n;e) =?^
+Call(m;n;e ) =?^
+Action (m;n;e ) =?^
+(e)2f?;>g
+326
+
+--- Page 7 ---
+If rule P OP1 executes, the next state must process the unhandled
+event; if rule P OP2 executes, the next state dequeues a new event
+from the input queue.
+The exit function Exit(m;n) of a statenin machine mis
+executed either when a step transition out of sis taken orsis
+popped. When an event eis raised or dequeued, the available
+transitions in sare examined to determined whether Exit(m;n)
+needs to be executed, and if so, the code statement Exit(m;n) is
+inserted into the state. Exit(m;n) is always executed if the entry
+function terminates with a return. The rules in Figure 5 assume
+thatExit(m;n) itself does not contain any explicit raise or return;
+however, our implementation allows that.
+Figure 6 speciﬁes error transitions. The error conﬁguration,
+denoted by error , can be reached in one of 4 ways: (1) by failing
+an assertion (rule A SSERT -FAIL), (2) by executing a statement
+send(r 1;e;r 2)withr1evaluating to?(rule S END-FAIL1), (3)
+by executing a statement send(r 1;e;r 2)withr1evaluating to
+someid0, but withM[id0] =?, thereby attempting to send to an
+uninitialized or deleted machine (rule S END-FAIL1), and (4) The
+stack becomes empty after a pop (rule P OP-FAIL). In Section 5,
+we show how to detect all these 4 types of errors using systematic
+testing.
+Other features. We conclude the description of the core language
+and semantics with two additional features: (1) foreign functions,
+and (2) call statements. Both these features are very important to
+write real-world asynchronous code, but their semantics is stan-
+dard. Consequently, we describe them informally below.
+To interact with external code, a Pprogram has the ability to
+call functions written in the C language. These functions needs to
+be introduced in the scope of a machine by a declaration that give
+the function’s name and type signature. The runtime semantics of a
+function call to a foreign functions is similar to a standard C method
+call. For veriﬁcation purposes we allow the user to give a Pbody to
+a foreign function. The body has to be erasable, i.e. uses only ghost
+variables and expressions.
+ThePlanguage also has a call statement of the form calln0,
+wheren0is a state. This can be used to transition to the target
+staten0by pushingn0on the call stack, much like a call transi-
+tion. Unlike a call transition, the call statement requires saving a
+continuation associated with the caller on the stack, so that execu-
+tion can resume and complete the remaining statements when the
+callee state is popped.
+3.2 Responsiveness
+Beyond providing constructs for building safe programs, the design
+of the Planguage also contains constructs to build responsive pro-
+grams. Explicitly deferring messages instead of doing so implicitly
+is such a design choice. However, it is still possible to excessively
+defer events, thus not processing them. Therefore, we propose two
+liveness properties that must be satisﬁed by a Pprogram. We de-
+scribe these two properties below in terms of a precise description
+of those inﬁnite executions which violate these properties; we use
+linear temporal logic [18] for our speciﬁcations. Our speciﬁcations
+use the following predicates over events that occur during an exe-
+cution:
+1.en(m)holds iff machine mis enabled, i.e., mcan take a step.
+2.sched (m)holds iff machine mis enabled and takes a step.
+3.enq(m;e;m0)holds iff machine menqueues an event einto
+machinem0.
+4.deq(m0;e)holds iff machine m0dequeues an event e.
+The ﬁrst property speciﬁes that a machine cannot execute indef-
+initely without getting disabled. In particular, a machine should notget into a cycle of private operations, causing it to loop forever. The
+set of erroneous executions is given by
+9m:32(sched (m)):
+The second property speciﬁes that events are not deferred ex-
+cessively; the goal is to prevent events from being always deferred,
+thus never processed. We ﬁrst deﬁne the notion of fairly scheduling
+a machinem.
+fair(m)4=23(en (m))sched (m))
+An erroneous execution is one in which every machine is fairly
+scheduled and an event is enqueued which is never subsequently
+dequeued. The set of all erroneous executions is given by
+8m:fair(m)^9m;e;m0:3(enq (m;e;m0)^2:deq (m0;e)):
+Our experience with real drivers suggests that in some cases, this
+property may be too strong. For instance, in a system with priori-
+tized events, enough high priority events from the environment may
+postpone forever the processing of lower priority events. We allow
+programmers to indicate this expectation in a state sby annotat-
+ingswith a list of postponed events. Our reﬁnement of the sec-
+ond liveness speciﬁcation uses the predicate ppn(m;e) that holds
+whenevermis in a state whose list of postponed events contains e.
+The smaller set of erroneous executions is given by
+8m:fair(m)^9m;e;m0:3(enq (m;e;m0)^2:deq (m0;e))^
+32:ppn (m0;e):
+3.3 Type system and erasure
+The type system of Pis, on purpose, kept very simple. It mostly
+does simple checks to make sure the machines, transitions, and
+statements are well-formed. In particular, the following checks
+are performed: (1) identiﬁers for machines, state names, events,
+and variables are unique, (2) statements inside real machines are
+deterministic, and (3) ghost machines, ghost variables, and ghost
+events can be erased during compilation and execution.
+The only non-trivial part of our type system is the rules that
+deal with the erasure property of ghost variables, and ghost ma-
+chines. We identify “ghost terms” in statements of real machines,
+and check that they do not affect the runs of real machines (ex-
+cept for assertions). The separation is needed since ghost terms are
+kept only for veriﬁcation purposes and are erased during the com-
+pilation. Therefore, only a limited ﬂow of information is allowed
+between real and ghost terms. For machine identiﬁers we enforce
+complete separation, because we need to unambiguously identify
+thesend operation that targets ghost machine, so that it can be
+preserved during veriﬁcation and erased during compilation.
+The error transitions speciﬁed in Figure 6 cannot be detected
+by our type checker. Instead, we use state-space exploration tech-
+niques (described in Section 5) to check for these errors statically.
+4. Execution
+This section explains how we generate code from a Pprogram, so
+that the generated code can run as a Windows device driver. Execu-
+tion requires a host driver framework; our current implementation
+uses Windows Kernel Mode Driver Framework (KMDF). The com-
+plete driver, which runs inside Windows, has four components:
+1. The generated code is a C ﬁle which is produced by the P
+compiler from a state machine description.
+2. The runtime is a library that interacts with the generated code
+and provides utilities for synchronization and management of
+state, execution, and memory.
+3. The interface code is a skeletal KMDF driver which mediates
+between the OS and the generated code by creating instances
+327
+
+--- Page 8 ---
+ofPmachines and getting the execution started, and translating
+OS callbacks into Pstate machine events that are queued into
+the queues of the respective machines.
+4. The foreign functions are provided as C source ﬁles or libraries.
+The function calls occurring in the machines are linked to those
+ﬁles.
+Generated code. The code generated from a Pprogram comprises
+a collection of indexed and statically-allocated data structures that
+are examined by the runtime when it executes the operational se-
+mantics of the program. The set of names of events is compiled
+to a C enumeration, thus giving a globally-known unique index to
+each event. Similarly, names of machine types and names of local
+variables and states in each machine are also compiled to C enu-
+merations. At the top level, there is a driver structure that contains
+pointers to an array of events and an array of machine types; these
+arrays are indexed by the corresponding enumerations for events
+and machine types respectively. Each entry in the machine array
+contains pointers to an array of variables and an array of states,
+each indexed by the corresponding enumeration. Each entry in the
+state array contains a table of outgoing transitions, a table of de-
+ferred events, a table of installed actions, and pointers for entry
+and exit functions. In addition to these data structures, the compiler
+also generates C code for the bodies of entry and exit functions of
+all states and all actions declared in the program.
+When Pis compiled to C, the state of a machine is wrapped into
+an object of type StateMachineContext. This object contains
+data structures to represent the state of the machine, as described
+in the formal operational semantics in Section 3. In addition, it
+also contains a void* pointer to external memory used only by
+the foreign functions and interface code.
+To make the Pcompiler work for another driver framework or
+another operating system, the runtime and foreign code needs to be
+reimplemented appropriately but the generated code does not need
+to change.
+Runtime. The runtime of Pprovides functionality for all opera-
+tions required for executing the operational semantics of a Ppro-
+gram, such as creating a machine, enqueueing an event into a
+machine, running a state machine, maintaining the call stack and
+available event handlers of each machine, etc. This functionality is
+mostly private to the runtime with a few exceptions for the bene-
+ﬁt of interface code, which can interact with the Pruntime using
+three APIs: create a new state machine using SMCreateMachine,
+queue an event into a machine using SMAddEvent, or request a
+pointer to the external memory associated with a machine using
+SMGetContext.
+Windows drivers are parsimonious with threads. Worker threads
+are rarely created and drivers typically use calling threads to do
+all the work. Thus, when the OS calls the driver, either due to
+an application request or due to a hardware interrupt or deferred
+procedure call, the driver uses the calling thread to process the event
+and run to completion. Multiple such threads could be executing
+inside the runtime at any time; each dynamic instance of a state
+machine is protected by its own lock for safe synchronization.
+Interface code. The interface code is used to mediate between the
+OS and the Pcode. It is written as a skeletal KMDF driver, which
+handles callbacks from the Windows OS and translates them into
+events it adds to the queue of the Pmachine, using the runtime
+API. In KMDF, the EvtAddDevice callback is used to create the
+state machine using the SMCreateMachine API. All events such
+as Plug and Play or Power management or other events are handled
+by the foreign code by queuing a corresponding event using the
+SMAddEvent API. The EvtRemoveDevice callback results in a
+special event Delete added to the Pdriver. Every Pstate machineis required to handle this event by cleaning up and executing the
+delete statement. Note that the Pmachine may have to do internal
+bookkeeping and keep track of other machines it has created, and
+the state of the interactions it has with other machines, cleanup
+the state of the interactions, and only then execute the delete
+statement. In our experience, the interface code is generic enough
+so that it can be automatically generated for a particular class of
+drivers.
+Foreign functions. The foreign functions are provided by the pro-
+grammer to complement the Pmachines. The foreign functions
+must have one additional argument on top of the ones declared in
+P. This argument, of type void *, points to external memory that
+can be used by the programmer to persist some information as part
+of the state of calling machine. The foreign functions are assumed
+to terminate and to limit any side effect to the provided memory.
+Unlike the interface code which is generic, foreign functions are
+typically driver-speciﬁc and consequently need to be speciﬁed by
+the programmer.
+4.1 Efﬁciency of generated code and runtime
+In order to evaluate the efﬁciency of the code generated by Pand
+the runtime, we performed the following experiment. We devel-
+oped two drivers for a simple switch-and-led device, one using P,
+and one directly using KMDF. Both drivers use the same level of
+asynchrony. The Pcode is about 150 lines with one driver machine
+and four ghost machines. The driver machine has 15 states and 23
+transitions, and each ghost machines has approximately four states
+and transitions. The foreign code is 1720 lines, written directly in
+C, interfacing between KMDF and the Pcode. In contrast, the full
+KMDF driver (written without using P) is about 6000 lines of C
+code.
+We tested both drivers in an environment which sends 100
+events per second, and both drivers are able to process each event
+with an average processing time of 4ms, demonstrating that the
+Pcompiler and runtime do not introduce additional overhead. We
+present a more substantial case study in Section 6.
+5. Systematic testing
+Pis designed to enable systematic testing of programs written in
+it. There are two kinds of nondeterminism in the semantics of P
+programs—explicit nondeterministic choice in the ghost machines
+and implicit nondeterministic choice of which machine to schedule
+next. Systematic testing of a Pprogram is accomplished by inter-
+preting its operational semantics (closed using ghost machines) in
+the explicit-state model checker Zing [2]. All aspects of the op-
+erational semantics of the program are interpreted including the
+code statements labeling the states and actions of a Pmachine.
+The model checker takes care of systematically enumerating all
+implicit scheduling and explicit modeling choices in the program
+and checks for the possible errors (see Figure 6) namely, (1) as-
+sertion failures, (2) executing send commands with uninitialized
+target identiﬁers, (3) sending events to machine that has been al-
+ready freed, and (4) unhandled events. We leave veriﬁcation of the
+liveness checks in Pprograms for future work.
+Machines in Pprograms communicate via message-passing;
+there are only three operations at which a communication between
+two machines occurs—creating a machine, sending an event, and
+receiving an event. It sufﬁces to introduce context-switches after
+only these operations; since a private operation in a machine com-
+mutes with operations of other machines, a context switch after is
+redundant. In other words, if an error occur in an execution with
+a more ﬁne-grained context-switching, it can be shown to occur
+in another equivalent execution in which context-switches happen
+only at the points mentioned above. This optimization is an exam-
+328
+
+--- Page 9 ---
+ple of atomicity reduction [7]. Furthermore, it can be shown that a
+receive operation is a right mover [15]; therefore, a context switch
+after a receive operation can also be eliminated and it sufﬁces to in-
+troduce context switches only after a machine is created or an event
+is sent.
+Delay-bounded scheduling. Unfortunately, even the coarse-grained
+context-switching described above is not sufﬁcient to prevent the
+state space explosion problem. If there are kmachines enabled at
+each interleaving point, the number of possible schedules for runs
+withncontext switches is kn. Therefore, systematic exploration
+of long schedules becomes prohibitively expensive. Consequently,
+we have designed a delaying scheduler to scale our exploration to
+large Pprograms with long executions.
+Intuitively, our delaying scheduler explores schedules that fol-
+low the causal sequence of events. Diverging from that sequence is
+done by delaying some machine. Given a bound d, the scheduler
+may introduce at most ddelays. Suppose machine m1sends an
+eventeto machinem2. Then, at a later point m2removesefrom
+its input buffer, and processes this message, thereby resulting in an
+evente0sent to machine m3. The delay bounded scheduler follows
+the causal sequence of steps which consists of machine m1sending
+the eventetom2, machinem2processing the event eand sending
+the evente0tom3, and machine m3handling the event e0. A delay
+that the scheduler may choose to introduce is, for instance, at the
+second context-switch delaying m3and executing m2.
+More formally, our delaying scheduler maintains a stack SofP
+machine identiﬁers, and an integer delay score. Initially, the stack S
+contains a single machine identiﬁer corresponding to the instance
+created by the initialization statement of the Pprogram, and the
+delay score is set to 0. For example, in the Elevator example
+from Section 2, the stack initially contains the id of the User ghost
+machine.
+The scheduler always chooses to schedule the machine whose
+identiﬁer is at the top of S. The scheduled machine executes until
+it reaches a scheduling point (which is a send or the creation
+of a machine) at which point the scheduler again provides the
+next machine to be scheduled. The stack Sand the delay score
+is updated in response to events happening in the execution as
+follows:
+Ifmis scheduled and msends an event to machine m0and
+m062S,m0is pushed on S.
+Ifmis scheduled and mcreates a new machine m0, thenm0is
+pushed onS.
+Ifmis delayed,mis moved from top of Sto the bottom of S,
+and the delay score is incremented by 1.
+Given a delay bound d, a delay bounded scheduler explores only
+those schedules which have a delay score lesser than or equal to d.
+We can show that for d= 0, the real part of schedules ex-
+plored by the delay bounded scheduler are exactly the same as the
+one executed by the Pruntime in Section 4, assuming no mul-
+tithreading (that is, at most one thread calls into the Pruntime
+from the kernel). Differences between the runtime and the delay
+bounded scheduler occur only in the interaction with the ghost ma-
+chines/environment. Increasing the delay bound dlet the scheduler
+explores more schedules and captures more interactions with the
+environment. We can also show that as dapproaches inﬁnity, in the
+limit, the delay bounded scheduler explores all possible schedules
+of aPprogram, and in particular includes all cases where the P
+runtime is invoked by an arbitrary number of parallel threads from
+the kernel. However, even for low values of d, the delay bounded
+scheduler is very useful in error detection, as shown below.
+Empirical results. In order to evaluate the efﬁcacy of delay bound-
+ing, we conducted the following experiments. For three benchmark
+050000000100000000150000000200000000250000000300000000350000000400000000450000000
+1234567891011121314Number of states  
+Delay bound  German
+Elevator x100
+Switch-LEDx10Figure 7: States explored with increasing delay bound.
+Pprograms (elevator example from Section 2, driver for Switch-
+and-LED device, and for a software implementation of German’s
+cache coherence protocol), we studied the behavior of delay bound-
+ing for varying values of the delay bound parameter d. Figure 7
+shows how the number of explored states varies as we increase the
+value of the delay bound parameter. We scaled the number of states
+in the Switch-LED by a factor of 10 and Elevator by a factor of 100
+to make the graphs legible. We also experimented with buggy ver-
+sions of these designs and determined that bugs are found within a
+delay bound of 2. The data can be summarized as follows: bugs are
+found for low values of delay bound (note the low value of number
+of states explored for delay bound of 2 in Figure 7 within which
+bugs were found), and as we increase the delay bound we eventu-
+ally explore all states within a delay bound of around 12.
+6. Case Study
+USB Hub Driver: Context and challenges. The state machine
+methodology described in this paper, together with code generation
+as well as veriﬁcation, was used in the development of core com-
+ponents of the USB 3.0 stack that was released as part of Microsoft
+Windows 8. In particular, the USB hub driver (“USBHUB3.sys”)
+was developed using our methodology. The USB hub driver is re-
+sponsible for managing USB hubs, the ports in these hubs, enu-
+merating the devices and other hubs connected to their downstream
+ports. It receives a large number of un-coordinated events sent from
+different sources such as OS, hardware and other drivers, in tricky
+situations when the system is suspending or powering down. It can
+receive unexpected events from disabled or stopped devices, non-
+compliant hardware and buggy drivers. The hub driver can fail re-
+quests from incorrect hardware or buggy function drivers. How-
+ever, it is important that the USB hub itself handles all events and
+does not crash or hang itself.
+State P P Explored Time Memory
+machine states transitions states
+(millions) (hh:mm) MB
+HSM 196 361 5.9 2:30 1712
+PSM 3.0 295 752 1.5 3:30 1341
+PSM 2.0 457 1386 2.2 5:30 872
+DSM 1919 4238 1.2 5:30 1127
+Figure 8: State machine sizes and exploration time
+329
+
+--- Page 10 ---
+Experience using Pin USB Hub. We designed the USB Hub in P
+as a collection of state machines. The hub, each of the ports, and
+each of the devices are designed as Pmachines. Using Phelped
+us serialize the large number of uncoordinated events coming in
+from hardware, operating system, function drivers and other driver
+components. In order to make hub scalable, the processing in the
+hub should be as asynchronous as possible. We captured all the
+complexity of asynchronous processing using Pstate machines,
+and ﬁne-grained and explicit states for each step in the processing.
+We used sub-state machines to factor common event handling code,
+and control the explosion in the number of states in the Pcode, and
+deferred events to delay processing of low-priority events. We made
+sure that any code in the driver that lives outside the Pstate machine
+(as foreign functions) is relatively simple and primarily does only
+data processing, and no control logic. This helped us ensure that
+the most complex pieces of our driver are veriﬁed using the state
+exploration tools of P.
+We had to carefully constrain the environment machines in
+several cases to help direct the veriﬁcation tools. Even with such
+constraints, the actual state spaces explored by the veriﬁer were on
+the order of several millions, and the veriﬁer runs took several hours
+to ﬁnish (even after using multicores to scale the state exploration),
+once our designs became mature and the shallow bugs were found
+and ﬁxed. Figure 8 shows the size and scale of state spaces for
+the various state machines. The second and third columns show the
+number of states and transitions at the level of P. The fourth column
+shows the number of states explored by the explored (taking into
+account values of variables, state of queues, and state of ghost
+machines modeling the environment). The ﬁfth and sixth column
+give the time and space needed to complete the exploration.
+The systematic veriﬁcation effort enabled by Phelped us greatly
+ﬂesh out corner cases in our design, forced us to handle every event
+(or explicitly defer it) in every state, and greatly contributed to
+the robustness of the shipped product. Overall, state exploration
+tools helped us identify and ﬁx over 300 bugs, and justiﬁed their
+continued use throughout the development cycle. A majority of
+the bugs were due to unhandled events that we did not anticipate
+arriving. Other bugs were due to unexpected interactions between
+machines, or with the environment, which manifested in either
+unhandled messages or assertion violations.
+Comparison with existing USB stack. The old USB driver in
+Windows has existed for several years and predates P. We com-
+pare the old USB driver and new driver in terms of functionality,
+performance, and reliability.
+1. Functionality. The new USB hub driver has to deal with new
+USB 3.0 hardware in addition to all the requirements for the
+old driver. Therefore the new USB hub driver implements func-
+tionality that is a super set of the functionality of the old hub
+driver.
+2. Reliability. The old USB hub driver had signiﬁcantly more syn-
+chronization issues in PnP, power and error recovery paths even
+till date. The number of such issues has dropped dramatically in
+the new USB hub driver. The number of crashes in the new USB
+hub driver due to invalid memory accesses and race conditions
+is insigniﬁcant.
+3. Performance. The new USB hub driver performs much better
+than the old USB hub driver —average enumeration time for
+a USB device is 30% faster. We have not seen any instances
+of worker item starvation that we used to see with the old hub
+driver.
+This gain in performance is mainly due to the highly asyn-
+chronous nature of the new hub driver. In comparison, the old hub
+driver blocks processing of worker items in several situations, lead-ing to performance degradation. It is theoretically possible to de-
+velop a driver that is not based on explicit state machines such as
+inP, but is equally (or more) performant. However, in practice,
+when we have tried to build such asynchronous drivers directly, we
+have run into myriad of synchronization issues and unacceptable
+degradation in reliability. The support for asynchrony in Pin terms
+of explicitly documented states and transitions, and the veriﬁcation
+tools in Pthat systematically identiﬁed corner cases due to asyn-
+chrony were the key reasons why we were able to design the new
+USB hub driver with both high performance and high reliability.
+We note that the new USB hub driver has only been released to
+the public for about a month at the time of this writing. Once we get
+more empirical data from usage of USB by Windows 8 users, we
+can make a more thorough comparison on actual number of crashes
+and hangs with the old driver.
+7. Related work
+Synchronous languages. Synchronous languages such as Esterel
+[4],Lustre [10] and Signal [3] have been used to model, and gener-
+ate code for real-time and embedded systems for several decades.
+All these languages follow the synchrony hypothesis, where time
+advances in steps, and concurrency is deterministic —that is, given
+a state and an input at the current time step, there is a unique pos-
+sible state at the next time step. Lustre andSignal follow a declar-
+ative dataﬂow model. Every variable or expression in Lustre rep-
+resents a ﬂow which is a sequence of values. For a ﬂow x,Lus-
+treusespre(x)do denote a ﬂow with values postponed by one
+time step. A Lustre program [10] is a set of deﬁnitions of ﬂows,
+where each ﬂow is deﬁned using some constant ﬂows or other
+ﬂows. Even though ﬂows can be recursively deﬁned, each recur-
+sive cycle should be broken using the pre operator. In contrast,
+Esterel is an imperative language [4] where a program consists of
+a collection of nested concurrently running threads, and each step
+is triggered by an external event, and threads are scheduled until all
+internally generated events are consumed. The Esterel compiler en-
+sures a property called constructive causality, which guarantees ab-
+sence of cyclical dependencies in propagating events, and ensures
+that each step terminates. Harel’s StateCharts [11] is a visual lan-
+guage, with hierarchical states, broadcast communication of events
+and a synchronous ﬁxpoint semantics which involves executing a
+series of micro-steps within each time step until all internally gen-
+erated events are consumed.
+The synchronous model has the advantage that every event
+sent to machine is handled in the next clock tick, and is widely
+used in hardware and embedded systems. However, in an OS or a
+distributed system, it is impossible to have all the components of
+the system clocked using a global clock, and hence asynchronous
+models are used for these systems. In such models events are
+queued, and hence can be delayed arbitrarily before being handled.
+However, arbitrary delays are unacceptable in OS components such
+as device drivers, which require responsiveness in event handling.
+The main focus of our work is an asynchronous model where
+responsiveness is enforced using veriﬁcation, with the ability do
+code generation.
+Asynchronous languages. Asynchronous languages are used to
+model and program software systems. The adaptation of State-
+Charts in the Rhapsody tool has produced a variant, which is
+suitable for modeling asynchronous software systems. This vari-
+ant (see [12]) allows steps that take non-zero time and resembles a
+collection of communicating and interacting state machines, where
+each machine has a named input queue, and each transition of a ma-
+chine consumes a message from its input queue and possibly sends
+messages to the output queues of one or more machines. Other
+330
+
+--- Page 11 ---
+asynchronous models include the actor model [13] and process cal-
+culi, such as CSP [14] and CCS [16], and Join Calculus [8], which
+have asynchronous processes communicating with each other via
+messages. While these models are useful in modeling and reason-
+ing about asynchronous systems, our goal is to unify modeling and
+veriﬁcation with programming, and generate code that can run in
+an OS kernel.
+Domain-speciﬁc languages. TheTeapot [5] programming lan-
+guage shares similar goals to our work in that they attempt to unify
+modeling, programming and veriﬁcation, although in a different ap-
+plication domain —cache coherence protocols. Teapot’s continu-
+ation passing design is related to the design of P’s call transitions.
+The notion of deferred sets, ghost machines and erasure property,
+default safety and liveness checks, delay bounding, and the ability
+of the Pcompiler and runtime to generate code that runs in an OS
+kernel are all unique to P.
+Automatic stack management. There have been attempts to pro-
+vide automatic stack management for event-driven programming to
+allow the possibility of blocking constructs inside procedure calls
+(e.g., [1]). In P, entry functions of states are written in non-blocking
+style and call transitions are provided to conveniently factor com-
+mon event handling code. Thus, stack management is particularly
+simple in our current design.
+8. Conclusion
+We presented P, a domain speciﬁc language for writing asyn-
+chronous event-driven programs. We have given a full formal treat-
+ment of various aspects of P, including operational semantics, type
+system, and veriﬁer. We also presented experience using Pto pro-
+gram the USB stack that ships with Windows 8. The main technical
+contribution of our work is an asynchronous model which forces
+each event in the queue to be handled as soon as the machine asso-
+ciated with the queue is scheduled, and has a chance to dequeue the
+event. Our veriﬁer systematically explores the state space of ma-
+chines and ensures that there are no unhandled events. In certain
+circumstances, such as processing a high priority event, or process-
+ing a sequence of event exchanges during a transaction, some other
+lower priority events may have to be queued temporarily. Phas fea-
+tures such as deferred events for a programmer to explicitly specify
+such deferrals. Thus, our main contribution is the design of an asyn-
+chronous language, which promotes a discipline of programming
+where deferrals need to be declared explicitly, and consequently
+leads to responsive systems.
+Acknowledgments
+We would like to acknowledge the contribution of Randy Aull,
+architect of the USB device driver stack in Windows 8, to the
+design of P. We would also like to thank him for his enthusiastic
+adoption of the Pprogramming model. Damien Zufferey would
+like to acknowledge the support of the Austrian Science Fund NFN
+RiSE (Rigorous Systems Engineering) and the ERC Advanced
+Grant QUAREM (Quantitative Reactive Modeling).References
+[1] A. Adya, J. Howell, M. Theimer, W. J. Bolosky, and J. R. Douceur.
+Cooperative task management without manual stack management. In
+USENIX Annual Technical Conference, General Track, pages 289–
+302, 2002.
+[2] T. Andrews, S. Qadeer, S. K. Rajamani, J. Rehof, and Y . Xie. Zing:
+A model checker for concurrent software. In CAV: International
+Conference on Computer Aided Veriﬁcation, pages 484–487, 2004.
+[3] A. Benveniste, P. L. Guernic, and C. Jacquemot. Synchronous pro-
+gramming with events and relations: the Signal language and its se-
+mantics. Sci. Comput. Program., 16(2):103–149, 1991.
+[4] G. Berry and G. Gonthier. The Esterel synchronous programming
+language: design, semantics, implementation. Sci. Comput. Program.,
+19(2):87–152, Nov. 1992.
+[5] S. Chandra, B. Richards, and J. R. Larus. Teapot: A domain-speciﬁc
+language for writing cache coherence protocols. IEEE Trans. Software
+Eng., 25(3):317–333, 1999.
+[6] M. Emmi, S. Qadeer, and Z. Rakamaric. Delay-bounded scheduling.
+InPOPL: ACM SIGPLAN-SIGACT Symposium on Principles of Pro-
+gramming Languages, pages 411–422, 2011.
+[7] C. Flanagan and S. Qadeer. A type and effect system for atomicity. In
+PLDI: ACM SIGPLAN Conference on Programming Language Design
+and Implementation, pages 338–349, 2003.
+[8] C. Fournet and G. Gonthier. The reﬂexive CHAM and the join-
+calculus. In H.-J. Boehm and G. L. S. Jr., editors, POPL, pages 372–
+385. ACM Press, 1996.
+[9] P. Godefroid. Model checking for programming languages using
+Verisoft. In POPL: 24th ACM SIGPLAN-SIGACT Symposium on
+Principles of Programming Languages, pages 174–186, 1997.
+[10] N. Halbwachs, P. Caspi, P. Raymond, and D. Pilaud. The synchronous
+dataﬂow programming language Lustre. Proceedings of the IEEE,
+79(9):1305–1320, September 1991.
+[11] D. Harel. Statecharts: A visual formalism for complex systems. Sci.
+Comput. Program., 8(3):231–274, 1987.
+[12] D. Harel and H. Kugler. The Rhapsody semantics of Statecharts
+(or, on the executable core of the UML) - preliminary version. In
+H. Ehrig, W. Damm, J. Desel, M. Große-Rhode, W. Reif, E. Schnieder,
+and E. Westk ¨amper, editors, SoftSpez Final Report, volume 3147 of
+Lecture Notes in Computer Science, pages 325–354. Springer, 2004.
+[13] C. Hewitt, P. Bishop, and R. Steiger. A universal modular actor formal-
+ism for artiﬁcial intelligence. In Proceedings of the 3rd international
+joint conference on Artiﬁcial intelligence, IJCAI’73, pages 235–245,
+San Francisco, CA, USA, 1973. Morgan Kaufmann Publishers Inc.
+[14] C. A. R. Hoare. Communicating sequential processes. Commun. ACM,
+21(8):666–677, 1978.
+[15] R. J. Lipton. Reduction: a new method of proving properties of
+systems of processes. In POPL: ACM SIGPLAN-SIGACT Symposium
+on Principles of Programming Languages, pages 78–86, 1975.
+[16] R. Milner. A Calculus of Communicating Systems, volume 92 of
+Lecture Notes in Computer Science. Springer, 1980.
+[17] M. Musuvathi, S. Qadeer, T. Ball, G. Basler, P. A. Nainar, and
+I. Neamtiu. Finding and reproducing Heisenbugs in concurrent pro-
+grams. In OSDI : USENIX Symposium on Operating Systems Design
+and Implementation, pages 267–280, 2008.
+[18] A. Pnueli. The temporal logic of programs. In FOCS: IEEE Sympo-
+sium on Foundations of Computer Science, pages 46–67, 1977.
+[19] S. Russell and P. Norvig. Artiﬁcial Intelligence: A Modern Approach
+(3rd edition). Prentice Hall, 2009.
+331

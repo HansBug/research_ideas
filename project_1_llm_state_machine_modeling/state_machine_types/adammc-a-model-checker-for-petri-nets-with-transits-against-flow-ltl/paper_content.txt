@@ -1,0 +1,518 @@
+--- Page 1 ---
+AdamMC : A Model Checker for Petri
+Nets with Transits against Flow-LTL
+Bernd Finkbeiner1, Manuel Gieseking2(B),
+Jesko Hecking-Harbusch1,
+and Ernst-R¨ udiger Olderog2
+1Saarland University, Saarbr¨ ucken, Germany
+{finkbeiner,hecking-harbusch }@react.uni-saarland.de
+2University of Oldenburg, Oldenburg, Germany
+{gieseking,olderog }@informatik.uni-oldenburg.de
+Abstract. The correctness of networks is often described in terms of
+the individual data ﬂow of components instead of their global behavior.In software-deﬁned networks, it is far more convenient to specify the cor-
+rect behavior of packets than the global behavior of the entire network.
+Petri nets with transits extend Petri nets and Flow-LTL extends LTLsuch that the data ﬂows of tokens can be tracked. We present the tool
+AdamMC as the ﬁrst model checker for Petri nets with transits against
+Flow-LTL. We describe how AdamMC can automatically encode con-
+current updates of software-deﬁned networks as Petri nets with transits
+and how common network speciﬁcations can be expressed in Flow-LTL.
+Underlying AdamMC is a reduction to a circuit model checking prob-
+lem. We introduce a new reduction method that results in tremendous
+performance improvements compared to a previous prototype. Thereby,AdamMC can handle software-deﬁned networks with up to 82 switches.
+1 Introduction
+In networks, it is diﬃcult to specify correctness in terms of the global behavior
+of the entire system. Instead, the individual ﬂowof components is far more
+convenient to specify correct behavior. For example, loop and drop freedom can
+be easily speciﬁed for the ﬂow of each packet. Petri nets and LTL lack this local
+view. Petri nets with transits and Flow-LTL have been introduced to overcomethis restriction [ 10]. A transit relation is introduced to follow the ﬂowinduced
+by tokens. Flow-LTL is a temporal logic to specify both the localﬂow of data
+and the global behavior of markings. The global behavior as in Petri nets and
+LTL is still important for maximality and fairness assumptions. In this paper,
+1AdamMC is available online at https://uol.de/en/csd/adammc [12].
+This work was supported by the German Research Foundation (DFG) Grant Petri
+Games (392735815) and the Collaborative Research Center “Foundations of Perspicu-
+ous Software Systems” (TRR 248, 389792660), and by the European Research Council
+(ERC) Grant OSARES (683300).
+c/circlecopyrtThe Author(s) 2020
+S. K. Lahiri and C. Wang (Eds.): CAV 2020, LNCS 12225, pp. 64–76, 2020.https://doi.org/10.1007/978-3-030-53291-8
+_5
+
+--- Page 2 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 65
+airportstart
+queueencp 1
+terminalcp 2check
+booth retworkhome
+comeToWork
+idle
+Fig. 1. Access control at an airport modeled as Petri net with transits. Colored arrows
+display the transit relation and deﬁne ﬂow chains to model the passengers.
+we present the tool AdamMC1as the ﬁrst model checker for Petri nets with
+transits against Flow-LTL and its application to software-deﬁned networking.
+In Fig. 1, we present an example of a Petri net with transits that models the
+security check at an airport where passengers are checked by a security guard.
+The number of passengers entering the airport is unknown in advance. Rather
+than introducing the complexity of an inﬁnite number of tokens, we use a ﬁxednumber of tokens to model possibly inﬁnitely many ﬂow chains . This is done by
+the transit relation which is depicted with colored arrows.
+The left-hand side of Fig. 1models passengers who want to reach the ter-
+minal. There are three tokens in the places airport ,queue,a n d terminal .T h u s ,
+transitions startand enare always enabled. Each ﬁring of startcreates a new
+ﬂow chain as depicted by the green arrow. This models a new person arriving atthe airport . Meanwhile, the double-headed blue arrow maintains all ﬂow chains
+that are still in place airport . Passengers have to enter the queue and wait until
+the security check is performed. Therefore, transition encontinues every ﬂow
+chain in airport toqueue. Checking the passengers is carried out by transition
+check which becomes enabled if the security guard works. Thus, passengers resid-
+ing in queue have to wait until the guard checks them. Afterwards, they reach
+the terminal . The security guard is modeled on the right-hand side of Fig. 1.B y
+ﬁring comeToWork and thus moving the token in place home, her ﬂow chain
+starts and she can repeatedly either idleorwork,check passengers, and return.
+Her transit relation is depicted in orange and models exactly one ﬂow chain.
+In Fig. 1, we deﬁne the checkpoints cp
+1and cp2and the booth as a security
+zone and require that passengers never enter the security zone and eventually
+reach the terminal . The ﬂow formula ϕ=A(airport →(¬(cp1∨cp2∨booth)∧
+terminal )) speciﬁes this. AdamMC veriﬁes the example from Fig. 1against
+the formula check →ϕspecifying that if passengers are checked regularly
+then they cannot access the security zone and eventually reach the terminal.
+In this paper, we present AdamMC as a full-ﬂedged tool. First, AdamMC
+can handle Petri nets with transits and Flow-LTL formulas in general. Sec-
+ond, AdamMC has an input interface for a concurrent update and a software-
+deﬁned network and encodes both of them as a Petri nets with transits. Common
+assumptions on fairness and requirements for network correctness are also pro-
+vided as Flow-LTL formulas. This allows users of the tool to model check the
+
+--- Page 3 ---
+66 B. Finkbeiner et al.
+correctness of concurrent updates and to prevent packet loss, routing loops, and
+network congestion. Third, AdamMC provides algorithms to check safe Petri
+nets against LTL with bothplaces and transitions as atomic propositions which
+makes it especially easy to specify fairness and maximality assumptions.
+The tool reduces the model checking problem for safe Petri nets with transits
+against Flow-LTL to the model checking problem for safe Petri nets against LTL.
+We develop the new parallel approach to check global and local behavior in
+parallel instead of sequentially. This approach yields a tremendous speed-up fora few local requirements and realistic fairness assumptions in comparison to the
+sequential approach of a previous prototype [ 10]. In general, the parallel approach
+has worst-case complexity inferior to the sequential approach even though thecomplexities of both approaches are the same when using only one ﬂow formula.
+As last step, AdamMC reduces the model checking problem of safe Petri
+nets against LTL to a circuit model checking problem. This is solved by ABC
+[2,4] with eﬀective veriﬁcation techniques like IC3 and bounded model checking.
+AdamMC veriﬁes concurrent updates of software-deﬁned networks with up to
+38 switches (31 more than the prototype) and falsiﬁes concurrent updates of
+software-deﬁned networks with up to 82 switches (44 more than the prototype).
+The paper is structured as follows: In Sect. 2, we recall Petri nets with transits
+and Flow-LTL. In Sect. 3, we outline the three application areas of AdamMC :
+checking safe Petri nets with transits against Flow-LTL, checking concurrent
+updates of software-deﬁned networks against common assumptions and speciﬁ-cations, and checking safe Petri nets against LTL. In Sect. 4, we algorithmically
+encode concurrent updates of software-deﬁned networks in Petri nets with tran-
+sits. In Sect. 5, we introduce the parallel approach for the underlying circuit
+model checking problem. In Sect. 6, we present our experimental evaluation.
+Further details can be found in the full paper [ 13].
+2 Petri Nets with Transits and Flow-LTL
+As a f e Petri net with transits N=( P,T,F,In,Υ)[10] contains the set of
+places P, the set of transitions T,t h e ﬂow relation F⊆(P×T)∪(T×P),
+and the initial marking In ⊆Pas in safe Petri nets [ 27]. In a safePetri net,
+reachable markings contain at most one token per place. The transit relation Υ
+is for every transition t∈Tof type Υ(t)⊆(preN(t)∪{/rhd})×postN(t).
+With pΥ(t)q, we deﬁne that ﬁring transition ttransits the ﬂow in place p
+to place q.T h es y m b o l /rhddenotes a startand/rhdΥ(t)qdeﬁnes that ﬁring tran-
+sition tstarts a new ﬂow for the token in place q. Note that the transit relation
+can split, merge, and end ﬂows. A sequence of ﬂows leads to a ﬂow chain which
+is a sequence of the current place and the ﬁred outgoing transition. Thus, Petrinets with transits can describe both the global progress of tokens and the local
+ﬂow of data.
+Flow-LTL [ 10] extends Linear-time Temporal Logic (LTL) and uses places
+and transitions as atomic propositions. It introduces Aas a new operator which
+uses LTL to specify the ﬂow of data for allﬂow chains. For Fig. 1, the formula
+A(booth →
+check) speciﬁes that the guard performs at least one check. We call
+
+--- Page 4 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 67
+Common
+Network
+Properties
+Topology
+Init. Conf.
+UpdatePetri Net
+with
+TransitsFlow-LTL
+Formula∨LTL
+Formula
+Safe
+Petri NetCircuit
+(System)Circuit
+(CEX)MCHyper ABCInput IInput II Input III
+Fig. 2. Overview of the workﬂow of AdamMC : The application areas of the tool are
+given by three diﬀerent input domains: software-deﬁned network/Flow-LTL (InputI), Petri nets with transits/Flow-LTL (Input II), and Petri nets/LTL (Input III).
+AdamMC performs all unlabeled steps. MCHyper creates the ﬁnal circuit which ABC
+checks to answer the initial model checking problem.
+formulas starting with Aﬂow formulas . Formulas around ﬂow formulas specify
+the global progress of tokens in the form of markings and ﬁred transitions to
+formalize maximality and fairness assumptions. These formulas are called run
+formulas . Often, Flow-LTL formulas have the form run formula →ﬂow formula .
+3 Application Areas
+AdamMC consists of modules for three application areas: checking safe Petri
+nets with transits against Flow-LTL, checking concurrent updates of software-
+deﬁned networks against common assumptions and speciﬁcations, and checking
+safe Petri nets against LTL. The general architecture and workﬂow of the model
+checking procedure is given in Fig. 2.AdamMC is based on the tool Adam [14].
+Petri Nets with Transits. Petri nets with transits follow the progress of
+tokens and the ﬂow of data. Flow-LTL allows to specify requirements on both.
+For Petri nets with transits and Flow-LTL (Input II), AdamMC extends a parser
+for Petri nets provided by APT [ 30], provides a parser for Flow-LTL, and imple-
+ments two reduction methods to create a safe Petri net and an LTL formula.
+The sequential approach is outlined in [ 10] and the parallel approach in Sect. 5.
+Software-Deﬁned Networks. Concurrent updates of software-deﬁned net-
+works are the second application area of AdamMC . The tool automatically
+encodes an initially conﬁgured network topology and a concurrent update as aPetri net with transits. The concurrent update renews the forwarding table. We
+provide parsers for the network topology ,t h e initial conﬁguration ,t h e concurrent
+update , and Flow-LTL (Input I). In Sect. 4, we present the creation of a Petri
+net with transits from the input and Flow-LTL formulas for common network
+properties like connectivity ,loop freedom ,drop freedom ,a n d packet coherence .
+Petri Nets. AdamMC supports the model checking of safe Petri nets
+against LTL with both places andtransitions as atomic propositions. It pro-
+vides dedicated algorithms to check interleaving-maximal runs of the system.
+A run is interleaving-maximal if a transition is ﬁred whenever a transition is
+
+--- Page 5 ---
+68 B. Finkbeiner et al.
+enabled. Furthermore, AdamMC allows a concurrent view on runs and can check
+concurrency-maximal runs which demand that each subprocess of the system has
+to progress maximally rather than only the entire system. State-of-the-art tools
+like LoLA [ 32] and ITS-Tools [ 29] are restricted to interleaving-maximal runs
+and places as atomic propositions. For Petri net model checking (Input III), weallow Petri nets in APT and PNML format as input and provide a parser for
+LTL formulas.
+The construction of the circuit in Aiger format [ 3] is deﬁned in [ 11]. MCHy-
+per [15] is used to create a circuit from a given circuit and an LTL formula.
+This circuit is given to ABC [ 2,4] which provides a toolbox of modern hardware
+veriﬁcation algorithms like IC3 and bounded model checking to decide the initialmodel checking question. As output for all three modules, AdamMC transforms
+a possible counterexample (CEX) from ABC into a counterexample to the Petri
+net (with transits) and visualizes the net with Graphviz and the dot language [ 9].
+When no counterexample exists, AdamMC veriﬁed the input successfully.
+4 Verifying Updates of Software Deﬁned Networks
+We show how AdamMC can check concurrent updates of realistic examples from
+software-deﬁned networking (SDN) against typical speciﬁcations [ 19]. SDN [ 6,25]
+separates the data plane for forwarding packets and the control plane for the
+routing conﬁguration. A central controller initiates updates which can cause
+problems like routing loops or packet loss. AdamMC provides an input interface
+to automatically encode software-deﬁned networks and concurrent updates of
+their conﬁguration as Petri nets with transits. The tool checks requirements like
+loop and drop freedom to ﬁnd erroneous updates before they are deployed.
+4.1 Network Topology, Conﬁgurations, and Updates
+Anetwork topology Tis an undirected graph T=(Sw,Con) with switches as
+vertices and connections between switches as edges. Packets enter the network
+atingress switches and they leave at egress switches. Forwarding rules are of the
+form x.fwd(y) with x,y∈Sw. A concurrent update has the following syntax:
+switch update ::= upd(x.fwd(y/z)) |upd(x.fwd(y/-)) |upd(x.fwd(-/z))
+sequential update ::= (update >>update >>...>>update )
+parallel update ::= (update ||update ||...||update )
+update ::= switch update |sequential update |parallel update
+where a switch update can renew the forwarding rule of switch xfrom switch z
+to switch y, introduce a new forwarding rule from switch xto switch y,o rr e m o v e
+an existing forwarding rule from switch xto switch z.
+
+--- Page 6 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 69
+4.2 Data Plane and Control Plane as Petri Net with Transits
+For a network topology T=(Sw,Con), a set of ingress switches, a set of egress
+switches, an initial forwarding table, and a concurrent update ,w es h o wh o wd a t a
+and control plane are encoded as Petri net with transits. Switches are modeledby tokens remaining in corresponding places swhereas the ﬂow of packets is
+modeled by the transit relation Υ. Speciﬁc transitions i
+smodel ingress switches
+where new data ﬂows begin. Tokens in places of the form x.fwd(y) conﬁgure the
+forwarding. Data ﬂows are extended by ﬁring transitions (x,y) corresponding
+to conﬁgured forwarding without moving any tokens. Thus, we model any order
+of newly generated packets and their forwarding. Assuming that each existingdirection of a connection between two switches is explicitly given in Con,w e
+obtain Algorithm 1 which calls Algorithm 2 to obtain the control plane.
+For the update ,l e t SwU be the set of switch updates in it, SeUthe set of
+sequential updates in it, and PaUthe set of parallel updates in it. Depending
+onupdate ’s type, it is also added to the respective set. The subnet for the update
+has an empty transit relation but moves tokens from and to places of the form
+
+--- Page 7 ---
+70 B. Finkbeiner et al.
+x.fwd(y) . Tokens in these places correspond to the forwarding table. The order
+of the switch updates is deﬁned by the nesting of sequential and parallel updates.The update is realized by a speciﬁc token moving through unique places of the
+formu
+s,uf,ss,sf,ps,pffor start and ﬁnish of each switch update u∈SwU,e a c h
+sequential update s∈SeU, and each parallel update p∈PaU. A parallel update
+temporarily increases the number of tokens and reduces it upon completion to
+one. Algorithm 2 deﬁnes the update behavior between start and ﬁnish places
+and connects ﬁnish and start places depending on the subexpression structure.
+Fig. 3. Overview of the sequential approach : Each ﬁring of a transition of the original
+net is split into ﬁrst ﬁring a transition in the subnet for the run formula and subse-
+quently ﬁring a transition in each subnet tracking a ﬂow formula. The constructed LTL
+formula skips the additional steps with until operators.
+Fig. 4. Overview of the parallel approach :T h e nsubnets are connected such that for
+every transition t∈Tthere are ( |Υ(t)|+1 )ntransitions, i.e., there is one transition
+for every combination of which transit of t(or none) is tracked by which subnet. We
+use until operators in the constructed LTL formula to only skip steps not involving the
+tracking of the guessed chain in the ﬂow formula.
+4.3 Assumptions and Requirements
+We use the run formula pre(t)→ tto assume weak fairness for every
+transition tin our encoding N. Transitions, which are always enabled after
+some point, are ensured to ﬁre inﬁnitely often. Thus, packets are eventually
+forwarded and the routing table is eventually updated. We use ﬂow formulas to
+test speciﬁc requirements for all packets. Connectivity ( A(/logicalortext
+s∈egresss)) ensures
+that all packets reach an egress switch. Packet coherence ( A((/logicalortext
+s∈initials)∨
+(/logicalortext
+s∈ﬁnals))) tests that packets are either routed according to the initial or ﬁnal
+conﬁguration. Drop freedom ( A(/logicalandtext
+e∈egress¬e→/logicalortext
+f∈Conf)) forbids dropped
+packets whereas loop freedom ( A(/logicalandtext
+s∈Sw\egresss→(sU¬s))) forbids rout-
+ing loops. We combine run and ﬂow formula into fairness →requirement .
+
+--- Page 8 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 71
+5 Algorithms and Optimizations
+Central to model checking a Petri net with transits Nagainst a Flow-LTL formula
+ϕis the reduction to a safe Petri net N>and an LTL formula ϕ>. The inﬁnite state
+space of the Petri net with transits due to possibly inﬁnitely many ﬂow chains is
+reduced to a ﬁnite state model. The key idea is to guess and track a violating ﬂowchain for each ﬂow subformula Aψ
+i,f o ri∈{1,...,n }, and to only once check the
+equivalent future of ﬂow chains merging into a common place.
+AdamMC provides two approaches for this reduction: Fig. 3and Fig. 4give
+an overview of the sequential approach and the parallel approach, respectively.
+Both algorithms create one subnet N>
+ifor each ﬂow subformula Aψito track
+the corresponding ﬂow chain and have one subnet N>
+Oto check the run part
+of the formula. The places of N>
+Oare copies of the places in Nsuch that the
+current state of the system can be memorized. The subnets N>
+ialso consist
+of the original places of Nbut only use one token (initially residing on an
+additional place) to track the current state of the considered ﬂow chain. The
+approaches diﬀer in how these nets are connected to obtain N>.
+Sequential Approach. The places in each subnet N>
+iare connected with
+one transition for each transit ( Tﬂ=/uniontext
+t∈TΥ(t)). An additional token iterates
+sequentially through the subnets to activate or deactivate the subnet. This allowseach subnet to track a ﬂow chain corresponding to ﬁring a transition in N
+>
+O.T h e
+formula ϕ>takes care of these additional steps by means of the until operator:
+In the run part of the formula, all steps corresponding to moves in a subnet N>
+i
+are skipped and, for each subformula Aψi, all steps are skipped until the next
+transition of the corresponding subnet is ﬁred which transits the tracked ﬂow
+chain. This technique results in a polynomial increase of the size of the Petrinet and the formula: N
+>has O(|N|·n+|N|) places and O(|N|3·n+|N|)
+transitions and the size of ϕ>is in O(|N|3·n·|ϕ|+|ϕ|). We refer to [ 11]f o r
+formal details.Parallel Approach. Thensubnets are connected such that the current
+chain of each subnet is tracked simultaneously while ﬁring an original transition
+t∈T. Thus, there are ( |Υ(t)|+1)
+ntransitions. Each of these transitions stands
+for exactly one combination of which subnet is tracking which (or no) transit.
+Hence, ﬁring one transition of the original net is directly tracked in one step
+for all subnets. This signiﬁcantly reduces the complexity of the run part of the
+constructed formula, since no until operator is needed to skip sequential steps. A
+disjunction over all transitions corresponding to an original transition suﬃces toensure correctness of the construction. Transitions and next operators in the ﬂow
+parts of the formula still have to be replaced by means of the until operator to
+ensure that the next step of the tracked ﬂow chain is checked at the correspondingstep of the global timeline of ϕ
+>. In general, the parallel approach results in an
+exponential blow-up of the net and the formula: N>has O(|N|·n+|N|) places
+and O(|N|3n+|N|) transitions and the size of ϕ>is in O(|N|3n·|ϕ|+|ϕ|). For
+the practical examples, however, the parallel approach allows for model checking
+Flow-LTL with few ﬂow subformulas with a tremendous speed-up in comparison
+to the sequential approach. Formal details are in the full version of the paper [ 13].
+
+--- Page 9 ---
+72 B. Finkbeiner et al.
+Table 1. Overview of optimization parameters of AdamMC : The three reduction steps
+depicted in the ﬁrst column can each be executed by diﬀerent algorithms. The ﬁrst stepallows to combine the optimizations of the ﬁrst and second row.
+Optimizations. Various optimizations parameters can be applied to the model
+checking routine described in Sect. 3to tweak the performance. Table 1gives an
+overview of the major parameters.
+We found that the versions of the sequential and the parallel approach with
+inhibitor arcs to track ﬂow chains are generally faster than the versions without.Furthermore, the reduction step from a Petri net into a circuit with logarith-
+mically encoded transitions had oftentimes better performance than the same
+step with explicitly encoded transitions. However, several possibilities to reducethe number of gates of the created circuit worsened the performance of some
+benchmark families and improved the performance of others. Consequently, all
+parameters are selectable by the user and a script is provided to compare dif-ferent settings. An overview of the selectable optimization parameters can be
+found in the documentation of AdamMC [12]. Our main improvement claims
+can be retraced by the case study in Sect. 6.
+6 Evaluation
+We conduct a case study based on SDN with a corresponding artifact [ 16]. The
+performance improvements of AdamMC compared to the prototype [ 10]a r e
+summarized in Table 2. For realistic software-deﬁned networks [ 19], one ingress
+and one egress switch are chosen at random. Two forwarding tables between the
+two switches and an update from the ﬁrst to the second conﬁguration are chosen
+at random. AdamMC veriﬁes that the update maintained connectivity between
+ingress and egress switch. The results are depicted in rows starting with T.
+For rows starting with F, we required connectivity of a random switch which is
+not in the forwarding tables. AdamMC falsiﬁed this requirement for the update.
+The prototype implementation based on an explicit encoding can verify
+updates of networks with 7 switches and falsify updates of networks with 38
+switches. We optimize the explicit encoding to a logarithmic encoding and the
+number of switches for which updates can be veriﬁed increases to 17. More sig-
+niﬁcantly, the parallel approach in combination with the logarithmic encoding
+leads to tremendous performance gains. The performance gains of an approachwith inferior worst-case complexity are mainly due to the smaller complexity
+of the LTL formula created by the reduction. The encoding of SDN requires
+fairness assumptions for each transition. These assumptions (encoded in the run
+
+--- Page 10 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 73
+Table 2. We compare the explicit and logarithmic encoding of the sequential approach
+with the parallel approach. The results are the average over ﬁve runs from an Intel i7-2700K CPU with 3.50 GHz, 32 GB RAM, and a timeout (TO) of 30 min. The runtimes
+are given in seconds.
+expl. enc. log. enc. parallel appr.
+T/F N e t w o r k # Sw Alg. Time |= Alg. Time |= Alg. Time |=
+T Arpanet196912 4 IC3 12.08 ✓IC3 9.89 ✓IC3 2.18 ✓
+T Napnet 6 IC3 146.49 ✓IC3 96.06 ✓IC3 4.75 ✓
+··· ··· ··· ···
+T Heanet 7 IC3 806.81 ✓IC3 84.62 ✓IC3 30.30 ✓
+T HiberniaIreland 7 - TO ? - TO ? IC3 26.58 ✓
+T Arpanet19706 9 - TO ? IC3 362.21 ✓IC3 11.33 ✓
+T Nordu2005 9 - TO ? - TO ? IC3 12.67 ✓
+··· ··· ··· ···
+T Fatman 17 - TO ? IC3 1543.34 ✓IC3 162.17 ✓
+··· ··· ··· ···
+T M y r e n3 7 -T O ? -T O ? I C 3 1309.23 ✓
+T KentmanJan2011 38 - TO ? - TO ? IC3 1261.32 ✓
+F Arpanet196912 4 BMC3 2.18 ✗BMC3 1.85 ✗BMC3 1.97 ✗
+F Napnet 6 BMC2 4.17 ✗BMC2 5.22 ✗BMC3 1.48 ✗
+··· ··· ··· ···
+F Fatman 17 BMC3 168.78 ✗BMC3 169.82 ✗BMC3 6.72 ✗
+··· ··· ··· ···
+F Belnet2009 21 BMC2 1146.26 ✗BMC2 611.81 ✗BMC3 24.26 ✗
+··· ··· ··· ···
+F KentmanJan2011 38 BMC3 167.92 ✗BMC3 86.44 ✗BMC2 9.35 ✗
+··· ··· ··· ···
+F Latnet 69 - TO ? - TO ? BMC2 209.20 ✗
+F Ulaknet 82 - TO ? - TO ? BMC2 1043.74 ✗
+Sum of runtimes (in hours): 82.99 79.15 30.31
+Nb of TOs (of 230 exper.): 146 138 6
+part of the formula) experience a blow-up with until operators by the sequential
+approach but only need a disjunction in the parallel approach. Hence, the size
+of networks for which AdamMC can verify updates increases to 38 switches and
+the size for which it can falsify updates increases to 82 switches. For rather small
+networks, the tool needs only a few seconds to verify and falsify updates which
+makes it a great option for operators when updating networks.
+7 Related Work
+We refer to [ 21] for an introduction to SDN. Solutions for correctness of updates
+of software-deﬁned networks include consistent updates [7,28],dynamic schedul-
+ing[17], and incremental updates [18]. Both explicit and SMT-based model
+checking [ 1,5,22,23,26,31] is used to verify software-deﬁned networks. Closest to
+our approach are models of networks as Kripke structures to use model checking
+
+--- Page 11 ---
+74 B. Finkbeiner et al.
+for synthesis of correct network updates [ 8,24]. The model checking subroutine
+of the synthesizer assumes that each packet sees at most one updated switch.Our model checking routine does not make such an assumption.
+There is a signiﬁcant number of model checking tools (e.g., [ 29,32]) for Petri
+nets and an annual model checking contest [ 20].AdamMC is restricted to safe
+Petri nets whereas other tools can handle bounded and colored Petri nets. At the
+same time, only AdamMC accepts LTL formulas with places andtransitions as
+atomic propositions. This is essential to express fairness in our SDN encoding.
+8 Conclusion
+We presented the tool AdamMC with its three application domains: checking
+safe Petri nets with transits against Flow-LTL, checking concurrent updates of
+software-deﬁned networks against common assumptions and speciﬁcations, and
+checking safe Petri nets against LTL. New algorithms allow AdamMC to model
+check software-deﬁned networks of realistic size: it can verify updates of networks
+with up to 38 switches and can falsify updates of networks with up to 82 switches.
+References
+1. Ball, T., et al.: Vericon: towards verifying controller programs in software-deﬁned
+networks. In: Proceedings of PLDI, pp. 282–293 (2014). https://doi.org/10.1145/
+2594291.2594317
+2. Berkeley Logic Synthesis and Veriﬁcation Group: ABC: A system for sequen-
+tial synthesis and veriﬁcation. http://www.eecs.berkeley.edu/ ∼alanmi/abc/ ,v e r -
+sion 1.01 81030
+3. Biere, A., Heljanko, K., Wieringa, S.: AIGER 1.9 and beyond. Technical report
+(2011)
+4. Brayton, R.K., Mishchenko, A.: ABC: an academic industrial-strength veriﬁcation
+tool. In: Proceedings of CAV, pp. 24–40 (2010). https://doi.org/10.1007/978-3-
+642-14295-6 5
+5. Canini, M., Venzano, D., Peres´ ıni, P., Kostic, D., Rexford, J.: A NICE way to test
+openﬂow applications. In: Proceedings of NSDI, pp. 127–140 (2012). https://www.
+usenix.org/conference/nsdi12/technical-sessions/presentation/canini
+6. Casado, M., Foster, N., Guha, A.: Abstractions for software-deﬁned networks. Com-
+mun. ACM 57(10), 86–95 (2014). https://doi.org/10.1145/2661061.2661063
+7. Cern´ y, P., Foster, N., Jagnik, N., McClurg, J.: Optimal consistent network updates
+in polynomial time. In: Proceedings of DISC, pp. 114–128 (2016). https://doi.org/
+10.1007/978-3-662-53426-7 9
+8. El-Hassany, A., Tsankov, P., Vanbever, L., Vechev, M.T.: Network-wide conﬁgu-
+ration synthesis. In: Proceedings of CAV, pp. 261–281 (2017). https://doi.org/10.
+1007/978-3-319-63390-9 14
+9. Ellson, J., Gansner, E.R., Koutsoﬁos, E., North, S.C., Woodhull, G.: Graphviz
+and dynagraph - static and dynamic graph drawing tools. In: J¨ unger M., Mutzel P.
+(eds.) Graph Drawing Software, pp. 127–148. Springer, Heidelberg (2004). https://
+doi.org/10.1007/978-3-642-18638-7 6
+
+--- Page 12 ---
+AdamMC : A Model Checker for Petri Nets with Transits against Flow-LTL 75
+10. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: Model checking
+data ﬂows in concurrent network updates. In: Proceedings of ATVA, pp. 515–533
+(2019). https://doi.org/10.1007/978-3-030-31784-3 30
+11. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: Model checking
+data ﬂows in concurrent network updates (full version). Technical report (2019).
+http://arxiv.org/abs/1907.11061
+12. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: AdamMC - A
+Model Checker for Petri Nets with Transits against Flow-LTL. University of Old-
+enburg and Saarland University (2020). https://uol.de/en/csd/adammc
+13. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: AdamMC: A
+model checker for Petri nets with transits against Flow-LTL (full version). Tech-nical report (2020). https://arxiv.org/abs/2005.07130
+14. Finkbeiner, B., Gieseking, M., Olderog, E.: Adam: causality-based synthesis of
+distributed systems. In: Proceedings of CAV, pp. 433–439 (2015). https://doi.org/
+10.1007/978-3-319-21690-4
+25
+15. Finkbeiner, B., Rabe, M.N., S´ anchez, C.: Algorithms for model checking HyperLTL
+and HyperCTL∗. In: Proceedings of CAV, pp. 30–48 (2015). https://doi.org/10.
+1007/978-3-319-21690-4 3
+16. Gieseking, M., Hecking-Harbusch, J.: AdamMC: A Model Checker for Petri Nets
+with Transits against Flow-LTL (Artifact) (2020). https://doi.org/10.6084/m9.
+ﬁgshare.11676171
+17. Jin, X., et al.: Dynamic scheduling of network updates. In: Proceedings of SIG-
+COMM, pp. 539–550 (2014). https://doi.org/10.1145/2619239.2626307
+18. Katta, N.P., Rexford, J., Walker, D.: Incremental consistent updates. In: Proceed-
+ings of HotSDN, pp. 49–54 (2013). https://doi.org/10.1145/2491185.2491191
+19. Knight, S., Nguyen, H.X., Falkner, N., Bowden, R.A., Roughan, M.: The internet
+topology zoo. IEEE J. Selected Areas Commun. 29(9), 1765–1775 (2011). https://
+doi.org/10.1109/JSAC.2011.111002
+20. Kordon, F., et al.: Complete Results for the 2019 Edition of the Model Checking
+Contest. http://mcc.lip6.fr/2019/results.php , April 2019
+21. Kreutz, D., Ramos, F.M.V., Ver´ ıssimo, P.J.E., Rothenberg, C.E., Azodolmolky,
+S., Uhlig, S.: Software-deﬁned networking: a comprehensive survey. Proc. IEEE103(1), 14–76 (2015). https://doi.org/10.1109/JPROC.2014.2371999
+22. Mai, H., Khurshid, A., Agarwal, R., Caesar, M., Godfrey, B., King, S.T.: Debugging
+the data plane with anteater. In: Proceedings of SIGCOMM, pp. 290–301 (2011).https://doi.org/10.1145/2018436.2018470
+23. Majumdar, R., Tetali, S.D., Wang, Z.: Kuai: a model checker for software-deﬁned
+networks. In: Proceedings of FMCAD, pp. 163–170 (2014). https://doi.org/10.
+1109/FMCAD.2014.6987609
+24. McClurg, J., Hojjat, H., Cern´ y, P.: Synchronization synthesis for network pro-
+grams. In: Proceedings of CAV, pp. 301–321 (2017). https://doi.org/10.1007/978-
+3-319-63390-9
+16
+25. McKeown, N., et al.: Openﬂow: enabling innovation in campus networks. Comput.
+Commun. Rev. 38(2), 69–74 (2008). https://doi.org/10.1145/1355734.1355746
+26. Padon, O., Immerman, N., Karbyshev, A., Lahav, O., Sagiv, M., Shoham, S.:
+Decentralizing SDN policies. In: Proceedings of POPL, pp. 663–676 (2015).https://doi.org/10.1145/2676726.2676990
+27. Reisig, W.: Petri Nets: An Introduction. Springer, Heidelberg (1985). https://doi.
+org/10.1007/978-3-642-69968-9
+
+--- Page 13 ---
+76 B. Finkbeiner et al.
+28. Reitblatt, M., Foster, N., Rexford, J., Schlesinger, C., Walker, D.: Abstractions for
+network update. In: Proceedings of SIGCOMM, pp. 323–334 (2012). https://doi.
+org/10.1145/2342356.2342427
+29. Thierry-Mieg, Y.: Symbolic model-checking using ITS-tools. In: Proceedings of
+TACAS, pp. 231–237 (2015). https://doi.org/10.1007/978-3-662-46681-0 20
+30. University of Oldenburg: APT - Analyse von Petri-Netzen und Transitionssyste-
+men.https://github.com/CvO-Theory/apt (2012)
+31. Wang, A., Moarref, S., Loo, B.T., Topcu, U., Scedrov, A.: Automated synthesis
+of reactive controllers for software-deﬁned networks. In: Proceedings of ICNP, pp.
+1–6 (2013). https://doi.org/10.1109/ICNP.2013.6733666
+32. Wolf, K.: Petri net model checking with LoLA 2. In: Proceedings of PETRI NETS,
+pp. 351–362 (2018). https://doi.org/10.1007/978-3-319-91268-4 18
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the
+chapter’s Creative Commons license, unless indicated otherwise in a credit line to the
+material. If material is not included in the chapter’s Creative Commons license and
+your intended use is not permitted by statutory regulation or exceeds the permitteduse, you will need to obtain permission directly from the copyright holder.

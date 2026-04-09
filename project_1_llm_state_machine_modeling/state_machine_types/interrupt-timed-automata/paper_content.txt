@@ -1,0 +1,2764 @@
+--- Page 1 ---
+arXiv:1203.6453v1  [cs.FL]  29 Mar 2012FMSD manuscript No.
+(will be inserted by the editor)
+Interrupt Timed Automata: Veriﬁcation and
+Expressiveness
+B´ eatrice B´ erard ·Serge Haddad ·Mathieu
+Sassolas
+Tuesday 1stMay, 2018
+Abstract We introduce the class of Interrupt Timed Automata (ITA), a s ubclass
+of hybrid automata well suited to the description of timed mu lti-task systems with
+interruptions in a single processor environment.
+While the reachability problem is undecidable for hybrid au tomata we show that it
+is decidable for ITA. More precisely we prove that the untime d language of an ITA is
+regular, by building a ﬁnite automaton as a generalized clas s graph. We then establish
+that the reachability problem for ITA is in NEXPTIME and in PT IME when the
+number of clocks is ﬁxed. To prove the ﬁrst result, we deﬁne a s ubclass ITA −of ITA,
+and show that (1) any ITA can be reduced to a language-equival ent automaton in
+ITA−and (2) the reachability problem in this subclass is in NEXPT IME (without any
+class graph).
+In the next step, we investigate the veriﬁcation of real time properties over ITA. We
+prove that model checking SCL, a fragment of a timed linear time logic, is undecidable.
+On the other hand, we give model checking procedures for two f ragments of timed
+branching time logic.
+We also compare the expressive power of classical timed auto mata and ITA and
+prove that the corresponding families of accepted language s are incomparable. The
+result also holds for languages accepted by controlled real -time automata (CRTA),
+that extend timed automata. We ﬁnally combine ITA with CRTA, in a model which
+encompasses both classes and show that the reachability pro blem is still decidable. Ad-
+ditionally we show that the languages of ITA are neither clos ed under complementation
+nor under intersection.
+Keywords Hybrid automata, timed automata, multi-task systems, inte rrupts,
+decidability of reachability, model checking, real-time p roperties.
+Parts of this paper have been published in the proceedings of FoSSaCS’09 [9] and Time’10 [10]
+B´ eatrice B´ erard ·Mathieu Sassolas
+Universit´ e Pierre & Marie Curie, LIP6/MoVe, CNRS UMR 7606, Paris, France
+E-mail:{beatrice.berard |mathieu.sassolas }@lip6.fr
+Serge Haddad
+´Ecole Normale Sup´ erieure de Cachan, LSV, CNRS UMR 8643, INR IA, Cachan, France
+E-mail: haddad@lsv.ens-cachan.fr
+
+--- Page 2 ---
+2
+1 Introduction
+1.1 Context
+The model of timed automata (TA), introduced in [4], has prov ed very successful due
+to the decidability of several important veriﬁcation probl ems including reachability
+and model checking. A timed automaton consists of a ﬁnite aut omaton equipped with
+real valued variables, called clocks, which evolve synchro nously with time, during the
+sojourn in states. When a discrete transition occurs, clock s can be tested by guards,
+which compare their values with constants, and reset. The de cidability results were
+obtained through the construction of a ﬁnite partition of th e state space into regions,
+leading to a ﬁnite graph which is time-abstract bisimilar to the original transition
+system, thus preserving reachability.
+Consider several tasks executing on a single processor (pos sibly scheduled before-
+hand, although this step is beyond the scope of this paper). A s a result, tasks are
+intertwined and may interrupt one another [37]. Since the be haviour of such systems
+may depend on the current execution times of the tasks, a time d model should measure
+these execution times, which involves clock suspension in c ase of interruptions. Unfor-
+tunately, timed automata lack this feature of clock suspens ion, hence more expressive
+models should be considered.
+Hybrid automata (HA) have subsequently been proposed as an e xtension of timed
+automata [30], with the aim to increase the expressive power of the model. In this
+model, clocksarereplacedbyvariableswhichevolveaccord ingtoadiﬀerential equation.
+Furthermore, guards consist of more general constraints on the variables and resets are
+extended into (possibly non deterministic) updates. This m odel is very expressive, but
+reachability is undecidable in HA. The simpler model obtain ed by allowing clocks to be
+stopped and resumed, stopwatch automata (SWA), would be suﬃ cient to model task
+interruptions in a processor. However, reachability is als o undecidable for SWA [18].
+Many classes have been deﬁned, between timed and hybrid auto mata, to obtain the
+decidability of this problem.
+Task automata [23] and suspension automata [31] model expli citly the scheduling
+of processes. Some classes restrict the use of variation of c lock rate in hybrid automata
+to achieve decidability. Examples of such classes are syste ms with piece-wise constant
+derivatives [6], controlled real-time automata [21]. Guar ds may also be restricted, as
+in multi-rate or rectangular automata [3], some integratio n graphs [26], or polygonal
+hybrid systems [7]. Restricting reset may also lead to decid ability as in the hybrid au-
+tomata with strongresets [13] or initialized stopwatch aut omata [24]. O-minimal hybrid
+systems [28,29] provide algebraic constraints on hybrid sy stems to yield decidability.
+Extensions of timed automata to release some constraints we re also considered, as in
+some updatable timed automata [12].
+While untimed properties like reachability and LTL[33,38] or CTLmodel check-
+ing [22,34,19], are useful for such models, real time veriﬁc ation consider more precise
+requirements, for instance quantitative response time pro perties. Therefore, timed ex-
+tensions of these logics have been deﬁned. In the case of line ar time logics, veriﬁcation
+of the most natural extension MTL[27] is undecidable on TA. However, several de-
+cidable fragments such as MITL[5] andSCL[35] have subsequently been deﬁned. In
+the case of timed variants of branching time logics, diﬀeren t versions of Timed CTL
+(TCTL) [2,25] have been deﬁned. Model checking procedures on TA fo r both versions
+ofTCTLhave been developed and implemented in several tools [8,15] .
+
+--- Page 3 ---
+3
+1.2 Contributions
+In this paper, we deﬁne a subclass of hybrid automata, called Interrupt Timed Au-
+tomata (ITA), well suited to the description of multi-task s ystems with interruptions
+in a single processor environment.
+The ITA model. In an ITA, the ﬁnite set of control states is organized accord ing to
+interrupt levels , ranging from 1 to n, with exactly one active clock for a given level.
+The clocks from lower levels are suspended and those from hig her levels are not yet
+deﬁned (thus have arbitrary value 0). On the transitions, gu ards are linear constraints
+using only clocks from the current level or the levels below a nd the relevant clocks can
+be updated by linear expressions, using clocks from lower le vels. Finally, each state
+has a policy (lazy, urgent or delayed) that rules the sojourn time. This model is rather
+expressive since it combines variables with rate 1 or 0 (usua lly called stopwatches)
+and linear expressions for guards or updates. The ITA model i s formally deﬁned in
+Section 2.
+Reachability problem. As said before, the reachability problem is undecidable for au-
+tomata with stopwatches [24,18,16]. However, we prove that it is decidable for ITA.
+More precisely, we ﬁrst show that the untimed language of an I TA is eﬀectively
+regular (Section 3). The corresponding procedure signiﬁca ntly extends the classical
+region construction of [4] by associating with each state a f amily of orderings over
+linear expressions. This construction yields a decision al gorithm for reachability in 2-
+EXPTIME, and PTIME when the number of clocks is ﬁxed. This sho uld be compared
+to TA with 3 clocks for which reachability is PSPACE complete [20].
+We deﬁne a slight restriction of the model, namely ITA −, which forbids updates
+of clocks other than the one of the current level. We prove tha t for any ITA one can
+build an equivalent ITA −w.r.t. language equivalence, whose size is at most exponent ial
+w.r.t. the size of the ITA and polynomial when the number of cl ocks is ﬁxed. Based on
+the existence of a bound for the length of the minimal reachab ility path, we then show
+that reachability on ITA −can be decided in NEXPTIME without any class graph
+construction. This yields a NEXPTIME procedure for reachab ility in ITA (Section 4).
+Model checking over ITA. We then focus on the veriﬁcation of real time properties for
+ITA (Section 5), expressed in timed extensions of LTLandCTL.
+First we show that the model checking of timed (linear time) l ogicMITL[5] is
+undecidable. Actually, even the fragment SCL[35] cannot be veriﬁed on ITA, while the
+corresponding veriﬁcation problem over TA is PSPACE-compl ete.
+We then consider two fragments of the timed (branching time) logicTCTL, intro-
+duced in [25] and also studied later from the expressiveness point of view [14]. The
+ﬁrst one, TCTLintc, contains formulas involving comparisons of model clocks a s atomic
+propositions. In this logic, it is possible to express prope rties like: (P1) a safe state is
+reached before spending 3 t.u. in handling some interruptio n. Decidability is obtained
+by a generalized class graph construction in 2-EXPTIME (PTI ME if the number of
+clocks is ﬁxed). Since the corresponding fragment cannot re fer to global time, we con-
+sider a second fragment, TCTLp, in which we can reason on minimal or maximal delays.
+Properties like (P2) the system is error free for at least 50 t.u. or(P3) the system will
+reach a safe state within 7 t.u. can be expressed. In this case, the decidability procedure
+
+--- Page 4 ---
+4
+has a complexity in NEXPTIME for the existential fragment an d 2-EXPTIME for the
+universal fragment (respectively NP and co-NP if the number of clocks is ﬁxed).
+Expressiveness. We also study the expressive power of the class ITA (Section 6 ), in
+comparison with the original model of timed automata and the more general controlled
+real-time automata (CRTA) proposed in [21]. In CRTA, clocks and states are colored
+and a time rate is associated with every state. During the vis it of a state, all clocks
+colored by the color of the state evolve with the state rate wh ile the others do not
+evolve. We prove that the corresponding families of languag es ITL and TL, as well as
+ITL and CRTL, are incomparable. Additionally we show that IT L is neither closed
+under complementation nor under intersection.
+Extensions. We ﬁnally investigate compositions of ITA and other timed mo dels (Sec-
+tion 7). In the ﬁrst composition, a synchronous product of an ITA and a TA, we prove
+that the reachability problem becomes undecidable. We then deﬁne a more appropriate
+product of ITA and CRTA. The CRTA part describes a basic task a t an implicit addi-
+tional level 0. For this extended model denoted by ITA+, we show that reachability is
+still decidable with the same complexity and in PSPACE when t he number of clocks
+is ﬁxed.
+2 Interrupt Timed Automata
+2.1 Notations
+The sets of natural, rational and real numbers are denoted re spectively by N,Qand
+R. Atimed word over an alphabet Σis a ﬁnite sequence w= (a1,τ1)...(an,τn) where
+aiis inΣand (τi)1≤i≤nis a non-decreasing sequence of real numbers. The lengthof
+wisnand the duration ofwisτn.
+For a ﬁnite set Xof clocks, a linear expression over Xis a term of the form/summationtext
+x∈Xax·x+bwhereband(ax)x∈Xare inQ. Wedenote byC(X) theset of constraints
+obtained by conjunctions of atomic propositions of the form C ⊲⊳0, whereCis a
+linear expression over Xand⊲⊳∈{>,≥,=,≤,<}. The subsetC0(X) ofC(X) contains
+constraints of the form x+b ⊲⊳0. AnupdateoverXis a conjunction (over X) of
+assignments of the form x:=Cx, wherexis a clock and Cxis a linear expression over
+X. The set of all updates over Xis writtenU(X), withU0(X) for the subset containing
+only assignments of the form x:= 0 (reset) or of the form x:=x(no update). For a
+linear expression Cand an update u, the expression C[u] is obtained by “applying”
+utoC,i.e.substituting each xbyCxinC, ifx:=Cxis the update for xinu. For
+instance, for the set of two clocks X={x1,x2}, expression C=x2−2x1+ 3 and
+updateudeﬁned by x1:= 1∧x2:= 2x1+ 1, applying utoCyields the expression
+C[u] = 2x1+2.
+A clock valuation is a mapping v:X/maps⊔o→R, with0the valuation where all clocks
+have value 0. The set of all clock valuations is RXand we write v|=ϕwhen valuation
+vsatisﬁes the clock constraint ϕ∈C(X). For a valuation v, a linear expression Cand
+an update u, the value v(C) is obtained by replacing each xinCbyv(x) and the
+valuationv[u] is deﬁned by v[u](x) =v(Cx) forxinXifx:=Cxis the update for x
+inu. Observe that an update is performed simultaneously on all c locks. For instance,
+letX={x1,x2,x3}be a set of three clocks. For valuation v= (2,1.5,3) and update
+
+--- Page 5 ---
+5
+level 1 ∀i,xi:= 0level 2level 3level 4
+...x4:= 0
+x3:= 0
+x2:= 0
+
+x1
+x2
+x3
+x4
+
+0
+0
+0
+0
+
+1.5
+0
+0
+0
+
+1.5
+0
+2.1
+0
+
+1.5
+0
+2.1
+1.7
+
+3.7
+0
+0
+0
+1.5 2.1 1.7 2.2
+Fig. 1Interrupt levels and clocks in an ITA.
+udeﬁned byx1:= 1∧x2:=x2∧x3:= 3x2−x1, applyingutovyields the valuation
+v[u] = (1,1.5,2.5).
+2.2 Models of timed systems
+The model of ITA is based on the principle of multi-task syste ms with interruptions,
+in a single processor environment. We consider a set of tasks with diﬀerent priority
+levels, where a higher level task represents an interruptio n for a lower level task. At a
+given level, exactly one clock is active (rate 1), while the c locks for tasks of lower levels
+are suspended (rate 0), and the clocks for tasks of higher lev els are not yet activated
+and thus contain value 0. The mechanism is illustrated in Fig . 1, where irrelevant clock
+values are greyed. An example of such behavior can be produce d by the ITA depicted
+in Fig. 2, which describes a system that answer requests acco rding to their priority. It
+starts by receiving a request for a maintask of priority 1. The treatment of this task
+can be interrupted by tasks of priority 2 or 3, depending on ho w far the system is in
+the execution of the main task. Tasks of priority 2 and 3 may ge nerate errors (modeled
+by an interruption of higher level), after which the system r ecovers. On this system,
+deciding if it is possible – or always the case – that the main t ask is executed in less
+than a certain amount of time would give an insight on the qual ity of service of the
+system.
+Enabling of a transition depends on the clocks valuation. Th e enabling conditions,
+calledguards, are linear constraints on the clock values of levels lower t han or equal
+to the current level: the ones that are relevant before the ﬁr ing of the transition.
+Additionally, atransition can updatethe values of the cloc ks. Ifthe transition decreases
+(resp. increases) the level, then each clock which is releva nt after (resp. before) the
+transition can either be left unchanged or take a linear expr ession of clocks of strictly
+lower level.
+Along with its level, each state has a timing policy which ind icates whether time
+may (Lazy, default), may not (Urgent) or must (Delayed) elap se in a state. Note that in
+TA, this kind of policy can be enforced by an additional clock while this is not possible
+here because there is a single clock per level. This addition al feature is needed for the
+deﬁnition and further use of the model of ITA −(see Section 4). Note that the class
+graph construction of Section 3 is still valid without them.
+
+--- Page 6 ---
+6
+q1,1 q2,1 q0,1q3,2
+q4,3q5,4
+q6,43≤x1≤5,answerprio1 requestprio1,x1:= 0x1≤1,requestprio2 1≤x2≤2,answerprio2
+x1≤2,requestprio3 2≤x3≤3,answerprio3error
+x4≤2,recover
+error
+x4≤2,recover
+Fig. 2An ITA that produces – among others – the behavior represente d in Fig. 1.
+We also add a labeling of states with atomic propositions, in view of interpreting
+logic formulas on these automata. In the sequel, the level of a transition is the level
+of its source state. We also say that a transition is lazy (res p. urgent, delayed) if the
+policy of its source state is lazy (resp. urgent, delayed).
+Deﬁnition 1 Aninterrupt timed automaton is a tupleA=/a\}brack⌉⊔l⌉{⊔Σ,AP,Q,q 0,F,pol,X,λ,
+lab,∆/a\}brack⌉⊔ri}h⊔, where:
+–Σis a ﬁnite alphabet, APis a set of atomic propositions
+–Qis a ﬁnite set of states, q0is the initial state, F⊆Qis the set of ﬁnal states,
+–pol:Q→{Lazy,Urgent,Delayed }is the timing policy of states,
+–X={x1,...,xn}consists ofninterrupt clocks,
+–the mapping λ:Q→{1,...,n}associates with each state its level and we call
+xλ(q)theactive clock in stateq. The mapping lab:Q→2APlabels each state
+with a subset of APof atomic propositions,
+–∆⊆Q×C(X)×(Σ∪{ε})×U(X)×Qis the set of transitions. Let qϕ,a,u−−−−→q′in
+∆be a transition with k=λ(q) andk′=λ(q′). The guard ϕis a conjunction of
+constraints/summationtextk
+j=1ajxj+b⊲⊳0 (involving only clocks from levels less than or equal
+tok). The update uis of the form∧n
+i=1xi:=Ciwith:
+–ifk>k′,i.e.the transition decreases the level, then for 1 ≤i≤k′,Ciis either
+of the form/summationtexti−1
+j=1ajxj+borCi=xi(unchanged clock value) and for i>k′,
+Ci= 0;
+–ifk≤k′then for 1≤i≤k,Ciis of the form/summationtexti−1
+j=1ajxj+borCi=xi, and
+fori>k,Ci= 0.
+A conﬁguration ( q,v,β) of the associated transition system consists of a state qof the
+ITA, a clock valuation vand a boolean value βexpressing whether time has elapsed
+sincethelastdiscretetransition. This thirdcomponentis neededtodeﬁnethesemantics
+according to the policies.
+Deﬁnition 2 The semantics of an ITA Ais deﬁned by the (timed) transition system
+TA= (S,s0,→). The setSofconﬁgurations is/braceleftBig
+(q,v,β)|q∈Q, v∈RX, β∈{⊤,⊥}/bracerightBig
+,
+
+--- Page 7 ---
+7
+with initial conﬁguration s0= (q0,0,⊥). The relation→onSconsists of two types of
+steps:
+Time steps: Only the active clock in a state can evolve, all other clocks a re suspended.
+For a state qwith active clock xλ(q), a time step of duration d >0 is deﬁned by
+(q,v,β)d− →(q,v′,⊤) withv′(xλ(q)) =v(xλ(q))+dandv′(x) =v(x) for any other
+clockx. A time step of duration 0 leaves the system TAin the same conﬁguration.
+Whenpol(q) =Urgent, only time steps of duration 0 are allowed from q.
+Discrete steps: A discrete step ( q,v,β)a− →(q′,v′,⊥) can occur if there exists a transi-
+tionqϕ,a,u−−−−→q′in∆such thatv|=ϕandv′=v[u]. Whenpol(q) =Delayed and
+β=⊥, discrete steps are forbidden.
+The labeling function labis naturally extended to conﬁgurations by lab(q,v,β) =
+lab(q).
+An ITAA1is depicted in Fig. 3(a), with two interrupt levels (and two i nterrupt
+clocks). A geometric view is given in ﬁgure 3(b), with a possi ble trajectory: ﬁrst the
+value ofx1increases from 0 in state q0(horizontal line) and, after transition aoccurs,
+its value is frozen in state q1whilex2increases (vertical line) until reaching the line
+x2=−1
+2x1+1
+2. The light grey zone deﬁned by/parenleftbig
+0<x1<1,0<x2<−1
+2x1+1
+2/parenrightbig
+corresponds to the set of valuations reachable in state q1and from which state q2is
+reachable.
+q0,1q1,2 q2,2 x1<1
+a
+(x2:= 0)x1+2x2= 2
+b
+(a) An ITA A1with two interrupt levelsx1x2
+0 1 21
+ab
+(b) A possible trajectory in A1
+Fig. 3An example of ITA and a possible execution.
+We now brieﬂy recall the classical model of Timed Automata (T A) [4] as well as
+the model of Controlled Real-Time Automata (CRTA) [21]. Not e that in both models,
+timing policies can be enforced by clock constraints.
+Deﬁnition 3 Atimed automaton is a tupleA=/a\}brack⌉⊔l⌉{⊔Σ,Q,q 0,F,X,∆/a\}brack⌉⊔ri}h⊔, whereΣ,Q,
+q0,Fare deﬁned as in an ITA, Xis a set of clocks and the set of transitions is
+∆⊆Q×C0(X)×(Σ∪{ε})×U0(X)×Q, with guards inC0(X) and updates inU0(X).
+The semantics of a timed automaton is also deﬁned as a timed tr ansition system,
+with the set Q×RXof conﬁgurations (no additional boolean value). Discrete s teps
+are similar to those of ITA but in time steps, all clocks evolv e with same rate 1:
+(q,v)d− →(q,v′) iﬀ for each clock xinX,v′(x) =v(x)+d.
+
+--- Page 8 ---
+8
+Controlled Real-Time Automata extend TA with the following features: the clocks
+and the states are partitioned according to colors belongin g to a setΩand with every
+state is associated a rational velocity. When time elapses i n a state, the set of active
+clocks (i.e. with the color of the state) evolve with rate equ al to the velocity of the
+state while otherclocks remain unchanged.Forsake ofclari ty,we nowpropose aslightly
+simpliﬁed version of CRTA.
+Deﬁnition 4 ACRTAA= (Σ,Q,q 0,F,X,up,low,vel,λ,∆ )onaﬁniteset Ωofcolors
+is deﬁned by:
+–Σ, the alphabet of actions,
+–Q, the set of states, with q0∈Qthe initial state and F⊆Qthe set of ﬁnal states,
+–Xthe set of clocks,
+–mappingsupandlowassociate with each clock respectively an upper and a lower
+bound,
+–vel:Q/maps⊔o→Qthe velocity mapping,
+–λ:X⊎Q/maps⊔o→Ωthe coloring mapping and
+–∆⊆Q×C0(X)×(Σ∪{ε})×U0(X)×Qthe set of transitions, with guards in
+C0(X) and updates in U0(X).
+Moreover, the lower and upper bound mappings satisfy low(x)≤0≤up(x) for each
+clockx∈X, andlow(x)≤b≤up(x) for each constant bsuch thatx⊲⊳bis a constraint
+inA.
+The original semantics of CRTA is rather involved in order to obtain decidability of
+the reachability problem. It ensures that entering a state qin which clock xis active,
+the following conditions on the clock bounds hold : if vel(q)>0 thenx≥low(x) and if
+vel(q)<0 thenx≤up(x). Instead (and equivalently) we add a syntactical restrict ion
+which ensures this behavior. For instance, if a transition w ith guardϕand resetu
+enters state qwithvel(q)<0 and ifxis the only clock such that λ(x) =λ(q), then we
+replace this transition by two other transitions: the ﬁrst o ne has guard ϕ∧x>up(x)
+and addsx:= 0 to the reset condition u, the other has guard ϕ∧x≤up(x) and reset
+u. In the general case where kclocks have color λ(q), this leads to 2ktransitions. With
+this syntactical condition, again the only diﬀerence from I TA concerns a time step of
+durationd, deﬁned by ( q,v)d− →(q,v′), withv′(x) =v(x)+vel(q)difλ(x) =λ(q) and
+v′(x) =v(x) otherwise.
+A run of an automaton Ain ITA, TA or CRTA is a ﬁnite or inﬁnite path in the
+associated timed transition system TA, where (possibly null) time steps and discrete
+steps alternate. An accepting run is a ﬁnite run starting in s0and ending in a con-
+ﬁguration associated with a state of F. For such a run with label d1a1d2...dnan,
+we say that the word ( a1,d1)(a2,d1+d2)...(an,d1+···+dn) (whereεactions are
+removed) is accepted by A. The setL(A) contains the timed words accepted by A
+andUntimed (L(A)), the untimed language of A, contains the projections onto Σ∗of
+the timed words in L(A). Interrupt Timed Languages or ITL (resp. Timed Languages
+or TL and Controlled Real-Time Languages or CRTL) denote the family of timed
+languages accepted by an ITA (resp. a TA and a CRTA).
+For instance, the language L1accepted by the ITA A1in Fig. 3(a) is
+L1=L(A1) ={(a,τ)(b,1+τ
+2)|0≤τ <1}.
+
+--- Page 9 ---
+9
+Languages of inﬁnite timed words accepted by B¨ uchi or Mulle r conditions could be
+studied but this analysis should address technical issues s uch as Zeno runs and inﬁnite
+sequences of ε-transitions.
+In the context of model-checking, we also consider maximal runs which are either
+inﬁnite or such that no discrete step is possible from the las t conﬁguration. The set of
+maximal runs starting from conﬁguration sis denoted by Exec(s). Since maximal runs
+can be ﬁnite or inﬁnite, we do not exclude Zeno behaviors. We u se the notion of (totally
+ordered) positions (which allow to consider several discre te actions simultaneously)
+along a maximal run [25]: for a run ρ, we denote by <ρthe strict order over positions.
+For position πalongρ, the corresponding conﬁguration is denoted by sπ, the preﬁx of
+ρup toπis writtenρ≤πand its duration, Dur/parenleftBig
+ρ≤π/parenrightBig
+, is the sum of all delays along
+the ﬁnite run ρ≤π. Similarly, the suﬃx of ρstarting from πis denoted by ρ≥π. For
+two positions π≤ρπ′, the subrun of ρbetween these positions is written ρ[π,π′], its
+duration is Dur/parenleftBig
+ρ≤π′/parenrightBig
+−Dur/parenleftBig
+ρ≤π/parenrightBig
+. The length of ρ, denoted by|ρ|, is the number
+of discrete transitions occurring in ρ.
+3 Regularity of untimed ITL
+We prove in this section that the untimed language of an ITA is regular. Similarly to
+TA (and to CRTA), the proof is based on the construction of a (ﬁ nite) class graph
+which is time abstract bisimilar to the transition system TA. This result also holds for
+inﬁnitewords with standard B¨ uchi conditions. As aconsequ ence, we obtain decidability
+of the reachability problem, as well as decidability for pla inCTL∗model-checking.
+The construction of classes is much more involved than in the case of TA. More
+precisely, it depends on the expressions occurring in the gu ards and updates of the
+automaton (while in TA it depends only on the maximal constan t occurring in the
+guards). We associate with each state qa set of expressions Exp(q) with the following
+meaning. The values of clocks giving the same ordering of the se expressions correspond
+to a class. In order to deﬁne Exp(q), we ﬁrst build a family of sets {Ek}1≤k≤n. Then
+Exp(q) =/uniontext
+k≤λ(q)Ek(recall that λ(q) is the index of the active clock in state q).
+Finally in Theorem 1 we show how to build the class graph which proves the regularity
+of the untimed language. This immediately yields a reachabi lity procedure given in
+Proposition 1.
+3.1 Construction of {Ek}k≤n
+We ﬁrst introduce an operation, called normalization , on expressions relative to some
+level. As explained in the construction below, this operati on will be used to order
+expression values at a given level.
+Deﬁnition 5 (Normalization) LetC=/summationtext
+i≤kaixi+bbe an expression over Xk=
+{xi|i≤k}, thek-normalization ofC,norm(C,k), is deﬁned by:
+–ifak/\⌉}a⊔io\slash= 0 then norm(C,k) =xk+(1/ak)(/summationtext
+i<kaixi+b);
+–elsenorm(C,k) =C.
+
+--- Page 10 ---
+10
+Since guards are linear expressions with rational constant s, we can assume that
+in a guard C ⊲⊳0 occurring in a transition outgoing from a state qwith levelk, the
+expression Cis eitherxk+/summationtext
+i<kaixi+b(byk-normalizing the expression and if
+necessary changing the comparison operator) or/summationtext
+i<kaixi+b. It is thus written as
+αxk+/summationtext
+i<kaixi+b, withα∈{0,1}.
+The construction of {Ek}k≤nproceeds top down from level nto level 1 after
+initializing Ek={xk,0}for allk. As we shall see below, when handling the level
+k, we add new terms to Eifor 1≤i≤k. These expressions are the ones needed to
+compute a (pre)order on the expressions in Ek.
+–At levelk, ﬁrst for every expression αxk+/summationtext
+i<kaixi+b(withα∈{0,1}) occurring
+in a guard of an edge leaving a state of level k, we add−/summationtext
+i<kaixi−btoEk.
+–Then we iterate the following procedure until no new term is a dded to any Eifor
+1≤i≤k.
+1. Letqϕ,a,u−−−−→q′withλ(q)≥kandλ(q′)≥k. LetC∈Ek, then we add C[u] to
+Ek(recall that C[u] is the expression obtained by applying update utoC).
+2. Letqϕ,a,u−−−−→q′withλ(q)< kandλ(q′)≥k. LetCandC′be two diﬀerent
+expressions in Ek. We compute C′′=norm(C[u]−C′[u],λ(q)), choosing an
+arbitrary order between CandC′in order to avoid redundancy. Let us write
+C′′asαxλ(q)+/summationtext
+i<λ(q)aixi+bwithα∈{0,1}. Thenwe add−/summationtext
+i<λ(q)aixi−b
+toEλ(q).
+We illustrate this construction of expressions for the auto matonA1of Fig. 3(a).
+Initially,wehave E1={0,x1}andE2={0,x2}. Whentreatinglevel2, ﬁrst,expression
+−1
+2x1+1 is added to E2as normalization of the guard x1+2x2= 2. Then transition
+labeled by aupdatesx2(by reseting it to 0). As a result, we have to add to E1all
+diﬀerences of expressions of E2updated by x2:= 0. This only produces expression
+−1
+2x1+1−0 which is normalized into x1−2; thus expression 2 is added to E1. When
+treating level 1, expression 1 from the guard of transition ais added to E1. As a result,
+we obtainE1={x1,0,1,2}andE2={x2,0,−1
+2x1+1}.
+Lemma 1 The construction procedure of {Ek}k≤nterminates and the size of every
+Ekis bounded by (E+2)2n(n−k+1)+1whereEis the size of the edges of the ITA.
+ProofGiven some k, we prove the termination of the stage relative to k. Observe that
+the second step only adds new expressions to Ek′fork′<k. Thus the two steps can be
+ordered. Let us prove the termination of the ﬁrst step of the s aturation procedure. We
+deﬁneE0
+kas the setEkat the beginning of this stage and Ei
+kas this set after insertion
+of theithitem in it. With each added item C[u] can be associated its fatherC. Thus
+we can view Ekas an increasing forest with ﬁnite degree (due to the ﬁnitene ss of the
+edges) and ﬁnitely many roots. Assume that this step does not terminate. Then we
+have an inﬁnite forest and by K¨ onig lemma, it has an inﬁnite b ranchC0,C1,...where
+Ci+1=Ci[ui] for some update uisuch thatCi+1/\⌉}a⊔io\slash=Ci. Observe that the number of
+updates that change the variable xkis either 0 or 1 since once xkdisappears it cannot
+appear again. We split the branch into two parts before and af ter this update or we
+still consider the whole branch if there is no such update. In these (sub)branches, we
+conclude with the same reasoning that there is at most one upd ate that change the
+variablexk−1. Iterating this process, we conclude that the number of upda tes is at
+most 2k−1 and the length of the branch is at most 2k.
+
+--- Page 11 ---
+11
+For the sake of readability, we set B=E+2. The ﬁnal size of Ekis thus at most
+E0
+k×B2ksince the width of the forest is bounded by B.
+In the second step, we add at most B×(|Ek|×(|Ek|−1))/2 toEifor everyi<k.
+This concludes the proof of termination.
+We now prove by a painful backward induction that as soon as n≥2,|Ek|≤
+B2n(n−k+1)+1. The doubly exponential size of En(proved above) is propagated down-
+wards by the saturation procedure. We deﬁne pk=|Ek|.
+Basis case k=n.We havepn≤p0n×B2nwherep0nis the number of guards of the
+outgoing edges from states of level n. Thuspn≤B×B2n=B2n+1=B2n(n−n+1)+1
+which is the claimed bound.
+Inductive case. Assume that the bound holds for k <j≤n. Due to all executions of
+the second step of the procedure at strictly higher levels, p0
+kexpressions were added to
+Ek, with:
+p0
+k≤B+B×((pk+1×(pk+1−1))/2+···+(pn×(pn−1))/2)
+p0
+k≤B+B×(B2n(n−k)+1+2+···+B2n+1+2)
+p0
+k≤B×(n−k+1)×B2n(n−k)+1+2
+p0
+k≤B×Bn×B2n(n−k)+1+2(here we use B≥2)
+p0
+k≤B2n(n−k)+1+n+3
+Taking into account the ﬁrst step of the procedure for level k, we have:
+pk≤B2n(n−k)+1+2k+n+3.
+Let us consider the term δ= 2n(n−k+1)+1−(2n(n−k)+1+2k+n+3). Since k<n,
+δ≥(2n−1−1)2n(n−k)+1−(2k+n+2)
+δ≥(2n−1−1)2n(n−k)+1−(2n−1+2n)
+δ≥(2n−1−1)2n(n−k)+1−2n+1≥0
+Thuspk≤B2n(n−k)+1+2k+n+3≤B2n(n−k+1)+1= (E+ 2)2n(n−k+1)+1which is the
+claimed bound. ⊓ ⊔
+3.2 Construction of the class automaton
+In order to analyze the size of the class automaton deﬁned bel ow, we recall and adapt
+a classical result about partitions of n-dimensional Euclidian spaces.
+Deﬁnition 6 Let{Hk}1≤k≤mbe a family of hyperplanes of Rn. Aregiondeﬁned by
+this family is a connected component of Rn\/uniontext
+1≤k≤mHk. Anextended region deﬁned
+by this family is a connected component of/intersectiontext
+k∈IHk\/uniontext
+k/∈IHkwhereI⊆{1,...,m}.
+
+--- Page 12 ---
+12
+Proposition 1 ([39]) The number of regions deﬁned by the family {Hk}1≤k≤mis at
+most/summationtextn
+i=0/parenleftbigm
+i/parenrightbig
+.
+We derive from this proposition:
+Corollary 1 The number of extended regions deﬁned by the family {Hk}1≤k≤mis at
+most/summationtextn
+p=0/parenleftbigm
+p/parenrightbig/summationtextn−p
+i=0/parenleftbigm−p
+i/parenrightbig
+≤e2mn.
+ProofObserve that an extended region is a region belonging to an in tersection of at
+mostnhyperplanes (by removing redundant hyperplanes). Thus cou nting the number
+ofsuch intersections and applyingthe previouspropositio n yields thefollowing formula:
+n/summationdisplay
+p=0/parenleftBigg
+m
+p/parenrightBiggn−p/summationdisplay
+i=0/parenleftBigg
+m−p
+i/parenrightBigg
+≤n/summationdisplay
+p=0mp
+p!n−p/summationdisplay
+i=0mn−p
+i!=mnn/summationdisplay
+p=01
+p!n−p/summationdisplay
+i=01
+i!≤e2mn
+⊓ ⊔
+Theorem 1 The untimed language of an ITA is regular.
+ProofFirst, we assume that the policy of every state is lazy. At the end of the proof,
+we explain how to adapt the construction for states with urge nt or delayed policies.
+Class deﬁnition. LetAbe an ITA with Etransitions and nclocks, the decision algo-
+rithm is based on the construction of a (ﬁnite) class graph wh ich is time abstract bisim-
+ilar to the transition system TA. A class is a syntactical representation of a subset of
+reachable conﬁgurations. More precisely, it is deﬁned as a p airR= (q,{/pr⌉c⌉⌈⌉s⌉q⊓alk}1≤k≤λ(q))
+whereqis a state and/pr⌉c⌉⌈⌉s⌉q⊓alkis a total preorder over Ek, for 1≤k≤λ(q).
+The classRdescribes the set of conﬁgurations:
+/llbracketR/rrbracket={(q,v,β)|β∈{⊤,⊥},∀k≤λ(q)∀(g,h)∈Ek, g[v]≤h[v] iﬀg/pr⌉c⌉⌈⌉s⌉q⊓alkh}
+The initial state of this graph is deﬁned by the class R0with/llbracketR0/rrbracketcontaining
+(q0,0,⊥) which can be straightforwardly determined. For example, f or ITAA1of
+Fig. 3(a), the initial class is R0= (q0,Z0) withZ0:x1= 0<1<2. The ﬁnal states
+are allR=/parenleftbig
+q,{/pr⌉c⌉⌈⌉s⌉q⊓alk}1≤k≤λ(q)/parenrightbig
+withq∈F.
+Observe that ﬁxing a state, the set of conﬁgurations /llbracketR/rrbracketof a non empty class Ris
+exactly an extended region associated with the hyperplanes deﬁned by the comparison
+of two expressions of some Ek. Since (E+ 2)2n2+1is an upper bound of the number
+of expressions of any level, m= (E+ 2)2n2+1+2is an upper bound of the number of
+hyperplanes. So using Corollary 1, the number of semantical ly diﬀerent classes for a
+given state is bounded by:
+e2mn=e2(E+2)2n2+1n+2n
+Since one can test semantical equality between classes in po lynomial time w.r.t. their
+size [36], we implicitely consider in the sequelof theproof classes modulothesemantical
+equivalence.
+As usual, there are two kinds of transitions in the graph, cor responding to discrete
+steps and time steps.
+
+--- Page 13 ---
+13
+Discrete step. LetR= (q,{/pr⌉c⌉⌈⌉s⌉q⊓alk}1≤k≤λ(q))andR′= (q′,{/pr⌉c⌉⌈⌉s⌉q⊓al′
+k}1≤k≤λ(q′))betwoclasses.
+There is a transition Re− →R′for a transition e:qϕ,a,u−−−−→q′if there is some ( q,v)∈/llbracketR/rrbracket
+and (q′,v′)∈/largellbracket
+R′/largerrbracket
+such that (q,v)e− →(q′,v′). In this case, for all ( q,v)∈/llbracketR/rrbracketthere is
+a (q′,v′)∈/largellbracket
+R′/largerrbracket
+such that (q,v)e− →(q′,v′). This can be decided as follows.
+Firability condition. Writeϕ=/logicalandtext
+j∈JCj⊲⊳j0. Since we assumed normalized guards,
+for everyj,Cj=αxk+/summationtext
+i<kaixi+b(withα∈{0,1}andk=λ(q)). By construction
+C′
+j=−/summationtext
+i<λ(q)aixi−b∈Ek. For eachj∈J, we deﬁne a condition depending on
+⊲⊳j. For instance, if Cj≤0, we require that αxk/pr⌉c⌉⌈⌉s⌉q⊓alkC′
+j, or ifCj>0 we require that
+αxk/notprecedesoreqlkC′
+j∧C′
+j/pr⌉c⌉⌈⌉s⌉q⊓alαxk.
+Successor deﬁnition. R′is deﬁned as follows. Let k≤λ(q′) andg′,h′∈Ek.
+1. Eitherk≤λ(q), by construction, g′[u],h′[u]∈Ektheng′/pr⌉c⌉⌈⌉s⌉q⊓al′
+kh′iﬀg′[u]/pr⌉c⌉⌈⌉s⌉q⊓alkh′[u].
+2. Ork > λ(q), letD=g′[u]−h′[u] =/summationtext
+i≤λ(q)cixi+d, andC=norm(D,λ(q)),
+and writeC=αxλ(q)+/summationtext
+i<λ(q)aixi+b(withα∈ {0,1}). By construction
+C′=−/summationtext
+i<λ(q)aixi−b∈Eλ(q).
+Whencλ(q)≥0 theng′/pr⌉c⌉⌈⌉s⌉q⊓al′
+kh′iﬀαxλ(q)/pr⌉c⌉⌈⌉s⌉q⊓alλ(q)C′.
+Whencλ(q)<0 theng′/pr⌉c⌉⌈⌉s⌉q⊓al′
+kh′iﬀC′/pr⌉c⌉⌈⌉s⌉q⊓alλ(q)αxλ(q).
+By deﬁnition of /llbracket·/rrbracket,
+–For any (q,v)∈/llbracketR/rrbracket, if there exists ( q,v)e− →(q′,v′) then the ﬁrability condition is
+fulﬁlled and ( q′,v′) belongs to/largellbracket
+R′/largerrbracket
+.
+–If the ﬁrability condition is fulﬁlled then for each ( q,v)∈/llbracketR/rrbracketthere exists ( q′,v′)∈/largellbracket
+R′/largerrbracket
+such that (q,v)e− →(q′,v′).
+Time step. LetR= (q,{/pr⌉c⌉⌈⌉s⌉q⊓alk}1≤k≤λ(q)). There is a transition Rsucc−−−→Post(R) for
+Post(R) = (q,{/pr⌉c⌉⌈⌉s⌉q⊓al′
+k}1≤k≤λ(q)), the time successor of R, which is deﬁned as follows.
+Foreveryi<λ(q)/pr⌉c⌉⌈⌉s⌉q⊓al′
+i=/pr⌉c⌉⌈⌉s⌉q⊓ali.Let∼betheequivalencerelation /pr⌉c⌉⌈⌉s⌉q⊓alλ(q)∩/pr⌉c⌉⌈⌉s⌉q⊓al−1
+λ(q)induced
+by the preorder. On equivalence classes, this (total) preor der becomes a (total) order.
+LetVbe the equivalence class containing xλ(q).
+1. EitherV=/braceleftbig
+xλ(q)/bracerightbig
+and it is the greatest equivalence class. Then /pr⌉c⌉⌈⌉s⌉q⊓al′
+λ(q)=/pr⌉c⌉⌈⌉s⌉q⊓alλ(q)
+(thusPost(R) =R).
+2. EitherV=/braceleftbig
+xλ(q)/bracerightbig
+and it is not the greatest equivalence class. Let V′be the next
+equivalence class. Then /pr⌉c⌉⌈⌉s⌉q⊓al′
+λ(q)is obtained by merging VandV′, and preserving
+/pr⌉c⌉⌈⌉s⌉q⊓alλ(q)elsewhere.
+3. EitherVis not a singleton. Then we split VintoV\/braceleftbig
+xλ(q)/bracerightbig
+and/braceleftbig
+xλ(q)/bracerightbig
+and
+“extend”/pr⌉c⌉⌈⌉s⌉q⊓alλ(q)byV\/braceleftbig
+xλ(q)/bracerightbig
+/pr⌉c⌉⌈⌉s⌉q⊓al′
+λ(q)/braceleftbig
+xλ(q)/bracerightbig
+.
+By deﬁnition of /llbracket·/rrbracket, for each ( q,v)∈/llbracketR/rrbracket, there exists d >0 such that ( q,v+d)∈
+/llbracketPost(R)/rrbracketand for each dwith 0≤d′≤d, then (q,v+d′)∈/llbracketR/rrbracket∪/llbracketPost(R)/rrbracket.
+We now explain how the policy is handled. Given a state qsuch thatpol(q) =U, for
+every class R= (q,{/pr⌉c⌉⌈⌉s⌉q⊓alk}1≤k≤λ(q)) we delete the time steps outgoing from R. The case
+of a stateqsuch thatpol(q) =D, is a little bit more involved. First we partition classes
+between time open classes, where for every every conﬁguration of the class the re exists
+a small amount of time elapse that let the new conﬁguration in the same class, and
+
+--- Page 14 ---
+14
+time closed classes. The partition is performed w.r.t. the equivalence classVofxλ(q)
+for the relation∼(see above in the proof). The class Ris time open iﬀ V={xλ(q)}.
+Then we successively replace every time closed class Rby two copies R−andR+,
+which capture wether time has elapsed since the last last dis crete step. Thus, a time
+edge entering Ris redirected towards R+while a discrete edge entering Ris redirected
+towardsR−. A time step Rsucc−−−→R′is replaced by two transitions R−succ−−−→R′and
+R+succ−−−→R′, while a discrete step Re− →R′is replaced by the transition R+e− →R′.
+Time open classes allow time elapsing, hence no splitting is required for these classes.
+Since there is at most one time edge outgoing from a class, the number of edges of
+the new graph is at most twice the number of edges in the origin al graph.⊓ ⊔
+Proposition 2 The reachability problem for Interrupt Timed Automata is de cidable
+and belongs to 2-EXPTIME andPTIME when the number of clocks is ﬁxed.
+ProofThe reachability problem is solved by building the class gra ph and applying
+standard reachability algorithm. Since the number of seman tically diﬀerent classes is
+at most doubly exponential in the size of the model and the sem antical equivalence
+can be checked in polynomial time w.r.t. the size of the class (also doubly exponential)
+this leads to a 2-EXPTIME complexity. When the number of cloc ks is ﬁxed the size
+of the graph is at most polynomial w.r.t. the size of the probl em leading to a PTIME
+procedure. No complexity gain can be obtained by a non determ inistic search without
+building the graph since the size of the graph is only polynom ial w.r.t. the size of a
+class.⊓ ⊔
+Remarks. This result should be contrasted with the similar one for TA. The reacha-
+bility problem for TA is PSPACE-complete and thus less costl y to solve than for ITA.
+However, ﬁxing the number of clocks does not reduce the compl exity for TA (when
+this number is greater than or equal to 3) while this problem b elongs now to PTIME
+for ITA. Summarizing, the main source of complexity for ITA i s the number of clocks,
+while in TA it is the binary encoding of the constants [20].
+Since the construction of the graph depends on a set of expres sions, there is no
+notion of granularity as in Timed Automata. Whenthe only guards are comparisons to
+constantsandtheonlyupdatesresetsofclocks(asinTimedA utomata),theabstraction
+obtained is coarser than the region abstraction of [4]: it co nsists only in products of
+intervals.
+3.3 Example
+We illustrate this construction of a class automaton for the automatonA1of Fig. 3(a).
+The resulting class automaton is depicted on Fig. 4, where da shed lines indicate time
+steps.
+Recall that we obtained E1={x1,0,1,2}andE2=/braceleftbig
+x2,0,−1
+2x1+1/bracerightbig
+. In state
+q0, the only relevant clock is x1and the initial class is R0= (q0,Z0) withZ0:x1=
+0<1<2. Its time successor is R1
+0= (q0,Z1
+0) withZ1
+0: 0< x1<1<2. Transition
+aleading toq1can be taken from both classes, but not from the next time succ essors
+R2
+0= (q0,0<x1= 1<2),R3
+0= (q0,0<1<x1<2),R4
+0= (q0,0<1<x1= 2), or
+R5
+0= (q0,0<1<2<x1).
+
+--- Page 15 ---
+15
+R0
+R1
+0
+R2
+0
+...
+R5
+0R1q1,Z0
+0< x2<1q1,Z0
+0< x2= 1
+q2,Z0
+0< x2= 1
+q2,Z0
+0<1< x2R1
+1q1,Z1
+0
+0< x2<−1
+2x1+1
+q1,Z1
+0
+0< x2=−1
+2x1+1
+q2,Z1
+0
+0< x2=−1
+2x1+1q2,Z1
+0
+0<−1
+2x1+1< x2a
+ba
+b
+Fig. 4The class automaton for A1
+Transitionaswitches from R0toR1= (q1,Z0,x2= 0<1), because x1= 0, and
+fromR1
+0toR1
+1=/parenleftbig
+q1,Z1
+0,x2= 0<−1
+2x1+1/parenrightbig
+. Transition bis ﬁred from those time
+successors for which x2=−1
+2x1+1.
+On the geometric view of ﬁgure 3(b), the displayed trajector y corresponds to the
+following path in the class automaton:
+R0→R1
+0a− →R1
+1→/parenleftBig
+q1,Z1
+0,0<x2<−1
+2x1+1/parenrightBig
+→/parenleftBig
+q1,Z1
+0,0<x2=−1
+2x1+1/parenrightBig
+b− →/parenleftBig
+q2,Z1
+0,0<x2=−1
+2x1+1/parenrightBig
+4 A simpler model
+4.1 Deﬁnition of ITA −
+We introduce a restricted version of ITA, called ITA −, which is interesting both from
+a theoretical and a practical point of view. When modeling in terruptions in real-time
+systems, the clock associated with some level measures the t ime spent in this level or
+more generally the time spent by some tasks at this level. Thu s when going to a higher
+level, this clock is not updated until returning to this leve l. The ITA −model takes this
+feature into account. Moreover, it turns out that the reacha bility problem for ITA −
+can be solved more eﬃciently. This also provides a better com plexity upper-bound for
+the reachability problem on ITA (in the general case).
+Deﬁnition 7 The subclass ITA −of ITA is deﬁned by the following restriction on
+updates. For a transition qϕ,a,u−−−−→q′of an automaton Ain ITA −(withk=λ(q) and
+k′=λ(q′)), the update uis of the form∧n
+i=1xi:=Ciwith:
+–ifk>k′, then for 1≤i≤k′,Ci:=xiand fork′+1≤i≤n,Ci= 0,i.e.the only
+updates are the resets of now irrelevant clocks;
+
+--- Page 16 ---
+16
+–ifk≤k′thenCkis of the form/summationtextk−1
+j=1ajxj+borCk=xk. Fork<i≤k′,Ci= 0
+andCi=xiotherwise.
+Thus, complex updates appear only in transitions increasin g the level, and only for
+the active clock of the transition level.
+The proof of the following result is based on Propositions 3 a nd 5 proved in the
+next two sections.
+Theorem 2 The reachability problem for ITAbelongs to NEXPTIME .
+ProofGiven an ITAAwith transitions of size Eand constants coded over bbits, we
+build the ITA −A′of Proposition 3. Then we apply on A′the reachability procedure
+of Proposition 5. In this procedure, we consider paths of len gth bounded by ( E′+n)3n,
+whereE′is the number of transitions of A′. SinceE′≤24b·E·n2(as shown in the proof
+of Proposition 3), the length of the paths considered is boun ded by
+(E′+n)3n≤/parenleftBig
+24b·E·n2
++n/parenrightBig3n
+≤(n+2)12b·E·n3
+which establishes the claimed upper bounds. ⊓ ⊔
+4.2 From ITA to ITA −
+In this subsection we prove that ITA and ITA −are equivalent w.r.t. the associated
+(timed) languages.
+Proposition 3 Given an ITAA, we build an automaton A′in ITA −accepting the
+same timed language and with the same clocks such that its num ber of edges (resp.
+states) is exponential w.r.t. the number of edges (resp. sta tes) inAand polynomial
+when the number of clocks is ﬁxed.
+ProofStarting from ITA A=/a\}brack⌉⊔l⌉{⊔Σ,AP,Q,q 0,F,pol,X,λ, lab,∆ /a\}brack⌉⊔ri}h⊔, the construction of
+automatonA′relies on memorizing at a given level i, for every clock xjat a lower
+level, an expression depending on x1,...,xj−1, corresponding to the delayed update
+ofxj. This expression is used later to replace the value of xjin guards and to restore
+its correct value by update after decreasing to level j.
+To this aim we associate with every pair of levels i≥j, a set of expressions Fi,j
+inductively deﬁned by:
+–Fi,i={xi}
+–∀i>j Fi,j=Fi−1,j∪{e[{xk←ek}k<j]|eis the expression of an update of xjby
+an edge of level iand∀k, ek∈Fi,k}
+We writeFj=Fn,j=/uniontextn
+i=jFi,j. The setFjthus contains all expressions of updates
+ofxjthat appear at higher levels.
+Although the number of expressions is syntactically doubly exponential w.r.t. the
+number of clocks, one can show that the number of distinctexpressions is only singly
+exponential.
+First we assume that ITA Ahas only integral constants, the case of rational con-
+stants is handled at the end of the proof. It can be shown that e very expression ekof
+Fkcan be written
+ek=/summationdisplay
+i0,...,ip∈sub(k)αk,ip·αip,ip−1···αi1,i0·xi0
+
+--- Page 17 ---
+17
+withtheconventionthat x0istheconstant1, andwheresub( k)isthesetofall (ordered)
+subsequences of 0 ,...,k−1 andαj,iis the coeﬃcient of xiin some update of xj.
+For the family αof all integers αj,i, assume that these constants are coded over
+bαbits each (including the sign of the coeﬃcient). The express ionxi0can also be
+coded into an integer of log2(n) bits (with a special symbol to indicate that it is the
+expression of a clock rather than a constant). Let b= max(bα,log2(n) + 1) be the
+(maximal) number of bits used to code a coeﬃcient. Then each t erm of the sum is a
+product of at most ksuch coeﬃcients, therefore can be coded with kbbits. Summing
+at most 2ksuch products yields an integer that can be coded over kb+kbits. Thus
+there can be at most 2k(b+1)diﬀerent expressions in Ek.
+AutomatonA′is then deﬁned as follows.
+–The set of states is
+Q′={(q+,e1,...,ei−1)|q∈Q, λ(q) =iand∀j, ej∈Fj}
+∪{(q−,e1,...,ei)|q∈Q, λ(q) =iand∀j, ej∈Fj},
+withpol(q+,e1,...,ei−1) =pol(q) andpol(q−,e1,...,ei) =U.
+Note that the sequence is empty if i= 1. Moreover:
+λ(q+,e1,...,ei−1) =λ(q−,e1,...,ei) =λ(q).
+–The initial state of A′is (q+
+0,x1,...,xi−1) ifλ(q0) =i. The ﬁnal states of A′are
+the states with ﬁrst component q+forq∈F.
+–Letqϕ,a,u−−−−→q′be a transition in Asuch thatλ(q) =i,λ(q′) =i′anduis deﬁned
+by/logicalandtexti
+j=1xj:=Cj.
+•Ifi≤i′, then for every ( q+,e1,...,ei−1) there is a transition
+(q+,e1,...,ei−1)ϕ′,a,u′
+−−−−−→(q′+,e′
+1,...,e′
+i′−1)
+inA′withϕ′=ϕ({xj←ej}j<i), updateu′is deﬁned by xi:=Ci[{xj←
+ej}j<i]; for allj <i,e′
+j=Cj[{xk←ek}k<i] and for all jsuch thati≤j <i′,
+e′
+j=xj.
+•Ifi>i′then for every ( q+,e1,...,ei−1) there is a transition
+(q+,e1,...,ei−1)ϕ′,a,u′
+−−−−−→(q′−,e′
+1,...,e′
+i′)
+inA′withϕ′=ϕ({xj←ej}j<i), updateu′contains only the trivial updates
+xj:=xjfor all clocks and for all j≤i′,e′
+j=Cj[{xk←ek}k<i].
+•For every (q−,e1,...,ei) there is inA′a transition
+(q−,e1,...,ei)true,ε,x i:=ei−−−−−−−−−→ (q+,e1,...,ei−1).
+In words, given a transition, the guard is modiﬁed according to these expressions.
+The modiﬁcation of the update consists only in applying the u pdate at the current level
+and taking into account the other updates in the expressions labeling the destination
+state. When the transition increases the level, the express ion associated with a new
+“frozen” clock ( xjfori≤j < i′) is the clock itself. The urgent states ( q−,−) are
+introduced for handling the case of a transition that decrea ses the level. In this case,
+one reaches such a state that memorizes also the expression o f the clock at the current
+level. Note that the memorized expressions can correspond t o an update proceeded
+
+--- Page 18 ---
+18
+at any (higher) level. From this state a single transition mu st be (immediately) taken
+whose eﬀect is to perform the update corresponding to the mem orized expression.
+It is routine to check that the languages of the two automata a re identical. Each
+transition inAis replaced by several transitions in A′, which number is bounded bythe
+number of expressions that can be attached to the source of th e original transition. In
+addition, transitions decreasing level are further “split ” through states ( q−,−). Thus
+the number E′of transitions inA′is bounded by
+E′≤2·E·|Fn|n
+≤2·E·/parenleftBig
+2n(b(E+1)+1)/parenrightBign
+≤2·E·2n2(b(E+1)+1)
+≤2n2(b(E+1)+1)+1+log2(E)
+≤2n2((b+1)(E+1)+1)
+E′≤24b·E·n2
+(providedE≥2). This yields the exponential complexity for the number of transitions.
+The case of the number of states is similar.
+In the case when there are rational constants, assume each co nstant is coded with
+a pair (r,d) of numerator and denominator. Assume each randdcan be coded over b
+bits. We compute the lcmδof all denominators: since there are at most Econstants
+(E, the size of ∆contains the number of guards and updates), δcan be coded over
+Ebbits. We consider ITA Aδwhich isAwhere all constants are multiplied by δ. Thus
+a constant ofAδis an integer that can be coded over b′=Eb+b=b(E+ 1) bits.
+The above bound on the number of expressions applies on Aδ. Note that after the
+construction ofA′
+δ,A′can be obtained by dividing each constant in A′
+δbyδ.⊓ ⊔
+Example. We illustrate this construction on ITA A2of Fig. 5. The sets of expressions
+are computed as on Table 1 and the resulting ITA −A′
+2is depicted on Fig. 6.
+q0,2
+q1,2q2,3 q3,3q4,3
+q5,2x1:= 22x2+x1>3∧x3<2
+x2:= 2x1+1x2:=x1+1
+x3:= 2x2
+x1:= 1
+Fig. 5ITAA2containing updates of frozen clocks
+The translation above of an ITA into an equivalent ITA −induces an exponential
+blowup. The proposition below shows that the bound is reache d.
+Proposition 4 There exist a family {An}n∈Nof ITA with two states, nclocks and
+constants coded over bbits, where bis polynomial in n, such that the equivalent ITA −
+built by the procedure above has a number of states greater th an or equal to 2n.
+
+--- Page 19 ---
+19
+q+
+0,2q+
+2,3
+x1:= 2q+
+3,3
+x1:= 2
+x2:= 5q+
+4,3
+x1:= 2
+x2:= 3
+q+
+5,2
+x1:= 1q−
+5,2,U
+x1:= 1
+x2:= 5
+q−
+5,2,U
+x1:= 1
+x2:= 2x1+1
+q+
+3,3
+x2:= 2x1+1q+
+2,3 q+
+1,2q+
+4,3
+x2:=x1+12x2+2>3
+∧x3<2 x3:= 10
+ε,x2:= 5
+2x2+x1>3
+∧x3<2 x3:= 4x1+2ε,x2:=x1+1
+Fig. 6ITA−A′
+2equivalent to A2
+i\j1 2 3
+1{x1}
+2{x1,2} {x2}
+3{x1,2,1}{x2,2x1+1,5,3/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+q2x2:=2x1+1− −−−−−−− → q3, x1+1,3,2/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+q3x2:=x1+1− −−−−−− → q4}{x3}
+Table 1 Sets of expressions Fi,jforA2.
+ProofForn∈N, letAnbe the ITA with nclocks and two states qinit(initial) and q
+(ﬁnal) both of level n(and lazy policy) built as follows. There is a transition fro mqinit
+toqwith update/logicalandtextn
+k=1xk:= 1 that sets all clocks to 1. For 1 ≤k≤nthere are two
+loops onqwith updates xk:=xk−1andxk:=αkxk−1respectively, where αkis the
+kth prime number (and with the convention that x0is the constant 1).
+When building the sets of expressions, no expressions are ad ded until level n, since
+all updates occur at this level. At level k,Fn,kcontains (at least) 2kexpressions: all
+possible products of the ﬁrst kprime numbers, namely
+Fn,k⊃/braceleftBigg/productdisplay
+i∈Iαi/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleI⊆{1,...,k}/bracerightBigg
+.
+Indeed, at level 1, Fn,1={x1,1,2}. Now assume that Fn,k−1contains all products/producttext
+i∈IαiwhereI⊆{1,...,k−1}. By update xk:=xk−1,Fn,k⊃Fn,k−1. By update
+xk:=αkxk−1,Fn,kcontains all products αk/producttext
+i∈Iαi=/producttext
+i∈I⊎{k}αi. Therefore
+Fn,k⊃/braceleftBigg/productdisplay
+i∈Iαi/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleI⊆{1,...,k−1}/bracerightBigg
+∪
+
+/productdisplay
+i∈I⊎{k}αi/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleI⊆{1,...,k−1}
+
+
+
+--- Page 20 ---
+20
+Fn,k⊃/braceleftBigg/productdisplay
+i∈Iαi/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingleI⊆{1,...,k}/bracerightBigg
+.
+The expressions thus built are distinct, since they are prod ucts of distinct prime num-
+bers. Remark that the set of expression for level kis in bijection with a sequence of
+updatesx1:=...,x2:=...,...,xk:=..., the choice of the update depending on the
+choice of the set I.
+Therefore all expressions of Fn,nare reached (in association with state q) and the
+set of states inA′nis at least of size 2n. In addition, it should be noted that the nth
+prime number is in O(nlog2(n)), therefore can be coded over O(log2(n)2) bits. So the
+size of the constants appearing in the updates (and the size o f the representation of
+An) is polynomial in nwhile the representation of A′nis exponential in n.
+4.3 Reachability on ITA −
+Inthis section we use countingarguments toobtain an upperb ound for thereachability
+problem on ITA −.
+The following counting lemma does not depend on the eﬀect of t he updates but
+only on the timing constraints induced by the policies.
+Lemma 2 (Counting Lemma) LetAbe an ITA −withEtransitions and nclocks,
+then in a sequence (e1,...,el)of transitions ofAwherel>(E+n)3n, there exist i<j
+withei=ejsuch that the level of any transition ekwithi≤k≤jis greater than or
+equal to the level of ei, sayp, and:
+–eithereiupdatesxp,
+–either noekwithi≤k≤jupdatesxpandeiis delayed or lazy.
+–or noekwithi≤k≤jupdatesxpand no time elapses for clock xpbetweeneiand
+ej.
+ProofAssume that the conclusions of the lemma are not satisﬁed, we claim that l≤
+(E+2n)3n.
+First we prove that the number of transitions of level mthat occur between two
+occurrences of transitions of strictly lower level is less t han or equal to ( E+2)3. Indeed
+there can be no more than Eoccurrences of transitions that update xm. Then between
+two such transitions (or before the ﬁrst or after the last) th ere can be no more than E
+lazy or delayed transitions of level mthat do not update xm. Finally between any kind
+of previous transitions (or before the ﬁrst or after the last ), there can be no more than
+Eurgent transitions that do not update xm, since they prevent time from elapsing at
+levelm.
+Summing up, there can be no more than E+E(E+1)+E(E(E+1)+1)≤(E+1)3
+transitions of level mthat occur between two occurrence of transitions of strictl y lower
+level.
+Now we prove by induction that the number of transitions at le vel less than or
+equal tomis at most ( E+m)3m. This is true for m= 1 by the previous proof.
+Assume the formula valid for m, then grouping the transitions of level m+1 between
+the occurrences of transition of lower level (or before the ﬁ rst or after the last), we
+obtain that the number of transitions at levels less than or e qual tom+1 is at most:
+(E+m)3m+((E+m)3m+1)(E+1)3≤(E+m)3m+3+2(E+m)3m
+≤(E+m+1)3(m+1)⊓ ⊔
+
+--- Page 21 ---
+21
+Proposition 5 The reachability problem for ITA −belongs to NEXPTIME . More pre-
+cisely, reachability can be checked over paths with length l ess than or equal to (E+n)3n,
+whereEis the number of transitions and nis the number of clocks.
+ProofLetA= (Σ,Q,q 0,F,pol,X,λ,∆ ) be an ITA −withnclocks. Let E=|∆|be
+the number of transitions of A. Assume that there is a run of minimal length ρfrom
+(q0,v0) to some conﬁguration ( qf,vf). Suppose now that |ρ|>B= (E+n)3n. We will
+build a run ρ′from (q0,v0) to (qf,vf) that is strictly smaller, hence contradicting the
+minimality hypothesis.
+Since|ρ|> B, then one of the three cases of Lemma 2 applies. Therefore the re is
+a transition eat levelkrepeated twice, from positions πandπ′and separated by a
+subrunσcontaining only transitions of level higher than or equal to k. Moreover:
+–Eithereupdatesxk. In this case, all clocks have the same value after the ﬁrst an d
+the second occurrence of e. Hence removing eσ=ρ[π,π′[fromρyields a valid run
+ρ′ofAreaching (qf,vf). Runρ′is strictly smaller than ρ, sinceeσwhich is of
+length at least 1 was removed.
+–Either no update occurred for xkandeis delayed or lazy. In this case, upon
+reachingπ′, the clocks of level i < khave retained the same value, while xkhas
+increased by Dur/parenleftbig
+ρ[π,π′]/parenrightbig
+. Hence when replacing eσ=ρ[π,π′[by a time step of
+durationDur/parenleftbig
+ρ[π,π′]/parenrightbig
+, the conﬁguration in π′is unchanged. In addition, since e
+was delayed or lazy, this time step is allowed in A, and this yields a shorter run of
+A.
+–Or no update occurred and πandπ′are at the same instant (separated by instan-
+taneous actions). In this case, all clocks of level smaller t han or equal to kagain
+have the same value after the ﬁrst and the second occurrence o fe. Again removing
+ρ[π,π′[yields a smaller run.
+The decision procedure is as follows. It non deterministica lly guesses a path in the
+ITA−whose length is less than or equal to the bound. In order to che ck that this
+path yields a run, it builds a linear program whose variables are/braceleftBig
+xj
+i/bracerightBig
+, wherexj
+iis the
+value of clock xiafter thejth step, and{dj}wheredjis the amount of time elapsed
+during thejth step, when jcorresponds to a time step. The equations and inequations
+are deduced from the guards and updates of discrete transiti ons in the path and the
+delay of the time steps. The size of this linear program is exp onential w.r.t. the size
+of the ITA −. As a linear program can be solved in polynomial time [36], we obtain a
+procedure in NEXPTIME. ⊓ ⊔
+One could wonder whether the class graph construction would lead to a better
+complexity when applied on ITA −. Unfortunately, the number of expressions occurring
+in the class graph while being smaller than for ITA is still do ubly exponential w.r.t.
+the size of the model.
+5 Timed model-checking
+First observe that model-checking CTL∗formulas on ITA can be done with classical
+procedures on the class graph previously built. We now consi der veriﬁcation of real
+time formulas.
+
+--- Page 22 ---
+22
+Inthe case of linear time, the logic LTLhas been extendedintothe Metric Temporal
+Logic (MTL) [27], by adding time intervals as constraints to the Umodality. However,
+MTLsuﬀers from undecidability of the model-checking problem o n TA. Hence decid-
+able fragments have been proposed, such as Metric Interval T emporal Logic ( MITL) [5],
+which prohibits theuse of point intervals (of the form [ a,a]). Later, MITLwas restricted
+into State Clock Logic ( SCL) [35], in order to obtain more eﬃcient veriﬁcation proce-
+dures. Model-checking MITL(thusSCL) on TA is decidable. Unfortunately, we show
+here that model-checking SCL(thusMITL) on ITA is undecidable. For this, we reduce
+the halting problem on a two counter machine into model-chec king anSCLformula on
+an ITA.
+Concerning branching time logics, at least two diﬀerent tim ed extensions of CTL
+have been proposed. The ﬁrst one [2] also adds time intervals to theUmodality
+while the (more expressive) second one considers formula cl ocks [25]. Model-checking
+timed automata was proved decidable in both cases and compar ed expressiveness was
+revisited later on [14].
+We conjecture that model-checking of TCTLis undecidable when using two (or
+more) formula clocks. Indeed, as shown in Section 7.1, the re achability problem in a
+product of an ITA and a TA with two clocks is undecidable, thus prohibiting model-
+checkingtechniques throughautomaton product andreachab ility testing as in [1]. How-
+ever, contrary to what is claimed in [10], this is not enough t o yield an undecidability
+proof.
+Two fragments for which model-checking is decidable on ITA h ave nonetheless been
+identiﬁed. The ﬁrst one, TCTLintc, accepts only internal clocks (from the automaton
+on which the formulas will be evaluated) as formula clocks. T he second one, TCTLp,
+restricts the nesting of Umodalities. We provide veriﬁcation procedures in both case s.
+5.1 Undecidability of State Clock Logic
+We ﬁrst consider the timed extension of linear temporal logi c, and more particularly
+theSCLfragment [35].
+Deﬁnition 8 Formulas of the timed logic SCLare deﬁned by the following grammar:
+ψ=p|ψ∧ψ|¬ψ|ψUψ|ψSψ| /BG⊲⊳aψ| /BE⊲⊳aψ
+wherep∈APis an atomic proposition, ⊲⊳∈ {>,≥,=,≤,<}, andais a rational
+number.
+We use the usual shorthands tfor¬(p∧¬p),FψfortUψ,Gψfor¬(F¬ψ) andϕ⇒ψ
+for¬(ϕ∧¬ψ).
+The semantics are deﬁned in the usual manner for boolean oper ators and U. The
+Smodality is the past version of U. Modality /BG⊲⊳aψis true if the nexttimeψis true
+will occur in a delay that respects the condition ⊲⊳ a. Similarly, /BE⊲⊳aψis true if the
+lasttimeψwas true occurred in a (past) delay that respects the conditi on⊲⊳a. More
+
+--- Page 23 ---
+23
+formally, for an execution ρ, we inductively deﬁne ( ρ,π)|=ϕby:
+(ρ,π)|=p iﬀp∈lab(sπ)
+(ρ,π)|=ϕ∧ψiﬀ (ρ,π)|=ϕand (ρ,π)|=ψ
+(ρ,π)|=¬ϕiﬀ (ρ,π)/\⌉}a⊔io\slash|=ϕ
+(ρ,π)|=ϕUψiﬀ there is a position π′≥ρπsuch that (ρ,π′)|=ψ
+and forallπ′′s.t.π≤ρπ′′<ρπ′,(ρ,π′′)|=ϕ∨ψ
+(ρ,π)|=ϕSψiﬀ there is a position π′≤ρπsuch that (ρ,π′)|=ψ
+and forallπ′′s.t.π≥ρπ′′>ρπ′,(ρ,π′′)|=ϕ∨ψ
+(ρ,π)|= /BG⊲⊳aϕiﬀ either (ρ,π)|=ϕand 0⊲⊳a
+or, there is a position π′>ρπsuch that (ρ,π′)|=ϕ,
+Dur/parenleftbig
+ρ[π,π′]/parenrightbig
+⊲⊳aand forallπ′′s.t.π≤ρπ′′<ρπ′,(ρ,π′′)/\⌉}a⊔io\slash|=ϕ
+(ρ,π)|= /BE⊲⊳aϕiﬀ either (ρ,π)|=ϕand 0⊲⊳a
+or, there is a position π′<ρπsuch that (ρ,π′)|=ϕ,
+Dur/parenleftbig
+ρ[π′,π]/parenrightbig
+⊲⊳aand forallπ′′s.t.π≥ρπ′′>ρπ′,(ρ,π′′)/\⌉}a⊔io\slash|=ϕ
+Given an ITAAand anSCLformulaϕ,A|=ϕif for all executions ρofA, (ρ,π0)|=ϕ,
+whereπ0= 0 is the initial position of ρ.
+Theorem 3 Model checking SCLover ITA is undecidable. Speciﬁcally, there exists a
+ﬁxed formula using only modalities Uand /BE=asuch that checking its truth over ITA
+with3levels is undecidable.
+ProofWe build an ITA and an SCLformula that together simulate a deterministic two
+counter machine. More speciﬁcally, we deﬁne a formula ϕ2cmsuch that given a two
+counter machineM, we can build an ITA AMwith three clocks such that AM|=ϕ2cm
+if and only ifMdoes not halt.
+Recall that such a machine Mconsists of a ﬁnite sequence of labeled instructions,
+which handle two counters candd, and ends at a special instruction with label Halt.
+The other instructions have one of the two forms below, where e∈{c,d}represents
+one of the two counters:
+–e:=e+1; gotoℓ′
+–ife>0 then (e:=e−1; gotoℓ′) else gotoℓ′′
+Without loss of generality, we mayassume that thecounters h ave initial value zero. The
+behavior of the machine is described by a (possibly inﬁnite) sequence of conﬁgurations:
+/a\}brack⌉⊔l⌉{⊔ℓ0,0,0/a\}brack⌉⊔ri}h⊔/a\}brack⌉⊔l⌉{⊔ℓ1,n1,p1/a\}brack⌉⊔ri}h⊔.../a\}brack⌉⊔l⌉{⊔ℓi,ni,pi/a\}brack⌉⊔ri}h⊔..., whereniandpiare the respective counter values
+andℓiis the label, after the ithinstruction. The problem of termination for such a
+machine (“is the Haltlabel reached?”) is known to be undecidable [32].
+The idea of the encoding is that, provided the execution sati sﬁes the formula, clocks
+of level 1 and 2 keep the values of canddindiﬀerently, by xi=1
+2nifnis the value of
+a countere. Level 3 will be used as the working level. Transmitting the v alue of clocks
+to lower levels, prohibited in the ITA model, will be enforce d bySCLformulas. In the
+sequel, we will deﬁne:
+–a moduleA↔and a formula ϕ↔such that the values contained in clocks x1and
+x2at the beginning of an execution ρare swapped if and only if ( ρ,0)|=ϕ↔,
+–a moduleA+and a formula ϕ+such that if the value of x2is1
+2nat the beginning
+of an execution ρ, thenx2has value1
+2n+1if and only if ( ρ,0)|=ϕ+,
+–a moduleA−and a formula ϕ−such that if the value of x2is1
+2nwithn >0 at
+the beginning of an execution ρ, thenx2has value1
+2n−1if and only if ( ρ,0)|=ϕ−.
+
+--- Page 24 ---
+24
+Joining these modules according to Myields an ITA. Combining the formulas (inde-
+pendently ofM), we obtain an SCLformula that is satisﬁed if some execution, while
+complying to the formulas of the modules, reaches the ﬁnal st ate. Both constructions
+are explained in details after the deﬁnitions below.
+Let us deﬁne formulas Span1=q′⇒ /BE=1qandSpan2=p′⇒ /BE=2pwherep,p′,
+q,q′are propositional variables. Let x0
+1andx0
+2denote the respective values of x1and
+x2upon entering a given module.
+Swapping module. The moduleA↔that swaps the values of x1andx2is depicted
+in Fig. 7. Note that this module does not actually swap the val ues ofx1andx2for
+every execution. However, by imposing that state qendis reached exactly 2 time
+units afterq0(orq′
+0) was left, and that q4(resp.q′
+4) is reached exactly 1 t.u. after
+q1(resp.q′
+1) was left, the values of x1andx2will be swapped. This requirement
+can be expressed in SCLbyϕ↔=G(Span1∧Span2). Letwibe the time elapsed
+in stateqi, for an execution ρofA↔that satisﬁes ϕ↔. Note that qstartandq/ne}ationslash=
+end
+are all urgent, hence no time can elapse in these states. We sh all therefore consider
+only what happens in the swapping submodules. We detail only the case when
+x2>x1, the case when x2<x1is analogous. The ITA constraints provide:
+w0= 0 ( q0is urgent)
+w1=x0
+2−x0
+1(updatex3:=x1and guardx3=x2)
+w2= 1−x0
+2 (guardx3= 1)
+w4= 0 ( q4is urgent)
+The time spent between the last instant qwas satisﬁed (upon leaving q1) and the
+only instant when q′is true (upon entering q4) is exactly the time spent in states
+q2andq3. Similarly, the time between the last instant pwas satisﬁed (leaving q0)
+and the instant p′is true (when reaching q/ne}ationslash=
+end) is the total amount of time spent
+inq1,q2,q3,q4, andq5. Hence, ifϕ↔is satisﬁed then:
+w2+w3= 1/parenleftBig
+q′⇒ /BE=1q/parenrightBig
+w1+w2+w3+w4+w5= 2/parenleftBig
+p′⇒ /BE=2p/parenrightBig
+Hencew3=x0
+2andw5= 1−w1=x0
+1−/parenleftbig
+x0
+2−1/parenrightbig
+. Since upon entering q3, clock
+x1has value 0, when leaving, x1has valuex0
+2. Similarly, when entering q5,x2has
+valuex1−1 =x0
+2−1, therefore x2has valuex0
+1when reaching q/ne}ationslash=
+end. Note that this
+module swaps x1andx2regardless of their coding a counter value.
+Incrementation module. The same idea applies for the incrementation module A+
+of Fig. 8. We force the time spent in total in r1andr2is one, expressed in SCLby
+ϕ+=GSpan1. The guards and updates in A+ensure that, with the same notation
+as above, time spent in r1will be 1−1
+2x0
+2. Hence, when reaching r3, clockx2will
+have value1
+2x0
+2. Therefore, if x0
+2=1
+2n, coding a counter of value n, at the end of
+A+,x2has value1
+2n+1, thus coding a value n+1 for the same counter.
+Decrementation module. Decrementation, for which the corresponding module is
+depicted on Fig. 9, is handled in a similar manner (with ϕ−=ϕ+=GSpan1).
+The only diﬀerence is that x2has to be compared to 1 in order to test if the value
+of the counter encoded by x2is 0.
+
+--- Page 25 ---
+25
+qstart,∅
+3,U
+q0,{p}
+3,Uq′
+0,{p}
+3,U q=
+end,∅
+3,Ux2> x1 x2< x1
+x2=x1
+(a) Choice submodule.
+q0,{p}
+3,Uq1,{q}
+3,Lq2,∅
+3,L
+q3,∅
+1,Lq4,{q′}
+2,Uq5,∅
+2,Lq/negationslash=
+end,{p′}
+3,Ux3:=x1 x3=x2
+x3= 1
+x1:= 0x2:=x1−1
+(b) Swapping submodule ( x2> x1).
+q′
+0,{p}
+3,Uq′
+1,{q}
+3,Lq′
+2,∅
+3,L
+q′
+3,∅
+1,Lq′
+4,{q′}
+2,Uq′
+5,∅
+2,Lq/negationslash=
+end,{p′}
+3,Ux3:=x1−1
+x3=x2
+x3= 1
+x1:= 0x2:=x1
+(c) Swapping submodule ( x2< x1).
+Fig. 7 Swapping module A↔. Submodules are connected through identical states ( q0,q′
+0,
+q/negationslash=
+end).
+r0,{q}
+3,Ur1,∅
+3,L
+r2,∅
+2,Lr3,{q′}
+3,Ux3:=1
+2x2
+x3= 1
+x2:= 0
+Fig. 8Incrementation module.
+s0,{q}
+3,Us1,∅
+3,L
+s2,∅
+2,Ls3,{q′}
+3,Us4,∅
+3,Ux2<1
+x3:= 2x2
+x3= 1
+x2:= 0x2= 1
+Fig. 9Decrementation module.
+
+--- Page 26 ---
+26
+Since the constraints in Span1(andSpan2) are equalities, they can be satisﬁed only
+ifq′(andp′) are true at a single point in time.
+AutomatonAMis then deﬁned as the concatenation of modules according to M.
+For clarity, a state ( q,ℓ) denotes state qin a module corresponding to instruction ℓ.
+Namely, an instruction ℓincrementing cand going to ℓ′is an incrementation mod-
+ule with a transition from ( r3,ℓ) to the ﬁrst state of the module corresponding to ℓ′
+(either (qstart,ℓ′), (r0,ℓ′) or (s0,ℓ′)). In the case of an incrementation of d, the corre-
+sponding module will be the concatenation of Ain↔,A+, andAout↔. ModulesAin↔and
+Aout↔are two copies of a swapping module A↔. The states ofAin↔andAout↔will be
+respectively denoted ( q,ℓ,in) and (q,ℓ,out)) to avoid confusion. The last swap is per-
+formed in order to restore that x2contains the value of candx1the value of d. The
+concatenation is done by transitions from ( q/ne}ationslash=
+end,ℓ,in) and (q=
+end,ℓ,in) to (r0,ℓ), from
+(r3,ℓ) to (qstart,ℓ,out). States (q/ne}ationslash=
+end,ℓ,out) and (q=
+end,ℓ,out) are then linked to the
+ﬁrst state of the module for ℓ′.
+Decrementation is handled in a similar way. The main diﬀeren ce resides in the fact
+that (s4,ℓ) is linked to the ﬁrst state of ℓ′′. In the decrementation of d, (s4,ℓ) is linked
+to a swapping module Aout′
+↔(disjoint fromAin↔andAout↔), in turn linked to the ﬁrst
+state ofℓ′′.
+TheHaltinstruction is encoded in a single state hlabeled with{h}. The initial
+state of the automaton is a new state Initof level 3. It has urgentpolicy and satisﬁes no
+atomic proposition. State Initis linked to the ﬁrst state of the module corresponding
+toℓ0, the initial instruction of M, by a transition that updates both x1andx2to 1,
+simulating the initialization of both counters to 0.
+Let us deﬁne formula ϕ2cm=F(¬Span1∨¬Span2)∨G¬h. An execution ρofAM
+satisﬁesϕ2cmif either it violates at some point a constraint Spani, which means ρ
+does not correspond to an execution of M, orρnever reaches state h, which means
+the execution ofMis not halting.
+IfMhas a halting execution, then it can be converted into an exec utionρthat
+complies to the Spaniconstraints and reaches the ﬁnal state h. Henceρ/\⌉}a⊔io\slash|=ϕ2cmand
+AM/\⌉}a⊔io\slash|=ϕ2cm.
+Conversely, ifAM/\⌉}a⊔io\slash|=ϕ2cm, then consider an execution ρthat does not verify ϕ2cm.
+Executionρboth reaches hand complies to the Spaniconstraints, hence encodes a
+halting execution of M.
+As a result,Mhas no halting execution if and only if
+AM|=F/parenleftBig/parenleftBig
+¬q′∧¬ /BE=1q/parenrightBig
+∨/parenleftBig
+¬p′∧¬ /BE=2p/parenrightBig/parenrightBig
+∨G¬h.
+Remark that this formula does not have nested history or pred iction modalities ( /BE⊲⊳a
+and /BG⊲⊳a). Hence SCLwith a discrete semantics (evaluatingthe subformulas only upon
+entering a state) would also be undecidable. ⊓ ⊔
+5.2 Model-checking branching time properties with interna l clocks
+In this section we consider the extension of CTLwith model clocks, the corresponding
+fragment being denoted by TCTLintc. Such a logic allows to reason about the sojourn
+times in diﬀerent levels which is quite useful when designin g real-time operating sys-
+tems. For example, formula A(x2≤3)Usafeexpresses that all executions reach a safe
+
+--- Page 27 ---
+27
+state while spendingless than3timeunits inlevel 2(assumi ngx2is notupdatedduring
+the execution). Model-checking is achieved by adapting a cl ass graph construction for
+untiming ITA (Section 3) and adding information relevant to the formula. The problem
+is thus reduced to a CTLmodel checking problem on this graph.
+Deﬁnition 9 Formulas of the timed logic TCTLintcare deﬁned by the following gram-
+mar:
+ψ::=p|ψ∧ψ|¬ψ|/summationdisplay
+i≥1ai·xi+b⊲⊳0|AψUψ|EψUψ
+wherep∈APis an atomic proposition, xiare model clocks, aiandbare rational
+numbers such that ( ai)i≥1has ﬁnite domain, and ⊲⊳∈{>,≥,=,≤,<}.
+As before we use the classical shorthands F,G, and boolean operators.
+LetA=/a\}brack⌉⊔l⌉{⊔Σ,AP,Q,q 0,F,pol,X,λ,lab,∆ /a\}brack⌉⊔ri}h⊔be an interrupt timed automaton and
+S={(q,v,β)|q∈Q, v∈RX, β∈{⊤,⊥}}, the set of conﬁgurations. The formulas
+ofTCTLintcare interpreted over conﬁgurations1s= (q,v,β).
+The semantics of TCTLintcis deﬁned as follows on the transition system TAas-
+sociated withA. For atomic propositions and a conﬁguration s= (q,v,β), with
+lab(s) =lab(q):
+s|=p iﬀp∈lab(s)
+s|=/summationtext
+i≥1ai·xi+b⊲⊳0 iﬀv|=/summationtext
+i≥1ai·xi+b⊲⊳0
+and inductively:
+s|=ϕ∧ψ iﬀs|=ϕands|=ψ
+s|=¬ϕ iﬀs/\⌉}a⊔io\slash|=ϕ
+s|=AϕUψiﬀ for allρ∈Exec(s), ρ|=ϕUψ
+s|=EϕUψiﬀ there exists ρ∈Exec(s) s. t.ρ|=ϕUψ
+withρ|=ϕUψiﬀ there is a position π∈ρs. t.sπ|=ψ
+and∀π′<ρπ, sπ′|=ϕ∨ψ.
+The automatonAsatisﬁesψif the initial conﬁguration s0ofTAsatisﬁesψ.
+Theorem 4 Model checking TCTLintcon interrupt timed automata can be done in
+2-EXPTIME, and in PTIME when the number of clocks is ﬁxed.
+The proof relies on a reﬁnement of the class graph according t o the comparisons
+in the formula to model-check. It is detailed in Appendix A an d we show the resulting
+graph on an example below.
+Example. Consider the ITA A1(Fig. 3(a)) and the formula ϕ1=EF(q1∧(x2>x1).
+We assume that q1is a propositional property true only in state q1. Initially, the set of
+expressions are E1={x1,0}andE2={x2,0}. First the expression −1
+2x1+1 is added
+intoE2sincex1+2x2= 2 appears on the guard in the transition from q1toq2. Then
+expression 1 is added to E1becausex1−1<0 appears on the guard in the transition
+fromq0toq1. Finally expression x1is added to E2sincex2−x1>0 appears in ϕ1.
+The iterative part of the procedure goes as follows. Since th ere is a transition from q0
+of level 1 to state q1of level 2, we compute all diﬀerences between expressions of E2,
+then normalize them:
+1The boolean value in the conﬁguration is not actually used. T he logic could be enriched
+to take advantage of this boolean, to express for example tha t a run lets some time elapse in
+a given state.
+
+--- Page 28 ---
+28
+Z1
+0= (0 =x1<2
+3<1<2)Z1
+1= (0<x1<2
+3<1<2)Z1
+2= (0<x1=2
+3<1<2)
+Z1
+3= (0<2
+3<x1<1<2)Z1
+4= (0<2
+3<x1= 1<2)Z1
+5= (0<2
+3<1<x1<2)
+Z1
+6= (0<2
+3<1<x1= 2) Z1
+7= (0<2
+3<1<2<x1)
+Z2
+0= (0 =x2<x1<−1
+2x1+ 1) Z2
+1= (0<x2<x1<−1
+2x1+ 1)
+Z2
+2= (0<x1=x2<−1
+2x1+ 1) Z2
+3= (0<x1<x2<−1
+2x1+ 1)
+Z2
+4= (0<x1<−1
+2x1+ 1 =x2) Z2
+5= (0<x1<−1
+2x1+ 1<x2)
+Z2
+6= (0 =x2<−1
+2x1+ 1<x1) Z2
+7= (0<x2<−1
+2x1+ 1<x1)
+Z2
+8= (0<−1
+2x1+ 1 =x2<x1) Z2
+9= (0<−1
+2x1+ 1<x2<x1)
+Z2
+10= (0<−1
+2x1+ 1<x1=x2) Z2
+11= (0<−1
+2x1+ 1<x1<x2)
+Table 2 Time zones used in the class graph of A1when checking ϕ1.
+•x1−0 andx2−0 yield no new expression.
+•x2−(−1
+2x1+1) and 0−(−1
+2x1+1) with update x2:= 0 both yield expression 2,
+that is added to E1.
+•x1−(−1
+2x1+1) yields expression2
+3, which is also added to E1.
+The sets of expressions are therefore E1={x1,0,1,2
+3,2}andE2={x2,0,−1
+2x1+
+1,x1}. Remark that knowing the order between x1and2
+3will allow us to know the
+order between−1
+2x1+ 1 andx1. The class graph Gcorresponding to A1andϕ1is
+depicted in Fig. 10. Note that we replaced x1by its value, since it is not changed by
+any update at level 2. Some time zone notations used in Gare displayed in Table 2.
+In the class graph, states where the comparison x2> x1istrueare greyed. Among
+these, the ones in which the class corresponds to state q1are doubly circled, i.e.states
+in whichq1∧(x2>x1) istrue. Applying standard CTLmodel checking procedure on
+this graph, one can prove that one of these states is reachabl e, hence proving that ϕ1
+istrueonA1.
+5.3 Model-checking TCTLwith subscript
+Note that in TCTLintc, it is not possible to reason about time evolution independe ntly
+of the level in which actions are performed. For example, pro perties(P2) the system
+is error free for at least 50 t.u. or(P3) the system will reach a safe state within 7
+t.u.involve global time. In order to verify such properties, we i ntroduce the fragment
+TCTLp. This fragment is expressive enough to state constraints on earliest (and latest)
+executiontime ofparticular sequences, like thosereachin garecoverystate after acrash.
+TCTLpis the set of formulas where satisfaction of an untilmodality over propositions
+can be parameterized by a restricted form of time intervals.
+
+--- Page 29 ---
+29
+q0,Z1
+0
+q0,Z1
+1
+q0,Z1
+2
+q0,Z1
+3
+q0,Z1
+4 q0,Z1
+5 q0,Z1
+6 q0,Z1
+7q1,Z1
+0
+0 =x2<1q1,Z1
+0
+0<x2<1q1,Z1
+0
+0<x2= 1q1,Z1
+0
+0<1<x2
+q2,Z1
+0
+0<x2= 1q2,Z1
+0
+0<1<x2
+q1,Z1
+1,Z2
+0q1,Z1
+1,Z2
+1q1,Z1
+1,Z2
+2q1,Z1
+1,Z2
+3q1,Z1
+1,Z2
+4q1,Z1
+1,Z2
+5
+q2,Z1
+1,Z2
+4q2,Z1
+1,Z2
+5
+q1,Z1
+2
+0 =x2<2
+3q1,Z1
+2
+0<x2<2
+3q1,Z1
+2
+0<x2=2
+3q1,Z1
+2
+0<2
+3<x2
+q2,Z1
+2
+0<x2=2
+3q2,Z1
+2
+0<2
+3<x2
+q1,Z1
+3,Z2
+6q1,Z1
+3,Z2
+7q1,Z1
+3,Z2
+8q1,Z1
+3,Z2
+9q1,Z1
+3,Z2
+10q1,Z1
+3,Z2
+11
+q2,Z1
+3,Z2
+8q2,Z1
+3,Z2
+9q2,Z1
+3,Z2
+10q2,Z1
+3,Z2
+11a
+b
+a
+b
+a
+b
+a
+b
+Fig. 10 The class automaton for A1and formula ϕ1.
+
+--- Page 30 ---
+30
+Deﬁnition 10 Formulas of TCTLpare deﬁned by the following grammar:
+ϕp:=p|ϕp∧ϕp|¬ϕpandψ:=ψ∧ψ|¬ψ|ϕp|AϕpU⊲⊳aϕp|EϕpU⊲⊳aϕp
+wherep∈APis an atomic proposition, a∈Q+, and⊲⊳∈{>,≥,≤,<}is a comparison
+operator.
+The properties given in introduction can be expressed by TCTLpformulas as follows.
+PropertyP2 :the system is error free for at least 50 t.u. correspondsto A(¬error)U≥50t,
+while property P3 :the system will reach a safe state within 7 t.u. is expressed by
+AF≤7safe.
+Formulas of TCTLpare again interpreted over conﬁgurations of the transition sys-
+tem associated with an ITA. For conﬁguration s= (q,v,β), withlab(s) =lab(q), the
+inductive deﬁnition is as follows:
+s|=p iﬀp∈lab(s)
+s|=ϕ∧ψ iﬀs|=ϕands|=ψ
+s|=¬ϕ iﬀs/\⌉}a⊔io\slash|=ϕ
+s|=AϕpU⊲⊳aψpiﬀ any execution ρ∈Exec(s) is such that ρ|=ϕpU⊲⊳aψp
+s|=EϕpU⊲⊳aψpiﬀ there exists an execution ρ∈Exec(s) such that ρ|=ϕpU⊲⊳aψp
+where
+ρ|=ϕpU⊲⊳aψpiﬀ there exists a position πalongρsuch thatDur(ρ≤π)⊲⊳a,
+sπ|=ψp,and for any position π′<ρπ, sπ′|=ϕp
+AgainA|=ψifs0|=ψ.
+We now prove that:
+Theorem 5 Model checking TCTL pon ITA is decidable.
+The proof consists in establishing procedures dedicated to the four diﬀerent subcases:
+–EpU≤arandEpU<ar(Proposition 6),
+–EpU≥arandEpU>ar(Proposition 7),
+–ApU≥arandApU>ar(Proposition 8),
+–ApU≤arandApU<ar(Proposition 9),
+wherepandrare boolean combinations of atomic propositions.
+Proposition 6 Model checking formulas EpU≤arandEpU<arover ITA is decidable
+in NEXPTIME and in NP if the number of clocks is ﬁxed.
+ProofFirst consider the case of ITA −. Both formulas are variants of reachability, with
+the addition of a time bound. Therefore, the proof is similar to the one of Proposition 5.
+Again using Lemma 2 on an ITA −withEtransitions, we can look for a run satisfying
+one of these formulas and bounded by B= (E+n)3n, because shortening longer
+runs can be can be done while preserving the property. Thus, t he decision procedure
+again consists in guessing a path and building a linear progr am. The satisfaction of
+the formula is then checked by separately verifying on one si de that the run satisﬁes
+pUr, and on the other side, that the sum of all delays djsatisﬁes the constraint in the
+formula. The complexity is the same as in Proposition 5.
+In the case of ITA, the exponential blowup of the transformat ion into an equivalent
+ITA−does not aﬀect the complexity of the model-checking procedu re above, as in
+Theorem 2.⊓ ⊔
+
+--- Page 31 ---
+31
+Note that this problem can be compared with bounded reachabi lity as studied in [17].
+However, the models seem incomparable: while the variables (that have ﬁxed non-
+negative rates in a state) are more powerful than interrupt c locks, the guards and
+updates are rectangular, which in particular forbids addit ive and diagonal constraints.
+Proposition 7 Model checking a formula EpU≥arandEpU>aron an ITA is decid-
+able in NEXPTIME and in NP if the number of clocks is ﬁxed.
+ProofLetAbe an ITA −withninterrupt clocks and Etransitions, and B= (E+
+n)3n. The algorithm to decide whether EpU≥ar(orEpU>ar) works as follows. It
+nondeterministically guesses a path of length smaller than or equal to Band builds
+the associated linear program (as in the proof of Propositio n 5), then checks that:
+–this path yields a run, which can be done by solving the linear program;
+–there is a position πin this run at which rholds and before which pholds contin-
+uously;
+–the sum of delays before πexceedsa(or strictly exceed in the case of EpU>ar).
+If this ﬁrst procedure fails, the algorithm nondeterminist ically guesses a path of length
+smaller or equal to 2 B+1 and checks that:
+–this path yields a run, which can be checked by a linear progra m as before,
+–pholds on this path, but not necessarily in the last state reac hed,
+–rholds in the last state of this path,
+–either there is a transition eof levelkthat updates xkappearing twice and sep-
+arated by a sequence σof transitions of level higher than kduring which time
+elapses (globally) ; this last part can be checked with a line ar program on the
+delays corresponding to this subrun.
+–or there is a transition eof levelkthat does not update xkappearing twice and
+separated by a sequence σof transitions of level higher than knot updating xk
+during which time elapses at levels strictly higher than kbut not at level k.
+The algorithm returns trueif one of the previous procedure succeeds, and falseother-
+wise. We shall now prove that this algorithm is both sound and complete.
+Soundness. If the ﬁrst procedure succeeds, then the path guessed is triv ially a witness
+ofEpU≥ar(orEpU>ar,accordingly). Ifthesecond procedure succeeds, thenawit ness
+for the formula can be built from the path guessed. Indeed, th e path guessed satisﬁes
+pUr, but not necessarily pU≥ar. Assume the sequence σlets elapse δtime units
+(δ >0), by repeating⌈a
+δ⌉times2the sequence σe, we obtain a run satisfying pU≥ar.
+Note that since either eupdates the clock xkor there are no updates nor time elapsing
+at levelk, andσhappens at higher levels, the clock values in each instance o fσewill
+be identical, hence this repetition will always be possible .
+Completeness. Now consider a minimal witness ρof lengthhforEpU≥ar. Sinceρis
+minimal,rholds in the last state of ρandpholds (at least) in every position before. If
+h≤B, then the ﬁrst procedure will consider ρ. Otherwise, h> B, it means that one
+of the following cases of Lemma 2 happens:
+2This sequence may be repeated once more in the case of pU>ar.
+
+--- Page 32 ---
+32
+–The same transition eof levelkleavingxkunchanged appears twice separated by
+lazy or delayed transitions between states of level greater than or equal to k. In
+that case, the corresponding subrun can be replaced by a time step of the same
+duration, not changing the truth value of pU≥aron this new smaller run, thus
+violating the minimality hypothesis.
+–The same transition eof levelkupdating clock xkappears twice on the subrun
+e1...eB+1, at positions iandj. In that case we have to distinguish two subcases
+either some time has elapsed between the two occurrences eiandejofe, or the
+transitions were all instantaneous.
+–If no time has elapsed, the subrun between eiandejcan be removed without
+altering the truth value of pU≥aron this new run, which is smaller than ρ.
+Hence there is a contradiction with the minimality hypothes is.
+–Or some time elapsed during this subrun. Let ρbe decomposed into ρ0eiσejρj.
+Then by applying Lemma 2 to ρjthere exists a run ρ′
+jof length smaller or
+equal toBsuch thatρ′=ρ0eiσejρ′
+jis also a run. Note that |ρ′|≤2B+ 1,
+that the last state of ρ′will be the same as the last state of ρhence will satisfy
+r, and thatpwill also hold along ρ′. As a result ρ′will be considered by the
+second procedure.
+–The same transition eof levelkleavingxkunchanged appears twice, with no time
+elapsing at level kbetween these occurrences. In that case, we again distingui sh
+two subcases:
+–either no time elapsed (globally) the corresponding subrun can be removed, not
+changing anything to the rest of the execution nor to the sati sfaction ofpU≥ar,
+thus violating the hypothesis of minimality of ρ;
+–or time elapsed at higher levels and, by minimizing the subru n after the second
+occurrence as above, we deduce that the run will be considere d by the second
+procedure.
+The completeness proof is similar in the case of EpU>ar.
+WhenAis an ITA, the exponential blowup of the transformation from ITA to
+ITA−does not aﬀect the above complexity. ⊓ ⊔
+While a witness is a ﬁnite path in the previous cases, it is pot entially inﬁnite for
+ApU≥arorApU>ar. The generation of an inﬁniterun relies on the (nondetermin istic)
+exploration of the class graph built in Section 3, thus has a m uch greater computational
+complexity.
+Proposition 8 Model checking a formula ApU≥arandApU>aron an ITA is de-
+cidable in 2-EXPTIME and in co-NP if the number of clocks is ﬁx ed.
+ProofWe consider an ITA Awithninterrupt clocks, Etransitions and the bound
+B= (n+2)12b·E·n3wherebis the number of bits coding the constants in A.
+The algorithm to verify ApU≥ar(orApU>ar) works as follows. It nondeterminis-
+tically guesses a path of length smaller than or equal to B, builds its associated linear
+program, and checks that:
+–this path yields a run ρ(by solving the linear program);
+–this path is maximal, that means no transition can be ﬁred fro m the last conﬁgu-
+ration of the run;
+
+--- Page 33 ---
+33
+¬rρ:π/CH< a
+≤B
+Fig. 11 Proof of Proposition 8: ﬁnite counterexample (Case 1).
+¬rπ
+¬p∧¬rπ′
+ρ:/CH< a
+≤B
+Fig. 12 Proof of Proposition 8: ﬁnite counterexample (Case 2).
+–there is a position πinρoccurring at a time stricly less than3asuch that
+Case 1: either rdoes not hold from π(see Fig. 11)
+Case 2: or there is a position π′where neither pnotrhold, andrdoes not hold
+betweenπandπ′(see Fig. 12).
+If this ﬁrst procedure fails, then the algorithm guesses:
+–a classKand a cycleCstarting from Kin the class graph (without building
+neither the graph nor the cycle), such that Ccontains at least a discrete step and
+only traverses classes where ¬rholds;
+–a path in the automaton of length smaller than or equal to the b oundB;
+and checks that:
+–thepathdoes yield arun ρ, thatreaches aconﬁguration ( q,v,β) inclassK(through
+a linear program);
+–there is a position πinρoccurring at time strictly less than4aafter which rno
+longer holds.
+Remark that the procedure cannot use solely the class graph, since the abstraction is
+not precise enough to check the existence of position π.
+Soundness. Weprovethatthealgorithm issound:whenoneoftheprocedur essucceeds,
+there exists a counterexample for formula ApU≥ar(orApU>ar). In the case of the
+ﬁrst procedure, it is trivial that the guessed run does not sa tisfypU≥ar(orpU>ar).
+In the case of the second one, we show that there exists an inﬁn ite counterexample.
+Consider conﬁguration ( q,v,β), which is reachable by ρ. Since (q,v,β) belongs to class
+K, for any path σstarting from Kin the class graph, there is a run in the automaton
+starting from ( q,v,β) traversing conﬁgurations which belong to the classes trav ersed
+byσ. Since there is a cycle in the class graph, there is an inﬁnite path in the class
+graph (iterating on this cycle), so there exists an inﬁnite r un in the ITA. Also, since
+¬rholds in the inﬁnite path of the class graph, it holds in the ru n of the ITA, and the
+run is a counterexample for the formula.
+3Less than or equal to ain the case of ApU>ar.
+4Less than or equal to ain the case of ApU>ar.
+
+--- Page 34 ---
+34
+Completeness. Assume there exists a ﬁnite counterexample ρ. LetA′be the ITA −
+acceptingthe same timed language as Aand letE′denote thenumberofits transitions.
+LetB′= (E′+2n)3n(the bound of Lemma 2), we have B′≤B. If|ρ|≤B, it will be
+detected by procedure 1. Otherwise let ρ′be the run corresponding to ρinA′. This run
+accepts the same timed word as ρand its sequence of traversed states can be projected
+onto the sequence of corresponding states of ρ, by omitting states of the form ( q−,−):
+any subsequence ( q+
+0,−)→···→ (q+
+m−1,−)→(q−m,−)→(q+m,−) inρ′corresponds
+to the subsequence q0→···→qm−1→qminρ. Note that|ρ|≤|ρ′|and thatρ′is
+also a counterexample for the formula (although in A′). Since|ρ′|>B≥B′, then one
+of the cases of case of Lemma 2 occurs. By removing transition s and maybe replacing
+them by some time elapsing, as in the proof of Proposition 7, a counterexample σ′of
+size|σ′|≤B′≤Bexists inA′. Now consider the run σinAwhich corresponds to
+σ′. We have|σ|≤|σ′|≤B′≤Bandσis still a counterexample. Therefore σcan be
+guessed by the ﬁrst procedure.
+If there exists an inﬁnite counterexample ρ, consider its counterpart σin the class
+graph. This counterpart is also inﬁnite. More precisely, σcontains an inﬁnite number
+of discrete transitions. Since σtraverses a ﬁnite number of classes, it contains a cycle C
+with at least one discrete transition. Choose any class Kof this cycle and consider the
+preﬁxρ0ofρleading to a conﬁguration in K. As in the case of a ﬁnite counterexample,
+there exists ρ′
+0of length smaller than Breaching the same conﬁguration. All C,Kand
+ρ′
+0can be guessed by the second procedure, which will therefore succeed.
+Procedure 1 operates in NEXPTIME (guessing a path of length Band solving
+a linear program of size polynomial w.r.t. B). Procedure 2 consists in looking for a
+speciﬁc cycle in the class graph which in can be done in time po lynomial w.r.t. the size
+of the graph thus in 2-EXPTIME. The case where the clocks are ﬁ xed, is handled as
+usual.⊓ ⊔
+For formulas in case 4, a speciﬁc procedure can be avoided, si nce the algorithms of
+cases 2 and 3 can be reused:
+Proposition 9 Model checking a formula ApU≤arandApU<aron an ITA is de-
+cidable in 2-EXPTIME and in co-NP if the number of clocks is ﬁx ed.
+ProofNoticethat ApU≤ar= (ApU≥0r)∧¬(E¬rU>at),andApU<ar= (ApU≥0r)∧
+¬(E¬rU≥at).⊓ ⊔
+6 Language properties
+In this section, we compare the expressive power of the previ ous models with respect
+to language acceptance. Recall that TL is strictly containe d in CRTL. We prove that:
+Theorem 6 The families TL and ITL are incomparable. The families CRTL a nd ITL
+are incomparable.
+6.1 ITL is not contained in TL, nor in CRTL
+The next proposition shows that ITA cannot be reduced to TA or CRTA. Observe that
+the automata used in the proof belong to ITA −. Also, the language given for the ﬁrst
+point of the proposition is very simple since it contains onl y words of length 2.
+
+--- Page 35 ---
+35
+q0,1 q1,2 q2,2x1<1,a, (x2:= 0) x1+2x2= 1,b
+Fig. 13 An ITA A3forL3
+q0,1 q1,2x1>0,c,x2:= 0x2=x1,c,x2:= 0
+Fig. 14 An ITA A4forL4
+Proposition 10
+1. There exists a language in ITL whose words have bounded len gth which is not in TL.
+2. There exists a language in ITL which is not in CRTL.
+ProofTo prove the ﬁrst point, consider the ITA A3in Fig. 13. Suppose, by contra-
+diction, that L3=L(A3) is accepted by some timed automaton B(possibly with
+ε-transitions). Note that since we consider timed languages , we cannot assume that
+the granularity of Bis 1. Letdbe the granularity of B,i.e.the gcd of all rational
+constants appearing in the constraints of B(thus each such constant can be written
+k/dfor some integer k). Then the word w= (a,1−1/d)(b,1−1/2d) is accepted byB
+through a ﬁnite path. Consider now the automaton B′in TA, consisting of this single
+path (where states may have been renamed). We have w∈L(B′)⊆L(B) =L3andB′
+contains no cycle. Using the result in [11], we can build a tim ed automatonB′′without
+ε-transition and with same granularity dsuch thatL(B′′) =L(B′), so thatw∈L(B′′).
+The accepting path for winB′′contains two transitions : p0ϕ1,a,r1−−−−−→p1ϕ2,b,r2−−−−−→p2.
+After ﬁring the a-transition, all clock values are 1 −1/dor 0, thus all clock values are
+1−1/2dor 1/2dwhen theb-transition is ﬁred. Let x ⊲⊳ cbe an atomic proposition
+appearing in ϕ2. Since the granularity of B′′isd, the⊲⊳operator cannot be = oth-
+erwise the constraint would be x= 1/2dorx= 1−1/2d. If the constraint is x < c,
+x≤c,x > c, orx≥c, the path will also accept some word ( a,1−1/d)(b,t) for
+somet/\⌉}a⊔io\slash= 1−1/2d. This is also the case if the constraint ϕ2is true. We thus obtain a
+contradiction with L(B′′)⊆L3, which ends the proof.
+To prove the second point, consider the language:
+L4={(c,τ)(c,2τ)...(c,nτ)|n∈N,τ >0}
+accepted by the ITA A4in Fig. 14. This language cannot be accepted by a CRTA
+(see [21]).⊓ ⊔
+6.2 TL is not contained in ITL
+We now prove that there exists a language in TL that does not be long to ITL. Let L5
+be the language deﬁned by
+L5=/braceleftbig
+(a,τ1)(b,τ2)...(a,τ2p+1)(b,τ2p+2)|p∈N,
+∀0≤i≤p, τ2i+1=i+1 andi+1<τ2i+2<i+2,
+∀1≤i≤p τ2i+2−τ2i+1<τ2i−τ2i−1/bracerightbig
+
+--- Page 36 ---
+36
+Hence, the untimed language of L5is (ab)∗, there is an occurrence of aat each time
+unit and the successive occurrences of bcome each time closer to the occurrence of a
+than previously. This language is in TL as can be checked on th e TAA5of Fig. 15
+(ﬁrst proposed in [4]).
+z= 1,a,z:= 0 0< z <1,b,y:= 0z= 1,a,z:= 0
+0< z∧y <1,b,y:= 0
+Fig. 15 A timed automaton A5forL5
+Proposition 11 The language L5does not belong to ITL.
+ProofAssume, by contradiction, that L5belongs to ITL. Then L5is accepted by an
+ITA−Awithnclocks and Etransitions. Let B= (E+n)3nand consider the timed
+wordw= (a,τ1)(b,τ2)···(a,τ2B+1)(b,τ2B+2)∈L5. Wordwis accepted by a run ρof
+A, which can be assumed of minimal size. However, we know that |ρ|> B, so one of
+the three cases of Lemma 2 occurs in the Bﬁrst transitions.
+–Suppose a transition eof levelkthat updates xkappears twice, separated by a
+subrunσof level greater than or equal to k. Remark that the valuations after the
+ﬁrst and the second occurrence of eare identical. We distinguish several subcases,
+depending on the word read along σe.
+–Ifσereads the empty word ε, we writeδfor the time spent during σe. Ifδ= 0,
+thenσecan be deleted without aﬀecting neither the remainder of the run nor
+the accepted word, which contradicts the minimality of ρ. Ifδ≥1, then some
+interval [i,i+1] does not contain any b, which contradicts the deﬁnition of L5.
+Otherwise, 0 <δ <1. By deleting σe, we obtain an execution ρ′(accepted by
+A) in which the suﬃx after eis shifted by δ. Therefore the following occurrence
+of lettera, which appeared in ρat datei∈N\{0}, appears in ρ′at date
+i−δwhich is not integral. So the word accepted by ρ′is not inL5, which is a
+contradiction.
+–Ifσereads more as thanbs or morebs thanas, by deleting σewe obtain a run
+accepting a word whose untiming is not in ( ab)∗thus does not belong to L5.
+–Ifσereads as many as asbs (and both letters at least once), by duplicating σe
+we obtain a run accepting a word where a same duration separat es anafrom
+the following bis repeated, thus violating the deﬁnition of L5.
+–Suppose a transition eof levelkdelayed or lazy occurs twice, separated by a subrun
+σof level greater than or equal to k, such thatσedoes not update xk. Then we can
+replaceeσby a time step of the same duration and obtain a new run ρ′, accepted
+byA.
+–Ifeσreadsε, thenρ′contradicts the minimality of ρ.
+–Ifeσreads the word b, thenρ′accepts a word where aandbdo not alternate,
+thus not in L5.
+–Ifeσreads at least an a, thenρ′accepts a word with no aat a given integral
+date, therefore not in L5.
+
+--- Page 37 ---
+37
+–Otherwise, a transition eof levelkappears twice separated by a subrun σof level
+greater than or equal to k, such that σedoes not update xknor lets time elapse
+at levelk. The same disjunction as in the case of an update of xkcan be applied,
+sinceσecan either be deleted or duplicated.
+Note that the feature preventing L5to be in ITL lies in the decreasing delays
+between the a’s and their immediately following b. A language in ITL can record
+kdiﬀerent constant delays, using k+ 1 clocks. For instance on the alphabet Σ=
+{a1,...,ak}, the language
+Mk={(a1,τ1)...(ak,τk)(a1,τ1+1)...(ak,τk+1)...(a1,τ1+n)...(ak,τk+n)
+|n≥1,τ1≤τ2≤···≤τk≤τ1+1}
+is accepted by an ITA −withk+1 clocks. Fig. 16 illustrates the case where k= 3, with
+all states lazy. We conjecture that Mkcannot be accepted by an ITA with kclocks.
+q0,1 q1,2 q2,3
+q3,4 q4,4 q5,4a1, (x2:= 0) x1+x2<1,a2, (x3:= 0)
+x1+x2+x3<1,a3, (x4:= 0)
+x4= 1−x2−x3,a1 x4= 1−x3,a2x4= 1,a3,x4:= 0
+Fig. 16 An interrupt timed automaton for M3
+6.3 Closure under complementation and intersection
+Proposition 12 ITL is not closed under complementation.
+ProofWe prove that the complement Lc
+5ofL5belongs to ITL. A timed word belongs
+toLc
+5iﬀ one of the following assertions hold:
+1. Anaoccurs not at a time unit.
+2. Anais missing at some time unit that precedes some letter of the w ord.
+3. Aboccurs at a time unit.
+4. There is no bin an interval [ i,i+1] with an aat timei∈N.
+5. There are two bs in an interval [ i,i+1] with an aat timei∈N.
+6. There is an occurrence of ababsuch that the time diﬀerence between the two ﬁrst
+occurrences is smaller than or equal to the time diﬀerence be tween the two last
+occurrences.
+Since ITL is trivially closed under union, it is enough to pro ve that each assertion from
+the set above can be expressed by an ITA. The ﬁve ﬁrst assertio ns are straightforwardly
+modeled by an ITA with a single clock (and ε-transitions) and we present in Fig. 17
+an ITA with two clocks corresponding to the last one. ⊓ ⊔
+
+--- Page 38 ---
+38
+q0,1 q1,1q2,2 q3,2 q4,2
+a,b
+a,x1:= 0b,x2:= 0a,x2:= 0 x1≤x2,b
+a,b
+Fig. 17 An ITA for the language deﬁned by assertion 6
+Proposition 13 ITL is not closed under intersection.
+ProofL5is the intersection of L′
+5andL′′
+5deﬁned as follows:
+–The words of L′
+5are (a,1)(b,τ1)...(a,n)(b,τn), withi < τi< i+ 1 for all i,
+1≤i≤n.
+–The words of L′′
+5are (a,τ′
+1)(b,τ1)...(a,τ′n)(b,τn), withτi+1−τi<1 for alli,
+1≤i≤n−1.
+Both languages are accepted by one-clock ITA (which are also one-clock TA). In case
+ofL′
+5, (1) the clock is reset at every occurrence of an a; (2) anamust occur when the
+clock is 1 and (3) a single bmust occur when the clock is in (0 ,1). In case of L′′
+5, (1)
+the clock is reset at every occurrence of a b(2) abmust occur when the clock is less
+than 1 except for the ﬁrst band (3) a single amust occur before every occurrence of a
+b.⊓ ⊔
+7 Combining ITA with CRTA
+In the previous section, we proved that the class of language s deﬁned by ITA and
+CRTA are incomparable. Here we provide a class containing bo th ITL and CRTL. In
+order to do so, we combine the models of ITA with CRTA.
+7.1 An undecidable product
+The ﬁrst kind of combination possible is through synchroniz ed product between an
+ITA and a CRTA. However, this turns out to be a too powerful mod el, since combining
+even a TA with an ITA yields the undecidability of the reachab ility problem.
+Deﬁnition 11 IfI=/a\}brack⌉⊔l⌉{⊔Σ,QI,qI
+0,FI,polI,X,λI,∆I/a\}brack⌉⊔ri}h⊔is an ITA (propositional vari-
+ables and labeling are omitted) and T=/a\}brack⌉⊔l⌉{⊔Σ,QT,qT
+0,FT,Y,∆T/a\}brack⌉⊔ri}h⊔is a TA, thenI×T=
+/a\}brack⌉⊔l⌉{⊔Σ,QI×QT,(qI
+0,qT
+0),F,pol,X,Y,λ,∆ /a\}brack⌉⊔ri}h⊔is an ITA×TA where:
+–pol(qI,qT) =polI(qI) andλ(qI,qT) =λI(qI) are lifted from the ITA
+–ifqIϕ,a,u−−−−→q′
+I∈∆IandqTψ,a,v−−−−→q′
+T∈∆T, then
+(qI,qT)ϕ∧ψ,a,u∧v−−−−−−−−→ (q′
+I,q′
+T)∈∆.
+
+--- Page 39 ---
+39
+(ℓ,r1,>)
+1,L(ℓ,r2,>)
+2,U(ℓ,r3,>)
+2,L(ℓ,r4,>)
+3,L(ℓ,r5,>)
+3,L
+ℓ′
+1,Uyc= 1
+b1
+ℓb2
+ℓ
+x2:=x1yd= 1
+b3
+ℓ
+yc:= 0x3=x2−x1
+2
+b4
+ℓyd:= 0
+x3= 1−x1
+2
+b5
+ℓ
+Fig. 18 Module Ac++
+c≥d(ℓ,ℓ′) incrementing the value of cwhenc≥d.
+The semantics of an ITA ×TA is a transition system over conﬁgurations
+/braceleftBig
+(q,v,w,β )|q∈Q,v∈RX,w∈RY,β∈{⊤,⊥}/bracerightBig
+.
+Discrete steps are deﬁned analogously as in ITA (see Deﬁniti on 2). In time steps, clocks
+ofXevolve as in an ITA and clocks of Yas in a TA. More precisely, a time step of
+durationd>0 is deﬁned by ( q,v,w,β )d− →(q,v′,w′,⊤) wherev′(xλ(q)) =v(xλ(q))+d
+andv′(x) =v(x) for any other clock x∈X, andw′(y) =w(y)+dfory∈Y.
+Theorem 7 Reachability is undecidable in the class ITA ×TA.
+Proof (Sketch) The proof consists in encoding a two counter machine into an I TA×TA.
+Two classical clocks {yc,yd}will keep the value of the counters by retaining a value
+1−1
+2nto encoden. Three interrupt clocks are used to change the value of the cl assical
+clocks through appropriate resets. The ITA ×TA is deﬁned through basic modules,
+corresponding to the four possible actions (incrementatio n or decrementation of cor
+d). Each module is itself composed of submodules: the ﬁrst one compares the value of c
+to the one of d. The other one performs the action, but depends on the order b etween
+candd.
+For example, the submodule incrementing cwhenc≥dis depicted in Fig. 18.
+In this module, the value5of classical clocks is copied into interrupt clocks, update d
+thanks to linear updates allowed by ITA. the new values are co pied into classical
+clocks by resetting them at the appropriate moment. The valu ations of clocks during
+an execution of this module are given in Table 3.
+Note that the policies are used in this product but they could be replaced by
+classical clocks.
+The detailed proof can be found in Appendix B.
+Other proofs of undecidability for hybrid systems mixing cl ocks and stopwatches
+have been developed (see for instance [24, Theorem 4.1] for a construction with a
+single stopwatch and 5 clocks). While this construction cou ld have been adapted to
+5Or rather the complement to 1 of the value.
+
+--- Page 40 ---
+40
+(ℓ,r1,>)
+yc= 1−1
+2n
+yd= 1−1
+2p
+x1= 0
+x2= 0
+x3= 01
+2n−→(ℓ,r1,>)
+yc= 1
+yd= 1−1
+2p+1
+2n
+x1=1
+2n
+x2= 0
+x3= 0b1
+ℓ−→(ℓ,r2,>)
+yc= 1
+yd= 1−1
+2p+1
+2n
+x1=1
+2n
+x2= 0
+x3= 0b2
+ℓ−→(ℓ,r3,>)
+yc= 1
+yd= 1−1
+2p+1
+2n
+x1=1
+2n
+x2=1
+2n
+x3= 0
+1
+2p−1
+2n− −−−−− →(ℓ,r3,>)
+yc= 1+1
+2p−1
+2n
+yd= 1
+x1=1
+2n
+x2=1
+2p
+x3= 0b3
+ℓ−→(ℓ,r4,>)
+yc= 0
+yd= 1
+x1=1
+2n
+x2=1
+2p
+x3= 01
+2p−1
+2n+1− −−−−−− →(ℓ,r4,>)
+yc=1
+2p−1
+2n+1
+yd= 1+1
+2p−1
+2n+1
+x1=1
+2n
+x2=1
+2p
+x3=1
+2p−1
+2n+1
+b4
+ℓ−→(ℓ,r5,>)
+yc=1
+2p−1
+2n+1
+yd= 0
+x1=1
+2n
+x2=1
+2p
+x3=1
+2p−1
+2n+11−1
+2p−→(ℓ,r5,>)
+yc= 1−1
+2n+1
+yd= 1−1
+2p
+x1=1
+2n
+x2=1
+2p
+x3= 1−1
+2n+1b5
+ℓ−→ℓ′
+yc= 1−1
+2n+1
+yd= 1−1
+2p
+x1=1
+2n
+x2= 0
+x3= 0
+Table 3 Clock values in the unique run of Ac++
+c≥d(ℓ,ℓ′). Irrelevant values of interrupt clocks
+are greyed.
+our setting, this would have led to an ITA ×TA with 5 classical clocks and 2 interrupt
+clocks.
+7.2 A decidable product of ITA and CRTA: ITA+
+We deﬁne another synchronized product between ITA and CRTA, in the spirit of multi-
+level systems, for which reachability is decidable. This cl ass, denoted by ITA+, includes
+a set of clocks at an implicit additional level 0, correspond ing to a basic task described
+as in a CRTA. In the deﬁnition below, since no confusion can oc cur, we aggregate the
+coloring function of CRTA and the level function of ITA, into a single function λ.
+Deﬁnition 12 (ITA+)Anextended interrupt timed automaton is a tupleA=/a\}brack⌉⊔l⌉{⊔Q,q0,
+F,pol,X⊎Y,Σ,Ω,λ,up,low,vel,∆ /a\}brack⌉⊔ri}h⊔, where:
+–Qis a ﬁnite set of states, q0is the initial state and F⊆Qis the set of ﬁnal states.
+–pol:Q/maps⊔o→{L,U,D}is the timing policy of states.
+–X={x1,...,xn}consists ofninterrupt clocks and Yis a set of basic clocks,
+–Σis a ﬁnite alphabet,
+–Ωis a set of colors, the mapping λ:Q⊎Y/maps⊔o→{1,...,n}⊎Ωassociates with each
+state its level or its color, with xλ(q)the active clock in state qforλ(q)∈Nand
+λ(y)∈Ωfory∈Y. For every state q∈λ−1(Ω), the policy is pol(q) =L.
+–upandloware mappings from YtoQwith the same constraints as CRTA (see
+Deﬁnition 4), and vel:Q/maps⊔o→Qis the clock rate with λ(q)/∈Ω⇒vel(q) = 1
+–∆⊆Q×[C(X∪Y)×(Σ∪{ε})×U(X∪Y)]×Qis the set of transitions. Let
+qϕ,a,u−−−−→q′in∆be a transition.
+1. The guard ϕis of the form ϕ1∧ϕ2with the following conditions. If λ(q)∈N,
+ϕ1is an ITA guard on Xand otherwise ϕ1=true. Constraint ϕ2is a CRTA
+guard onY(also possibly equal to true).
+
+--- Page 41 ---
+41
+2. The update uis of the form u1∧u2fullﬁlling the following conditions. Assign-
+ments from u1update the clocks in Xwith the constraints of ITA when λ(q)
+andλ(q′) belong to N. Otherwise it is a global reset of clocks in X. Assignments
+fromu2update clocks from Y, like in CRTA.
+Any ITA can be viewed as an ITA+withYempty and λ(Q)⊆{1,...,n}, and any
+CRTA can be viewed as an ITA+withXempty and λ(Q)⊆Ω. Class ITA+combines
+both models in the following sense. When the current state qis such that λ(q)∈Ω, the
+ITA part is inactive. Otherwise, it behaves as an ITA but with additional constraints
+about clocks of the CRTA involved by the extended guards and u pdates. The semantics
+of ITA+is deﬁned as usual but now takes into account the velocity of C RTA clocks.
+Deﬁnition 13 (Semantics of ITA+)The semantics of an automaton Ain ITA+
+is deﬁned by the transition system TA= (S,s0,→). The set Sof conﬁgurations is/braceleftBig
+(q,v)|q∈Q, v∈RX∪Y, β∈{⊤,⊥}/bracerightBig
+, with initial conﬁguration ( q0,0,⊥). An ac-
+cepting conﬁguration of TAis a pair (q,v) withqinF. The relation→onSconsists
+of time steps and discrete steps, the deﬁnition of the latter being the same as before:
+Time steps: Onlythe active clocks in a state can evolve, all o ther clocks are suspended.
+For a state qwithλ(q)∈N(the active clock is xλ(q)), a time step of duration d>0
+is deﬁned by ( q,v,β)d− →(q,v′,⊤) withv′(xλ(q)) =v(xλ(q))+dandv′(x) =v(x)
+for any other clock x. For a state qwithλ(q)∈Ω(the active clocks are Y′=
+Y∩λ−1(λ(q))), a time step of duration d >0 is deﬁned by ( q,v,β)d− →(q,v′,⊤)
+withv′(y) =v(y)+vel(q)dfory∈Y′andv′(x) =v(x) for any other clock x. In all
+states, time steps of duration d= 0 leave the system TAin the same conﬁguration.
+Whenpol(q) =U, only time steps of duration 0 qare allowed.
+Discrete steps: A discrete step ( q,v)a− →(q′,v′) occurs if there exists a transition
+qϕ,a,u−−−−→q′in∆such thatv|=ϕandv′=v[u]. Whenpol(q) =Dandβ=⊥,
+discrete steps are forbidden.
+In order to illustrate the interest of the combined models, a n example of a (simple)
+login procedure is described in Fig. 19 as a TA with interrupt ions at a single level.
+First it immediately displays a prompt and arms a time-out of 1 t.u. handled by
+clocky(transition initp− →wait). Then either the user answers correctly within this
+delay (transition waitok−−→log) or he answers incorrectly or let time elapse, both cases
+with transition waiter−→init, and the system prompts again. The whole process is
+controlled by a global time-out of 6 t.u. (transition waitto−→out) followed by a long
+suspension (50 t.u.) before reinitializing the process (tr ansitionoutrs−→init). Both
+delays are handled by clock z. At any time during the process (in fact in state wait),
+a system interrupt may occur (transition waiti− →I). If the time spent (measured by
+clockx1) during the interrupt is less than 3 t.u. or the time already s pent by the user is
+less than 3 t.u., the login process resumes (transition Icont−−−→init). Otherwise the login
+process is reinitialized allowing again the 6 t.u. (transit ionIrs−→init). In both cases,
+the prompt will be displayed again. Since invariants are irr elevant for the reachability
+problem we did not include them in the models. Of course, in th is example state wait
+should have invariant y≤1∧z≤6 and state outshould have invariant z≤50.
+We extend the decidability and complexity results of the pre vious models when
+combining them with CRTA. Class ITA+
+−is obtained in a similar way by combining
+ITA−with CRTA.
+
+--- Page 42 ---
+42
+wait init logout
+I,1y= 0,p
+y≤1∧z<6,er,y:= 0y<1∧z<6,oky≤1∧z= 6,to,z:= 0
+y<1∧z<6,i,x1:= 0z= 50,rs,y:= 0,z:= 0
+x1<3∨z<3,count,y:= 0
+x1≥3∧z≥3,rs,y:= 0,z:= 0
+Fig. 19 An automaton for login in ITA+
+Proposition 14 1. The reachability problem for ITA+
+−is decidable in NEXPTIME
+and isPSPACE -complete when the number of interrupt clocks is ﬁxed.
+2. The reachability problem for ITA+is decidable in NEXPTIME and isPSPACE -
+complete when the number of interrupt clocks is ﬁxed.
+Proof
+Case of ITA+
+−.LetA=/a\}brack⌉⊔l⌉{⊔Q,q0,F,pol,X⊎Y,Σ,Ω,λ,up,low,vel,∆ /a\}brack⌉⊔ri}h⊔be an ITA+
+−, with
+n=|X|the number of ITA clocks, p=|Y|the number of CRTA clocks and E=|∆|
+the number of transitions.
+We ﬁrst consider the reachability problem for two states qiandqfon the CRTA
+level (with λ(qi)∈Ωandλ(qf)∈Ω). The procedure consists in performing a non
+deterministic search along an elementary path where the ver tices are graph classes of
+the CRTA. Let ( q,Z) be the current class, the procedure chooses non determinis tically
+the next class ( q′,Z′) and checks that there exists a conﬁguration of ( q,Z) and an
+execution only through states q′′withλ(q′′)∈Nthat leads to a conﬁguration of
+(q′,Z′). This is solved as previously by non deterministically cho osing an execution
+path, building a linear program related to the path (of expon ential size) and solving
+it. Let us prove that such a path can be chosen whose length is i nO(p(E+2n)3n).
+Assume that there is a run πfrom (q,v)∈(q,Z) to some conﬁguration ( q′,v′)∈
+(q′,Z′) such that all intermediate states q′′are such that λ(q′′)∈N. We say that a
+transitioneofπusefully resets a clocky∈Yif it is the ﬁrst transition of πthat resets
+y. Observe that there are at most puseful resetting transitions and that between two
+such successive transitions (or before the ﬁrst one or after the last one) the value of
+the clocks of Yare unchanged when transitions are ﬁred.
+We consider a subrun ρbetween two such successive transitions (or before the ﬁrst
+one or after the last one) from ( q1,v1) to (q2,v2), withmkthe number of transitions
+of levelk.
+Using Lemma 2, we build a subrun ρ′from (q1,v1) to (q2,v2) of length smaller than
+(E+2n)3n. Concatenating the subruns, the useful resetting transiti ons and the initial
+transition, one obtains a run π′from (q,v) to (q′,v′) of length in O(p(E+2n)3n).
+The key point ensuring correctness of the procedure is that t he existence of a
+solution depends only on the starting class ( q,Z) and not on the conﬁguration inside
+
+--- Page 43 ---
+43
+this class. This is due to the separation of guards and update s between the two kinds
+of clocks on the transitions.
+When state qi(resp.qf) is not at the basis level, the procedure adds an initial
+(resp. ﬁnal) guess also checked by a linear program. When the number of clocks is
+ﬁxed the dominant factor is the path search in the class graph and PSPACE hardness
+follows from the result in TA.
+Case of ITA+.Wetransform theITApartoftheautomatoninITA −viatheprocedure
+of proposition 3 and apply the procedure for ITA+
+−.⊓ ⊔
+It is also possible to build a class graph for ITA+, combining a class graph for ITA
+and a region graph for TA. This yields the regularity of the un timed language of an
+ITA+, hence the strict inclusion in the languages accepted by a st opwatch automaton.
+Let ITL+be the family of timed languages deﬁned by ITA+. The class ITL+
+syntactically contains ITL ∪CRTL. We can however have a stronger result:
+Proposition 15 The class ITL+strictlycontains ITL∪CRTL.
+ProofRecall ITAA4of Fig. 14, whose language L4is not in CRTL, and let Q4be its
+set of states. Also recall TA A5of Fig. 15, whose language L5is not in ITL, with set
+of statesQ5. LetA4⊗A5be the ITA+havingA5at level 0 andA4at levels 1 and 2.
+Formally,A4⊗A5has set of states Q4∪Q5, which are all lazy. Interrupt clocks of
+A4⊗A5are{x1,x2}(active according to A4). Its basic clocks are {z,y}of velocity 1.
+Both have the same color as states of Q5. The bounding functions up(resp.low) map
+bothzandyto 1 (resp. 0). Transitions of A4⊗A5are the ones ofA4andA5, adding
+an unguarded, unlabeled transition from A5’s ﬁnal state toA4’s initial one.
+A4⊗A5accepts timed words which start with an alternation of as andbs, with
+thebdrawing always closer to its preceding a(as inA5), and then contains only cs
+separated by the same amount of time (as in A4). Since both CRTL and ITL are closed
+under projection, L(A4⊗A5) cannot be accepted by a CRTA nor an ITA. ⊓ ⊔
+8 Conclusion
+In this paper, we introduced and studied the model of Interru ptTimed Automata. This
+model is useful to represent timed systems with tasks organi zed over priority levels.
+While ITA fall into the more general class of hybrid systems, the reachability prob-
+lem is proved decidable for this subclass. For ITA, the reach ability is in NEXPTIME,
+and PTIME when the number of clocks is ﬁxed by building a class graph. Similar
+constructions yield decidability of the reachability prob lem on an extension of ITA
+where the lowest priority level can behave as a Controlled Re al-Timed Automata. It
+also yields procedure for model checking CTL∗formulas and timed CTLformulas con-
+straining only the clocks of the system. Another fragment of interest was identiﬁed in
+timedCTLas decidable: the one where the only time constraints concer n global earliest
+or latest execution times. On the other hand, model checking the linear time logic SCL
+is proved undecidable on ITA, implying that this is also the c ase forMITL.
+On the expressiveness point of view, the class ITL is proved i ncomparable with
+both TL and CRTL, and is neither closed under complementatio n nor intersection.
+The expressiveness results are summed up in Fig. 20, where th e grey zone represents
+undecidability of the reachability problem.
+
+--- Page 44 ---
+44
+LHA = SWA
+ITA+= ITA+
+−CRTA
+TAITA = ITA −LHA Linear
+Hybrid
+Automata
+SWA Stopwatch
+Automata
+CRTA Controlled
+Real-Time
+Automata
+TA Timed
+Automata
+ITA Interrupt
+Timed
+Automata
+ITA+Extended
+ITA
+Fig. 20 Expressiveness of several timed formalisms with respect to timed languages.
+Several problems remain open on the class of ITA. First of all , the eﬀect of having
+both (limited) stopwatches and linear expressions in guard s is combined in ITA, and it
+is not known which is the cause of the undecidability results presented in this paper.
+For instance, the undecidability of SCLmay not hold without the possibility of complex
+updates. More generally, the expressive power of the subcla ss of ITA restricted with
+rectangular guards ( x+b⊲⊳0) and only resets ( x:= 0) should be investigated. Also, it
+is conjectured that the class of ITA with n+1 clocks is strictly more expressive than
+the class of ITA with nclocks. Regarding model-checking, the undecidability of f ull
+TCTLremains to be established. Finally, complexity bounds pres ented in this paper
+are only upper-bounds, and matching lower-bounds are still missing.
+Acknowledgments The authors would like to thank the anonymous reviewers for t heir
+insightful comments. This work was supported by projects Dots(ANR-06-SETI-
+003, French government), ImpRo(ANR-2010-BLAN-0317, French government) and
+CoChaT (Digiteo 2009-27HD, R´ egion ˆIle de France).
+References
+1. Aceto, L., Burgue˜ no, A., Larsen, K.G.: Model checking vi a reachability testing for timed
+automata. In: Proceedings of the 4th International Confere nce on Tools and Algorithms
+for Construction and Analysis of Systems (TACAS’98). Volum e 1384 of Lecture Notes in
+Computer Science, London, UK, Springer-Verlag (1998) 263– 280.
+2. Alur, R., Courcoubetis, C., Dill, D.L.: Model-checking i n dense real-time. Information
+and Computation 104(1993) 2–34.
+3. Alur, R., Courcoubetis, C., Halbwachs, N., Henzinger, T. A., Ho, P.H., Nicollin, X., Oliv-
+ero, A., Sifakis, J., Yovine, S.: The algorithmic analysis o f hybrid systems. Theoretical
+Computer Science 138(1995) 3–34.
+4. Alur, R., Dill, D.L.: A theory of timed automata. Theoreti cal Computer Science 126
+(1994) 183–235.
+5. Alur, R., Feder, T., Henzinger, T.A.: The beneﬁts of relax ing punctuality. Journal of the
+ACM43(1) (janvier 1996) 116–146.
+6. Asarin, E., Maler, O., Pnueli, A.: Reachability analysis of dynamical systems having
+piecewise-constant derivatives. Theoretical Computer Sc ience138(1) (1995) 35–65.
+
+--- Page 45 ---
+45
+7. Asarin, E., Schneider, G., Yovine, S.: Algorithmic analy sis of polygonal hybrid systems,
+part I: Reachability. Theoretical Computer Science 379(1-2) (2007) 231–265.
+8. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal. In: Formal methods for
+the design of real-time systems (SFM-RT’04). Volume 3185 of Lecture Notes in Computer
+Science, Springer (2004) 200–236.
+9. B´ erard, B., Haddad, S.: Interrupt Timed Automata. In: Pr oceedings of the 12th In-
+ternational Conference on Foundations of Software Science and Computation Structures
+(FoSSaCS’09). Volume 5504 of Lecture Notes in Computer Scie nce, York, GB, Springer
+(March 2009) 197–211.
+10. B´ erard, B., Haddad, S., Sassolas, M.: Real time propert ies for interrupt timed automata.
+In Markey, N., Wisjen, J., eds.: Proceedings of the 17th Inte rnational Symposium on
+Temporal Representation and Reasoning (TIME’10), IEEE Com puter Society (September
+2010) 69–76.
+11. B´ erard, B., Petit, A., Diekert, V., Gastin, P.: Charact erization of the expressive power of
+silent transitions in timed automata. Fundamenta Informat icae36(2-3) (1998) 145–182.
+12. Bouyer, P.: Forward analysis of updatable timed automat a. Formal Methods in System
+Design24(3) (2004) 281–320.
+13. Bouyer, P., Brihaye, Th., Jurdzi´ nski, M., Lazi´ c, R., R utkowski, M.: Average-price and
+reachability-price games on hybrid automata with strong re sets. In Cassez, F., Jard, C.,
+eds.: Proceedings of the 6th International Conference on Fo rmal Modelling and Analysis
+of Timed Systems (FORMATS’08). Volume 5215 of Lecture Notes in Computer Science,
+Saint-Malo, France, Springer (September 2008) 63–77.
+14. Bouyer, P., Chevalier, F., Markey, N.: On the expressive ness of TPTL and MTL. In:
+Proceedings of the 25th Conference on Foundations of Softwa re Technology and Theoreti-
+cal Computer Science (FSTTCS’05). Volume 3821 of Lecture No tes in Computer Science,
+Springer (December 2005) 432–443.
+15. Bozga, M., Daws, C., Maler, O., Olivero, A., Tripakis, S. , Yovine, S.: KRONOS: A Model-
+Checking Tool for Real-Time Systems. In: FTRTFT. (1998) 298 –302.
+16. Brihaye, T., Bruy` ere, V., Raskin, J.F.: On model-check ing timed automata with stopwatch
+observers. Information and Computation 204(3) (2006) 408–433.
+17. Brihaye, T., Doyen, L., Geeraerts, G., Ouaknine, J., Ras kin, J.F., Worrell, J.: On reacha-
+bility for hybrid automata over bounded time. In Aceto, L., H enzinger, M., Sgall, J., eds.:
+Proceedings (part II) of the 38th International Colloquium on Automata, Languages and
+Programming (ICALP’11). Volume 6756 of Lecture Notes in Com puter Science, Springer
+(July 2011) 416–427.
+18. Cassez, F., Larsen, K.G.: The impressive power of stopwa tches. In Palamidessi, C., ed.:
+Proceedeings of the 11th International Conference on Concu rrency Theory (CONCUR’00).
+Volume 1877 of Lecture Notes in Computer Science, Springer ( 2000) 138–152.
+19. Cimatti, A., Clarke, E., Giunchiglia, E., Giunchiglia, F., Pistore, M., Roveri, M., Sebas-
+tiani, R., Tacchella, A.: NuSMV version 2: An opensource too l for symbolic model check-
+ing. In: Proceedings of the 14th International Conference o n Computer Aided Veriﬁcation
+(CAV’02). Volume 2404 of Lecture Notes in Computer Science, Springer (2002) 241–268.
+20. Courcoubetis, C., Yannakakis, M.: Minimum and maximum d elay problems in real-time
+systems. Formal Methods in System Design 1(4) (1992) 385–415.
+21. Demichelis, F., Zielonka, W.: Controlled timed automat a. In Sangiorgi, D., de Si-
+mone Robert, eds.: Proceedings of the 9th International Con ference on Concurrency The-
+ory (CONCUR’98). Volume 1466 of Lecture Notes in Computer Sc ience, London, UK,
+Springer-Verlag (1998) 455–469.
+22. Emerson, E.A., Halpern, J.Y.: Decision procedures and e xpressiveness in the temporal
+logic of branching time. In: Proc. 14th annual ACM Symp. on Th eory of Computing
+(Stoc’82), ACM (1982) 169–180.
+23. Fersman, E., Krcal, P., Pettersson, P., Yi, W.: Task auto mata: Schedulability, decidability
+and undecidability. Information and Computation 205(8) (2007) 1149–1172.
+24. Henzinger, T.A., Kopke, P.W., Puri, A., Varaiya, P.: Wha t’s decidable about hybrid
+automata? Journal of Computer and System Sciences 57(1) (1998) 94–124.
+25. Henzinger, T.A., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic model checking for real-time
+systems. Information and Computation 111(2) (1994) 193–244.
+26. Kesten, Y., Pnueli, A., Sifakis, J., Yovine, S.: Decidab le integration graphs. Information
+and Computation 150(2) (1999) 209–243.
+27. Koymans, R.: Specifying real-time properties with metr ic temporal logic. Real-Time
+Systems 2(1990) 255–299.
+
+--- Page 46 ---
+46
+28. Laﬀerriere, G., Pappas, G.J., Yovine, S.: A new class of d ecidable hybrid systems. In:
+Proceedings of Hybrid Systems : Computation and Control. Vo lume 1569 of Lecture Notes
+in Computer Science, Springer (1999) 137–151.
+29. Laﬀerriere, G., Pappas, G.J., Yovine, S.: Symbolic reac hability computation for families
+of linear vector ﬁelds. Journal of Symbolic Computation 32(3) (2001) 231–253.
+30. Maler, O., Manna, Z., Pnueli, A.: From timed to hybrid sys tems. In Rozenberg, G.,
+de Roever, W.P., Huizing, C., de Bakker, J.W., eds.: Real-ti me: theory in practice, REX
+workshop. Volume 600 of Lecture Notes in Computer Science, S pringer-Verlag (1992) 447–
+484.
+31. McManis, J., Varaiya, P.: Suspension automata: A decida ble class of hybrid automata.
+In: Proceedings of the 6th International Conference on Comp uter Aided Veriﬁcation
+(CAV’94), London, UK, Springer-Verlag (1994) 105–117.
+32. Minsky,M.L.: Computation: ﬁnite and inﬁnite machines. Prentice-Hall,Inc., Upper Saddle
+River, NJ, USA (1967).
+33. Pnueli,A.: The temporal logicofprograms. In: Proceedi ngs ofthe 18th Annual Symposium
+on Foundations of Computer Science (FoCS’77), Washington, DC, USA, IEEE Computer
+Society (1977) 46–57.
+34. Queille, J.P., Sifakis, J.: Speciﬁcation and veriﬁcati on of concurrent systems in CESAR.
+In Dezani-Ciancaglini, M., Montanari, U., eds.: Proceedin gs of the 5th International Sym-
+posium on Programming. Volume 137 of Lecture Notes in Comput er Science, London, UK,
+Springer-Verlag (1982) 337–351.
+35. Raskin, J.F., Schobbens, P.Y.: State clock logic: A deci dable real-time logic. In Maler, O.,
+ed.: Hybrid and Real-Time Systems. Volume 1201 of Lecture No tes in Computer Science.
+Springer Berlin / Heidelberg (1997) 33–47.
+36. Roos, C., Terlaky, T., Vial, J.P.: Theory and Algorithms for Linear Optimization. An
+Interior Point Approach. Wiley-Interscience, John Wiley & Sons Ltd (1997).
+37. Silberschatz, A., Galvin, P.B., Gagne, G.: Operating Sy stems Concepts. 8th edn. John
+Wiley & Sons, Inc. (jul 2008).
+38. Sistla, A.P., Clarke, E.M.M.: The complexity of proposi tional linear temporal logics.
+Journal of the ACM 32(jul 1985) 733–749.
+39. Zaslavsky, T.: Facing up to arrangements: Face-count fo rmulas for partitions of space by
+hyperplanes. AMS Memoirs 1(154) (1975).
+
+--- Page 47 ---
+47
+A Proof of Theorem 4
+Letϕbe a formula in TCTLint
+candAan ITA with nlevels and Etransitions. Like in Section 3,
+the proof relies on the construction of a ﬁnite class graph. T he main diﬀerence is in the
+computation of the nsets of expressions E1,...,E n. Like before, each set Ekis initialized
+to{xk,0}and expressions in this set are those which are relevant for c omparisons with the
+current clock at level k. In this case, they include not only guards but also comparis ons with
+the constraints from the formula. Recall that the sets are co mputed top down from nto 1,
+using the normalization operation.
+–At level k, we may assume that expressions in guards of an edge leaving a state are of the
+formαxk+/summationtext
+i<kaixi+bwithα∈ {0,1}. We add −/summationtext
+i<kaixi−btoEk.
+–To take into account the constraints of formula ϕ, we add the following step: For each
+comparison C ⊲⊳0 inϕ, and for each k, withnorm(C,k) =αxk+/summationtext
+i<kaixi+b(α∈ {0,1}),
+we also add expression −/summationtext
+i<kaixi−btoEk.
+–Then we iterate the following procedure until no new term is a dded to any Eifor 1≤i≤k.
+1. Letqϕ,a,u− −−− →q′withλ(q′)≥kandλ(q)≥k. IfC∈Ek, then we add C[u] toEk.
+2. Letqϕ,a,u− −−− →q′withλ(q′)≥kandλ(q)< k. ForC,C′∈Ek, we compute C′′=
+norm(C[u]−C′[u],λ(q)). IfC′′=αxλ(q)+/summationtext
+i<λ(q)aixi+bwithα∈ {0,1}, then we
+add−/summationtext
+i<λ(q)aixi−btoEλ(q).
+The proof of termination for this construction is similar to the one in Section 3.
+We now consider the transition system GAwhose set of conﬁgurations are the classes
+R= (q,{/precedeseq⊓alk}1≤k≤λ(q)), where qis a state and /precedeseq⊓alkis a total preorder over Ek. The class
+Rdescribes the set of valuations /llbracketR/rrbracket={(q,v)| ∀k≤λ(q)∀(g,h)∈Ek, g[v]≤h[v] iﬀ
+g/precedeseq⊓alkh}. The set of transitions is deﬁned as in Section 3. The transit ion system GAis again
+ﬁnite and time abstract bisimilar to TA. Moreover, the truth value of each comparison C=/summationtext
+i≥1ai·xi+b ⊲⊳0 appearing in ϕcan be set for each class R. Indeed, since for every k, both
+0 and/summationtextk−1
+i≥1ai·xi+bare in the set of expressions Ek, the truth value of C ⊲⊳0 does not
+change inside a class. Therefore, introducing a fresh propo sitional variable qCfor the constraint
+C ⊲⊳0, each class Rcan be labelled with a truth value for each qC. Deciding the truth value
+ofϕcan then be done by a classical CTLmodel-checking algorithm on GA.
+The complexity of the procedure is obtained by bounding the n umber of expressions for
+each level kby (E+|ϕ|+2)2n(n−k+1)+1, and applying the same reasoning as for proposition 2.
+B Proof of Theorem 7
+We build an automaton in ITA ×TA which simulates a deterministic two counter machine M
+(as in proof of Theorem 3).
+LetLMbe the set of labels of M. The automaton AM=/a\}bracke⊔le{⊔Σ,Q,q 0,F,pol,X ∪Y,λ,∆/a\}bracke⊔ri}h⊔is
+built to reach its ﬁnal location Haltif and only if Mstops. It is deﬁned as follows:
+–Σconsists of one letter per transition.
+–Q=LM∪(LM× {k0})∪(LM× {k1,k2,r1,...,r 5} × {>,<}),q0=ℓ0(the initial
+instruction of M) andF={Halt}.
+–pol:Q→ {Urgent,Lazy,Delayed }is such that pol(q) =Urgent iﬀ either q∈LMor
+q= (ℓ,q2,⊲⊳), andpol(q) =Lazyin most other cases: some states ( ℓ,ki,⊲⊳) areDelayed,
+as shown on Fig. 21 and 22.
+–X={x1,x2,x3}is the set of interrupt clocks and Y={yc,yd}is the set of standard
+clocks with rate 1.
+–λ:Q→ {1,2,3}is the interrupt level of each state. All states in LMandLM×{k0,k1,k2}
+are at level 1; so do all states corresponding to r1. States corresponding to r2andr3are
+in level 2, while the ones corresponding to r4andr5are in level 3.
+–∆is deﬁned through basic modules in the sequel.
+The transitions of AMare built within small modules, each one corresponding to on e
+instruction of M. The value nofc(resp.pofd) in a state of LMis encoded by the value
+1−1
+2nof clock yc(resp. 1−1
+2pofyd).
+The idea behind this construction is that for any standard cl ocky, it is possible to “copy”
+the value of k−yin an interrupt clock xi, for some constant k, provided the value of ynever
+
+--- Page 48 ---
+48
+ℓ
+1,U(ℓ,k0)
+1,L(ℓ,r1,>)
+1,L
+(ℓ,r1,<)
+1,L(ℓ,k1,>)
+1,L
+(ℓ,k1,<)
+1,D(ℓ,k2,>)
+1,L
+(ℓ,k2,<)
+1,La0
+ℓ
+x1:= 0yc= 1
+a1
+ℓ,>
+yc:= 0
+yd= 1
+a1
+ℓ,<
+yd:= 0yd= 1
+a2
+ℓ,>
+yd:= 0
+yc= 1
+a2
+ℓ,<
+yc:= 0x1= 1
+a3
+ℓ,>
+x1:= 0
+x1= 1
+a3
+ℓ,<
+x1:= 0
+Fig. 21 Module taking into account the order between the values of canddwhen incrementing
+c.
+exceeds k. To achieve this, we start and reset the interrupt clock, the n stop it when y=k.
+Note that by the end of the copy, the value of yhas changed. Conversely, in order to copy the
+content of an interrupt clock xiinto a clock y, we switch from level ito leveli+1 and reset y
+at the same time. When xi+1=xi, the value of yis equal to the value of xi. Remark that the
+form of the guards on xi+1allows us to copy the value of a linear expression on {x1,...,x i}
+iny.
+For instance, consider an instruction labeled by ℓincrementing cthen going to ℓ′, with
+the respective values nofcandpofd, from a conﬁguration where n≥p. The corresponding
+module Ac++
+c≥d(ℓ,ℓ′) is depicted on Fig. 18 (see main text). In this module, inter rupt clock x1
+is used to record the value1
+2nwhilex2keeps the value1
+2p. Assuming that yc= 1−1
+2n,
+yd= 1−1
+2pandx1= 0 in state ( ℓ,r1,>), the unique run in Ac++
+c≥d(ℓ,ℓ′) will end in state ℓ′
+withyc= 1−1
+2n+1andyd= 1−1
+2p. The intermediate clock values are shown in Table 3 (see
+main text).
+The module on Fig. 18 can be adapted for the case of decrementi ngcby just changing
+the linear expressions in guards for x3, provided that the ﬁnal value of cis still greater than
+the one of d. It is however also quite easy to adapt the same module when n < p: in that
+case we store1
+2pinx1and1
+2ninx2, sinceydwill reach 1 before yc. We also need to start yd
+beforeycwhen copying the adequate values in the clocks. The case of de crementing cwhile
+n≤pis handled similarly. In order to choose which module to use a ccording to the ordering
+between the values of the counters, we use the modules of Fig. 21 and 22. Fig. 21 represents
+the case when at label ℓwe have an increment of cwhereas Fig. 22 represents the case when
+ℓcorresponds to decrementing c. In that last case the value of cis compared not only to the
+one ofd, but also to 0, in order to know which branch of the ifinstruction is taken. Note that
+only one of the branches can be taken until the end6. Instructions involving dare handled in
+a symmetrical way.
+Automaton AMis obtained by joining the modules described above through t he states
+ofLM. Let us prove that automaton AMsimulates the two counter machine M, so that M
+halts iﬀ AMreaches the Haltstate.
+Let/a\}bracke⊔le{⊔ℓ0,0,0/a\}bracke⊔ri}h⊔/a\}bracke⊔le{⊔ℓ1,n1,p1/a\}bracke⊔ri}h⊔.../a\}bracke⊔le{⊔ℓi,ni,pi/a\}bracke⊔ri}h⊔...be a run of M. We show that this run is simulated
+inAMby the run /a\}bracke⊔le{⊔l0,0/a\}bracke⊔ri}h⊔ρ0/a\}bracke⊔le{⊔l1,v1/a\}bracke⊔ri}h⊔ρ1...whereρiis either empty or a subrun through states
+in{(ℓi,rj,⊲⊳)|j∈ {1,...,5},⊲⊳∈ {>,<}}(i.e.subruns in modules like Ac++
+c≥dof Fig. 18).
+Moreover, it will be the case that
+∀i, vi(yc) = 1−1
+2niandvi(yd) = 1−1
+2pi
+Thisholdsatthe beginning ofthe execution of AM.Suppose thatwe have simulated the subrun
+up to/a\}bracke⊔le{⊔ℓi,ni,pi/a\}bracke⊔ri}h⊔. Then we are in state ℓi, with clock ycbeing 1−1
+2niandydbeing 1−1
+2pi.
+The next conﬁguration of M,/a\}bracke⊔le{⊔ℓi+1,ni+1,pi+1/a\}bracke⊔ri}h⊔, depends on the content of instruction ℓi, and
+so does the outgoing transitions of state ℓiinAM. We consider the case where ℓidecrements c
+6State policies are used to treat the special cases, e.g.yc=yd= 0.
+
+--- Page 49 ---
+49
+ℓ
+1,U(ℓ,k0)
+1,L(ℓ,r1,>)
+1,L
+(ℓ,r1,<)
+1,L(ℓ,k1,>)
+1,D
+(ℓ,k1,<)
+1,L(ℓ,k2,>)
+1,L
+(ℓ,k2,<)
+1,D ℓ′′
+1,Uyc>0
+a0
+ℓ
+x1:= 0yc= 1
+a1
+ℓ,>
+yc:= 0
+yd= 1
+a1
+ℓ,<
+yd:= 0yd= 1
+a2
+ℓ,>
+yd:= 0
+yc= 1
+a2
+ℓ,<
+yc:= 0x1= 1
+a3
+ℓ,>
+x1:= 0
+x1= 1
+a3
+ℓ,<
+x1:= 0yc= 0
+aℓ,0
+Fig. 22 Moduletaking intoaccount the orderbetween the valuesof canddwhendecrementing
+c.
+and goes to ℓ′ifcis greater than 0 and goes to ℓ′′otherwise, the other ones being similar. We
+are therefore in the case of Fig. 22. If ni= 0, the next conﬁguration of Mwill be/a\}bracke⊔le{⊔ℓ′′,ni,pi/a\}bracke⊔ri}h⊔.
+Conversely, in AM, ifni= 0 then yc= 0, and there is no choice but to enter ℓ′′, leaving
+all clock values unchanged (because ℓiis anUrgentstate). The conﬁguration of AMthus
+satisﬁes the property. If ni>0, the next conﬁguration of Mwill be/a\}bracke⊔le{⊔ℓ′,ni−1,pi/a\}bracke⊔ri}h⊔. InAM,
+the transition chosen is the one that corresponds to the orde ring between niandpi. In both
+cases, similarly to the example of Ac++
+c≥d(ℓ,ℓ′), the run reaches state ℓ′withyc= 1−1
+2ni−1
+andydas before, thus preserving the property. Hence Mhalts iﬀ AMreaches the Haltstate.
+The automaton AMis indeed the product of an ITA Iand a TA T, synchronized on
+actions. Observe that in all the modules described above, gu ards never mix a standard clock
+with an interrupt one. Since each transition has a unique lab el, keeping only guards and resets
+on either the clocks of Xor on those of Yyields an ITA and a TA whose product is AM.⊓ ⊔

@@ -1,0 +1,529 @@
+--- Page 1 ---
+Implementation Concepts in Vaucanson 2
+Akim Demaille1, Alexandre Duret-Lutz1, Sylvain Lombardy2, and
+Jacques Sakarovitch3
+1LRDE, EPITA, akim@lrde.epita.fr ,adl@lrde.epita.fr
+2LaBRI, Universit e de Bordeaux, Sylvain.Lombardy@labri.fr
+3LTCI, CNRS / T el ecom-ParisTech, sakarovitch@telecom-paristech.fr
+Abstract. Vaucanson is an open source C ++platform dedicated to
+the computation with nite weighted automata. It is generic : it allows
+to write algorithms that apply on a wide set of mathematical objects.
+Initiated ten years ago, several shortcomings were discovered along the
+years, especially problems related to code complexity and obfuscation as
+well as performance issues. This paper presents the concepts underlying
+Vaucanson 2 , a complete rewrite of the platform that addresses these
+issues.
+Table of Contents
+1 Introduction. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+2 Types Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+2.1 From Typing Automata to Typing Transition . . . . . . . . . . . . . . . . . 2
+2.2 Bridge between Structures and Values . . . . . . . . . . . . . . . . . . . . . . . 3
+2.3 LabelSet and WeightSet . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+2.4 Implementation of Contexts . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+3 Object Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+3.1 Automata . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+3.2 Rational Expressions. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4 Dynamic Polymorphism Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.1 Dynamic I/O routines . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+4.2 Dynamic Calls to Static Algorithms . . . . . . . . . . . . . . . . . . . . . . . . . 9
+5 Conclusion and Future Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+1 Introduction
+Vaucanson4is a free-software5platform dedicated to the computation of and
+with nite automata . As a \platform" it is composed of a high-performance
+(somewhat unfriendly) low-level C ++library, on top of which more humane
+interfaces are provided: a comfortable high-level Application Program Inter-
+face (API), exible formats for Input/Output, easy-to-use command-line tools,
+4Work supported by ANR Project 10-INTB-0203 VAUCANSON 2.
+5http://vaucanson-project.org ,http://vaucanson.lrde.epita.fr
+
+--- Page 2 ---
+and eventually, a Graphical User Interface (GUI). Here, \automata" is to be
+understood in the broadest sense: weighted automata on a free monoid | that
+is automata that not only accept, or recognize, words but compute for every
+word a multiplicity which is taken in an arbitrary semiring | and even weighted
+automata on non-free monoids. As for now, are implemented in Vaucanson
+only the (weighted) automata on (direct) products of free monoids, machines
+that are often called transducers | automata that realize (weighted) relations
+between words.
+Vaucanson was started about ten years ago [7] with two main goals and
+a constraint in mind: genericity (oering support for a wide set of automaton
+types) and a natural (to mathematicians) programming style, while keeping
+performances that compete with similar platforms. Genericity was obtained by
+extensive use of C ++overloading and template programming, which are well
+known means to avoid the costly dynamic polymorphism of traditional object-
+oriented programming. A novel design, dubbed Element/MetaElement , al-
+lowed a consistent pattern of implementation of mathematical concepts (such
+as monoids, semirings, series, rational expressions, automata and transducers).
+Annual releases have shown that genericity was indeed achieved: for instance
+TAF-Kit , the command-line tools exposed by Vaucanson 1 , features about
+70 commands on 18 dierent kinds of automata/transducers [9].
+However performances did not keep on par. The causes for these poor perfor-
+mances are manifold. For instance \genericity" was sometimes implemented by
+\generality": instead of a carefully crafted specialized structure, a very gen-
+eral one was used. Most prominently, usual automata, labeled with letters,
+were implemented as automata whose transitions are labeled by polynomials.
+The aforementioned Element/MetaElement design also conducted to error-
+prone, obfuscated code, which eventually impeded the performance of the devel-
+opers themselves.
+TheVaucanson 2 eort aims at keeping the best of Vaucanson 1 (gener-
+icity, rich feature set, easy-to-use shell interface, etc.) while addressing its short-
+comings.
+This paper presents the design of Vaucanson 2 , which is only partly imple-
+mented. Although much remains to be done, enough is already functional so that
+we can report on our experience in the redesign of Vaucanson . The remainder
+of this paper is structured as follows. Section 2 introduces the fundamental types
+used in Vaucanson 2 , and their implementation is presented in Section 3. In
+Section 4 we explain how we provide exible and easy-to-use interfaces on top
+of an ecient but low-level library. We conclude in Section 5.
+2 Types Implementation
+2.1 From Typing Automata to Typing Transition
+The type of a weighted automaton is classically given by the monoid Mof its
+labels and the semiring Kof its weights. For instance, if Mis a free monoid over
+
+--- Page 3 ---
+a nite alphabet A, the weighted automaton is an automaton over nite words;
+ifMis a product ABof two free monoids ( AandBare nite alphabets),
+then the weighted automaton is actually a transducer. The Boolean semiring B
+corresponds to usual NFAs, while Rcan be used for probabilistic automata and
+hZ;min;+ifor distance automata.
+Such a weighted automaton realizes an application from MintoK. The
+applications that can be realized this way are called ( K-)rational series . They
+are a subset of formal power series over Mwith coecients in K, that are
+usually denoted KhhMii, but seen as applications from MintoK, they can also
+be denoted KM, or, with a notation closer to type theory M!K.
+Vaucanson 1 follows this characterization, and, on top of its implementa-
+tion, the type of a weighted automaton is made of both the type of a monoid
+and the type of a semiring. The pair Monoid/Semiring is called the context of
+the automaton (in Vaucanson 1 vocabulary).
+This denition of types, based on the algebraic characterization, has two
+main drawbacks. First, each implementation must support the most general
+automata of a given type. Therefore, any element of Mis accepted as a label
+of a transition; actually, in Vaucanson 1 , labels and weights were handled at
+the same time, since each transition can be labeled by a polynomial (a linear
+combination of letters). Second, the application of many algorithms requires the
+label of the automaton to have a particular form. For instance, the product of
+two automata (that recognizes the intersection of languages in the case of NFAs)
+requires the labels of both automata to be letters, or the usual composition
+algorithm for transducers requires that the transducers are subnormalized . In
+Vaucanson 1 , these prerequisites, crucial for the eective computation, are not
+enforced statically (i.e., by specic C ++types): they must be checked at runtime.
+In the design of Vaucanson 2 we decided to rene our typing system to
+t with the eective requirements of algorithms and implementations. It led to
+focus on typing the transitions rather than the automata themselves. Indeed,
+even if dierent automata on words have the same context in the sense of Vau-
+canson 1 , depending whether they are labeled by letters, or letters and ", or by
+words, their implementation and their behavior w.r.t. algorithms may be very
+dierent. Hence, in Vaucanson 2 the type of an automaton is characterized by
+the type of its transitions, which we name a context . Since the type of a transition
+depends on the type of its label and of its weight, the context of an automaton
+inVaucanson 2 is a pair made from a LabelSet and a WeightSet (Section 2.3).
+OpenFst [2] preceded us, and our contexts are alike their \arctypes".
+2.2 Bridge between Structures and Values
+The implementation of mathematical objects in Vaucanson 2 follows a pat-
+tern, which we name Element/ElementSet : the C ++type of values is sep-
+arated from the C ++type of their set of operations. For instance, weights of
+both semirings ZandhZ;min;+iare implemented by int, but their operations
+are dened by the corresponding WeightSets: zandzmin . Other Element/Ele-
+mentSet pairs include bool /b,double /r, etc., but also the rational expressions
+
+--- Page 4 ---
+and their set: ratexp< Context >/ratexpset< Context >. Thanks to this compli-
+ance with this Element/ElementSet duality, rational expressions can be used
+as weights. The behavior of labels (concatenation, neutral element. . . ) is also
+provided by a LabelSet.
+Whereas Vaucanson 1 'sElement/MetaElement is a rich and complex
+design in itself, our segregation between values and their operations is hardly
+novel. It is a return to N. Wirth's \Algorithms + Data Structures = Programs"
+equation [10], phased out by traditional object-oriented programming's \Pro-
+grams = Objects", and resurrected by generic programming  a la STL.
+2.3 LabelSet and WeightSet
+LabelSet: Dierent Kinds of Label The LabelSet contains the information
+on the type of the labels, that is the implementation of the labels themselves, the
+implementation of the elements of the monoid (that may be dierent: a letter is
+not implemented as a word). It also knows how to multiply (concatenate) labels.
+Last, but not least, it provides a type called Kind that is used to choose
+the most appropriate algorithm that has to be applied to the automaton (or
+rational expression). There are two dierent kinds: LAW, LAL, and a third sort
+of automata that is treated as a kind in itself: LAU.
+LAW, `Labels Are Words'. The most general weighted automata have transitions
+labeled by the elements of a monoid (and weighted by the elements of a semiring).
+This class is very general, does not correspond to the usual denition of nite
+automata and is not suitable for many algorithms (determinization, product,
+evaluation, etc.). However it is the only kind so far that describes automata over
+direct product of monoids. The LabelSet for the free monoid is called wordset .
+LAL, `Labels Are Letters'. This class of automata corresponds to the usual way
+NFAs, or even WFAs, are dened: labels are restricted to being letters. It also
+corresponds to the description of automata as linear representations . Some al-
+gorithms require the automata to be in this class, such as the product (which
+implements the tensor product of the representations) or the reduction algo-
+rithm (which can be applied when the weights belong to a eld). The LabelSet
+implementing this kind is letterset .
+LAU, `Labels Are Unit'. This kind corresponds to the case where there is no
+label, or, equivalently, where every label is the element of a trivial monoid. These
+automata are therefore weighted graphs (with initial and nal values attached
+to vertices). They prove to be very useful since they allow to unify for instance
+the state elimination (which computes a rational expression from an automata)
+and the "-removal algorithms. Its LabelSet is unitset .
+WeightSet: Dierent Values The WeightSets dene the nature of the weights,
+and the operations that apply. They must provide addition, multiplication and
+
+--- Page 5 ---
+Typez }| {
+1z}| {
+context<2z }| {
+letterset<3z }| {
+setalphabet<4z }| {
+char letters>| {z }
+chars>
+| {z }
+LabelSet = lal char,5z}|{
+b
+|{z}
+WeightSet = b>
+| {z }
+lalchar bArgumentsz }| {
+f6z }| {
+f'a','b'g,7z}|{
+fgg
+| {z }
+"lal char(ab) b"
+Fig. 1. Anatomy of lal_char(ab)_b , the C ++11 implementation of fa; bg ! B,
+the context for Boolean automata. Class template (named generics in C# and
+Java) generate classes once provided with parameters, in angle brackets. For in-
+stance, set_alphabet is a class template expecting a single parameter (a class), and
+set_alphabet<char_letters> is class.
+Kleene-star operators. Currently, basic WeightSets include (i) Booleans hB;_;^i,
+implemented by the class b; (ii) integers,hZ;+;iandhZ;min;+i, implemented
+byzandzmin ; (iii) double precision oats hR;+;i, implemented by r.
+Every object that oers the same set of methods, i.e., every object that
+satises the concept of WeightSet can be used. For instance, rational expressions
+can be used as weights, even though they do not form a semiring.
+2.4 Implementation of Contexts
+InVaucanson 2 , the LabelSets manage the labels. Most aspects of labels are
+static : their type (e.g., char ,std::string , etc.) as well as the operations or
+services that are available (algebraic operations, iteration on generators, etc.).
+Others aspects may vary at runtime: an alphabet (a set of letters) is needed to
+fully dene a LabelSet (except for LAU). Therefore, LabelSets are C ++objects
+(values), not just classes.
+Basic WeightSets ( b,zmin , etc.) could be dened only as types, but more
+complicated weights, like rational expressions (cf. Section 3.2), require runtime
+values.
+Because they depend on runtime values, contexts areobjects (not just classes)
+which aggregate an instance of a LabelSet and an instance of a WeightSet.
+Contexts are the cornerstone on top of which the whole Vaucanson 2 platform
+types its mathematical entities (words, weights, automata, rational expressions
+etc.). As such, they could be named \types", but it would lead to too much
+confusion with C ++'s own types. However, these ( Vaucanson 2 ) \types" have
+names which we write with quotes (e.g., "lal_char(ab)_b" ), which should not
+be confused with the C ++objects that implement them, even though C ++names
+match those of the types, written without quotes (e.g., lal_char_b ).
+
+--- Page 6 ---
+Context
+C++Type C ++Initializers
+Vaucanson Static Name Vaucanson Dynamic Name
+fa; bg!B
+context<letterset<chars>, b> {{'a', 'b'}, {}}
+"lal_char_b" "lal_char(ab)_b"
+fa; bg?!Z
+context<wordset<chars>, z> {{'a', 'b'}, {}}
+"law_char_r" "law_char(ab)_z"
+f1g!f a; bg!Z
+context<unitset,
+ratexpset<letterset<chars>, z>>{{}, {'a', 'b'}}
+"lau_ratexpset<lal_char_z>" "lau_ratexpset<lal_char(ab)_z>"
+fa; bg!f x; yg!Z
+context<letterset<chars>,
+ratexpset<letterset<chars>, z>>{{'a', 'b'}, {'x', 'y'}}
+"lal_char_ratexpset<lal_char_z>" "lal_char(ab)_ratexpset<lal_char(xy)_z>"
+Table 2. Examples of contexts. chars stands for set_alphabet<char_letters> , an
+alphabet whose letters and words are of type char and std::string .
+The context of Boolean automata (see Fig. 1) will help understanding the
+C++implementation of contexts. This context object is named "lal_char(ab)_b" .
+As any object, it is the instantiation of a Type, provided with Arguments .
+We name the C ++Type lal_char_b . It is a context 1, which aggregates a
+LabelSet ( lal_char ) and a WeightSet ( b). Since we dene an LAL context, the
+LabelSet is letterset 2, which must be provided with the type of the letters.
+The alphabet 3is a set of letters. We designed alphabets to work on dierent
+types of letters, char , but also int; in Fig. 1 we work with the traditional C ++
+type for characters, char , provided by the char_letters class 4. The eective
+set of these letters is given in 6. The WeightSet is b, i.e.,hB;_;^i. In this case,
+bneeds no argument, so none is provided 7. Table 2 gives more examples of
+contexts.
+3 Object Implementation
+3.1 Automata
+The design of automata in Vaucanson 2 is driven by their API, which was
+designed after the experience of Vaucanson 1 to allow easy and ecient im-
+plementation of algorithms. It oers a number of methods to access both in
+reading and writing to the automaton content. The automaton is the object
+that \knows" how to manipulate all sub-entities like states, transitions, labels
+or weights. Following the Element/ElementSet principle, these are only val-
+ues (that may be numbers, pointers or structures) with no methods; they can be
+handled directly by the automaton or in some cases by the ElementSet objects
+(the LabelSet or the WeightSet) that can be retrieved from the automaton.
+
+--- Page 7 ---
+To make the use of the Vaucanson library as intuitive as possible, all the
+algebraic information is conned in the context object. An automaton is there-
+fore a class template that depends on the implementation of the automaton,
+where the template parameter is the context. For instance, the class template
+mutable_automaton< Context >is a linked list based implementation that sup-
+ports all the API. Vaucanson 2 provides also some wrappers that can be ap-
+plied to a totally dened automaton (implementation and context). For instance,
+the class template transpose_automaton< Automaton >wraps an automaton to
+present a reverse interface, read and write.
+The API of mutable_automata is totally symmetrical: the forward and back-
+ward transition functions are both accessible. Other implementations can be
+provided that partially implement the API, e.g., forward_mutable_automaton
+(and backward_mutable_automaton for symmetry), which does not track in-
+coming transitions, should improve performances in most cases. More wrappers
+can also be provided, for instance to change the alphabets, to change the weight
+sets and so on.
+Our API is designed to support implementation of automata computed on-
+the-y as well [6].
+Pre and Post States Weighted automata feature not only weights on transi-
+tions but also on the initial and nal states. An implementation keeping these
+initial and nal weights on states is awkward, as we found out in Vaucanson 1 .
+The data structure is heavy, and the API error-prone.
+InVaucanson 2 , weights on initial states are modeled as weights on (plain)
+transitions from pre, a (unique) invisible \preinitial" state, to every initial state.
+These transitions are labeled by a fresh label, denoted by $, which can be inter-
+preted as the empty word. As a consequence the initial weights are handled seam-
+lessly, which simplies signicantly the implementation of several algorithms.
+Besides, since there is a single prestate, algorithms that start by loading a
+queue with the initial states (e.g., determinization) can now push only preand
+let the loop iterate on the successors.
+The nal weights are handled in a similar fashion, with post , a (unique)
+invisible \postnal" state.
+3.2 Rational Expressions
+Although the concept of \context" emerged to design our implementation of
+automata, it ts perfectly the same job to dene the nature of the correspond-
+ing rational expressions. By virtue of the Element/ElementSet principle,
+rational expressions are implemented by ratexp< Context >and manipulated by
+ratexpset< Context >.
+Syntax Vaucanson , 1 and 2, supports weighted rational expressions, such as
+a+ (2b)?+ 3(c?). Because weights can be arbitrarily complex, we delimit them
+with braces: ` a+({2}b)*+{3}(c*) '.
+
+--- Page 8 ---
+Vaucanson 1 provides customizable syntax for rational expressions: one can
+dene which symbols are used for the constants 0 and 1 (denoting the empty
+language and empty word), and so forth. In the predened parser of Vaucan-
+son 2 `\z' and ` \e' denote 0 and 1. Because braces are already used for weights
+they cannot be used for the generalized quantiers as in POSIX extended nota-
+tion ( a{min,max}), we denote them a(*min,max). Other parsers can be added
+to support alternative syntaxes.
+Contexts Like automata, rational expressions support not only various types
+of weights, but also of labels | for simplicity and by symmetry with automata,
+we name \labels" the \atoms" of rational expressions. They are therefore pa-
+rameterized by a context. Classical rational expressions such as ` (a+b)*a(a+b) '
+use letters (` a' and ` b') as atoms, and Booleans as weights (\true" is implicit):
+their context is "lal_char(ab)_b" .
+Labels may also be words (LAW) or reduced to 1 (LAU). Weights may
+be integers (e.g., ` one+{2}(two)+{3}(three) ' from "law_char(ehnortw)_z" )
+or even rational expressions: ` {{1}x}a+{{2}y}b ' is a rational expression from
+"lal_char(ab)_ratexpset<lal_char(xy)_z>" (see Table 2).
+Associativity, Commutativity We intend to experiment with dierent im-
+plementations of rational expressions, including relying on associatitivity and
+commutativity. To this end, our ratexp structure supports variadic sums and
+products. It is up to ratexpset to decide whether to exploit this feature or not.
+Currently sums and products are binary, and only straightforward rewritings are
+performed on rational expressions (\Trivial Identities", [9, Table 2.5]).
+4 Dynamic Polymorphism Implementation
+4.1 Dynamic I/O routines
+Contexts Input/Output As its predecessor, Vaucanson 2 is more than just
+a C++library: it is a platform that provides a set of tools to manipulate automata
+and rational expressions, means to save and restore them, eventually a GUI, etc.
+I/O of automata and rational expressions is therefore crucial, which requires
+a means to save, and read, their type. In short, a le containing a Boolean
+automaton must specify that it is a Boolean automaton. This is achieved by I/O
+support for contexts.
+Vaucanson 2 can compute a name from a context, and conversely it can
+build a context from its name. Examples of (dynamic) context names are pro-
+vided in Table 2; for instance the name for fa; bg!Bis"lal_char(ab)_b" .
+Static names are computed from the (dynamic) names by removing the alpha-
+bets: "lal_char_b" .
+Vaucanson 1 relies on FSMXML [4] for typed I/O: specic tags dene the
+algebraic context of the stored automaton or rational expression. Context names
+play a similar role in Vaucanson 2 's I/Os.
+
+--- Page 9 ---
+Dynamic Automaton/Rational Expression Input Vaucanson 2 aims at
+providing an even larger set of algorithms than Vaucanson 1 , yet in a more
+exible way. TAF-Kit 2 consists of a unique binary that replaces the set of
+binaries of TAF-Kit 1. The following command lines for the computation of the
+product of two automata and for the construction of the standard (or position)
+automaton of an expression show the contrast between both interfaces.
+# Vaucanson 1: use the context specic tool.
+$ vcsn-char-z product a.xml b.xml > c.xml # product of automata a and b
+$ vcsn-char-z -a abc standard '{2}a+{3}c' > s.xml # automaton for 2a+3c
+# Vaucanson 2: use the generic tool, the context is handled dynamically.
+$ vcsn product a.xml b.xml > c.xml
+$ vcsn -C 'lal_char(abc)_z' standard -e '{2}a+{3}c' > s.xml
+InTAF-Kit 1, there is a command for every single context (here, vcsn-char-z ),
+while in TAF-Kit 2 context is just data of a unique command ( vcsn ). The
+context must be either carried by the argument, for instance in the FSMXML
+description of an automaton, or provided with a simple command line option
+(-C 'lal_char(abc)_z' ). In either case, the very profound dierence between
+the static nature of the C ++library and the dynamic one of data must be
+resolved. This is addressed by our static/dynamic bridge.
+4.2 Dynamic Calls to Static Algorithms
+Static/Dynamic Polymorphisms Polymorphism is the ability for a single
+function name to denote several implementations that depend on the type of
+its argument(s). It provides a means to specialize algorithms: some can be run
+on automata of special kind, with special type of weights, or special type of
+labels, others may have dierent versions according to the type of weights or of
+labels. For instance, determinization applies to Boolean automata only, product
+to LAL automata only, etc. The elimination of "-transitions gives an example of
+the second kind: any closure algorithm works on Boolean automata, for automata
+with weights in Zit boils down to an algorithm that tests for acyclicity, and for
+automata with weights in R, it is again another algorithm [8].
+The dynamic polymorphism (i.e., specialization selection at runtime via vir-
+tual tables) provides a exible solution to these problems: roughly, when a
+method is called on an object, the exact type of this object is examined at
+run time and the corresponding implementation is then called. It is the essence
+of object-oriented programming. Unfortunately this elegant mechanism slows
+down the execution of the program when used in intensive computation loops.
+C++oers another mechanism, templates , that allows static polymorphism
+(i.e., specialization selection at compile time). Functions and classes can be pa-
+rameterized by one or several types (or constants); some specic implementations
+can also be provided for particular types (see Fig. 1). When a method is called
+on an object, the type of this object is known at compile time and the method,
+
+--- Page 10 ---
+template <typename Context> void
+static(const string& lhs, const string& rhs, const string& word)
+{
+using automaton_t = vcsn::mutable_automaton<Context>;
+automaton_t l = vcsn::read_automaton_file<automaton_t>(lhs);
+automaton_t r = vcsn::read_automaton_file<automaton_t>(rhs);
+automaton_t prod = vcsn::product<automaton_t, automaton_t>(l, r);
+typename Context::weight_t w = vcsn::eval<automaton_t>(prod, word);
+prod.context().weightset()->print(std::cout, w);
+}
+void dynamic(const string& lhs, const string& rhs, const string& word)
+{
+using namespace vcsn::dyn;
+automaton l = read_automaton_file(lhs);
+automaton r = read_automaton_file(rhs);
+automaton prod = product(l, r);
+weight w = eval(prod, word);
+print(w, std::cout);
+}
+Fig. 3. Static/Dynamic APIs: evaluation of the word word by a product of the automata
+stored in the les named lhsand rhs. The dynamic routine hides the complexity of
+templated programming, demonstrated by static . It is also more exible, as it can
+be invoked with automata of equal algebraic type, but of dierent C ++types (e.g., a
+transpose_automaton and a mutable_automaton ).
+if needed, is compiled especially for this type. Method invocation is then as e-
+cient as a plain function call. There are some drawbacks to this mechanism. First,
+every object must be precisely typed: the type of an automaton shows its imple-
+mentation and is moreover parameterized by the type of its labels and weights,
+which can themselves be parameterized. Hence, users of the library may handle
+quite complicated types. For instance the type for a classical Boolean automa-
+ton is mutable_automaton<context<letterset<set_alphabet<char_letters
+>>, b> (see Table 2 for a description of the context part). Second, to compile
+binaries that oer all the required algorithms for each type of automata, the
+corresponding functions must be compiled for each of these types. The compila-
+tion, as a consequence, is an extremely long process, and the introduction of a
+new \context" (that is, a new kind of weights, labels or implementation) needs
+a conguration to specify which algorithms need to be compiled.
+This is our experience with Vaucanson 1 ; compiling the whole package and
+the 18 commands of TAF-Kit takes hours (annoying for users, crippling for
+developers!). Beside, the resulting API was repelling, and very few people dared
+programming with the library, and preferred to use TAF-Kit .
+To address these shortcomings while keeping the good properties of static
+polymorphism (eciency and rigorous type checking), Vaucanson 2 provides a
+
+--- Page 11 ---
+Fig. 4. Dynamic invocation on top of templated implementations. For con-
+ciseness, in this diagram b_aut denotes the type of Boolean automata,
+mutable_automaton<context<letterset<set_alphabet<char_letters>>, b> , the
+\exact" type of the automaton a2, contained by the dynamic automaton a1.
+two-level API (see Fig. 3). The low-level API, named \static", is fully typed: the
+C++types of the object are precise and heavily templated. When programming
+at this level, the user is in charge of every detail, including memory management.
+For sake of eciency, all the algorithms of the library are written at the static
+level: dynamic polymorphism and its costs are avoided. The high-level API,
+named \dynamic", provides the user with the comfort of dynamic polymorphism,
+but at such a coarse grain that its cost is negligible (to select the appropriate
+version of an algorithm, not in the implementation of the algorithms themselves).
+This layer takes in charge details such as the exact type of the objects, and
+memory management.
+Dynamic Access to Template Algorithm Fig. 4 demonstrates how the dy-
+namic API invokes the low-level one. In the high-level API, an automaton a1
+is handled as a dyn::automaton , whatever its exact type. When the user in-
+vokes dyn::determinize(a1) , several steps must occur. First a1is asked for
+the name of its exact type ( n1in Fig. 4). This string is used to query a registry
+of all the static bridges ofdeterminize . These bridges all have the same type
+(dyn::automaton -> dyn::automaton ), yet they are parameterized by the ex-
+act type. Once the specic det_bridge<b_aut> is obtained, it is invoked with
+a1as argument. The bridge extracts a2, the static automaton, from a1, and
+invokes the low-level determinize , whose type is b_aut -> b_aut . Its result,
+the static automaton d2, is returned to the bridge, that wraps it in the dynamic
+automaton d1, which is eventually returned to the user.
+As far as we know, this two-layer technique to implement dynamic polymor-
+phism on top of static polymorphism is unpublished. However several of its com-
+ponents have already been documented in the literature. For instance, dynamic
+objects such as dyn::automaton implement the External Polymorphism de-
+sign pattern [3]. The implementation of algorithm registries is very similar to
+
+--- Page 12 ---
+\Object Factories" [1, Chap. 8], an implementation of the Abstract Factories [5]
+tailored for C ++.
+5 Conclusion and Future Work
+Vaucanson 2 is a complete rewrite of the Vaucanson platform. Its whole
+design relies on objects called \contexts" that behave as a custom typing-system
+for automata and rational expressions. They are also the cornerstone of the two-
+level API, which provides an easy-to-use and exible dynamic interface on top of
+an ecient static C ++library. Although Vaucanson 2 is still in its early phase,
+it already features 30+ dierent dynamic algorithms (including I/O) and 15+
+predened contexts. The benchmarks show that the new concepts have a clear
+and positive eect on performances. For instance, as of mid 2013, Vaucanson 2
+is about 2.5 times faster on determinization than its predecessor, and 50% slower
+thanOpenFst .
+Much remains to do. Importing the algorithms from Vaucanson 1 will be
+a non-straightforward eort, as it will require adjusting to the new API, taking
+advantage of C ++11 features, and binding with dynamic API. It is expected to
+improve both the readability of the algorithms, and their eciency.
+Adding more contexts should be reasonably simple. We are condent that
+adding new WeightSets is simple and straightforward, as there are already many
+very dierent implementations. Variety in the LabelSets is more challenging:
+supporting other concepts of generators (integers for instance), and dierent
+label kinds (tuples of letters and empty word, for instance, for implementing
+automata on multiple tapes, a generalization of Vaucanson 1 's support for
+transducers [7]).
+References
+1. A. Alexandrescu. Modern C++ Design: Generic Programming and Design Pat-
+terns Applied . Addison-Wesley, 2001.
+2. C. Allauzen, M. Riley, J. Schalkwyk, W. Skut, and M. Mohri. OpenFst: A general
+and ecient weighted nite-state transducer library. In J. Holub and J. Zd arek,
+editors, Proceedings of Implementation and Application of Automata, 12th Interna-
+tional Conference (CIAA'07) , volume 4783 of Lecture Notes in Computer Science ,
+pages 11{23, 2007, Springer. http://www.openfst.org .
+3. C. Cleeland, D. C. Schmidt, and T. Harrison. External polymorphism | an ob-
+ject structural pattern for transparently extending C++ concrete data types. In
+Proceedings of the 3rd Pattern Languages of Programming Conference , 1997.
+4. A. Demaille, A. Duret-Lutz, F. Lesaint, S. Lombardy, J. Sakarovitch, and F. Ter-
+rones. An XML format proposal for the description of weighted automata, trans-
+ducers, and regular expressions. In J. Piskorski, B. W. Watson, and A. Yli-Jyr a, edi-
+tors, Post-proceedings of the seventh international workshop on Finite-State Meth-
+ods and Natural Language Processing (FSMNLP'08) , volume 19 of Frontiers in
+Articial Intelligence and Applications , pages 199{206, 2009, IOS Press.
+
+--- Page 13 ---
+5. E. Gamma, R. Helm, R. Johnson, and J. Vlissides. Design Patterns: Elements of
+Reusable Object-Oriented Software . Addison-Wesley, 1995.
+6. F. Guingne and F. Nicart. Finite state lazy operations in NLP. In J.-M. Cham-
+parnaud and D.Maurel, editors, Proceedings of Implementation and Application of
+Automata, 7th International Conference (CIAA'02) , volume 2608 of Lecture Notes
+in Computer Science , pages 138{147, 2002. Springer.
+7. S. Lombardy, R. Poss, Y. R egis-Gianas, and J. Sakarovitch. Introducing Vaucan-
+son. In O. H. Ibarra and Z. Dang, editors, Proceedings of Implementation and
+Application of Automata, 8th International Conference (CIAA'03) , volume 2759
+ofLecture Notes in Computer Science , pages 96{107, 2003, Springer.
+8. S. Lombardy and J. Sakarovitch. The validity of weighted automata. Int. J. of
+Algebra and Computation , 2013. To appear. Available on ArXiV .
+9. Vaucanson Group. Vaucanson TAF-Kit Documentation , 1.4.1 edition, sep 2011.
+http://www.vaucanson-project.org .
+10. N. Wirth. Algorithms + Data Structures = Programs . Prentice Hall, 1976.

@@ -1,0 +1,664 @@
+--- Page 1 ---
+ 
+ 
+ 
+ 
+ 
+Edinburgh Research Explorer  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Efficient Qualitative Analysis of Classes of Recursive Markov
+Decision Processes and Simple Stochastic Games
+Citation for published version:
+Etessami, K & Yannakakis, M 2006, Efficient Qualitative Analysis of Classes of Recursive Markov Decision
+Processes and Simple Stochastic Games. in STACS. Springer, pp. 634-645.
+Link:
+Link to publication record in Edinburgh Research Explorer
+Document Version:
+Peer reviewed version
+Published In:
+STACS
+General rights
+Copyright for the publications made accessible via the Edinburgh Research Explorer is retained by the author(s)
+and / or other copyright owners and it is a condition of accessing these publications that users recognise and
+abide by the legal requirements associated with these rights.
+Take down policy
+The University of Edinburgh has made every reasonable effort to ensure that Edinburgh Research Explorer
+content complies with UK legislation. If you believe that the public display of this file breaches copyright please
+contact openaccess@ed.ac.uk providing details, and we will remove access to the work immediately and
+investigate your claim.
+Download date: 05. Apr. 2026
+
+--- Page 2 ---
+Eﬃcient Qualitative Analysis of Classes of
+Recursive Markov Decision Processes and
+Simple Stochastic Games
+Kousha Etessami1and Mihalis Yannakakis2
+1LFCS, School of Informatics, University of Edinburgh
+2Department of Computer Science, Columbia University
+Abstract. Recursive Markov Decision Processes (RMDPs) and Recur-
+sive Simple Stochastic Games (RSSGs) are natural models for recur-
+sive systems involving both probabilistic and non-probabilistic actions.
+As shown recently [10], fundamental problems about such models, e.g.,
+termination, are undecidable in general, but decidable for the impor-
+tant class of 1-exit RMDPs and RSSGs. These capture controlled and
+game versions of multi-type Branching Processes, an important and well-
+studied class of stochastic processes. In this paper we provide eﬃcient
+algorithms for the qualitative termination problem for these models: does
+the process terminate almost surely when the players use their optimal
+strategies? Polynomial time algorithms are given for both maximizing
+and minimizing 1-exit RMDPs (the two cases are not symmetric). For 1-
+exit RSSGs the problem is in NP ∩coNP, and furthermore, it is at least as
+hard as other well-known NP ∩coNP problems on games, e.g., Condon’s
+quantitative termination problem for ﬁnite SSGs ([3]). For the class of
+linearly-recursive 1-exit RSSGs, we show that the problem can be solved
+in polynomial time.
+1 Introduction
+In recent work [10], we introduced and studied Recursive Markov Decision Pro-
+cesses (RMDPs) and Recursive Simple Stochastic Games (RSSGs), which pro-
+vide natural models for recursive systems (e.g., programs with procedures) in-
+volving both probabilistic and non-probabilistic actions. They deﬁne inﬁnite-
+state MDPs and SSGs that extend Recursive Markov Chains (RMCs) ([8, 9])
+with non-probabilistic actions that are controlled by a controller and/or the en-
+vironment (the “players”). Informally, a recursive model (RMC, RMDP, RSSG)
+consists of a (ﬁnite) collection of ﬁnite state component models (resp. MC, MDP,
+SSG) that can call each other in a potentially recursive manner.
+In this paper we focus on the important class of 1-exit RMDPs and 1-exit
+RSSGs , which we will denote by 1-RMDP and1-RSSG . These are RMDPs and
+RSSGs where every component contains exactly 1 exit node. Without players, 1-
+RMCs correspond tightly to both Stochastic Context-Free Grammars (SCFGs)
+and Multi-Type Branching Processes (MT-BPs). Branching processes are an im-
+portant class of stochastic processes, dating back to the early work of Galton and
+
+--- Page 3 ---
+Watson in the 19th century, and continuing in the 20th century in the work of
+Kolmogorov, Sevastianov, Harris and others for MT-BPs and beyond (see, e.g.,
+[14]). MT-BPs model the growth of a population of objects of distinct types.
+In each generation each object of a given type gives rise, according to a prob-
+ability distribution, to a multi-set of objects of distinct types. These stochastic
+processes have been used in a variety of applications, including in population
+genetics ([16]), nuclear chain reactions, ([7]), and RNA modeling in computa-
+tional biology (based on SCFGs) ([22]). SCFGs are also fundamental models in
+statistical natural language processing (see, e.g., [19]). 1-RMDPs correspond to a
+controlled version of MT-BPs (and SCFGs): the reproduction of some types can
+be controlled, while the dynamics of other types is probabilistic as in ordinary
+MT-BPs; or the controller may be able to inﬂuence the reproduction of some
+types by choosing among a set of probability distributions (e.g., the branching
+Markov decision chains of [21]). The goal of the controller is either to maximize
+the probability of extinction or to minimize it (maximize survival probability).
+This model would also be suitable for analysis of population dynamics under
+worst-case (or best-case) assumptions for some types and probabilistic assump-
+tions for others. Such controlled MT-BPs can be readily translated to 1-RMDPs,
+where the types of the MT-BP correspond to the components of the RMDP, ex-
+tinction in the MT-BP corresponds to termination in the RMDP, and our results
+can be used for the design of strategies to achieve or prevent extinction.
+Among our results in [10], we showed that for maximizing (minimizing) 1-
+RMDPs, the Qualitative Termination Problem (Qual-TP ), is in NP (coNP, re-
+spectively), and that the same problem for 1-RSSGs is in ΣP
+2∩ΠP
+2.Qual-TP is
+the problem of deciding whether player 1 (the maximizer) has a strategy to force
+termination with probability 1, regardless of the strategy employed by player 2
+(the minimizer). (In a maximizing 1-RMDP, the only player present is the max-
+imizer, and in a minimizing 1-RMDP the only player present is the minimizer.)
+In this paper we improve signiﬁcantly on the above results. We show that
+Qual-TP , both for maximizing 1-RMDPs and for minimizing 1-RMDPs, can in
+fact be decided in polynomial time. It follows easily from this and strong determi-
+nacy results from [10], that for 1-RSSGs Qual-TP is in NP∩coNP. We show that
+one can not easily improve on this upper bound, by providing a polynomial time
+reduction from the Quantitative Termination Problem (Quan-TP ) for ﬁnite SSGs
+([3]) to the Qual-TP problem for 1-RSSGs. Condon [3] showed that for ﬁnite
+SSGs the Quan-TP problem, speciﬁcally the problem of deciding whether player
+1 has a strategy to force termination with probability ≥1/2, is in NP∩coNP.
+Whether the problem can be solved in P is a well-known open problem, that in-
+cludes as special cases several other longstanding problems (e.g., “parity games”
+and “mean-payoﬀ” games). We note (as is already known) that for ﬁnite SSGs,
+Qual-TP itself is in polynomial time. We in fact show a more general result,
+namely, that Qual-TP is in polynomial time for the class of 1-RSSGs that are
+linearly-recursive .
+Thus, we provide a new class of inﬁnite-state SSGs whose qualitative decision
+problem is at least as hard as the quantitative decision problem for ﬁnite SSGs,
+
+--- Page 4 ---
+and quite possibly harder, but which we can still decide in NP ∩coNP. We already
+showed in [10, 8] that the even harder Quan-TP problem for 1-RSSGs can be
+decided in PSPACE, and that improving that upper bound even to NP, even
+for 1-RMCs, would resolve a long standing open problem in the complexity of
+numerical computation, namely the square-root sum problem ([12]).
+Most proofs are omitted due to space.
+Related work. Both MDPs and Stochastic Games have a vast literature
+(see [20, 11]). As mentioned, we introduced RMDPs and RSSGs and studied
+both quantitative and qualitative termination problems in [10]. We showed that
+for multi-exit models these problems are undecidable, and that (qualitative)
+model checking is undecidable even in the 1-exit case. Our earlier work [8, 9]
+developed the theory and algorithms for RMCs and [6, 2] studied the related
+model of probabilistic Pushdown Systems (pPDSs).
+Our algorithms here were partly inspired by recent unpublished work by
+Denardo and Rothblum [4, 5] on Multi-Matrix Multiplicative Systems . They study
+families of square nonnegative matrices, which arise from choosing each matrix
+row independently from a choice of rows, and they give LP characterizations of
+when the spectral radius of all matrices in the family will be ≥1 or>1. None
+of our results follow from theirs, but we use techniques similar to theirs, along
+with other techniques, to obtain our upper bounds.
+2 Deﬁnitions and Background
+ARecursive Simple Stochastic Game (RSSG) ,A, is a tuple A= (A1, . . . , A k),
+where each component Ai= (Ni, Bi, Yi, En i, Ex i,pli, δi) consists of:
+–A set Niofnodes , with a distinguished subset Eniofentry nodes and a
+(disjoint) subset Exiofexitnodes.
+–A set Biofboxes , and a mapping Yi:Bi/mapsto→{1, . . . , k}that assigns to every
+box (the index of) a component. To each box b∈Bi, we associate a set of call
+ports ,Call b={(b, en)|en∈EnY(b)}, and a set of return ports ,Return b=
+{(b, ex)|ex∈ExY(b)}. Let Calli=∪b∈BiCall b,Returni=∪b∈BiReturn b,
+and let Qi=Ni∪Calli∪Returnibe the set of all nodes, call ports and
+return ports; we refer to these as the vertices of component Ai.
+–A mapping pli:Qi/mapsto→{0,1,2}that assigns to every vertex a player (Player
+0 represents “chance” or “nature”). We assume pli(ex) = 0 for all ex∈Exi.
+–A transition relation δi⊆(Qi×(R∪{⊥} )×Qi), where for each tuple
+(u, x, v )∈δi, the source u∈(Ni\Exi)∪Returni, the destination v∈
+(Ni\Eni)∪Calli, and xis either (i) a real number pu,v∈(0,1] (the tran-
+sition probability) if pli(u) = 0, or (ii) x=⊥ifpli(u) = 1 or 2. For
+computational purposes we assume that the given probabilities pu,vare ra-
+tional. Furthermore they must satisfy the consistency property: for every
+u∈pl−1
+i(0),/summationtext
+{v/prime|(u,pu,v /prime,v/prime)∈δi}pu,v/prime= 1, unless uis a call port or exit
+node, neither of which have outgoing transitions, in which case by default/summationtext
+v/primepu,v/prime= 0.
+
+--- Page 5 ---
+We use the symbols ( N, B, Q, δ, etc.) without a subscript, to denote the
+union over all components. Thus, e.g., N=∪k
+i=1Niis the set of all nodes of A,
+δ=∪k
+i=1δithe set of all transitions, etc.
+An RSSG Adeﬁnes a global denumerable Simple Stochastic Game (SSG)
+MA= (V=V0∪V1∪V2, ∆,pl) as follows. The global states V⊆B∗×Qof
+MAare pairs of the form /angbracketleftβ, u/angbracketright, where β∈B∗is a (possibly empty) sequence
+of boxes and u∈Qis avertex ofA. More precisely, the states V⊆B∗×Qand
+transitions ∆are deﬁned inductively as follows:
+1./angbracketleft/epsilon1, u/angbracketright∈V, foru∈Q. (/epsilon1denotes the empty string.)
+2. if/angbracketleftβ, u/angbracketright∈V&(u, x, v )∈δ, then/angbracketleftβ, v/angbracketright∈Vand (/angbracketleftβ, u/angbracketright, x,/angbracketleftβ, v/angbracketright)∈∆.
+3.if/angbracketleftβ,(b, en)/angbracketright∈V& (b, en)∈Call b, then/angbracketleftβb, en/angbracketright∈V& (/angbracketleftβ,(b, en)/angbracketright,1,/angbracketleftβb, en/angbracketright)∈∆.
+4.if/angbracketleftβb, ex/angbracketright∈V& (b, ex)∈Return b, then/angbracketleftβ,(b, ex)/angbracketright∈V& (/angbracketleftβb, ex/angbracketright,1,/angbracketleftβ,(b, ex)/angbracketright)∈∆.
+The mapping pl:V/mapsto→{0,1,2}is given as follows: pl(/angbracketleftβ, u/angbracketright) =pl(u) ifuis
+inQ\(Call∪Ex), and pl(/angbracketleftβ, u/angbracketright) = 0 if u∈Call∪Ex. The set of vertices V
+is partitioned into V0,V1, and V2, where Vi=pl−1(i). We consider MAwith
+various initial states of the form/angbracketleft/epsilon1, u/angbracketright, denoting this by Mu
+A. Some states of MA
+areterminating states and have no outgoing transitions. These are states /angbracketleft/epsilon1, ex/angbracketright,
+where exis an exit node.
+An RSSG where V2=∅(V1=∅) is called a maximizing (minimizing, respec-
+tively) Recursive Markov Decision Process (RMDP); an RSSG where V1∪V2=∅
+is called a Recursive Markov Chain (RMC) ([8, 9]); an RSSG where V0∪V2=∅
+is called a Recursive Graph or Recursive State Machine (RSM) ([1]). Deﬁne 1-
+RSSGs to be those RSSGs where every component has 1 exit, and likewise deﬁne
+1-RMDPs and1-RMCs . W.l.o.g., we can assume every component has 1 entry,
+because multi-entry RSSGs can be transformed to equivalent 1-entry RSSGs
+with polynomial blowup (similar to RSM transformations [1]). This is not so for
+exits, e.g., qualitative termination is undecidable for multi-exit RMDPs, whereas
+it is decidable for 1-RSSGs (see [10]). This entire paper is focused on 1-RSSGs
+and 1-RMDPs. Accordingly, some of our notation is simpler than that used for
+general RSSGs in [10]. We shall call a 1-RSSG (1-RMDP, etc.) linear if there in
+no path of transitions in any component from any return port to a call port.
+Our basic goal is to answer qualitative termination questions for 1-RSSGs:
+“Does player 1 have a strategy to force the game to terminate at exit ex(i.e.,
+reach/angbracketleft/epsilon1, ex/angbracketright), starting at/angbracketleft/epsilon1, u/angbracketright, with probability 1, regardless of how player 2
+plays?”. A strategy σfor player i,i∈ {1,2}, is a function σ:V∗Vi/mapsto→V,
+where, given the history ws∈V∗Viof play so far, with s∈Vi(i.e., it is player
+i’s turn to play a move), σ(ws) =s/primedetermines the next move of player i,
+where ( s,⊥, s/prime)∈∆. (We could also allow randomized strategies.) Let Ψidenote
+the set of all strategies for player i. A pair of strategies σ∈Ψ1andτ∈Ψ2
+induce in a straightforward way a Markov chain Mσ,τ
+A= (V∗, ∆/prime), whose set
+of states is the set V∗of histories. Given an initial vertex u, suppose exis the
+unique exit node of u’s component. Let q∗,σ,τ
+u be the probability that, in Mσ,τ
+A,
+starting at initial state /angbracketleft/epsilon1, u/angbracketrightwe will eventually terminate, by reaching some
+w/angbracketleft/epsilon1, ex/angbracketright, for w∈V∗. From general determinacy results (e.g., [18]) it follows
+that supσ∈Ψ1infτ∈Ψ2q∗,σ,τ
+u = inf τ∈Ψ2supσ∈Ψ1q∗,σ,τ
+u.This is the value of the game
+
+--- Page 6 ---
+starting at u, which we denote by q∗
+u. We are interested in the following problem:
+Qual-TP : Given A, a 1-RSSG (or 1-RMDP), and given a vertex uinA, isq∗
+u= 1?
+For a strategy σ∈Ψ1, letq∗,σ
+u= inf τ∈Ψ2q∗,σ,τ
+u, and for τ∈Ψ2, letq∗,·,τ
+u=
+supσ∈Ψ1q∗,σ,τ
+u. We showed in [10] that 1-RSSGs satisfy a strong form of memo-
+ryless determinacy, namely, call a strategy Stackless & Memoryless (S&M) if it
+depends neither on the history of the game nor on the current call stack, i.e.,
+only depends on the current vertex. We call a game S&M-determined if both
+players have S&M optimal strategies.
+Theorem 1. ([10]) Every 1-RSSG termination game is S&M-determined.
+(Moreover, there is an S&M strategy σ∗∈Ψ1that maximizes the value of q∗,σ
+u
+for all u, and likewise a τ∗∈Ψ2that minimizes the value of q∗,·,τ
+u for all u.)
+For multi-exit RMDPs and RSSGs things are very diﬀerent. We showed that even
+memoryless determinacy fails badly (there may not exist any optimal strategy
+at all, only /epsilon1-optimal ones)), and furthermore Qual-TP is undecidable (see [10]).
+Note that there are ﬁnitely many S&M strategies for player i: each picks one
+edge out of each vertex belonging to player i. For 1-RMCs, where there are only
+probabilistic vertices, we showed in [8] that Qual-TP can be decided in polyno-
+mial time, using a spectral radius characterization for certain moment matrices
+associated with 1-RMCs. It followed, by guessing strategies, that Qual-TP for
+both maximizing and minimizing 1-RMDPs is in NP, and that Qual-TP for 1-
+RSSGs is in ΣP
+2∩ΠP
+2. We obtain far stronger upper bounds in this paper. We
+will also use the following fact from [10].
+Proposition 1. ([10]) We can decide in P-time if the value of a 1-RSSG termi-
+nation game (and optimal termination probability in a maximizing or minimizing
+1-RMDP) is exactly 0.
+In ([10]) we deﬁned a monotone system SAof nonlinear min-max equations
+for 1-RSSGs A, and showed that its Least Fixed Point solution yields the desired
+probabilities q∗
+u. These systems generalize both the linear Bellman’s equations
+for MDPs, as well as the nonlinear system of polynomial equation for RMCs
+studied in [8]. Here we recall these systems of equations (with a slightly simpler
+notation). Let us use a variable xufor each unknown q∗
+u, and let xbe the vector
+of all xu, u∈Q. The system SAhas one equation of the form xu=P(x) for
+each vertex u. Suppose that uis in component Aiwith (unique) exit ex. There
+are 5 cases based on the “ Type” ofu.
+1.u∈Type 1:u=ex. In this case: xu= 1.
+2.u∈Type rand:pl(u) = 0 &u∈(Ni\{ex})∪Returni:xu=/summationtext
+{v|(u,pu,v,v)∈δ}pu,vxv.
+(Ifuhas no outgoing transitions, this equation is by deﬁnition xu= 0.)
+3.u∈Type call:u= (b, en) is a call port: x(b,en)=xen·x(b,ex/prime), where ex/prime∈
+ExY(b)is the unique exit of AY(b).
+4.u∈Type max:pl(u) = 1 &u∈(Ni\{ex})∪Returni:xu= max {v|(u,⊥,v)∈δ}xv.
+(Ifuhas no outgoing transitions, we deﬁne max( ∅) = 0.)
+5.u∈Type min:pl(u) = 2 and u∈(Ni\{ex})∪Returni:xu= min {v|(u,⊥,v)∈δ}xv.
+(Ifuhas no outgoing transitions, we deﬁne min( ∅) = 0.)
+
+--- Page 7 ---
+In vector notation, we denote the system SAbyx=P(x).
+Given 1-RSSG A, we can easily construct SAin linear time. For vectors
+x,y∈Rn, deﬁne x≤yto mean xj≤yjfor every coordinate j. Let q∗∈Rn
+denote the n-vector of q∗
+u’s.
+Theorem 2. ([10]) Let x=P(x)be the system SAassociated with 1-RSSG A.
+Then q∗=P(q∗), and for all q/prime∈Rn
+≥0, ifq/prime=P(q/prime), then q∗≤q/prime(in other
+words, q∗is the Least Fixed Point , ofP:Rn
+≥0/mapsto→Rn
+≥0).
+3 Qualitative termination for 1-RMDPs in P-time
+We show that, for both maximizing 1-RMDPs and minimizing 1-RMDPs, qual-
+itative termination can be decided in polynomial time. Please note: the two
+cases are not symmetric. We provide distinct algorithms for each of them. An
+important result for us is this:
+Theorem 3. ([8]) Qual-TP for 1-RMCs is decidable in polynomial time.
+We brieﬂy indicate the key elements of that upper bound (please see [8] for more
+details). Our algorithm employed a spectral radius characterization of moment
+matrices associated with 1-RMCs. Given the system of polynomial equations
+x=P(x) for a 1-RMC (no min and max types), its moment matrix Bis the
+square Jacobian matrix of P(x), whose ( i, j)’th entry is the partial derivative
+∂Pi(x)/∂x j, evaluated at the all 1 vector (i.e., xu←1 for u∈Q). We showed in
+[8] that if the system x=P(x) is decomposed into strongly connected compo-
+nents (SCCs) in a natural way, and we associate a moment matrix BCto each
+SCC, C, then q∗
+u= 1 for every uwhere xuis inC, iﬀ either uis ofType 1, or [C
+has successor SCCs and q∗
+v= 1 for all nodes vin any successor SCC of C,and
+ρ(BC)≤1, where ρ(M) is the spectral radius of a square matrix M].
+Theorem 4. Given a maximizing 1-RMDP, A, and a vertex uofA, we can
+decide in polynomial time whether q∗
+u= 1. In other words, for maximizing 1-
+RMDPs, Qual-TP is in P.
+Proof. Given a maximizing 1-RMDP, A, we shall determine for all vertices u,
+whether q∗
+u= 1, q∗
+u= 0, or 0 < q∗
+u<1. The system of equations x=P(x)
+forAdeﬁnes a labeled dependency graph ,GA= (Q,→), as follows: the nodes
+QofGAare the vertices of A, and there is an edge u→viﬀxvappears on
+the right hand side of the equation xu=Pu(x). Each node uis labeled by its
+Type. Ifu∈Type rand, i.e., uis a probabilistic vertex, and xvappears in the
+weighted sum Pu(x) as a term pu,vxv, then the edge from utovis labeled by
+the probability pu,v. Otherwise, the edge is unlabeled.
+We wish to partition the nodes of the dependency graph into three classes:
+Z0={u|q∗
+u= 0},Z1={u|q∗
+u= 1}, and Z$={u|0< q∗
+u<1}. In our
+algorithm we will use a fourth partition, Z?, to denote those nodes for which
+we have not yet determined to which partition they belong. We ﬁrst compute
+Z0. By proposition 1, this can be done easily in P-time even for 1-RSSGs. Once
+
+--- Page 8 ---
+we have computed Z0, the remaining nodes belong either to Z1orZ$. Clearly,
+Type 1nodes belong to Z1.
+Initialize: Z1←Type 1;Z$←∅; and Z?←Q\(Z1∪Z0);
+Next, we do one “preprocessing” step to categorize some remaining “easy” nodes
+intoZ1andZ$, as follows:
+repeat
+ifu∈Z?∩(Type rand∪Type call) has all of its successors in Z1
+then Z?←Z?\{u};Z1←Z1∪{u};
+ifu∈Z?∩Type maxhas some successor in Z1
+then Z?←Z?\{u};Z1←Z1∪{u};
+ifu∈Z?∩(Type rand∪Type call) has some successor in Z0∪Z$
+then Z?←Z?\{u};Z$←Z$∪{u};
+ifu∈Z?∩Type maxhas all successors in ( Z0∪Z$)
+then Z?←Z?\{u};Z$←Z$∪{u};
+until (there is no change to Z?)
+The preprocessing step will not, in general, empty Z?, and we need to cate-
+gorize the remaining nodes in Z?. We will construct a set of linear inequalities
+(an LP without an objective function) which has a solution iﬀ there are any
+remaining node in Z?which belongs in Z1, and if so, the solution we obtain to
+the LP will let us ﬁnd and remove from Z?some more nodes that belong in Z1.
+Note that, if we can do this, then we can solve our problem, because all we
+need to do is iterate: we repeatedly do a preprocessing step, followed by the LP
+step to remove nodes from Z?, until no more nodes can be removed, at which
+point we are done: the remaining nodes in Z?all belong to Z$.
+For the LP step, restrict attention to the vertices remaining in Z?. These
+vertices induce a subgraph of GA, call it G/prime
+A. Call a remaining probabilistic
+node uinZ?leaky if it does not have full probability on its outgoing transitions
+inside G/prime
+A. Note that this happens if and only if some of u’s outedges in GAlead
+to nodes in Z1(otherwise, if uhad an outedge to a node in Z0orZ$, it would
+already have been removed from Z?during preprocessing). Let Ldenote the set
+of remaining leaky nodes in Z?. We add an extra terminal node ttoG/prime
+A, and for
+every u∈Lwe add a probabilistic edge upu,t→t, where pu,t= 1−/summationtext
+v∈Z?pu,v.
+W.l.o.g., assume that both entries of components and return nodes are prob-
+abilistic nodes (this can easily be assured by minor adjustments to the input
+1-RSSG). The LP has a variable yifor every node i∈Z?that is not Type max,
+and has a variables yi,jfor every Type maxnode i∈Z?and successor j∈Z?of
+i. In addition there are ﬂow variables fi,j,kfor each node i∈Z?, and every edge
+j→kinG/prime
+A. The constraints are as follows.
+1. For every j∈Type rand∪Type callthat is not a component entry or a return:
+yj≥/summationdisplay
+i→j∧i∈Type randpi,jyi+/summationdisplay
+i→j∧i∈Type maxyi,j
+2. For every j∈Type max:
+/summationdisplay
+kyj,k≥/summationdisplay
+i→j∧i∈Type randpi,jyi+/summationdisplay
+i→j∧i∈Type maxyi,j
+
+--- Page 9 ---
+3. For every node ithat is the entry of a component, say Ar:
+yi≥/summationdisplay
+j=(b,en)∈Type call∧Y(b)=ryj
+4. For every node ithat is a return node, say of box b:yi≥yj, where jis the
+call node of b.
+5./summationtext
+iyi+/summationtext
+i,jyi,j= 1.
+6.y≥0.
+Regard the dependency graph as a network ﬂow graph with capacity on each
+edge i→jcoming out of a max node equal to yi,jand capacity of edges i→j
+coming out of the other vertices equal to yi. We set up one ﬂow problem for each
+i∈Z?, with source i, sink tand ﬂow variables fijk.
+7. For every vertex i, we have ﬂow conservation constraints on the variables
+fi,j,k, i.e.,/summationtext
+kfi,j,k=/summationtext
+kfi,k,j, for all nodes j∈Z?,j/negationslash=i, t.
+8. Nonnegativity constraints: fi,j,k≥0 for all i, j, k .
+9. Capacity constraints: fi,j,k≤yj,kfor every j∈Type maxwith successor k,
+and for every node i; and fi,j,k≤yjfor every j∈Type rand∪Type calland
+successor kinG/prime
+Aand every node i.
+10. Source constraints:/summationtext
+kfi,i,k=yi/22m, for every i∈Type rand∪Type call,
+and/summationtext
+kfi,i,k=/summationtext
+jyi,j/22m, fori∈Type max, where mis deﬁned as follows.
+Suppose our LP in constraints (1.-6.) has rvariables and constraints, and
+that its rational entries have numerator and denominator with at most l
+bits. If there is a solution to (1.-6.), then (see, e.g., [13]), there is a rational
+solution whose numerators and denominators require at most m=poly(r, l)
+bits to encode, where poly(r, l) is a polynomial in randl. Note r∈O(|G/prime
+A|),
+lis bounded by the number of bits required for the transition probabilities
+pu,vinA, hence mis polynomial in the input size.
+The purpose of constraints (7-10) is to ensure that every vertex with a
+nonzero yvariable can reach a leaky vertex in the subgraph of G/prime
+Ainduced
+by the support of the ysolution vector.
+Lemma 1. There exists a vertex u∈Z?such that q∗
+u= 1if and only if the LP
+constraints in (1.–10.) are feasible. Moreover, from a solution to the LP we can
+ﬁnd a (partial) strategy for the maximizing player that forces termination from
+some such uwith probability = 1.
+So to summarize, we set up and solve the LP. If there is no solution, then
+for all remaining vertices u∈Z?,q∗
+u<1, and thus u∈Z$. If there is a solution,
+use the above partial (randomized) strategy for some of the max nodes, leaving
+the strategy for other nodes unspeciﬁed. This allows us to set to 1 some vertices
+(vertices in the bottom SCC’s of the resulting 1-RMC), and thus to move them
+toZ1. We can then iterate the preprocessing step and then the LP step until we
+reach a ﬁxed point, at which point we have categorized all vertices uinto one of
+Z0,Z1orZ$. /intersectionsq /unionsq
+
+--- Page 10 ---
+Theorem 5. Given a minimizing 1-RMDP, A, and a vertex uofA, we can
+decide in polynomial time whether q∗
+u= 1. In other words, for minimizing 1-
+RMDPs, Qual-TP is in P.
+Proof. As in the previous theorem, we want to classify the vertices into Z0, Z$, Z1,
+this time under optimal play of the minimizing player. We again consider the
+dependency graph GAofA. We will again use Z?to denote those vertices that
+have not yet been classiﬁed.
+Initialize: Z1←Type 1;Z$←∅; and Z?←Q\(Z1∪Z0);
+Next, we again do a “preprocessing” step, which is “dual” to that of the
+preprocessing we did for maximizing 1-RMDPs, and categorizes some remaining
+“easy” nodes into Z1andZ$:
+repeat
+ifu∈Z?∩(Type rand∪Type call) has all of its successors in Z1
+then Z?←Z?\{u};Z1←Z1∪{u};
+ifu∈Z?∩Type minhas some successor in Z$
+then Z?←Z?\{u};Z$←Z$∪{u};
+ifu∈Z?∩(Type rand∪Type call) has some successor in Z0∪Z$
+then Z?←Z?\{u};Z$←Z$∪{u};
+ifu∈Z?∩Type minhas all successors in ( Z1)
+then Z?←Z?\{u};Z1←Z1∪{u};
+until (there is no change to Z?)
+Note that, after the preprocessing step, for every edge u→vinGAfrom
+u∈Z?tov/negationslash∈Z?, it must be the case that v∈Z1(otherwise, uwould have
+already been moved to Z$orZ0). After preprocessing, we formulate a (diﬀerent)
+LP, which has a solution iﬀ there are more nodes currently in Z?which belong
+inZ$. Restrict attention to nodes in Z?, and consider the subgraph G/prime
+AofGA
+induced by the nodes in Z?. The LP has a variable yifor every remaining vertex
+i∈Z?such that i/negationslash∈Type min, and has a variable yijfor every (remaining) node
+i∈Type min, and successor jofiinG/prime
+A. We shall need the following lemma:
+Lemma 2. Consider a square nonnegative matrices Bwith at most nrows and
+having rational entries with at most lbits each. If ρ(B)>1thenρ(B)≥1+1/2m
+where m=poly(n, l)andpoly(n, l)is some polynomial in nandl.
+Letd= (1 + 1 /2m). The constraints of our LP are as follows. For the LP we
+restrict attention to only those nodes j, iinZ?.
+1. For every j∈Type rand that is not a component entry or a return, as well
+as for every j∈Type call:
+dyj≤/summationdisplay
+i∈Type rand ∧i→jpi,jyi+/summationdisplay
+i∈Type min∧i→jyi,j
+2. For every j∈Type min:
+d/summationdisplay
+kyj,k≤/summationdisplay
+i∈Type rand ∧i→jpi,jyi+/summationdisplay
+i∈Type min∧i→jyi,j
+
+--- Page 11 ---
+3. For every node ithat is the entry of a component, say Ar:
+dyi≤/summationdisplay
+j=(b,en)∈Type call∧Y(b)=ryj
+4. For every node ithat is a return node, say of box b:dyi≤yj, where jis the
+entry node of b.
+5./summationtext
+iyi+/summationtext
+i,jyi,j= 1.
+6.y≥0.
+Lemma 3. There exists a vertex u∈Z?such that q∗
+u<1if and only if the
+LP in (1. – 6.) is feasible. Moreover, from a solution to the LP we can ﬁnd a
+(partial) strategy that forces termination from some such uwith probability <1.
+To summarize, we ﬁnd Z0, then do preprocessing to determines the “easy” Z1
+andZ$nodes. Then, we set up and solve the LP, ﬁnding some more Z$vertices,
+removing them, and iterating again with a preprocessing and LP step, until we
+exhaust Z?or there is no solution to the LP; in the latter case the remaining
+vertices all belong to Z1. As for a strategy that achieves these assignments, in
+each iteration when we solve the LP we ﬁx the strategy for certain of the min
+nodes in a way that ensures that some new vertices will be added to Z$and
+leave the other min nodes undetermined. Moreover, in preprocessing, if Type min
+nodes get assigned Z$based on an outedge, we ﬁx the strategy at that node
+accordingly. /intersectionsq /unionsq
+4 Qualitative termination for 1-RSSGs in NP ∩coNP
+The following is a simple corollary of Theorems 1, 4, and 5.
+Corollary 1. Given a 1-RSSG, A, and given a vertex uofA, we can decide in
+both NP and coNP whether q∗
+u= 1. In other words, the qualitative termination
+problem for 1-RSSGs is in NP ∩coNP.
+As the following theorem shows, it will not be easy to improve this upper
+bound. Note that ﬁnite SSGs, deﬁned by Condon [3], are a special case of 1-
+RSSGs (we can simply identify the terminal node “1” of the SSG with the unique
+exit of a single component with no boxes). Deﬁne the quantitative termination
+problem for ﬁnite SSGs to be the problem of deciding, given a ﬁnite SSG G, and
+a vertex uofG, whether q∗
+u≥1/2. Condon [3] showed that this problem is in
+NP∩coNP, and it has been a major open problem whether this upper bound
+can be improved to P-time.
+Theorem 6. There is a P-time reduction from the quantitative termination
+problem for ﬁnite SSGs to the qualitative termination problem for 1-RSSGs.
+It is not at all clear whether there is a reduction from qualitative termination
+for 1-RSSGs to quantitative termination for ﬁnite SSGs. Thus, Qual-TP for 1-
+RSSGs appears to constitute a new harder game problem in NP ∩coNP.
+
+--- Page 12 ---
+Prune(Q)
+W←Q;
+repeat
+W←W\PruneMin( W);
+W←PruneMax( W);
+until (there is no change in W);
+return W;
+PruneMin(W)
+S←W\Type 1;
+repeat
+ifthere is a node uinS∩(Type rand∪Type max) that has a
+successor in W\S,then S←S\{u};
+ifthere is a node u in S∩(Type min∪Type call) that has no
+successor in S,then S←S\{u};
+until (there is no change in S);
+return S;
+PruneMax(W)
+S←W;
+repeat
+ifthere is a node uinS∩(Type rand∪Type min∪Type call) that has a
+successor in Q\S,then S←S\{u};
+ifthere is a node uinS∩Type maxthat has no
+successor in S,then S←S\{u};
+until (there is no change in S);
+return S;
+Fig. 1. P-time qualitative termination algorithm for linear 1-RSSGs
+5 Qualitative termination for linear 1-RSSGs in P-time
+We now show that for linear 1-RSSGs, there is a P-time algorithm for deciding
+Qual-TP . This generalizes of course the case of ﬂat games.
+Theorem 7. Given a linear 1-RSSG, and a vertex u, there is a polynomial time
+algorithm to decide whether q∗
+u= 1.
+Proof. Given a linear 1-RSSG, A, consider its dependency graph GA. The nodes
+of partitioned partitioned into 5 types: Type max,Type min,Type rand,Type call,
+andType 1. Let Qbe the set of all vertices of GA. Our algorithm is depicted in
+Figure 1. We claim that a call to Prune( Q) returns precisely those vertices in
+Z1={u|q∗
+u= 1}. The proof is omitted due to space. /intersectionsq /unionsq
+The algorithm applies more generally to piecewise linear 1-RSSGs, where
+every vertex v∈Type callhas at most one successor in the dependency graph
+GAthat is in the same SCC as v.
+Acknowledgment: Thanks to Uri Rothblum for providing us a copy of his
+unpublished work [4, 5]. Research partially supported by NSF Grant CCF-04-
+30946.
+
+--- Page 13 ---
+References
+1. R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps, and M. Yannakakis.
+Analysis of recursive state machines. In ACM Trans. Progr. Lang. Sys. , 27:786-818,
+2005.
+2. T. Br´ azdil, A. Kuˇ cera, and O. Straˇ zovsk´ y. Decidability of temporal properties of
+probabilistic pushdown automata. In Proc. of STACS’05 , 2005.
+3. A. Condon. The complexity of stochastic games. Inf. & Comp. , 96(2):203–224,
+1992.
+4. E. V. Denardo and U. G. Rothblum. Totally expanding multiplicative systems.
+unpublished manuscript, submitted, 2005.
+5. E. V. Denardo and U. G. Rothblum. A turnpike theorem for a risk-sensitive Markov
+decision process with stopping. unpublished manuscript, submitted, 2005.
+6. J. Esparza, A. Kuˇ cera, and R. Mayr. Model checking probabilistic pushdown
+automata. In Proc. of 19th IEEE LICS’04 , 2004.
+7. C. J. Everett and S. Ulam. Multiplicative systems, part i., ii, and iii. Technical
+Report 683,690,707, Los Alamos Scientiﬁc Laboratory, 1948.
+8. K. Etessami and M. Yannakakis. Recursive Markov chains, stochastic gram-
+mars, and monotone systems of nonlinear equations. In Proc. of 22nd STACS’05 .
+Springer, vol. 3404 of LNCS , 2005.
+9. K. Etessami and M. Yannakakis. Algorithmic veriﬁcation of recursive probabilistic
+state machines. In Proc. 11th TACAS’05 , Springer, vol. 3440 of LNCS, 2005.
+10. K. Etessami and M. Yannakakis. Recursive Markov decision processes and recur-
+sive stochastic games. In Proc. of 32nd Int. Coll. on Automata, Languages, and
+Programming (ICALP’05) , Springer, vol. 3580 of LNCS, 2005.
+11. J. Filar and K. Vrieze. Competitive Markov Decision Processes . Springer, 1997.
+12. M. R. Garey, R. L. Graham, and D. S. Johnson. Some NP-complete geometric
+problems. In 8th ACM STOC , pages 10–22, 1976.
+13. M. Gr¨ otschel, L. Lov´ asz, and A. Schrijver. Geometric Algorithms and Combinato-
+rial Optimization . Springer-Verlag, 2nd edition, 1993.
+14. T. E. Harris. The Theory of Branching Processes . Springer-Verlag, 1963.
+15. R. J. Horn and C. R. Johnson. Matrix Analysis . Cambridge U. Press, 1985.
+16. P. Jagers. Branching Processes with Biological Applications . Wiley, 1975.
+17. K. Mahler. An inequality for the discriminant of a polynomial. Michigan Math J. ,
+11:257–262, 1964.
+18. D. A. Martin. Determinacy of Blackwell games. J. Symb. Logic , 63(4):1565–1581,
+1998.
+19. C. Manning and H. Sch¨ utze. Foundations of Statistical Natural Language Process-
+ing. MIT Press, 1999.
+20. M. L. Puterman. Markov Decision Processes . Wiley, 1994.
+21. U. G. Rothblum, P. Whittle. Growth optimality for branching Markov decision
+chains. Math. of Operations Research, 7: 582-601, 1982.
+22. Y. Sakakibara, M. Brown, R Hughey, I.S. Mian, K. Sjolander, R. Underwood, and
+D. Haussler. Stochastic context-free grammars for tRNA modeling. Nucleic Acids
+Research , 22(23):5112–5120, 1994.

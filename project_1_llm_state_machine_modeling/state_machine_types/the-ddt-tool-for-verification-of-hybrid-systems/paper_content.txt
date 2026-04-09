@@ -1,0 +1,278 @@
+--- Page 1 ---
+The d /dt Tool for Veriﬁcation of Hybrid Systems
+Eugene Asarin, Thao Dang, and Oded Maler
+Verimag,2 ,a vd eV i g n a t e ,C e n t r eE q u a t i o n
+38610 Gi`eres, France
+{asarin,tdang,maler }@imag.fr
+Abstract. In this paper we describe the tool d/dtwhich provides au-
+tomatic safety veriﬁcation of hybrid systems with linear continuous dy-
+namics with uncertain input. The veriﬁcation procedure is based on amethod for overapproximating reachable sets by orthogonal polyhedra.
+The tool also allows to synthesize a controller which switches the system
+between continuous modes in order to satisfy a safety speciﬁcation.
+1 Introduction
+Hybrid systems are dynamical systems whose state space is based on discrete
+variables, evolving by taking transitions, and continuous variables evolving ac-
+cording to some diﬀerential equation that depends on the discrete variables.
+When hybrid systems were ﬁrst introduced to the veriﬁcation community [
+16
+],
+they were viewed as an extension of timed systems in the sense that while in
+the latter all the continuous variables are clocks with a uniform slope in every
+discrete state, the former admit variables that may evolve according to an ar-
+bitrary continuous dynamics. The algorithmic veriﬁcation approach for hybrid
+systems [
+2
+], developed together with that for timed systems, is based on the
+following principles:
+1. Global conﬁgurationsof a system consist of tuples of the form ( q,x)w h e r e q
+is a discrete state and x∈Rnis a point in the continuous state space. Sets
+of reachable conﬁgurations can be written as unions of tuples of the form(q,F)w h e r e Fis a subset of R
+n. Such tuples are called symbolic states.
+2. On such symbolic states one can deﬁne successor (or predecessor) operators
+that decompose into transition-successor and time-successor .
+3. Equippedwitharepresentationschemeforsymbolicstatesandanimplemen-
+tation of these operators, one can apply standard veriﬁcation algorithms.
+The decidability results for timed automata [
+1
+] are based on the fact that there
+is a ﬁniteclass of simple subsets of Rnwhich is closed under the above op-
+erations. The elements of this class, which are roughly sets deﬁnable by ﬁniteBoolean combinations of inequalities of the form x
+i≤korxi−xj≤kfor
+an integer k, admit an eﬃcient representation using diﬀerence bound matrices
+to which the time-successor operator can be easily applied (the computationof transition-successors is usually reduced to applying Boolean operations and
+D. Brinksma and K. G. Larsen (Eds.): CAV 2002, LNCS 2404, pp. 365– 370 , 2002.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2002
+
+--- Page 2 ---
+366 Eugene Asarin et al.
+does not pose major additional problems). This approachhas been implemented
+in timed automata veriﬁcation tools such as Kronos[
+19
+]a n d Uppaal[
+15
+]. The
+tool HyTech[
+13
+] took this idea further and applied to the more general class of
+“linear hybrid automata”, in which the slope of everycontinuous variable is con-stant (but arbitrary) in every discrete state. Although the continuous dynamics
+in every discrete state is trivial, the combination with discrete transitions (and
+changes of the slope) makes the veriﬁcation problem undecidable, apart fromsome special cases [
+12
+]. However, one can still compute the time-successors of a
+convex polyhedron using linear algebra, but the class of such polyhedra is inﬁ-nite and the veriﬁcation algorithms are not guaranteed to terminate. The toolpresented in this paper attempts to go further and apply reachability-based ver-
+iﬁcation techniques to systems where the continuous dynamics is deﬁned by a
+diﬀerential equation ˙x=f(x). Under such dynamics, the time-successors of a
+set usually form curved objects and, except for some special cases [
+17
+], cannot
+be computed exactly. Instead, we take an approximation approach, that is, fora given initial polyhedron Fwe compute another polyhedron which contains all
+the time-successors of F.I n[
+11
+]w ep r e s e n t e dam e t h o dt od os of o ra r b i t r a r y f,
+while in this tool we concentrate on the class of systems with linear continuousdynamics. Our reachability techniques can be seen as an extension of numerical
+integrationfrompointstopolyhedralsetsandtheyareofinterestevenforpurely
+continuous systems.
+An outline of the paper is as follows. Section
+2
+is devoted to a brief de-
+scription of our reachability techniques, the kernel algorithms of d/dt,a n dt h e i r
+application to safety veriﬁcation and switching controller synthesis for hybrid
+systems (see [
+3
+,
+4
+] for more details). In Section
+3
+we present the tool d/dtand
+some case studies treated using the tool.
+2 Reachability Techniques
+We use hybrid automata [ 2 ] as a modeling formalism for hybrid systems. In
+the model we consider, continuous dynamics are linear with uncertain, bounded
+inputof the form f(x)=Ax+Buwhere uranges inside a convex polyhedron.
+All the staying conditions (or “invariant”) and transition guards are speciﬁed as
+conjunctionsoflinearinequalities.The resetsassociatedwithdiscretetransitions
+areaﬃne,set-valued maps oftheform R(x)=Dx+Jwhere Disa matrixand J
+is a convex polyhedron.
+Toprove a safety property (neverreachingasetofbadstates),weoverapprox-
+imate the reachable set of the system on a step-by-step basis and check for its
+intersection with the set ofbad states. Given a time step r, each iteration kcom-
+putes a convex polyhedron overapproximating the set of states reachable duringthe time interval [ kr,(k+1)r]. While convex polyhedra allow to obtain reason-
+ably good approximations for each time interval, the accumulation of reachablestates often form a highly non-convex set. Therefore, to store reachable sets we
+
+--- Page 3 ---
+The d/dt Tool for Veriﬁcation of Hybrid Systems 367
+use non-convex orthogonal polyhedra1[9] since they can be manipulated more
+easily than unions of arbitrary polyhedra. We consider ﬁrst systems with con-
+tinuous dynamics of the form ˙x=Ax. Given an initial convex polyhedron F,
+the set Frof reachable states at time ris the convex hull of the successors at
+time rofthe verticesof F. Thestatesreachableduringthe time interval[0 ,r]are
+approximated by the convex hull C=conv(F∪Fr) which is enlarged by an ap-
+propriateamountto ensure overapproximation.Then, Cis overapproximatedby
+an orthogonalpolyhedron.To handle staying conditions, we need to intersect Fr
+with the staying set and start the next iteration from the resulting polyhedron.For continuous dynamics with uncertain input ˙x=Ax+u, to compute F
+r,w e
+simulate the evolution ofthe faces of F. Since the dynamics ofthe normalvector
+of a face, governed by the adjoint system, is independent of the input, we usethe Maximum Principle from optimal control to ﬁnd the input that steers this
+face “farthest” allowing to cover all possible reachable states.
+Concerning switching controller synthesis , the problem we consider is to ﬁnd
+a controller that switches the system between continuous modes to avoid somebad states. The synthesis of such a controller is based on the maximal invariant
+set(i.e. the set of “winning” states). To compute this set, we make use of the
+one-step predecessor operator π. Given a set Fof safe states, π(F)c o n s i s t so f
+states from which the system eithercan stay in Findeﬁnitely without switching
+orcanstayin Fforsometimeandthen makeatransitiontoanotherstatewhich
+is still in F. Intuitively, from all states which are not in π(F) the system will
+leaveFafter not more than one switching; therefore, by iteratively removing
+all such states from Funtil convergence, we obtain an underapproximation of
+the maximal invariant set. Note that the operator πcan be computed using our
+reachability operators for hybrid automata.
+3T h e T o o l d /dt
+We presentﬁrst the implementation of the tool and then some applications. One
+important component of our reachability algorithms are procedures for manip-
+ulating convex and orthogonal polyhedra. For common operations on convex
+polyhedra (e.g. Boolean operations, membership testing), we combine two stan-
+dardlibraries cddand Qhull(whichallowstobetter handledegeneratecases)and
+use the library Cubes[
+9
+] for operationson orthogonalpolyhedra.In addition, we
+implemented the geometric operations speciﬁc to our approach (e.g. orthogonalapproximation, intersection detection). For run-time visualization, the tool pro-
+videsan optiontointerfacewith the 3Dviewer Geomview .Given aninputhybrid
+automaton, a safety speciﬁcation, and optionally some user-deﬁned approxima-
+tion parameters (e.g. time step, granularity of orthogonal approximations), the
+tool can work in the following three modes: reachability (compute an overap-
+proximation of the reachable set); veriﬁcation (check whether the system can
+1Orthogonal polyhedra can be described as unions of closed full-dimensional hyper-
+rectangles.
+
+--- Page 4 ---
+368 Eugene Asarin et al.
+reach the bad set); controller synthesis (synthesize a safety switching controller
+by computing an underapproximation of the maximal invariant set).
+We havesuccessfully appliedthe tool to some case studies inspired fromreal-
+life applications. The ﬁrst case study involves the veriﬁcation of a longitudinal
+controllerforplatoonsonautomatedhighways.Thiscontrollerconsistsofseveral
+modes with diﬀerent control laws and we ﬁrst proved the absence of collision for
+single modes [
+6
+] and also for a model with mode switching. For the latter model
+which has 4 continuous variables and 2 discrete states, the computation took 5
+minutes on a Pentium 2. The second case study concerns a control method for
+under-actuated mechanical systems and its application to a double pendulummodeling the leg of a biped robot. As part of the design process we use the tool
+to ﬁnd switching sequences which can drive the system to a desired periodic
+orbit [
+5
+]. We have also used the tool to analyze a model of bacterial quorum-
+sensing systems, more precisely, to determine whether the system can reach aequilibrium point corresponding to a steady state of luminescence [
+7
+].
+4 Conclusion and Related Work
+We have presented the tool d/dtfor safety veriﬁcation and switching controller
+synthesis for hybrid systems with linear diﬀerential inclusions. To our knowl-
+edge, at current time d/dtis the only existing tool that supports switching
+controller synthesis for hybrid systems. This work contributes a novel approach
+to the analysis and control of hybrid systems by exploiting the ideas of algorith-
+mic methodology in computer science. In order to increase the applicability of
+d/dt, we intend to integrate in the tool our reachability technique for nonlin-
+ear continuous dynamics [
+11
+]. In addition, as veriﬁcation is often expensive, we
+are considering an extension of the tool to include the analysis in a simulationfashion, that is, instead of exploring the whole state space, one can guide the
+reachability computation according to some strategy taking into account the
+property to be proved.
+It is not easy to compare our tool to other tools in the domain for the
+following reason. The hybrid systems research is still young and, moreover, dueto the complexity of the problem and the approximate nature of the solution,
+it is still hard to deﬁne performance measures and to compare tools according
+to standard benchmarks. In the remainder of the paper we discuss only therelationship between d/dtand two other tools: CheckMate [
+10
+]a n d VeriShift[
+8
+].
+The reader is refered to [
+18
+] for a survey on hybrid systems veriﬁcation tools.
+CheckMate canverifypolyhedralinvarianthybridautomata(whereallthe guard
+sets lie on the boundary of the staying sets and the reset maps are the identity).
+Unlike our tool, CheckMate takes an indirect approach, that is, it computes a
+ﬁnite-state abstraction of the original system using approximate reachabilityanalysis and then verify the resulting discrete model. The reachabilityalgorithm
+ofCheckMate for linear continuous dynamics is similar to ours, but it is not
+easy to extend to systems with uncertain input. The tool VeriShiftis designed to
+perform bounded time veriﬁcation on hybrid automata with linear diﬀerential
+
+--- Page 5 ---
+The d/dt Tool for Veriﬁcation of Hybrid Systems 369
+inclusions. It employs the ellipsoidal techniques [ 14 ] to approximate reachable
+sets. Note that in these tools reachable sets are represented in a non-canonical
+way(as unionsofconvexpolyhedraorellipsoids),which limits their applicability
+to high dimensional systems.The tool d/dthas been designed with generalityin
+mind, and hence the problem of representing polyhedra of arbitrary dimensionhasbeentackledandsolvedbefore the developmentofthe restofthe algorithms.
+Therefore, one positive feature of d/dtis that it extends easily to more general
+systems (in terms of the complexity of dynamics and the dimensionality).
+References
+1. R. Alur and D. L. Dill, A Theory of Timed Automata, Theoretical Computer
+Science126, 183–235, 1994.
+365
+2. R. Alur, C. Courcoubetis, N. Halbwachs, T. A. Henzinger, P.-H. Ho, X. Nicollin,
+A. Olivero, J. Sifakis and S. Yovine, The Algorithmic Analysis of Hybrid Systems,
+Theoretical Computer Science 138, 3–34, 1995.
+365
+,
+366
+3. E. Asarin, O. Bournez, T. Dang and O. Maler, Reachability Analysis of Piecewise-
+Linear Dynamical Systems, HSCC, 20-31 LNCS 1790, Springer, 2000.
+366
+4. E. Asarin, O. Bournez, T. Dang, O. Maler and A. Pnueli, Eﬀective Synthesis of
+Switching Controllers for Linear Systems, P r o c .o ft h eI E E E , July, 2000.
+366
+5. E. Asarin, S. Bansal, B. Espiau, T. Dang and O. Maler, On Hybrid Control of
+Under-actuated Mechanical Systems, HSCC, 77-88 LNCS 2034, Springer, 2001.
+368
+6. E. Asarin, T. Dang and O. Maler, d/dt, a Tool for Reachability Analysis of Con-
+tinuous and Hybrid Systems, Proc. IFAC Nonlinear Control Systems , 20-31, 2001.
+368
+7. C. Belta, J. Schug, T. Dang, V. Kumar, G. J. Pappas, H. Rubin and P. Dunlap,
+Stability and reachability analysis of a hybridmodel of luminescence in themarine
+bacterium Vibrio Fisheri ,Proc. 40th IEEE Conf. on Decision and Control , 2001.
+368
+8. O. Botchkarev and S. Tripakis, Veriﬁcation of Hybrid Systems with Linear Dif-
+ferential Inclusions Using Ellipsoidal Approximations, HSCC, 73-88 LNCS 1790,
+Springer, 2000.
+368
+9. O. Bournez, O. Maler and A. Pnueli, Orthogonal Polyhedra: Representation and
+Computation, HSCC, 46-60 LNCS 1569, Springer, 1999.
+367
+10. A. Chutinan and B. H. Krogh, Veriﬁcation of Polyhedral Invariant Hybrid Au-
+tomata Using Polygonal Flow Pipe Approximations, HSCC, 76-90 LNCS 1569,
+Springer, 1999.
+368
+11. T.DangandO.Maler,ReachabilityAnalysisviaFaceLifting, HSCC,96-109LNCS
+1386, Springer, 1998.
+366
+,
+368
+12. T. A. Henzinger, P. W. Kopke, A. Puri and P. Varaiya, What’s decidable about
+hybrid automata?, J. of Computer and System Sciences 57, 94-124, 1998.
+366
+13. T. A.Henzinger,P.-H.Hoand H.Wong-Toi, HyTech:A Model Checkerfor Hybrid
+Systems, Software Tools for Technology Transfer 1, 110-122, 1997.
+366
+14. A. Kurzhanski and P. Varaiya, Ellipsoidal Techniques for Reachability Analysis,
+HSCC, 202-214 LNCS 1790, Springer, 2000.
+369
+15. K. Larsen, P. Pettersson and W. Yi, Uppaal in a nutshell, Software Tools for
+Technology Transfert 1-1, 1997.
+366
+
+--- Page 6 ---
+370 Eugene Asarin et al.
+16. O. Maler, Z. Manna and A. Pnueli, From Timed to Hybrid Systems, Real-Time:
+Theory in Practice , 447-484 LNCS 600, Springer, 1992.
+365
+17. G.Pappas,G.LaﬀerriereandS.Yovine,ANewClassofDecidableHybridSystems,
+HSCC, 7-12 LNCS 1569, Springer, 1999.
+366
+18. B.I.Silva, O.Stursberg,B. H.Krogh and S.Engell, AnAssessment oftheCurrent
+Status of Algorithmic Approaches to the Veriﬁcation of Hybrid Systems, Proc.
+IEEE Conf. on Decision and Control , 2867-2874, 2001.
+368
+19. S. Yovine, Kronos: A Veriﬁcation Tool for Real-time Systems, Software Tools for
+Technology Transfer 1-1, 123-133, 1997.
+366

@@ -1,0 +1,1444 @@
+--- Page 1 ---
+EPiCSeriesinComputerScience
+Volume 34, 2015, Pages 120–151
+ARCH14-15. 1st and 2nd International Workshop on
+Applied veRiﬁcation for Continuous and Hybrid Systems
+An Introduction to CORA 2015
+(Tool Presentation)
+Matthias Althoﬀ
+Technische Universit¨ at M¨ unchen, 85748 Garching, German y
+althoff@in.tum.de
+Abstract
+The philosophy, architecture, and capabilities of the COnt inuous Reachability Analyzer (CORA)
+are presented. CORA is a toolbox that integrates various vec tor and matrix set representations and
+operations on them as well as reachability algorithms of var ious dynamic system classes. The software
+is designed such that set representations can be exchanged w ithout having to modify the code for
+reachability analysis. CORA has a modular design, making it possible to use the capabilities of the
+various set representations for other purposes besides rea chability analysis. The toolbox is designed
+using the object oriented paradigm, such that users can safe ly use methods without concerning them-
+selves with detailed information hidden inside the object. Since the toolbox is written in MATLAB,
+the installation and use is platform independent.
+Contents
+1 Philosophy and Architecture 121
+1.1 Related Tools . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 122
+1.2 Architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 124
+2 Set Representations and Operations 126
+2.1 Zonotopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 127
+2.2 Zonotope Bundles . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 127
+2.3 Polynomial Zonotopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 127
+2.4 Probabilistic Zonotopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 130
+2.5 MPT Polytopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 131
+2.6 Interval Hulls . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 133
+2.7 Vertices . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 133
+3 Matrix Set Representations and Operations 134
+3.1 Matrix Polytopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 135
+3.2 Matrix Zonotopes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 136
+3.3 Interval Matrices . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 136
+120 G.Frehse and M.Althoﬀ (eds.), ARCH15 (EPiC Series in Comput er Science, vol. 34), pp. 120–151
+
+--- Page 2 ---
+Tool Presentation Althoﬀ
+4 Continuous Dynamics 137
+4.1 Linear Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 138
+4.2 Linear Systems with Uncertain Fixed Parameters . . . . . . . . . . . . . . . . . . . . . . 138
+4.3 Linear Systems with Uncertain Varying Parameters . . . . . . . . . . . . . . . . . . . . . 139
+4.4 Linear Probabilistic Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 139
+4.5 Nonlinear Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 140
+4.6 Nonlinear Systems with Uncertain Fixed Parameters . . . . . . . . . . . . . . . . . . . . 142
+4.7 Nonlinear Diﬀerential-Algebraic Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . 142
+5 Hybrid Dynamics 142
+5.1 Hybrid Automaton . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 144
+5.2 Location . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 144
+5.3 Transition . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 144
+6 State Space Partitioning 145
+7 Bouncing Ball Example 146
+8 Conclusions 147
+1 Philosophy and Architecture
+TheCOntinuous Reachability Analyzer (CORA)1is a MATLAB toolbox for prototype design
+of algorithms for reachability analysis. The toolbox is designed for va rious kinds of systems
+with purely continuous dynamics (linear systems, nonlinear systems , diﬀerential-algebraic sys-
+tems, parameter-varying systems, etc.) and hybrid dynamics com bining the aforementioned
+continuous dynamics with discrete dynamics. Let us denote the con tinuous part of the solution
+of a hybrid system for a given initial discrete state by χ(t;x0,u(·),p), where t∈Ris the time,
+x0∈Rnis the continuous initial state, u(t)∈Rmis the system input at t,u(·) is the input
+trajectory, and p∈Rpis a parameter vector. The continuous reachable set at time t=rcan
+be deﬁned for a set of initial states X0, a set of input values U(t), and a set of parameter values
+P, as
+Re(r) =/braceleftBig
+χ(r;x0,u(·),p)∈Rn/vextendsingle/vextendsinglex0∈ X0,∀t:u(t)∈ U(t),p∈ P/bracerightBig
+.
+CORA solely supports over-approximative computation of reachab le sets since (a) exact reach-
+able sets cannot be computed for most system classes [ 42] and (b) over-approximativecomputa-
+tions qualify for formal veriﬁcation. Thus, CORA computes over-a pproximationsfor particular
+points in time R(t)⊇ Re(t) and for time intervals: R([t0,tf]) =/uniontext
+t∈[t0,tf]R(t).
+CORAis built with the aim to constructone’sown reachableset comput ationin ashortamount
+of time. This is achieved by the following design choices:
+•CORA is built for MATLAB, which is a script-basedprogrammingenviron ment. Since the
+code does not have to be compiled, one can stop the program at any time and directly see
+the current values of variables. This makes it especially easy to unde rstand the workings
+of the code and to debug new code.
+1https://www6.in.tum.de/Main/SoftwareCORA
+121
+
+--- Page 3 ---
+Tool Presentation Althoﬀ
+•CORA is an object-oriented toolbox that uses modularity, operato r overloading, inheri-
+tance, and information hiding. One can safely use existing classes an d just adapt classes
+one is interested in without redesigning the whole code. Operator ov erloading makes it
+possible to write formulas that look almost identical to the ones deriv ed in scientiﬁc papers
+and thus reduce programming errors. Most of the information for each class is hidden and
+is not relevant to users of the toolbox. Most classes use identical m ethods so that set
+representations and dynamic systems can be eﬀortlessly replaced .
+•CORA interfaces with the established toolboxes MPTtoolbox2and INTLAB3, which are
+also written in MATLAB. Results of CORA can be easily transferred to those toolboxes
+and vice versa.
+1.1 Related Tools
+Over the last years, many tools for formal veriﬁcation of hybrid sy stems and for handling of
+continuoussetrepresentationshavebeendeveloped. Thefollowin glistofrelatedtoolsiswithout
+any order; it is intended that related tools are grouped together. Tools based on, or supporting
+reachability analysis are SpaceEx,Ellipsoidal Toolbox ,Flow*,COSY,VNODE-LP ,A Toolbox
+of Level Set Methods , andAriadne. Tools based on constraint solving are dReach,HySAT, and
+HSolver.KeYmaera is an interactive theorem prover for verifying hybrid systems.
+SpaceEx SpaceEx4[26] is the successor of PHAVer [25] for the computation of reachable sets
+of continuous and hybrid systems. PHAVer mainly focuses on hybrid systems with piecewise
+constant bounds on the derivatives. Linear continuous dynamics h ave to be abstracted by
+regions of constant bounds on the derivatives in PHAVer, resulting in scalability issues due to
+a large number of required regions. This problem is completely solved in SpaceEx by making
+use of a wrapping-free algorithm for linear continuous systems [ 33].SpaceEx uses support
+functions as its main set representation, which scale very well for h ybrid systems with linear
+continuous dynamics [ 27,32].SpaceEx computes reachable sets by computing successor sets of
+the reachable set for consecutive time intervals. The same basic ap proach is used in CORA.
+SpaceEx does not only have a powerful analysis core, but is also easy to use d ue to a web-based
+graphical user interface and a graphical model editor. The model editor and its underlying
+language make it possible to construct complex models from simple com ponents.
+Ellipsoidal Toolbox TheEllipsoidal Toolbox5[41] is a MATLAB toolbox like CORA, but
+with a focus on ellipsoids as a set representation rather than zonot opes. Another diﬀerence is
+that diﬀerent algorithms are used to compute abstractions of the system dynamics. Similarly
+to CORA, the toolbox supports a number of operations, such as Min kowski sum (under and
+over-approximation), intersection of ellipsoids with other set type s, projections of ellipsoids,
+etc.
+2http://people.ee.ethz.ch/ ~mpt/3/
+3http://www.ti3.tu-harburg.de/rump/intlab/
+4http://spaceex.imag.fr/
+5http://systemanalysisdpt-cmc-msu.github.io/ellipsoi ds/
+122
+
+--- Page 4 ---
+Tool Presentation Althoﬀ
+Flow* Flow*6[21] also computes reachable sets of continuous and hybrid systems. It uses
+Taylormodelstorepresentreachablesets, whichcanrepresentn on-convexsetsandareespecially
+promisingforreachabilityanalysisofnonlinearmodels[ 17]. Instead ofabstractingthe dynamics
+on the level of the diﬀerential equation as done by SpaceEx and CORA, the abstraction is
+performed on the level of the solution of the diﬀerential equation. This can for instance be done
+using Picard iteration or truncated Lie series [ 22].
+COSY COSY7is a tool for the rigorous computation of Taylor models, which are als o used
+inFlow*.COSYcan be used to compute reachable sets of nonlinear diﬀerential-alge braic
+equations [ 37]. It is also useful to bound arbitrary nonlinear and multivariate func tions by
+Taylor models [ 17].
+VNODE-LP VNODE-LP8is a tool for guaranteed integration of ordinary diﬀerential equa-
+tions. The focus of this tool is more on guaranteeing bounds of a sin gle trajectory rather than
+computing reachable sets for safety veriﬁcation. The tool compu tes reachable sets represented
+by boxes. A distinctive feature of the present solver is that it is dev eloped entirely using literate
+programming [ 45].
+A Toolbox of Level Set Methods A Toolbox of Level Set Methods9[43] computes approxi-
+mations of the time-dependent Hamilton-Jacobi (HJ) partial diﬀer ential equation (PDE). Since
+reachability problems can be reformulated as HJ PDEs [ 44], the toolbox computes approxima-
+tions of reachablesets. The HJ PDEs are numerically solved by griddin g the state space so that
+one can tune the accuracy of the result by varying the number of g rid points. An advantage
+of this technique is that arbitrary non-convex sets can be handled . However, the approach
+has exponential complexity in the number of continuous state varia bles due to the exponential
+growth of grid points.
+Ariadne Ariadne10[14] is a framework for hybrid automata veriﬁcation. It diﬀers from
+existing packages since it is based on the theory of computable analy sis and on a rigorous
+function calculus. Extensions for assume-guaranteed veriﬁcatio n are presented in [ 15].
+dReach dReach11[29] is a tool for the safety veriﬁcation of hybrid systems with nonlinea r
+continuous dynamics. The tool is based on the SMT solver dReal12[28] for nonlinear theories
+over the reals. The basic idea is to reformulate ordinary diﬀerential equations as a set of
+constraints that are solved by the proposed SMT solver.
+6http://systems.cs.colorado.edu/research/cyberphysic al/taylormodels/
+7http://www.bt.pa.msu.edu/index_cosy.htm
+8http://www.cas.mcmaster.ca/ ~nedialk/vnodelp/
+9http://www.cs.ubc.ca/ ~mitchell/ToolboxLS/index.html
+10http://trac.parades.rm.cnr.it/ariadne/
+11http://dreal.github.io/dReach/
+12http://dreal.github.io/
+123
+
+--- Page 5 ---
+Tool Presentation Althoﬀ
+HySAT Similarlyto dReach,HySAT13[24]isasatisﬁabilitycheckerforBooleancombinations
+of arithmetic constraints over real and integer-valued variables. It is the core for constraint-
+based veriﬁcation for hybrid systems.
+HSolver HSolver14[48] is designed for the safety veriﬁcation of hybrid systems with nonlin -
+ear continuous dynamics. Similarly to dReach,HSolver constructs constraints from the system
+dynamics. The tool partitions the state space into a rectangular g rid and applies interval arith-
+metic to compute which cells in the grid can be entered by a valid trajec tory. The constraints
+are solved by pruning techniques.
+KeYmaera KeYmaera15[47] is an interactive theorem proverfor hybrid systems. KeYmaera
+supports diﬀerential dynamic logic (dL), which isaﬁrst-orderdynamiclogicfor hybrid programs
+[46].Hybrid programs are a diﬀerent formalism for hybrid systems that are particularly su itable
+for logic-based veriﬁcation.
+Pioneering Tools Many of the aforementioned tools beneﬁted from pioneering tools, which
+are no longer strongly supported: HyTech16[35],HyperTech [36],d/dt[11],Checkmate17[23],
+VeriShift [19], andVERDICT [40].
+Tools for Timed Automata There also exist dedicated tools for the veriﬁcation of timed
+automata, i.e. hybrid systems whose continuous state variables all have the dynamics ˙ xi=
+1: UPPAL18[13], Kronos/Open-Kronoshttp:19[50], and STeP20[18]. While UPPAL is still
+maintained, the development of the other mentioned tools for timed automata seems to have
+stopped.
+1.2 Architecture
+The architecture of CORA can essentially be grouped into the followin g parts based on a
+separation of concerns as presented in Fig. 1using UML21: Classes for set representations
+(Sec.2), classes for matrix set representations (Sec. 3), classes for the analysis of continuous
+dynamics (Sec. 4), classes for the analysis of hybrid dynamics (Sec. 5), and a class for the
+partitioning of the state space (Sec. 6).
+The class diagramin Fig. 1showsthat hybrid systems (class hybridAutomaton )consists ofsev-
+eral instances of the location class. Each location object has a continuous dynamics (classes
+inheriting from contDynamics ),severaltransitions(class transition ),and a set representation
+(classes inheriting from contSet) to describe the invariant of the location. Each transition has
+13http://www.uni-oldenburg.de/en/hysat/
+14http://hsolver.sourceforge.net/
+15http://symbolaris.com/info/KeYmaera.html
+16http://embedded.eecs.berkeley.edu/research/hytech/
+17http://www.mathworks.com/matlabcentral/fx_files/154 41/3/content/doc/main.htm
+18http://www.uppaal.org/
+19http://www-verimag.imag.fr/ ~tripakis/openkronos.html
+20http://www-step.stanford.edu/
+21http://www.uml.org/
+124
+
+--- Page 6 ---
+Tool Presentation Althoﬀ
+contDynamics
+linearSys (Sec.4.1)
+linParamSys (Sec.4.2)
+linVarSys (Sec.4.3)
+linProbSys (Sec.4.4)
+nonlinearSys (Sec.4.5)
+nonlinParamSys (Sec.4.6)
+nonlinDASys (Sec.4.7)
+transition (Sec.5.3)
+location (Sec.5.2)
+hybridAutomaton (Sec.5.1)
+partition (Sec.6)matrixSet
+matPolytope (Sec.3.1)
+matZonotope (Sec.3.2)
+intervalMatrix (Sec.3.3)
+zonotope (Sec.2.1)
+zonotopeBundle (Sec.2.2)
+quadZonotope (Sec.2.3)
+probZonotope (Sec.2.4)
+mptPolytope (Sec.2.5)
+intervalhull (Sec.2.6)
+vertices (Sec.2.7)
+contSetGeneralizationComposition
+Required interface
+Participating interface
+1..N1..N1..N11
+111 111111
+0..1
+Figure 1: Uniﬁed Modeling Language (UML) class diagram of CORA 2015 .
+a set representation to describe the guard set enabling a transitio n to the next discrete state.
+More details on the semantics of those components can be found in S ec.5.
+Note that some classes subsume the functionality of other classes . For instance, nonlinear
+diﬀerential-algebraic systems (class nonlinDASys ) are a generalization of nonlinear systems
+(classnonlinearSys ). The reason why less general systems are not removed is becaus e for
+those systems very eﬃcient algorithms exist that are not applicable to more general systems.
+125
+
+--- Page 7 ---
+Tool Presentation Althoﬀ
+2 Set Representations and Operations
+The basis of any eﬃcient reachability analysis is an appropriate set re presentation. On the one
+hand, the set representation should be general enough to descr ibe the reachable sets accurately,
+on the other hand, it is crucial that the set representation makes it possible to run eﬃcient
+and scalable operations on them. CORA provides a palette of set rep resentations as depicted
+in Fig.2, which also shows conversions supported between set represent ations.
+zonotope (Sec. 2.1)
+(classzonotope )interval hull (Sec. 2.6)
+(classintervalhull )
+MPT Polytope (Sec. 2.5)
+(classmptPolytope )vertices (Sec. 2.7)
+(classvertices )
+zonotope bundle (Sec. 2.2)
+(classzonotopeBundle )polynomial zonotope (Sec. 2.3)
+(classquadZonotope )probabilistic zonotope (Sec. 2.4)
+(classprobZonotope )
+mSigma
+exactPolytope
+zonotopeBundle
+(constructor of
+that class)
+zonotopea
+b
+c
+de
+f
+vertices
+exactPolytope
+intervalhullpolytopeintervalhullverticesinterval-
+hulla:zonotope
+b:intervalhull
+c:mptPolytoped:intervalhull
+e:vertices
+f:zonotope
+Figure 2: Set conversions supported. Solid arrows represent exa ct conversions, while dashed
+arrows represent over-approximative conversions. The arrows are labeled by the corresponding
+method to carry out the conversion.
+Important operations for sets are:
+•display: Displays the parameters of the set in the MATLAB workspace.
+•plot: Plots a two-dimensional projection of a set in the current MATLAB ﬁgure.
+•mtimes: Overloads the ’ *’ operator for the multiplication of various objects with a set.
+For instance if Mis a matrix of proper dimension and Zis a zonotope, M∗Zreturns the
+linear map {Mx|x∈Z}.
+•plus: Overloads the ’ +’ operator for the addition of various objects with a set. For
+instance if Z1 andZ2 are zonotopes of proper dimension, Z1+Z2returns the Minkowsi
+sum{x+y|x∈Z1,y∈Z2}.
+•intervalhull : Returns an interval hull that encloses the set (see Sec. 2.6).
+126
+
+--- Page 8 ---
+Tool Presentation Althoﬀ
+2.1 Zonotopes
+A zonotope is a geometric object in Rn. Zonotopes are parameterized by a center c∈Rnand
+generators g(i)∈Rnand deﬁned as
+Z=/braceleftBig
+c+p/summationdisplay
+i=1βig(i)/vextendsingle/vextendsingle/vextendsingleβi∈[−1,1], c∈Rn, g(i)∈Rn/bracerightBig
+. (1)
+We write in short Z= (c,g(1),...,g(p)). A zonotope can be interpreted as the Minkowski
+addition of line segments l(i)= [−1,1]g(i), and is visualized step-by-step in a two-dimensional
+vector space in Fig. 3. Zonotopes are a compact way of representing sets in high dimensio ns.
+More importantly, operations required for reachability analysis, su ch as linear maps M⊗Z:=
+{Mz|z∈ Z}(M∈Rq×n) and Minkowski addition Z1⊕Z2:={z1+z2|z1∈ Z1,z2∈ Z2}can
+be computed eﬃciently and exactly, and others such as convex hull computation can be tightly
+over-approximated [ 31]. The most important methods implemented are listed in Tab. 1.
+01 2012
+cl(1)
+(a)c⊕l(1)−101 23−10123
+cl(1) l(2)
+(b)c⊕l(1)⊕l(2)−202 4−10123
+cl(1)l(2)
+l(3)
+(c)c⊕...⊕l(3)
+Figure 3: Step-by-step construction of a zonotope.
+2.2 Zonotope Bundles
+A disadvantage of zonotopes is that they are not closed under inte rsection, i.e., the intersection
+of two zonotopes does not return a zonotope in general. In order to overcome this disadvantage,
+zonotope bundles are introduced in [ 6]. Given a ﬁnite set of zonotopes Zi, a zonotope bundle is
+Z∩=/intersectiontexts
+i=1Zi, i.e. the intersection ofzonotopes Zi. Note that the intersectionis not computed,
+but the zonotopes Ziare stored in a list, which we write as Z∩={Z1,...,Zs}∩. The most
+important methods implemented are listed in Tab. 2.
+2.3 Polynomial Zonotopes
+Zonotopes are a very eﬃcient representation for reachability ana lysis of linear systems [ 31] and
+of nonlinear systems that can be well abstracted by linear diﬀerent ial inclusions [ 1]. However,
+more advanced techniques, such as in [ 2], abstract more accurately to nonlinear diﬀerence inclu-
+sions. As a consequence, linear maps of reachable sets are replace d by nonlinear maps. Zono-
+topes are not closed under nonlinear maps and are not particularly g ood at over-approximating
+them. For this reason, polynomial zonotopes are introduced in [ 2]. Polynomial zonotopes are
+a new non-convex set representation and can be eﬃciently stored and manipulated. The new
+127
+
+--- Page 9 ---
+Tool Presentation Althoﬀ
+Table 1: Most important methods of the class zonotope .
+name description
+cartesianProduct returns the Cartesian product of two zonotopes.
+center returns the center of the zonotope.
+deleteZeros deletes generators whose entries are all zero.
+dim returns the dimension of a zonotope.
+display standard method (see Sec. 2).
+enclose generates a zonotope that encloses two zonotopes of equal di mension according to [ 1,
+Equation 2.2 + subsequent extension].
+enlarge enlarges the generators of a zonotope by a vector of factors f or each dimension.
+exactPolytope returns an exact polytope in halfspace representation acco rding to [ 1, Theorem 2.1].
+inParallelotope checks if a zonotope is a subset of a parallelotope, where the latter is represented as a
+zonotope.
+intervalhull standard method (see Sec. 2) according to [ 1, Proposition 2.2].
+mtimes standard method (see Sec. 2) for numeric matrices, intval/intervalMatrix according
+to [1, Theorem 3.3] and matZonotope according to [ 8, Sec. 4.4.1].
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for numeric vectors, and zonotopes according to [ 1,
+Equation 2.1].
+polytope returns an over-approximating polytope in halfspace repre sentation according to
+heuristics in [ 1, Sec. 2.5.6.].
+project returns a zonotope, which is the projection of the input argu ment onto the speciﬁed
+dimensions.
+quadratic-
+Multiplicationgiven a zonotope Zand a discrete set of matrices Q(i)∈Rn×nfori= 1...n,
+quadraticMultiplication computes {ϕ|ϕi=xTQ(i)x, x∈ Z}as described in [ 7,
+Lemma 1].
+randPoint generates a random point within a zonotope.
+reduce returns an over-approximating zonotope with fewer generat ors. Depending on the
+options struct, the reduction is performed according to [ 31, Sec. 3.4] or the method-
+ology in [ 1, Section 2.5.5].
+split splits a zonotope into two or more zonotopes that enclose the original zonotope. De-
+pending on the options struct, the split is performed as described in [ 1, Proposition
+3.8] or [6, Section V.A].
+underapproximate returns the vertices of an under-approximation.
+vertices returns a vertices object including all vertices of the zonotope.
+volume computes the volume of a zonotope according to [ 34, p.40].
+zonotope constructor of the class.
+representation shares many similarities with Taylor models [ 38] (as brieﬂy discussed later) and
+is a generalization of zonotopes.
+Given astarting point c∈Rn, multi-indexed generators f([i],j,k,...,m )∈Rn, and single-indexed
+generators g(i)∈Rn, a polynomial zonotope is deﬁned as
+PZ=/braceleftBig
+c+p/summationdisplay
+j=1βjf([1],j)+p/summationdisplay
+j=1p/summationdisplay
+k=jβjβkf([2],j,k)+...+p/summationdisplay
+j=1p/summationdisplay
+k=j...p/summationdisplay
+m=lβjβk...βm/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+ηfactorsf([η],j,k,...,m )
++q/summationdisplay
+i=1γig(i)/vextendsingle/vextendsingle/vextendsingleβi,γi∈[−1,1]/bracerightBig
+. (2)
+The scalars βiare called dependent factors , since changing their values does not only aﬀect the
+multiplication with onegenerator,but with othergeneratorstoo. O nthe otherhand, the scalars
+γionly aﬀect the multiplication with one generator, so they are called independent factors . The
+number of dependent factors is p, the number of independent factors is q, and the polynomial
+orderηis the maximum power of the scalar factors βi. The order of a polynomial zonotope is
+128
+
+--- Page 10 ---
+Tool Presentation Althoﬀ
+Table 2: Most important methods of the class zonotopeBundle .
+name description
+and returns the intersection with a zonotope bundle or a zonotop e.
+display standard method (see Sec. 2).
+enclose generates a zonotope bundle that encloses two zonotope bund les of equal dimension
+according to [ 6, Proposition 5].
+encloseTight generates a zonotope bundle that encloses two zonotope bund les in a possibly tighter
+way than enclose as outlined in [ 6, Sec. VI.A].
+enlarge enlarges the generators of each zonotope in the bundle by a ve ctor of factors.
+exactPolytope returns an exact polytope in halfspace representation by ap plying [1, Theorem 2.1] to
+each zonotope.
+intervalhull standard method (see Sec. 2) according to [ 6, Proposition 6].
+mtimes standard method (Sec. 2) according to [ 6, Proposition 1].
+plot standard method (Sec. 2).
+plus standard method (see Sec. 2) according to [ 6, Proposition 2].
+polytope returns an over-approximating polytope in halfspace repre sentation.
+project returns a zonotope bundle, which is the projection of the inp ut argument onto the
+speciﬁed dimensions.
+reduce returns an over-approximating zonotope bundle with less ge nerators.
+reduceCombined reduces the order of a zonotope bundle, not by reducing each z onotope separately as
+inreduce, but in a combined fashion.
+shrink shrinks the size of individual zonotopes by explicitly comp uting the intersection of
+individual zonotopes.
+split splits a zonotope bundle into two or more zonotopes bundles. In contrast to the
+function for zonotopes, the split is exact.
+volume computes the volume of a zonotope bundle.
+zonotopeBundle constructor of the class.
+deﬁned as the number of generators ξdivided by the dimension, which is ρ=ξ
+n. For a concise
+notation and later derivations, we introduce the matrices
+E[i]= [f([i],1,1,...,1)
+/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+=:e([i],1)... f([i],p,p,...,p )
+/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+=:e([i],p)] (all indices are the same value) ,
+F[i]= [f([i],1,1,...,1,2)f([i],1,1,...,1,3)... f([i],1,1,...,1,p)
+f([i],1,1,...,2,2)f([i],1,1,...,2,3)... f([i],1,1,...,2,p)
+f([i],1,1,...,3,3)...] (not all indices are the same value) ,
+G= [g(1)... g(q)],
+andE=/bracketleftbig
+E[1]... E[η]/bracketrightbig
+,F=/bracketleftbig
+F[2]... F[η]/bracketrightbig
+(F[i]is only deﬁned for i≥2). Note that the
+indices in F[i]are ascending due to the nested summations in ( 2). In short form, a polynomial
+zonotope is written as PZ= (c,E,F,G ).
+For a given polynomial order i, the total number of generators in E[i]andF[i]is derived using
+the number/parenleftbigp+i−1
+i/parenrightbig
+of combinations of the scalar factors βwith replacement (i.e. the same
+factorcan be used again). Adding the numbersfor allpolynomialor dersandadding the number
+of independent generators q, results in ξ=/summationtextη
+i=1/parenleftbigp+i−1
+i/parenrightbig
++qgenerators, which is in O(pη) with
+respect to p. The non-convex shape of a polynomial zonotope with polynomial or der 2 is shown
+in Fig.4.
+So far, polynomial zonotopes are only implemented up to polynomial o rderη= 2 so that the
+subsequent class is called quadZonotope due to the quadratic polynomial order. The most
+important methods implemented are listed in Tab. 3.
+129
+
+--- Page 11 ---
+Tool Presentation Althoﬀ
+x1x2polynomial zonotope
+PZ= (0,E,F,G )
+sampleE[1]=/bracketleftbigg−1 0
+0 0.5/bracketrightbigg
+E[2]=/bracketleftbigg1 1
+0.5 0.3/bracketrightbigg
+F[2]=/bracketleftbigg−0.5
+1/bracketrightbigg
+G=/bracketleftbigg0.3
+0.3/bracketrightbigg3
+2
+1
+0
+−1
+0 2 4
+Figure 4: Over-approximativeplot of a polynomial zonotope as spec iﬁed in the ﬁgure. Random
+samples of possible values demonstrate the accuracy of the over- approximative plot.
+Table 3: Most important methods of the class quadZonotope .
+name description
+cartesianProduct returns the Cartesian product of a quadZonotope and azonotope .
+center returns the starting point c.
+display standard method (see Sec. 2).
+enclose generates an over-approximative quadZonotope that encloses two quadZonotopes .
+generators returns the generators of a quadZonotope .
+intervalhull standard method (see Sec. 2). Other than for the zonotope class, the generated
+interval hull is not tight in the sense that it touches the quadZonotope .
+intervalhull-
+Accurateover-approximates a quadZonotope by a tighter interval hull as when applying
+intervalhull .
+mtimes standard method (see Sec. 2) as stated in [ 6, Equation 14] for numeric matrix multi-
+plication and as described in [ 1, Theorem 3.3] for interval matrices.
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for numeric vectors, zonotope objects, and quadZonotope
+objects.
+pointSet computes a user-deﬁned number of random points within the quadZonotope .
+pointSetExtreme computes a user-deﬁned number of random points when only all owing the values
+{−1,1}forβi,γi(see (2)).
+polytope returns an over-approximating polytope in halfspace repre sentation.
+project returns a quadZonotope , which is the projection of the input argument onto the spec-
+iﬁed dimensions.
+quadratic-
+Multiplicationgiven aquadZonotope Zand a discrete set of matrices Q(i)∈Rn×nfori= 1...n,
+quadraticMultiplication computes {ϕ|ϕi=xTQ(i)x, x∈ Z}as described in [ 2,
+Corollary 1].
+quadZonotope constructor of the class.
+randPoint computes a random point within the quadZonotope .
+randPointExtreme computes a random point when only allowing the values {−1,1}forβi,γi(see (2)).
+reduce returns an over-approximating quadZonotope with fewer generators. The redistribution
+technique is according to [ 2, Proposition 2] and the standard technique according
+to [31, Sec. 3.4].
+splitLongestGen splits the longest generator factor and returns two quadZonotope objects.
+splitOneGen splits one generator factor and returns two quadZonotope objects.
+zonotope computes an enclosing zonotope as presented in [ 2, Proposition 1].
+2.4 Probabilistic Zonotopes
+Probabilistic zonotopes have been introduced in [ 10] for stochastic veriﬁcation. A probabilistic
+zonotope has the same structure as a zonotope, except that th e values of some βiin (1) are
+130
+
+--- Page 12 ---
+Tool Presentation Althoﬀ
+bounded by the interval [ −1,1], while others are subject to a normal distribution22. Given
+pairwise independent Gaussian distributed random variables N(µ,Σ) with expected value µ
+and covariance matrix Σ, one can deﬁne a Gaussian zonotope with ce rtain mean:
+Zg=c+q/summationdisplay
+i=1N(i)(0,1)·g(i),
+whereg(1),...,g(q)∈Rnare the generators, which are underlined in order to distinguish the m
+from generators of regular zonotopes. Gaussian zonotopes are denoted by a subscripted g:
+Zg= (c,g(1...q)).
+A Gaussian zonotope with uncertain mean Zis deﬁned as a Gaussian zonotope Zg, where the
+center is uncertain and can have any value within a zonotope Z, which is denoted by
+Z:=Z⊞Zg,Z= (c,g(1...p)),Zg= (0,g(1...q)).
+or in short by Z= (c,g(1...p),g(1...q)). If the probabilistic generators can be represented by
+the covariance matrix Σ ( q > n) as shown in [ 10, Proposition 1], one can also write Z=
+(c,g(1...p),Σ). As Zis neither a set nor a random vector, there does not exist a probab ility
+density function describing Z. However, one can obtain an enclosing probabilistic hull which is
+deﬁned as ¯fZ(x) = sup/braceleftbig
+fZg(x)/vextendsingle/vextendsingleE[Zg]∈Z/bracerightbig
+, whereE[ ] returns the expectation and fZg(x) is
+the probability density function (PDF) of Zg. Combinations of sets with random vectors have
+also been investigated, e.g. in [ 16]. Analogously to a zonotope, it is shown in Fig. 5how the
+enclosing probabilistic hull (EPH) of a Gaussian zonotope with two non -probabilistic and two
+probabilistic generators is built step-by-step from left to right. Th e most important methods
+implemented are listed in Tab. 4.
+−4−2024
+−4−202400.050.10.150.2
+(a) PDF of (0 ,g(1)).−4−2024
+−4−202400.050.1
+(b) PDF of (0 ,g(1,2)).−505
+−50500.050.1
+(c) EPH of (0 ,g(1...2), g(1...2)).
+Figure 5: Construction of a probabilistic zonotope.
+2.5 MPT Polytopes
+There exist two representations for polytopes: The halfspace re presentation (H-representation)
+and the vertex representation (V-representation). The halfsp ace representation speciﬁes a con-
+vex polytope Pby the intersection of qhalfspaces H(i):P=H(1)∩ H(i)∩...∩ H(q). A
+22Other distributions are conceivable, but not implemented.
+131
+
+--- Page 13 ---
+Tool Presentation Althoﬀ
+Table 4: Most important methods of the class probZonotope .
+name description
+center returns the center of the probabilistic zonotope.
+display standard method (see Sec. 2).
+enclose generates a probabilistic zonotope that encloses two proba bilistic zonotopes Z,A⊗Z
+(A∈Rn×n) according to [ 10, Section VI.A].
+enclosing-
+Probabilitycomputes values to plot the mesh of a two-dimensional projec tion of the enclosing
+probability hull.
+max computes an over-approximation of the maximum on the m-sigm a bound according
+to [10, Equation 3].
+mean returns the uncertain mean of a probabilistic zonotope.
+mSigma converts a probabilistic zonotope to a common zonotope wher e for each generator, an
+m-sigma interval is taken.
+mtimes standard method (see Sec. 2) as stated in [ 10, Equation 4] for numeric matrix multi-
+plication. The multiplication of interval matrices is also supported.
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for numeric vectors, zonotope objects, and probZonotope
+objects as described in [ 10, Equation 4].
+probReduce reduces the number of single Gaussian distributions to the d imension of the state space.
+probZonotope constructor of the class.
+pyramid implementation of [ 10, Section VI.C] to obtain the probability of intersecting a p oly-
+tope.
+reduce returns an over-approximating zonotope with fewer generat ors.
+sigma returns the Σ matrix of a probabilistic zonotope.
+halfspace is one of the two parts obtained by bisecting the n-dimensional Euclidean space with
+a hyperplane S, which is given by S:={x|cTx=d},c∈Rn,d∈R. The vector cis the normal
+vector of the hyperplane and dthe scalar product of any point on the hyperplane with the
+normal vector. From this follows that the corresponding halfspac e isH:={x|cTx≤d}. As
+the convex polytope Pis the nonempty intersection of qhalfspaces, qinequalities have to be
+fulﬁlled simultaneously.
+H-Representation of a Polytope A convex polytope Pis the bounded intersection of q
+halfspaces:
+P=/braceleftBig
+x∈Rn/vextendsingle/vextendsingleCx≤d, C∈Rq×n,d∈Rq/bracerightBig
+.
+When the intersection is unbounded, one obtains a polyhedron [ 52].
+A polytope with vertex representation is deﬁned as the convex hull of a ﬁnite set of points in
+then-dimensional Euclidean space. The points are also referred to as ve rtices and are denoted
+byv(i)∈Rn. A convex hull of a ﬁnite set of rpoints is obtained from their linear combination:
+Conv(v(1),...,v(r)) :=/braceleftBigr/summationdisplay
+i=1αiv(i)/vextendsingle/vextendsinglev(i)∈Rn, αi∈R, αi≥0,r/summationdisplay
+i=1αi= 1/bracerightBig
+.
+Given the convex hull operator Conv(), a convex and bounded polytope can be deﬁned in vertex
+representation as follows:
+V-Representation of a Polytope Forrverticesv(i)∈Rn, a convex polytope Pis the set
+P=Conv(v(1),...,v(r)).
+132
+
+--- Page 14 ---
+Tool Presentation Althoﬀ
+The halfspace and the vertex representation are illustrated in Fig. 6. Algorithms that convert
+from H- to V-representation and vice versa are presented in [ 39].
+v(i)
+Conv(v(1),...,v(r))
+(a)V−representationS={x|cTx=d}H(i)
+H(1)∩H(2)...∩H(q)
+(b)H−representation
+Figure 6: Possible representations of a polytope.
+The class mptPolytope is a wrapper class that interfaces with the MATLAB toolbox Multi-
+Parametric Toolbox (MPT) for the methods listed in Tab. 5.
+Table 5: Most important methods of the class mptPolytope .
+name description
+and computes the intersection of two mptPolytopes .
+display standard method (see Sec. 2).
+enclose computes the convex hull of two mptPolytopes .
+in determines if a zonotope is enclosed by a mptPolytope .
+interval encloses a mptPolytope by INTLAB intervals.
+intervalhull encloses a mptPolytope by anintervalhull .
+iscontained returns if a mptPolytope is contained in another mptPolytope .
+isempty returns 1 if a mptPolytope is empty and 0 otherwise.
+mldivide computes the set diﬀerence of two mptPolytopes .
+mptPolytope constructor of the class.
+mtimes standard method (see Sec. 2) for numeric and interval matrix multiplication.
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for numeric vectors and mptPolytope objects.
+vertices returns a vertices object including all vertices of the polytope.
+volume computes the volume of a polytope.
+2.6 Interval Hulls
+An interval hull Iis the closest axis-aligned box of a set. It can easily be represented as a
+multidimensional interval: I= [x,x],x∈Rn,x∈Rn,∀i:xi≤xi. We provide the methods in
+Tab.6.
+2.7 Vertices
+Thevertices class has two main purposes: It is the class that performs the plott ing since all
+other set representations are ﬁrst converted to vertices to pe rform the plotting. Second, if one
+deﬁnes a point cloud as a set of potential vertices, this class compu tes enclosures of all points.
+The methods are listed in Tab. 7.
+133
+
+--- Page 15 ---
+Tool Presentation Althoﬀ
+Table 6: Most important methods of the class intervalhull .
+name description
+abs returns the absolute value bound of an interval hull: |I|i= sup/braceleftbig|xi|/vextendsingle/vextendsinglex∈ I/bracerightbig.
+and computes the intersection of two intervalhulls .
+center returns the center of the intervalhull .
+display standard method (see Sec. 2).
+edgeLength determines the edge lengths of the interval hull.
+enclose computes an interval hull that encloses two interval hulls.
+halfspace generates halfspace representation of the intervalhull .
+in determines if a zonotope is enclosed by the intervalhull .
+inf returns the inﬁmum of an intervalhull.
+interval converts an intervalhull to INTLAB intervals.
+intervalhull constructor of the class.
+isempty returns 1 if a intervalhull is empty and 0 otherwise.
+le overloads <=operator: Is one interval hull equal or the subset of another interval hull?
+lt overloads <operator: Is one interval hull equal or the subset of another interval hull?
+mptPolytope converts an intervalhull object to a mptPolytope object.
+mtimes standard method (see Sec. 2) for numeric and interval matrix multiplication.
+or over-approximates the union of interval hulls.
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for numeric vectors and intervalhull objects.
+polytope converts an interval hull object to a polytope.
+radius computes radius of an enclosing circle.
+rdivide overloads the ./operator; elementwise division of intervals by a vector.
+sup returns the supremum of an intervalhull.
+vertices returns a vertices object including all vertices.
+volume computes the volume of an interval hull.
+zonotope converts an intervalhull object to a zonotope object.
+Table 7: Most important methods of the class vertices .
+name description
+collect collects cell arrays (MATLAB-speciﬁc container) of vertic es.
+display standard method (see Sec. 2).
+intervalhull encloses all vertices by an intervalhull .
+mtimes standard method (see Sec. 2) for numeric matrix multiplication.
+parallelotope computes a enclosing parallelotope for provided facet norm als.
+plot standard method (see Sec. 2).
+plus standard method (see Sec. 2) for nuemric vectors.
+vertices constructor of the class.
+zonotope computes a zonotope that encloses all vertices according to [49, Section 3].
+3 Matrix Set Representations and Operations
+Besides vector sets as introduced in the previous section, it is ofte n useful to represent sets of
+possible matrices. This occurs for instance, when a linear system ha s uncertain parameters as
+described later in Sec. 4.2. CORA supports the following matrix set representations:
+•Matrix polytope (Sec. 3.1)
+•Matrix zonotope (Sec. 3.2); specialization of a matrix polytope.
+•Interval matrix (Sec. 3.3); specialization of a matrix zonotope.
+For each matrix set representation, the conversion to all other m atrix set computations is
+implemented. Of course, conversions to specializations are realized in an over-approximative
+134
+
+--- Page 16 ---
+Tool Presentation Althoﬀ
+way, while the other direction is computed exactly. Note that we use the term matrix polytope
+instead of polytope matrix . The reason is that the analogous term vector polytope makes sense,
+whilepolytope vector can be misinterpreted as a vertex of a polytope. We do not use the t erm
+matrix interval since the term interval matrix is already established. Important operations for
+matrix sets are
+•display: Displays the parameters of the set in the MATLAB workspace.
+•mtimes: Overloads the ’ *’ operator for the multiplication of various objects with a matrix
+set. For instance if Msetis a matrix set of proper dimension and Zis a zonotope,
+Mset∗Zreturns the linear map {Mx|M∈Mset,x∈Z}.
+•plus: Overloads the ’ +’ operator for the addition of various objects with a matrix set. Fo r
+instance if M1setandM2setare interval matrices of proper dimension, M1set+M2set
+returns the Minkowski sum {M1+M2|M1∈M1set,M2∈M2set}.
+•expm: Returns the set of matrix exponentials for a matrix set.
+•intervalMatrix : Computes an enclosing interval matrix.
+•vertices : returns the vertices of a matrix set.
+3.1 Matrix Polytopes
+A matrix polytope is analogously deﬁned as a V-polytope (see Sec. 2.5):
+A[p]=/braceleftBigr/summationdisplay
+i=1αiV(i)/vextendsingle/vextendsingle/vextendsingleV(i)∈Rn×n,αi∈R,αi≥0,/summationdisplay
+iαi= 1/bracerightBig
+. (3)
+The matrices V(i)are also called vertices of the matrix polytope. When substituting th e matrix
+vertices by vector vertices v(i)∈Rn, one obtains a V-polytope (see Sec. 2.5). The methods in
+Tab.8are implemented.
+Table 8: Most important methods of the class matPolytope .
+name description
+display standard method (see Sec. 3).
+expmInd operator for the exponential matrix of a matrix polytope, ev aluated independently.
+expmIndMixed operator for the exponential matrix of a matrix polytope, ev aluated independently.
+Higher order terms are computed using interval arithmetic.
+intervalMatrix standard method (see Sec. 3).
+matPolytope constructor of the class.
+matZonotope computes an enclosing matrix zonotope.
+mpower overloaded ’∧’ operator for the power of matrix polytopes.
+mtimes standard method (see Sec. 3) for numeric matrix multiplication or multiplication with
+another matrix polytope.
+plot plots a 2-dimensional projection of a matrix polytope.
+powers computes the powers of a matrix zonotope up to a certain order .
+plus standard method (see Sec. 3) for a matrix polytope or a numeric matrix.
+polytope converts a matrix polytope to a polytope.
+simplePlus computes the Minkowski addition of two matrix polytopes.
+vertices standard method (see Sec. 3).
+135
+
+--- Page 17 ---
+Tool Presentation Althoﬀ
+3.2 Matrix Zonotopes
+A matrix zonotope is deﬁned analogously to zonotopes (see Sec. 2.1):
+A[z]=/braceleftBig
+G(0)+κ/summationdisplay
+i=1piG(i)/vextendsingle/vextendsingle/vextendsinglepi∈[−1,1],G(i)∈Rn×n/bracerightBig
+(4)
+and is written in short form as A[z]= (G(0),G(1),...,G(κ)), where the ﬁrst matrix is referred
+to as the matrix center and the other matrices as matrix generators . The order of a matrix
+zonotope is deﬁned as ρ=κ/n. When exchanging the matrix generators by vector generators
+g(i)∈Rn, one obtains a zonotope (see e.g. [ 31]). The methods for matrix zonotopes are listed
+in Tab.9.
+Table 9: Most important methods of the class matZonotope .
+name description
+concatenate concatenates the center and all generators of two matrix zon otopes.
+display standard method (see Sec. 3).
+dependentTerms considers dependency in the computation of Taylor terms for the matrix zonotope
+exponential according to [ 8, Proposition 4.3].
+dominantVertices computes the dominant vertices of a matrix zonotope accordi ng to a heuristics.
+expmInd operator for the exponential matrix of a matrix zonotope, ev aluated independently.
+expmIndMixed operator for the exponential matrix of a matrix zonotope, ev aluated independently.
+Higher order terms are computed using interval arithmetic.
+expmMixed operator for the exponential matrix of a matrix zonotope, ev aluated dependently.
+Higher order terms are computed using interval arithmetic [ 8, Section 4.4.4].
+expmOneParam operator for the exponential matrix of a matrix zonotope whe n only one parameter is
+uncertain [ 4, Theorem 1].
+expmVertex computes the exponential matrix for a selected number of dom inant vertices obtained
+by thedominantVertices method.
+infNorm returns the maximum of the inﬁnity norm of a matrix zonotope.
+infNormRed returns a fast over-approximation of the maximum of the inﬁn ity norm of a matrix
+zonotope.
+intervalMatrix standard method (see Sec. 3).
+matPolytope converts a matrix zonotope into a matrix polytope represent ation.
+matZonotope constructor of the class.
+mpower overloaded ’∧’ operator for the power of matrix zonotopes.
+mtimes standard method (see Sec. 3) for numeric matrix multiplication or multiplication with
+another matrix zonotope according to [ 8, Equation 4.10].
+plot plots 2-dimensional projection of a matrix zonotope.
+plus standard method (see Sec. 3) for a matrix zonotope or a numerical matrix.
+powers computes the powers of a matrix zonotope up to a certain order .
+reduce reduces the order of a matrix zonotope.
+uniformSampling creates samples uniformly within a matrix zonotope.
+vertices standard method (see Sec. 3).
+volume computes the volume of a matrix zonotope by computing the vol ume of the corre-
+sponding zonotope.
+zonotope converts a matrix zonotope into a zonotope.
+3.3 Interval Matrices
+An interval matrix is a special case of a matrix zonotope and speciﬁe s the interval of possible
+values for each matrix element:
+A[i]= [A,A],∀i,j:aij≤aij, A,A∈Rn×n.
+136
+
+--- Page 18 ---
+Tool Presentation Althoﬀ
+The matrix Ais referred to as the lower bound andAas theupper bound ofA[i]. The methods
+for interval matrices are listed in Tab. 10.
+Table 10: Most important methods of the class intervalMatrix .
+name description
+abs returns the absolute value bound of an interval matrix.
+display standard method (see Sec. 3).
+dependentTerms considers dependency in the computation of Taylor terms for the interval matrix
+exponential according to [ 8, Proposition 4.4].
+dominantVertices computes the dominant vertices of an interval matrix zonoto pe according to a heuris-
+tics.
+expm operator for the exponential matrix of an interval matrix, e valuated dependently.
+expmAbsoluteBound returns the over-approximation of the absolute bound of the symmetric solution to
+the computation of the exponential matrix.
+expmInd operator for the exponential matrix of an interval matrix, e valuated independently.
+expmNormInf returns the over-approximation of the norm of the diﬀerence between the interval
+matrix exponential and the exponential from the center matr ix according to [ 8,
+Theorem 4.2].
+expmVertex computes the exponential matrix foraselected number ofdom inant vertices obtained
+by thedominantVertices method.
+exponentialRemainder returns the remainder of the exponential matrix according t o [8, Proposition 4.1].
+infNorm returns the maximum of the inﬁnity norm of an interval matrix .
+intervalhull converts an interval matrix to an interval hull.
+intervalMatrix constructor of the class.
+matPolytope converts an interval matrix to a matrix polytope.
+matZonotope converts an interval matrix to a matrix zonotope.
+mpower overloaded ’∧’ operator for the power of interval matrices.
+mtimes standard method (see Sec. 3) for numeric matrix multiplication or multiplication
+with another interval matrix according to [ 8, Equation 4.11].
+plot plots a 2-dimensional projection of an interval matrix.
+plus standard method (see Sec. 3) for another interval matrix or a numeric matrix.
+powers computes the powers of an interval matrix up to a certain orde r.
+randomIntervalMatrix generates a random interval matrix with a speciﬁed center an d a speciﬁed delta
+matrix or scalar.
+uniformSampling creates samples uniformly within an interval matrix.
+vertices standard method (see Sec. 3).
+volume computes the volume of an interval matrix by computing the vo lume of the corre-
+sponding interval hull.
+4 Continuous Dynamics
+This section introduces various classes to compute reachable sets of continuous dynamics. One
+can directly compute reachablesets for eachclass, orinclude thos e classesinto ahybrid automa-
+ton for the reachability analysis of hybrid systems. Note that besid es reachability analysis, the
+simulation of particulartrajectoriesis alsosupported. CORAsuppo rts the following continuous
+dynamics:
+•Linear systems (Sec. 4.1)
+•Linear systems with uncertain ﬁxed parameters (Sec. 4.2)
+•Linear systems with uncertain varying parameters (Sec. 4.3)
+•Linear probabilistic systems (Sec. 4.4)
+•Nonlinear systems (Sec. 4.5)
+137
+
+--- Page 19 ---
+Tool Presentation Althoﬀ
+•Nonlinear systems with uncertain ﬁxed parameters (Sec. 4.6)
+•Nonlinear diﬀerential-algebraic systems (Sec. 4.7)
+For each class the same methods are implemented:
+•display: Displaysthe parametersofthe continuousdynamics in the MATLAB workspace.
+•initReach : Initializes the reachable set computation.
+•reach: Computes the reachable set for the next time interval.
+•simulate : Produces a single trajectory that numerically solves the system f or a particular
+initial state and a particular input trajectory.
+There exist some further auxiliary methods for each class, but tho se are not relevant unless
+one aims to change details of the provided algorithms. In contrast t o the set representations,
+all continuous systems have the same methods, therefor the met hods are not listed for the
+individual classes. We mainly focus on the method initReach , which is computed diﬀerently
+for each class.
+4.1 Linear Systems
+The most basic system dynamics considered in this software packag e are linear systems of the
+form
+˙x(t) =Ax(t)+Bu(t), x(0)∈ XO⊂Rn, u(t)∈ U ⊂Rn(5)
+For the computation of reachable sets, we use the equivalent syst em
+˙x(t) =Ax(t)+ ˜u(t), x(0)∈ XO⊂Rn,˜u(t)∈˜U=B⊗U ⊂Rn, (6)
+whereC ⊗ D={CD|C∈ C,D∈ D}is the set-based multiplication (one argument can be a
+singleton).
+The method initReach computes the required steps to obtain the reachable set for the ﬁ rst
+point in time rand the ﬁrst time interval [0 ,r] as follows. Given is the linear system in ( 6). For
+further computations, we introduce the center of the set of inpu tsucand the deviation from
+the center of ˜U,˜U∆:=˜U ⊕(−uc). According to [ 1, Section 3.2], the reachable set for the ﬁrst
+time interval τ0= [0,r] is computed as shown in Fig. 7:
+1. Starting from XO, compute the set of all solutions Rd
+hfor the aﬃne dynamics ˙ x(t) =
+Ax(t)+ucat timer.
+2. Obtain the convex hull of XOandRd
+hto approximate the reachable set for the ﬁrst time
+intervalτ0.
+3. Compute Rd(τ0) by enlarging the convex hull, ﬁrstly to bound all aﬃne solutions within
+τ0and secondly to account for the set of uncertain inputs ˜U∆.
+4.2 Linear Systems with Uncertain Fixed Parameters
+This class extends linear systems by uncertain parameters that ar e ﬁxed over time:
+˙x(t) =A(p)x(t) + ˜u(t), x(0)∈ XO⊂Rn, p∈ P,˜u(t)∈˜U={B(p)⊗U|U ⊂ Rn,p∈ P},
+(7)
+138
+
+--- Page 20 ---
+Tool Presentation Althoﬀ
+XORd
+h
+convex hull of
+XO,Rd
+hRd(τ0)
+➀ ➁ ➂enlargement
+Figure 7: Steps for the computation of an over-approximation of t he reachable set for a linear
+system.
+The set of state and input matrices is denoted by
+A={A(p)|p∈ P},B={B(p)|p∈ P} (8)
+An alternative is to deﬁne each parameter as a state variable ˜ xiwith the trivial dynamics
+˙˜xi= 0. The result is a nonlinear system that can be handled as described in Sec.4.5. The
+problem of which approach to use for any particular case is still open .
+The method initReach computes the reachable set for the ﬁrst point in time rand the ﬁrst
+time interval [0 ,r] similarly as for linear systems with ﬁxed parameters. The main diﬀere nce is
+that we have to take into account an uncertain state matrix Aand an uncertain input matrix
+B. The initial state solution becomes
+Rd
+h=eArXO={eArx0|A∈ A,x0∈ XO}. (9)
+Similarly, the reachable set due to the input solution changes as desc ribed in [ 1, Section 3.3].
+4.3 Linear Systems with Uncertain Varying Parameters
+This class extends linear systems with uncertain, but ﬁxed paramet ers to linear systems with
+time-varying parameters:
+˙x(t) =A(t)x(t) + ˜u(t), x(0)∈ XO⊂Rn, A(t)∈ A,˜u(t)∈˜U.
+The set of state matrices can be represented by any matrix set int roduced in Sec. 3. The
+provided methods of the class are identical to the ones in Sec. 4.2, except that the computation
+is based on [ 9].
+4.4 Linear Probabilistic Systems
+In contrast to all other systems, we consider stochastic proper ties in the class linProbSys . The
+system under consideration is deﬁned by the following linear stochas tic diﬀerential equation
+(SDE) which is also known as the multivariate Ornstein-Uhlenbeck pro cess [30]:
+˙x=Ax(t)+u(t)+Cξ(t), (10)
+x(0)∈Rn, u(t)∈ U ⊂Rn, ξ∈Rm
+139
+
+--- Page 21 ---
+Tool Presentation Althoﬀ
+whereAandCare matrices of proper dimension and Ahas full rank. There are two kinds of
+inputs: the ﬁrst input uis Lipschitz continuous and can take any value in U ⊂Rnfor which
+no probability distribution is known. The second input ξ∈Rmis white Gaussian noise. The
+combination of both inputs can be seen as a white Gaussian noise input , where the mean value
+is unknown within the set U.
+In contrast to the other system classes, we compute enclosing pr obabilistic hulls, i.e. a hull over
+all possible probability distributions when some parameters are unce rtain and do not have a
+probability distribution. In the probabilistic setting ( C/ne}ationslash= 0), the probability density function
+(PDF) at time t=rof the random process X(t) deﬁned by ( 10) for a speciﬁc trajectory u(t)∈
+Uis denoted by fX(x,r). Theenclosing probabilistic hull (EPH) of all possible probability
+density functions fX(x,r) is denoted by ¯fX(x,r) and deﬁned as: ¯fX(x,r) = sup{fX(x,r)|X(t)
+is a solution of ( 10)∀t∈[0,r],u(t)∈ U,fX(x,0) =f0}. The enclosing probabilistic hull for a
+time interval is deﬁned as ¯fX(x,[0,r]) = sup{¯fX(x,t)|t∈[0,r]}.
+4.5 Nonlinear Systems
+So far, reachable sets of linear continuous systems have been pre sented. Although a fairly
+large group of dynamic systems can be described by linear continuou s systems, the extension
+to nonlinear continuous systems is an important step for the analys is of more complex systems.
+The analysis of nonlinear systems is much more complicated since many valuable properties
+are no longer valid. One of them is the superposition principle, which allo ws the homogeneous
+and the inhomogeneous solution to be obtained separately. Anothe r is that reachable sets
+of linear systems can be computed by a linear map. This makes it possib le to exploit that
+geometric representations such as ellipsoids, zonotopes, and poly topes are closed under linear
+transformations,i.e. theyareagainmapped toellipsoids, zonotope sandpolytopes, respectively.
+In CORA, reachability analysis of nonlinear systems is based on abstr action. We present
+abstraction by linear systems as presented in [ 1, Section 3.4] and by polynomial systems as
+presented in [ 2]. Since the abstraction causes additional errors, the abstractio n errors are
+determined in an over-approximative way and added as an additional uncertain input so that
+an over-approximative computation is ensured.
+General nonlinear continuous systems with uncertain parameters and Lipschitz continuity are
+considered. In analogy to the previous linear systems, the initial st atex(0) can take values
+from a set XO⊂Rnand the input utakes values from a set U ⊂Rm. The evolution of the
+statexis deﬁned by the following diﬀerential equation:
+˙x(t) =f(x(t),u(t)), x(0)∈ XO⊂Rn, u(t)∈ U ⊂Rm,
+whereu(t) andf(x(t),u(t)) are assumed to be globally Lipschitz continuous so that the Taylor
+expansion for the state and the input can always be computed, a co ndition required for the
+abstraction.
+A brief visualization of the overall concept for computing the reach able set is shown in Fig.
+8. As in the previous approaches, the reachable set is computed iter atively for time intervals
+t∈τk= [kr,(k+1)r] wherek∈N+. The procedure for computing the reachable sets of the
+consecutive time intervals is as follows:
+➀The nonlinear system ˙ x(t) =f(x(t),u(t)) is either abstracted to a linear system as shown
+140
+
+--- Page 22 ---
+Tool Presentation Althoﬀ
+➀
+➁
+➂
+➃
+➄
+➅
+➆Initial set: R(0) =XO, time step: k= 1
+Compute system abstraction (linear/polynomial)
+Obtain required abstraction errors ¯Lheuristically
+Compute Rabstract(τk) of ˙x(t)∈fabstract(x(t),u(t))⊕¯L
+Compute Lbased on Rabstract(τk)
+L ⊆¯L? Enlarge ¯L
+Compute R(τk) of ˙x(t)∈fabstract(x(t),u(t))⊕L
+Cancellation of redundant reachable sets
+Next initial set: R(tk+1), time step: k:=k+1YesNo
+Figure 8: Computation of reachable sets – overview.
+in (6) or after introducing z= [xT, uT]Ta polynomial system of the form
+˙xi=fabstract(x,u) =wi+1
+1!o/summationdisplay
+j=1Cijzj(t)+1
+2!o/summationdisplay
+j=1o/summationdisplay
+k=1Dijkzj(t)zk(t)
++1
+3!o/summationdisplay
+j=1o/summationdisplay
+k=1o/summationdisplay
+l=1Eijklzj(t)zk(t)zl(t)+...(11)
+The set of abstraction errors Lensures that f(x,u)∈fabstract(x,u)⊕L, which allows the
+reachable set to be computed in an over-approximative way.
+➁Next, the set of required abstraction errors ¯Lis obtained heuristically.
+➂The reachable set Rabstract(τk) of ˙x(t)∈fabstract(x(t),u(t))⊕¯Lis computed.
+➃The set of abstraction errors Lis computed based on the reachable set Rabstract(τk).
+➄WhenL/notsubseteql¯L, the abstraction error is not admissible, requiring the assumption ¯Lto be
+enlarged. If several enlargements are not successful, one has t o split the reachable set and
+continue with one more partial reachable set from then on.
+➅IfL ⊆¯L, the abstraction error is accepted and the reachable set is obtain ed by using the
+tighter abstraction error: ˙ x(t)∈fabstract(x(t),u(t))⊕L.
+➆It remains to increase the time step ( k:=k+1) and cancel redundant reachable sets that
+are already covered by previously computed reachable sets. This d ecreases the number of
+reachable sets that have to be considered in the next time interval.
+The method initReach computes the reachable set for a ﬁrst point in time rand the ﬁrst
+time interval [0 ,r]. In contrast to linear systems, it is required to call initReach for each time
+141
+
+--- Page 23 ---
+Tool Presentation Althoﬀ
+intervalτksince the system is abstracted for each time interval τkby a diﬀerent abstraction
+fabstract(x,u).
+4.6 Nonlinear Systems with Uncertain Fixed Parameters
+Theclass nonlinParamSys extendstheclass nonlinearSys byconsideringuncertainparameters
+p:
+˙x(t) =f(x(t),u(t),p), x(0)∈ XO⊂Rn, u(t)∈ U ⊂Rm, p∈ P ⊂Rp.
+The functionality provided is identical to nonlinearSys , except that the abstraction to poly-
+nomial systems is not yet implemented.
+4.7 Nonlinear Diﬀerential-Algebraic Systems
+The class nonlinDASys considers time-invariant, semi-explicit, index-1 DAEs without param et-
+ric uncertainties since they are not yet implemented. The extension to parametric uncertainties
+can be done using the methods applied in Sec. 4.6. Using the vectors of diﬀerential variables
+x, algebraic variables y, and inputs u, the semi-explicit DAE can generally be written as
+˙x=f(x(t),y(t),u(t))
+0 =g(x(t),y(t),u(t)),
+[xT(0),yT(0)]T∈ R(0), u(t)∈ U,(12)
+whereR(0) over-approximates the set of consistent initial states and Uis the set of possible
+inputs. The initial stateisconsistentwhen g(x(0),y(0),u(0)) = 0, whileforDAEswith an index
+greater than 1, further hidden algebraic constraints have to be c onsidered [ 12, Chapter 9.1].
+For an implicit DAE, the index-1 property holds if and only if ∀t: det(∂g(x(t),y(t),u(t))
+∂y)/ne}ationslash= 0,
+i.e. the Jacobian of the algebraic equations is non-singular [ 20, p. 34]. Loosely speaking, the
+index speciﬁes the distance to an ODE (which has index 0) by the numb er of required time
+diﬀerentiations of the general form 0 = F(˙˜x,˜x,u,t) along a solution ˜ x(t), in order to express ˙˜x
+as a continuous function of ˜ xandt[12, Chapter 9.1].
+To apply the methods presented in the previous section to compute reachable sets for DAEs, an
+abstraction of the original nonlinear DAEs to linear diﬀerential inclus ions is performed for each
+consecutive time interval τk. A diﬀerent abstraction is used for each time interval to minimize
+the over-approximation error. Based on a linearization of the func tionsf(x(t),y(t),u(t)) and
+g(x(t),y(t),u(t)), one can abstract the dynamics of the original nonlinear DAE by a linear
+system plus additive uncertainty as detailed in [ 7, Section IV]. This linear system only contains
+dynamic state variables xand uncertain inputs u. The algebraic state yis obtained afterwards
+by the linearized constraint function g(x(t),y(t),u(t)) as described in [ 7, Proposition 2].
+5 Hybrid Dynamics
+In CORA, hybrid systems are modeled by hybrid automata. Besides a continuous state x,
+there also exists a discrete state vfor hybrid systems. The continuous initial state may take
+142
+
+--- Page 24 ---
+Tool Presentation Althoﬀ
+values within continuous sets while only a single initial discrete state is a ssumed without loss
+of generality23. The switching of the continuous dynamics is triggered by guard sets . Jumps
+in the continuous state are considered after the discrete state h as changed. One of the most
+intuitive examples where jumps in the continuous state can occur is t he bouncing ball example
+(see Sec. 7), where the velocity of the ball changes instantaneously when hitt ing the ground.
+Theformaldeﬁnitionofthehybridautomatonissimilarlydeﬁnedasin[ 49]. Themaindiﬀerence
+is the consideration of uncertain parameters and the restrictions on jumps and guard sets.
+A hybrid automaton HA= (V,v0,X,X0,U,P,inv,T,g,h,f), as it is considered in CORA,
+consists of:
+•the ﬁnite set of locations V={v1,...,v ξ}with an initial location v0∈ V.
+•the continuous state space X ⊆Rnand the set of initial continuous states X0such that
+X0⊆inv(v0).
+•the continuous input space U ⊆Rm.
+•the parameter space P ⊆Rp.
+•the mapping24inv:V →2X, which assigns an invariant inv(v)⊆ Xto each location v.
+•the set of discrete transitions T⊆ V ×V . A transition from vi∈ Vtovj∈ Vis denoted
+by (vi,vj).
+•the guard function g:T→2X, which associates a guard set g((vi,vj)) for each transition
+fromvitovj, whereg((vi,vj))∩inv(vi)/ne}ationslash=∅.
+•thejumpfunction h:T×X → X , whichreturnsthenextcontinuousstatewhenatransition
+is taken.
+•the ﬂow function f:V ×X ×U ×P → R(n), which deﬁnes a continuous vector ﬁeld for
+the time derivative of x: ˙x=f(v,x,u,p).
+The invariants inv(v) and the guard sets g((vi,vj)) are modeled by polytopes. The jump
+function is restricted to a linear map
+x′=K(vi,vj)x+l(vi,vj), (13)
+wherex′denotes the state after the transition is taken and K(vi,vj)∈Rn×n,l(vi,vj)∈Rnare
+speciﬁc for a transition ( vi,vj). The input sets Uvare modeled by zonotopes and are also
+dependent on the location v. Note that in order to use the results from reachability analysis
+of nonlinear systems, the input u(t) is assumed to be locally Lipschitz continuous. The set of
+parameters Pvcan also be chosen diﬀerently for each location v.
+The evolution of the hybrid automaton is described informally as follow s. Starting from an
+initial location v(0) =v0and an initial state x(0)∈ X0, the continuous state evolves according
+to the ﬂow function that is assigned to each location v. If the continuous state is within a
+guard set, the corresponding transition can be taken and has to b e taken if the state would
+otherwise leave the invariant inv(v). When the transition from the previous location vito the
+next location vjis taken, the system state is updated according to the jump funct ion and the
+continuous evolution within the next invariant.
+Because the reachability of discrete states is simply a question of de termining if the continuous
+reachable set hits certain guard sets, the focus of CORA is on the c ontinuous reachable sets.
+23In the case of several initial discrete states, the reachabi lity analysis can be performed for each discrete
+state separately.
+242Xis the power set of X.
+143
+
+--- Page 25 ---
+Tool Presentation Althoﬀ
+Clearly, as for the continuous systems, the reachable set of the h ybrid system has to be over-
+approximated in order to verify the safety of the system. An illustr ation of a reachable set of
+a hybrid automaton is given in Fig. 9.
+initial setreachable set guard sets
+guard setsjump
+etc.invariantunsafe set
+x1x2
+location v1 location v2
+Figure 9: Illustration of the reachable set of a hybrid automaton.
+5.1 Hybrid Automaton
+A hybrid automaton is implemented as a collection of locations . We mainly support the
+following methods for hybrid automata:
+•hybridAutomaton – constructor of the class.
+•plot– plots the reachable set of the hybrid automaton.
+•reach– computes the reachable set of the hybrid automaton.
+•simulate – computes a hybrid trajectory of the hybrid automaton.
+5.2 Location
+Each location consists of:
+•invariant – speciﬁed by a set representation of Sec. 2.
+•transitions – cell array of objects of the class transition .
+•contDynamics – speciﬁed by a continuous dynamics of Sec. 4.
+•name– saved as a string describing the location.
+•id– unique number of the location.
+The supported methods of the location class are listed in Tab. 11.
+5.3 Transition
+Each transition consists of
+•guard– speciﬁed by a set representation of Sec. 2.
+•reset– struct containing the information for a linear reset.
+144
+
+--- Page 26 ---
+Tool Presentation Althoﬀ
+Table 11: Most important methods of the class location .
+name description
+display displays the parameters of the location in the MATLAB worksp ace.
+enclosePolytopes encloses a set of polytopes using diﬀerent over-approximat ing zonotopes.
+guardIntersect intersects the reachable sets with potential guard sets and returns enclosing zonotopes
+for each guard set.
+location constructor of the class.
+potInt determines which reachable sets potentially intersect wit h guard sets of a location.
+reach computes the reachable set for the location.
+simulate produces a single trajectory by solving the system numerica lly within the location
+starting from a point rather than from a set.
+•target–idof the target location when the transition occurs.
+•inputLabel – input event to communicate over events.
+•outputLabel – output event to communicate over events.
+We mainly support the following methods for transitions:
+•display – displays the parameters of the transition in the MATLAB workspac e.
+•reset– computes the reset map after a transition occurs (also called ’jum p function’).
+6 State Space Partitioning
+It is sometimes useful to partition the state space into cells, for ins tance, when abstracting
+a continuous stochastic system by a discrete stochastic system. CORA supports axis-aligned
+partitioning using the class partition . The main methods can be found in Tab. 12.
+Table 12: Most important methods of the class partition .
+name description
+cellCandidates ﬁnds possible cells that might intersect with a continuous s et over-approximated by its
+bounding box (interval hull).
+cellCenter returns center of speciﬁed cell.
+cellIndices returns cell indices given a set of cell coordinates.
+cellIntersection2 returns the volumes of a polytope Pintersected with touched cells Ci.
+cellSegment returns cell coordinates given a set of cell indices.
+display displays the parameters of the partition in the MATLAB works pace.
+findSegment ﬁnds segment index for given state space coordinates.
+findSegments return segment indices intersecting with a given interval h ull.
+nrOfStates returns the number of discrete states of the partition.
+partition constructor of the class.
+segmentIntervals returns intervals of segment.
+segmentPolytope returns polytope of segment.
+segmentZonotope returns zonotope of segment.
+145
+
+--- Page 27 ---
+Tool Presentation Althoﬀ
+7 Bouncing Ball Example
+We demonstrate the syntax of CORA for the well-known bouncing ba ll example, see e.g. [ 51,
+Section 2.2.3]. Given is a ball in Fig. 10with dynamics ¨ s=−g, wheresis the vertical position
+andgis the gravity constant. After impact with the ground at s= 0, the velocity changes
+tov′=−αv(v= ˙s) withα∈[0,1]. The corresponding hybrid automaton can be formalized
+according to Sec. 5as
+s0v0
+g
+Figure 10: Bouncing ball.V ={v1}
+X =R+×R(ball is above ground)
+U=Yc ={}
+T ={(z1,z1)}
+inv(z1) = {[x1,x2]T|x1∈R+
+0,x2∈R}
+g/parenleftbig
+(z1,z1)/parenrightbig
+={[x1,x2]T|x1= 0,x2∈R−
+0}
+h/parenleftbig
+(z1,z1),x/parenrightbig
+=/bracketleftbiggx1
+−αx2/bracketrightbigg
+f(z1,x) =/bracketleftbiggx2
+−g/bracketrightbigg
+The MATLAB code that implements the simulation and reachability analy sis of the bouncing
+ball example is:
+1function bouncingBall()
+2
+3%set options---------------------------------------- -----------------------
+4options.x0 = [1; 0]; %initial state for simulation
+5options.R0 = zonotope([options.x0, diag([0.05, 0.05])]) ;%initial set
+6options.startLoc = 1; %initial location
+7options.finalLoc = 0; %0: no final location
+8options.tStart = 0; %start time
+9options.tFinal = 5; %final time
+10options.timeStepLoc{1} = 0.05; %time step size in location 1
+11options.taylorTerms = 10;
+12options.zonotopeOrder = 20;
+13options.polytopeOrder = 10;
+14options.errorOrder=2;
+15options.reductionTechnique = ’girard’ ;
+16options.isHybrid = 1;
+17options.isHyperplaneMap = 0;
+18options.enclosureEnables = [5]; %choose enclosure method(s)
+19options.originContained = 0;
+20options.polytopeType = ’mpt’;
+21%-------------------------------------------------- ------------------------
+22
+146
+
+--- Page 28 ---
+Tool Presentation Althoﬀ
+23%specify hybrid automaton---------------------------- ----------------------
+24%define large and small distance
+25dist = 1e3;
+26eps = 1e-6;
+27
+28A = [0 1; 0 0]; % system matrix
+29B = eye(2); % input matrix
+30linSys = linearSys( ’linearSys’ ,A,B);%linear continuous system
+31
+32inv = intervalhull([-2 *eps, dist; -dist, dist]); %invariant
+33guard = intervalhull([- eps, 0; -dist, 0]); %guard set
+34reset.A = [0, 0; 0, -0.75]; reset.b = zeros(2,1); %reset
+35trans{1} = transition(guard,reset,1, ’a’,’b’);%transition
+36loc{1} = location( ’loc1’,1,inv,trans,linSys); %location
+37HA = hybridAutomaton(loc); % select location for hybrid automaton
+38%-------------------------------------------------- ------------------------
+39
+40%set input:
+41options.uLoc{1} = [0; -1]; %input for simulation
+42options.uLocTrans{1} = options.uLoc{1}; %center of input set
+43options.Uloc{1} = zonotope(zeros(2,1)); %input deviation from center
+44
+45%simulate hybrid automaton
+46HA = simulate(HA,options);
+47
+48%compute reachable set
+49[HA] = reach(HA,options);
+50
+51%choose projection and plot--------------------------- ---------------------
+52options.projectedDimensions = [1 2];
+53options.plotType = ’b’;
+54plot(HA, ’reachableSet’ ,options); %plot reachable set
+55plot(options.R0,options.projectedDimensions, ’blackFrame’ );%plot initial set
+56plot(HA, ’simulation’ ,options); %plot simulation
+57%-------------------------------------------------- ------------------------
+The reachableset and the simulation are plotted in Fig. 11for a time horizon of tf= 5 seconds.
+8 Conclusions
+CORA is a toolbox for the implementation of prototype reachability an alysis algorithms in
+MATLAB. The software is modular and is organized into four main cate gories: vector set
+representations, matrix set representations,continuous dyna mics, and hybriddynamics. CORA
+includes novel algorithmsfor reachabilityanalysisof nonlinear syste ms and hybrid systems with
+a special focus on scalability; for instance, a power network with mo re than 50 continuous state
+variables has been veriﬁed in [ 3]. The eﬃciency of the algorithms used means it is even possible
+to verify problems online, i.e. while they are in operation [ 5].
+One particularly useful feature of CORA is its adaptability: the algor ithms can be tailored to
+the reachabilityanalysis problem in question. Forthcoming integratio n into SpaceEx, which has
+147
+
+--- Page 29 ---
+Tool Presentation Althoﬀ
+0 0.2 0.4 0.6 0.8 1 1.2−1.5−1 −0.500.51
+x1x2initial setsimulated trajectory
+reachable set
+Figure 11: Illustration of the reachable set of the bouncing ball. The black box shows the initial
+set and the black line shows the simulated trajectory.
+a user interface and a model editor, should go some way towardsma king CORA more accessible
+to non-experts.
+Acknowledgment
+The author gratefully acknowledges ﬁnancial support by the Euro pean Commission project
+UnCoVerCPS under grant number 643921.
+References
+[1] M. Althoﬀ. Reachability Analysis and its Application to the Safety Ass essment of Au-
+tonomous Cars . Dissertation, Technische Universit¨ at M¨ unchen, 2010. h ttp://nbn-
+resolving.de/urn/resolver.pl?urn:nbn:de:bvb:91-diss -20100715-963752-1-4.
+[2] M. Althoﬀ. Reachability analysis of nonlinear systems u sing conservative polynomialization and
+non-convex sets. In Hybrid Systems: Computation and Control , pages 173–182, 2013.
+[3] M. Althoﬀ. Formal and compositional analysis of power sy stems using reachable sets. IEEE
+Transactions on Power Systems , 29(5):2270–2280, 2014.
+[4] M. Althoﬀ and J. M. Dolan. Reachability computation of lo w-order models for the safety veri-
+ﬁcation of high-order road vehicle models. In Proc. of the American Control Conference , pages
+3559–3566, 2012.
+[5] M. Althoﬀ and J. M. Dolan. Online veriﬁcation of automate d road vehicles using reachability
+analysis. IEEE Transactions on Robotics , 30(4):903–918, 2014.
+[6] M. Althoﬀ and B. H. Krogh. Zonotope bundles for the eﬃcien t computation of reachable sets. In
+Proc. of the 50th IEEE Conference on Decision and Control , pages 6814–6821, 2011.
+[7] M. Althoﬀ and B. H. Krogh. Reachability analysis of nonli near diﬀerential-algebraic systems.
+IEEE Transactions on Automatic Control , 59(2):371–383, 2014.
+148
+
+--- Page 30 ---
+Tool Presentation Althoﬀ
+[8] M. Althoﬀ, B. H. Krogh, and O. Stursberg. Modeling, Design, and Simulation of Systems with
+Uncertainties , chapter Analyzing Reachability of Linear Dynamic Systems with Parametric Un-
+certainties, pages 69–94. Springer, 2011.
+[9] M. Althoﬀ, C. Le Guernic, and B. H. Krogh. Reachable set co mputation for uncertain time-varying
+linear systems. In Hybrid Systems: Computation and Control , pages 93–102, 2011.
+[10] M. Althoﬀ, O. Stursberg, and M. Buss. Safety assessment for stochastic linear systems using
+enclosing hulls of probability density functions. In Proc. of the European Control Conference ,
+pages 625–630, 2009.
+[11] E. Asarin, T. Dang, and O. Maler. d/dt: A veriﬁcation too l for hybrid systems. In Proc. of the
+Conference on Decision and Control , pages 2893–2898, 2001.
+[12] U. M. Ascher and L. R. Petzold. Computer Methods for Ordinary Diﬀerential Equations and
+Diﬀerential-Algebraic Equations . SIAM: Society for Industrial and Applied Mathematics, 199 8.
+[13] G. Behrmann, A. David, K. G. Larsen, O. M¨ oller, P. Pette rsson, and W. Yi. UPPAAL - present
+and future. In Proc. of the 40th IEEE Conference on Decision and Control , pages 2881 – 2886,
+2001.
+[14] L. Benvenuti, D. Bresolin, P. Collins, A. Ferrari, L. Ge retti, and T. Villa. Reachability Prob-
+lems, chapter Ariadne: Dominance Checking of Nonlinear Hybrid A utomata Using Reachability
+Analysis, pages 79–91. Springer, 2012.
+[15] L. Benvenuti, D. Bresolin, P. Collins, A. Ferrari, L. Ge retti, and T. Villa. Assume-guarantee
+veriﬁcation of nonlinear hybrid systems with ARIADNE. International Journal of Robust and
+Nonlinear Control , 24:699–724, 2014.
+[16] D.Berleant. Automatically veriﬁedreasoningwithbot hintervalsandprobabilitydensityfunctions.
+Interval Computations , 2:48–70, 1993.
+[17] M. Berz and G. Hoﬀst¨ atter. Computation and applicatio n of Taylor polynomials with interval
+remainder bounds. Reliable Computing , 4:83–97, 1998.
+[18] N. S. Bjørner, A. Browne, M. A. Col´ on, B. Finkbeiner, Z. Manna, H. B. Sipma, and T. E. Uribe.
+Verifying temporal properties of reactive systems: A STeP t utorial. Formal Methods in System
+Design, 16(3):227–270, 2000.
+[19] O. Botchkarev and S. Tripakis. Veriﬁcation of hybrid sy stems with linear diﬀerential inclusions
+using ellipsoidal approximations. In Hybrid Systems: Computation and Control , LNCS 1790, pages
+73–88. Springer, 2000.
+[20] K. E. Brenan, S. L. Campbell, and L. R. Petzold. Numerical Solution of Initial Value Problems
+in Diﬀerential-Algebraic Equations . North-Holland, 1989.
+[21] X. Chen, E. Abraham, and S. Sankaranarayanan. Flow*: An analyzer for non-linear hybrid
+systems. In Proc. of Computer-Aided Veriﬁcation , LNCS 8044, pages 258–263. Springer, 2013.
+[22] X. Chen, S. Sankaranarayanan, and E. ´Abrah´ am. Taylor model ﬂowpipe construction for non-
+linear hybrid systems. In Proc. of the 33rd IEEE Real-Time Systems Symposium , 2012.
+[23] A. Chutinan and B. H. Krogh. Computational techniques f or hybrid system veriﬁcation. IEEE
+Transactions on Automatic Control , 48(1):64–75, 2003.
+[24] M. Fr¨ anzle and C. Herde. HySAT: An eﬃcient proof engine for bounded model checking of hybrid
+systems. Formal Methods in System Design , 30(3):179–198, 2007.
+[25] G. Frehse. PHAVer: Algorithmic veriﬁcation of hybrids ystems past HyTech. International Journal
+on Software Tools for Technology Transfer , 10:263–279, 2008.
+[26] G. Frehse, C. LeGuernic, A.Donz´ e, S.Cotton, R.Ray, O. Lebeltel, R.Ripado, A.Girard, T. Dang,
+and O. Maler. SpaceEx: Scalable veriﬁcation of hybrid syste ms. InProc. of the 23rd International
+Conference on Computer Aided Veriﬁcation , LNCS 6806, pages 379–395. Springer, 2011.
+[27] G. Frehse and R. Ray. Flowpipe-guard intersection for r eachability computations with support
+functions. In Proc. of Analysis and Design of Hybrid Systems , pages 94–101, 2012.
+[28] S. Gao, S. Kong, and E. Clarke. dReal: An SMT solver for no nlinear theories of the reals. In
+149
+
+--- Page 31 ---
+Tool Presentation Althoﬀ
+Proc. of the Conference on Automated Deduction , 2013.
+[29] S. Gao, S. Kong, and E. Clarke. Satisﬁability modulo ODE s. InProc. of Formal Methods in
+Computer-Aided Design , pages 105–112, 2013.
+[30] C. W. Gardiner. Handbook of Stochastic Methods: For Physics, Chemistry and the Natural Sci-
+ences. Springer, 1983.
+[31] A. Girard. Reachability of uncertain linear systems us ing zonotopes. In Hybrid Systems: Compu-
+tation and Control , LNCS 3414, pages 291–305. Springer, 2005.
+[32] A. Girard and C. Le Guernic. Eﬃcient reachability analy sis for linear systems using support
+functions. In Proc. of the 17th IFAC World Congress , pages 8966–8971, 2008.
+[33] A. Girard, C. Le Guernic, and O. Maler. Eﬃcient computat ion of reachable sets of linear time-
+invariant systems with inputs. In Hybrid Systems: Computation and Control , LNCS 3927, pages
+257–271. Springer, 2006.
+[34] E. Gover and N. Krikorian. Determinants and the volumes of parallelotopes and zonotopes. Linear
+Algebra and its Applications , 433(1):28–40, 2010.
+[35] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi. HyTech: A mod el checker for hybrid systems.
+Software Tools for Technology Transfer , 1:110–122, 1997.
+[36] T. A. Henzinger, B. Horowitz, R. Majumdar, and H. Wong-T oi. Beyond HyTech: Hybrid systems
+analysis using interval numerical methods. In Hybrid Systems: Computation and Control , LNCS
+1790, pages 130–144. Springer, 2000.
+[37] J. Hoefkens, M. Berz, and K. Makino. Automatic Diﬀerentiation: From Simulation to Optimiza-
+tion, chapter Eﬃcient High-Order Methods for ODEs and DAEs, page s 343–348. Springer, 2001.
+[38] J. Hoefkens, M. Berz, and K. Makino. Scientiﬁc Computing, Validated Numerics, Interval Meth-
+ods, chapter Veriﬁed High-Order Integration of DAEs and Higher -Order ODEs, pages 281–292.
+Springer, 2001.
+[39] V. Kaibel and M. E. Pfetsch. Algebra, Geometry and Software Systems , chapter Some Algorithmic
+Problems in Polytope Theory, pages 23–47. Springer, 2003.
+[40] S. Kowalewski and H. Treseler. VERDICT - a tool for model -based veriﬁcation of real-time logic
+process controllers. In Proc. of the Joint Workshop on Parallel and Distributed Real -Time Systems ,
+pages 217–221, 1997.
+[41] A. A. Kurzhanskiy and P. Varaiya. The Control Handbook , chapter Computation of Reach Sets
+for Dynamical Systems. CRC Press, 2010.
+[42] G. Laﬀerriere, G. J. Pappas, and S. Yovine. Symbolic rea chability computation for families of
+linear vector ﬁelds. Symbolic Computation , 32:231–253, 2001.
+[43] I. M. Mitchell. The ﬂexible, extensible and eﬃcient too lbox of level set methods. Journal of
+Scientiﬁc Computing , 35(2-3):300–329, 2008.
+[44] I. M. Mitchell, A. M. Bayen, and C. J. Tomlin. A time-depe ndent Hamilton–Jacobi formulation of
+reachable sets for continuous dynamic games. IEEE Transactions on Automatic Control , 50:947–
+957, 2005.
+[45] N. S. Nedialkov. Modeling, Design, and Simulation of Systems with Uncertain ties., volume 3, chap-
+ter Implementing a Rigorous ODE Solver through Literate Pro gramming, pages 3–19. Springer,
+2011.
+[46] A. Platzer. Logical Analysis of Hybrid Systems: Proving Theorems for Co mplex Dynamics .
+Springer, 2010.
+[47] A. Platzer and J.-D. Quesel. KeYmaera: A hybrid theorem prover for hybrid systems. In Proc. of
+the Fourth International Joint Conference on Automated Rea soning, volume 5195 of LNCS, pages
+171–178. Springer, 2008.
+[48] S. Ratschan and Z. She. Safety veriﬁcation of hybrid sys tems by constraint propagation based
+abstraction reﬁnement. ACM Transactions in Embedded Computing Systems , 6(1):1–23, 2007.
+[49] O.StursbergandB.H.Krogh. Eﬃcientrepresentationan dcomputationofreachablesetsforhybrid
+150
+
+--- Page 32 ---
+Tool Presentation Althoﬀ
+systems. In Hybrid Systems: Computation and Control , LNCS2623, pages482–497. Springer, 2003.
+[50] S. Tripakis, S. Yovine, and A. Bouajjani. Checking time d B¨ uchi automata emptiness eﬃciently.
+Formal Methods in System Design , 26(3):267–292, 2005.
+[51] A. van der Schaft and H. Schumacher. An Introduction to Hybrid Dynamical Systems . Springer,
+2000.
+[52] G. M. Ziegler. Lectures on Polytopes . Graduate Texts in Mathematics. Springer, 1995.
+151

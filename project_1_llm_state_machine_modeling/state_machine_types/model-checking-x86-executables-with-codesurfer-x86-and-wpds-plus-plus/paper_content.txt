@@ -1,0 +1,306 @@
+--- Page 1 ---
+ModelChecking x86Executables
+withCodeSurfer/x86 andWPDS++
+G.Balakrishnan
+
+,T.Reps
+ 
+,N.Kidd
+
+,A.Lal
+
+,J.Lim
+
+,
+D.Melski
+
+,R.Gruian
+
+,S.Yong
+
+,C.-H. Chen, andT.Teitelbaum
+
+Comp. Sci.Dept., University ofWisconsin;
+bgogul,reps,kidd,akash,junghee@cs.wisc.edu
+GrammaT ech, Inc.;
+melski,radu,suan,chi-hua,tt @grammatech.com
+Abstract. This paper presents atoolset formodel checking x86executables. Themembers
+ofthetoolset areCodeSurfer/x86 ,WPDS++ ,andthePathInspector .CodeSurfer/x86 is
+used toextract amodel from anexecutable intheform ofaweighted pushdown system .
+WPDS++ isalibrary foranswering generalized reachability queries onweighted pushdo wn
+systems. The PathInspector isasoftw aremodel check erbuiltontopofCodeSurfer and
+WPDS++ thatsupports safety queries about theprogram’ spossible control conﬁgurations.
+1Introduction
+This paper presents atoolset formodel checking x86executables. The toolset builds
+on(i)recent advances instatic analysis ofprogram executables [1],and(ii)newtech-
+niques forsoftw aremodel checking anddataﬂo wanalysis [14,10]. Inourapproach,
+CodeSurfer/x86 isused toextract amodel from anx86executable, andthereachabil-
+ityalgorithms oftheWPDS++ library [9]areused tocheck properties ofthemodel.
+ThePathInspector isasoftw aremodel check erthatautomates thisprocess forsafety
+queries involving theprogram’ spossible control conﬁgurations (butnotthedata state).
+The tools arecapable ofanswering more queries than arecurrently supported bythe
+PathInspector (and involvedata state); weillustrate thisbydescribing twocustom
+analyses thatanalyze anexecutable’ suseoftherun-time stack.
+Ourworkhasthree distinguishing features:
+–The program model isextracted from theexecutable code thatisrunonthema-
+chine. This means thatitautomatically takesintoaccount platform-speciﬁc aspects
+ofthecode, such asmemory-layout details (i.e., offsets ofvariables intherun-time
+stack’ sactivation records andpadding between ﬁelds ofastruct), register usage,
+execution order ,optimizations, andartifacts ofcompiler bugs. Such information
+ishidden from tools thatworkonintermediate representations (IRs) thatarebuilt
+directly from thesource code.
+–Theentire program isanalyzed—including libraries thatarelinkedtotheprogram.
+–TheIR-construction andmodel-e xtraction processes donotassume thattheyhave
+access tosymbol-table ordebugging information.
+Because oftheﬁrsttwoproperties, ourapproach provides a“higher ﬁdelity” toolthan
+most softw aremodel check ersthatanalyze source code. This canbeimportant forcer-
+tainkinds ofanalysis; forinstance, manysecurity exploits depend onplatform-speciﬁc
+features, such asthestructure ofactivation records. Vulnerabilities canescape notice
+when atooldoes nothaveinformation about adjacenc yrelationships among variables.
+Although thepresent toolset istargeted tox86executables, thetechniques used [1,
+14,10]arelanguage-independent andcould beapplied toother types ofexecutables.
+
+--- Page 2 ---
+Theremainder ofthepaper isorganized asfollo ws:2sketches themethods used in
+CodeSurfer/x86 forIRrecovery.3givesanovervie wofthemodel-checking facilities
+thatthetoolset provides.4discusses related work.
+2RecoveringIntermediate Representations fromx86Executables
+TorecoverIRsfrom x86executables, CodeSurfer/x86 makesuseofboth IDAPro [8],
+adisassembly toolkit, andGrammaT ech’sCodeSurfer system [4],atoolkit forbuild-
+ingprogram-analysis andinspection tools. Fig. 1showsthevarious components of
+CodeSurfer/x86.
+
+	
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+ 
+	
+
+! 
+!"!
+#$
+#$
+
+
+% 
+
+
+
+
+	
+
+&
+
+
+
+'
+(
+
+Fig.1.Organization ofCodeSurfer/x86.Anx86executable isﬁrst dis-
+assembled using IDAPro. Inad-
+dition tothedisassembly listing,
+IDAPro alsoprovides access tothe
+follo wing information: (1)proce-
+dure boundaries, (2)calls toli-
+brary functions using analgorithm
+called theFastLibrary Identiﬁ-
+cation and Recognition Technol-
+ogy(FLIR T)[6],and(3)statically
+knownmemory addresses andoff-
+sets. IDAPro provides access toits
+internal resources viaanAPI that allowsusers tocreate plug-ins tobeexecuted by
+IDAPro. Wecreated aplug-in toIDAPro, called theConnector ,thatcreates data struc-
+tures torepresent theinformation thatitobtains from IDAPro. TheIDAPro/Connector
+combination isalso able tocreate thesame data structures fordynamically linkedli-
+braries, andtolinkthem intothedata structures thatrepresent theprogram itself. This
+infrastructure permits whole-program analysis tobecarried out—including analysis of
+thecode foralllibrary functions thatarecalled.
+Using thedata structures intheConnector ,weimplemented astatic-analysis al-
+gorithm calledvalue-set analysis (VSA) [1].VSA does notassume thepresence of
+symbol-table ordebugging information. Hence, asaﬁrststep, asetofdataobjects called
+a-locs (for“abstract locations”) isdetermined based onthestatic memory addresses and
+offsets provided byIDAPro. VSA isacombined numeric andpointer -analysis algorithm
+thatdetermines anover-approximation ofthesetofnumeric values andaddresses (or
+value-set )thateach a-loc holds ateach program point. Akeyfeature ofVSA isthatit
+tracks integer-valued andaddress-v alued quantities simultaneously .This iscrucial for
+analyzing executables because numeric values andaddresses areindistinguishable at
+execution time.
+IDAPro does notidentify thetargets ofallindirect jumps andindirect calls, and
+therefore thecallgraph andcontrol-ﬂo wgraphs that itconstructs arenotcomplete.
+However,theinformation computed during VSA canbeused toaugment thecallgraph
+andcontrol-ﬂo wgraphs on-the-ﬂy toaccount forindirect jumps andindirect calls.
+VSA also checks whether theexecutable conforms toa“standard” compilation
+model—i.e., aruntime stack ismaintained; activation records (ARs) arepushed onto
+thestack onprocedure entry andpopped from thestack onprocedure exit;aprocedure
+does notmodify thereturn address onstack; theprogram’ sinstructions occup yaﬁxed
+2
+
+--- Page 3 ---
+area ofmemory ,arenotself-modifying, andareseparate from theprogram’ sdata. Ifit
+cannot beconﬁrmed thattheexecutable conforms tothemodel, then theIRispossibly
+incorrect. Forexample, thecall-graph canbeincorrect ifaprocedure modiﬁes there-
+turnaddress onthestack. Consequently ,VSA issues anerror report whene veritﬁnds a
+possible violation ofthestandard compilation model; these represent possible memory-
+safety violations. Theanalyst cangooverthese reports anddetermine whether theyare
+falsealarms orrealviolations.
+Once VSA completes, thevalue-sets forthea-locs ateach program point areused to
+determine each point’ ssetsofused, killed, andpossibly-killed a-locs; these areemitted
+inaformat thatissuitable forinput toCodeSurfer .CodeSurfer then builds acollection
+ofIRs, consisting ofabstract-syntax trees, control-ﬂo wgraphs (CFGs), acallgraph,
+andasystem dependence graph (SDG).
+3Model-Checking Facilities
+Formodel checking, theCodeSurfer/x86 IRsareused tobuild aweighted pushdo wn
+system (WPDS) thatmodels possible program beha viors. WPDS++ [9]isalibrary that
+implements thesymbolic reachability algorithms from [14] onweighted pushdown sys-
+tems.Wefollo wthestandard convention ofusing apushdo wnsystem (PDS) tomodel
+theinterprocedural control-ﬂo wgraph (one ofCodeSurfer/x86’ sIRs). Thestack sym-
+bols correspond toprogram locations; there isonly asingle PDS state; andPDS rules
+encode control ﬂowasfollo ws:
+Rule Control ﬂowmodeled 	
+Intraprocedural CFG edge
+	 	Call to  from
+thatreturns to
+!"# 	
+$Return from aprocedure atexitnode
+!
+Givenaconﬁguration ofthePDS, thetopstack symbol corresponds tothecurrent pro-
+gram location, andtherestofthestack holds return-site locations—much likeastandard
+run-time execution stack.
+This encoding oftheinterprocedural CFG asapushdo wnsystem issufﬁcient for
+answering queries about reachable control states (asthePathInspector does; see 3.2):
+thereachability algorithms ofWPDS++ candetermine ifanundesirable PDS conﬁg-
+uration isreachable [2].However,WPDS++ also supportsweighted PDSs. These are
+PDSs inwhich each ruleisweighted with anelement ofa(user -deﬁned) semiring. The
+useofweights allowsWPDS++ toperform interprocedural dataﬂo wanalysis byusing
+thesemiring’ sextend operator tocompute weights forsequences ofruleﬁrings andus-
+ingthesemiring’ scombine operator totakethemeet ofweights generated bydifferent
+paths. (When theweights onrules areconserv ativeabstract data transformers, anover-
+approximation tothesetofreachable concrete conﬁgurations isobtained, which means
+thatcountere xamples reported byWPDS++ may actually beinfeasible.)
+3.1 Stack-Qualiﬁed Dataﬂo wQueries
+The CodeSurfer/x86 IRsarearich source ofopportunities tocheck properties ofin-
+terest using WPDS++. Forinstance, WPDS++ hasbeen used toimplement anillegal-
+stack-manipulation check: foreach node
+inprocedure  ,thischecks whether thenet
+change instack height isthesame along allpaths fromentry
+to
+thathaveperfectly
+matched calls andreturns (i.e., along “same-le velvalidpaths”). Inthisanalysis, aweight
+3
+
+--- Page 4 ---
+isafunction thatrepresents astack-height change. Forinstance,pushecx andsub
+esp,4 both havetheweightheightheight.Extend is(the reversal of)function
+composition; combine performs ameet ofstack-height-change functions. (The analysis
+issimilar tolinear constant propagation [15].) When amemory access performed rel-
+ativeto
+’sactivation record (AR) isout-of-bounds, stack-height-change values canbe
+used toidentify which a-locs could beaccessed inARs ofother procedures.
+VSA isaninterprocedural dataﬂo w-analysis algorithm thatuses the“call-strings”
+approach [16] toobtain adegree ofconte xtsensiti vity.Each dataﬂo wfactistagged
+with acall-stack sufﬁx(orcall-string )toform (call-string, dataﬂo w-fact) pairs; the
+call-string isused attheexitnode ofeach procedure todetermine towhich callsite
+a(call-string, dataﬂo w-fact)pairshould bepropagated. Thecall-strings thatarise ata
+givennode
+provide anopportunity toperform stack-qualiﬁed dataﬂo wqueries [14]
+using WPDS++. CodeSurfer/x86 identiﬁes induction-v ariable relationships byusing
+theafﬁne-relation domain ofM¨uller-Olm andSeidl [12] asaweight domain. Apost
+query builds anautomaton thatisthen used toﬁnd theafﬁnerelations thathold ina
+givencalling conte xt—gi venbycall-string cs—by querying thepost -automaton with
+respect toaregular language constructed fromcsandtheprogram’ scallgraph.
+3.2 The PathInspector
+ThePathInspector provides auser interf aceforautomating safety queries thatareonly
+concerned with thepossible control conﬁgurations thatanexecutable canreach. Ituses
+anautomaton-based approach tomodel checking: thequery isspeciﬁed asaﬁnite au-
+tomaton thatcaptures forbidden sequences ofprogram locations. This “query automa-
+ton” iscombined with theprogram model (aWPDS) using across-product construction,
+andthereachability algorithms ofWPDS++ areused todetermine ifanerror conﬁgu-
+ration isreachable. Ifanerror conﬁguration isreachable, thenwitnesses (see [14]) can
+beused toproduce aprogram path thatdrivesthequery automaton toanerror state.
+The PathInspector includes aGUI forinstantiating manycommon reachability
+queries [5],andfordisplaying countere xample paths inthedisassembly listing.3In
+thecurrent implementation, transitions inthequery automaton aretriggered bypro-
+gram points thattheuser speciﬁes either manually ,orusing result setsfrom CodeSurfer
+queries. Future versions ofthePathInspector willsupport more sophisticated queries in
+which transitions aretriggered bymatching anAST pattern against aprogram location,
+andquery states canbeinstantiated based onpattern bindings. Future versions willalso
+eliminate (man y)infeasible countere xamples byusing transition weights torepresent
+abstract data transformers (similar tothose used forinterprocedural dataﬂo wanalysis).
+4RelatedWork
+Several others haveproposed techniques toobtain information from executables by
+means ofstatic analysis (see [1]forreferences). However,previous techniques deal
+with memory accesses veryconserv atively;e.g., ifaregister isassigned avalue from
+memory ,itisassumed totakeonanyvalue. VSA does amuch better jobthan previous
+3Weassume thatsource code isnotavailable, butthetechniques extend naturally ifitis:one
+cantreat theexecutable code asjustanother IRinthecollection ofIRsobtainable from source
+code. Themapping ofinformation back tothesource code issimilar towhat Csource-code
+tools already havetoperform because oftheuseoftheCpreprocessor .
+4
+
+--- Page 5 ---
+workbecause ittracks theinteger-valued andaddress-v alued quantities thatthepro-
+gram’ sdata objects canhold; inparticular ,VSA tracks thevalues ofdata objectsother
+thanjustthehardwareregisters,andthus isnotforced togiveupallprecision when a
+load from memory isencountered. This isafundamental issue; theabsence ofsuch in-
+formation places severelimitations onwhat previously developed tools canbeapplied
+to.
+Christodorescu andJhaused model-checking techniques todetect malicious code
+variants [3].Givenasample ofmalicious code, theyextract aparameterized state ma-
+chine thatwillaccept variants ofthecode. TheyuseCodeSurfer/x86 toextract amodel
+ofeach procedure oftheprogram, anddetermine potential matches between thepro-
+gram’ scode andfragments ofthemalicious code. Their technique isintraprocedural,
+anddoes notanalyze data state.
+Other groups haveused run-time program monitoring andcheckpointing toperform
+asystematic search ofaprogram’ sdynamic state space [7,11,13].Likeourapproach,
+thisallowsformodel checking properties ofthelow-levelcode that isactually run
+onthemachine. However,because thedynamic state space canbeunbounded, these
+approaches cannot perform anexhausti vesearch. Incontrast, weusestatic analysis to
+perform a(conserv ative)exhausti vesearch ofanabstract state space.
+References
+1.G.Balakrishnan andT.Reps. Analyzing memory accesses inx86executables. InComp.
+Construct. ,Lec. Notes inComp. Sci., pages 5–23. Springer -Verlag, 2004.
+2.H.Chen, D.Dean, andD.Wagner .Model checking onemillion lines ofCcode. InSymp.
+onNetworkandDistributedSystemsSecurity ,2004.
+3.M.Christodorescu andS.Jha. Static analysis ofexecutables todetect malicious patterns. In
+USENIXSecuritySymposium, ,2003.
+4.CodeSurfer ,GrammaT ech, Inc., http://www .grammatech.com/products/codesurfer/.
+5.M.Dwyer ,G.Avrunin, andJ.Corbett. Patterns inproperty speciﬁcations forﬁnite-state
+veriﬁcation. InInt.Conf.onSoftw.Eng.,1999.
+6.Fastlibrary identiﬁcation andrecognition technology ,DataRescue sa/nv,Li`ege, Belgium,
+http://www .datarescue.com/idabase/ﬂirt.htm.
+7.P.Godefroid. Model checking forprogramming languages using VeriSoft. InACM, editor ,
+Princ.ofProg.Lang.,pages 174–186. ACMPress, 1997.
+8.IDAPro disassembler ,http://www .datarescue.com/idabase/.
+9.N.Kidd, T.Reps, D.Melski, andA.Lal. WPDS++: AC++ library forweighted pushdo wn
+systems. Univ.ofWisconsin, 2004.
+10.A.Lal,T.Reps, andG.Balakrishnan. Extended weighted pushdo wnsystems. InComputer
+AidedVerif.,2005.
+11.P.Leven,T.Mehler ,andS.Edelkamp. Directed error detection inC++ with theassembly-
+levelmodel check erStEAM. InSpinWorkshop ,2004.
+12.M.M¨uller-Olm andH.Seidl. Analysis ofmodular arithmetic. InESOP ,2005.
+13.M.Musuv athi, D.Park,A.Chou, D.Engler ,andD.Dill. CMC: Apragmatic approach to
+model checking realcode. InOp.Syst.DesignandImpl. ,2002.
+14.T.Reps, S.Schw oon, S.Jha,andD.Melski. Weighted pushdo wnsystems andtheir applica-
+tiontointerprocedural dataﬂo wanalysis. Sci.ofComp.Prog.,2005. Toappear .
+15.M.Sagiv,T.Reps, andS.Horwitz. Precise interprocedural dataﬂo wanalysis with applica-
+tions toconstant propagation. Theor.Comp.Sci.,167:131–170, 1996.
+16.M.Sharir andA.Pnueli. Twoapproaches tointerprocedural data ﬂowanalysis. InProgram
+FlowAnalysis: TheoryandApplications .Prentice-Hall, Engle woodCliffs,NJ,1981.
+5

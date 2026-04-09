@@ -1,0 +1,612 @@
+--- Page 1 ---
+Expressiveness of streaming string transducers
+Rajeev Alur1and Pavol Černý2
+1 University of Pennsylvania
+2 IST Austria
+Abstract
+Streaming string transducers [1] deﬁne (partial) functions from input strings to output strings.
+A streaming string transducer makes a single pass through the input string and uses a ﬁnite
+set of variables that range over strings from the output alphabet. At every step, the transducer
+processes an input symbol, and updates all the variables in parallel using assignments whose
+right-hand-sides are concatenations of output symbols and variables with the restriction that
+a variable can be used at most once in a right-hand-side expression. It has been shown that
+streaming string transducers operating on strings over inﬁnite data domains are of interest in
+algorithmic veriﬁcation of list-processing programs, as they lead to Pspace decision procedures
+for checking pre/post conditions and for checking semantic equivalence, for a well-deﬁned class of
+heap-manipulating programs. In order to understand the theoretical expressiveness of streaming
+transducers, we focus on streaming transducers processing strings over ﬁnite alphabets, given the
+existence of a robust and well-studied class of “regular” transductions for this case. Such regular
+transductions can be deﬁned either by two-way deterministic ﬁnite-state transducers, or using
+a logical MSO-based characterization. Our main result is that the expressiveness of streaming
+string transducers coincides exactly with this class of regular transductions.
+1 Introduction
+Deterministic ﬁnite-state automata are a canonical model for ﬁnite-state acceptors of strings,
+since many variations turn out to be equally expressive and the resulting class of regular
+languages enjoys a number of desirable theoretical properties. In this paper, we focus on
+transducer models that deﬁne (partial) functions from input strings to output strings. The
+most natural model for a ﬁnite-state transducer is a ﬁnite-state machine that, at each
+step, reads an input symbol and produces zero or more output symbols. If we restrict
+such a machine to read the input string only once from left to right, then the model is
+too restrictive: while “delete all asymbols” can be implemented, “delete all asymbols,
+if the input string contains a bsymbol” cannot be implemented. However, the two-way
+deterministic ﬁnite-state transducers have appealing theoretical properties: the equivalence
+problem is decidable, they are expressively equivalent to MSO (monadic second-order logic)
+deﬁnable transductions, and this class of “regular” transductions is closed under operations
+such as sequential composition [2, 4, 3].
+Recently, weproposedthemodelof streaming string transducers foralgorithmicveriﬁcation
+of single-pass list processing programs [ 1]. A streaming string transducer makes a single pass
+through the input string to produce an output string. It uses a ﬁnite set of variables that
+range over strings from the output alphabet. At every step, the transducer processes an input
+symbol, and updates all the variables in parallel using assignments whose right-hand-sides
+are concatenations of output symbols and variables with the restriction that a variable can
+be used at most once in a right-hand-side expression. For example, with two variables x
+andy, the update (x,y) = (x.y,a )setsxto the concatenation of xandy, and setsyto the
+constanta. While such an update is permitted, the update (x,y) = (x.y,y )is not, since
+yappears twice in the right-hand-sides, and would amount to “copying”. The output in a
+given state is speciﬁed as a concatenation of output symbols and variables with a similar
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+2 Expressiveness of streaming string transducers
+no-copy restriction. Unlike classical tape-based models, the streaming string transducer is
+not constrained to add output symbols only at the end, and can compute the output in
+multiple chunks that can be extended and concatenated as needed.
+Streaming string transducers have been shown to be useful for algorithmic veriﬁcation of
+list processing programs [ 1]. The problems of checking functional equivalence of two streaming
+transducers, and of checking whether a streaming transducer satisﬁes pre/post veriﬁcation
+conditions speciﬁed by streaming acceptors over input/output strings, are decidable with
+Pspace complexity. There is an expressively equivalent class of imperative programs that
+manipulate heap-allocated single-linked list data structure, as well as a corresponding class of
+list-processing functional programs with syntactic restrictions on recursive calls. These results
+lead to algorithms for checking functional equivalence of two programs, written possibly in
+diﬀerent programming styles, for commonly used routines such as insert, delete, and reverse.
+A goal of this paper is to study the expressiveness of streaming string transducers in
+order to gain better theoretical insights into their computing power. The transducers in
+[1] process strings over a potentially inﬁnite data domain that supports the operations of
+equality and ordering. Given that the notion of regular transductions is well-understood in
+the context of strings over ﬁnite alphabets, we restrict our attention to streaming transducers
+that process strings over ﬁnite alphabets. The main result of the paper is that streaming
+string transducers exactly capture regular transductions, and thus, are equivalent to two-way
+transducers as well as MSO-deﬁnable string transductions.
+In order to develop our results, we consider another single-pass transducer model called
+heap-based string transducer that reads the input string from left to right in a single pass,
+and computes the output using a heap of cells each of which can store an output symbol
+and has a next pointer. The next-pointers induce an (unranked) forest structure over cells.
+The transducer accesses the heap using a ﬁnite number of pointer variables, and can change
+next-pointers of cells referenced by these variables. It can also add new cells to the heap.
+The sequence of symbols labeling the cells accessible from a state-dependent output-pointer
+is the output of the transducer. For example, to output the reverseof the input string, the
+heap-based transducer, at each step, reads the next input symbol, and adds a cell containing
+this input symbol to the front of the output list being computed, exactly the same way
+as a C program would reverse a linked-list in a single pass. While proving assertions of
+programs manipulating heaps is typically undecidable [ 6], the key restriction for our model of
+a heap-based transducer is that it can update, but not traverse, the next-pointers of the cells
+referenced by its pointer variables (that is, an assignment of the form next(x) =yis allowed,
+butx=next(y)is not). Heap-based transducers can be viewed as syntactically restricted
+and abstract version of imperative single-pass programs studied in [1].
+We ﬁrst show that given a two-way transducer, one can construct an equivalent one-way
+heap-based transducer. The proof builds on the classical simulation of a two-way acceptor by
+a one-way acceptor [ 7], but needs new insights in order to maintain the potentially needed
+output segments in a shared heap that can be modiﬁed using a bounded number of updates at
+each step. The fact that a streaming string transducer can simulate a heap-based transducer
+is a corollary of a result of [ 1] that shows that single-pass list processing programs can be
+simulated by streaming transducers. Finally, we establish that a streaming string transducer
+can be captured by an MSO-deﬁnable string transformation, thereby establishing equivalence
+of all the transducer models.
+We also show that streaming string transducers are closed under sequential composition.
+This result follows from the MSO characterization, but we give a direct proof using summaries
+ofacomputationofastreamingstringtransducer. Finally, weshowthatextendingheap-based
+
+--- Page 3 ---
+Rajeev Alur and Pavol Černý 3
+transducers by allowing the traversal instruction that updates a pointer to the next-pointer
+of a referenced cell, leads to a strictly more expressive model than the class of regular
+transductions.
+2 Regular String Transductions
+Adeterministic transduction from an input alphabet Σto an output alphabet Γis a partial
+function from Σ∗toΓ∗. We brieﬂy review two equivalent ways of deﬁning deterministic
+transductions using two-way ﬁnite-state transducers and using monadic second-order logic
+(MSO), and some known results (the details can be found in [ 3]). We will use the following
+three transductions throughout the paper. Let Σ = Γ ={a,b}. The transduction f1
+rewrites an input string to the string followed by its reverse: f1(w) =w.rev(w). For the
+transduction f2, if the input string ends with the letter b, thenf2deletes all occurrences
+ofa, otherwise it leaves the input unchanged: if w∈Σ∗bthenf2(w) =bkwherekis the
+number of b’s inw, elsef2(w) =w. The transduction f3replaces each symbol bby as
+manyb’s as there are a’s between this occurrence of band the previous occurrence of b:
+f3(ai1bai2b···aikbaik+1) =ai1bi1ai2bi2···aikbikaik+1.
+Atwo-way deterministic (ﬁnite-state) transducer Mfrom input alphabet Σto output
+alphabet Γconsists of a ﬁnite set of states Q, an initial state q0∈Q, a ﬁnal state qf∈Q,
+and a transition function δfromQ×(Σ∪{/turnstileleft,/turnstileright})toQ×{− 1,0,+1}×Γ∗. The symbols
+/turnstileleftand/turnstilerightare used to mark the two ends of the input. Given an input string w∈Σ∗, the
+transducerMstarts in state q0with the input tape containing the string /turnstileleftw/turnstileright, scanning the
+left-most symbol. At every step, based on the current state qand the current input symbol
+a, the machine updates the state (as speciﬁed by the ﬁrst component of δ(q,a)), moves the
+read-head (as speciﬁed by the second component of δ(q,a), where−1means move left, 0
+means stay put, and +1 means move right), and outputs a sequence of symbols in Γ(as
+speciﬁed by the third component of δ(q,a)). If the current state is the ﬁnal state qf, the
+machine stops, and in this case, the output [ [M] ](w)corresponding to the input string wis
+the concatenation of outputs emitted along the run. If the machine never enters the ﬁnal
+state, or tries to move left while reading /turnstileleft, or tries to move right while reading /turnstileright, then this
+is an error, and [ [M] ](w)is undeﬁned. This partial function [ [M] ]deﬁnes the semantics of the
+machineM, and is a deterministic transduction from ΣtoΓ.
+To illustrate the deﬁnition of a two-way transducer, let us consider how to implement
+the example transductions by two-way transducers. To implement the transduction f1, the
+two-way transducer reads the string in one left-to-right pass followed by one right-to-left
+pass, emitting the symbol read from the input at every step. The two-way transducer for f2,
+ﬁrst moves all the way to the right. If the last symbol is b, then while moving right to left it
+outputsbfor everybsymbol it reads, while ignoring asymbols. If the last symbol is not b, it
+moves all the way to the left, and using a ﬁnal left-to-right pass, it outputs every symbol
+it reads. The transducer for f3starts moving to the right emitting an asymbol for each a
+symbol read. If it encounters the right end-marker, it halts, If it encounters a bsymbol, it
+emits the empty string and starts moving left. For every asymbol it reads, it emits b, and
+keeps moving left. When it encounters a bsymbol or the left end-marker, it starts moving
+right again skipping over the a’s until it encounters a b, emitting the empty string at each
+step. Then the whole cycle repeats.
+For deﬁning transductions using monadic second-order logic, a string w=w1w2...wk
+is viewed as a (string) graph Gwwithk+ 1verticesv0v1...vk, with an edge from each
+vitovi+1labeled with the symbol wi. Then, an MSO formula over an alphabet Σ, to be
+
+--- Page 4 ---
+4 Expressiveness of streaming string transducers
+interpreted over such a graph Gw, consists of Boolean connectives, quantiﬁers, ﬁrst-order
+variables that range over vertices of Gw, monadic second-order variables that range over
+sets of vertices of Gw, and atomic formulas of the form a(x,y), fora∈Σ, meaning that the
+vertexxhas ana-labeled edge to the vertex y. Adeterministic MSO transducer Tfrom
+input alphabet Σto output alphabet Γconsists of a ﬁnite copy set C, vertex formulas ϕc(x),
+for eachc∈C, each of which is an MSO formula over Σwith one free ﬁrst-order variable x,
+and edge formulas ϕc,d
+a(x,y), for eacha∈Γandc,d∈C, each of which is an MSO formula
+over Σwith two free ﬁrst-order variables xandy. Given an input string w, consider the
+following output graph: for each vertex xinGwandc∈C, there is a vertex xcin the output
+if the formula ϕc(x)holds overGw, and for all such vertices xcandyd, there is an a-labeled
+edge fromxctoydif the formula ϕc,d
+a(x,y)holds overGw. If this graph is the string graph
+corresponding to the string uover Γthen [ [T] ](w) =u, and if this graph is not a string graph,
+then [ [T] ](w)is undeﬁned.
+Let us revisit our example transductions. To deﬁne the transduction f1, we choose the
+copy setC={1,2}. The output graph retains both copies of each vertex in input graph,
+except the last one. When a(x,y)holds in the input graph a(x1,y1)anda(y1,x1)holds in
+the output graph (the last vertex needs to be handled specially to connect the two copies).
+For the transduction f2, we need only one copy of each vertex. The formula ϕ1is deﬁned so
+thatϕ1(x)holds precisely when either the position xcorresponds to a b-symbol in the input
+graph, or if the last symbol in the input is b(such “regular” look-ahead is easily deﬁnable
+using MSO formulas). The output graph has an edge from xtoyifϕ1(x)holds,yis the least
+position following xfor whichϕ1(y)holds, and the label is the same as the input symbol
+corresponding to position x. The transduction f3can be deﬁned by a deterministic MSO
+transducer with the copy set C={1,2}, where both output copies of a vertex are retained,
+or omitted, depending on whether the corresponding symbol in the input string is a, orb,
+respectively. The edge formulas are slightly complicated, but can be deﬁned in MSO [3].
+The two frameworks are equally expressive [ 3], and this class of transductions is called
+regular string transductions . The class of regular transductions is closed under sequential
+composition [ 2], and it is decidable to check whether two such transductions, presented by,
+say, two two-way deterministic transducers, are equivalent [ 4]. Observe that for any regular
+transduction, the ratio of the length of the output string to the length of the input string is
+bounded by a constant, namely, the size of the copy set Cof the corresponding deterministic
+MSO transducer.
+3 Streaming Transducer Model
+A(deterministic) streaming string transducer Wfrom input alphabet Σto output alphabet
+Γconsists of a ﬁnite set of states Q, an initial state q0∈Q, a ﬁnite set of variables X, a
+partial output function FfromQto(Γ∪X)∗such that for each q∈Qandx∈X, there is
+at most one occurrence of xinF(q), a state-transition function δ1fromQ×ΣtoQ, and a
+variable-update function δ2fromQ×Σ×Xto(Γ∪X)∗such that for each q∈Qanda∈Σ
+andx∈X, there is at most one occurrence of xin the set of strings {δ2(q,a,y )|y∈X}.
+To deﬁne the semantics of such a transducer, consider conﬁgurations of the form (q,s),
+wheresis a valuation from XtoΓ∗. A valuation from XtoΓ∗is extended to a valuation from
+(X∪Γ)∗toΓ∗in the natural way. The initial conﬁguration is (q0,s0)wheres0maps each
+variable to the empty string. The transition function is deﬁned by δ((q,s),a) = (δ1(q,a),s/prime)
+whereforeachvariable x,s/prime(x) =s(δ2(q,a,x )). Foraninputstring w∈Σ∗, ifδ∗((q0,s0),w) =
+(q,s), then ifF(q)is undeﬁned then so is [ [W] ](w), otherwise [ [W] ](w) =s(F(q)).
+
+--- Page 5 ---
+Rajeev Alur and Pavol Černý 5
+The transduction f1can be implemented by a streaming string transducer Wrevwith
+a single state and two variables xandy. Each symbol ais processed by the update
+(x,y) = (xa,ay ), and the output function is xy.
+The transduction f2can be implemented by a streaming string transducer with two states
+q0andq1, and two variables xandy. Initially the state is q0, and the transducer is in state
+q1precisely when the most recent input symbol is b(it goes to state q1on reading band to
+stateq0on readinga). At every step, xcontains the input string read so far, and ycontains
+onlyb’s encountered so far (the variable-update function on reading ais(x,y) = (xa,y ), and
+on reading bis(x,y) = (xb,yb )). In stateq1the output function returns y, in stateq0the
+output function returns x.
+The transduction f3can be implemented by a streaming string transducer Wcpwith a
+single state and two variables xandy. The symbol ais processed by the update (x,y) =
+(xa,yb ), the symbol bis processed by (x,y) = (xy,ε), and the output function is x.
+The following proposition states that streaming string transducers are closed under
+sequential composition. Note that streaming data string transducers [ 1] are not closed under
+sequential composition.
+IProposition 1. Given a streaming string transducer W1from input alphabet Σ1to output
+alphabet Σ2and a streaming string transducer W2from input alphabet Σ2to output alphabet
+Σ3, one can eﬀectively construct a streaming string transducer Wfrom input alphabet Σ1to
+output alphabet Σ3, such that for all strings winΣ∗
+1, we have that [ [W] ](w) = [ [W2] ]([ [W1] ](w))
+if[ [W1] ](w)and[ [W2] ]([ [W1] ](w))are both deﬁned, and [ [W] ](w)is undeﬁned otherwise.
+Proof.We ﬁrst deﬁne a notion of a summary of a computation for a streaming string
+transducer on an input string w. We then show how the transducer Wcan compute the
+sequential composition by simulating W1and keeping track of summaries of W2corresponding
+to string variables of W1.
+Given a string w, a summary of a ﬁnite state automaton is just a pair of states (q,q/prime),
+indicating that if the automaton starts reading win a stateq, it ﬁnishes in state q/prime. For a
+deterministic streaming string transducer Ufrom ΣtoΓ, a summary for a given start state
+qand a string wincludes not only an end state q/prime, but also a string variable summary , that
+is, a description of how the contents of the string variables get updated while processing w.
+LetXbe the set of string variables of U. A string variable summary is a function κfromX
+to strings in (Γ∪X)∗, with the same restrictions of copyless assignments as in the deﬁnition
+of streaming string transducers. For every valuation sfromXtoΓ∗, if the conﬁguration of
+Uis(q,s), then after processing the input string w, the conﬁguration of Uis(q/prime,s/prime)where
+s/prime(x) =s(κ(x)). Note that the computation of U, and hence the summary, is not inﬂuenced
+by the valuation sof string variables at the start of the computation on w.
+A key observation is that a string variable summary can be represented by a set X/primeof
+2×kstring variables, where kis the number of string variables in X, in addition to ﬁnite
+bookkeeping information which is also independent in size from w. For instance, if Xconsists
+of two variables, the function κcan beκ(x) =αxβyγ,κ (y) =ι, orκ(x) =αyβ,κ (y) =δxι,
+or a similar combination, where α,β,γ,ι are strings over Γ. The summary can be represented
+byX/primecontaining in this case four string variables (that will store α,β,γ,ι), and a bounded
+amount of bookkeeping information to store how κis constructed from XandX/prime.
+We now describe the construction of the streaming string transducer Wthat computes the
+sequential composition of W1andW2. The transducer WsimulatesW1processing the input
+string, and for every string variable xofW1, it maintains a summary of W2. It is easy to see
+how summaries for string variables of W1are maintained: for example, consider the case
+whenW1executes an assignment z=az1z2. First, we construct a string variable summary
+
+--- Page 6 ---
+6 Expressiveness of streaming string transducers
+for computation of W2on processing the letter a. Then we compose this summary with
+summaries for strings stored in string variables z1andz2. We explain how string variable
+summaries are composed on the following example. Let κ1be a string variable summary of
+a computation of W2onz1deﬁned by κ1(x) =xαy,κ 1(y) =β. Letκ2be a string variable
+summary of a computation of W2onz2deﬁned byκ2(x) =/epsilon1,κ 2(y) =xγyι. Note that each
+of the strings α,β,γ,ι can be stored in a string variable. Then the string variable summary
+κafter processing z1z2is deﬁned by κ2(x) =/epsilon1,κ 2(y) =xαyγβι(where the string γβιcan be
+stored in one string variable). This ﬁnishes the construction. The number of string variables
+ofWism1×n2×(2×m2), wherem1is the number of string variables of W1,n2is the
+number of states of W2andm2is the number of string variables of n2. J
+As the following proposition shows, streaming string transducers are closed under con-
+ditional composition, where the condition is given as a regular language over the input
+alphabet. The proof is based on product construction and is similar to the proof of closure
+under conditional composition for streaming data string transducers [1].
+IProposition 2. Given two streaming string transducers W1andW2from input alphabet
+Σto output alphabet Γand a regular language Lover Σ, there exists a streaming stream
+transducer Wsuch that for all strings w∈Σ∗, (i) ifw∈L, then [ [W] ](w) = [ [W1] ](w)if
+[ [W1] ](w)is deﬁned and is undeﬁned otherwise, and (ii) if w/negationslash∈L, then [ [W] ](w) = [ [W2] ](w)if
+[ [W2] ](w)is deﬁned, and is undeﬁned otherwise.
+4 Heap-based Transducer Model
+Aheap-based (ﬁnite-state) deterministic string transducer Hfrom input alphabet Σto output
+alphabet Γconsists of a ﬁnite set of states Q, an initial state q0∈Q, a ﬁnite set of pointers
+X, an output function Ffrom states Qto variables X, and a transition function δfrom
+Q×ΣtoQ×A∗
+X, where the set AXof atomic actions consists of x:=ν(a)andη(x) :=y,
+forx,y∈Xanda∈Γ.
+Given an input string over Σ, the transducer computes the output by maintaining a heap.
+Aheaphconsists of a ﬁnite set Cof cells, a mapping /lscriptfromCtoΓ(/lscript(c)denotes the output
+symbol stored in the cell c), a mapping ηfromCtoC⊥, whereC⊥denotes the set C∪{⊥}
+(η(c)denotes the cell that the next-pointer of the cell cpoints to, with⊥denoting the null
+value), and a mapping µfromXtoC⊥(µ(x)is the cell that the pointer xpoints to). A
+conﬁguration of the transducer Hconsists of a state q∈Qand a heap h. Initially, the state
+isq0and in the initial heap h0,Cis empty and µ(x) =⊥for eachx. The action x:=ν(a)
+creates a new cell labeled by a symbol a∈Γand makes xpoint to the new cell. The action
+η(x) :=ymodiﬁes the next pointer of the cell pointed to by xto make it point to the cell
+pointed to by y, ifxis not nil; if xis nil, the action has no eﬀect. More formally, each action
+inAXupdates the heap as follows: (C,/lscript,η,µ )x:=ν(a)−→ (C/prime,/lscript/prime,η/prime,µ)holds where C/prime=C∪{c},
+withc/negationslash∈C1,/lscript/prime(c) =a,η/prime(c) =⊥and/lscript/primeandµ/primeagree with/lscriptandµ, respectively, on cells in
+C;(C,/lscript,η,µ )η(x):=y−→ (C,/lscript,η/prime,µ)holds where if µ(x) =cthenη/prime(c) =µ(y)andη/primeagrees with
+ηfor cells other than c(ifµ(x) =⊥, the action has no eﬀect). This transition relation can be
+lifted to conﬁgurations: for an input symbol a∈Σ,(q,h)a−→(q/prime,h/prime)ifδ(q,a) = (q/prime,α)and
+hα−→h/prime. For an input string w, if(q0,h0)w−→(q,h)thenhis the output heap corresponding
+tow. In the output heap h= (C,/lscript,η,µ ), ifµ(F(q)) =⊥then [ [H] ](w)is the empty string. If
+1The behavior of the transducer is deterministic as long as the choice of this new cell cis according to
+some deterministic naming policy.
+
+--- Page 7 ---
+Rajeev Alur and Pavol Černý 7
+the sequence of next-pointers starting from the cell µ(F(q))contains a cycle, then [ [H] ](w)is
+undeﬁned. Otherwise, let c0c1...cnbe the unique sequence of cells such that c0=µ(F(q)),
+η(ci) =ci+1fori<n, andη(cn) =⊥. Then [ [H] ](w)is deﬁned to be /lscript(c0)/lscript(c1)···/lscript(cn).
+Such a transducer can implement the transduction f1as follows. After processing an
+input string w, suppose the current heap is a linear sequence of cells storing w.rev(w)such
+that the pointer x0points to the ﬁrst cell, the pointer x1points to the last cell corresponding
+towandx2points to the ﬁrst cell holding rev(w), with an additional auxiliary pointer x3.
+When the transducer reads the next input symbol, say a, it adds two new a-labeled cells in
+the middle of the current output, by executing the sequence x3:=ν(a);η(x1) :=x3;x1:=
+ν(a);η(x3) :=x1;η(x1) :=x2. In the updated heap, x3andx1point to the two middle cells,
+andx2can be used as an auxiliary pointer. The result is given by the output pointer x0.
+To implement f2, the heap-based transducer maintains two lists with pointers to the
+two ends of both the lists. An input symbol ais added to the end of only the ﬁrst list by
+creating one new a-labeled cell, while an input symbol bis added to the end of both the
+lists by creating two new b-labeled cells. The transducer needs two states, and the state
+remembers whether the last symbol is bor not, and the state is used to return the pointer
+that points to the head of the appropriately chosen list.
+To implement f3, the heap-based transducer again maintains two lists with pointers to
+the two ends of both the lists. The output pointer points to the head of the ﬁrst list. To
+process the input symbol a, it adds aa-labeled cell at the end of the ﬁrst list, and a b-labeled
+cell at the end of the second list. To process the input symbol b, the ﬁrst list is updated to
+the concatenation of the two (which can be implemented by changing the next-pointer of the
+last cell of the ﬁrst list point to the ﬁrst cell of the second list) and the second list is set to
+empty.
+The two types of pointer manipulating instructions (node creation and next-pointer
+modiﬁcation) are expressively adequate for our purpose. The class of programs in [ 1] allows
+a more general set of instructions for manipulating pointer variables (such as testing whether
+two pointers point to the same cell, testing whether a pointer is null, checking and updating
+the symbol stored at a cell pointed to by a pointer, assigning one pointer to another). From
+the results of this paper and the compilation of such programs into streaming transducers
+described in [ 1], it follows that such extensions do not add to expressiveness. The key missing
+instruction is the traversal assignment x:=ν(y). Consider the transduction merge: given
+an inputu1u2...um#v1v2...vm, outputu1v1u2v2...umvm. Adding traversal assignments
+would allow the heap-based transducer to deﬁne the mergetransduction by using two traversal
+pointers, one traversing the upart of the input and the other traversing the vpart of the input.
+The next proposition establishes that this transduction cannot be captured by a streaming
+string transducer. As we show later in this paper that heap-based string transducers and
+streaming string transducers exactly deﬁne regular transductions, the proposition implies
+that adding the traversal assignment strictly increases the expressiveness of heap-based string
+transducers.
+IProposition 3. The transduction mergeis not deﬁnable by a streaming stream transducers.
+Proof.Let us consider a streaming string transducer Wwithnstates andkstring variables
+and let us assume that Wdeﬁnesmerge. We derive a contradiction as follows. Consider the
+set of inputs Imwheremis the length of the sequence u=u1u2...um(resp.v=v1v2...vm),
+and whereuiis in{a,b}for allisuch that 1≤i≤m, andvjis in{c,d}, for alljsuch that
+1≤j≤m.
+Intuitively, the proof is simple: if x1,...,xkare values of string variables after reading
+the ﬁrst part of the input, u#, then these will appear (each at most once) as substrings
+
+--- Page 8 ---
+8 Expressiveness of streaming string transducers
+in the ﬁnal output. Assuming that x1,...,xkcontain only a’s andb’s after processing u#,
+and that while processing the second part of the input, v,Wadds onlyc’s andd’s to the
+string variables, it is clear that the ﬁnal output can contain at most a bounded number of
+alternations of letters in {a,b}with letters in{c,d}. The transducer Wtherefore does not
+implement merge. We now formalize this argument.
+Let us consider the set of inputs Imas above, with msuch that 2m>n∗k∗2r, wherer
+is such that 2r>k. A stringwis calledshortif|w|≤r. Let us call a short-conﬁguration of
+Wthe pair (q,ρ)whereqis a state of Wandρis a valuation of string variables, where each
+variable is assigned either a short string or a ∗. A short-conﬁguration is an abstraction of a
+conﬁguration of W, where a variable xkeeps its original value if its value is a short string,
+otherwise it is abstracted by ∗. If we prove the following claim, we have that Wdoes not
+deﬁnemerge, and we obtain the desired contradiction.
+Claim:There exist two diﬀerent strings w1orw2fromImsuch that (i) either the output
+on bothw1andw2is the same, (ii) or the output on one of the strings w1andw2is incorrect.
+To prove the claim, consider two diﬀerent strings u1andu2in{a,b}msuch that that W
+is in the same short conﬁguration after processing u1andu2. Such strings exist, as 2mis
+more than the number of short conﬁgurations (n×k×2r). We now construct a string v
+in{c,d}msuch that the claim holds for u1#vandu2#v. Let us look at non-short strings
+thatWstores after processing u1oru2. If these are to be used in the output, they have to
+havecordon every other position. These strings thus contain guesses for the vpart of the
+whole input string. As the length of these strings is greater than r,Wcannot have stored all
+the possible guesses for v(as it haskstring variables, and 2r>k). We consider vthat does
+not contain any sequence contained in a non-short string stored by W. Thus foru1#vand
+u2#vwe have that if Wuses in the output a string variable with a non-short string stored
+after processing u1(oru2), then the output is incorrect. If it does not use any such string
+variable, the output will be the same in both cases (as Wis deterministic). J
+5 Expressiveness
+5.1 From Two-way Transducers to Heap-based Transducers
+ITheorem 1. For every two-way deterministic transducer Mwithnstates, there exists a
+deterministic heap-based transducer HwithO(nn)states andO(n)pointer variables such
+that[ [M] ] = [ [H] ].
+Proof:The proof is an extension of Shepherdson’s proof [ 7] for standard two-way ﬁnite
+automata to the case of transducers. We start by describing the main ideas of the proof.
+The heap-based transducer has only a single (left-to-right) pass on the input string. It thus
+needs to precompute information on possible back-and-forth traversals. More precisely, at
+each position pofwand for each state uofM, the information needed by His captured by
+a pair (qu,wu)such that
+ifMreads the symbol at position pin stateu, the ﬁrst time Mreaches the position p+ 1,
+it will be at state qu, having produced output wualong this stretch. We show how such
+pair can be updated, even in the presence of left moves. Let us suppose that the symbol at
+positionpis the symbol aand that in state u,Mmoves left to state vand outputs string α.
+Furthermore, let us assume that for state v, a pair (qv,wv)was stored in the previous step;
+and that in state qvthe machine Mmoves right on atoqu, outputting β. Then for state u,
+we need to store the pair (qu,αwvβ). The situation is depicted in Figure 1.
+We need to add a few important details to this intuitive explanation. First, Hcan store
+stringswu(possible partial outputs of M) only on the heap. In order to store a string wu, it
+
+--- Page 9 ---
+Rajeev Alur and Pavol Černý 9
+will store two pointers, xb
+uandxe
+u. The two pointers will point to the ﬁrst and last position
+of the string. Second, Hcannot copy arbitrarily long strings, but it can instead use the fact
+that suﬃxes of strings represented on the heap can be shared. Third, in order to model the
+ﬁrst forward traversal of M, we add a state mto the set of states of M. For each position p
+the pair (qm,wm)represents the situation that the ﬁrst time Mreachesp+ 1, it will be in
+stateqmand the output will be wm. Fourth, it is possible that Mnever reaches the position
+p+ 1, either because it reached a ﬁnal state and stopped, or because an error occurred, for
+example if Mtried to move left on /turnstileleft. If, for example, after a left move from a state uat
+positionp,Mreaches the ﬁnal state qf(and outputs w) before arriving at p+1,Hrepresents
+this by the pair (qf,w). On the other hand, if an error occurred, then Hrepresents this
+by a pair (qerr,/epsilon1), whereqerris a special state. Fifth, note that H(as opposed to M) does
+not see the symbols /turnstileleft,/turnstileright. This can be remedied by Hhaving two copies of possible outputs
+ofMas described above, with the additional copy assuming that the next character is /turnstileright
+and simulating Mon this symbol. The ﬁnal output is the string starting at x, withxbeing
+the pointer variable representing the ﬁrst forward traversal of Min the second copy of the
+possible outputs of M.
+We now present the construction in more details. The heap-
+a
+pp−1 p+1
+uvα
+βwv
+qvqu
+Figure 1 Representing
+the computation of Mbased transducer Hthat we construct uses pointer-assignment
+instructionsoftheform x=y, wherexandyarepointervariables.
+Such a heap-based transducer can be easily converted to a heap-
+based transducer H/primewhich does not use such instructions. The
+state ofH/primerecords, in addition to the state of H, for every pair
+of pointers whether they are equal, and for every class such equal
+pointers, which pointer accesses the heap content. Then, to
+simulate the pointer assignment instruction x=yinH,H/primedoes
+not update x, but simply records that xandyare equal, and
+the pointer ypoints to the desired content. The construction does not change the number of
+pointers, but blows up the number of states by a factor of the number of possible partitions
+of the pointers. Since Hhas pointer assignment instructions, it suﬃces for Hto have a single
+pointer variable xoto be the output pointer in every state. The output function of H/primemaps
+a state to the pointer that is equal to xoand accesses the actual content.
+LetMbe deﬁned by the tuple (Σ,Γ,QM,qM
+0,δM). The heap-based transducer His
+deﬁned by the tuple (Σ,Γ,QH,qH
+0,X,xb2
+m,δH). LetQHbe the set of functions from QM∪{m}
+toQM∪{m,q err}. Initial state is one which represents the identity function. The set of
+pointers contains four pointers xb
+u,xe
+u,xb2
+u,xe2
+ufor each state uinQM∪{m}. (The pointers
+xb2
+u,xe2
+upoint to the beginning and end of the second copy of wu.)
+We explain the deﬁnition of the transition function δHusing an example. Let us consider
+a stategofHsuch thatg(v) =qvand a transition δM(u,a) = (v,−1,α)inδM. Let us
+suppose that δM(qv,a) = (qu,+1,β). ThenδH(g,a) = (f,A∗), for some state fsuch that
+f(u) =qu. Recall that Hstores the string wvthatMproduced while moving from vto
+qvon the heap, between pointers xb
+vandxe
+v. We have that while moving from utoqu,M
+producesαwvβ. The sequence of actions A∗putsαon the heap, make xb
+upoint to the ﬁrst
+node ofα, and connects the last node of αto the node pointed to by xb
+v. Similarly, βis
+appended at xe
+v. So far, we have assumed that Mmoves right from qvon the symbol a. If it
+moves left, we can again use the the information that Hstores in the ﬁnite-state control and
+on the heap to ﬁnd the state in which it will return to the current position and the string it
+will output in the process. Note that the process may repeat several times, and potentially
+even cycle. However, Hhas all the necessary information stored locally. If it discovers a
+
+--- Page 10 ---
+10 Expressiveness of streaming string transducers
+cycle (this happens for example if qv=u), then the value of f(u)will beqerr.
+We describe how copying arbitrarily long strings on the heap is avoided by exploiting
+the fact that Mis deterministic and the fact that suﬃxes of strings on the heap can be
+shared. Let us suppose that there are two states uandtofMsuch thatMmoves left on a
+symbolatovfrom bothuandt. Let us also suppose that at the previous step, Hstored
+the information that from v, the ﬁrst time Hwill move to the right it will be in state qvand
+producewvin between. Using the idea described above, we obtain that we need to store the
+pair(qu,αuwvβu)for the state u, and the pair (qt,αtwvβt)for the state t. As the string wv
+cannot be copied, it must be shared. As the heap is singly-linked, this would not be possible
+ifβuwas diﬀerent from βt. However, since Mis deterministic, we have that the execution
+fromvwill be identical in both cases — we have that βu=βt(andqu=qt).
+5.2 From Heap-based Transducers to Streaming Transducers
+ITheorem 2. For every deterministic heap-based string transducer Hwithnstates andm
+pointer variables, there exists a deterministic streaming transducer WwithO(n2m)states
+andO(n)string variables such that [ [H] ] = [ [W] ].
+Proof:The heap-based transducer and the streaming transducer both traverse the string
+only once. The diﬀerence between the two models is that one uses the heap, which allows
+sharing of suﬃxes of represented strings, whereas the other uses string variables, and thus
+sharing is not possible. The proof is the same as the compilation from imperative single-pass
+list-processing programs into streaming transducers described in [1], we describe it here for
+the sake of completeness.
+Theheartoftheproofisthereforetoshowthatthestreaming
+z yx
+tv0v1 v2 v3
+v4 v5 v6
+Figure 2 Singly-linked
+heaptransducer can represent the heap of the heap-based transducer
+using a bounded number of string variables. In order to achieve
+this, we adapt the approach (and terminology) of [ 5] for repre-
+senting a singly-linked heap. A node vis called an interruption
+if it is either pointed to by a program variable or there are at
+least two distinct nodes with edges to v. Anuninterrupted list
+segment is a ﬁnite sequence of nodes where: (i) the ﬁrst node
+is an interruption, (ii) the next pointer of each node (except the last) points to the next
+node in the sequence, (iii) the last node is either an interruption or the value of its next
+pointer is nil, and (iv) no other node is an interruption. Consider the heap in Figure 2. The
+nodesv0,v1,v4,v5,v6are interruptions. The sequence of nodes v1v2v3is an uninterrupted
+list segment. It can be easily seen that for a heap-based transducer with kpointer variables,
+there can be at most 2k−1interruptions and 2k−1uninterrupted list segments. The heap
+can be compressed by replacing uninterrupted list segments by strings (to be stored in string
+variables of W).
+The number of compressed heaps is exponential in the number of interruptions, and thus
+exponential in the number of pointer variables of H. The heap can therefore be stored by
+the streaming automaton Was follows: each uninterrupted list segment will be represented
+by a string variable. The shape of the heap (a forest) and the information on where the
+pointer variables of Hpoint will be represented in the ﬁnite-state control of W. The number
+of states of Wwill be therefore linear in the number of states of Hand exponential in the
+number of pointer variables of H.
+It remains to show that the semantics of each instruction of the heap-based transducer
+can be modeled eﬀectively on the representation described above. Let us consider the heap
+
+--- Page 11 ---
+Rajeev Alur and Pavol Černý 11
+in Figure 2 and the action η(y) :=x. The shape of the heap changes in two ways: ﬁrst, the
+node pointed to by ypoints to the node pointed to by x(this information is kept in the
+ﬁnite-state control of W); second, there will be an uninterrupted list segment starting at
+the node pointed to by xcontaining the list segment v0v1v2v3. The (labels of nodes in) this
+list segment will be stored in a string variable. The string variable that in the previous step
+represented the list segment v1v2v3can be freed (and reused).
+5.3 From Streaming Transducers to MSO
+ITheorem 3. For every deterministic streaming string transducer Wthere exists a deter-
+ministic MSO transducer Tsuch that [ [W] ] = [ [T] ].
+Proof.The proof is based on the idea that the computation of the streaming string transducer
+Wcan be represented in the copy set (from the deﬁnition of the MSO transducer). The
+unique sequence of states of Wover a given input string wcan be captured in MSO using
+second order existential quantiﬁcation. Given a state of Wand a letter in Σ, the function δ2
+is a function from the string variables to sequences in (Γ∪X)∗. This function is what is
+represented using the copy set. The last step then consists of “reading out” the ﬁnal output
+string from this representation.
+We explain the encoding on an example. Let us consider the
+b ba
+ba ba b b
+⊳
+Figure 3 Representing
+the computation of Wtransduction f1and the streaming transducer Wrevdeﬁned in
+Section 3. The top of Figure 3 contains the input string abb.
+Recall that Wrevhas only one state. The columns below each
+letter of the input string represent the assignments to the string
+variables: the top three nodes in a column represent the right-
+hand side (RHS) of the assignment x:=xa(resp.x:=xb), the
+bottom three nodes represent the RHS of the assignment y:=ay
+(resp.y:=by). The representation of an RHS with two symbols
+has three nodes. A symbol in Γis represented by a marked edge,
+a variablezis represented by two nodes. The ﬁrst of these nodes
+links to the previous column to where the representation of z
+begins. The second of these two nodes will be linked to from
+the last node representing zfrom the previous column. Such
+“linking” edges are represented by dashed ( ε) lines in Figure 3.
+In the ﬁrst column, we connect the two nodes representing a variable in a right-hand side by
+a dashed (ε) line, as the string variables are initially empty. The last column is not used
+(and not pictured in Figure 3). In the column before last (the column that correspond to
+the last character of the input string), we also represent the eﬀect of the output function
+F(q0) =xy. We mark the ﬁrst edge of xby a special symbol /triangleleftto indicate where the output
+starts, and we connect the last symbol of xto the ﬁrst symbol of y.
+Note that the graph representing the computation of Wrevis not a string graph (there are
+disconnected nodes in the last column, not pictured), and it contains εedges. We thus need
+to use an MSO transducer that deletes unused nodes (nodes unreachable from the marked
+node) and removes εedges. Such a transducer is easily deﬁned. We can then use the result
+that MSO transducers are closed under sequential composition [2] to conclude.
+Details of the concrete MSO formulas are straightforward. We only note that the copy set
+ofTneeds to represent the right-hand side of any possible assignment to a string variable of
+W, therefore (the upper bound on) the size of the copy set is n∗d, wherenis the number of
+pointer variables of Wanddis the maximal length of the string δ(q,a,x ), over allq(states
+
+--- Page 12 ---
+12 Expressiveness of streaming string transducers
+ofW),a∈Σandx(string variables of W).
+6 Conclusions
+The model of streaming string transducers is of potential interest for algorithmic veriﬁcation
+of list-processing programs due to decidability of equivalence problem and correspondence
+to restricted classes of imperative heap-manipulating programs [ 1]. In this paper, we have
+established that its expressiveness coincides with the classical model of two-way transducers.
+This suggests robustness of their computing power. It also justiﬁes the choice of primitive
+instructions in the corresponding class of heap-based transducers, which model single-pass
+programs that transform the input list using updates to a “traversal-free” heap consisting of
+singly-linked cells. A number of theoretical directions are worth pursuing. These include
+minimization of streaming string transducers, learning such transducers from input-output
+examples, synthesis of streaming transducers, extension to nondeterministic transducers, and
+extension to streaming transducers for tree-structured data.
+References
+1R. Alur and P. Černý. Streaming transducers for algorithmic veriﬁcation of single-pass list
+processing programs. In Proceedings of the 38th Annual ACM Symposium on Principles of
+Programming Languages , 2011.
+2M. Chytil and V. Jákl. Serial composition of 2-way ﬁnite-state transducers and simple
+programs on strings. In Automata, Languages and Programming: Proceedings of Fourth
+International Colloquium, ICALP’77 , LNCS 52, pages 135–147. Springer, 1977.
+3J. Engelfriet and H. Hoogeboom. MSO deﬁnable string transductions and two-way ﬁnite-
+state transducers. ACM Trans. Comput. Log. , 2(2):216–254, 2001.
+4E. Gurari. The equivalence problem for deterministic two-way sequential transducers is
+decidable. SIAM J. Comput. , 11(3):448–452, 1982.
+5R. Manevich, E. Yahav, G. Ramalingam, and S. Sagiv. Predicate abstraction and canonical
+abstraction for singly-linked lists. In Veriﬁcation, Model Checking, and Abstract Interpre-
+tation, 6th International Conference , LNCS 3385, pages 181–198. Springer, 2005.
+6G. Ramalingam. The undecidability of aliasing. ACM Trans. Program. Lang. Syst. ,
+16(5):1467–1471, 1994.
+7J. Shepherdson. The reduction of two-way automata to one-way automata. IBM Journal
+of Research and Development , 3:198–200, 1959.

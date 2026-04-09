@@ -1,0 +1,259 @@
+--- Page 1 ---
+Execution and Veriﬁcation of UML State
+Machines with Erlang⋆(Tool Paper)
+Ricardo J. Rodr´ ıguez, Lars- ˚Ake Fredlund, ´Angel Herranz and Julio Mari˜ no
+Universidad Polit´ ecnica de Madrid, Spain
+{rjrodriguez, lfredlund, aherranz, jmarino }@ﬁ.upm.es
+Abstract. Validation of a system design enables to discover speciﬁca-
+tion errors before it is implemented (or tested), thus hopef ully reducing
+the development cost and time. The Uniﬁed Modelling Languag e (UML)
+is becoming widely accepted for the early speciﬁcation and a nalysis of
+requirements for safety-critical systems, although a bett er balance be-
+tween UML’s undisputed ﬂexibility, and a precise unambiguo us seman-
+tics, is needed. In this paper we introduce UMerL, a tool that is capable
+of executing and formally verifying UML diagrams (namely, U ML state
+machine, class and object diagrams) by means of a translatio n of its be-
+havioural information into Erlang. The use of the tool is ill ustrated with
+an example in embedded software design.
+1 Introduction
+A better integration with the development process is crucial for th e success
+of UML as a language for the speciﬁcation and design of safety-crit ical soft-
+ware. This requires tools capable of validating complex requirements , and link-
+ing them to operational code through an unambiguous semantics. W ith these
+goals in mind we have developed UMerL, a tool that executes and ver iﬁes UML
+designs consisting of UML2 state-machine ,classandobjectdiagrams, using
+the concurrent language Erlang [1]. UMerL is available (with source co de) at
+https://bitbucket.org/fredlund1/umerl .
+UMerL diﬀers from other analysis tools [2–4] in that an executable pr oto-
+type is ﬁrst produced, and then the validation of the UML model is do ne by
+performing various analyses on that prototype. Using Erlang has b een crucial
+for implementing this approach. First, Erlang’s concurrency featu res simpliﬁed
+the task of coding the state machine interpreter, which has to run several state
+machineswith little runtime overhead.Also, the availabilityofadvance danalysis
+tools for Erlang like Quviq QuickCheck [5] or the McErlang model check er [6]
+facilitates model validation without having to introduce a new set of t ools.
+Outline. Sec. 2 describes UMerL. Sec. 3 relates the application of UMerL to
+a real industrial case in embedded software design. We focus on th e execution of
+⋆The research has received funding from the ARTEMIS JU: grant agreement 295373
+(nSafeCer), from the Spanish MINECO: STRONGSOFT (TIN2012- 39391-C04-02),
+and from the Comunidad Aut´ onomade Madrid: PROMETIDOS (P20 09/TIC-1465).
+
+--- Page 2 ---
+2 R. J. Rodr´ ıguez et al.
+state-machine diagrams in Erlang and the veriﬁcation of behavioura l properties
+by program analysis on the Erlang code. Finally, Sec. 4 concludes the paper.
+2 The UMerL tool
+UMerL is an interpreter of UML state machines implemented in Erlang t hat ex-
+ecutes a system modelled as a collection of UML state machines with ac ceptable
+performance. Its design also allows us to verify using model checkin g techniques
+whether a UML system meets some correctness properties. UMer L executes the
+UML state machines inside an object following a UML-friendly semantic s: the
+meaning assigned to the constructs is consistent with respect to t he UML (in-
+formal) semantics. An excerpt of the supported semantics and its interpretation
+by UMerL is described in Sec. 2.1.
+System Description. In UMerL, a system description consists of a UML class
+diagram, a set of UML state-machine diagrams each one associated to a class
+and a UML object diagram. Each object has a private data store de ﬁned by the
+properties indicated in the class diagram. Several UML state-mach ine instances
+are running in each object, one for each UML state-machine assoc iated to its
+class. To describe the system a domain speciﬁc language embedded in Erlang
+is used. The environment of the system can communicate with an obj ect (and
+its associated state machines) by simply sending normal Erlang mess ages to the
+Erlang process associated with the object.
+Veriﬁcation Workﬂow. Figure1depictstheveriﬁcationworkﬂowofUMerL.A
+veriﬁcation scenario consists of a system description and an enviro nment model.
+The environment model sends messagesand signalsto the objects . We use Quviq
+QuickCheck [5] to randomly generate sequences of sensible messag es. UMerL
+provides two functionalities: the system can be executed (with use r interaction),
+providing early feedback regarding behaviour; or the veriﬁcation s cenario can
+be (model) checked against a set of correctness properties spec iﬁed in Linear
+Temporal Logic(LTL) [7]. Propertiesaredeﬁned by the userusing t he McErlang
+tool [6], which provides a counterexample (in terms of message trac es) when an
+LTL property is not satisﬁed by the system.
+Fig.1.Veriﬁcation workﬂow of UMerL.
+
+--- Page 3 ---
+Execution and Veriﬁcation of UML-SMs with Erlang 3
+Architecture. UMerL maps each object to a single Erlang process: a generic
+interpreter that executes transitions of the UML state machines in that object,
+i.e., an individual UML state machine is not mapped to an Erlangprocess .Every
+step of the generic interpreter consists in choosing, non-determ inistically, one of
+the enabled transitions and executing it (see Section 2.1).
+A message sent to an object is received by its associated process, and is
+broadcast to every UML state machine running in the object. Conc eptually,
+each state machine has its own mailbox for storing incoming messages until they
+are processed. Mailboxes are ordered in our implementation, i.e., if a m essage
+m1arrives before a message m2, thenm1will precede m2in the mailbox.
+2.1 Semantics
+Transition execution. AtransitionofaUMLstatemachinecanbe executedwhen
+it is enabled: the mailbox contains a message that matches the trigge r and the
+guard (a condition expressed over the contents of the message a nd the object
+data store) evaluates to true. The execution of a transition cons ists of three
+steps: (1) processing the ﬁrst eligible message in the mailbox, (2) ex ecuting the
+activity that updates the private data store and sends messages to other objects,
+and (3) entering the target state. The execution of a transition a ppears to occur
+instantaneously since the execution of transitions follows a lineariza ble (atomic)
+semantics (atomicity does not necessarily mean mutually exclusive).
+Do activities. Adoactivity is managed by an independent Erlang process,
+which is terminated when the execution of a transition leads outside t he state.
+Entry and exit activities. The semantics of an entryis implemented by
+adding it to the activity of every transition entering the state; an exitis imple-
+mented by adding it to the activity of every transition leaving the sta te.
+Processing of messages. The most interesting aspect in our implementation is
+the processing of messages during the execution of a transition, a nd the deferral
+of messages. A message in the mailbox is eligible when it matches the trig ger of
+a transition, and the correspondingguard evaluates to true. Our implementation
+choosestheoldesteligiblemessageprovidingthe additionalguarant ee(compared
+to the standardsemantics forUML state machines) that message sfrom the same
+object are treated sequentially.
+Deferral of messages. According to the UML semantics, when a message
+arrivesin a state, there is no transition with amatching triggerorgu ard,and the
+deferralconditiondoesnotmention the trigger,the messagesho uldbe discarded.
+This semantics still leaves room for interpretation in the implementat ion. As
+UMerL provides an ordering guarantee for messages (see above) , it is possible
+to talk about the arrival order of messages. It is for instance clea r that all non-
+deferrable messages that arrived before a message which causes a transition to
+be taken, are to be discarded. The doubt is which deferral annota tion (the one
+at the source state, or the one at the target state) should aﬀec t the messages
+that arrived later than the message which caused the transition.
+Aneagersemantics would discardall the messagesnot deferred by the sour ce
+state while a lazysemantics would discard all the messages not deferred by the
+
+--- Page 4 ---
+4 R. J. Rodr´ ıguez et al.
+target state. The implications are crucial. For instance, in a two ste p commu-
+nication protocol where one machine sends two messages m1andm2in two
+consecutive transitions, and the other machine receives both mes sages, message
+m2could be discarded if the second machine does not defer it in the initial state
+(m1andm2could both be received when the machine is in that state).
+In our experience a designer of a distributed asynchronous syste m regularly
+makes mistakes causing messages to be silently discarded. We have d ecided to
+implement several semantic options to permit a designer to experime nt with
+diﬀerent interpretations of the discarding rule: (i) enable as the de fault that all
+messagesaredeferrableinstateswhichhasnoexplicitdeferralco ndition.Theuse
+of such an option is, we argue, preferable when modelling distributed systems
+using state machines as it leads to fewer errors committed and less s yntactic
+clutter (avoiding the need to repeat defer annotations in all state s); and (ii) the
+choice of an eager or lazy deferral semantics, the default being laz y.
+3 Safety Assessment of an Embedded Software Design
+As case study, we consider a system for managing door operations in a train,
+provided by an industrial partner in a collaborative project. The sy stem is com-
+posed of three major parts represented by UML classes: a Train C ontrol Man-
+agement System (TCMS), a traction system, and several doors. The traction
+system moves the train, or stops it. The doors allow passengers to enter or exit
+the coaches. Finally, the TCMS is an embedded device in charge of sup ervising
+both the traction system and the doors, to ensure safe operatio n.
+Figure 2(a) and (b) show the UML-State Machine diagrams (UML-SM s) of
+theDoorandTCMSclasses,respectively.A Doorobject startsclosedanddisabled,
+and can be opened once it has been enabled (which is performed by th e TCMS
+after receiving a enableDoors message), if a passenger presses the door button
+(triggering the sending of buttonPressed message to a door). Once a door is
+again disabled, it can be closed when no obstacle is detected. The TCMSstarts
+in state Idle, which represents a state where the train is stopped. A message
+enableDoors will be eventually sent (by the train driver) and received by the
+TCMS. Then, the TCMS sends to each Dooranenablemessage, and waits
+for an acknowledgement message ( notify). The TCMS reports that all doors
+have been enabled by switching an informative LED oﬀ, and waits until the
+messagedisableDoors is received. After receiving it, the TCMSsends adisable
+message to each Door, and it waits a safety time interval of 5 seconds, before
+enabling the Traction , and moving to the MovingTrain state. This safety time
+is designed to permit to verify that all doors have been correctly clo sed. The
+transition from MovingTrain toStoppingTrain is triggered by the stopTrain
+message, and the TCMS acts by sending the disable message to Traction .The
+signaltrainStopped is receivedonce the train hasbeen completely stopped, and
+so TCMS moves to the Idlestate again.
+Safety Assessment. A correctnesspropertythat must be assuredin the system is
+thatNo door should be open when the train is moving . This is a safety property,
+
+--- Page 5 ---
+Execution and Veriﬁcation of UML-SMs with Erlang 5
+entry / t.notify(self, CLOSED) entry / t.notify(self, ENABLED)
+entry / t.notify(self, OPENED)entry / t.notify(self, CLOSING)entry / t.notify(self, OPENING)
+do / openDoor()
+exit / changeStatus(OPENED)do / closeDoor()
+exit / changeStatus(CLOSED)Enabled
+OpenedClosingClosedAndDisabled
+Opening
+Wait4OpeningWait4Closing
+disable / changeStatus(CLOSING)buttonPressed / changeStatus(OPENING)enable / changeStatus(ENABLED)
+obsDetected / obsSensor.ack();
+                       obsSensor.disable()limitReached / closeSensor.ack();
+/ closeSensor.activate();
+limitReached / openSensor.ack();/ openSensor.enable()disable
+                        closeSensor.disable(); obsSensor.disable()
+  obsSensor.activate()
+openSensor.disable()
+(a) UML-SM of Doorclass
+do / setTimeout(5000)entry / doors[i].enable(); i++
+entry / doors[i].disable(); i++Idle
+DoorsEnabledEnableDoor
+DoorsDisabled DisableDoor DisablingDoorsEnablingDoors
+StoppingTrain
+MovingTraintrainStopped
+TOUT_expired / tr.enable()
+[i == doors.length]disableDoors / i := 0enableDoors / i := 0
+[i < doors.length][i == doors.length] / db.switchOff()[i < doors.length]
+notify(d, ds) / processNotification(d, ds)notify(d, ds) / processNotification(d, ds)
+notify(d, ds) / i := 0stopTrain / tr.disable()
+(b) UML-SM of TCMSclass
+Fig.2.UML-State Machine diagrams of (a) Doorand (b)TCMSclasses.
+i.e., stating that something bad never happens . Note that the state predicate “a
+door is open” is true when the value of attribute statusin aDoorobject is
+equal toOPENED. The predicate “the train is moving” is true when the value of
+attribute speed(in theTraction class, not shown here) is greater than zero. As
+a veriﬁcation example, given an environment model in which an enableDoors
+message is ﬁrst received by TCMS, and then a buttonPressed message is sent
+to a door, the McErlang model checker can verify that the two pre dicates above
+are never true in the same system state.
+The abovepropertycanalsobe reformulatedas all doors must be closed when
+the train is moving ,i.e.,thestatusattributeofadoormustbe CLOSED.Giventhat
+thestatusattribute of a door can be either OPEN,CLOSED,ENABLED,OPENING
+orCLOSING, this is a more restrictive (and safe) formulation. If we use the sam e
+environment model, except that we assume that a disableDoors message also
+arrives at the TCMS, the McErlang tool quickly ﬁnds a counterexam ple to the
+
+--- Page 6 ---
+6 R. J. Rodr´ ıguez et al.
+second property. The counterexample indicates that the failure is that a door
+may not have had suﬃcient time to process earlier messages sent to it.
+In brief, we haveveriﬁed the abovesafety propertyfor a coachw ith twodoors
+in0.35secondsusingMcErlang(runningunderanInteli7-2640MCPU with8GB
+memory), with a resulting state space of 1,133 states, under the a ssumption that
+all messages are deferrable. The model of a coach with three (and four doors)
+has 7,323 (53,743 states), and its checking time is 1.74 seconds (14.8 8).
+4 Conclusion
+The experimental results obtained with our tool are quite promising . Although
+the tool works with only three kinds of UML diagrams and a quite rest rictive
+syntaxforstate-machinediagrams(whichhasbeencrucialforde ﬁningtheunder-
+lying semantics), the language is expressive enough to model embed ded systems
+of a moderate complexity, e.g., the train doors example used here.
+Several other tools exist which perform model checking on UML sta te ma-
+chines. USMMC [2] is remarkable for being self-contained , it does not rely on a
+foreign formalism and checker, thus avoiding some inconveniences o f translation-
+based tools like HUGO [4] or UMerL. However, UMerL does have a numb er
+of advantages too. First, an executable prototype, construct ed from the UML
+model, provides early validation that can revealmistakes even befo re attempting
+a detailed veriﬁcation. Moreover, UMerL users can take advantag e of existing
+analysis and testing tools for Erlang such as McErlang and QuickChec k.
+To improve the usability of the tool a translation from the XMI notat ion is
+being implemented, and veriﬁcation counterexamples will be present ed as UML
+Sequence Diagrams. We also aim at specifying LTL properties at the U ML level
+usingaUML-friendlysyntax,suchasObjectConstraintLanguage (OCL).More-
+over,weaimatsupportinghierarchicalstructuresandpseudo-s tatesamongother
+UML features missing from the current prototype.
+References
+1. Armstrong, J., Virding, R., Wikstr¨ om, C., Williams, M.: Concurrent Programming
+in Erlang. Prentice-Hall (1996)
+2. Liu, S., Liu, Y., Sun, J., Zheng, M., Wadhwa, B., Dong, J.S. : USMMC: A Self-
+contained Model Checker for UML State Machines. In: Proc. of the 2013 Meeting
+on Foundations of Software Engineering, NewYork, NY, USA,A CM (2013) 623–626
+3. Lilius, J., Paltor, I.P.: Formalising UML State Machines for Model Checking. In:
+The Uniﬁed Modeling Language. Volume 1723 of LNCS. Springer (1999) 430–444
+4. Balser, M., B¨ aumler, S., Knapp, A., Reif, W., Thums, A.: I nteractive veriﬁcation of
+UML state machines. In: Formal Methods and Software Enginee ring. Volume 3308
+of LNCS. Springer (2004) 434–448
+5. Arts, T., Hughes, J., Johansson, J., Wiger, U.: Testing Te lecoms Software with
+Quviq QuickCheck. In: ACM SIGPLAN Int. Erlang Workshop, ACM (2006)
+6. Fredlund,L. ˚A.,Svensson,H.: McErlang: amodelcheckerfor adistribute dfunctional
+programming language. In: 12th ACM SIGPLAN ICFP, ACM (2007)
+7. Pnueli, A.: The Temporal Logic of Programs. In: FOCS. (197 7) 46–57

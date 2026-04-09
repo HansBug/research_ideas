@@ -1,0 +1,1745 @@
+--- Page 1 ---
+Theoretical Computer Science 403 (2008) 382–405
+Contents lists available at ScienceDirect
+Theoretical Computer Science
+journal homepage: www.elsevier.com/locate/tcs
+Verification of well-formed communicating recursive state machines$,$$
+Laura Bozzellia,∗, Salvatore La Torreb, Adriano Peronc
+aUniversità dell’Insubria, Via Valleggio 11, 22100 - Como, Italy
+bUniversità degli Studi di Salerno, Via Ponte Don Melillo - 84084 Fisciano, Italy
+cUniversità di Napoli ‘‘Federico II’’, Via Cintia, 80126 - Napoli, Italy
+a r t i c l e i n f o
+Article history:
+Received 23 November 2006
+Received in revised form 20 February 2008
+Accepted 10 June 2008
+Communicated by J. Esparza
+Keywords:
+Infinite-state systems
+Pushdown systems
+Formal models of concurrency and
+recursion
+Model checking
+Linear-time logics
+Context-free specifications
+Tree automataa b s t r a c t
+In this paper we introduce a new (non-Turing equivalent) formal model of recursive
+concurrent programs called well-formed communicating recursive state machines ( CRSM ).
+CRSM extend recursive state machines ( RSM ) by allowing a restricted form of concurrency:
+a state of a module can be refined into a finite collection of modules (working in parallel) in
+a potentially recursive manner. Communication is only possible between the activations of
+modules invoked on the same fork. We study the model-checking problem of CRSM with
+respect to specifications expressed in a temporal logic that extends CaRet with a parallel
+operator ( ConCaRet ). We propose a decision algorithm that runs in time exponential in
+both the size of the formula and the maximum number of modules that can be invoked
+simultaneously. This matches the known lower bound for deciding CaRet model checking
+ofRSM, and therefore, we prove that model checking CRSM with respect to ConCaRet
+specifications is Exptime -complete.
+©2008 Elsevier B.V. All rights reserved.
+1. Introduction
+Analysis of recursive concurrent programs .Computer programs often involve the concurrent execution of multiple
+threads interacting with each other. Each thread can require recursive procedure calls and thus make use of a local stack.
+In general, combining recursion and task synchronization leads to Turing-equivalent models; thus, simple verification
+problems such as reachability analysis are undecidable [ 32]. Therefore, there have been essentially two approaches in the
+literature that address the problem of analyzing recursive concurrent programs: (i) abstraction (approximate) techniques on
+‘unrestricted models’ and (ii) precise techniques for ‘weaker models’ (with decidable reachability), obtained by imposing a
+restriction on the amount of parallelism and synchronization. Concerning the first approach, meaningful results are given in
+[8,10], where it is shown how to compute overapproximations of the set of reachable states, and in [ 31], where a non-trivial
+technique to compute underapproximations by bounding the number of context-switches in the analysis of concurrent
+systems is introduced. Context-bounded analysis of concurrent systems is also dealt with in [ 26], where the computations
+of systems communicating via FIFO queues are checked up to a bounded number of process switches, and in [ 25], where the
+computations of multistack pushdown systems are considered up to a bounded number of phases (in each phase, only one
+stack can be popped).
+In the second approach, many non-Turing-equivalent formalisms, suitable to model the control flow of recursive
+concurrent programs, have been proposed. One of the most powerful formalisms is represented by Process Rewrite Systems
+$A preliminary version of this paper appears in the Proceedings of the 7th International Conference on Verification, Model Checking, and Abstract
+Interpretation, VMCAI’06, Lecture Notes of Computer Science, vol. 3855, Springer Verlag, 2006, pp. 412–426.
+$$This research was partially supported by the MIUR grant ex-60% 2003–2004 Università degli Studi di Salerno.∗Corresponding author. Tel.: +39 081 662316; fax: +39 081 7145110.
+E-mail addresses: laura.bozzelli@dma.unina.it (L. Bozzelli), latorre@dia.unisa.it (S. La Torre), peron@na.infn.it (A. Peron).
+0304-3975/$ – see front matter ©2008 Elsevier B.V. All rights reserved.
+doi:10.1016/j.tcs.2008.06.012
+
+--- Page 2 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 383
+(PRS, for short) [ 27,28], based on term rewriting which combines prefix and multiset rewrite rules, and subsumes many
+common infinite-states models such as Pushdown Processes, Petri Nets, and processes of Process Algebra (PA processes)
+[5].PRScan be adopted as a formal model for programs with dynamic creation and (a restricted form of) synchronization
+of concurrent processes, and with recursive procedures (possibly with return values). A state or term in a PRSdescribes the
+activation hierarchy of threads (or processes in the terminology of PRS) together with their local call stacks. The number of
+active threads is unbounded and the communication is allowed only between threads that do not have ongoing procedure
+calls and belong to the same local context , where a local context represents a collection of threads sharing the same call stack.
+PRScan accommodate both parallel-call commands and a restricted form of spawn commands for the dynamic creation
+of threads: in a parallel-call command, the caller thread suspends its activation waiting for the termination of all called
+processes, while in a spawn command, the caller thread can pursue its execution concurrently to the new activated threads
+(inPRSthe new activated threads and the caller thread in a spawn command belong to the same local context). Due to the
+presence of spawn commands, the number of threads forming a local context is unbounded. However, there is a price to pay
+for this expressive power: for the general framework of PRS, the only decidability results known in the literature concern the
+reachability problem between two given terms and the reachable property problem [ 27,28]. Model checking against standard
+propositional temporal logics is undecidable also for small fragments. Moreover, note that the best known upper bound for
+reachability of Petri nets (which represent a subclass of PRS) requires non-primitive recursive space [ 16].
+In [9], symbolic reachability analysis of PRSis investigated (i.e., the constructibility problem of the potentially infinite
+set of terms that are reachable from a given possibly infinite set of terms). The algorithm given there can be applied
+only to a strict subclass of PRS, i.e. the synchronization-free PRS (the so-called PAD systems) which subsume Pushdown
+processes, synchronization-free Petri nets, and PA processes. In [ 17,18], symbolic reachability analysis of PA processes is used
+to allow the interprocedural data-flow analysis of programs represented by systems of parallel flow graphs (parallel FGS, for
+short), which extend classical recursive sequential flow graphs by parallel-call commands. More recently, in [ 11], Dynamic
+Pushdown Networks ( DPN) are proposed for flow analysis of multithreaded programs without synchronization. Intuitively,
+aDPN is a network of pushdown processes that run independently in parallel. Each process can create new members of the
+network (spawn commands) as a side effect of a pushdown transition. An extension of this model that captures the modeling
+power of PAD is also considered, and it is shown that backward reachability preserves regularity (in particular, the set of
+configurations that can reach a given regular set of configurations can be computed in exponential time).
+Well-formed communicating recursive state machines .We consider a new abstract model of concurrent programs with
+finite-domain variables and recursive procedures, the well-formed communicating recursive state machines (CRSM ). ACRSM is
+an ordered collection of finite-state machines (called modules ), where a state can represent a call, in a potentially recursive
+manner, to a finite collection of modules running in parallel. A parallel call to other modules models the activation of multiple
+threads in a concurrent program ( fork). When a fork happens, the execution of the current module is stopped and the control
+moves into the modules activated by the fork. On termination of such modules, the control returns to the calling module
+and its execution is resumed ( join).CRSM allow the communication only between module instances (threads) that belong to
+the same local context (i.e., threads that are activated on the same fork) and do not have ongoing procedure calls. We allow
+multiple entries and exits for each module, which can be used to handle finite-domain local variables and return values from
+procedure calls (see [ 1]).
+The restriction on the form of communication in CRSM is similar to that of PRS, in the sense that synchronization is allowed
+only between threads belonging to the same local context. However, unlike PRS,CRSM cannot model spawn commands. As
+a consequence while the number of active threads is unbounded, the number of threads forming a local context is instead
+bounded by a fixed constant. Intuitively, CRSM correspond to the subclass of PRSobtained by disallowing rewrite rules which
+model spawn commands, i.e. rewrite rules whose right-hand sides are of the form t1/bardblt2, where t1and t2are terms and /bardbl
+denotes parallel composition (see [ 28] for syntax and semantics of PRS).
+CRSM extend parallel FGSsince they also allow (a restricted form of) synchronization and return values from (parallel)
+procedure calls. With respect to DPN [11],CRSM allow synchronization. Moreover, CRSM extend both the recursive
+state machines ( RSM) [1] by allowing parallelism and the well-structured communicating (finite-state) hierarchical state
+machines [ 4] by allowing recursion.
+CRSM are strictly more expressive than RSM. In fact, RSM correspond to pushdown systems [ 1,2]. Moreover, it is easy to
+prove that synchronization-free CRSM correspond to a complete normal form of Ground Tree Rewriting systems (GTR) [12], and
+thus the related class of languages is located in the Chomsky hierarchy strictly between the context-free and the context-
+sensitive languages [ 24]. Establishing whether unrestricted CRSM are strictly more expressive than GTR (w.r.t. standard
+notions of equivalence such as bisimulation) is open. We recall that many problems for GTR are decidable, among them
+reachability [ 12,13], fair termination [ 34], and confluence [ 14]. In particular, forward reachability of GTRpreserves regularity
+and the set of terms which are reachable from a given term can be computed in polynomial time. In [ 15] it is shown that
+the first-order theory of ground tree rewriting systems is decidable. More recently, Löding in [ 24] proved the decidability
+of the existential recurrence problem (i.e., the problem whether there exists an infinite path from the initial term that visits
+infinitely often a given regular set of terms) and consequently gave a symbolic model-checking algorithm for a fragment of
+CTL. The universal recurrence problem is instead undecidable. As a consequence checking state-based fairness properties of
+GTR is undecidable too. To the best of our knowledge the model-checking problem of GTR against standard propositional
+linear-time temporal logics has not been investigated so far.
+
+--- Page 3 ---
+384 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+The advantage of considering CRSM instead of formalisms based on term rewriting like GTR and PRSis that CRSM are
+more appropriate for state-based visual modeling. In particular, CRSM can be viewed as a variant of visual notations for
+hierarchical state machines, such as Statecharts [ 21] and UML [ 6], where both recursion and a restricted form of concurrency
+are allowed. Furthermore, CRSM provide an explicit representation of modularity, thus making easier the formalization of
+concepts related to the local behavior of threads in recursive concurrent programs.
+Our contribution .In this paper, we address the model-checking problem of CRSM against propositional linear-time
+specifications. As for PRS, the model-checking problem of CRSM against standard propositional LTL, in which the semantics
+of the next operator is given in terms of the global successor along a computation, is undecidable. The undecidability mostly
+resides in the ability of LTLto enforce unrestricted synchronization among the parallel threads of a computation. In fact, we
+prove that undecidability already holds for synchronization-free CRSM and for the fragment of standard LTLusing only the
+temporal operators next and infinitely often (which is strictly less expressive than the one with next and eventually ).
+Due to these negative results, we define a new temporal logic which allow us to express LTL-like properties with respect to
+the local computations of threads and to their local call stacks, and synchronization only among different threads of the same
+local context. We call such logic ConCaRet .ConCaRet is essentially a version for concurrent recursive programs (extended
+with a parallel operator) of the logic CaRet [3], which has been recently introduced to specify correctness requirements of
+recursive sequential programs. Recall that CaRet extends standard LTLallowing the specification of non-regular context-free
+properties that are useful to express correctness of procedures with respect to pre- and post-conditions. Model checking of
+RSM against CaRet specifications is known to be Exptime -complete [ 3].
+The semantics of ConCaRet is given with respect to (infinite) computations of CRSM . In our model, threads can fork, thus
+a global state (i.e., the stack content and the current local state of each active thread) is represented as a ranked tree. Hence,
+a computation corresponds to a sequence of these ranked trees. As in CaRet , we consider three different notions of local
+successor, for any local state along a computation, and the corresponding counterparts of the usual temporal operators
+ofLTLlogic: the abstract successor captures the local computation within a module removing computation fragments
+corresponding to nested calls within the module; the caller denotes the local state (if any) corresponding to the ‘‘innermost
+call" that has activated the current local state; a (local) linear successor of a local state is the usual notion of successor within
+the corresponding thread. In case the current local state corresponds to a fork, its linear successors give the starting local
+states of the activated threads. With respect to the paths generated by the linear successors, we allow the standard LTL
+modalities coupled with existential and universal quantification. In ConCaRet we also allow a parallel operator that can
+express properties about communicating modules such as ‘‘every time a resource pis available for a process I, then it will
+be eventually available for all the processes running in parallel with I’’ (in formulas, /square(p→ /bardbl♦ap)). Note that the linear
+successor corresponds to the global successor when interpreted on computations of RSM. Thus, for RSM, the logic ConCaRet
+corresponds exactly to CaRet .
+Even if ConCaRet has no temporal modalities for the global successor, we prove that the modalities associated with the
+linear successor allow us to capture a meaningful fragment of LTL, which subsumes the fragment with only the infinitely
+often temporal operator. Within this fragment important classes of (global) propositional regular properties like invariants,
+as well as strong and weak fairness constraints, can be expressed. Note that by the undecidability result about model
+checking of CRSM against the fragment of global LTLusing only the temporal operators next and infinitely often, it follows
+that any non-trivial global- LTLextension of ConCaRet including the global next operator leads to undecidability of CRSM
+model checking.
+We show that model checking CRSM against ConCaRet is decidable. Our approach is based on automata-theoretic
+techniques: given a CRSMSand a formula ϕ, we construct a Büchi CRSM S¬ϕ(i.e., a CRSM equipped with generalized Büchi
+acceptance conditions) such that model checking Sagainstϕis reduced to check the emptiness of the Büchi CRSMS¬ϕ.
+We solve this last problem by a non-trivial reduction to the emptiness problem for a straightforward variant of classical
+Büchi Tree Automata. Our construction of S¬ϕextends the construction given in [ 3] for an RSM and a CaRet formula. Overall,
+our model-checking algorithm runs in time exponential in both the maximal number ρof modules that can be invoked
+simultaneously and the size of the formula, and thus matches the known lower bound for deciding CaRet model checking.
+Therefore, we prove that the model-checking problem of CRSM with respect to ConCaRet specifications is Exptime -complete.
+The main difference with respect to RSM is the time complexity in the size of the model that for RSM is polynomial, while
+forCRSM , it is exponential in ρ.
+Related work .Besides the already mentioned research, other interesting work which is related to our results concerns
+the analysis of Interacting Pushdown Systems (Interacting PDS, for short) synchronizing via the standard primitives – locks,
+nested locks, pairwise rendezvous, and broadcasts – with respect to fragments of propositional LTL[22,23]. In particular,
+in [22], it is shown that model checking Interacting PDS by nested locks against single-index propositional LTLformulas
+which do not use next modalities is decidable in time singly-exponential in the number of locks. Like ConCaRet , single-
+index LTLformulas refer to the local computations of the threads ( PDS) composing the system. More recently, [ 22], the
+authors delineate precisely the decidability boundary for model-checking dual- PDS (i.e., systems consisting of two PDS),
+interacting via the standard synchronization primitives, against standard propositional global LTL . For example, for dual- PDS
+interacting via pairwise rendezvous, the model-checking problem against the fragment of LTLformulas in positive normal
+form containing only occurrences of the next and always modalities is decidable. On the other hand, for the fragment of
+LTLusing only the infinitely often modality (which is crucial for specifying liveness requirements), the problem is instead
+
+--- Page 4 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 385
+Fig. 1. A sample CRSM .
+undecidable. Note that the communication by pairwise rendezvous is similar to the form of communication between threads
+inCRSM . However, CRSM and Interacting PDS are uncomparable since interacting PDS do not allow dynamic creation of
+threads and the synchronization in CRSM is only allowed between threads belonging to the same local context (in particular,
+the communicating threads share the same call stack).
+Plan of the paper .In Section 2, we introduce the framework of CRSM . In Section 3, we recall LTLand define LTLmodel
+checking over CRSM . Then, we show that checking CRSM against LTLformulas using only the temporal operators next and
+infinitely often is already undecidable. In Section 4, we introduce the logic ConCaRet and in Section 5, we prove that model
+checking CRSM against ConCaRet is decidable in Exptime . Finally, we give a few conclusions. Some technical proofs are
+reported in the Appendix A.
+2. Well-formed communicating recursive state machines
+In this section we define the syntax and semantics of well-formed Communicating Recursive State Machines (CRSM , for
+short).
+Syntax. ACRSM is an ordered collection of finite-state machines ( FSM) augmented with the ability of refining a state with
+a collection of FSM (working in parallel) in a potentially recursive manner.
+Definition 1. ACRSMSover a set of propositions APis a tuple /angbracketleft(S1,..., Sk),start/angbracketright, where for 1 ≤i≤k,Si=
+/angbracketleftΣi,Σs
+i,Ni,Bi,Yi,Eni,Exi,δi,ηi/angbracketrightis amodule and start⊆/uniontextk
+i=1Niis a set of start nodes . Each module Siis defined as follows:
+•Σiis a finite alphabet and Σs
+i⊆Σiis the set of synchronization symbols ;
+•Niis a finite set of nodes and Biis a finite set of boxes(with Ni∩Bi= ∅);
+•Yi:Bi→ {1,..., k}+is the refinement function which associates with every box a finite sequence of module indexes;
+•Eni⊆Ni(resp., Exi⊆Ni)is a set of entry nodes(resp., exit nodes);
+•δi:(Ni∪Retns i)×Σi→2Ni∪Calls iis the transition function , where Calls iis the set {(b,e1,..., em)|b∈Bi,ej∈Enhj
+for each 1≤j≤m,and Y i(b)=h1...hm}which denotes the set of calls ofSi, and Retns i= {(b,x1,..., xm)|b∈Bi,
+xj∈Exhjfor each 1≤j≤m,and Y i(b)=h1...hm}denotes the set of returns ofSi; we assume without loss of generality
+that exits have no outgoing transitions and Eni∩Exi= ∅;
+•ηi:Vi→2APis the labeling function , with Vi=Ni∪Calls i∪Retns i(Viis the set of vertices).
+We assume that (Vi∪Bi)∩(Vj∪Bj)= ∅ fori/negationslash=j. Also, we letΣ=/uniontexti=k
+i=1Σi,Σs=/uniontexti=k
+i=1Σs
+i,V=/uniontexti=k
+i=1Vi,Calls=/uniontexti=k
+i=1Calls i,
+Retns =/uniontexti=k
+i=1Retns i,N=/uniontexti=k
+i=1Ni,B=/uniontexti=k
+i=1Bi,En=/uniontexti=k
+i=1Eni, and Ex=/uniontexti=k
+i=1Exi. Functionsη:V→ 2AP,
+Y:B→ {1,..., k}+, andδ:(N∪Retns)×Σ→2N∪Callsare defined as the natural extensions of functions ηi,Yiand
+δi(with 1 ≤i≤k). The set of states of a module is partitioned into a set of nodes and a set of boxes. Performing a transition
+to a box bcan be interpreted as a (parallel) procedure call ( fork) which simultaneously activates a collection of modules (the
+list of modules given by the refinement function Yapplied to b). Since Ygives a list of module indexes, a fork can activate
+different instances of the same module. Note that a transition leading to a box specifies the entry node (initial state) of
+each activated module. All the module instances, which are simultaneously activated in a call, run in parallel, whereas the
+calling module instance suspends its activity waiting for the return of the (parallel) procedure call. The return of a parallel
+procedure call to a box bis represented by a transition from bthat specifies an exit node (exiting state) for each module
+copy activated by the procedural call (a synchronous return or joinfrom all the activated modules).
+InFig.1, we show a simple CRSM consisting of two modules S1and S2. Module S1has two entry nodes u1and u2, an exit
+node u4, an internal node u3and one box b1that is mapped to the parallel composition of two copies of S2. The module S2
+has an entry node w1, an exit node w2, and two boxes b2and b3both mapped to S1. The transition from node u1to box b1in
+S1is aforktransition from u1(source) to the entry nodes of the two copies of S2(targets). Similarly, the transition from box
+b1to node u4is ajointransition from the exit nodes of the two copies of S2(sources) to u4(target).
+In our model, the communication is allowed only between module instances that are activated on the same fork and are
+not busy in a (parallel) procedure call. As for the communicating (finite-state) hierarchical state machines [ 4], the form of
+communication we allow is synchronous and maximal in the sense that if a component (module) takes a transition labeled
+by a synchronization symbol σ, then each other parallel component which has σin its synchronization alphabet must be
+
+--- Page 5 ---
+386 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+able to take a transition labeled by σ. For instance, assuming that the symbols σ1andσ2inFig.1are synchronization symbols,
+the two copies of S2which refine box b1either both take the transition labeled by σ1activating a copy of S1with start node
+u1or both take the transition labeled by σ2activating a copy of S1with start node u2. Transitions labeled by symbols in
+Σ\Σsare instead performed independently without any synchronization requirement.
+Asynchronization-free CRSM is aCRSM in whichΣs= ∅.
+The rank ofS,rank(S), is the maximum of {|Y(b)| |b∈B}. Note that if rank(S)=1, then Sis aRecursive State Machine
+(RSM) as defined in [ 1].
+Semantics. In order to define the semantics of CRSM we need some notation. A tree t is a prefix closed subset of N∗
+such that if y·i∈t, then y·j∈tfor all 0 ≤j<i. The empty word εis the root oft. The set of leaves oftis
+leaves(t)= {y∈t|y·0/∈t}. For y∈t, the set of children ofy(int) ischildren(t,y)= {y·i∈t}and the set of
+siblings ofy(int) issiblings(t,y)= {y} ∪ { y/prime·i∈t|y=y/prime·jfor some j∈N}. For y,y/prime∈N∗, we write y≺y/primeto mean that y
+is a proper prefix of y/prime.
+The semantics of a CRSMSis defined in terms of a labeled transition system KS= /angbracketleftQ,R/angbracketright.Qis the set of (global) states
+which correspond to activation hierarchies of instances of modules, and are represented by finite trees whose locations are
+labeled with vertices and boxes of the CRSM . Leaves correspond to active modules and a path in the tree leading to a leaf y
+(excluding y) corresponds to the local call stack of the module instance associated with y.
+Formally, a state is a pair (t,D), where tis a (finite) tree and D:t→B∪Vsatisfies the following:
+•ify∈leaves(t), then D(y)∈V(i.e. a vertex of S);
+•ify∈t\leaves(t)and children(t,y)= {y·0,..., y·m}, then D(y)=b∈B,Y(b)=h0...hm, and D(y·j)∈Bhj∪Vhjfor
+j=0,..., m.
+The global transition relation R ⊆Q×(2N∗×2N∗)×Qis a set of tuples of the form /angbracketleft(t,D),(/lscript,/lscript/prime),(t/prime,D/prime)/angbracketright, also written
+as(t,D)(/lscript,/lscript/prime)− →(t/prime,D/prime), where(t,D)(resp.,(t/prime,D/prime)) is the source (resp., target) of the transition, /lscriptkeeps track of the elements
+oftcorresponding to the (instances of) modules of Sperforming the transition, and:
+•for an internal move /lscript/prime=/lscript,
+•for a call,/lscript/primepoints to the modules activated by the (parallel) procedure call, and
+•for a return from a call ,/lscript/primepoints to the reactivated caller module.
+Formally, /angbracketleft(t,D),(/lscript,/lscript/prime),(t/prime,D/prime)/angbracketright ∈Riff one of the following holds:
+Single internal move: t=t/prime, there is y∈leaves(t)andσ∈Σ\Σssuch that/lscript=/lscript/prime= {y},D/prime(y)∈δ(D(y),σ) , and
+D/prime(z)=D(z)for each z∈t\ {y}.
+Synchronous internal move: t/prime=t, there are y∈twith siblings(t,y)= { y1,..., ym},σ∈Σs, and indexes
+k1,..., kp∈ {1,..., m}such that the following holds: /lscript=/lscript/prime= {yk1,..., ykp} ⊆ leaves(t),D/prime(z)=D(z)for
+each z∈t\ {yk1,..., ykp},D/prime(ykj)∈δ(D(ykj),σ) for each 1 ≤j≤p, and for each j∈ {1,..., m} \ { k1,..., kp},σ
+isnota synchronization symbol of the module associated with D(yj).
+Module call: there is y∈leaves(t)such that D(y)=(b,e0,..., em)∈Call,t/prime=t∪ {y·0,..., y·m},/lscript= { y},
+/lscript/prime= {y·0,..., y·m},D/prime(z)=D(z)for each z∈t\ {y},D/prime(y)=b, and D/prime(y·j)=ejfor each 0 ≤j≤m.
+Return from a call: there is y∈t\leaves(t)such that/lscript=children(t,y)= {y·0,..., y·m} ⊆ leaves(t),/lscript/prime= {y},
+(D(y),D(y·0),..., D(y·m))∈Retns ,t/prime=t\ {y·0,..., y·m},D/prime(z)=D(z)for each z∈t/prime\ {y}, and
+D/prime(y)=(D(y),D(y·0),..., D(y·m)).
+Forv∈V, we denote with /angbracketleftv/angbracketrightthe global state ({ε},D)where D(ε)=v.
+ArunofSis an infinite path in KSstarting from a state of the form /angbracketleftv/angbracketright.
+InFig.2, we illustrate a prefix of a sample run of the CRSM given in Fig.1, where the synchronization symbols σ1and
+σ2used in component S2are equal. Moreover, assume that S1does not use synchronization symbols, i.e. Σs
+1= ∅ . Then,
+for instance, the transition from 0 to 1 and the transition from 6 to 7 are single internal moves, while the transition 2–3 is
+a synchronous internal move. Module calls are illustrated by the transitions 1–2, 3–4, and 5–6. Finally, the transition 8–9
+corresponds to a return from a call.
+We conclude this section by describing a small example, which shows as the flow of control of a standard algorithm
+for visiting a blank and white image encoded by a quadtree can be naturally modeled by exploiting the ability of CRSM of
+combining parallel calls and recursion.
+In a quadtree, the image is statically split into four sub-images corresponding to the four quadrants Top-Right, Top-
+Left, Bottom-Left and Bottom-Right. Each quadrant that is not a uniform (totally black or white) area of the image, is in
+its turn split into four quadrants. The structure of the image representation therefore allows a natural decomposition of a
+computational task into subtasks and to exploit a parallel computational environment (grid computing, for instance).
+The CRSM of the example consists of only one module which calls recursively and in parallel instances of itself. The
+module is depicted in Fig.3. A module starts its activity in an entry node which keeps track of the quadrant where the
+module is supposed to work (i.e., the entry nodes TR,TL,BLand BR). The module checks whether the assigned region is
+uniformly black ( Check B), uniformly white ( Check W), or it is not uniform ( Check G). In the first two cases, the activity of the
+
+--- Page 6 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 387
+Fig. 2. A sample run of the CRSM ofFig.1.
+Fig. 3. The CRSM for the Quadtree inspection.
+module terminates, leading to the exit nodes Band W, respectively. If instead the region is not uniform, then an instance of
+the module is recursively called in parallel for each of the four quadrants of the region. With reference to the figure, such a
+parallel call corresponds with entering the box, which is refined in four copies of the module itself, each of which initialized
+with a different entry node (i.e., a different quadrant). The module has a third exit node G, which is taken when the region
+is not uniformly black or white.
+As previously said, the CRSM describes the control flow of the recursive and parallel call of modules and abstracts away
+from the details of the data inspection (the result of the uniformity check over quadrants is represented by symbols Check B,
+Check W, and Check G). Notice that each module instance assigned to a different quadrant acts independently (with respect to
+the module instances associated with the other quadrants), and so the set of synchronization symbols is the empty set.
+The return from a recursive parallel call composes the values reported by the modules activated on the four quadrants.
+The reached exit node is assumed to be the node G, when either the exit node of each module in the parallel call is Gor the
+modules return a different value. For the sake of the presentation, only the transitions from the entry node TLare explicitly
+depicted. Analogous transitions are to be placed from each other of the entry nodes to the box and the exit nodes Band W.
+Also, the return transitions from the box are not completely depicted.
+3.LTLmodel-checking
+In this section we show that the model-checking problem of CRSM against standard propositional LTLis undecidable.
+In fact, we prove that undecidability already holds for synchronization-free CRSM and for the fragment of LTLusing only
+the temporal operators next and infinitely often (which is strictly less expressive than the one with next and eventually ). The
+undecidability proof has analogies with that described in [ 27] (see also [ 7]) to show undecidability of LTLmodel checking for
+PA-processes. However, the LTLformula exploited in [ 27] uses the next and eventually modalities. Thus, our undecidability
+result does not follow from [ 27,7].
+Syntax and semantics of LTL.The syntax of LTL[30] over a finite set APof atomic propositions is defined as follows
+ϕ::= tt|p| ¬ϕ|ϕ∧ϕ| /circlecopyrtϕ|ϕUϕ,
+where ttdenotes ‘‘true", p∈AP,Uis the until operator, and /circlecopyrtis the next operator. We also will use some standard
+shortcuts:ϕ∨ψstands for ¬(¬ϕ∧ ¬ψ),ϕ→ψstands for ¬ϕ∨ψ,♦ϕstands for ttUϕ(the eventually operator), /squareϕ
+stands for ¬♦¬ϕ(the always operator),∞
+♦ϕstands for /square♦ϕ(the infinitely often operator), and∞
+/squareϕstands for ¬∞
+♦¬ϕ(the
+almost always operator).
+The logic LTLis interpreted on infinite words over the alphabet 2AP. Given such a word w=w(0)w(1)w(2)..., bywiwe
+denote the ith suffix ofw, i.e.wi=w(i)w(i+1)... . The semantics of LTLformulas is defined as follows (we omit the rules
+for boolean connectives, which are standard):
+
+--- Page 7 ---
+388 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+Fig. 4. The CRSM used in the undecidability proof.
+w| =p iff p∈w(0)
+w| = /circlecopyrtϕ iffw1| =ϕ
+w| =ϕ1Uϕ2iff∃i≥0.(wi| =ϕ2and∀0≤j<i.wj| =ϕ1).
+We say that an infinite word wsatisfiesϕwheneverw| =ϕ.
+For a set {O1,..., On}of temporal operators, let LTL(O1,..., On)be the LTLfragment consisting of all formulas with
+temporal operators O1,..., Ononly.
+LTLmodel checking of CRSM .LetS= /angbracketleft(S1,..., Sk),start/angbracketrightbe a CRSM andς=(t,D)(/lscript,/lscript/prime)− →(t/prime,D/prime)be a (global) transition of
+KS. The 2AP-label ofςis the set of atomic propositions which label the current vertices of the module instances that represent
+the target/lscript/primeof the transition, i.e. the set/uniontext
+y∈/lscript/primeη(D/prime(y)).1Given a runπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...ofSand an infinite word
+w=w(0)w(1)... over 2AP, we say thatπis arun overwif for every i≥0,w(i)is the 2AP-label of the global transition qi
+(/lscripti,/lscript/prime
+i)− → qi+1. The language generated by S, denoted by L(S), is the set of infinite words wsuch that there is a run of Soverw
+starting from a state /angbracketleftv/angbracketrightwithv∈start .
+Given a CRSMSand an LTLformulaϕ, we say that Ssatisfiesϕif for each word w∈L(S),wsatisfiesϕ. The LTL model-
+checking problem of CRSM is to decide for a given CRSMSand LTLformulaϕ, whether Ssatisfiesϕ.
+Undecidability of model checking CRSM against LTL(∞
+♦,/circlecopyrt).We show that the model-checking problem of CRSM against
+LTL(∞
+♦,/circlecopyrt)is undecidable by a reduction from the non-halting problem for Minsky 2-counter machines, which is known to
+be undecidable [ 29].
+First we recall the definition of Minsky 2-counter machines. A Minsky 2-counter machine , or a machine for short, is a finite
+sequence M=l1:i1,l2:i2, ..., ln−1:in−1,ln:halt , where n≥1,l1,l2,..., lnarelabels , and each ijis an instruction for
+•increment :ck:= c k+1; goto lr, or
+•test-and-decrement :if c k> 0 then c k:= c k-1; goto lrelse goto ls
+where k∈ {1,2}and 1 ≤r,s≤n.
+The machine Minduces a transition relation − → over configurations of the form(lj,v1,v2), where ljis a label of an
+instruction to be executed and v1,v2≥0 represent current values of counters c1and c2, respectively.
+We say that the machine M halts if there are numbers v1,v2≥0 such that(l1,0,0)− →∗(ln,v1,v2). The non-halting
+problem is to decide whether a given machine Mdoes not halt. This problem is known to be undecidable [ 29].
+Theorem 1. The model-checking problem of synchronization-free CRSM against the logic LTL(∞
+♦,/circlecopyrt)is undecidable.
+Proof. The proof is given by a reduction from the non-halting problem for Minsky 2-counter machines. Given a machine M,
+we construct a synchronization-free CRSMSand an LTLformulaϕusing only the temporal modalities∞
+♦and/circlecopyrtsuch that
+Mdoes not halt if and only if Ssatisfies ¬ϕ.
+The synchronization-free CRSMSis defined as follows. The alphabet Σis a singleton and the unique symbol of Σis not
+a synchronization symbol. Sconsists of n+5 modules, which are depicted in Fig.4: the main module Smain, the modules
+L1,..., Lnassociated with the labels of the instructions of M, and for k=1,2, the modules Skand S/prime
+k(which are used to
+encode the instructions associated with the counter ck). Each of these modules has one entry. The entry node of the main
+1The 2AP-label could be defined in terms of the module instances performing the transition. However, concerning decidability issues there is no
+difference with respect to the other definition.
+
+--- Page 8 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 389
+module Smainis the unique start node of Sand there is a transition from such a node to a box that is refined in the parallel
+composition of exactly one copy of module S1, one copy of module S2, and one copy of module Lifori=1,..., n. Module Li
+has only one vertex li, which is an entry node, and there is a transition from lito itself. For each k=1,2, modules Skand S/prime
+k
+are defined as follows. Module Skhas one entry node ekand a box bkthat is mapped to a copy of module S/prime
+k. Moreover, it has
+a self-loop on the entry node ek, a transition from ekto the call vertex (bk,e/prime
+k), and a transition from the return vertex (bk,x/prime
+k)
+toek. Module S/prime
+khas one entry node e/prime
+k, one exit node x/prime
+k, and a box b/prime
+kwhich is mapped to a copy of S/prime
+kitself. Also, there is a
+transition from e/prime
+kto the call vertex (b/prime
+k,e/prime
+k), a transition from the return vertex (b/prime
+k,x/prime
+k)toe/prime
+k, and a transition from the entry
+node to the exit node. Intuitively, module Sk(resp., S/prime
+k) is active when the value of the counter ckis null (resp., is not null).
+The module calls associated with the call vertices (bk,e/prime
+k)and(b/prime
+k,e/prime
+k)correspond to the increment of value of counter ck,
+while the returns from these calls (by the exit node x/prime
+k) encode a decrement operation on ck. Finally, the labeling ηof the
+vertices of Sis defined as follows ( k=1,2):
+•the set of propositions labeling the vertices of Smainis empty;
+•η(li)= {li}fori=1,..., n;
+•η((bk,e/prime
+k))=η((b/prime
+k,e/prime
+k))= {inck};
+•η(x/prime
+k)= {dec k};
+•η(ek)= {ink,zero k};
+•η(e/prime
+k)= {ink}andη((bk,x/prime
+k))=η((b/prime
+k,x/prime
+k))= {retk}.
+Intuitively, the proposition inck(resp., dec k) denotes the increment (resp., the decrement) of counter ck, while the
+proposition zero kmeans that the value of ckis null. Note that at any instant there are exactly n+2 active module instances:
+for each 1 ≤i≤n, there is one copy of Li(whose local stack height is always one) and for each k=1,2, there is one copy
+Ikof either module SkorS/prime
+kwhose local stack height represents the current value of counter ck(note that if Ikis a copy of Sk,
+then its local stack height is 1, encoding the null value of ck). While the semantics of CRSM cannot enforce a synchronization
+between these module instances, we can achieve this by a suitable LTLformulaϕ. Formulaϕis defined in such a way that it
+allows us to select only the runs of Swhich are faithful to the evolution of machine M.
+In order to define such a ϕ, first we define a formula ψdescribing a correct step of the constructed CRSM when simulating
+machine M.
+ψ=/logicalandtext
+li:ck:= c k+1; goto lr/parenleftBig
+li→(/circlecopyrtinck∧ /circlecopyrt2ink∧ /circlecopyrt3lr)/parenrightBig
+∧
+/logicalandtext
+li:if c k>0 then c k:= c k-1; goto lrelse goto ls/parenleftBig
+li→/parenleftbig
+(/circlecopyrtzero k∧ /circlecopyrt2ls)∨
+(/circlecopyrtdec k∧ /circlecopyrt2retk∧ /circlecopyrt3ink∧ /circlecopyrt4lr)/parenrightbig/parenrightBig
+.
+Moreover, we define a formula ρdescribing a correct step of resetting counters and restarting the simulation.
+ρ=ln→/parenleftBig
+(/circlecopyrtzero 1∧ /circlecopyrt2zero 2∧ /circlecopyrt3l1)∨(/circlecopyrtdec 1∧ /circlecopyrt2ret1∧ /circlecopyrt3in1∧
+/circlecopyrt4ln)∨(/circlecopyrtzero 1∧ /circlecopyrt2dec 2∧ /circlecopyrt3ret2∧ /circlecopyrt4in2∧ /circlecopyrt5ln)/parenrightBig
+.
+The formulaϕ=∞
+/square(ψ∧ρ)∧∞
+♦lnrequires that at some point the lnaction (associated with the halt instruction) occurs,
+both counters are reset, a correct simulation is started, and whenever the simulation ends (with lnaction), this sequence of
+events is performed again. Moreover, note that ϕis satisfied only if the action lnappears infinitely many times. Hence, there
+is a run of Sfrom/angbracketleftstart/angbracketrightover a wordwsatisfyingϕif and only if Mhalts. That is, the machine Mdoes not halt if and only if
+Ssatisfies ¬ϕ./square
+4. The temporal logic ConCaRet
+In this section, we first introduce different notions of local successor along CRSM runs. Then, we define the logic ConCaRet
+and give some examples that illustrate its expressiveness. We conclude by showing that an interesting fragment of (global)
+LTLcan be captured by ConCaRet formulas.
+4.1. Local successors in structured computations of CRSM
+We are interested in defining a logic to express properties concerning the local behaviors of module instances. Therefore,
+we need to introduce different notions of local successor of a module instance along a given run.
+We fix a CRSMSand a runπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...ofS, where qi=(ti,Di)for any i. We denote by Qπthe set
+{(i,y)|y∈leaves(ti)}. An element(i,y)ofQπ, called a local state ofπ, corresponds to an instance of a module that at state
+
+--- Page 9 ---
+390 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+Fig. 5. Linear successors, abstract successors and callers over the sample run of Fig.2.
+qiis active2and is currently in the vertex Di(y). Note that for a given local state (i,y), the set {(i,y/prime)|y/prime≺y}gives the
+corresponding local call stack.
+Now, we define two notions of next local state in a computation of a CRSM . For(i,y)∈Qπ,next/lscript
+π(i,y)gives the set of
+active module instances, called linear successors of(i,y), that are obtained by the first transition of the run (after state qi)
+affecting the module instance corresponding to (i,y). Note that such a transition may occur at j≥ior may not occur at all.
+In the former case, if Di(y) /∈Calls∪Ex(i.e. for an internal move3), then next/lscript
+π(i,y)= {(j,y)}is a singleton and points to
+the vertex (node or call) which is the target of the local transition performed by the module instance associated with (i,y).
+If instead Di(y)∈Ex(i.e., for a return from a call), then the unique linear successor points to the reactivated caller module.
+Finally, if Di(y)∈Calls , then the linear successors correspond to the entry nodes of the called modules. Formally, we define
+next/lscript
+π(i,y)= ∅, if{m≥i|y∈/lscriptm} = ∅ . Otherwise, next/lscript
+π(i,y)given by
+{(h+1,y/prime)|h=min{m≥i|y∈/lscriptm},y/prime∈/lscript/prime
+h,and either y/prime/precedesequalyory/precedesequaly/prime}.
+Let us consider the following Fig.5, which illustrates the same sample run πinFig.2of the CRSM given in Fig.1. For
+instance, we have next/lscript
+π(3,1)= {(6,1·1)}and next/lscript
+π(1,ε)= {(2,0),(2,1)}.
+Note that if rank(S)=1 (i.e.Sis an RSM), then there is exactly one local state at any instant and the linear successor
+corresponds to the (standard) global successor.
+For each(i,y)∈Qπ, we also give a notion of abstract successor , denoted nexta
+π(i,y). Intuitively, the abstract successor
+captures the local computations within a module Askipping over invocations of other modules called from A. Formally,
+if(i,y)corresponds to a call that returns, i.e., Di(y)∈Calls ,next/lscript
+π(i,y)/negationslash= ∅ , and there is j>isuch that y∈leaves(tj),
+then nexta
+π(i,y)=(h,y)where his the smallest of such j(the local state (h,y)corresponds to the matching return). For
+the internal moves, the abstract successor coincides with the (unique) linear successor, i.e., if next/lscript
+π(i,y)= {(j,y)}, then
+nexta
+π(i,y)=(j,y)(note that in this case Di(y)∈Retns∪N\Ex). In all the other cases, the abstract successor is not defined
+and we denote this with nexta
+π(i,y)= ⊥ . For instance, in Fig.5, we have nexta
+π(2,0)=(3,0)and nexta
+π(3,0)=(8,0).
+Linear and abstract successors are forward modalities. We define also a backward modality that assigns to a local state
+(i,y)the ‘innermost call’ that has activated (i,y). Notice that only local states of the form (i,ε)have no callers. Formally,
+thecaller of(i,y)(if any), written next−
+π(i,y), is defined as follows: if y=y/prime·mfor some m∈N, then next−
+π(i,y)=(j,y/prime),
+where j=max{h<i|y/prime∈leaves(th)}; otherwise, next−
+π(i,y)is undefined, written next−
+π(i,y)= ⊥ . For instance, in Fig.5,
+we have next−
+π(7,0·0)=(3,0).
+The above defined notions of forward and backward successor allow us to define sequences of local moves (i.e. moves
+affecting local states) in a run. For (i,y)∈Qπ, the set of linear paths ofπstarting from(i,y)is the set of (finite or infinite)
+maximal sequences of local states r=(j0,y0)(j1,y1)... such that(j0,y0)=(i,y),(jh+1,yh+1)∈next/lscript
+π(jh,yh)for any h,
+and either ris infinite or leads to a local state (jp,yp)such that next/lscript
+π(jp,yp)= ∅. Analogously, the notion of abstract path
+(resp., caller path ) ofπstarting from(i,y)can be defined by using in the above definition the abstract successor (resp., caller)
+instead of the linear successor. Note that a caller path is always finite and uniquely determines the content of the call stack
+locally to the instance of the module active at (i,y).
+For module instances involved in a call, i.e., corresponding to pairs (i,y)such that y∈ti\leaves(ti), we denote the
+local state (if any) at which the call pending at (i,y)will return by returnπ(i,y). Formally, if y∈leaves(tj)for some j>i,
+then returnπ(i,y)=(h,y)where his the smallest of such j, otherwise returnπ(i,y)= ⊥ . Finally, we denote by callπ(i,y),
+2This is in opposition to the status of pairs (i,z)∈tj\leaves(tj)that correspond to instances of modules that are waiting for a return from a call and
+thus are currently inactive.
+3We recall that exit nodes have no outgoing transitions.
+
+--- Page 10 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 391
+the local state corresponding to the call associated with the module instance at (i,y). Formally, callπ(i,y)=(h,y)where
+h=max{j<i|y∈leaves(tj)}.
+4.2. ConCaRet : Syntax and semantics
+LetAPbe a finite set of atomic propositions . The logic ConCaRet over APis the set of formulas inductively defined as
+follows:
+ϕ::= tt|p|call|ret|int| ¬ϕ|ϕ∧ϕ| /circlecopyrtbϕ|ϕUbϕ| /bardblϕ
+where b∈ {∃,∀,a,−}and p∈AP.
+A formula is interpreted over runs of a CRSMS= /angbracketleft(S1,..., Sk),start/angbracketright. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− →...be a run of Swith
+qi=(ti,Di)fori≥0. For a linear (resp., abstract, caller) path r=(j0,y0)(j1,y1)... ofπ, we denote by r(i)theith local state
+along r(i.e. the local state (ji,yi)). The truth value of a formula with respect to a local state (i,y)ofπis inductively defined
+as follows (we omit the rules for boolean connectives which are standard):
+(i,y)| =πp iff p∈η(Di(y))(where p∈AP)
+(i,y)| =πcall iff Di(y)∈Calls
+(i,y)| =πret iff Di(y)∈Retns
+(i,y)| =πint iff Di(y)∈N
+(i,y)| =π/circlecopyrtaϕ iff nexta
+π(i,y)/negationslash= ⊥ and nexta
+π(i,y)| =πϕ
+(i,y)| =π/circlecopyrt−ϕ iff next−
+π(i,y)/negationslash= ⊥ and next−
+π(i,y)| =πϕ
+(i,y)| =π/circlecopyrt∃ϕ iff there is(j,z)∈next/lscript
+π(i,y)such that(j,z)| =πϕ
+(i,y)| =π/circlecopyrt∀ϕ iff for all(j,z)∈next/lscript
+π(i,y),(j,z)| =πϕ
+(i,y)| =πϕ1Ubϕ2iff∃h≥0.(r(h)| =ϕ2and∀0≤j<h.r(j)| =ϕ1)where
+ifb=a, then ris the abstract path from (i,y),
+ifb= − , then ris the caller path from (i,y).
+ifb= ∃, then rissome linear path from (i,y),
+ifb= ∀, then rrange over alllinear paths from (i,y)
+(in this case, index hdepends on the specific path r)
+(i,y)| =π/bardblϕ iff for h=min{j≤i|(j,y)∈Qπand next/lscript
+π(j,y)=
+next/lscript
+π(i,y)}and for all z∈siblings(th,y)\ {y}:
+−ifDh(z)∈V, then(h,z)| =πϕ;
+−ifDh(z)∈B, then callπ(h,z)| =πϕ.
+For each type of local successor (forward or backward), the logic provides the corresponding versions of the usual (global)
+next operator /circlecopyrtand until operator U. For instance, formula /circlecopyrt−ϕdemands that the caller of the current local state satisfies
+ϕ, whileϕ1U−ϕ2demands that the caller path (that is always finite) from the current local state satisfies ϕ1Uϕ2. Moreover,
+the forward modalities defined over the linear paths are branching since they quantify over the possible linear successors of
+the current local state. Thus, we have both existential and universal versions of the standard modalities /circlecopyrtand U. Finally,
+the operator /bardblis a new modality introduced to express properties of parallel modules. The formula /bardblϕholds at a local state
+(i,y)of a module instance I iff, being h≤ithe time when vertex Di(y)was first entered and such that Ihas been idle from
+htoi, every module instance (different from I) in parallel with Iand not busy in a module call (at time h) satisfiesϕat time
+h, and every module instance in parallel with Iand busy in a module call (at time h) satisfiesϕat the call time.
+Note that the semantics of the parallel operator ensures the following desirable property for the logic ConCaRet : for each
+pair of local states (i,y)and(j,y)such that i<jand next/lscript
+π(j,y)=next/lscript
+π(i,y)(i.e., associated with a module instance which
+remains idle from itoj), the set of formulas that hold at (i,y)coincides with the set of formulas that hold at (j,y).
+Given a runπofSand a formula ϕ, we say that the run πsatisfiesϕ, writtenπ| =ϕ, if(0,ε)| =πϕ. Moreover, we say
+thatSsatisfiesϕ, written S| =ϕ, iff for everyv∈start and for every run πofSstarting from /angbracketleftv/angbracketright, it holds that π| =ϕ.
+Now, we can define the model-checking problem we are interested in:
+Model-checking problem .
+Given a CRSMSand a ConCaRet formulaϕ, doesS| =ϕ?In the following, as we have done for LTL, we useϕ∨ψas an
+abbreviation for ¬(¬ϕ∧ ¬ψ), andϕ→ψas an abbreviation for ¬ϕ∨ψ. Analogously, we use ♦bϕas an abbreviation
+forttUbϕ, for b∈ {∃,∀,a,−}. Also, for b∈ {a,−}, let/squarebϕstand for ¬♦b¬ϕ,/square∀ϕstand for ¬♦∃¬ϕ, and/square∃ϕstand for
+¬♦∀¬ϕ.
+4.3. Specifying requirements with ConCaRet
+In this section, we illustrate some interesting properties which can be expressed in ConCaRet .
+
+--- Page 11 ---
+392 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+Abstract modalities. As in CaRet [3], the abstract modalities can be used to specify a variety of non-regular pushdown
+properties, which require matching of calls and returns.
+Parallel Pre- and Post-conditions:
+We can encode partial and total correctness requirements of procedures (modules) with respect to pre- and post-
+conditions. Since CRSM model parallel calls also, pre- and post-conditions can be extended to multiple threads activated in
+parallel. A parallel partial correctness requirement for two modules Aand Basserts that whenever modules Aand Bare both
+activated in parallel and pre-condition pholds, then if both Aand Bterminate, post-condition qholds upon the synchronous
+return. Total correctness additionally requires both Aand Bto terminate. Assuming that parallel calls to the modules Aand B
+are characterized by the proposition pA,B, then the total correctness is expressed by the formula:
+ϕtotal=/square∀/bracketleftbig
+(call∧p∧pA,B)→ /circlecopyrtaq/bracketrightbig
+while the partial correctness is expressed by the formula
+ϕpartial=/square∀/bracketleftbig
+(call∧p∧pA,B)→ ¬/circlecopyrta¬q/bracketrightbig
+.
+Local properties:
+Local properties refer to the local computations (abstract paths) of a module Athat skip over invocations of other modules
+called from A. The abstract versions of the LTLtemporal modalities can be used to specify regular properties of such local
+paths. For example, if the proposition pAdenotes that the control is within a module A, then the formula /square∀/bracketleftbig
+(p∧pA)→♦aq/bracketrightbig
+specifies the local version of the response property ‘‘every request pis followed by a response q".
+Caller modalities. With caller modalities we can express as in CaRet properties that require inspection of the (local) call
+stacks of modules. As shown in [ 20,19], stack inspection can specify a variety of non-regular security properties in modern
+programming languages such as Java.
+For instance, a stack inspection property such as ‘‘if module Ais called, then module Bmust not be on the local call stack
+ofA" (i.e., module Acannot be invoked within the context of module B") can be expressed by the formula
+/square∀/bracketleftbig
+(pA∧ /circlecopyrt−tt)→ ¬♦−pB/bracketrightbig
+where pA(resp., pB) denotes that the control is within module A(resp., B). More in general, one can require that when a
+critical thread (module) is activated, then all modules in the local call stack have the necessary privileges. (See [ 3] for more
+examples using these modalities).
+Parallel modality. The parallel modality gives the ability to express alignment properties among parallel threads. For
+instance, when a parallel call occurs, we can require that there will be an instant in the future such that the same property
+ϕholds in all the parallel threads activated by the parallel call. Such a property can be written as
+/square∀/bracketleftbig
+call→ /circlecopyrt∃(♦a(ϕ∧ /bardblϕ))/bracketrightbig
+.
+Thus, for example, if the atomic proposition pσis associated only with vertices (nodes or returns) where a transition labeled
+by the synchronization symbol σcan be taken, and pσstands forϕin the above formula, the property expressed is that
+there will be a point in the future where all the threads activated by the call are ready for a maximal synchronization by
+the common synchronization symbol σ. In general, we will be able to express reactivity properties of modules, namely the
+ability of a module to continuously interact with its parallel components.
+We can also express properties specifying constraints on the use of shared resources by modules operating in parallel.
+Assume that the proposition pis associated with a shared resource. Modules activated in parallel use the resource in a
+mutually exclusive way iff the following formula holds: /square∀(p→/bardbl ¬ p).
+As another example, let us consider the requirement ‘‘every time the resource pis available for a module I, then it will
+be eventually available for all the modules in parallel with I". This requirement can be expressed by the formula
+/square∀(p→ /bardbl♦ap).
+Linear modalities. Linear modalities refer to the branching structure of CRSM computations. They can be used, for instance,
+to express invariance properties like ‘‘every time a call occurs, then each activated module has to satisfy property ϕ" or
+‘‘modules Band Cwill be never activated simultaneously in the local context of A" (where for local context of A, we mean
+the whole computation within Aincluding the possible nested calls to other modules). In the first case, the corresponding
+formula is
+/square∀(call→ /circlecopyrt∀ϕ)
+while in the second case we have
+/square∀/bracketleftbig
+(call∧ /circlecopyrt∃pB∧ /circlecopyrt∃pC)→ ¬♦−pA/bracketrightbig
+where pA(resp., pB,pC) denotes that the control is within module A(resp., B,C). We can also express simple global eventually
+properties of the kind ‘‘every time the computation starts from module A, then module Beventually will be activated",
+expressed by the formula pA→♦∃pB. We can also capture more interesting global properties as shown in the next section.
+
+--- Page 12 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 393
+4.4. Checking global LTLproperties with ConCaRet
+In this section we show that ConCaRet captures a meaningful fragment of the logic LTL. This fragment is defined as
+follows:
+φ::=/squareψ|∞
+/squareψ| ¬φ|φ∧φ
+whereψdenotes a propositional formula over AP(i.e. a boolean combination of atomic propositions in AP). We denote this
+LTLfragment by Υ. Within this fragment important classes of (global) regular properties like invariants, as well as strong
+and weak fairness constraints, can be expressed. Also, note that Υsubsumes LTL(∞
+♦)since∞
+/squareis the dual of∞
+♦and LTL(∞
+♦)
+is equivalent to the fragment φ=∞
+♦ψ| ¬φ|φ∧φ, whereψis a propositional formula. Furthermore, note that if we
+add the global next operator to the fragment Υ, then by Theorem 1the model-checking problem of (synchronization-free)
+CRSM is undecidable. Now, we show that the model-checking problem of CRSM againstΥformulas can be reduced to the
+model-checking problem for ConCaRet .
+Theorem 2. Given a CRSMSand a formula ϕofΥ, one can construct a new CRSMS/primeand a ConCaRet formulaϕ/prime, whose sizes
+are polynomial in the sizes of Sandϕ, such that Ssatisfiesϕif and only if S/primesatisfiesϕ/prime.
+Proof. First, we give a translation for the class of synchronization-free CRSM . Then, we show how to modify the proposed
+construction for general CRSM . Note that in synchronization-free CRSM the only global transitions q(/lscript,/lscript/prime)− → q/primesuch that/lscript/primeis
+not a singleton correspond to a module call.
+Now, we define a function fwhich maps every formula φinΥto a ConCaRet formula f(φ), such that for every
+synchronization-free CRSMS,Ssatisfiesφif and only if Ssatisfies f(φ). Since the operators /squareand∞
+/squareare distributive with
+respect to ∧, we can assume that the propositional formulas ψhave the form/logicalortext
+i∈Ipi∨/logicalortext
+j∈J¬qj. The mapping fis defined
+as follows:
+•fis homomorphic with respect to the boolean connectives;
+•forψ=/logicalortext
+i∈Ipi∨/logicalortext
+j∈J¬qj,f(/squareψ)=/square∀/tildewideψandf(∞
+/squareψ)=♦∀/square∀/tildewideψ, where /tildewideψ= /circlecopyrt∃tt→/parenleftbig
+(/logicalortext
+i∈I/circlecopyrt∃pi)∨(/logicalortext
+j∈J/circlecopyrt∀¬qj)/parenrightbig
+.
+Correctness of the translation directly follows from the following claim:
+Claim 1. LetSbe a synchronization-free CRSM andπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be a run over the word w. Then, for every
+Υ-formulaφ,π| =f(φ)if and only ifw| =φ.
+Proof of the claim. The proof is by structural induction on φ. The only non-trivial cases are when φis either of the form
+∞
+/squareψor of the form /squareψ. We analyze the first case (the second being simpler). Let φ=∞
+/squareψwithψ=/logicalortext
+i∈Ipi∨/logicalortext
+j∈J¬qj.
+Then, f(φ)=♦∀/square∀/tildewideψ. By definition of /tildewideψ, it easily follows that:
+(*)for every local state (i,y)ofπwith y∈/lscripti,(i,y)| =π/tildewideψiffwi| =ψ.
+We first prove that ‘‘ w| =∞
+/squareψ= ⇒π| =♦∀/square∀/tildewideψ’’. Assume that w| =∞
+/squareψ. This means that there is N≥0 such that for
+every i≥N,wi| =ψ. We prove that π| =♦∀/square∀/tildewideψ. We need to show that for every linear path rofπstarting from (0,ε),
+there is a local state (i,y)along rsuch that for every local state (j,z)reachable from (i,y)by a linear path, (j,z)| =π/tildewideψholds.
+Ifris a finite linear path, then by definition of /tildewideψ, the above property trivially holds. Thus, let rbe infinite. Then, there is a
+local state(i,y)along rwith i≥N. Let(j,z)be a local state which is reachable from (i,y)by a linear path. If next/lscript
+π(j,z)= ∅,
+then(j,z)| =π/tildewideψ. Otherwise, there is a local state (h,z)such that next/lscript
+π(h,z)=next/lscript
+π(j,z),h≥N(note that j≥N), and
+z∈/lscripth. Sincewh| =ψ, by Property (*), it follows that (h,z)| =π/tildewideψ. Hence(j,z)| =π/tildewideψ, and therefore, π| =♦∀/square∀/tildewideψ.
+Consider, now, the converse assertion ‘‘ π| =♦∀/square∀/tildewideψ= ⇒w| =∞
+/squareψ". Assume that π| =♦∀/square∀/tildewideψ. Let(T,D)with
+D:T→Qπbe the infinite Qπ-labeled tree inductively defined as follows: the root εofTis labeled by the local state (0,ε)
+and for every location y∈T, the children of ycorrespond to the linear successors of D(y)onπ. Note that every maximal path
+in the tree Tstarting from the root corresponds to a linear path of πstarting from (0,ε)and vice versa. Let T/prime⊆Tbe the
+subset of Tobtained by pruning all the locations xofTsuch that D(x)| =π/square∀/tildewideψ. Clearly, T/primeis a tree. We show by contradiction
+that T/primeis finite. Suppose that T/primeis infinite. Since the set of children of every location is finite, by König’s Lemma, we deduce
+that there is an infinite linear path rstarting from (0,ε)such that for every i≥0,r(i)/negationslash| =/square∀/tildewideψ. But this contradicts the
+assumptionπ| =♦∀/square∀/tildewideψ. Therefore, T/primeis finite. Therefore, there is N≥0 such that for all i≥Nand y∈/lscripti,(i,y)| =/square∀/tildewideψ,
+hence(i,y)| =/tildewideψ. By Property (*) it follows that for every i≥N,wi| =ψ. Thus, we obtain that w| =∞
+/squareψ. This concludes the
+proof of Claim 1./square
+
+--- Page 13 ---
+394 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+We have shown that the theorem holds for the class of synchronization-free CRSM . Now, let us consider an arbitrary CRSM
+Swith transition function δ. Without loss of generality we can assume that for all vertices vandv/primeand symbolsσandσ/prime, if
+v/prime∈δ(v,σ) andv/prime∈δ(v,σ/prime), thenσ=σ/prime. LetS/primebe the CRSM obtained from Sby extending the labeling of the vertices as
+follows. For every vertex vofS, we add to the label η(v) ofvall the synchronization symbols σof the module of v, a fresh
+proposition pv, and for every vertex v/primesuch thatv∈δ(v/prime,σ)andσis a synchronization symbol, a fresh proposition p(v/prime,σ).
+Now, let us consider the mapping fSdefined as follows:
+•fSis homomorphic with respect to the boolean connectives;
+•forψ=/logicalortext
+i∈Ipi∨/logicalortext
+j∈J¬qj,fS(/squareψ)=/square∀/tildewideψand fS(∞
+/squareψ)=♦∀/square∀/tildewideψ, where
+/tildewideψ= /circlecopyrt∃tt→/parenleftBig/bracketleftbig
+(call∨ /circlecopyrt∃ret)→/parenleftbig
+(/logicalortext
+i∈I/circlecopyrt∃pi)∨(/logicalortext
+j∈J/circlecopyrt∀¬qj)/parenrightbig/bracketrightbig
+∧
+/bracketleftbig
+¬(call∨ /circlecopyrt∃ret)→/logicalortext
+v∈V/parenleftbig
+pv∧(/circlecopyrt∃(ψ∧/logicalandtext
+σ¬p(v,σ))∨ρ)/parenrightbig/bracketrightbig/parenrightBig
+andρis the formula:/logicalortext
+σ/circlecopyrt∃/parenleftBig
+p(v,σ)∧/parenleftbig/logicalortext
+i∈I((¬ /bardbl¬(σ∧pi))∨pi)∨/logicalortext
+j∈J(/bardbl(σ→ ¬ qj)∧ ¬qj/parenrightbig/parenrightBig
+.
+Proceeding as in the proof of Claim 1, we deduce that for every formula φofΥ,SsatisfiesφiffS/primesatisfies fS(φ). This
+concludes the proof of Theorem 2./square
+5. Model checking CRSM against ConCaRet
+In this section we show that the model-checking problem of CRSM against ConCaRet is decidable. Our approach is a non-
+trivial generalization of the automata-theoretic approach proposed in [ 3] to solve model checking of RSM against CaRet
+specifications.
+First, we equip CRSM with acceptance conditions over the runs. An acceptance condition is composed of three parts. The
+first one corresponds to a standard generalized Büchi condition on the set of vertices visited infinitely often by the infinite
+linear paths of an accepting run. The second part forces the accepting runs to reach some given vertices on terminal local
+states (i.e., the local states whose set of linear successors is empty). The third one expresses constraints over the vertices
+which are visited by module instances running in parallel. We call the obtained model Büchi CRSM .
+Then, we reduce the model-checking problem we are interested in to the emptiness problem of Büchi CRSM . More
+precisely, given a CRSMSand a ConCaRet formulaϕ, we construct a Büchi CRSMS¬ϕsuch that Ssatisfiesϕif and only
+ifS¬ϕhasnoaccepting run starting from a start node.
+The rest of this section is organized as follows. In Section 5.1we introduce the notion of Büchi CRSM and solve the
+(non)emptiness problem for this class of infinite-state machines. Then, in Section 5.2we reduce the model-checking problem
+to the emptiness of Büchi CRSM .
+5.1. Büchi CRSM
+In this section, we extend CRSM with acceptance conditions and address the nonemptiness problem for the resulting
+class of machines, i.e., the problem about the existence of an accepting run from a start node. Besides acceptance conditions
+on the finite linear paths of a run π, we require a synchronized acceptance condition on modules running in parallel, and
+a generalized Büchi acceptance condition on the infinite linear paths of π. We call this model a Büchi CRSM (B-CRSM , for
+short). Formally, a B-CRSM S= /angbracketleft(S1,..., Sk),start,F,Pf,Psync/angbracketrightconsists of a CRSM/angbracketleft(S1,..., Sk),start/angbracketrighttogether with the
+following acceptance conditions:
+•F= {F1,..., Fn}is a family of accepting sets of vertices of S;
+•PFis the set of terminal vertices;
+•Psyncis a predicate defined over pairs (v,H)such thatvis a vertex and His a set of vertices such that |H| ≤rank(S).
+Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be a run of Swith qi=(ti,Di)fori≥0. For each i≥0 and y∈ti, we denote by v(i,y)
+the vertex of Sdefined as follows: if (i,y)∈Qπ(i.e.,(i,y)is a local state), then v(i,y)=Di(y); otherwise,v(i,y)=Dh(y)
+where(h,y)=callπ(i,y). We say that the run πisaccepting iff the following three conditions are satisfied:
+1.for every infinite linear path r=(i0,y0)(i1,y1)... ofπand F∈F, there are infinitely many h∈Nsuch that Dih(yh)∈F
+(generalized Büchi acceptance condition );
+2.for every terminal local state(i,y)∈Qπ, i.e. such that next/lscript
+π(i,y)= ∅, condition Di(y)∈PFholds ( terminal acceptance
+condition );
+3.for all i≥0 and y∈/lscript/prime
+i,Psync(v(i+1,y),{v(i+1,y1),...,v( i+1,ymi)})holds, where {y1,..., ymi}issiblings(ti+1,y)\{y}
+(synchronized acceptance condition ).
+
+--- Page 14 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 395
+We say that the run πismonotone iff for all i≥0,qi+1is obtained from qieither by a module call or by an internal move.
+Note that in a monotone path either the tree ti+1is equal to ti(for an internal move) or it is obtained from tiby adding some
+children to a leaf (for a module call).
+As we will see in Section 5.2, for a CRSMSand a ConCaRet formulaϕ, it is possible to construct a B-CRSM Sϕsuch that Sϕ
+has an accepting run iff Shas a run that satisfies ϕ. More precisely, an accepting run of Sϕcorresponds to a run πofS, where
+each local state is annotated with the information concerning the set of subformulas of ϕthat hold at it along π. Intuitively,
+as in standard LTL, the generalized Büchi acceptance condition is used to guarantee the fulfillment of liveness requirements
+in until subformulas of ϕ. The terminal acceptance condition is instead used to ensure that forward next formulas cannot be
+asserted at terminal local states. Finally, the synchronized acceptance condition is used to check the fulfillment of parallel
+subformulas /bardblψofϕ.
+In the rest of this section, we give an algorithm to decide the nonemptiness problem ofB-CRSM , i.e. to decide given a
+B-CRSM Swhether Shas an accepting run starting from a node in start . We solve this problem in two main steps:
+1.We give an algorithm to decide the problem about the existence of accepting monotone runs starting from a given vertex.
+2.We reduce nonemptiness of B-CRSM to the problem addressed in Step 1.
+5.1.1. Deciding the existence of accepting monotone runs
+We decide the existence of accepting monotone runs in B-CRSM by a reduction to the emptiness problem for Invariant
+Büchi tree automata . These differ from the standard formalism of Büchi tree automata [ 33] for a partitioning of states into
+invariant and non-invariant states, with the constraint that transitions from non-invariant to invariant states are forbidden.
+Also, the standard Büchi acceptance condition is strengthened by requiring in addition that an accepting run must have a
+path consisting of invariant states only.
+Formally, an (alphabet free) invariant Büchi tree automaton is a tuple U= /angbracketleftD,P,P0,M,Inv,Acc/angbracketright, where D⊂N\ {0}
+is a finite set of branching degrees, Pis the finite set of states, P0⊆Pis the set of initial states, M:P×D→2P∗is the
+transition function with M(s,d)∈2Pdfor all(s,d)∈P×D,Inv⊆Pis the invariance condition, and Acc⊆Pis the Büchi
+condition. Also, for every s∈P\Invand d∈D, we require that if s/primeoccurs in M(s,d), then s/prime∈P\Inv. Acomplete D-tree
+is an infinite tree t⊆N∗such that for every y∈t, the cardinality of children(t,y)belongs to D. Apath oftis a maximal
+subset of tlinearly ordered by ≺. A run of Uis a pair(t,r)where tis a complete D-tree and r:t→Pis aP-labeling of
+tsuch that r(ε)∈P0and for all y∈t,(r(y·0),r(y·1),..., r(y·d))∈M(r(y),d+1), where d+1= |children(t,y)|.
+The run(t,r)isaccepting iff: (1) there is a path νoftsuch that for every y∈ν,r(y)∈Inv, and (2) for every path νoft,
+the set {y∈ν|r(y)∈Acc}is infinite. The algorithm in [ 35] for checking emptiness in Büchi tree automata can be easily
+generalized to handle also the invariance condition, thus we obtain the following.
+Proposition 1. The emptiness problem for invariant Büchi tree automata is logspace-complete for Ptime and can be decided in
+quadratic time.
+In the following, we fix a B-CRSM S= /angbracketleft(S1,..., Sk),start,F,PF,Psync/angbracketright.
+Remark 1. Apart from a preliminary step which is computable in linear time (in the size of S), we can restrict ourselves
+to consider only accepting monotone runs πofSstarting from call vertices. In fact, if πstarts at a non-call vertex vof a
+module Sh, then eitherπstays within Shforever, orπenters a callv/primeofShthat never returns. In the first case, one has to
+check the existence of an accepting run in the generalized Büchi (word) automaton given by Ah= /angbracketleftVh,δh,Fh/angbracketright, where Fhis
+the restriction of Fto the set Vh. This can be done in linear time [ 33]. In the second case, one has to check that there is a call
+v/primereachable from vinAh, and then that there is an accepting monotone run in Sfromv/prime.
+Now, we construct an invariant Büchi tree automaton Ucapturing the monotone accepting runs of Sstarting from calls.
+The idea is to model a monotone run πofSas an infinite tree corresponding to a run of U. There are some technical issues
+to be handled.
+First, there can be finite linear paths. We use symbol /latticetopto capture terminal local states of π. Therefore, the subtree rooted
+at the node corresponding to a terminal local state is completely labeled by /latticetop. Also, since we are interested in runs of S, we
+need to check that there is at least one infinite linear path in π. We do this using as invariant set the set of all Ustates except
+for state /latticetop.
+Second, when a module call associated with a box boccurs, multiple module instances I1,..., Imare activated and start
+running. We encode these local runs (corresponding to linear paths of π) on the same path of the run of Uby using states of
+the form(b,v1,...,v m,i1,..., im,j), wherev1,...,v mare the current nodes or calls of each module, and i1,..., im,jare
+finite counters used to check the fulfillment of the Büchi condition (see below). Since in monotone runs there are no returns
+from calls, when a module Ij(with 1 ≤j≤m) moves to a call vertex v(by an internal move), we can separate the linear
+paths starting at vfrom the linear paths associated with all modules Ii/negationslash=Ij,i=1,..., m. Therefore, to simulate an internal
+move (in the context of modules I1,..., Im),Unondeterministically splits in d+1 copies for some 0 ≤d≤msuch that d
+copies correspond to those modules (among I1,..., Im) which move to call vertices, and the (d+1)th copy goes to a state s
+of the form(b,v/prime
+1,...,v/prime
+m,i/prime
+1,..., i/prime
+m,j/prime)which describes the new status of modules I1,..., Im. Note that in s, we maintain
+the information of these modules which are busy in a parallel call. This is necessary for locally checking the fulfillment of
+the synchronized acceptance condition Psync.
+
+--- Page 15 ---
+396 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+Last, we need to check the fulfillment of the acceptance conditions of S. The generalized Büchi condition FofSis captured
+with the Büchi condition of Ualong with the use of finite counters implemented in the states. For the ease of presentation,
+we assume that Fconsists of a single accepting set F. For modeling a call v, we use states of the form (v,i)where the
+counter iis used to check that linear paths (in the simulated monotone run of S) containing infinite occurrences of calls
+satisfy the Büchi condition. In particular, such counter has default value 0 and is set to 1 if either v∈For a vertex in Fis
+visited in the portion of the linear path from the last call before entering v. In the second case, the needed information is
+kept in the counters ihof the states of the form (b,v1,...,v m,i1,..., im,j). Counter ihhas default value 0 and is set to 1
+if a node in Fis entered in the local computation of the corresponding module. Counter j∈ {0,..., m}is instead used to
+check that the Büchi condition FofSis satisfied by the linear paths starting from those vertices among v1,...,v mwhose
+module instances never enter a call. Essentially, the counter jis incremented (reset to 0 if its value is m) unless j<mand
+the(j+1)th module refining box bmoves by the current internal move of Sfrom vertexvj+1(which is a node) to a vertex
+which is notinF. Thus, the counter jreaches the value minfinitely often if and only if the linear paths in the simulated run
+ofS, associated with the module instances refining box bthat never enter a call, are accepting. Moreover, in order to check
+that a nodevhcorresponds to a terminal node (i.e., a node without linear successors in the simulated monotone run of S),
+Ucan choose nondeterministically to set the corresponding counter ihto−1. Consistently, Uwill simulate only the internal
+moves from vertices v1,...,v min which the module instance associated with vhdoes not evolve. Formally, the invariant
+Büchi tree automaton U= /angbracketleftD,P,P0,M,Inv,Acc/angbracketrightis defined as follows:
+•D= {1,..., rank(S)+1};
+•P= {/latticetop} ∪ Calls× {0,1} ∪/uniontext
+b∈BPb, where for b∈Bwith Y(b)=i1...im,Pb= {(b,v1,...,v m,h1,..., hm,h)|h∈
+{0,1,..., m}and for all 1 ≤j≤m, eithervj∈Nijand hj∈ {0,1,−1}, orvj∈Calls ijand hj=1};
+•P0=Calls× {0};Inv=P\ {/latticetop} ;
+•Acc= {/latticetop} ∪ {(v,1)|v∈Calls} ∪/uniontext
+b∈B{(b,v1,...,v m,j1,..., jm,m)∈Pb};
+It remains to define the transition function M:(s1,..., sd)∈M(s,d)iff one of the following holds.
+Case s= /latticetop:d=1 and s1= /latticetop .
+Case s=((b,e1,..., em),i)∈Calls× {0,1}:d=1, and either (i) s1= /latticetop and(b,e1,..., em)∈Pf, or (ii)
+s1=(b,e1,..., em,h1,..., hm,0), and for all 1 ≤j≤m,or h j= − 1 and ej∈Pf,or h j=1 and ej∈F,or h j=0
+and ej/∈F; moreover, Psync(ej,{e1,..., em} \ {ej})holds.
+Case s=(b,v1,...,v m,i1,..., im,h)∈Pb:letC= {j∈ {1,..., m} |eithervj∈Calls orij= − 1}. Then, one of the
+following holds:
+•Deadlock situation: C= {1,..., m}and{v1,...,v m}/notsubseteqlEx. In this case, d=1 and s1= /latticetop .
+•Internal move and activation of parallel calls: C⊂ {1,..., m}. In this case there are indexes k1,..., kp∈ {1,..., m}\C
+(with k1<· · ·<kp),σ∈Σ, and vertices v/prime
+1,...,v/prime
+msuch that p=1 ifσ /∈Σs, and for each 1 ≤j≤m, the
+following holds: if j/∈ {k1,..., kp}, thenv/prime
+j=vjandσis not a synchronization symbol of the module associated
+withvj; ifj∈ {k1,..., kp}, thenv/prime
+j∈δ(v j,σ) and Psync(v/prime
+j,{v/prime
+1,...,v/prime
+m} \ {v/prime
+j}). Moreover, denoted by h1,..., ht(with
+h1<· · ·<ht) the subsequence (possibly empty) of k1,..., kpconstituted from all and only the indexes kjsuch that
+v/prime
+kj∈Calls , we have that d=t+1 and the following holds:
+–activation of new parallel calls: for all 1 ≤j≤t,sj=(v/prime
+hj,j/prime), where j/prime=1 if eitherv/prime
+hj∈Forihj=1, and j/prime=0
+otherwise.
+–internal move: st+1=(b,v/prime
+1,...,v/prime
+m,i/prime
+1,..., i/prime
+m,h/prime)such that for each j∈ {1,..., m} \ { k1,..., kp},ij=i/prime
+j, and for
+each 1 ≤j≤p, the following holds: if i/prime
+kj= − 1, thenv/prime
+kj∈Pf; ifi/prime
+kj/negationslash= − 1, then i/prime
+kj=1 if orv/prime
+kj∈Calls orv/prime
+kj∈For
+ikj=1, and i/prime
+kj=0, otherwise. Moreover, h/prime=hifh<m,i/prime
+h+1/negationslash= − 1,v/prime
+h+1/∈Calls , andv/prime
+h+1/∈Fifh+1∈ {k1..., kp};
+otherwise, h/prime=(h+1)mod(m+1).
+By construction we obtain the following result.
+Lemma 1. For a callv, there is an accepting monotone run of Sfrom/angbracketleftv/angbracketrightiff there is an accepting run in Ustarting from(v,0).
+When the Büchi condition consists of n>1 accepting sets, the only changes in the above construction concern the counters:
+we need to check that each set is met and thus the counters which count up to 1 become counters up to nand the remaining
+counter (which is up to m) becomes a counter up to m·n. Therefore, denoting ρ=rank(S),nVthe number of vertices of
+Sand nδthe number of transitions of S, we have that the number of Ustates is O(ρ·nρ+1·nρ+1
+V)and the number of U
+transitions is O(ρ2·n2ρ+2·nV·(nV+nδ)ρ). Thus, by Proposition 1,Remark 1,Lemma 1, and the above observation we obtain
+the following result.
+Lemma 2. The problem of checking the existence of accepting monotone runs in a B-CRSM Scan be decided in time O (ρ4·n4ρ+4·
+(nV+nδ)2ρ+2).
+
+--- Page 16 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 397
+5.1.2. The nonemptiness problem for Büchi CRSM
+In this part of Section 5.1, we show that the nonemptiness problem for Büchi CRSM can be reduced to check the existence
+of accepting monotone runs. Fix a B-CRSM S= /angbracketleft(S1,..., Sk),start,F,PF,Psync/angbracketright. First, we informally describe the reduction,
+and then we give the technical details. Our approach is a generalization of that used in [ 1,3] to reduce nonemptiness of
+generalized Büchi RSM to nonemptiness of ordinary generalized Büchi finite-state automata.
+As in [ 1], the reduction algorithm proceeds in two phases. In the first phase, for each module SiofS, we compute for every
+callv=(b,e1,..., en)and matching return v/prime=(b,x1,..., xn), whether there is a path in the global labeled transition
+system KSstarting from /angbracketleftv/angbracketrightand leading to /angbracketleftv/prime/angbracketright, and if so whether for each Büchi component Fi∈F, there is an Fi-accepting
+path from/angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketright, i.e. a path from /angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketrightsuch that every linear path starting from the unique local state associated
+with/angbracketleftv/angbracketrightvisits some vertex in Fi(generalized reachability problem ). This involves to solve reachability in AND-OR graphs and
+takes time singly-exponential in rank(S). Then, in the second phase, we keep track of the information computed in the first
+phase by augmenting the B-CRSM Swith ‘‘summary edges" to indicate reachability from calls vto matching returns v/prime, and
+if it is possible to get from /angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketrightby an Fi-accepting path for any component Fi∈F. Thus, we obtain a B-CRSM S/primesuch
+that for each node uofS,Shas an accepting run starting from /angbracketleftu/angbracketrightiffS/primehas an accepting monotone run starting from /angbracketleftu/angbracketright.
+Now, we describe in detail the reduction algorithm.
+Generalized reachability problem. ForF⊆V, afinite path of KS,π=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript0,/lscript/prime
+0)− →...qn(with qi=(ti,Di)for all
+0≤i≤n, and t0= {ε}) isF-accepting iffπsatisfies the synchronized acceptance condition Psyncand all the linear paths
+ofπstarting from the local state (0,ε)contain occurrences of local states (i,z)such that Di(z)∈F. For a box b∈B, we say
+thatπis ab-path ifDi(ε)=bfor all 1 ≤i≤n−1.
+•Thegeneralized reachability problem can be formulated as follows: given a call v=(b,e1,..., em)and a matching return
+v/prime=(b,x1,..., xm), is there an F-accepting b-path starting from /angbracketleftv/angbracketrightand leading to /angbracketleftv/prime/angbracketright?
+For a box bofSwith Y(b)=i1...im, the synchronous product of the sequence of machines that refine bisAb=
+/angbracketleftVb,V0
+b,∆b/angbracketrightwhere Vb=Vi1×· · ·× Vim,V0
+b= {(e1,..., em)∈Eni1×· · ·× Enim|for all 1 ≤j≤m,Psync(ej,{e1,..., em}\{ej})
+holds}, and∆b⊆Vb×Vbis such that((u1,..., um),(v 1,...,v m))∈∆biffthere areσ∈Σand distinct indexes
+k1,..., kp∈ {1,..., m}such that p=1 ifσ /∈Σsand for each 1 ≤j≤m, the following holds: if j/∈ {k1,..., kp},
+thenvj=ujandσis not a synchronization symbol of the module associated with uj; ifj∈ {k1,..., kp}, thenvj∈δ(uj,σ)
+and Psync(vj,{v1,...,v m} \ {vj})holds.
+Forv=(v0,...,v m)∈Vb, we write /angbracketleftv/angbracketrightbfor the (global) state of Sgiven by(t,D)where t= {ε,0,..., m},D(ε)=b,
+and D(j)=vjfor all 0 ≤j≤m.
+To solve the generalized reachability problem for a given set F⊆V, we inductively define for each box b∈B, a set
+RF
+b⊆V0
+b×Vb× {0,1}mwhere m= |Y(b)|. The intended meaning is: for u=(e1,..., em)∈V0
+bandv=(v1,...,v m)∈Vb,
+(u,v,acc 1,..., acc m)∈RF
+biff there is a b-pathπfrom/angbracketleftu/angbracketrightbto/angbracketleftv/angbracketrightbsuch thatπsatisfies the synchronized acceptance
+condition Psyncand for each 1 ≤j≤mwith acc j=1, all the linear paths of πstarting from the local state (0,j−1)
+(corresponding to the entry ej) visit some vertex in F(note that each of these linear paths terminates in a local state labeled
+byvj).
+The set RF
+bis defined by the following rules:
+1.(x,x,acc 1,..., acc m)∈RF
+bif
+x=(e1,..., em)∈V0
+band for 1 ≤j≤m,acc j=1 iff ej∈F;
+2.(x,u,acc/prime
+1,..., acc/prime
+m)∈RF
+bif
+(x,w, acc 1,..., acc m)∈RF
+b,u=(u1,..., um)∈Vb,w∈Vb,(w,u)∈∆b, and for 1 ≤j≤m:acc/prime
+j=1 if either acc j=1
+oruj∈F, and acc/prime
+j=0 otherwise.
+3.(x,(u1,..., um),acc/prime
+1,..., acc/prime
+m)∈RF
+bif
+(x,(w 1,...,w m),acc 1,..., acc m)∈RF
+band there is 1 ≤j≤msuch thatwj=(bj,ej
+1,..., ej
+mj)∈Calls ,
+uj=(bj,xj
+1,..., xj
+mj)∈Retns , for each h/negationslash=j,wh=uhand acc/prime
+h=acc h, and Psync(uj,{u1,..., um} \ { uj}),
+((ej
+1,..., ej
+mj),(xj
+1,..., xj
+mj),accj
+1,..., accj
+mj)∈RF
+bj, and
+acc/prime
+j=/braceleftbigg
+1 if either acc j=1or u j∈F or accj
+h=1 for all 1 ≤h≤mj
+0 otherwise .
+Forx=(e1,..., em)∈V0
+b, Rule 1 says that /angbracketleftx/angbracketrightbcan reach itself by a null path πand clearly, for all 1 ≤j≤m, all linear
+paths ofπfrom the local state (0,j−1)ofπvisit Fiffej∈F. Rule 2 manages internal moves. If there is a b-pathπfrom
+/angbracketleftx/angbracketrightbto/angbracketleftw/angbracketrightbsatisfying Psyncandwcan reach u=(u1,..., um)∈Vbby an internal move (which is consistent with Psync),
+then there is a b-pathπ/primefrom/angbracketleftx/angbracketrightbto/angbracketleftu/angbracketrightbsatisfying Psyncand, for all 1 ≤j≤m, all linear paths of π/primestarting from the local
+state(0,j−1)visit Fiff either the same holds for πoruj∈F. Finally, Rule 3 handles module calls. If there is a b-pathπ
+from/angbracketleftx/angbracketrightbto/angbracketleft(w1,...,w m)/angbracketrightbsatisfying Psyncand there is 1 ≤j≤msuch thatwj=(bj,ej
+1,..., ej
+mj)∈Calls , then there is
+ab-pathπ/primefrom/angbracketleftx/angbracketrightbto/angbracketleft(u1,..., um)/angbracketrightbsatisfying Psyncprovided that uh=whforh/negationslash=j,uj=(bj,xj
+1,..., xj
+mj)is a return
+
+--- Page 17 ---
+398 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+that matches the call wj, the synchronized acceptance condition Psync(uj,{u1,..., um} \ { uj})holds, and there is a bj-path
+πjfrom/angbracketleft(ej
+1,..., ej
+mj)/angbracketrightbjto/angbracketleft(xj
+1,..., xj
+mj)/angbracketrightbjsatisfying Psync. Clearly, all linear paths of π/primestarting from (0,j−1)visit Fiff
+either the same holds for πoruj∈Forπjis an F-accepting path. Thus, by construction we obtain the following result for a
+given callv=(b,e1,..., em)and matching return v/prime=(b,x1,..., xm).
+Lemma 3. There is a b-path πfrom/angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketrightsatisfying Psync iff(e1,..., em)∈V0
+band((e1,..., em),(x1,..., xm),
+acc 1,..., acc m)∈RF
+bfor some acc 1,..., acc m. Also,πis F-accepting iff either {v,v/prime} ∩F/negationslash= ∅ or acc j=1for all 1≤j≤m.
+Each set RF
+bcan be constructed effectively (by a standard iterative least fixed point construction) using the above rules.
+The construction can be optimized computing such sets via reachability analysis over an AND-OR graph (as in [ 1]). Denoting
+ρ=rank(S), with nVthe number of vertices and with nδthe number of transitions of the B-CRSM S, such a graph has
+O(2ρ·nρ+2
+V)vertices and O(nV·2ρ·(nρ
+δ+ρ·2ρ·nρ+1
+V))edges. Thus, we obtain the following result.
+Lemma 4 (Generalized Reachability Problem ).Given F ⊆V , the set of pairs (v,v/prime)such thatv=(b,e1,..., em)is a
+call,v/prime=(b,x1,..., xm)is a matching return, and there is an F-accepting b-path from /angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketright, iscomputable in time
+O(n2
+V·4ρ·(nV+nδ)ρ).
+Now, we show how to solve the nonemptiness problem for B-CRSM using the results stated by Lemmata 2and4. Starting
+from the B-CRSM SwithF= {F1,..., Fn}, we construct a new B-CRSM S/primesuch that nonemptiness for Sis reduced to check
+the existence of accepting monotone runs in S/prime.
+S/prime= /angbracketleft(S/prime
+1,..., S/prime
+k),start,F/prime,P/prime
+f,P/prime
+sync/angbracketright, with F/prime= {F/prime
+1,..., F/prime
+n}, is defined as follows. For 1 ≤i≤k,S/prime
+iis obtained
+extending the set of nodes and the transition function of Sias follows. For any call v=(b,e1,..., em)ofSiand matching
+returnv/prime=(b,x1,..., xm)such that there is a V-accepting b-path in Sfrom/angbracketleftv/angbracketrightto/angbracketleftv/prime/angbracketright, we add two new nodes uc
+newand
+ur
+new, and the edge (uc
+new,⊥,ur
+new), where ⊥is a fresh non-synchronization symbol. We say that uc
+new(resp., ur
+new) isassociated
+with the call v(resp., return v/prime). Moreover, for every edge in Siof the form(u,σ,v) (resp., of the form (v/prime,σ,u)) we add
+inS/prime
+ithe edge(u,σ,uc
+new)(resp., the edge (ur
+new,σ,u)). Also, for 1 ≤i≤n, if there is an Fi-accepting b-path from /angbracketleftv/angbracketrightto
+/angbracketleftv/prime/angbracketright, then we add ur
+newtoF/prime
+i(F/prime
+ialso contains all elements of Fi). Still, ifv/prime∈Pf, then we add ur
+newtoP/prime
+f(P/prime
+falso contains
+all elements of Pf). Note that uc
+new/∈Pf. In fact, if an accepting run of S/primehas a local state labeled by uc
+new, then the linear
+successor of this local state is defined and is labeled by ur
+new. Finally, P/prime
+sync(v/prime
+0,{v/prime
+1,...,v/prime
+m})(with m≤rank(S)) holds iff
+there arev0,...,v m∈Vsuch that Psync(v0,{v1,...,v m})holds and for all 0 ≤j≤m, eitherv/prime
+j=vj, orvjis a return (resp.,
+a call) andv/prime
+jis a ‘‘new" node associated with it. Thus, we obtain the following result.
+Lemma 5. For every node u of S, there is an accepting run in Sfrom/angbracketleftu/angbracketrightiff there is an accepting monotone run inS/primefrom/angbracketleftu/angbracketright.
+Note that the number of new nodes is bounded by 2 n2
+V, the number of new edges is bounded by nV·nδ+n2
+V, and by Lemma 4,
+S/primecan be constructed in time O(|F|·n2
+V·4ρ·(nV+nδ)ρ). Thus, by Lemmata 2and5we obtain the main result of this section.
+Theorem 3. Given a B-CRSM Sand u ∈start, checking the existence of an accepting run of Sfrom/angbracketleftu/angbracketrightcan be decided in time
+O/parenleftbig
+(|F| ·(nV+nδ))O(ρ)/parenrightbig
+.
+5.2. Reduction of model checking to emptiness of Büchi CRSM
+In this section, we decide the model-checking problem of CRSM against ConCaRet using an automata-theoretic approach:
+for a CRSMSand a ConCaRet formulaϕ, we construct a B-CRSM Sϕsuch that Sϕhas an accepting run iff Shas a run that
+satisfiesϕ. More precisely, an accepting run of Sϕcorresponds to a run πofS, where each local state qis equipped with
+the information concerning the set of subformulas of ϕthat hold at qalongπ. The construction proposed here follows and
+extends that given in [ 3] for CaRet .
+First, we describe informally the main aspects of the construction.
+The next modalities are handled similarly as in [ 3]. In particular, for the abstract modalities, we need to ensure that if a
+call(b,e1,..., en)returns and its matching return is (b,x1,..., xn), then denoting with Athe set ofϕsubformulas which
+hold at call(b,e1,..., en), the abstract-next requirements belonging to Aget satisfied at return (b,x1,..., xn). In order
+to satisfy this condition, at the call we keep track of Apushing it onto the local stack along with the box b. For the caller
+modalities, if we are at a call (b,e1,..., en), then a formula /circlecopyrt−ψis true in the ith module being called (for i=1,..., n)
+if and only ifψis true at the call. The caller formulas are hence passed down from the caller to the called modules. For the
+branching modalities, we have to ensure that the existential (resp., universal) next requirements are met in some (in each)
+linear successor of the current local state. This is captured locally in the transitions of Sϕ. Moreover, we use the terminal
+acceptance condition in order to guarantee that forward next formulas cannot be asserted at local states whose set of linear
+successors is empty.
+For the until modalities, the main technical issue is to guarantee the fulfillment of liveness requirements ψ2in until
+subformulas of ϕof the formψ1Ubψ2where b∈ {a,∃,∀}(caller-until formulas do not require such condition since a caller
+path is always finite). This is done using a generalized Büchi condition having an accepting component for each of such
+until subformulas of ϕ. The abstract and universal until formulas are managed as in [ 3]. In particular, if an abstract until
+
+--- Page 18 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 399
+formulaψ1Uaψ2is asserted at a local state (i,y)of the given run of S, its liveness requirement must be met in the abstract
+path rstarting from (i,y). Ifris infinite, then a local state reachable from (i,y)by a linear path is visited by rif and only
+if the associated module instance does not return. Thus, we keep track in a vertex of Sϕwhether the corresponding local
+state of Sbelongs to the invocation of a module that will eventually return or not. Then, for an abstract until formula, the
+associated Büchi accepting component has only vertices corresponding to local states whose associated module instances
+do not return. For the existential until formulas ψ, whenψis asserted at a local state (i,y), we have to ensure that ψis
+satisfied in at least one of the linear paths from (i,y). In order to achieve this and ensure the acceptance of all infinite linear
+paths from(i,y), we use a fresh atomic proposition τψ.
+Finally, parallel formulas are handled by the synchronization predicate.
+Now, we give the details of the construction. Fix a CRSMS= /angbracketleft(S1,..., Sk),start/angbracketright, where Si= /angbracketleftΣi,Σs
+i,Ni,Bi,Yi,Eni,Exi,
+δi,ηi/angbracketright(for 1 ≤i≤k), and a formula ϕover AP. First, we need some notation.
+Theclosure ofϕ, denoted by Cl(ϕ), is the smallest set containing call,ret,int,tt,/circlecopyrt∃tt, propositions τψfor each existential
+until subformula ψofϕ, all subformulas of ϕ,/circlecopyrtb(ψ1Ubψ2)for any subformula ψ1Ubψ2ofϕwith b∈ {a,−,∃,∀}, and the
+negations of all these formulas (we identify ¬¬ψwithψ).
+Note that the size of Cl(ϕ)is linear in the size of ϕ. An atom ofϕis a set A⊆Cl(ϕ)such that tt∈Aand the following
+properties are satisfied:
+•Acontains exactly one of the elements in the set {call,ret,int};
+•for eachψ∈Cl(ϕ),ψ∈Aiff¬ψ /∈A;
+•for eachψ1∧ψ2∈Cl(ϕ),ψ1∧ψ2∈Aiffψ1∈Aandψ2∈A;
+•for eachψ1Ubψ2∈Cl(ϕ), where b∈ {a,−,∃},ψ1Ubψ2∈Aiffeitherψ2∈A,orψ1∈Aand/circlecopyrtb(ψ1Ubψ2)∈A;
+•for eachψ1U∀ψ2∈Cl(ϕ),ψ1U∀ψ2∈Aiffeitherψ2∈A,orψ1∈A,/circlecopyrt∀(ψ1U∀ψ2)∈A, and/circlecopyrt∃tt∈A.
+LetAtoms(ϕ)be the set of atoms of ϕ. Note that |Atoms(ϕ)|is 2O(|ϕ|). Intuitively, an atom of ϕrepresents a maximal set of
+formulas in Cl(ϕ)that can consistently hold at a local state of a run of S. We say that an atom Aisconsistent with a vertex
+vofSifη(v)∩Cl(ϕ)=A∩APand, further: if vis a node then int∈A, ifvis a call then call∈A, and ifvis a return then
+ret∈A.
+For an atom A, we denote by CallerForm(A)the set {/circlecopyrt−ψ| /circlecopyrt−ψ∈A}. Moreover, for atoms Aand A/prime, we define
+a predicate AbsNextReq(A,A/prime)that holds iff for each /circlecopyrtaψ∈Cl(ϕ),/circlecopyrtaψ∈Aiffψ∈A/prime(i.e. the abstract-next
+requirements in Aare exactly the ones that hold in A/prime). Similarly, we define predicates ∀NextReq(A,{A1,..., An})and
+∃NextReq(A,{A1,..., An}), where Ais an atom and {A1,..., An}is a set of atoms. Predicate ∀NextReq(A,{A1,..., An})
+holds iff: for each /circlecopyrt∀ψ∈Cl(ϕ),/circlecopyrt∀ψ∈Aiffψ∈/intersectiontexti=n
+i=1Ai. Predicate ∃NextReq(A,{A1,..., An})holds iff: (i) for each
+/circlecopyrt∃ψ∈Cl(ϕ),/circlecopyrt∃ψ∈Aiffψ∈/uniontexti=n
+i=1Ai, and (ii) for each ψ∈Aof the formψ1U∃ψ2, ifψ2/∈Athen there is 1 ≤h≤n
+such thatψ∈Ahandτψ∈Ah\/uniontext
+i/negationslash=hAi(nondeterministic path selection ).
+The B-CRSM Sϕis given by /angbracketleft(S/prime
+1,..., S/prime
+k),start/prime,F,Pf,Psync/angbracketright, where for each 1 ≤ i≤ k,S/prime
+i= /angbracketleftΣi,Σs
+i,
+N/prime
+i,B/prime
+i,Y/prime
+i,En/prime
+i,Ex/prime
+i,δ/prime
+i,η/prime
+i/angbracketright, and is defined in detail in the following.
+For each node uinSi,S/prime
+icontains nodes of the form (u,A,tag), where Ais an atom giving the set of formulas that hold at
+uand tagis a flag set to finiff the local run in the current activation IofSileads to an exit node of Iwhose linear successor is
+defined (return from I), and set to infotherwise. Similarly, for every box binSi,S/prime
+icontains boxes of the form (b,A,R,tag),
+where AandRare atoms, and tag∈ {inf,fin}. Intuitively, Acontains formulas that hold at calls (b,e1,..., en)andRcontains
+formulas that hold at matching returns (b,x1,..., xn). Formally:
+•N/prime
+i= {(u,A,tag)∈Ni×Atoms(ϕ)× {fin,inf} |Ais consistent with u};
+•B/prime
+i=Bi×Atoms(ϕ)×Atoms(ϕ)× {fin,inf};Y/prime
+i((b,A,R,tag))=Yi(b);
+•En/prime
+i= {(e,A,tag)∈N/prime
+i|e∈Eni};Ex/prime
+i= {(x,A,tag)∈N/prime
+i|x∈Exi};
+•η/prime
+i((u,A,tag))=ηi(u);
+η/prime
+i(((b,A,R,tag),(u1,A1,tag1),...,( un,An,tag n)))=ηi((b,u1,..., un)).
+To define the transition function δ/prime
+iwe introduce some notation. For a vertex/box vofSϕ,Pr(v)denotes the corresponding
+vertex/box in S, while Tag(v)denotes the tag-component of the associated box, if vis a call/return, and the tag-component
+ofvotherwise. For a node v=(u,A,tag),Atom(v)denotes A, and for a call (resp. return) vwith box(b,A,R,tag),Atom(v)
+denotes A(resp., R). A callv=((b,A,R,tag),(e1,A1,tag1),...,( en,An,tag n))iswell defined iff:
+•Ais consistent with Pr(v),CallerForm(Aj)= {/circlecopyrt−ψ∈Cl(ϕ)|ψ∈A}for 1≤j≤n, and∀NextReq(A,{A1,..., An})and
+∃NextReq(A,{A1,..., An})hold.
+•Iftag j=inffor some 1 ≤j≤n, then tag=infand there is no formula of the form /circlecopyrtaψinA; otherwise, AbsNextReq(A,R)
+holds and CallerForm(A)=CallerForm(R).
+Note that the rules given above conform to the interpretation that Acorresponds to the set of formulas true at call vand
+A1,..., Anare the sets of formulas true respectively at the next vertices (the linear successors) which correspond to the
+entries e1,..., en. Consistently, the call returns (i.e. its abstract successor is defined) iff tag j=finfor all 1 ≤j≤n. In this
+case, Ris the set of formulas true at the return, and we require that the abstract-next requirements in Aare met in Rand the
+caller formulas of Aand Rcoincide.
+
+--- Page 19 ---
+400 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+We say that a return v=((b,A,R,tag),(x1,A1,tag1),...,( xn,An,tag n))iswell defined ifRis consistent with Pr(v)and
+for each 1 ≤j≤n,tag j=fin,Ajdoes not contain formulas of the form /circlecopyrtaψ, and∀NextReq(Aj,{R})and∃NextReq(Aj,{R})
+hold.
+Now, we define the transition function δ/prime
+i: we have that v/prime∈δ/prime
+i(v,σ) iff the following holds (we write AandA/primeforAtom(v)
+and Atom(v/prime), respectively):
+•Pr(v/prime)∈δi(Pr(v),σ) and Tag(v)=Tag(v/prime);
+•AbsNextReq(A,A/prime),∀NextReq(A,{A/prime}), and∃NextReq(A,{A/prime})hold, and CallerForm(A)=CallerForm(A/prime);
+•ifv(resp.,v/prime) is a return (resp., a call), then v(resp.,v/prime) is well defined.
+The rest of the construction of Sϕis as follows. The set of initial nodes start/primeis the set of nodes (u,A,tag)such that
+u∈start ,tag=inf,ϕ∈A,CallerForm(A)= ∅, and A⊇ {/bardblψ∈Cl(ϕ)}.
+The generalized Büchi condition Fis given by the following sets:
+•the set of all vertices vsuch that Tag(v)=inf;
+•for each formula ψ1U∀ψ2∈Cl(ϕ), the set of all vertices vsuch that either ψ2∈Atom(v)orψ1U∀ϕ2/∈Atom(v);
+•for each formula ψ∈Cl(ϕ)of the formψ1U∃ψ2, the set of all vertices vsuch that orψ2∈Atom(v)orψ1U∃ψ2/∈
+Atom(v)orτψ/∈Atom(v);
+•for each formula ψ1Uaψ2∈Cl(ϕ), the set of all vertices vsuch that Tag(v)=inf, and eitherψ2∈Atom(v)or
+ψ1Uaψ2/∈Atom(v).
+The first set ensures that the tags are guessed correctly. The second class of sets ensures that when a formula ψ1U∀ψ2is
+asserted at a vertex u, then for every linear path from u,ψ2is eventually satisfied. The third class of sets ensures that when
+a formulaψof the formψ1U∃ψ2is asserted at a vertex u, the linear path from umarked byτψeventually satisfies ψ2. The
+last class of sets ensures that the liveness requirements in abstract-until formulas, asserted at vertices where the abstract
+path is infinite, get eventually satisfied.
+The terminal acceptance set PFis the set of vertices vofSϕsuch that tag(v)=inf,Atom(v)does notcontain formulas
+of the form /circlecopyrtaϕ/prime,/circlecopyrt∃ϕ/prime,¬/circlecopyrt∀ϕ/prime, and ifvis a return (resp., a call), then it is well defined.
+Finally, the synchronized acceptance condition Psyncis used to handle parallel formulas. If a module instance Iis one of
+the targets of the current move of Sand Ais the set of formulas currently asserted at I, then, consistently with the semantics
+of the parallel modality, we require that for each parallel formula /bardblψ∈Cl(ϕ),/bardblψ∈Aiff for each module instance Jin
+parallel with I(i.e., sibling of I) the following holds: if Jis not busy in a module call, then Jhas to satisfy ψfrom the current
+vertex; otherwise, Jhas to satisfy ψfrom the call vertex associated with the current module call of J.
+Therefore, Psyncis defined as follows. For each vertex vand each set of vertices HofSϕwith|H| ≤rank(S),Psync(v,H)
+holds iff for each /bardblψ∈Cl(ϕ):/bardblψ∈Atom(v)ifffor eachv/prime∈H,ψ∈Atom(v/prime). Note that Hcan be empty.
+Correctness of the construction. We extend the function Prto the set of global states q=(t,D)ofSϕas follows:
+Pr(q)=(t,D/prime)where for each y∈t,D/prime(y)=Pr(D(y))(note that Pr(q)is a global state of S). Let/tildewideCl(ϕ)=Cl(ϕ)\ {τψ,¬τψ|
+ψ=ψ1U∃ψ2∈Cl(ϕ)}(i.e.,/tildewideCl(ϕ)is obtained from Cl(ϕ)by removing all the fresh propositions associated with the
+existential until formulas). Correctness of the construction is stated by the following two lemmata whose proofs are reported
+in the Appendix A.
+Lemma 6. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be an accepting run of Sϕwith q i=(ti,Di)for every i ≥0and D 0(ε)∈start/prime. Then,
+π/prime=Pr(q0)(/lscript0,/lscript/prime
+0)− → Pr(q1)(/lscript1,/lscript/prime
+1)− → Pr(q2)... is a run of S, and for every local state (i,y)∈Qπ/primeandψ∈Atom(Di(y))∩/tildewideCl(ϕ), it
+holds that(i,y)| =π/primeψ.
+Lemma 7. Letπbe a run of Sstarting from /angbracketleftv/angbracketrightwithv∈start and satisfying ϕ. Then, there is an accepting run of Sϕstarting
+from a state /angbracketleftv/prime/angbracketrightwithv/prime∈start/primeand Pr(v/prime)=v.
+By Lemmata 6and7it follows that for every v∈start , there is a run of Sstarting from /angbracketleftv/angbracketrightand satisfying ϕif and only if
+there is an accepting run of Sϕstarting from a state /angbracketleftv/prime/angbracketrightwithv/prime∈start/primeand Pr(v/prime)=v. Thus, the model-checking problem
+ofSagainstϕis reduced to check emptiness for the Büchi CRSMS¬ϕ(associated with the negation of ϕ). In the proposed
+construction, for every vertex/edge in S, we have 2O(|ϕ|·rank(S))vertices/edges in Sϕ. Also, the number of accepting sets in the
+generalized Büchi condition is at most O(|ϕ|)and rank(Sϕ)=rank(S). For rank(S)=1, the considered problem coincides
+with the model-checking problem of RSM against CaRet that is Exptime -complete (even for a fixed RSM). Therefore, by
+Theorem 3, we obtain the following result.
+Theorem 4. For a CRSMSand a formula ϕofConCaRet , the model-checking problem for Sagainstϕcan be decided in time
+exponential in |ϕ| ·(rank(S))2. The problem is Exptime -complete(even when the CRSM is fixed).
+Let us consider the fragment Υof global LTLdefined in Section 4.4. As a consequence of Theorems 2and4, we obtain the
+following.
+Corollary 1. The model-checking problem of CRSM against the fragment Υof global LTLis decidable in Exptime .
+
+--- Page 20 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 401
+6. Conclusion
+In this paper, we have introduced a model for concurrent programs with recursive procedural calls and a temporal logic
+which allows us to express properties on threads running in parallel. To achieve decidability we have placed a restriction in
+the model on the capability of threads to synchronize (only threads activated on the same fork and which are not waiting for
+a return from a parallel procedure call can synchronize) and removed the global operators from our logic. Nevertheless, we
+have argued that the obtained formalisms are still interesting by showing that we can check interesting properties locally
+to each parallel thread and globally on the whole computation.
+We observe that the notions of local successor, which we have defined to deal with local properties of runs, can be also
+given for term rewriting systems such as ground tree rewriting systems and process rewrite systems in which the global
+states (terms) represent finite trees. However, we argue that CRSM allow a more intuitive formalization of these notions
+since they provide an explicit representation of modularity.
+Finally, we remark that our results can be applied to infinite-state formalisms such as ground tree rewriting systems and
+parallel flow graphs which can be effectively translated into CRSM .
+Appendix A
+A.1. Proof of Lemma 6
+In order to prove Lemma 6, we need the following preliminary result.
+Proposition 2. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be an accepting run of Sϕwith q i=(ti,Di)for every i ≥0and D 0(ε)∈start/prime.
+Then, for every (i,y)∈Qπ:
+1.if nexta
+π(i,y)= ⊥ , then Atom(Di(y))does not contain formulas having the form /circlecopyrtaψ;
+2.if nexta
+π(i,y)=(j,y), then AbsNextReq (Atom(Di(y)),Atom(Dj(y)));
+3.if the abstract path (i0,y)(i1,y)... ofπstarting from (i,y)is infinite, then for every ψ1Uaψ2∈Cl(ϕ), the set {h∈N|
+{¬(ψ1Uaϕ2),ψ 2} ∩Atom(Dih(y))/negationslash= ∅} is infinite.
+Proof. In order to prove the proposition, first we prove two claims. The first claim directly follows from the definition of
+the transition function of Sϕ.
+Claim 1. If(i,y)∈Qπand nexta
+π(i,y)=(j,y), then Tag(Di(y))=Tag(Dj(y)).
+Claim 2. If(i,y)∈Qπand D i(y)=((b,A,R,tag),(e1,A1,tag1),...,( en,An,tag n))is a call vertex, then nexta
+π(i,y)= ⊥ iff
+tag j=inf for some 1≤j≤n.
+Proof of the claim. First, assume that nexta
+π(i,y)= ⊥ . Let r=(i0,y0)(i1,y1)... be a linear path of πsuch that(i0,y0)=
+(i,y). Evidently, Di1(y1)=(ej,Aj,tag j)for some 1 ≤j≤n. Since nexta
+π(i,y)= ⊥ , it holds that yh/followsy0for all 1 ≤h<|r|.
+Sinceπis accepting, we deduce that there exists 1 ≤m<|r|such that Tag(Dim(ym))=inf. We prove that tag j=infby
+induction on m. Ifm=1, then the claim holds. Now, assume that m>1. IfDjm−1(ym−1)is a call vertex, then since such a call
+vertex is well defined, we deduce that Tag(Djm−1(ym−1))=inf. Therefore, in this case the claim follows from the induction
+hypothesis. If instead Djm−1(ym−1)isnota call vertex, then since ym/followsy0, it easily follows that there is 0 <h<msuch
+that nexta
+π(ih,yh)=(im,ym). Then, in this case the claim follows from Claim 1and the induction hypothesis. Thus, the right
+implication in Claim 2holds.
+Now, assume that tag j=inffor some 1 ≤j≤n. Evidently, there is a linear path of π,r=(i0,y0)(i1,y1)... such
+that(i,y)=(i0,y0),Di1(y1)=(ej,Aj,tag j), and y1/followsy0. We claim that nexta
+π(i,y)= ⊥ . Assume on the contrary that
+nexta
+π(i,y)/negationslash= ⊥ and derive a contradiction. Then, there exists 1 <m<|r|such that(im,ym)=nexta
+π(i,y). Note that
+ym=yand Dim(ym)corresponds to the matching return of Di(y). Moreover, Dim−1(ym−1)is an exit node. Since Dim(ym)is
+well defined, it follows that Tag(Dim−1(ym−1))=finand the abstract path of πstarting from (i1,y1)is finite and leads to
+(im−1,ym−1). Therefore, by Claim 1it follows that tag j=Tag(Di1(y1))=fin, which is a contradiction. This concludes the
+proof of Claim 2./square
+Now, we prove the proposition.
+1.Letnexta
+π(i,y)= ⊥ . Ifnext/lscript
+π(i,y)= ∅ , then, sinceπsatisfies the terminal acceptance condition PF, by def. of PF,
+Property 1 holds. Now, assume that next/lscript
+π(i,y)/negationslash= ∅. Then, either Di(y)is an exit node or Di(y)is a call vertex. In the first
+case, next/lscript
+π(i,y)/negationslash= ∅ corresponds to a return vertex, which is well defined. Thus, in this case Property 1 holds. In the
+second case, Di(y)is a call of the form ((b,A,R,tag),(e1,A1,tag1),...( en,An,tag n)). ByClaim 2there is 1 ≤j≤nsuch
+that tag j=inf. Since Di(y)is well defined, Property 1 holds also in this case.
+2.Letnexta
+π(i,y)=(j,y). IfDi(y)is not a call, then, Property 2 directly follows from the definition of the transition function
+ofSϕ. Now, assume that Di(y)is a call. Since nexta
+π(i,y)=(j,y), it follows that Dj(y)is a return vertex and the box
+associated with Dj(y)is the same as that associated with Di(y). Therefore, Di(y)has the form((b,A,R,tag),(e1,A1,tag1),
+...,( en,An,tag n)),Atom(Di(y))=A, and Atom(Dj(y))=R. ByClaim 2,tag j=finfor each 1 ≤j≤n. Thus, since Di(y)is
+well defined, Property 2 holds.
+
+--- Page 21 ---
+402 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+3.Letψ1Uaψ2∈Cl(ϕ)and r=(i0,y)(i1,y)... be an infinite abstract path of π. Let us consider a linear path r/prime=
+(j0,z0)(j1,z1)... ofπstarting from (i0,y)(i.e.,(j0,z0)=(i0,y)). Evidently, ris a subsequence of r/prime, i.e. there is a
+monotone sequence of integers (kn)n∈Nsuch that k0=0, and, for every n∈N,(jkn,zkn)=(in,y). Let n,h∈Nsuch
+that kn<h<kn+1. Evidently, the abstract path of πstarting from (jh,zh)is finite and leads to an exit node whose linear
+successor is defined and is a return vertex, which is well defined. Therefore, by Claim 1it follows that Tag(Djh(zh))=fin.
+Then, Property 3 directly follows from the definition of the generalized Büchi acceptance condition Fand the fact that
+πis accepting. /square
+Now, we can prove Lemma 6.
+Lemma 6. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be an accepting run of Sϕwith q i=(ti,Di)for every i ≥0and D 0(ε)∈start/prime. Then,
+π/prime=Pr(q0)(/lscript0,/lscript/prime
+0)− → Pr(q1)(/lscript1,/lscript/prime
+1)− → Pr(q2)... is a run of S, and for every local state (i,y)∈Qπ/primeandψ∈Atom(Di(y))∩/tildewideCl(ϕ), it
+holds that(i,y)| =π/primeψ.
+Proof. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2...be an accepting run of Sϕwith qi=(ti,Di)for every i≥0. Let us consider the infinite
+sequenceπ/prime=Pr(q0)(/lscript0,/lscript/prime
+0)− → Pr(q1)(/lscript1,/lscript/prime
+1)− → Pr(q2)... . By definition of the transition function of Sϕ, it easily follows that π/prime
+is a run of S. Now, let(i,y)∈Qπ/primebe any local state of π/prime. In order to complete the proof it suffices to prove the following
+claim.
+Claim. for eachψ∈/tildewideCl(ϕ),(i,y)| =π/primeψif and only ifψ∈Atom(Di(y)).
+Proof of the claim. The proof is by structural induction on ψ. By construction we have that Atom(Di(y))is consistent with
+Pr(Di(y)). Thus, for the case in which ψis an atomic proposition, the claim holds. The cases concerning boolean connectives
+easily follow from the induction hypothesis. It remains to analyze the cases related to the temporal operators. Here, we
+consider the most relevant ones (the other ones are similar or easier).
+•ψ=ψ1Uaψ2. Let r=(i0,y)(i1,y)... be the abstract path of π/primestarting from (i,y). Note that ris also the abstract path
+ofπstarting from (i,y).
+(i,y)| =π/primeψ1Uaψ2/arrowtriplerightψ1Uaψ2∈Atom(Di(y)). Assume that (i,y)| =π/primeψ1Uaψ2. Then, there is h≥0 such that
+(ih,y)| =π/primeψ2and for all 0 ≤j<h,(ij,y)| =π/primeψ1. By the induction hypothesis, it follows that ψ2∈Atom(Dih(y))and
+for all 0 ≤j<h,ψ1∈Atom(Dij(y)). By definition of atom and Proposition 2(2), it follows that ψ1Uaψ2∈Atom(Dij(y))
+for all 0 ≤j≤h. Since i=i0, the implication above holds.
+ψ1Uaψ2∈Atom(Di(y))/arrowtripleright(i,y)| =π/primeψ1Uaψ2. Letψ1Uaψ2∈Atom(Di(y)). Assume that the abstract path ris infinite
+(the other case being easier). By definition of atom and Proposition 2(2), it follows that either (1) there is h≥0 such that
+ψ2∈Atom(Dih(y))and for all 0 ≤j<h,ψ1∈Atom(Dij(y)),or(2) for all h≥0,{¬ψ2,ψ1Uaψ2} ⊆ Atom(Dih(y)). By
+Proposition 2(3), condition (2) cannot hold. Then, by the induction hypothesis, it follows that (ih,y)| =π/primeψ2and for all
+0≤j<h,(ij,y)| =π/primeψ1. Hence,(i,y)| =π/primeψ1Uaψ2. Thus, the implication above holds.
+•ψ=ψ1U∃ψ2.
+(i,y)| =π/primeψ1U∃ψ2/arrowtriplerightψ1U∃ψ2∈Atom(Di(y)). Let(i,y)| =π/primeψ1U∃ψ2. Then, there is a linear path rofπ/primeof the form
+r=(i0,y0)(i1,y1)... such that(i0,y0)=(i,y)and for some h≥0,(ih,yh)| =π/primeψ2and(ij,yj)| =π/primeψ1for all 0 ≤j<h.
+By the induction hypothesis, it follows that ψ2∈Atom(Dih(yh))and for all 0 ≤j<h,ψ1∈Atom(Dij(yj)). Since ris also
+a linear path of πand every call or return vertex along πis well defined, by the definition of the transition function of
+Sψ, the definition of atom, and the definition of the predicate ∃NextReq , it follows that ψ1U∃ψ2∈Atom(Dij(yj))for all
+0≤j≤h. Since(i,y)=(i0,y0), the implication above holds.
+ψ1U∃ψ2∈Atom(Di(y))/arrowtripleright(i,y)| =π/primeψ1U∃ψ2. Letψ=ψ1U∃ψ2∈Atom(Di(y)). Since every call or return vertex along
+πis well defined, by the definition of the transition function of Sψ, the terminal acceptance PF, the definition of atom, and
+the definition of the predicate ∃NextReq , it follows that there is a linear path rofπof the form r=(i0,y0),(i1,y1)... such
+that(i,y)=(i0,y0)and either (1) there is h≥0 such thatψ2∈Atom(Dih(yh))and for all 0 ≤j<h,ψ1∈Atom(Dij(yj)),
+or(2)ris infinite and for all h≥0,{¬ψ2,ψ1U∃ψ2,τψ} ⊆ Atom(Dih(yh)). Sinceπsatisfies the generalized Büchi
+condition F, condition (2) cannot hold. Then, by the induction hypothesis, it follows that (ih,yh)| =π/primeψ2and for all
+0≤j<h,(ij,yj)| =π/primeψ1. Since ris also a linear path of π/primestarting from (i,y), it follows that (i,y)| =π/primeψ1U∃ψ2. Thus,
+the implication above holds.
+•ψ= /bardblψ/prime. Let h=min{j≤i|next/lscript
+π/prime(j,y)=next/lscript
+π/prime(i,y)}. Assume that h/negationslash=0 (the other case being trivial). Then, it holds
+that Dh(y)=Di(y)andy∈/lscript/prime
+h−1. By the semantics of ConCaRet ,(i,y)| =π/prime/bardblψ/primeif and only if for all y/prime∈siblings(th,y)\{y},
+(h,y/prime)| =π/primeψ/primeif(h,y/prime)is a local state, and callπ/prime(h,y/prime)| =π/primeψ/primeotherwise. By the induction hypothesis, it follows that
+(i,y)| =π/prime/bardblψ/primeif and only if for all y/prime∈siblings(th,y)\ {y},ψ/prime∈Atom(v(h,y/prime)), wherev(h,y/prime)is defined as follows: if
+(h,y/prime)is a local state, then v(h,y/prime)=Dh(y/prime); otherwise,v(h,y/prime)=Dm(y/prime)where(m,y/prime)=callπ/prime(h,y/prime). Since y∈/lscript/prime
+h−1
+andπsatisfies the synchronized acceptance condition Psync, by def. Psyncit follows that (i,y)| =π/prime/bardblψ/primeif and only if
+/bardblψ/prime∈Atom(Dh(y))=Atom(Di(y)). Thus, also in this case the claim holds.
+This concludes the proof of the claim. /square
+
+--- Page 22 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 403
+A.2. Proof of Lemma 7
+In order to prove Lemma 7, we need additional definitions and simple results stated by the following Propositions 3–5.
+In the following we fix a run of S,π=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2..., where qi=(ti,Di)for each i≥0. For each existential
+until formula ψ=ψ1U∃ψ2∈Cl(ϕ), we define a mapping Iψ:Qπ→Nassociating an index to every local state (i,y)ofπ
+as follows:
+•if(i,y)| =π¬ψ, then Iψ(i,y)=0,
+•otherwise, Iψ(i,y)is the smallest h such that there is a linear path of πfrom(i,y)of the form(i0,y0)...( ih,yh)... such
+that(ih,yh)| =ψ2.
+Furthermore, we denote by Aπ:Qπ→Atoms(ϕ)a mapping satisfying the following properties for all local states
+(i,y)∈Qπ:
+1.Aπ(i,y)∩/tildewideCl(ϕ)= {ψ∈/tildewideCl(ϕ)|(i,y)| =πψ},
+2.for everyψ=ψ1U∃ψ2∈Cl(ϕ), if(i,y)| =πψ∧ ¬ψ2and next/lscript
+π(i,y)= {(h,z1),...,( h,zp))} /negationslash= ∅ , then there is
+1≤m≤psuch that(h,zm)| =ψ,Iψ(h,zm)=Iψ(i,y)−1 andτψ∈Aπ(h,zm)\/uniontext
+j/negationslash=mAπ(h,zj)(minimal path selection ),
+3.for each(j,y)∈Qπsuch that next/lscript
+π(j,y)=next/lscript
+π(i,y),Aπ(j,y)=Aπ(i,y).
+By the semantics of ConCaRet , for eachψ∈/tildewideCl(ϕ)and pair of local states (i,y),(j,y)such that next/lscript
+π(j,y)=next/lscript
+π(i,y),
+it holds that(j,y)| =πψiff(i,y)| =πψ. Moreover, if ψis an existential until formula, then Iψ(j,y)=Iψ(i,y). Therefore, a
+mapping satisfying Conditions 1, 2, and 3 exists. Intuitively, Aπ(i,y)contains all and only the formulas in /tildewideCl(ϕ)which are
+fulfilled at(i,y)alongπ. In addition, for each local state (i,y)satisfying an until existential formula ψ, we keep track by
+propositionτψof a ‘‘minimal" linear path starting from (i,y)satisfyingψ.
+Finally, letτπ:Qπ→ { inf,fin}be the mapping defined as: for each local state (i,y),τπ(i,y)=infiff the abstract path
+ofπfrom(i,y)either is infinite, or leads to a local state (j,y)such that either Dj(y)∈Calls ornext/lscript
+π(j,y)= ∅.
+Proposition 3. Let r =(i0,y0)(i1,y1)... be an infinite linear path of πandψ=ψ1U∃ψ2∈Cl(ϕ). Then, the set
+{h∈N| {¬ψ,ψ 2,¬τψ} ∩Aπ(ih,yh)/negationslash= ∅} is infinite.
+Proof. Assume on the contrary that the set {h∈N| {¬ψ,ψ 2,¬τψ} ∩Aπ(ih,yh)/negationslash= ∅} is finite and derive a contradiction.
+Then there is h≥0 such that for all j≥h,{ψ,¬ψ2,τψ} ⊆Aπ(ij,yj)or, equivalently, (ij,yj)| =πψ∧ ¬ψ2and
+τψ∈Aπ(ij,yj). By Condition 2 in the definition of Aπ, it follows that for each j>h,Iψ(ij+1,yj+1)=Iψ(ij,yj)−1. Therefore,
+there is j>hsuch that Iψ(ij,yj)=0, hence(ij,yj)| =πψ2∨ ¬ψ, which is a contradiction. /square
+Proposition 4. Let r=(j0,y0)(j1,y1)... be a linear path of π. Then,
+1.if y h/followsequaly0for all 0≤h<|r|, thenτπ(j0,y0)=inf ,
+2.if r is infinite, then the set {h∈N|τπ(jh,yh)=inf}is infinite.
+Proof. First, we prove Property 1. Assume that Property 1 does not hold. By definition of τπ, the abstract path rafrom(j0,y0)
+leads a local state (i,y0)such that Di(y0)∈Exand next/lscript
+π(i,y0)/negationslash= ∅. Since there are not transitions outgoing from exit nodes,
+we deduce that next/lscript
+π(i,y0)corresponds to a return. Since rais a subsequence of r, there is 0 ≤h<|r|such that jh=iand
+yh=y0. Moreover, next/lscript
+π(i,y0)= {(jh+1,yh+1)}. Hence, y0/followsyh+1, which is a contradiction. Therefore, Property 1 holds.
+Now, let us consider Property 2. Assume on the contrary that the set {h∈N|τπ(jh,yh)=inf}is finite. Then, there is m≥0
+such that for all k≥m,τπ(jk,yk)=fin. Let p≥msuch that yi/followsequalypfor all i≥p(note that such ypexists). We have that
+τπ(ip,yp)=fin. On the other hand, by Property 1, τπ(ip,yp)=inf, which is a contradiction. /square
+Proposition 5. Let(i,y)∈Qπsuch that D i(y)∈Calls and next/lscript
+π(i,y)= {(j,y·0),...,( j,y·m)}. Then, nexta
+π(i,y)= ⊥ iff
+there is 0≤h≤m such thatτπ(j,y·h)=inf .
+Proof. Letτπ(j,y·h)=inffor some 0 ≤h≤m. We show that nexta
+π(i,y)= ⊥ . Assume on the contrary that
+nexta
+π(i,y)/negationslash= ⊥ . By hypothesis there is a linear path of πof the form r=(k0,z0)(k1,z1)... such that(k0,z0)=(i,y)and
+(k1,z1)=(j,y·h). Since nexta
+π(i,y)/negationslash= ⊥ , there exists p>1 such that(kp,zp)=nexta
+π(k0,z0). Since z1=y·h/followsy=z0=zp,
+it easily follows that there is 1 <q<psuch that Dkq(zq)∈Exand the abstract path of πstarting from (k1,z1)leads to
+(kq,zq). Since next/lscript
+π(kq,zq)/negationslash= ∅, by definition of τπ, it holds that τπ(k1,z1)=τπ(kq,zq)=fin, which is a contradiction.
+Now, assume that nexta
+π(i,y)= ⊥ . Let r=(k0,z0)(k1,z1)... be a linear path of πstarting from (i,y)(i.e.,(k0,z0)=
+(i,y)). Evidently,(k1,z1)=(j,y·h)for some 0 ≤h≤m. Since nexta
+π(i,y)= ⊥ , it easily follows that zp/followsequalz1for all
+1≤p<|r|. Therefore, by Proposition 4(1) we obtain that τπ(j,y·h)=τπ(k1,z1)=inf. This concludes the proof. /square
+Now, we can prove Lemma 7.
+Lemma 7. Letπbe a run of Sstarting from /angbracketleftv/angbracketrightwithv∈start and satisfying ϕ. Then, there is an accepting run of Sϕstarting
+from a state /angbracketleftv/prime/angbracketrightwithv/prime∈start/primeand Pr(v/prime)=v.
+
+--- Page 23 ---
+404 L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405
+Proof. Letπ=q0(/lscript0,/lscript/prime
+0)− → q1(/lscript1,/lscript/prime
+1)− → q2..., where qi=(ti,Di)for each i≥0. First, we prove the following claim.
+Claim. For each i≥0, there is a global state q/prime
+i=(ti,D/prime
+i)ofSϕsuch that
+1.Pr(q/prime
+i)=qi(in particular, q/prime
+0= /angbracketleftv/prime/angbracketrightwithv/prime∈start/prime),
+2.for each y∈leaves(ti),Atom(D/prime
+i(y))=Aπ(i,y)and Tag(D/prime
+i(y))=τπ(i,y),
+3.for each y∈leaves(ti)such that D/prime
+i(y)is a call or a return vertex, D/prime
+i(y)is well defined,
+4.ifi>0, then q/prime
+i−1(/lscripti−1,/lscript/prime
+i−1)
+− → q/prime
+iis an edge of the labeled transition system induced by Sϕ.
+Proof of the claim. The proof is by induction on i. We define q/prime
+0=({ε},D/prime
+0)(note that t0= {ε}and D0(ε)∈start ), where
+D/prime
+0(ε)=(D0(ε),Aπ(0,ε),τπ(0,ε)). ByProposition 4(1)τπ(0,ε)=inf. Since siblings(t0,ε)= {ε}and next−
+π(0,ε)= ⊥ ,
+by definition of the mapping Aπ, it follows that D/prime
+0(ε)∈start/prime. Now, assume that i>0. We define q/prime
+i=(ti,D/prime
+i)as follows.
+There are three cases:
+•Internal move :ti=ti−1,li−1=l/prime
+i−1= {y1,..., ym} ⊆leaves(ti), for each y∈ti\/lscripti−1,Di(y)=Di−1(y), and for each
+1≤j≤m,Di(yj)∈δ(Di−1(yj),σ) for someσ∈Σ. Note that Di(yj)∈Calls∪Nand Di−1(yj)∈N∪Retns . By the
+induction hypothesis, Pr(q/prime
+i−1)=qi−1. Moreover, if Di−1(yj)∈Retns , then D/prime
+i−1(yj)is well defined. Then, D/prime
+iis defined as
+follows: for each y∈ti\/lscripti−1,D/prime
+i(y)=D/prime
+i−1(y), and for each 1 ≤j≤m,
+–ifDi(yj)∈N, then D/prime
+i(yj)=(Di(yj),Aπ(i,yj),τπ(i,yj))
+–ifDi(yj)=(b,e1,..., ep)∈Calls , then we proceed as follows. If next/lscript
+π(i,yj)= ∅, then D/prime
+i(yj)is some call vertex vsuch
+thatvis well defined, Pr(v)=Di(yj),Atom(v)=Aπ(i,yj), and Tag(v)=τπ(i,yj)(note that such a vertex exists).
+Otherwise, we have that next/lscript
+π(i,yj)= {(h,z1),...,( h,zp)}for some h>isuch that/lscript/prime
+h−1= {z1,..., zp}andDh(zl)=
+elfor each 1 ≤l≤p. In this case define D/prime
+i(yj)=((b,Aπ(i,yj),R,τπ(i,yj)),(e1,A1,tag1),...,( ep,Ap,tag p)), where
+for each 1 ≤l≤p,Al=Aπ(h,zl)and tag l=τπ(h,zl). Moreover, R=Aπ(k,yj)ifnexta
+π(i,yj)=(k,yj), and Ris some
+arbitrary atom of ϕotherwise. Note that by Proposition 5and the induction hypothesis D/prime
+i(yj)is well defined.
+Evidently, Properties 1–4 directly follows from the induction hypothesis and the definitions of the mappings Aπandτπ.
+•Module call :/lscripti−1= {z},/lscript/prime
+i−1= {z·0,..., z·n} ⊆ leaves(ti),ti=ti−1∪l/prime
+i−1, for all y∈ti−1\ {z},Di(y)=Di−1(y),
+Di−1(z)=(b,e0,..., en)∈Calls ,Di(z)=b, and, for each 0 ≤j≤n,Di(z·j)=ej. By the induction hypothesis
+qi−1=Pr(q/prime
+i−1). Therefore, D/prime
+i−1(z)=((b,A,R,tag),(e0,A0,tag0),...,( en,An,tag n)). Moreover, by construction (see
+the ‘‘internal move" case),4for each 0 ≤j≤n,Aj=Aπ(i,z·j)and tag j=τπ(i,z·j).D/prime
+iis defined as follows: for all
+y∈ti−1\{z},D/prime
+i(y)=D/prime
+i−1(y),D/prime
+i(z)=(b,A,R,tag), and, for each 0 ≤j≤n,D/prime
+i(z·j)=(ej,Aj,tag j). Evidently, Properties
+1–4 hold.
+•Return from a call :/lscript/prime
+i−1= { z},/lscripti−1= { z·0,..., z·n} ⊆ leaves(ti−1),ti=ti−1\/lscripti−1, for all y∈ti\ {z},
+Di(y)=Di−1(y),Di(z)=(b,x0,..., xn)∈Retns ,Di−1(z)=b, and for each 0 ≤j≤n,Di−1(z·j)=xj. By the induction
+hypothesis, D/prime
+i−1(z)=(b,A,R,tag), and for each 0 ≤j≤n,D/prime
+i−1(z·j)=(xj,Aj,tag j)with Aj=Aπ(i−1,z·j)
+and tag j=τπ(i−1,z·j). In particular tag j=fin. Let hbe the greatest index m<i−1 such that Dm(z)is a
+call vertex (i.e., Dh(z)is the call matching the return Di(z)). By construction (see the ‘‘internal move" case and the
+‘‘module call" case), A=Aπ(h,z),tag=τπ(h,z)(=τπ(i,z)), and R=Aπ(i,z). Therefore, D/prime
+iis defined as follows:
+D/prime
+i(z)=((b,A,R,tag),(x0,A0,tag0),..., ( xn,An,tag n)), and for all y∈ti\ {z},D/prime
+i(y)=D/prime
+i−1(y). By the above
+observations, it follows that Properties 1–4 hold.
+This concludes the proof of the claim. /square
+By the claim above it follows that π/prime=q/prime
+0(/lscript0,/lscript/prime
+0)− → q/prime
+1(/lscript1,/lscript/prime
+1)− → q/prime
+2...is a run of Sϕsuch that q/prime
+0= /angbracketleftv/prime/angbracketrightwithv/prime∈start/primeand
+for all i≥0,q/prime
+i=(ti,D/prime
+i). Thus, it remains to prove that π/primeis accepting. We focus on the generalized Büchi acceptance
+condition FofSϕ(the fulfillment of the terminal acceptance condition PFand the synchronized acceptance condition Psync
+easily follows from the definitions of PFandPsync). By definition of F, we have to show that given an infinite linear path
+r=(j0,y0)(j1,y1)... ofπ/prime, the following holds:
+a.The set {h∈N|Tag(D/prime
+jh(yh))=inf}is infinite.
+b.For each formula ψ=ψ1U∃ψ2∈Cl(ϕ), the following set is infinite
+{h∈N| {¬(ψ1U∃ψ2),ψ 2,¬τψ} ∩Atom(D/prime
+jh(yh))/negationslash= ∅}.
+c.For each formula ψ1U∀ψ2∈Cl(ϕ), the following set is infinite
+{h∈N| {¬(ψ1U∀ψ2),ψ 2} ∩Atom(D/prime
+jh(yh))/negationslash= ∅}.
+d.For each formula ψ1Uaψ2∈Cl(ϕ), the following set is infinite
+{h∈N| {¬(ψ1Uaψ2),ψ 2} ∩Atom(D/prime
+jh(yh))/negationslash= ∅ andTag(D/prime
+jh(yh))=inf}.
+4Note that Di−1(z)belongs to the target of an internal move since D0(ε)is a node.
+
+--- Page 24 ---
+L. Bozzelli et al. / Theoretical Computer Science 403 (2008) 382–405 405
+Note that ris an infinite linear path of πstarting from (j0,y0). Property adirectly follows from Proposition 4(2) and
+Property 2 of the claim above, while Property bdirectly follows from Proposition 3and Property 2 of the claim above. Now,
+we prove Property d(the proof of Property cis easier).
+Proof of Property d. Assume that the set {h∈N| ¬(ψ1Uaψ2)∈Atom(D/prime
+jh(yh))and Tag(D/prime
+jh(yh))=inf}is finite (if this
+set is infinite, then Property dtrivially holds). Then, since Atom(D/prime
+jh(yh))=Aπ(jh,yh)and Tag(D/prime
+jh(yh))=τπ(jh,yh)for all
+h≥0, it suffices to show that for each k≥0, there is p≥ksuch thatψ2∈Aπ(jp,yp)andτπ(jp,yp)=inf. By Property
+aand the definition of atom it follows that the set {h∈N|ψ1Uaψ2∈Atom(D/prime
+jh(yh))and Tag(D/prime
+jh(yh))=inf}is infinite.
+Letk≥0. Then, there is m≥ksuch thatψ1Uaψ2∈Atom(D/prime
+jm(ym))=Aπ(jm,ym)and Tag(D/prime
+jm(ym))=τπ(jm,ym)=inf.
+Letra=(l0,ym)(l1,ym)... be the abstract path of πstarting from (jm,ym)(where l0=jm). Sinceτπ(l0,ym)=inf,
+by the definition of τπwe deduce that τ(li,ym)=inffor all i<|ra|. Sinceψ1Uaψ2∈Aπ(l0,ym), it follows that
+(l0,ym)| =πψ1Uaψ2. Therefore, there is s≥0 such that(ls,ym)| =πψ2. In particular, ψ2∈Aπ(ls,ym)andτπ(ls,ym)=inf.
+Since rais a subsequence of the suffix of rgiven by(jm,ym)(jm+1,ym+1)..., there is p≥m≥ksuch that jp=lsandyp=ym.
+Thus, Property dholds.
+This concludes the proof of Lemma 7./square
+References
+[1]R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, M. Yannakakis, Analysis of recursive state machines, ACM Transactions on Programming
+Languages and Systems 27 (4) (2005) 786–818.
+[2]R. Alur, S. Chaudhuri, K. Etessami, P. Madhusudan, On-the-fly reachability and cycle detection for recursive state machines, in: Proc. 11th Int. Conf.
+Tools and Algorithms for the Construction and Analysis of Systems, TACAS’05, in: LNCS, vol. 3440, Springer, 2005, pp. 61–76.
+[3]R. Alur, K. Etessami, P. Madhusudan, A temporal logic of nested calls and returns, in: Proc. 10th Int. Conf. Tools and Algorithms for the Construction
+and Analysis of Systems, TACAS’04, in: LNCS, vol. 2988, Springer, 2004, pp. 467–481.
+[4]R. Alur, S. Kannan, M. Yannakakis, Communicating hierarchical state machines, in: Proc. of 26th International Colloquium on Automata, Languages
+and Programming, ICALP’99, in: LNCS, vol. 1644, Springer, 1999, pp. 169–178.
+[5]J.C.M. Baeten, W.P. Weijland, Process Algebra, in: Cambridge Tracts in Theoretical Computer Science, vol. 18, Cambridge Univ. Press, 1990.
+[6]G. Booch, L. Jacobson, J. Rumbaugh, Unifying Modeling Language User Guide, Addison-Wesley, Boston, 1997.
+[7]A. Bouajjani, P. Habermehl, Constrained properties, semilinear systems, and Petri nets, in: Proc. 7th International Conference on Concurrency Theory,
+CONCUR’96, in: LNCS, vol. 1119, Springer, 1996, pp. 481–497.
+[8]A. Bouajjani, J. Esparza, T. Touili, A generic approach to the static analysis of concurrent programs with procedures, in: Proc. 30rd ACM Symp. on
+Principles of Programming Languages, POPL’03, 2003, pp. 62–73.
+[9]A. Bouajjani, T. Touili, Reachability analysis of process rewrite systems, in: Proc. 23th Conf. Foundations of Software Technology and Theoretical
+Computer Science, FSTTCS’03, in: LNCS, vol. 2914, Springer, 2003, pp. 74–87.
+[10] A. Bouajjani, J. Esparza, T. Touili, Reachability analysis of synchronized PA-systems, in: Proc. of Infinity’04, 2004.
+[11] A. Bouajjani, M. Müller-Olm, T. Touili, Regular symbolic analysis of dynamic networks of pushdown systems, in: Proc. 16th Int. Conf. Concurrency
+Theory, CONCUR’05, in: LNCS, vol. 3653, Springer, 2005, pp. 473–487.
+[12] W. Brainerd, Tree generating regular systems, Information and Control 14 (1969) 217–231.
+[13] J. Coquide, R. Gilleron, Proofs and reachability problem for ground rewrite systems, in: Proc. of 6th International Meeting of Young Computer Scientists,
+IMYCS’90, in: LNCS, vol. 464, Springer, 1990, pp. 120–129.
+[14] M. Dauchet, T. Heuillard, P. Lescanne, S. Tison, Decidability of the confluence of finite ground term rewrite systems and of other related term rewrite
+systems, Information and Computation 88 (2) (1990) 187–201.
+[15] M. Dauchet, S. Tison, The theory of ground rewrite systems is decidable, in: Proc. 5th Ann. Symp. Logic in Computer Science, LICS’90, IEEE Computer
+Society Press, 1990, pp. 242–248.
+[16] J. Esparza, M. Nielsen, Decidability issues for Petri nets, Journal Information Processing and Cybernetics 30 (3) (1994) 143–160.
+[17] J. Esparza, J. Knoop, An automata-theoretic approach to interprocedural parallel flow graphs, in: Proc. 2nd Int. Conf. Foundations of Software Science
+and Computation Structures, FoSSaCS’99, in: LNCS, vol. 1578, Springer, 1999.
+[18] J. Esparza, A. Podelski, Efficient algorithms for pre∗and post∗on interprocedural parallel flow graphs, in: Proc. 27th ACM Symp. on Principles of
+Programming Languages, POPL’00, 2000, pp. 1–11.
+[19] J. Esparza, A. Kucera, S.S. Schwoon, Model-checking LTL with regular valuations for pushdown systems, Information and Computation 186 (2) (2003)
+355–376.
+[20] T. Jensen, D. Le Metayer, T. Thorn, Verification of control flow based security properties, in: Proc. of the IEEE Symposium on Security and Privacy, 1999.
+pp. 89–103.
+[21] D. Harel, Statecharts: A visual formalism for complex systems, Science of Computer Programming 8 (1987) 231–274.
+[22] V. Kahlon, A. Gupta, An Automata theoretic approach for model checking threads for LTL properties, in: Proc. 21th IEEE Symposium on Logic in
+Computer Science, LICS’06, 2006, pp. 101–110.
+[23] V. Kahlon, A. Gupta, On the analysis of interacting pushdown systems, in: Proc. 34th Symposium on Principles of Programming Languages, POPL’07,
+2007, pp. 303–314.
+[24] C. Löding, Infinite graphs generated by tree rewriting, Doctoral Thesis, RWTH Aachen, 2003.
+[25] S. La Torre, P. Madhusudan, G. Parlato, A robust class of context-sensitive languages, in: Proc. 21th IEEE Symposium on Logic in Computer Science,
+LICS’07, 2007, pp. 161–170.
+[26] S. La Torre, P. Madhusudan, G. Parlato, Context-bounded analysis of concurrent queue systems, in: Proc. of the 14th International Conference on Tools
+and Algorithms for the Construction and the Analysis of Systems, TACAS’08, in: LNCS, vol. 4963, Springer, 2008, pp. 299–314.
+[27] R. Mayr, Decidability and complexity of model checking problems for infinite-state systems, PhD. Thesis, Techn. Univ. of Munich, 1998.
+[28] R. Mayr, Process rewrite systems, Information and Computation 156 (2000) 264–286.
+[29] Marvin L. Minsky, Computation: Finite and Infinite Machines, Prentice-Hall, 1967.
+[30] A. Pnueli, The temporal logic of programs, in: Proc. 18th IEEE Symposium on the Foundations of Computer Science, 1977, pp. 46–57.
+[31] S. Qadeer, J. Rehof, Context-bounded model checking of concurrent software, in: Proc. 11th Int. Conf. Tools and Algorithms for the Construction and
+Analysis of Systems, TACAS’05, in: LNCS, vol. 3440, Springer, 2005, pp. 93–107.
+[32] G. Ramalingam, Context sensitive synchronization-sensitive analysis is undecidable, ACM Transactions on Programming Languages and Systems 22
+(2000) 416–430.
+[33] W. Thomas, Automata on infinite objects, in: J. Van Leeuwen (Ed.), in: Handbook of Theoretical Computer Science, vol. B, 1990, pp. 133–191.
+[34] S. Tison, Fair termination is decidable for ground systems, in: Proc. of the 3rd International Conference on Rewriting Techniques and Applications,
+RTA’89, in: LNCS, vol. 355, Springer, 1989, pp. 462–476.
+[35] M.Y. Vardi, P. Wolper, Automata-theoretic techniques for modal logics of programs, Journal of Computer and System Science 32 (2) (1986) 183–221.

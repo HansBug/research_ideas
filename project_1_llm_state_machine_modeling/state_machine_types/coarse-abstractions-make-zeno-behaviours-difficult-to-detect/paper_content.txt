@@ -1,0 +1,1612 @@
+--- Page 1 ---
+LogicalMethods inComputer Science
+Vol. 9(1:06)2013, pp.1–32
+www.lmcs-online.orgSubmitted Mar. 31,2012
+Published Feb. 27,2013
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT
+TO DETECT∗
+FR´ED´ERIC HERBRETEAUaAND B. SRIVATHSANb
+aUniv. Bordeaux, CNRS, LaBRI, UMR 5800, F-33400 Talence, Fra nce
+e-mail address : fh@labri.fr
+bSoftware Modeling and Veriﬁcation group, RWTH Aachen Unive rsity, Germany
+e-mail address : sri@cs.rwth-aachen.de
+Abstract. An inﬁnite run of a timed automaton is Zeno if it spans only a ﬁn ite amount
+of time. Such runs are considered unfeasible and hence it is i mportant to detect them, or
+dually, ﬁnd runs that are non-Zeno. Over the years important improvements have been
+obtained in checking reachability properties for timed aut omata. We show that some of
+these very eﬃcient optimizations make testing for Zeno runs costly. In particular we show
+NP-completenessfortheLU-extrapolationofBehrmannetal . Weanalyzethesourceofthis
+complexity in detail and give general conditions on extrapo lation operators that guarantee
+a (low) polynomial complexity of Zenoness checking. We prop ose a slight weakening of
+the LU-extrapolation that satisﬁes these conditions.
+Introduction
+Timed automata [1] are ﬁnite automata augmented with a ﬁnite number of clocks. The
+values of the clocks increase synchronously along with time in the states of the automaton
+and these values can becompared to a constant and reset to zer o while crossing a transition.
+This model has been successfully used for veriﬁcation of rea l-time systems thanks to a
+number of tools [4, 7, 21].
+Since timed automata model reactive systems that continuou sly interact with the en-
+vironment, it is interesting to consider questions related to their inﬁnite executions. An
+execution is said to be Zenoif an inﬁnite number of events happen in a ﬁnite time interval .
+Such executions are clearly unfeasible. During veriﬁcatio n, the aim is to detect if there
+exists a non-Zeno execution that violates a certain property. On the other han d while
+2012 ACM CCS: [Software and its engineering ]: Software creation and management—Software veri-
+ﬁcation and validation—Formal software veriﬁcation; [ Theory of computation ]: Computational complex-
+ity and cryptography—Complexity classes; [ Theory of computation ]: Formal languages and automata
+theory—Automata extensions.
+Key words and phrases: Timed automata, Zeno runs, Abstractions, Veriﬁcation.
+∗Extended abstract appeared at CONCUR2011.
+aThis work has been supported by ANR project DOTS ANR-06-SETI -003.
+bThe second author B. Srivathsan was at LaBRI, Univ. Bordeaux , when this work was ﬁrst submitted.
+LOGICALMETHODS/D0INCOMPUTER SCIENCE DOI:10.2168/LMCS-9(1:06)2013c/circlecopyrtF.HerbreteauandB. Srivathsan
+CC/circlecopyrtCreativeCommons
+
+--- Page 2 ---
+2 F. HERBRETEAU AND B. SRIVATHSAN
+implementing timed automata, it is required to check the pre sence of pathological Zeno
+executions. This brings the motivation to analyze an automa ton for the presence of such
+executions.
+The analysis of timed automata faces the challenge of handli ng its uncountably many
+conﬁgurations. To tackle this problem, one considers a ﬁnit e graph called the abstract
+zone graph (also known as simulation graph) of the automaton. This ﬁnit e graph captures
+the semantics of the automaton. In this paper, we consider th e problems of deciding if
+an automaton has a non-Zeno execution, dually a Zeno executi on, given its abstract zone
+graph as input.
+An abstract zone graph is obtained by over-approximating ea ch zone of the so-called
+zone graph with an abstraction function. The zone graph in principle co uld be inﬁnite
+and an abstraction function is necessary for reducing it to a ﬁnite graph. The coarser the
+abstraction, the smaller the abstract zone graph, and hence the quicker the analysis of
+the automaton. This has motivated a lot of research towards ﬁ nding coarser abstraction
+functions [3]. The classic maximum-bound abstraction uses as a parameter the maximal
+constant a clock gets compared to in a transition. A coarser a bstraction called the LU-
+extrapolation was introduced in Behrmann et al. [3] for chec king state reachability in timed
+automata. This is the coarsest among all the implemented app roximations and is at present
+eﬃciently used in tools like UPPAAL [4].
+It was shown in [19, 20] that even inﬁnite executions of the au tomaton directly cor-
+respond to inﬁnite paths in the abstract zone graph when one u ses the maximum-bound
+approximation. In addition, it was proved that the existenc e of a non-Zeno inﬁnite execu-
+tion could be determined by adding an extra clock to the autom aton to keep track of time
+and analyzing the abstract zone graph of this transformed au tomaton [18, 20]. A similar
+correspondence was established in the case of the LU-extrap olation by Li [16]. These results
+answer our question about deciding non-Zeno inﬁnite execut ions of the automaton from its
+abstract zone graph. However, it was shown in [14] that addin g a clock has an exponential
+worst case complexity. A new polynomial construction was pr oposed for the case of the
+classic maximum-bound approximation. But, the case of the L U-extrapolation was not
+addressed.
+In this paper, we prove that the non-Zenoness question turns out to be NP-complete
+for the LU-extrapolation, that is, given the abstract zone g raph over the LU-extrapolation,
+decidingif theautomaton has anon-Zenoexecution is NP-complete. We study thesourceof
+thiscomplexity indetail andgive conditionsonabstractio n operatorstoensureapolynomial
+complexity. To this regard, we extend the polynomial constr uction given in [14] to an
+arbitrary abstraction function and analyze when it stays po lynomial. It then follows that a
+slight weakening of the LU-extrapolation makes the constru ction polynomial. In the second
+part of the paper, we repeat the same for the dual question: gi ven an automaton’s abstract
+zone graph, decide if it has Zeno executions. Yet again, we no ticeNP-completeness for the
+LU-extrapolation. We introduce an algorithm for checking Z enoness over an abstract zone
+graph with conditions on the abstraction operator to ensure a polynomial complexity. We
+provide a diﬀerent weakening of LU-extrapolation that gives a polynomial solution to the
+Zenoness question. Finally, we also prove that deciding if a given automaton has a non-Zeno
+run (resp. Zeno run) is Pspace-complete when the input is restricted to the automaton
+only.
+Note that the reachability problem for timed automata is Pspace-complete [1, 8] and
+the standard algorithms make use of the abstract zone graph t o solve the reachability
+
+--- Page 3 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 3
+problem. Therefore one could expect an object as complex as t he abstract zone graph
+to solve the Zeno-related questions too. This makes the comp lexity analysis of the Zeno-
+related questions, given both the automaton and abstract zo ne graph as input, all the more
+relevant.
+Related work. As mentioned above, the LU-extrapolation was proposed in [3 ] and shown
+how it could be eﬃciently used in UPPAAL for the purpose of rea chability. The correctness
+of the classic maximum-bound abstraction was shown in [5]. E xtensions of these results
+to inﬁnite executions occur in [20, 16]. Detection of non-Ze no runs was already addressed
+in [1]. Their approach works on the region graph, but for corr ectness reasons, it cannot
+be used on (abstract) zone graphs. The trick involving addin g an extra clock for non-
+Zenoness is discussed in [18, 20, 2, 14]. The problem of check ing existence of Zeno runs
+was formulated as early as in [18]. A bulk of the literature fo r this problem also directs
+to [10, 6, 17]. All of these solutions provide a suﬃcient-onl y condition for the absence
+of Zeno runs. This is diﬀerent from our proposed solution whic h gives a complete solution
+(necessary andsuﬃcient conditions) by analyzing theabstr act zonegraphof theautomaton.
+Organization of the paper. We start with the formal deﬁnitions of timed automata, ab-
+stract zone graphs, the Zenoness and non-Zenoness problems in Section 1. Subsequently, we
+prove the NP-hardness of the non-Zenoness problem for the LU-extrapola tion in Section 2.
+We then recall in Section 3 the construction proposed for non -Zenoness in [14] and extend
+it to a general abstraction operator giving conditions for p olynomial complexity. Section 4
+is dedicated to the dual Zenoness problem. In Section 5 we dis cuss some interesting obser-
+vations arising out of the entire complexity analysis. We pr ove in Section 6 that ﬁnding if
+an automaton has a (non-)Zeno run turns out to Pspace-complete when the input is re-
+stricted to the automaton only. This gives a complete charac terization of the complexity of
+ﬁnding (non-)Zeno runs in timed automata. We conclude the pa per with some perspectives
+in Section 7.
+A shorter version of this paper appeared at the 22ndInternational Conference on Con-
+currency Theory in the year 2011 [12]. The current version in cludes the missing proofs, a
+new discussion (Section 5) about two observations arising o ut of the complexity analysis,
+and the new result about the Pspace-completeness of the Zeno-related problems when the
+only input is the automaton (Section 6).
+1.Zeno-related Problems for Timed Automata
+1.1.Timed automata. LetR≥0denote the set of non-negative real numbers. Let Xbe a
+set of variables, named clockshereafter. A valuation is a function v:X/ma√sto→R≥0that maps
+every clock in Xto a non-negative real value. We denote the set of all valuati ons byRX
+≥0,
+and0the valuation that maps every clock in Xto 0. For δ∈R≥0, we denote v+δthe
+valuation mapping each x∈Xto the value v(x) +δ. For a subset RofX, let [R]vbe
+the valuation that sets xto 0 ifx∈Rand assigns v(x) otherwise. A clock constraint is a
+conjunction of constraints x#cforx∈X, #∈ {<,≤,=,≥,>}andc∈N. We denote Φ( X)
+the set of clock constraints over clock variables X. For a valuation vand a constraint φwe
+writev/satisfiesφwhenvsatisﬁesφ, that is, when φholds after replacing every xbyv(x).
+
+--- Page 4 ---
+4 F. HERBRETEAU AND B. SRIVATHSAN
+ATimed Automaton (TA) [1]Ais a ﬁnite automaton extended with clocks that enable
+or disable transitions. Formally, Ais a tuple ( Q,q0,X,T) whereQis a ﬁnite set of states,
+q0∈Qis the initial state, Xis a ﬁnite set of clocks and T⊆Q×Φ(X)×2X×Qis a ﬁnite
+set of transitions. For each transition ( q,g,R,q′)∈T,gis a clock constraint, also called a
+guardthat deﬁnes the valuations of the clocks that are allowed to c ross the transition, and
+Ris a set of clocks that are reseton the transition.
+The semantics of a timed automaton Ais a transition system of its conﬁgurations. A
+conﬁguration ofAis a pair ( q,v)∈Q×RX
+≥0, with (q0,0) being the initial conﬁguration .
+We have two kinds of transitions:
+delay:(q,v)→δ(q,v+δ) for some δ∈R≥0;
+action: (q,v)→t(q′,v′) for some transition t= (q,g,R,q′)∈Tsuch that v/satisfiesgand
+v′= [R]v.
+ArunofAis a (ﬁnite or inﬁnite) sequence of transitions starting fro m the initial
+conﬁguration ( q0,0). Without loss of generality, we can assume that the ﬁrst tra nstition
+is a delay transition and that delay and action transitions a lternate. We write ( q,v)δ,t− →
+(q′,v′) if there is a delay transition ( q,v)→δ(q,v+δ) followed by an action transition
+(q,v+δ)→t(q′,v′). So a run of Acan be written as:
+(q0,v0)δ0,t0− −− →(q1,v1)δ1,t1− −− →(q2,v2)···(qi,vi)···
+where (q0,v0) represents the initial conﬁguration ( q0,0).
+Deﬁnition 1.1 (Zeno/non-Zeno runs) .An inﬁnite run ( q0,v0)δ0,t0− −− →...(qi,vi)δi,ti− − →...
+isZenoif time does not diverge, that is,/summationtext
+i≥0δi≤cfor some c∈R≥0. Otherwise it is
+non-Zeno .
+Theorem 1.2. The problem of deciding if a timed automaton Ahas a non-Zeno run (resp.
+Zeno run) is Pspace-complete if Ais the only input.
+A proof of Theorem 1.2 is given in Section 6 (page 27) that reli es on results in Sections 3
+and 4.2.
+As can be seen, the number of conﬁgurations ( q,v) could be uncountable. We now
+deﬁne an abstract semantics for timed automata. The abstrac t semantics is usually used
+for the veriﬁcation of timed automata.
+1.2.Symbolic semantics. We begin with the deﬁnition of special sets of valuations called
+zones. A zoneisasetofvaluationsdeﬁnedbyaconjunctionoftwokindsofc lock constraints:
+forxi,xj∈X
+xi∼c
+xi−xj∼c
+where∼∈ {≤,<,=,>,≥}andc∈Z. An example of a zone over two clocks x1andx2is
+illustrated in Figure 1. The shaded area is the zone represen ted by the conjunction of the
+six constraints shown in the ﬁgure.
+Zones can be eﬃciently represented by Diﬀerence Bound Matric es (DBMs) [9]. A
+DBM representation of a zone Zis a|X|+1 square matrix ( Zij)i,j∈[0;|X|]where each entry
+Zij= (cij,/precedesorcurlyij) represents the constraint xi−xj/precedesorcurlyijcijforcij∈Zand/precedesorcurlyij∈ {<,≤}or
+
+--- Page 5 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 5
+x1x2
+0x2−x1<1
+x1>1x2>1x1−x2<2
+x1<5x2<4
+Figure 1: An example of a zone.
+q0 q1 q2{x1}
+x1≤2x2>5
+q0,0≤x1=x2 q2,5< x1=x2 q1,0≤x1≤x2
+q0,0≤x1≤x2 q2,0≤x1≤x2∧x2>5x2>5 {x1}
+x2>5x1≤2{x1}
+Figure 2: A timed automaton (top) and its zone graph (bottom) .
+(cij,/precedesorcurlyij) = (∞,<). A special variable x0encodes the value 0. Hence, in a DBM xi>4 is
+encoded as x0−xi<−4.
+Thesymbolic semantics (orzone graph ) of an automaton Ais the transition system
+ZG(A) given by the tuple ( S,s0,⇒), where Sis the set of nodes, s0is the initial node and
+⇒is the transition relation. Each node in Sis a pair ( q,Z) consisting of a state qof the
+automaton and a zone Z. The initial node s0is (q0,Z0) whereZ0={0+δ|δ∈R≥0}. For
+everyt= (q,g,R,q′)∈T, there exists a transition ⇒tfrom a node ( q,Z) as follows:
+(q,Z)⇒t(q′,Z′) where Z′={v′| ∃v∈Z,∃δ∈R≥0: (q,v)→t→δ(q′,v′)}
+In the above deﬁnition, →t→δdenotes the discrete transition tfollowed by a delay
+transition of δtime units. It can be shown that if Zis a zone, then Z′is a zone. Moreover,
+a DBM representation of Z′can be computed from the DBM representation of Z(see for
+instance [5]). Figure 2 shows an example of an automaton and i ts zone graph.
+Several deﬁnitions of ZG(A) have been considered in the literature. They diﬀer on
+the deﬁnition of ⇒. People have considered graphs with both action ⇒tand delay ⇒δ
+
+--- Page 6 ---
+6 F. HERBRETEAU AND B. SRIVATHSAN
+q0 q1x2= 1,{x2}
+{x1,x2}
+0 x1x2
+...
+q0, x1−x2= 0
+∧x1≥0q1, x1−x2= 0
+∧x1≥0q1, x1−x2= 1
+∧x1≥0{x1,x2} x2= 1
+{x2}x2= 1
+{x2}...
+Figure 3: Automaton Ainf(top left), the graph of zones obtained at q1(top right) and a
+part of the inﬁnite zone graph ZG(Ainf) (bottom).
+transitions or, with only combined transitions ⇒t, but corresponding to the reverse conse-
+cution→δ→t(delay-then-action). Our results do not depend on a speciﬁc choice, but have
+a simpler presentation using the chosen symbolic semantics .
+Although the zone graph ZG(A) deals with sets of valuations instead of valuations
+themselves, the zone graph could stil be inﬁnite. Consider t he automaton Ainfshown in
+Figure 3, with two clocks x1andx2. The initial node is given by ( q0,x1=x2∧x1≥0).
+The transition to q1gives the node ( q1,x1=x2∧x1≥0). The only transition from q1
+taken from this node gives the node ( q1,x1−x2= 1∧x1≥0), which is a new node. This
+node has its own successors and the process continues. Final ly atq1we have the following
+zones in the zone graph ZG(Ainf):
+(x1−x2=k∧x1≥0 ) for all k∈N
+This is pictorially shown in Figure 3. It is however suﬃcient to consider a ﬁnite abstraction
+of the zone graph to capture all the behaviors of a timed autom aton. Several abstractions
+have been introduced to obtain a ﬁnite graph from ZG(A).
+1.3.Abstract symbolic semantics. Aﬁnite abstraction is a function a: 2R|X|
+≥0→2R|X|
+≥0
+such that for every zone Z:a(Z) is a zone, Z⊆a(Z),a(a(Z)) =a(Z) andahas a ﬁnite
+range. An abstraction operator deﬁnes an abstract semantic s.
+(q,Z)⇒t
+a(q′,a(Z′))
+whena(Z) =Zand (q,Z)⇒t(q′,Z′) inZG(A).
+Theabstract symbolic semantics (or theabstract zone graph ) ofAis the transition
+systemZGa(A) induced by ⇒astarting from the node ( q0,a(Z0)), where ( q0,Z0) is the
+initial node of ZG(A).
+ApathπinZGa(A) is a (ﬁnite or inﬁnite) sequence of transitions
+(q0,Z′
+0)⇒t0a(q1,Z′
+1)⇒t1a···(qi,Z′
+i)⇒tia···
+We say that a run ρ: (q0,v0)δ0,t0− −− →...(qi,vi)δi,ti− − →...ofAis aninstance of the path
+πofZGa(A) as described above, if ρandπagree on the sequence of transitions t0,t1,...,
+and if for every i≥0, (qi,vi) and (qi,Z′
+i) coincide on qi, andvi∈Z′
+i. By deﬁnition of Z′
+i,
+this implies vi+δi∈Z′
+i.
+
+--- Page 7 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 7
+ZExtra+
+MExtraLU
+ExtraMExtra+
+LU
+Figure 4: Comparison of the ﬁnite abstractions [3].
+An abstraction aissoundif every path of ZGa(A) can be instantiated as a run of A.
+Conversely, aiscomplete when every run of Ais an instance of some path in ZGa(A). If
+an abstraction bsatisﬁesb(Z)⊆a(Z) for every Z, it is easy to see that the abstract zone
+graphZGb(A) is bigger than ZGa(A).
+1.4.Bounds and ﬁnite abstractions. A standard way to obtain ﬁnite abstractions is to
+consider as a parameter, a bound function M:X/ma√sto→N∪ {−∞} that associates to each
+clockx, the maximum integer cappearing in a guard involving x. Abstractions ExtraM[5]
+andExtra+
+M[3] are well-known ﬁnite abstractions that depend on such a b ound function M.
+It has been observed that considering separately the guards that lower-bound clocks
+and guards that upper-bound clocks leads to much coarser abs tractions and hence to much
+smaller abstract zone graphs. This has given rise to abstrac tionsExtraLUandExtra+
+LU[3]
+which are currently used in implementations. We recall the d eﬁnitions of ExtraLUand
+Extra+
+LUbelow.
+LetL:X/ma√sto→N∪{−∞} andU:X/ma√sto→N∪{−∞} be two maps that associate to each
+clock inAits maximal lower bound and its maximal upper bound respecti vely: that is, for
+everyx∈X,L(x) is the maximal integer csuch that x > corx≥cappears in some guard
+ofA. We let L(x) =−∞if no such cexists. Similarly, we deﬁne U(x) with respect to clock
+constraints like x≤candx < c. We deﬁne ExtraLU(Z) =ZLUandExtra+
+LU(Z) =ZLU+
+as:
+ZLU
+ij=
+
+(∞,<) if cij> L(xi)
+(−U(xj),<) if−cij> U(xj)
+Zij otherwiseZLU+
+ij=
+
+(∞,<) if cij> L(xi)
+(∞,<) if −c0i> L(xi)
+(∞,<) if −c0j> U(xj),i/ne}ationslash= 0
+(−U(xj),<) if−c0j> U(xj),i= 0
+Zij otherwise
+Intheabove, weset L(x0) =U(x0) = 0forthespecial clock x0. Theabstraction ExtraM
+(resp.Extra+
+M) is obtained from ExtraLU(resp.Extra+
+LU) by replacing every occurrence of
+LandUbyMwhich maps every clock xto max(L(x),U(x)). These abstractions compare
+in the following way (cf. Figure 4).
+Theorem 1.3 ([3]).For every zone Z, we have: Z⊆ExtraM(Z)⊆Extra+
+M(Z);Z⊆
+ExtraLU(Z)⊆Extra+
+LU(Z)andExtra+
+M(Z)⊆Extra+
+LU(Z).
+
+--- Page 8 ---
+8 F. HERBRETEAU AND B. SRIVATHSAN
+0 x1x2
+U(x1)L(x1)U(x2)
+L(x2)Z:
+ExtraM(Z) :
+Extra+
+M(Z) :
+ExtraLU(Z) :
+Extra+
+LU(Z) :∪
+∪
+∪
+∪∪
+∪
+∪∪
+∪∪
+∪∪
+Figure 5: An illustration of the abstraction hierarchy show n in Figure 4.
+q0, x1≥0∧x2≥0 q1, x1≥0∧x2≥0{x1,x2}x2= 1,{x2}
+Figure 6: ZGa(Ainf) for the automaton Ainfshown in Figure 3. We get the same abstract
+zone graph ZGa(Ainf) forabeing either ExtraM,Extra+
+M,ExtraLUorExtra+
+LU.
+Figure 5 shows a zone and depicts the action of the diﬀerent abs tractions on it. In the
+rest of the paper, we say M-extrapolations for ExtraMandExtra+
+M; andLU-extrapolations
+forExtraLUandExtra+
+LU.
+Letuslookat thetimedautomaton AinfofFigure3. For thisautomaton, themaximum
+bounds function MsetsM(x1) =−∞andM(x2) = 1. Deﬁne:
+fork∈N, Zk≡(x1−x2=k)∧(x1≥0)
+By the deﬁnition of ExtraM, every zone ZkhasExtraM(Zk) given by the constraints ( x1≥
+0∧x2≥0). Therefore, the zone graph ZGa(Ainf) has two nodes for abeing any of the
+abstractions deﬁned above.
+1.5.Zenoness and non-Zenoness problems. A classical veriﬁcation problem for timed
+automata is to answer state reachability queries. For this p urpose, we consider only the
+runs ofAand paths in ZGa(A) that are ﬁnitesequences of transitions. A reachability
+query asks if there exists a run of Aleading to a given state. Such problems can be solved
+usingZGa(A) whenais sound and complete. This is true for the M-extrapolations and
+LU-extrapolations.
+Theorem 1.4 ([5, 3]).ExtraM,Extra+
+M,ExtraLUandExtra+
+LUare sound and complete for
+ﬁnite sequences of transitions.
+
+--- Page 9 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 9
+q0 q1 q2{x1} {x2}
+x2≤0 x1≤0
+Automaton Azeno.
+(q0,0 =x1=x2) (q1,0 =x1≤x2) (q0,0 =x1=x2) (q2,0 =x2≤x1)
+A path in the abstract zone graph of Azenowith abstraction ExtraM.
+(q0,⊤) ( q1,⊤) ( q0,⊤) ( q2,⊤)
+A path in the abstract zone graph of Azenowith abstraction ExtraLU.
+Figure 7: Zenoness/non-Zenoness from abstract paths.
+Liveness properties require the existence of an inﬁnite run satisfying a given property.
+For instance, does Avisit state qinﬁnitely often? Soundness and completeness of awith
+respect to inﬁnite runs allow to solve such problems from ZGa(A). It has also been proved
+thattheextrapolationsmentionedabovearealsosoundandc ompleteforinﬁnitepaths/runs.
+Theorem 1.5 ([19, 16]) .ExtraM,Extra+
+M,ExtraLUandExtra+
+LUare sound and complete
+for inﬁnite sequences of transitions.
+Thanks to Theorem 1.5, we know that every inﬁnite path πinZGa(A) can be instanti-
+ated to a run of A. However, soundness is not suﬃcient to know if πcan be instantiated to
+anon-Zeno run. Additionally, it is also interesting to know when this p ath can be instanti-
+ated to a Zenorun. In the sequel, we consider the following questions, giv en an automaton
+Aand an abstract zone graph ZGa(A).
+Input AandZGa(A)
+Non-Zenoness problem (NZPa) Does Ahave a non-Zeno run?
+Zenoness problem (ZPa) Does Ahave a Zeno run?
+Observe that solving ZPadoes not solve NZPaand vice-versa: one is not the negation of
+the other. Note that the coarser the abstraction, the lesser is the information maintained
+about the structure of a zone. Let us motivate by an example.
+Figure 7 shows an automaton Azenowhich has all runs Zeno. As we can see, the coarser
+the abstraction used, the lesser is the information in the si mulation graph that one could
+tap to detect non-Zenoness or Zenoness.
+In this paper, we focus on the complexity of deciding ZPaandNZPafor diﬀerent ab-
+stractions a. We denote NZPMandZPMwhen the M-extrapolations are considered. We
+similarly deﬁne NZPLUandZPLUfor theLU-extrapolations.
+Thenon-Zenoness problemis knownto besolvable in polynomi al time whenabstraction
+ExtraMis considered [14]. This is not true for abstraction ExtraLU: in Section 2 we show
+thatNZPLUisNP-hard. As the LU-extrapolations are coarser, one might expect the non-
+Zenoness question to be tougher to infer. But, it is surprisi ng that the diﬃculty rises to
+
+--- Page 10 ---
+10 F. HERBRETEAU AND B. SRIVATHSAN
+q0 q1 q2 q3 r0 r1 r2{x1}
+{x1}{x2}
+{x2}{x3}
+{x3}x1≤0
+x2≤0
+x3≤0x1≤0
+x2≤0
+x3≤0
+Figure 8: ANZ
+φforφ= (p1∨¬p2∨p3)∧(¬p1∨p2∨p3)
+the extent of leading to NP-hardness as opposed to a low polyn omial complexity for M-
+extrapolations. The same asymmetry appears in the Zenoness problem as well, which is
+shown in Section 4.
+In addition to these complexity results, in Section 3, we gen eralize the construction for
+non-Zenoness given in [14] to an arbitrary ﬁnite abstractio n operator and describe the class
+of abstractions for which NZPastays polynomial. The M-extrapolations satisfy this criteria.
+We show that a small weakening of the LU-extrapolations that preserves an ordering prop-
+erty between clocks also satisﬁes this criterion. In Sectio n 4, we give an algorithm for ZPa
+and describe the class of abstractions that give a polynomia l complexity. Yet again, the M-
+extrapolations satisfy these criteria. We will see that a we akening of the LU-extrapolations
+that maintains some lower-bound information also satisﬁes this criterion.
+2.Non-Zenoness is NP-hard for LU-extrapolations
+We give a reduction from the 3SAT problem: given a 3CNF formul aφ, we build an au-
+tomaton ANZ
+φthat has a non-Zeno run iﬀ φis satisﬁable. The size of the automaton will
+be linear in the size of φ. We will then show that the abstract zone graph ZGLU(ANZ
+φ) is
+isomorphic to ANZ
+φ, thus completing the polynomial reduction from 3SAT to NZPLU.
+Automaton ANZ
+φ.LetP={p1,...,pk}be a set of propositional variables and let φ=
+C1∧ ··· ∧Cnbe a 3CNF formula with nclauses. We deﬁne the timed automaton ANZ
+φ
+as follows. Its set of clocks Xequals{x1,x1,...,x k,xk}. For a literal λ, letcl(λ) denote
+the clock xiwhenλ=piand the clock xiwhenλ=¬pi. The set of states of ANZ
+φis
+{q0,...,qk,r0,...,rn}withq0being the initial state. The transitions are as follows:
+•for each proposition piwe have transitions qi−1{xi}−−→qiandqi−1{xi}−−→qi,
+•for each clause Cm=λm
+1∨λm
+2∨λm
+3,m= 1,...,n, there are three transitions rm−1cl(λ)≤0− −−−− →
+rmforλ∈ {λm
+1,λm
+2,λm
+3},
+•transitions qk− →r0andrn− →q0with no guards and resets.
+Figure 8 shows the automaton for the formula ( p1∨¬p2∨p3)∧(¬p1∨p2∨p3). The part
+fromq0toq3encodes an assignment with the following convention: a rese t ofxirepresents
+pi/ma√sto→trueand a reset of ximeanspi/ma√sto→false. Then, from r0tor2we check if the formula
+is satisﬁed by this guessed assignment.
+The above formula is satisﬁed by every assignment that maps p3totrue. Any path that
+encodes this assignment using the convention mentioned abo ve should pick the transition
+q2{x3}− −− →q3. Then, it has the possibility to follow transitions r0x3≤0− −− →r1andr1x3≤0− −− →r2.
+
+--- Page 11 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 11
+On any cycle containing these three transition, time can ela pse (for instance in state q0)
+sincex3is reset before being checked for zero. Therefore, this assi gnment that makes the
+formula true corresponds to a non-Zeno run of ANZ
+φ.
+Conversely, consider the assignment p1/ma√sto→false,p2/ma√sto→trueandp3/ma√sto→falsethat does
+not satisfy the formula. Take a cycle that resets x1,x2andx3according to the encoding of
+assignments. Then none of the clocks that are checked for zer o on the transitions from r0
+tor1has been reset. Notice that these transitions come from the ﬁ rst clause in the formula
+that evaluates to falseaccording to the assignment. To take a transition from r0, one of
+x1,x2andx3must be zero and hence time cannot elapse in the path correspo nding to this
+assignment.
+Lemma 2.1 below states that if the formula is satisﬁable, the re exists a sequence of
+resets that allows time elapse in every loop. Conversely, if the formula is unsatisﬁable, in
+every iteration of the loop, there is a zero-check that preve nts time from elapsing.
+Lemma 2.1. A 3CNF formula φis satisﬁable iﬀ ANZ
+φhas a non-Zeno run.
+Proof.Letφbe a conjunction of nclausesC1,...,C n. Assume that φis satisﬁable. Then,
+there exists a variable assignment χ:P/ma√sto→ {true,false }that evaluates φto true. This
+entails that in every clause Cmthere is a literal λmthat evaluates to true with χ.
+We will now build a non-Zeno run ρofANZ
+φusing this variable assignment χ. Clearly,
+it should have the following sequence of states repeated inﬁ nitely often:
+q0− →...qk− →r0− →r1− →...rn
+Additionally, ρsatisﬁes the following conditions:
+•from each conﬁguration ( qi−1,v) fori∈[1;k],ρtakes the transition qi−1{xi}−−→qiwhen
+χ(pi) =trueand the transition qi−1{xi}−−→qiotherwise;
+•from each conﬁguration ( rm−1,v) form∈[1;n],ρtakes a transition rm−1cl(λm)≤0− −−−−− → rm
+whereλmis the literal evaluating to truewith respect to χinCm;
+•andρlets 1 time unit elapse from each conﬁguration with state rnand moves to the state
+q0; in all other states, there is no time elapse.
+Note that as rnoccurs inﬁnitely often, the run ρis non-Zeno. It remains to prove that ρis
+indeed a valid run of ANZ
+φ. For this, we need to prove that all zero-checked transition s can
+be crossed regardless of the unit time elapse. Consider the p art ofρbetween two successive
+conﬁgurations with state rn.
+···(rn,v)1− → ···{cl(λm)}− −−−− → ··· (rm−1,v′′)cl(λm)≤0− −−−−− → (rm,v′′)···(rn,v′)1− → ···
+By deﬁnition of ρ,λmis a literal that evaluates to trueaccording to χ. Hence, clock cl(λm)
+is reset in the corresponding qj−1− →qjtransition, before being checked for zero. As cl(λm)
+is reset and since ρdoes not elapse time in states other than rn, we have v′′(cl(λm
+j)) = 0.
+This permits the transition from rm−1tormfor allm∈[1;n] and shows that the run ρ
+exists.
+For the other direction, consider a non-Zeno run ρofANZ
+φ. Since ρis non-Zeno,
+time elapses on inﬁnitely many transitions in the run. Every inﬁnite run of ANZ
+φvisits a
+conﬁguration with state rninﬁnitely often. Consider two consecutive occurences of rninρ
+
+--- Page 12 ---
+12 F. HERBRETEAU AND B. SRIVATHSAN
+such that time elapses on some transition in the segment in be tween:
+···(rn,v)− → ···(qk,v′)− → ···(rm−1,v′′)cl(λm)≤0− −−−−− → (rm,v′′)··· − →(rn,v′′)···
+By construction, for each i∈[1;k] eitherxiorxiis reset on the segment from ( rn,v) to
+(qk,v′). Letχbe the variable assignment that associates truetopiwhenxiis reset, and
+falseotherwise, that is when xiis reset. We prove that χsatisﬁesφ.
+Consider the transition ( rm−1,v′′)cl(λm)≤0− −−−−− → (rm,v′′). For the transition to be enabled,
+we need to have v′′(cl(λm)) = 0. Let ( qj−1,vj−1)− →(qj,vj) be the transition that resets
+eithercl(λm) orcl(λm). Notice that time cannot elapse between ( qj,vj) and (rm−1,v′′).
+So the time elapse should have occured between ( rn,v) to (qj−1,vj−1). Thus it should be
+clockcl(λm) that is reset in the transition ( qj−1,vj−1)− →(qj,vj). From the above deﬁnition
+ofχ, we have λmevaluating to truewithχand hence Cmevaluates to true with χtoo.
+This holds for all the clauses. This shows that φis satisﬁable with χbeing the satisfying
+assignment.
+TheNP-hardness of NZPLUthen follows due to the small size of ZGLU(ANZ
+φ).
+Theorem 2.2. The abstract zone graph ZGLU(ANZ
+φ)is isomorphic to ANZ
+φ. The non-
+Zenoness problem is NP-hard for abstractions ExtraLUandExtra+
+LU.
+Proof.We ﬁrst prove that ZGLU(ANZ
+φ) is isomorphic to ANZ
+φ. For every clock x,L(x) =
+−∞, henceExtraLUabstracts all the constraints xi−xj/precedesorcurlyijcijtoxi−xj<∞except those
+of the form x0−xi/precedesorcurly0ic0ithat are kept unchanged. Due to the guards in ANZ
+φ, for every
+reachable zone ZinZG(ANZ
+φ) we have x0−xi≤0 (i.e.xi≥0). Therefore ExtraLU(Z) is
+the zone deﬁned by/logicalandtext
+x∈Xx≥0 which is RX
+≥0. For each state of ANZ
+φ, the zone RX
+≥0is the
+only reachable zone in ZGLU(ANZ
+φ), hence showing the isomorphism.
+NP-hardness then follows from Lemma 2.1. The result transfers toExtra+
+LUthanks to
+Theorem 1.3.
+Notice that the type of zero checks in ANZ
+φis crucial to Theorem 2.2. Replacing zero-
+checks of the form x≤0 byx= 0 does not modify the semantics of ANZ
+φ. However, this
+yieldsL(x) = 0 for every clock x. Hence, the constraints of the form xi−xj≤0 are
+not abstracted: ExtraLUthen preserves the ordering among the clocks. Each sequence of
+clock resets leading from q0toqkyields a distinct ordering on the clocks. Thus, there are
+exponentially many LU-abstracted zones with state qk. As a consequence, the polynomial
+reductionfrom3SATislost. WeindeedprovideinSection3be lowanalgorithmfordetecting
+non-Zeno runs from ZGLU(A) that runs in polynomial time when L(x)≥0 for all clocks
+x. On the other hand, notice that changing x= 0 tox≤0 reduces the size of the abstract
+zone graph, in some cases, by an exponential amount. We will s ee in Section 5 how this has
+led to an improvement in the reachability analysis for timed automata.
+3.Finding non-Zeno runs
+Recall the non-Zenoness problem ( NZPa):
+Given an automaton Aand its abstract zone graph ZGa(A), decide if Ahas
+a non-Zeno run.
+
+--- Page 13 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 13
+A standard solution to this problem involves adding one auxi liary clock to Ato detect
+non-Zenoness [19]. This solution was shown to cause an expon ential blowup in [14]. In the
+same paper, a polynomial method has been proposed in the case of theExtraMabstraction.
+We brieﬂy recall this construction below.
+An inﬁnite run of the timed automaton could be Zeno due to two f actors:
+•blocking clocks : these are clocks bounded from above (i.e. x≤cfor some c >0) inﬁnitely
+often in the run, but are reset only ﬁnitely many times,
+•zero checks : these are guards of the form x≤0 orx= 0 that occur inﬁnitely often in a
+manner that prevents time elapse in the run.
+To solve NZPa, the task is to ﬁnd if there exists an inﬁnite run in ZGa(A) that neither has
+blocking clocks nor zero-checks that prevent time-elapse. The method in [14] tackles these
+two problems as follows. Blocking clocks are handled by ﬁrst detecting a maximal strongly
+connected component (SCC) of the zone graph and repeatedly d iscarding the transitions
+that bound some blocking clock until a non-trivial SCC with n o such clocks is obtained.
+This algorithm runs in time polynomial for every abstractio n. For zero checks, a guessing
+zone graph construction has been introduced to detect nodes where time can elapse.
+3.1.Guessing zone graph GZGa(A).The necessary and suﬃcient condition for time
+elapse in a node inspite of zero-checks is to have every reach able zero-check from that node
+preceded by a corresponding reset (cf. Figure 9).
+•√
+••••{x} x= 0
+Figure 9: Time can elapse in the node√
+Therefore, the aim is to check if there exists a node ( q,Z) inZGa(A) such that there is
+a path from ( q,Z) back to itself in which every zero-check is preceded by a cor responding
+reset. This would instantiate to an inﬁnite run of Athat can elapse time despite the
+zero-checks.
+This is what the guessing zone graph construction achieves. The nodes of the guessing
+zone graph are triples ( q,Z,Y) whereY⊆Xis a set of clocks. The sets Yare called the
+guess sets . Whenever a clock is reset, it is added to the guess set of the r esulting node.
+A transition with a zero-check can be crossed only if the cloc k that is checked for zero is
+already present in the guess set, that is, if it was reset some where in the past. The guess
+setYin a node ( q,Z,Y) therefore gives the set of clocks that can potentially be ch ecked for
+zero before being reset in a path starting from ( q,Z,Y). In particular, clocks that are not
+inYcannot be checked for zero in the future before being reset. H ence, on a path from a
+node with an empty guess set, all the zero checks are preceded by the corresponding reset,
+and time can elapse in that node.
+For a valuation v, we write v|= (X−Y >0) for the constraint saying that all the
+variables in X−Yare greater than 0 in v, that is: v/satisfies/parenleftBig/logicalandtext
+x∈(X−Y)v(x)>0/parenrightBig
+. For every
+transition t= (q,g,R,q′) ofA,GZGa(A) has a transition ( q,Z,Y)⇒t
+a(q′,Z′,Y′) only if:
+•there is a transition ( q,Z)⇒t
+a(q′,Z′) inZGa(A);
+•there is a valuation v∈Zsuch that v/satisfies(X−Y >0) andv/satisfiesg;
+•andY′=Y∪R.
+
+--- Page 14 ---
+14 F. HERBRETEAU AND B. SRIVATHSAN
+Observe that if the guess set is empty in a node, then the follo wing transition can be taken
+by a valuation that has all clocks greater than zero. This sho ws that if there is a path
+from a node ( q,Z,∅), zero-checks do not hinder time-elapse in this node. When a clock is
+reset, this is remembered in Y′. This in turn allows the clock to be checked for zero from
+(q′,Z′,Y′).
+The guessing zone graph also contains special transitions:
+•(q,Z,Y)⇒τ
+a(q,Z,Y′) withY′=∅orY′=Y.
+Hence, from any node ( q,Z,Y), by taking a τtransition that leads to ( q,Z,∅), one can non-
+deterministically check if there is a path from that node whe re every zero-check is preceded
+by a corresponding reset.
+Figure 10 depicts a timed automaton A1along with its zone graph ZGa(A1) and the
+reachable part of its guessing zone graph GZGa(A1) whereτ-loops have been omitted. The
+loop that checks xfor zero is disabled from node (1 ,x=z,∅) sincexdoes not belong
+to the guess set. This indicates that it is not possible to let time elapse and then take
+this transition. Time can elapse in every node with an empty g uess set (nodes with ∅
+as a third component) since, by construction, every zero che ck must be preceded by the
+corresponding reset. In particular, the cycle (2 ,x−z≥1,∅)⇒a(3,x−z≥1,{z})⇒a
+(2,x−z≥1,{z})⇒τ
+a(2,x−z≥1,∅) is the suﬃx of a non-Zeno run.
+Ithasbeenshown in[14] that thenumberof guess sets forever y node(q,Z) reachable in
+ZGa(A) isboundby |X|+1 whentheabstraction aisExtraM. Thecaseofotherabstractions
+was not considered. The same construction does not give poly nomial complexity even for
+Extra+
+M. We ﬁrst optimize this construction by considering an arbit rary abstraction.
+3.2.Reduced guessing zone graph rGZGa(A).The reduced guessing zone graph is a
+slight modiﬁcation that restricts the guess sets to a subset of the set of clocks. A clock
+that is never checked for zero need not be remembered in sets Y. We restrict Ysets to
+only contain clocks that can indeed be checked for zero and we show that this is sound and
+complete for non-Zenoness.
+We say that aclock xisrelevant if there exists a guard x≤0 orx= 0in theautomaton.
+We denote the set of relevant clocks by Rl( A). For a zone Z, letC0(Z) denote the set of
+clocksxsuch that there exists a valuation v∈Zwithv(x) = 0. The clocks that can be
+checked for zero before being reset in a path from ( q,Z), lie in Rl( A)∩C0(Z).
+Deﬁnition 3.1 (Reduced guessing zone graph) .LetAbe a timed automaton with clocks
+X. Thereduced guessing zone graph rGZGa(A) has nodes of the form ( q,Z,Y) where
+(q,Z) is a node in ZGa(A) andY⊆Rl(A)∩C0(Z). The initial node is ( q0,Z0,Rl(A)), with
+(q0,Z0) the initial node of ZGa(A). The transitions are as follows:
+•Fort= (q,g,R,q′), there is a transition ( q,Z,Y)⇒t
+a(q′,Z′,Y′) with:
+Y′= (Y∪R)∩Rl(A)∩C0(Z′)
+if there is ( q,Z)⇒t
+a(q′,Z′) inZGa(A) and some valuation v∈Zsuch that v/satisfies(Rl(A)−
+Y)>0 andv/satisfiesg.
+•A new auxiliary letter τis introduced that adds transitions ( q,Z,Y)⇒τ
+a(q,Z,Y′) for
+Y′=∅orY′=Y.
+
+--- Page 15 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 15
+1 2 3x= 0,{x}
+{y}x≥1,{z}
+z= 0
+1,x=z 2,x=z 3,x−z≥1 2,x−z≥1x= 0,{x}
+{y} x≥1,{z}z= 0
+x≥1,{z}
+1,x=z,{x,y,z} 1,x=z,∅
+2,x=z,{x,y,z} 2,x=z,{y} 2,x=z,∅
+3,x−z≥1,{x,y,z} 3,x−z≥1,{y,z} 3,x−z≥1,{z} 3,x−z≥1,∅
+2,x−z≥1,{x,y,z} 2,x−z≥1,{y,z} 2,x−z≥1,{z} 2,x−z≥1,∅x= 0,{x}
+{y}
+{y}
+x≥1,{z} x≥1,{z} x≥1,{z}
+z= 0 z= 0 z= 0 x≥1,{z} x≥1,{z} x≥1,{z} x≥1,{z}τ
+τ
+τ
+τ
+τ
+τ
+τττ
+Figure 10: Atimedautomaton A1(top), itszonegraph ZGa(A1)(middle)andthereachable
+part of the guessing zone graph GZGa(A1) (bottom) with τself-loops omitted
+for clarity.
+Observethatsimilartothecaseoftheguessingzonegraph, w erequire v/satisfies(Rl(A)−Y)>
+0 andv/satisfiesgfor some v∈Z, a transition that checks x≤0 (orx= 0) is allowed from a
+node (q,Z,Y) only if x∈Y. Thus, from a node ( q,Z,∅) every reachable zero-check x= 0
+should be preceded by a transition that resets x, and hence adds it to the guess set. Such
+a node is called clear. The presence of such nodes would ensure a time-elapse even i n the
+presence of zero-checks.
+
+--- Page 16 ---
+16 F. HERBRETEAU AND B. SRIVATHSAN
+1,x=z,{x,z} 1,x=z,∅
+2,x=z,{x,z} 2,x=z,∅
+3,x−z≥1,{z} 3,x−z≥1,∅
+2,x−z≥1,{z} 2,x−z≥1,∅x= 0,{x}
+{y} {y}
+x≥1,{z} x≥1,{z}
+z= 0 x≥1,{z} x≥1,{z}τ
+τ
+τ
+τ
+Figure 11: Thereachablepartof thereducedguessingzonegr aphrGZGa(A1) ofautomaton
+A1in Figure 10 (with τself-loops omitted for clarity).
+Figure 11 shows the reachable part of the reduced guessing zo ne graph rGZGa(A1) for
+the automaton A1in Figure 10. Notice that since y/ne}ationslash∈Rl(A1), the clock yis not added to
+the setsYwhen it is reset. Observe also that clock xcannot belong to the guess sets in the
+nodes (3,x−z≥1) and (2 ,x−z≥1) asx >0. The resulting reduced guessing zone graph
+rGZGa(A1) is a lot smaller than the guessing zone graph GZGa(A1) in Figure 10. It still
+contains all the information needed to detect non-Zeno runs .
+Before we prove our result about the reduced guessing zone gr aph, we deﬁne some
+notions.
+Deﬁnition 3.2. A node ( q,Z,Y) ofrGZGa(A) is called clearif the third component is
+empty:Y=∅. A variable xisbounded in a transition of rGZGaif the guard of the
+transition implies x≤cfor some constant c. A path of rGZGais said to be blockedif there
+is a variable that is bounded inﬁnitely often and reset only ﬁ nitely often by the transitions
+on the path. Otherwise the path is called unblocked .
+An unblocked path says that there are no blocking clocks to bo undtime and clear nodes
+suggest that inspite of zero-checks that might possibly occ ur in the future, time can still
+elapse. We get the following theorem.
+Proposition 3.3. A timed automaton Ahas a non-Zeno run iﬀ there exists an unblocked
+path inrGZGa(A)visiting a clear node inﬁnitely often.
+The proof of Proposition 3.3 is in the same lines as for the gue ssing zone graph in [14].
+It follows from the following two lemmas.
+Lemma 3.4. IfAhas a non-Zeno run, then in rGZGa(A)there is an unblocked path
+visiting a clear node inﬁnitely often.
+
+--- Page 17 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 17
+Proof.Letρbe a non-Zeno run of A:
+(q0,v0)δ0,t0− −− →(q1,v1)δ1,t1− −− → ···
+Sinceais complete, ρis an instantiation of a path πinZGa(A):
+(q0,Z0)⇒t0a(q1,Z1)⇒t1a···
+Letσbe the following sequence of transitions:
+(q0,Z0,Y0)⇒τ
+a(q0,Z0,Y′
+0)⇒t0a(q1,Z1,Y1)⇒τ
+a(q1,Z1,Y′
+1)⇒t1a···
+whereY0=Rl(A),Yiis determined by the transition relation in rGZGa(A), andY′
+i=Yi
+unlessδi>0 when we put Y′
+i=∅.
+Sinceρis non-Zeno, there are inﬁnitely many isuch that δi>0, hence σcontains
+inﬁnitely many clear nodes with Y′
+i=∅. From the non-Zenoness of ρ, we also get that σis
+unblocked.
+Now, it remains to show that σis indeed a path in rGZGa(A). For this we need to see
+that every transition ( qi,Zi,Y′
+i)⇒tia(qi+1,Zi+1,Yi+1) is realizable from a valuation v∈Zi
+such that both v/satisfies(Rl(A)−Y′
+i)>0 andv/satisfiesgiwheregiis the guard of ti. We prove this
+by an induction on the run. As by the deﬁnition of ρ,vi+δi/satisfiesgifor alli≥0, we only need
+to prove that vi+δi/satisfies(Rl(A)−Y′
+i)>0. This is clearly true for valuation v0+δ0∈Z0.
+Assume that vi+δi/satisfies(Rl(A)−Y′
+i)>0. We now prove that vi+1+δi+1/satisfies(Rl(A)−
+Y′
+i+1)>0. Firstly, observe that Yi+1= (Y′
+i∪Ri)∩ C0(Zi+1)∩Rl(A). Therefore a clock
+x∈Rl(A)−Yi+1either belongs to Rl( A)−Y′
+iin which case it is greater than 0 by induction
+hypothesis, or otherwise we have x∈Y′
+ibutx /∈ C0(Zi+1). By the deﬁnition of C0(Zi+1),
+all valuations v∈Zi+1satisfyv(x)>0 and so in particular, vi+1(x)>0. This leads to
+vi+1/satisfies(Rl(A)−Yi+1)>0 which easily extends to vi+1+δi+1/satisfies(Rl(A)−Y′
+i+1)>0.
+Lemma 3.5. SupposerGZGa(A)has an unblocked path visiting a clear node inﬁnitely often
+thenAhas a non-Zeno run.
+Proof.The proof follows the same lines as the proof of Lemma 6 in [14] with the additional
+information that for all clocks xthat do not belong to Rl( A), we have g∧(x >0) consistent
+for every guard g.
+Letπ: (q0,Z0,Y0)⇒t0a...be the unblocked path of rGZGa(A) that visits a clear node
+inﬁnitely often. Since ais sound, take an instantiation ρ: (q0,v0)δ0,t0− −− →...ofA. Ifρis
+non-Zeno, we are done.
+Assume that ρis Zeno. It has a suﬃx where less than 1 /2 time unit elapses. Let Xr
+denote the set of clocks that are reset inﬁnitely often on ρ. We can thus ﬁnd an index
+msuch that vn(x)<1/2 for all x∈Xrand for all n≥m. Take indices i,j≥msuch
+thatYi=Yj=∅and all clocks in Xrare reset between iandj. We look at the sequence
+(qi,vi)δi,ti− − →...(qj,vj) and claim that every sequence of the form
+(qi,v′
+i)δi,ti− − →(qi+1,v′
+i+1)δi+1,ti+1− −−−−→ ...(qj,v′
+j)
+is a part of a run of Aprovided there is ζ∈R≥0such that the following three conditions
+hold for all k=i,...,j:
+(1)ν′
+k(x) =νk(x)+ζ+1/2 for all x/ne}ationslash∈Xr,
+(2)ν′
+k(x) =νk(x)+1/2 ifx∈Xrandxhas not been reset between iandk.
+(3)ν′
+k(x) =νk(x) otherwise, i.e., when x∈Xrandxhas been reset between iandk.
+
+--- Page 18 ---
+18 F. HERBRETEAU AND B. SRIVATHSAN
+It is easy to see that the run obtained by replacing every such i−jinterval of ρby
+the above sequence gives a non-Zeno run, since a 1 /2 time unit has been elapsed inﬁnitely
+often.
+We now show that the above is indeed a valid run of A. For this we need to ﬁrst show
+thatv′
+k+δksatisﬁes the guard in tk. Letgbe the guard.
+Forx/ne}ationslash∈Xr, from the assumption that ρis unblocked, we know that gcould only be of
+the form x > corx≥c. Sov′
+k(x) clearly satisﬁes g. Ifx∈Xrand is reset between iandk,
+v′
+k(x) =vk(x) and so we are done. Consider the case when x∈Xrand is not reset between
+iandk. Observe that x/ne}ationslash∈Yk. This is because Yi=∅, and then only variables that are reset
+are added to Y. Sincexis not reset between iandk, it cannot be in Yk. By deﬁnition of
+transitions in rGZGa(A), ifx∈Rl(A) this means that g∧(x >0) is consistent. But for
+x/ne}ationslash∈Rl(A) by deﬁnition, g∧(x >0) is consistent. We have that 0 ≤(vk+δk)(x)<1/2 and
+1/2≤(v′
+k+δk)(x)<1. Sov′
+k+δksatisﬁes all the constraints in gconcerning xasvk+δk
+does.
+It can also be seen that the valuation obtained from v′
+kby resetting the clocks in
+transition tkis the valuation v′
+k+1.
+3.3.Polynomial algorithms for NZPa.Since we have a node in rGZGa(A) for every
+(q,Z) inZGa(A) and every subset Yof Rl(A), it can in principle be exponentially bigger
+thanZGa(A). Below, we see that depending on abstraction a, not all subsets Yneed to be
+considered. Let us ﬁrst deﬁne the notion of a zone ordering cl ocks.
+Deﬁnition 3.6. LetX′be a subset of X. We say that a zone Zorders the clocks in X′if
+for all clocks x,y∈X′,Zimplies that at least one of x≤yory≤xhold, that is either all
+valuations v∈Zsatisfyv(x)≤v(y) or all valuations v∈Zsatisfyv(y)≤v(x).
+Deﬁnition 3.7 (Weakly order-preserving abstractions) .An abstraction aweakly preserves
+ordersif for all clocks x,y∈Rl(A)∩C0(Z),Z/satisfiesx≤yiﬀa(Z)/satisfiesx≤y.
+It has been observed in [14] that all the zones that are reacha ble in the unabstracted
+zone graph ZG(A) order the entire set of clocks X. Assume that aweakly preserves orders,
+then for every reachable node ( q,Z,Y) inrGZGa(A), the zone Zorders the clocks in
+Rl(A)∩C0(Z). We now show that Yis downward closed with respect to this order given by
+Z: for clocks x,y∈Rl(A)∩C0(Z), ifZ/satisfiesx≤yandy∈Y, thenx∈Y. This entails that
+there are at most |Rl(A)|+1 downward closed sets to consider, thus giving a polynomia l
+complexity.
+Proposition 3.8. LetAbe a timed automaton. If aweakly preserves orders, then the
+reachable part of rGZGa(A)isO(|Rl(A)|)bigger than the reachable part of ZGa(A).
+Proof.We prove by induction on the transitions in rGZGa(A) that for every reachable
+node (q,Z,Y) the set Yis downward closed with respect to the order on the clocks in
+Rl(A)∩C0(Z) implied by Z. This is true for the initial node ( q0,Z0,Rl(A)).
+Now, assume that this is true for ( q,Z,Y). Take a transition ( q,Z,Y)⇒t
+a(q′,Z′,Y′)
+witht= (q,g,R,q′). By deﬁnition, Y′= (Y∪R)∩Rl(A)∩ C0(Z′). Suppose Z′/satisfiesx≤y
+for some x,y∈Rl(A)∩C0(Z′) and suppose y∈Y′. This could mean y∈Yory∈R. If
+y∈R, thenxis also in RsinceZ′/satisfiesx≤y. Ify /∈Rthen we get y∈YandZ/satisfiesx≤y. By
+hypothesis that Yis downward closed, x∈Y. In both cases x∈Y′.
+
+--- Page 19 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 19
+The following lemma shows that the M-extrapolations weakly preserve orders. Hence,
+rGZGM(A) yields a polynomial algorithm for NZPM. Thanks to the reduction of the
+guessingzonegraphtotherelevantclocks, thisalgorithmi smoreeﬃcientthanthealgorithm
+in [14] even while using the same abstraction.
+Theorem 3.9. The abstractions ExtraMandExtra+
+Mweakly preserve orders. The non-
+Zenoness problem is solved in polynomial time for ExtraMandExtra+
+M.
+Proof.It has been proved in [14] that ExtraMweakly preserves orders. We now prove this
+forExtra+
+M. Firstly note that for a clock xin Rl(A) we have M(x)≥0. Moreover if
+x∈ C0(Z) we have that Zis consistent with x≤0. Hence, for a clock x∈Rl(A)∩C0(Z),
+Zis consistent with x≤M(x). Therefore, by deﬁnition, Extra+
+M(Z) restricted to clocks in
+Rl(A)∩C0(Z) is identical to ExtraM(Z) restricted to the same set of clocks. Since ExtraM
+weakly preserves orders, we get that Extra+
+Mweakly preserves orders too.
+The algorithm in Proposition 3.3 is thus polynomial for ExtraMandExtra+
+Mby Propo-
+sition 3.8.
+However, the polynomial complexity is not preserved by the c oarserLU-extrapolations.
+Theorem 3.10. The abstractions ExtraLUandExtra+
+LUdo not weakly preserve orders. The
+non-Zenoness problem is NP-complete for ExtraLUandExtra+
+LU.
+Proof.From the deﬁnition of ExtraLUwe have that all constraints of the form xi−xj/precedesorcurlyijcij
+are abstracted to xi−xj<∞whenL(xi) =−∞. Thus, information about the relative
+ordering between xiandxjis lost. This shows that ExtraLUdoes not weakly preserve orders
+whenL(x) =−∞for relevant clocks. This also holds for Extra+
+LUby Theorem 1.3.
+NPhardness is proven in Theorem 2.2. It remains to discuss NPmembership. Let N
+be the number of nodes in ZGLU(A). Let us non-deterministically choose a node ( q,Z).
+We assume that ( q,Z) is reachable as this can be checked in polynomial time on ZGLU(A).
+We augment ( q,Z) with an empty guess set of clocks. From the node ( q,Z,∅), we non-
+deterministically simulate a path πof the (non-reduced) guessing zone graph [14] obtained
+from Deﬁnition 3.1 with Rl( A) =XandC0(Z) =Xfor every zone Z. We avoid taking τ
+transitions on this path. This ensures that the guess sets ac cumulate all the resets on π.
+During the simulation, we also keep track of a separate set Ucontaining all the clocks that
+are bounded from above on a transition in π.
+We write ⇒∗
+atodenotethetransitive closureof ⇒a. Ifduringthesimulation onereaches
+a node (q,Z,Y) such that U⊆Y, then we have a cycle ( q,Z,∅)⇒∗
+a(q,Z,Y)⇒τ
+a(q,Z,∅)
+that is unblocked and that visits a clear node inﬁnitely ofte n. Also, since ( q,Z) is reachable
+inZGLU(A), (q,Z,X) is reachable in the guessing zone graph. Then ( q,Z,∅) is reachable
+from (q,Z,X) with a τtransition. From [14] and from the fact that ExtraLUandExtra+
+LU
+are sound and complete [3] we get a non-Zeno run of A.
+Notice that it is suﬃcient to simulate N×(|X|+ 1) transitions since we can avoid
+visiting a node ( q′,Z′,Y′) twice in π.
+3.4.Modiﬁed LU-extrapolations for polynomial NZPa.TheLU-extrapolations do
+not weakly preserve orders in zones due to relevant clocks wi thL(x) =−∞andU(x)≥0.
+We show that this is the only reason for NP-hardness. We slightly modify ExtraLUto get
+an abstraction ExtraLUthat is coarser than ExtraM, but it still weakly preserves orders.
+
+--- Page 20 ---
+20 F. HERBRETEAU AND B. SRIVATHSAN
+Deﬁnition 3.11 (WeakLbounds).LetAbe a timed automaton. Given the bounds L(x)
+andU(x) for every clock x∈X, theweak lower bound Lis given by: L(x) = 0 ifx∈Rl(A),
+L(x) =−∞andU(x)≥0, andL(x) =L(x) otherwise.
+We denote ExtraLUtheExtraLUabstraction obtained by choosing Linstead of L. Notice
+thatExtraLUandExtraLUcoincide when zero-checks are written x= 0 instead of x≤0 in
+the automaton. By deﬁnition of ExtraLUand Proposition 3.8, we get the following.
+Theorem 3.12. The abstraction ExtraLUweakly preserves orders. The non-Zenoness prob-
+lem is solved in polynomial time for ExtraLU.
+ExtraLUcoincides with ExtraLUfor a wide class of automata. For instance, when the
+automaton does not have a zero-check, ExtraLUis exactly ExtraLU, and the existence of a
+non-Zeno run can be decided in polynomial time. For some auto mata however, the zone
+graph obtained with ExtraLUis exponentially bigger than the zone graph obtained with
+ExtraLU. This is for instance the case for the automaton ANZ
+φused to prove NP-hardness
+ofNZPLUin Section 2. Similar to ExtraLUwe can deﬁne Extra+
+LUwhich again weakly
+preserves orders and yield a polynomial algorithm to solve t he non-Zenoness problem.
+4.The Zenoness problem
+In this section we consider the Zenoness problem ( ZPa):
+Given an automaton Aand its abstract zone graph ZGa(A), decide if Ahas
+a Zeno run.
+As in the case of non-Zenoness, this problem turns out to be NP-complete when the ab-
+straction operator aisExtraLU. We subsequently give the hardness proof by providing a
+reduction from 3SAT.
+4.1.Reducing 3SAT to ZPawith abstraction ExtraLU.LetP={p1,...,pk}be a set
+of propositional variables. Let φ=C1∧···∧Cnbe a 3CNF formula with nclauses. Each
+clauseCm,m= 1,2,...,nis a disjunction of three literals λm
+1,λm
+2andλm
+3. We construct
+in polynomial time an automaton AZ
+φand its zone graph ZGLU(AZ
+φ) such that AZ
+φhas a
+Zeno run iﬀ φis satisﬁable, thus proving the NP-hardness.
+The automaton AZ
+φhas clocks {x1,x1,...,x k,xk}withxiandxicorresponding to the
+literalspiand¬pirespectively. We denote the clock associated to a literal λbycl(λ). The
+set of states of AZ
+φis given by {q0,q1,...,qk}∪{r0,r1,r2,...,rn}withq0being the initial
+state. The transitions are as follows:
+•transitions qi−1{xi}−−→qiandqi−1{xi}−−→qifori= 1,2,...,k,
+•a transition qk− →r0with no guards and resets,
+•for each clause Cmthere are three transitions rm−1cl(¬λ)≥1−−−−−→ rmfor each literal λ∈
+{λm
+1,λm
+2,λm
+3},
+•a transition rn− →q0with no guards and resets. This transition creates a cycle in AZ
+φ.
+As an example, Figure 12 shows the automaton for the formula ( p1∨¬p2∨p3)∧(¬p1∨
+p2∨p3). Observe that the transitions rm−1cl(¬λ)≥1−−−−−→ rmcheck if the clock corresponding to
+thenegation ofλis greater than 1. That is, cl(¬λ) =cl(λ).
+
+--- Page 21 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 21
+q0 q1 q2 q3 r0 r1 r2{x1}
+{x1}{x2}
+{x2}{x3}
+{x3}x1≥1
+x2≥1
+x3≥1x1≥1
+x2≥1
+x3≥1
+Figure 12: AZ
+φforφ= (p1∨¬p2∨p3)∧(¬p1∨p2∨p3)
+Clearly,AZ
+φcan beconstructed from φinO(|φ|) time. We now show that φis satisﬁable
+iﬀAZ
+φhas a Zeno run.
+Lemma 4.1. A 3CNF formula φis satisﬁable iﬀ AZ
+φhas a Zeno run.
+Proof.For the left-to-right direction, suppose that φis satisﬁable. Then there exists a
+variable assignment χ:P/ma√sto→ {true,false }that evaluates φto true. We now build the Zeno
+run ofAZ
+φusingχ.
+Pick an inﬁnite run ρofAZ
+φ. Clearly, it should have the following sequence of states
+repeated inﬁnitely often:
+q0− →...qk− →r0− →r1− →...rn (4.1)
+Wechoosethetransitionsfor ρthatallow timeelapseonlybyaﬁniteamount. If χ(pi) =
+true, then we put qi−1{xi}−−→qiwherever qi−1− →qioccurs in ρ. Otherwise χ(pi) =falseand
+we putqi−1{xi}−−→qi. We now need to choose the transitions rm−1− →rmform= 1,...,n.
+Sinceχis a satisfying assignment, every clause Cmhas a literal λthat evaluates to truewith
+χ. We choose the corresponding transition rm−1cl(¬λ)≥1−−−−−→ rm. Observe that if λevaluates
+to true, it implies that cl(λ) was reset in one of the qi− →qi+1transitions but not cl(¬λ).
+Therefore, the above construction yields a sequence of tran sitions with the property
+that all clocks that are reset are never checked for greater t han 1. This sequence can be
+taken by elapsing 1 time unit in the very ﬁrst state, and then s ubsequently elapsing no time
+at all, thus giving a Zeno run in AZ
+φ.
+We now prove the right-to-left direction. Let ρbe an inﬁnite Zeno run of AZ
+φ. An
+inﬁnite run should repeat the sequence of states given in (4. 1). Since ρis Zeno, it has a
+suﬃxρssuch that for every clock xthat is reset in ρs,x≥1 never occurs in the transitions
+ofρs. This is because if every suﬃx of ρcontains a clock that is both reset and checked
+for greater than 1, this would mean that there is a time elapse of one time unit occurring
+inﬁnitely often, contradicting the hypothesis that ρis Zeno.
+Considerasegment S=q0− →...qn− →r0− →r1− →...rkinρs. Weconstructasatisfying
+assignment χ:P/ma√sto→ {true,false }forφfromS.
+•ifScontains qi−1{xi}−−→qithen set χ(pi) =true
+•otherwise, it implies that Scontains qi−1{xi}−−→qiin which case we set χ(pi) =false.
+This shows that for a literal λ, ifcl(λ) is reset in S, thenχ(λ) =true. From the property
+ofρsthat no clock that is reset is checked in a guard, for every tra nsitionrm−1cl(¬λ)≥1−−−−−→ rm
+
+--- Page 22 ---
+22 F. HERBRETEAU AND B. SRIVATHSAN
+inS, it is clock cl(λ) that is reset and hence χ(λ) =true. By construction of AZ
+φ,λis a
+literal in Cm. Therefore, we get a literal that is true in every clause eval uatingφto true.
+It remains to show that ZGLU(AZ
+φ) can also be calculated in polynomial time from AZ
+φ.
+We indeed note that the size of the ZGLU(AZ
+φ) is the same as that of the automaton. That
+will conclude the proof that a polynomial algorithm for ZPLUyields a polynomial algorithm
+for the 3SAT problem.
+Proposition 4.2. The zone graph ZGLU(AZ
+φ)is isomorphic to AZ
+φ. The Zenoness problem
+isNP-hard for ExtraLUandExtra+
+LU.
+Proof.By looking at the guards in the transitions, we get that for ea ch clock x,L(x) = 1
+andU(x) =−∞. The initial node of the zone graph ZGLU(AZ
+φ) is (q0,ExtraLU(Z0)) where
+Z0istheset of valuations given by( x1≥0)∧(x1=x1=···=xk=xk). By deﬁnition, since
+for each clock x,U(x) =−∞, we have ExtraLU(Z0) =RX
+≥0, the non-negative half-space.
+On taking a transition with a guard x≥1 fromRX
+≥0, we come to a zone RX
+≥0∧x≥1.
+However, since U(x) =−∞,ExtraLU(RX
+≥0∧x≥1) gives back RX
+≥0. Same for transitions
+that reset a clock. It follows that ZGLU(AZ
+φ) is isomorphic to AZ
+φ. This extends to Extra+
+LU
+by Theorem 1.3. Then NP-hard immediately follows from Lemma 4.1.
+In the next section, we provide an algorithm for the zenoness problem ZPaand give
+conditions on abstraction afor the solution to be polynomial.
+4.2.Finding Zeno paths. We say that a transition is liftingif it has a guard that implies
+x≥1 for some clock x. The idea is to ﬁnd if there exists a run of an automaton Ain which
+every clock xthat is reset inﬁnitely often is lifted only ﬁnitely many tim es, ensuring that
+the run is Zeno. This amounts to checking if there exists a cyc le inZG(A) where every
+clock that is reset is not lifted. Observe that when ( q,Z)x≥c=⇒(q′,Z′) is a transition of
+ZG(A), thenZ′remembers that xhas been lifted to a value bigger than c, that is to say
+Z′entailsx≥c. Therefore, if a node ( q,Z) is part of a cycle of our required form, then in
+particular, all the clocks that are greater than 1 in Zshould not be reset in the cycle.
+Based on the above intuition, our solution begins with compu ting the zone graph on-
+the-ﬂy. At some node ( q,Z) the algorithm non-deterministically guesses that this no de is
+part of a cycle that yields a zeno run. This node transits to wh at we call the slow mode . In
+this mode, a reset of xin a transition is allowed from ( q′,Z′) only if Z′is consistent with
+x <1: there is at least one valuation v∈Z′that has v(x)<1.
+Before we deﬁne our construction formally, recall that we wo uld be working with the
+abstract zone graph ZGa(A) and not ZG(A). Therefore for our solution to work, the
+abstraction operator ashould remember the fact that a clock has a value greater than 1.
+For an automaton Aover the set of clocks X, let Lf(A) denote the set of clocks that appear
+in a lifting transition of A.
+Deﬁnition 4.3 (Lift-safe abstractions) .An abstraction ais calledlift-safeif for every zone
+Zand for every clock x∈Lf(A),Z/satisfiesx≥1 iﬀa(Z)/satisfiesx≥1.
+We are now in a position to deﬁne our slow zone graph construction to decide if an
+automaton has a Zeno run.
+
+--- Page 23 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 23
+q0
+q1{x}x≥1q0, x≥0,free
+q1, x≥0,free
+q0, x≥1,freeq0, x≥0,slow
+q1, x≥0,slow
+q0, x≥1,slow{x}
+x≥1{x}{x}
+x≥1τ
+τ
+τ
+free mode slow mode
+Figure 13: A timed automaton (left) and corresponding slow z one graph (right).
+Deﬁnition 4.4 (Slow zone graph) .LetAbe a timed automaton over the set of clocks
+X. Letabe a lift-safe abstraction. The slow zone graph SZGa(A) has nodes of the form
+(q,Z,l) wherel={free,slow}. The initial node is ( q0,Z0,free) where ( q0,Z0) is the initial
+node ofZGa(A). For every transition ( q,Z)⇒t
+a(q′,Z′) inZGa(A) witht= (q,g,R,q′), we
+have the following transitions in SZGa(A):
+•a transition ( q,Z,free)⇒t
+a(q′,Z′,free),
+•a transition ( q,Z,slow)⇒t
+a(q′,Z′,slow) if for all clocks x∈R,Z∧gis consistent with
+x <1,
+A new letter τis introduced that adds transitions ( q,Z,free)⇒τ
+a(q,Z,slow).
+A node of the form ( q,Z,slow) is said to be a slownode. A path of SZGa(A) is said
+to beslowif it has a suﬃx consisting entirely of slow nodes. The τ-transitions take a node
+(q,Z) from the freemode to the slowmode. Note that the transitions of the slow mode
+are constrained further. Figure 13 shows an example of an aut omaton and corresponding
+slow zone graph. The free mode is identical to the zone graph o f the automaton. However,
+in the slow mode, the transition q0{x}− − →q1is not allowed from node ( q0,x≥1,slow) since
+xhas been lifted. Hence, the only inﬁnite paths in the slow mod e instantiate the loop on
+stateq0which correpond to the zeno runs of the automaton. The τtransitions allow to non
+deterministically guess a node which has a slow path.
+Thecorrectnessfollowsfromthefactthatthereisacyclein SZGa(A)consistingentirely
+of slow nodes iﬀ Ahas a Zeno run. This is detailed in the following two lemmas.
+Lemma 4.5. IfAhas a Zeno run, then there exists an inﬁnite slow path in SZGa(A).
+Proof.Letρbe a Zeno run of A:
+(q0,v0)δ0,t0− −− →(q1,v1)δ1,t1− −− →...
+Letπbe the corresponding path in ZGa(A):
+(q0,Z0)⇒t0a(q1,Z1)⇒t1a...
+
+--- Page 24 ---
+24 F. HERBRETEAU AND B. SRIVATHSAN
+We construct an inﬁnite slow path in SZGa(A) from the path π. LetXlbe the set of clocks
+that are lifted inﬁnitely often in πand letXrbe the set of clocks that are reset inﬁnitely
+often inπ. Letπidenote the suﬃx of πstarting from the position i.
+Clearly, thereexistsanindex msuchthatalltheclocksthatareliftedin πmbelongto Xl
+and the ones that are reset in πmbelong to Xr. Sinceρis Zeno, we have Xl∩Xr=∅. This
+shows that all the clocks that are reset in πmare never lifted in its transitions. Therefore,
+there exists an index k≥msuch that for all j≥k,Zjis consistent with x <1 for all clocks
+x∈Xrand we get the following path of SZGa(A):
+(q0,Z0,free)⇒t0a...(qj,Zj,free)⇒τ
+a(qj,Zj,slow)⇒tj
+a(qj+1,Zj+1,slow)⇒tj+1
+a...
+Lemma 4.6. IfSZGa(A)has an inﬁnite slow path, then Ahas a Zeno run.
+Proof.Letπbe the slow path of SZGa(A):
+(q0,Z0,free)⇒t1a...(qj,Zj,free)⇒τ
+a(qj,Zj,slow)⇒tj
+a(qj+1,Zj+1,slow)⇒tj+1
+a...
+Take the corresponding path in ZGa(A) and an instance ρ= (q0,v0)δ0,t0− −− →(q1,v1)...which
+is a run of A, as we have assumed that ais a sound abstraction.
+LetXrbe the set of clocks that are reset inﬁnitely often and let Xlbe the set of
+clocks that are lifted inﬁnitely often in ρ. By the semantics of the slow mode and from our
+hypothesis of abeing lift-safe, after the index j, all clocks that are lifted once can never be
+reset again. Therefore, there exists an index k≥jsuch that the following hold:
+•all clocks that are reset in ρkbelong to Xrand all clocks that are lifted in a transition of
+ρkbelong to Xl,
+•for allx∈Xland for all i≥k,vi(x)≥cwherecis the maximum constant appearing in
+a lifting transition of ρk.
+We now modify the time delays of ρkto construct a run that elapses a bounded amount of
+time. Pick the sequence of indices i1,i2,...inρksuch that δim>0, for all m∈N. Deﬁne
+the new delays δ′
+ifor alli≥kas follows:
+δ′
+i=/braceleftBigg
+min(δi,1
+2j) ifi=ijfor some j
+0 otherwise
+Consider the run ρ′obtained by elapsing δ′
+itime units after the index k:
+(q0,v0)δ0,t0− −− →...δk−1,tk−1− −−−−− → (qk,vk)δ′
+k,tk− −− →(qk+1,v′
+k+1)δ′
+k+1,tk+1− −−−−− → ...
+Clearly,ρ′is Zeno. It remains to prove that ρ′is a run of A. Denote vkbyv′
+k. We need to
+show that for all i≥k,v′
+i+δ′
+isatisﬁes the guard in the transition ti. Call this guard gi.
+Clearly, since v′
+i+δ′
+i≤vi+δiby deﬁnition, if giis of form x < corx≤cthen it is satisﬁed
+by the new valuation. Let us now consider the case when giis of the form x≥corx > c.
+Ifc≥1, then we know that x∈Xlfrom the assumption on k. But since vk(x)≥candx
+is not reset anywhere in ρk,v′
+i(x)≥cfor alliand hence the new valuation satisﬁes gi. We
+are left with the case when giis of the form x >0. However this follows since by deﬁnition
+of the new δ′
+i,v′
+i+δ′
+i= 0 iﬀvi+δi= 0.
+
+--- Page 25 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 25
+From the deﬁnition of SZGa(A) it follows clearly that for each node ( q,Z) of the
+zone graph there are two nodes in SZGa(A): (q,Z,free) and ( q,Z,slow). We thus get the
+following theorem.
+Proposition 4.7. Letabe a lift-safe abstraction. The automaton Ahas a Zeno run iﬀ
+SZGa(A)has an inﬁnite slow path. The number of reachable nodes of SZGa(A)is atmost
+twice the number of reachable nodes in ZGa(A).
+We now turn our attention towards some of the abstractions ex isting in the literature.
+We observe that both ExtraMandExtra+
+Mare lift-safe and hence the Zenoness problem
+can be solved using the slow zone graph construction. Howeve r, in accordance to the NP-
+hardness of the problem for ExtraLU, we get that ExtraLUis not lift-safe.
+Theorem 4.8. The abstractions ExtraMandExtra+
+Mare lift-safe. The Zenoness problem
+is solved in polynomial time for ExtraMandExtra+
+M.
+Proof.Observe that for every clock that is lifted, the bound Mis at least 1. It is now direct
+from the deﬁnitions that ExtraMandExtra+
+Mare lift-safe. A polynomial algorithm is easily
+obtained from Proposition 4.7.
+Theorem 4.9. The abstractions ExtraLUandExtra+
+LUare not lift-safe. The Zenoness
+problem for ExtraLUandExtra+
+LUisNP-complete.
+Proof.ThatExtraLUandExtra+
+LUare not lift-safe follows from the proof of Proposition 4.2.
+We show the NP-membership using a technique similar to the slow zone graph construc-
+tion. Since ExtraLUis not lift-safe, the reachable zones in ZGLU(A) do not maintain the
+information about the clocks that have been lifted. Therefo re, at some reachable zone ( q,Z)
+we non-deterministically guess the set of clocks Wthat are allowed to be lifted in the future
+and go to a node ( q,Z,W). From now on, there are transitions ( q,Z,W)⇒t
+a(q′,Z′,W)
+when:
+•(q,Z)⇒t
+a(q′,Z′) is a transition in ZGLU(A),
+•iftcontains a guard x≥cwithc≥1, thenx∈W,
+•iftresets a clock x, thenx /∈W
+If a cycle is obtained that contains ( q,Z,W), then the clocks that are reset and lifted in
+this cycle are disjoint and hence Ahas a Zeno run.
+This shows that if Ahas a Zeno run we can non-deterministically choose a path of
+the above form and the length of this path is bounded by twice t he number of zones in
+ZGLU(A) (which is our other input). This proves the NP-membership. The NP-hardness
+is proven in Proposition 4.2.
+4.3.Weakening the U bounds. We saw in Theorem 4.9 that the extrapolation ExtraLU
+is not lift-safe. This is due to clocks xthat are lifted but have U(x) =−∞. These are
+exactly the clocks xwithL(x)≥1 andU(x) =−∞. We propose to weaken the Ubounds
+so that the information about a clock being lifted is remembe red in the abstracted zone.
+Deﬁnition 4.10 (WeakUbounds).Given the bounds L(x) andU(x) for each clock x∈X,
+theweak upper bound U(x) is given by: U(x) = 1 if L(x)≥1 andU(x) =−∞, and
+U(x) =U(x) otherwise.
+
+--- Page 26 ---
+26 F. HERBRETEAU AND B. SRIVATHSAN
+LetExtraLUdenote the ExtraLUabstraction, but with Ubound for each clock instead
+ofU. This deﬁnition ensures that for all lifted clocks, that is, for allx∈Lf(A), if a zone
+entails that x≥1 thenExtraLU(Z) also entails that x≥1. This is summarized by the
+following proposition, the proof of which follows by deﬁnit ions and Proposition 4.7.
+Theorem 4.11. For all zones Z,ExtraLUis lift-safe. The Zenoness problem is solved in
+polynomial time for ExtraLU.
+The Zenoness problem is polynomial for ExtraLU, however, there is a price to pay.
+Weakening the Ubounds leads to zone graphs exponentially bigger in some cas es. For
+example, for the automaton AZ
+φthat was used to prove the NP-hardness of the Zenoness
+problem with ExtraLU, note that the zone graph ZGLU(AZ
+φ) obtained by applying ExtraLU
+is exponentially bigger than ZGLU(AZ
+φ). This leads to a slow zone graph SZGLU(AZ
+φ) with
+size polynomial in ZGLU(AZ
+φ). Similar to ExtraLUwe can deﬁne Extra+
+LUwhich is again
+lift-safe and yields a polynomial algorithm for the Zenones s problem.
+5.Discussion on LU-extrapolations
+In this section, we discuss two observations arising out of t he analysis of the non-Zeno/Zeno
+runs in an automaton. The ﬁrst observation relates to an opti mization in the reachability
+and liveness algorithms for timed automata. For the second o bservation, we consider the
+weakLU-extrapolations ExtraLUandExtraLUand look at when these abstractions coincide
+with the LU-extrapolation ExtraLU. We note that this happens for a wide class of timed
+automata.
+5.1.Optimization. Although this paper focuses on the complexity of ﬁnding Zeno and
+non-Zeno behaviours from abstract zone graphs, our analysi s showing the NP-hardness of
+the non-Zenoness problem on LU-abstract zone graphs leads to an interesting side-eﬀect for
+the classical reachability and liveness problems for timed automata. We have pointed out
+in the introduction that the reachability and liveness prob lems are solved via the abstract
+zone graph. The LU-extrapolations are the standard abstractions used in stat e-of-the-
+art implementations [3] as they give rise to small abstract z one graphs. The following
+observation helps in reducing the abstract zone graph even f urther in some cases.
+Recall the proof of NP-completeness of NZPLUgiven in Theorem 2.2. For a 3CNF
+formulaφwe built an automaton Aφthat has a non-Zeno run iﬀ φis satisﬁable. The rest
+of the proof relies on the crucial fact that the zone graph ZGLU(Aφ) is isomorphic to A.
+This was indeed possible as L(x) was−∞for allxthanks to the guards of the form x≤0.
+Note that modifying x≤0 tox= 0 does not change the semantics of the automaton, but
+obligesL(x) to be 0 for all clocks. In this case, the zone graph ZGLU(Aφ) is no longer
+isomorphic to Aφand in fact it is exponentially larger than Aφ.
+This gives us the easy optimization for analyzing an automat onAfor both reachability
+and liveness. Since both these algorithms go through the zon e graph construction, reducing
+the abstract zone graph, and even trying to get a zone graph is omorphic to the automaton,
+can produce considerable gain. The optimization consists i n changing all the guards in A
+that are of the form x= 0 tox≤0 and in removing all the guards x≥0. Thus, we
+make sure that L(x) =−∞unless there is a guard x≥corx > cin the automaton. This
+modiﬁcation has been incorporated in UPPAAL 4.1.5. Experim ental results have shown a
+
+--- Page 27 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 27
+remarkable gain, in particular for timed Petri nets as the tr anslation to timed automata
+may generate many guards like x= 0 and x≥0. For instance, checking reachability on a
+model of Fischer’s protocol only explored 2541 nodes instea d of 23042 nodes thanks to this
+optimization.
+5.2.How weak are the weak LU-extrapolations. We saw that slightly weakening the
+LU-boundsmakes the NZPaandZPapolynomial (Deﬁnitions 3.11, 4.10 and Theorems 3.12,
+4.11). Of course, this would indeed increase the size of the z one graph instead. However
+in many cases the weak abstractions coincide with ExtraLUandExtra+
+LUrespectively. This
+shows that in all these cases, one can use the zone graph craft ed byExtraLUitself, or
+alternatively Extra+
+LU, and additionally checking for Zeno behaviours is not costl y either.
+Hence one can expect an eﬃcient procedure for checking Zeno b ehaviours for these classes
+of automata.
+Assume that we are given an automaton A. Recall the abstraction ExtraLU. This
+abstraction makes use of weak Lbounds for every clock (cf. Deﬁnition 3.11). If all clocks
+that are checked for x≤0 have a guard of the form x≥cthen the weak abstraction
+coincides with ExtraLU. Notice that this is particularly the case for Timed Automat a that
+do not have zero checks (i.e. guards like x≤0). Most models of “real systems” do not have
+such guards.
+For the abstraction ExtraLU, the abstraction makes use of weak Ubounds (cf. Deﬁni-
+tion 4.10). Notice that if all clocks that arechecked for a lo wer boundguardare also checked
+for an upper bound then the two abstractions coincide. So, th e wide class of systems where
+each clock is both bounded from above (i.e. x≤c) and from below (i.e. x≥c′) have
+polynomial-time detection of Zeno runs, even using ExtraLUandExtra+
+LU.
+6.Pspace-Completeness of (non-)Zeno Run Detection with Inpu tA
+In the previous sections, we have characterized the complex ity of ﬁnding (non-)Zeno runs
+given an automaton Aand an abstract zone graph ZGa(A). We now show that in the
+classical setting, where automaton Ais the only input, the two problems turn out to be
+harder. We prove the following theorem.
+Theorem 6.1. Given an automaton A, deciding whether there exists a non-Zeno run is
+Pspace-complete. Similarly for deciding if there exists a Zeno run .
+Our proof follows the same lines as the proof of Pspace-completeness of the emptiness
+problem for timed automata [1, 8].
+Pspace-membership
+In Theorems 3.10 and 4.9 we have proved that given AandZGLU(A), there is a non-
+deterministic polynomial algorithm for NZPLUandZPLU. Essentially both the algorithms
+do the following. They begin by non-deterministically gues sing a node ( q,Z) ofZGLU(A)
+and augmenting it with a guessed subsetof clocks S⊆Xto give thenode( q,Z,S). Starting
+fromthisnode, thealgorithms constructacycleof ZGLU(A)containing( q,Z)andsatisfying
+certain constraints speciﬁed by this newly augmented compo nent:
+(q,Z,S)⇒t1(q1,Z1,S1)⇒t2...⇒tn(qn,Zn,Sn)⇒t(q,Z,S′)
+
+--- Page 28 ---
+28 F. HERBRETEAU AND B. SRIVATHSAN
+SinceZcan be represented in space O(|X|2) using a DBM, nodes of the form ( q,Z,S) can
+be represented in space polynomial in the size of A. Note that each integer in the (LU-
+abstracted) zones Zthat we consider is less than the maximum constant occuring i nA. To
+ﬁnd the above cycle, it is enough to maintain the initially gu essed node ( q,Z,S) and the
+current node whose successor has to be computed. Clearly, th e non-deterministic algorithm
+needs space that is polynomial in the size of the input A. By Savitch’s theorem, this shows
+that deciding if a timed automaton has a non-Zeno run, or dual ly a Zeno run, is in Pspace.
+Pspace-hardness
+The problem of deciding if a deterministic Linear Bounded Au tomaton1(LBA)Baccepts
+a wordwis known to be Pspace-complete [15]. We reduce the acceptance problem for
+deterministic LBAs to the problem of deciding if a timed auto maton has a Zeno or a non-
+Zeno run.
+LetBbe a deterministic LBA and let wbe a ﬁnite word on the input alphabet of
+B. Without loss of generality, we can assume that Bhas a single accepting state qFfrom
+which there are no outgoing transitions. We also assume that the tape alphabet of Bis
+Γ ={1,...,k−1}. Letnbe the length of the input word w(hence the size of the tape of
+B).
+We build a timed automaton Athat reads the sequence σof conﬁgurations of Bon
+inputwencoded as:
+γ0
+1γ0
+2···γ0
+nk γ1
+1γ1
+2···γ1
+nk···k γi
+1γi
+2···γi
+nk···
+where:
+•γ0
+1γ0
+2···γ0
+nis the word w, which is the initial content in the tape;
+•γi
+1γi
+2···γi
+nis the content in the tape after the ﬁrst itransitions of B.
+For every word w, thereis auniqueencoding σasBis deterministic. Observethat σis a
+sequence of integers in 1 ,...,kandkacts as a separator between successive conﬁgurations.
+The automaton Athat we construct below accepts the sequence σiﬀBacceptsw.
+Callγi
+1γi
+2···γi
+nastheithblock. Eachblock icanbemappedtoaposition pi∈ {1,...,n}
+which represents the position of the tape head after the ithtransition. The position p0is
+the initial position of the tape head which is 1. Similarly, e ach block ican be mapped to a
+stateqiof the the LBA Brepresenting the state of Bafter the ﬁrst itransitions.
+We construct the automaton Aas follows.
+States. The states of the automaton encode the state of Band the position of the tape
+head. So each state of the automaton is of the form ( q,p) where qis a state of Band
+p∈ {1,...,n}is a position of the tape head. There is an extra auxiliary sta te (qinit,0) to
+read the initial block of σwhich is the word witself. The goal is to make the automaton
+come to ( qi,pi) after reading the ﬁrst iblocks:
+γ0
+1γ0
+2···γ0
+nk/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+(qinit,0)γ1
+1γ1
+2···γ1
+nk/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+(q0,p0)···k γi
+1γi
+2···γi
+nk/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+(qi−1,pi−1)γi+1
+1γi+1
+2···γi+1
+nk/bracehtipupleft/bracehtipdownright/bracehtipdownleft /bracehtipupright
+(qi,pi)···
+1Linear Bounded Automata are Turing Machines with tape bound ed by the length of the input word.
+
+--- Page 29 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 29
+The initial block is read in the initial state ( qinit,0) after which the automaton moves
+to (q0,p0). In general, after reading block i, the automaton should move to ( qi,pi) which
+represents the state qiofBand the position piof the tape head at the time of taking the
+ithtransition. While reading the i+ 1thblock from state ( qi,pi) the automaton has to
+check if the symbol at position piof the block corresponds to the modiﬁcation of the i+1th
+transition of Bwhich is of the form ( qi,γ,γ′,∆,qi+1).
+Clocks. We intend to make the automaton Aspendk+1 time units at each symbol. This
+is facilitated by a clock x. Spending k+ 1 time units will also help us to recognize the
+current symbol which is a number between 1 and k. To this regard, to read a symbol s∈σ,
+we use a transition with guard ( x=s) followed by a transition with guard ( x=k+ 1)
+that resets x. As reading a symbol requires ( k+1) time units, reading a tape conﬁguration
+(followed by separator symbol k) takes (n+1).(k+1) time units.
+To store the currently read symbol, we introduce a clock xjfor each cell jof the tape.
+If the currently read symbol is γi
+j, then clock xjis reset on the transition with guard x=γi
+j.
+Hence, when the symbol γi+1
+jis read, the previous content of the cell j, given by the symbol
+γi
+j, is remembered in xjby the value ( n+1).(k+1)−γi
+j+γi+1
+j. This is illustrated in (6.1).
+···γi
+jt.u.
+/bracehtipdownleft/bracehtipupright/bracehtipupleft/bracehtipdownright
+(x=γi
+j),{xj}
+− −−−−−− →(x=k+1),{x}− −−−−−−− → ···/bracehtipupleft /bracehtipdownright/bracehtipdownleft /bracehtipupright
+(n+1)·(k+1)time unitsγi+1
+jt.u.
+/bracehtipdownleft/bracehtipupright/bracehtipupleft/bracehtipdownright
+(x=γi+1
+j),{xj}
+− −−−−−−−− →(x=k+1),{x}− −−−−−−− → ··· (6.1)
+Transitions. Consider a state ( q,p) ofA. For each transition ( q,γ,γ′,∆,q′) ofB, there is
+a sequence of transitions in Athat reads a block and does the following:
+•ensures that the pthsymbol corresponds to the modiﬁcation of the pthtape cell forced by
+this transition,
+•ensures that all other symbols are left unchanged correspon ding to all other cells being
+unchanged,
+•moves to state ( q′,p+∆) after reading the block.
+Moreover, the cells have to be read in the right order, that is , cell 1 should be read followed
+by cell 2, etc. Recall that xjis the clock associated with every cell. For every j/ne}ationslash=p, we
+check ifxj= (n+1).(k+1) and for j=pwe check if xj= (n+1).(k+1)−γ+γ′. This
+will ensure the ﬁrst two conditions above and will also ensur e that the cells are read in the
+correct succession.
+The complete widget for transition ( q,γ,γ′,∆,q′) is depicted in Figure 14. There is
+one such widget in Afor each state ( q,p) such that p+∆ is a valid position (i.e. p+∆∈
+{1,...,n}).
+Initialization. We need to read the word wfrom state ( qinit,0) and assign the initial value
+of the clocks x1,...,x ntow1,...,w nwherewjrepresents the jthsymbol of w. Aswis
+given as an input, we can easily add transitions from ( qinit,0) to ensure this and jump to
+(q0,1).
+Observe that since Bis deterministic, Ais also deterministic. Furthermore, Ais time-
+deterministic as all the guards are equalities. Hence, Ahas a single run given the word
+
+--- Page 30 ---
+30 F. HERBRETEAU AND B. SRIVATHSAN
+q,p•
+•• q′,p+∆x= 1,...,k−1
+xj= (n+1).(k+1), j/ne}ationslash=p,n
+{xj}x=k+1
+{x}
+x=γ′
+xp= (n+1).(k+1)−γ+γ′
+{xp}x=k+1
+{x}x=k&xn= (n+1).(k+1)
+{xn}x=k+1
+{x}
+Figure 14: Widget for transition ( q,γ,γ′,∆,q′) on state ( q,p).
+w. Furthermore, if Bdoes not terminate on w, the corresponding run of Ais inﬁnite and
+non-Zeno.
+Recall that qFis the sole accepting state of Band there are no transitions outgoing
+fromqF. From the construction described above, one easily gets the following theorem:
+Theorem 6.2. Areaches a state (qF,p)iﬀBreachesqFon input w. The size of Ais
+polynomial in the size of Bandw.
+Existence of a Non-Zeno Run. We show that an algorithm for deciding if Ahas a non-Zeno
+run yields an algorithm to decide if Bacceptsw. This algorithms has two phases.
+In the ﬁrst phase, it determines if Ahas a non-Zeno run:
+•if the answer is yes, we can conclude that Bdoes not accept w. Indeed, if Ahas a non-
+Zeno run, then it does not reach ( qF,p) for any pas the run is inﬁnite (recall qFis a sink
+state by hypothesis), hence neither does BreachqF;
+•if the answer is no, we cannot conclude. We only gain information that Ahas no inﬁnite
+run, but it may stop in a state ( qF,p) as well as in a non-accepting state.
+In the second phase, we transform AintoA′by adding a loop on all ( qF,p) with guard
+(x≥1) and that resets x. Now, if the run of A′is inﬁnite, then it visits some ( qF,p).
+Furthermore, it is the only non-Zeno run in A′as we know from the ﬁrst phase that Ahas
+no inﬁnite run. We now ask if A′has a non-Zeno run:
+•if the answer is yes, we can conclude that Bacceptsw;
+•if the answer is no, the run of A′is ﬁnite and does not reach any ( qF,p). We can conclude
+thatBdoes not accept w.
+Existence of a Zeno Run. Now, we show that an algorithm that decides if Ahas a Zeno
+run yields an algorithm to decide if Bacceptsw. Recall that Ais deterministic: it has a
+unique run and if that run is inﬁnite, then it is non-Zeno.
+We transform AintoA′by adding a loop on all states ( qF,p) with guard ( x≤0). Then
+we ask if A′has a Zeno run:
+•if the answer is yes, then some ( qF,p) has to bereachable, hence BreachesqFand accepts
+w;
+•if the answer is no, then no ( qF,p) is reachable, and Bdoes not accept w.
+
+--- Page 31 ---
+COARSE ABSTRACTIONS MAKE ZENO BEHAVIOURS DIFFICULT TO DETE CT 31
+7.Conclusion
+We have shown a striking fact that the problem of deciding exi stence of Zeno or non-
+Zeno behaviours from abstract zone graphs depends heavily o n the abstractions, to the
+extent that the problem changes from being polynomial to bec omingNP-complete as the
+abstractions get coarser. Of course, it is but natural that c hecking for Zeno/non-Zeno
+behaviours becomes diﬃcult when the abstraction gets coars er, as lesser information is
+maintained. However, the fact this diﬃculty ranges from a lo w polynomial to NP-hardness
+is surprising.
+We have proved NP-completeness for the coarse abstractions ExtraLUandExtra+
+LU. In
+contrast, the fundamental problems of ﬁnding accepting run s for ﬁnitary accepting condi-
+tions (reachability), and for B¨ uchi accepting conditions , over abstract zone graphs have a
+mere linear complexity, independent of the abstraction. As a consequence of the diﬃculty
+of detecting non-Zeno runs, the B¨ uchi emptiness problem wh ich consists in ﬁnding a run
+that is both accepting and non-Zeno is NP-complete for abstractions ExtraLUandExtra+
+LU.
+On the positive side, from our study on the conditions for an a bstraction to give a
+polynomial solution, we see that a small modiﬁcation of the L U-extrapolation works. We
+have deﬁned two weaker abstractions: ExtraLUfor detecting non-Zeno runs and ExtraLUfor
+detecting Zeno runs. The weak bounds LandUcan also be used with Extra+
+LUto achieve
+similar results. Despite leading to a polynomial solution f or checking Zeno or non-Zeno
+behaviours from abstract zone graphs, these abstractions t ransfer the complexity to the
+input: they could lead to exponentially bigger abstract zon e graphs themselves. However,
+for a fairly large class of automata described in the previou s section, we see that this is not
+the case as the weak abstractions coincide with ExtraLU.
+While working with abstract zone graphs, coarse abstractio ns (and hence small abstract
+zone graphs) are essential to handle big models of timed auto mata. These, as we have seen,
+work against the Zenoness questions in the general case. Our results therefore provide a
+theoretical motivation to look for cheaper substitutes to t he notion of Zenoness.
+All the abstractions we have considered are convex abstract ions. However, there also
+exist non-convex abstractions [5, 3] that are known to be coa rser that the convex ones.
+Since non-convex sets are particularly diﬃcult to manipula te, only the convex abstractions
+have been considered for implementation. Recently, new alg orithms have been introduced
+to solve the reachability problem eﬃciently using non-conv ex abstractions [11, 13]. Future
+work includes adaptation of these algorithms to the detecti on of (non-)Zeno behaviors.
+References
+[1] Rajeev Alur and David L. Dill. A theory of timed automata. Theor. Comput. Sci. , 126(2):183–235,
+1994.
+[2] Rajeev Alur and P. Madhusudan. Decision problems for tim ed automata: A survey. In Marco Bernardo
+and Flavio Corradini, editors, SFM, volume 3185 of Lecture Notes in Computer Science , pages 1–24.
+Springer, 2004.
+[3] GerdBehrmann, PatriciaBouyer, KimGuldstrandLarsen, andRadekPel´ anek. Lowerandupperbounds
+in zone-based abstractions of timed automata. STTT, 8(3):204–215, 2006.
+[4] Gerd Behrmann, Alexandre David, Kim Guldstrand Larsen, John Hakansson, Paul Pettersson, Wang
+Yi, and Martijn Hendriks. UPPAAL 4.0. In QEST, pages 125–126. IEEE Computer Society, 2006.
+[5] Patricia Bouyer. Forward analysis of updatable timed au tomata. Formal Methods in System Design ,
+24(3):281–320, 2004.
+
+--- Page 32 ---
+32 F. HERBRETEAU AND B. SRIVATHSAN
+[6] Howard Bowman and Rodolfo G´ omez. How to stop time stoppi ng.Formal Asp. Comput. , 18(4):459–493,
+2006.
+[7] Marius Bozga, Conrado Daws, Oded Maler, Alfredo Olivero , Stavros Tripakis, and Sergio Yovine.
+KRONOS: A model-checking tool for real-time systems (tool- presentation for ftrtft ’98). In Anders P.
+Ravn and Hans Rischel, editors, FTRTFT , volume 1486 of Lecture Notes in Computer Science , pages
+298–302. Springer, 1998.
+[8] Costas Courcoubetis and Mihalis Yannakakis. Minimum an d maximum delay problems in real-time
+systems. Formal Methods in System Design , 1(4):385–415, 1992.
+[9] David L. Dill. Timing assumptions and veriﬁcation of ﬁni te-state concurrent systems. In Joseph Sifakis,
+editor,Automatic Veriﬁcation Methods for Finite State Systems , volume 407 of Lecture Notes in Com-
+puter Science , pages 197–212. Springer, 1989.
+[10] Rodolfo G´ omez and Howard Bowman. Eﬃcient detection of Zeno runs in timed automata. In Jean-
+Fran¸ cois Raskin and P. S. Thiagarajan, editors, FORMATS , volume 4763 of Lecture Notes in Computer
+Science, pages 195–210. Springer, 2007.
+[11] Fr´ ed´ eric Herbreteau, Dileep Kini, B. Srivathsan, an d Igor Walukiewicz. Using non-convex approxi-
+mations for eﬃcient analysis of timed automata. In Supratik Chakraborty and Amit Kumar, editors,
+FSTTCS , volume 13 of LIPIcs, pages 78–89. Schloss Dagstuhl - Leibniz-Zentrum fuer Info rmatik, 2011.
+[12] Fr´ ed´ eric Herbreteau and B. Srivathsan. Coarse abstr actions make Zeno behaviours diﬃcult to detect. In
+Joost-Pieter Katoen and Barbara K¨ onig, editors, CONCUR , volume 6901 of Lecture Notes in Computer
+Science, pages 92–107. Springer, 2011.
+[13] Fr´ ed´ eric Herbreteau, B. Srivathsan, and Igor Waluki ewicz. Better abstractions for timed automata. In
+LICS, pages 375–384. IEEE, 2012.
+[14] Fr´ ed´ eric Herbreteau, B. Srivathsan, and Igor Waluki ewicz. Eﬃcient emptiness check for timed B¨ uchi
+automata. Formal Methods in System Design , 40(2):122–146, 2012.
+[15] John E. Hopcroft and Jeﬀrey D. Ullman. Introduction to Automata Theory, Languages and Computa-
+tion. Addison-Wesley, 1979.
+[16] Guangyuan Li. Checking timed B¨ uchi automata emptines s using LU-abstractions. In Jo¨ el Ouaknine and
+Frits W. Vaandrager, editors, FORMATS , volume 5813 of Lecture Notes in Computer Science , pages
+228–242. Springer, 2009.
+[17] Jonas Rinast and Sibylle Schupp. Static detection of Ze no runs in UPPAAL networks based on synchro-
+nization matrices and two data-variable heuristics. In Mar cin Jurdzinski and Dejan Nickovic, editors,
+FORMATS , volume 7595 of Lecture Notes in Computer Science , pages 220–235. Springer, 2012.
+[18] Stavros Tripakis. Verifying progress in timed systems . In Joost-Pieter Katoen, editor, ARTS, volume
+1601 ofLecture Notes in Computer Science , pages 299–314. Springer, 1999.
+[19] Stavros Tripakis. Checking timed B¨ uchi automata empt iness on simulation graphs. ACM Trans. Com-
+put. Log. , 10(3), 2009.
+[20] Stavros Tripakis, Sergio Yovine, and Ahmed Bouajjani. Checking timed B¨ uchi automata emptiness
+eﬃciently. Formal Methods in System Design , 26(3):267–292, 2005.
+[21] Farn Wang. REDLIB for the formal veriﬁcation of embedde d systems. In ISoLA, pages 341–346. IEEE,
+2006.
+This work is licensed under the Creative Commons Attributio n-NoDerivs License. To view
+a copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+letter to Creative Commons, 171 Second St, Suite 300, San Fra ncisco, CA 94105, USA, or
+EisenacherStrasse2, 10777Berlin,Germany

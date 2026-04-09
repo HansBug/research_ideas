@@ -1,0 +1,1306 @@
+--- Page 1 ---
+On notions of regularity for data languages⋆
+Henrik Bj¨ orklund Thomas Schwentick
+Technische Universit¨ at Dortmund, Computer Science Chair 1 , D-44227
+Dortmund, Germany
+Abstract
+Motivated by considerations in XML database theory and mode l checking, data
+strings have been introduced as an extension of ﬁnite alphab et strings which carry,
+at each position, a symbol anda data value from an inﬁnite domain. Previous work
+has shown that it is diﬃcult to come up with an expressive yet d ecidable automaton
+model for data languages. Recently, such a model, data automata , was introduced.
+This paper introduces a simpler but equivalent model and inv estigates its expressive
+power, algorithmic and closure properties, and some extens ions.
+1 Introduction
+Regular string languages is clearly one of the most fundamenta l concepts in
+(Theoretical) Computer Science. It has applications in basi cally all branches
+of Computer Science. It can be argued that the following prop erties were
+crucial to its success: (1) Expressiveness, (2) Decidability, (3) E ﬃciency, (4)
+Closure properties, and (5) Robustness. The notion of regularity has been
+successfully generalized to other kinds of structures, includin g inﬁnite strings
+and ﬁnite or inﬁnite, ranked or unranked trees. More recent ap plications of
+regular languages (on inﬁnite strings and ﬁnite, unranked tr ees, respectively)
+can be found in Model Checking and XML processing.
+In Model Checking, a system is given as a ﬁnite state model, and pr operties are
+speciﬁed in a logic like LTL. The step from the ”real” system to its ﬁnite state
+representation usually involves many abstractions, especially with respect to
+data values (variables, process numbers, etc.). Often their ra nge is restricted
+⋆This work was supported by the DFG Grant SCHW678/3-1.
+Email addresses: Henrik.Bjoerklund@udo.edu (Henrik Bj¨ orklund),
+Thomas.Schwentick@udo.edu (Thomas Schwentick).
+Preprint submitted to Elsevier 26 June 2008
+
+--- Page 2 ---
+to a (small) ﬁnite domain. Even though this approach has been su ccessful and
+found its way into large scale industrial applications, the ﬁni te abstractions
+have some inherent shortcomings. As an example, nidentical processes with m
+states each give rise to an overall model size of mn. (Symbolic model checking
+partially addresses this problem by ”compressing” redundant sta tes.) If the
+number of processes is unbounded and/or unknown in advance, th e ﬁnite state
+approach fails. Previous work has shown that even then, decida bility can be
+obtained by restricting the problem in various ways [9,1].
+In XML document processing, regular concepts occur in various c ontexts.
+First, most applications restrict the structure of the allowed d ocuments to
+conform to a certain schema, which can be modeled as a regular t ree language.
+Second, navigation (XPath) and transformation (XSLT) languag es have tight
+connections to tree automata models and other regular descri ption mecha-
+nisms (see, e.g., [14]). All these approaches concentrate on doc ument structure
+and ignore attribute and text values. From a database point of v iew this is not
+completely satisfactory: a schema should not only restrict the allowed (tree)
+structure, but also state integrity constraints, such as key or inc lusion depen-
+dencies, on the data. This problem has been addressed (see, e.g., [2]), but just
+as in Model Checking, the methods largely rely on case-to-case analysis.
+Thus, in both settings, the ﬁnite state abstraction leads to inter esting results
+but does not address all problems arising in applications. In bo th cases, it
+would already be a big step if each string position (or tree node) could carry a
+data value in addition to its label. As any kind of arithmetic operations on the
+inﬁnite domain quickly leads to undecidability of basic proc essing tasks (even
+a linear order on the domain is harmful), we concentrate on th e setting where
+data values can only be tested for equality. Furthermore, in t his paper we
+only consider ﬁnite data strings , i.e., ﬁnite strings, where each position carries
+a symbol from a ﬁnite alphabet and a data value from an inﬁnite d omain.
+Several speciﬁcation mechanisms for data languages have been suggested, such
+asregister automata [12], pebble automata [15], quasi-regular expressions [13],
+data automata [3], and LTL with freeze quantiﬁer [5]. For an overview, see
+[18]. There are also some investigations which assume more knowle dge of the
+data [4,19]. Two observations are immediate from this body of work: (1) the
+landscape of data languages is very heterogeneous, i.e., pair s of deﬁned classes
+are often incomparable, and (2) one quickly obtains undecid ability.
+Thus, the question remains whether there is a notion of regular ity for data
+languages with the ﬁve desirable properties mentioned above . The results so
+far indicate that there might be not a single such class sharing al l required
+properties. Rather there could be several classes fulﬁlling the requirements
+only to a certain extent. The research dedicated to this questi on is therefore
+of an exploratory nature, taking a broad variety of models in to account.
+2
+
+--- Page 3 ---
+Here, our requirements on expressiveness are guarded by the goal of Model
+Checking in the presence of an unbounded number of processes. In t his sce-
+nario, a computation naturally gives rise to a data string w, where the data
+values represent process identiﬁers. We aim at describing global properties of
+the computation, taking the whole string into consideration, as well as local
+properties which concern the actions of individual processes. As an example ,
+consider processes sharing a printer with three kinds of events: a print job can
+be requested ( r), start ( s), and terminate ( t). A global property could be that
+a started job must be terminated before the next job can be starte d, inducing
+a regular (ﬁnite alphabet) constraint of the form ( r∗sr∗tr∗)∗. A natural local
+property is stated by ( rst)∗, i.e., each process has arbitrarily many request-
+start-terminate cycles. We want to be able to specify global and local prop-
+erties by (classical) regular languages RglobandRloc, respectively. Formalisms
+will diﬀer in their ability to coordinate the local and globa l properties.
+Register automata [12] are a quite natural decidable model fo r data languages.
+In [12], the data strings do not have a ﬁnite alphabet componen t, but the
+generalization of the model to data languages is straightfor ward. They are
+able to deal with any regular global properties, but their abi lity to specify
+local properties is very limited. For instance, they cannot e xpress the local
+property of printers stated above. Another natural approach t o speciﬁcation is
+through logics. Data strings can be modeled in a straightforwar d way as ﬁnite
+structures. Due to the limited access to data values, they can be r epresented
+by an equivalence relation. First-order logic on data strings is undecidable,
+but the two-variable fragment has a decidable satisﬁability p roblem [3]. In
+its decidability proof, the latter paper introduced a new au tomaton model
+for data strings, data automata (DAs) . As they have the expressive power
+described above and a decidable emptiness problem they fulﬁll , at least to
+some extent, the requirements (1) expressiveness and (2) decida bility. The
+other three requirements were not studied in depth in [3]. Neve rtheless, the
+paper gave a characterization of the class Rof data languages accepted by DAs
+in terms of an existential monadic second order logic and thus e stablished a
+certain robustness of the class. In this paper, we study Rand some extensions
+and restrictions more thoroughly.
+Contributions. First, we address the robustness of R. We exhibit some simpliﬁ-
+cations of data automata which do not aﬀect their expressive po wer (cf. 3.6 and
+3.7). We arrive at the equivalent model of class memory automata (CMAs) . We
+further conﬁrm the expressiveness of Rby showing that it (strictly) captures
+all data languages accepted by register automata (4.1).
+We next turn to the complexity of model checking. We ﬁrst consid er reg-
+ister automata. Even though their data complexity is polynom ial time, the
+combined complexity is NP-complete [17]. The number kof registers turns
+out to be a crucial parameter here: with respect to k, the problem is W[1]-
+3
+
+--- Page 4 ---
+complete (5.2 (b)). For class memory automata, things are eve n worse, as the
+data complexity of model checking is already NP-complete (5. 1 (b)). The high
+data complexity of CMAs suggests the consideration of deterministic CMAs.
+The existence of a reasonable deterministic variant is actuall y an advantage
+of CMAs over DAs. The data and combined complexity of model check ing
+become polynomial (5.1 (a)). Even though deterministic CMAs c an express
+regular global and local properties, they are considerably we aker than CMAs,
+as they neither capture register automata (4.2) nor two-vari able logics (4.3).
+The attempt to augment the expressive power of deterministic CM As by al-
+lowing them to operate in a two-way fashion is unsuccessful, as it results in
+undecidability (5.3).
+We also investigate closure properties of R. It is closed under union, inter-
+section, product, and concatenation, but neither under comp lementation nor
+under Kleene star. The former follows already from the undeci dability of uni-
+versality for register automata [15], the latter is Propositio n 6.1. Deterministic
+CMAs are closed under intersection but not under union, concate nation, or
+complementation. To obtain a deterministic model closed unde r Boolean op-
+erations, we introduce acceptance conditions which combine conditions for
+global properties with Presburger conditions on the numbers of data values
+fulﬁlling certain local properties (6.4). Despite its closur e under negation this
+model is still decidable as even non-deterministic such CMAs can be eﬀec-
+tively translated into CMAs without Presburger conditions. Non- deterministic
+CMAs with these conditions are, however, still not closed under c omplemen-
+tation.
+Since Ris still unable to handle some natural properties arising in mod el
+checking, we investigate how much the expressive power of CMAs ca n be
+extended while preserving decidability. More precisely, we c onsider two such
+extensions which allow more interaction between the global a nd the local prop-
+erties: a model with a synchronization mechanism and one with th e ability to
+”reset” information seen for a data value. Returning to our pri nter example,
+these automata can handle, e.g., restarts of the system, where th e content of
+the printer queue is lost. An overview of the classes under conside ration is
+given by Figure 1.
+2 Preliminaries
+Data words. Let Σ be a ﬁnite alphabet and ∆ an inﬁnite set. A data word
+is a ﬁnite sequence over Σ ×∆. Adata language is a set of such words. If
+w= (a1,d1)...(an,dn), then str( w) =a1... a nis thestring projection of
+w. The marked string projection mstr(w) is the string ( a1,b1)· · ·(an,bn) over
+Σ×{0,1}for which bi= 1 iﬀ di=di−1(b1= 0). For each data value d, the set
+4
+
+--- Page 5 ---
+CMA + Sync 2D-CMA Undecidable
+Decidable CMA + Reset CMA + restr. Sync
+CMA
+CMA+Presb.
+DA
+EMSO2(+1,<,∼,⊳)
+FO2(+1,<,∼) RA D-CMA + Presb.
+D-CMA D-RA
+Fig. 1. A schematic picture of inclusions among classes of da ta languages. The
+lowermost three (branches of) classes are pairwise incompa rable.
+of all positions with value dis called a class ofw. The string induced by these
+positions is called a class string . A position jis called the class successor of
+a position i(denoted i⊳j), ifi < j , both have the same data value, and there
+is no other position with the same value between iandj. Unless otherwise
+stated, data values can only be compared with respect to equali ty.
+In the sequel, we will assume w.l.o.g. that all data languages an d automata
+we investigate are deﬁned over the same data set ∆, which contain s all data
+values used in examples and proofs. In particular N⊆∆. We will also talk
+about data languages over Σ, where Σ is a ﬁnite alphabet, impl icitly assuming
+that the data set is ∆.
+Register automata. Register automata were introduced by Kaminski and
+Francez [12] and have later been studied in, e.g., [15,5]. The y were deﬁned
+for sequences of data values only, but the generalization to d ata words is
+straightforward. Register automata are equipped with a consta nt number of
+registers in which they can store data values, which can later be compared
+with the data value of the current position. We extend the noti on of [12].
+Deﬁnition 2.1 ([12,15]) Aregister automaton (RA) over ﬁnite alphabet
+Σis a tuple R= (Q,q0,F,k,P ), where Qis a ﬁnite set of states, q0is the
+initial state, Fare the accepting states, kis the number of registers, and P
+is a ﬁnite set of transitions. A transition is either a write transition of
+the form (i,p,a )→qor aread transition of the form (p,a)→(q,i), for
+i∈ {1,... ,k },p,q∈Q, and a∈Σ. Aconﬁguration ofRis a pair (q,τ),
+where q∈Qandτ:{1,... ,k } → ∆∪{⊥} is aregister assignment (⊥/\e}atio\slash∈∆
+indicates an empty assignment). The initial conﬁguration i s(q0,τ0), where
+τ0(i) =⊥for all i∈ {1,... ,k }.
+A read transition (i,p,a )→qcan be applied if the current state is p, the next
+input symbol is aand the next input data value is already stored in register i.
+It takes the automaton from conﬁguration (p,τ)to(q,τ). A write transition
+5
+
+--- Page 6 ---
+(p,a)→(q,i)can be applied if the current state is p, the next input symbol
+isaand the next input data value dis currently not stored in any register.
+It takes the automaton from a conﬁguration (p,τ)to(q,τ′), where τ′(i) =d,
+andτ′(j) =τ(j)for all j/\e}atio\slash=i.Risdeterministic if for each state pand
+letter athere is exactly one transition (p,a)→(q,i), and for each register i
+at most one transition (i,p,a )→q. Arun on a data string wis a sequence
+(q0,τ0),... , (qn,τn)of conﬁgurations, deﬁned in the obvious way. The set of
+data words accepted by Ris denoted L(R).
+It should be noted that other deﬁnitions of RAs allow a nonempty initial
+assignment. This makes it possible to consider a ﬁnite number of co nstants, an
+ability that isn’t needed when we have a ﬁnite as well as an inﬁn ite alphabet.
+The deﬁnition ensures that a data value can never occur in more than one
+register at the same time. In particular, this feature can be use d to verify that
+the current data value is diﬀerent from those in the registers.
+In [12], languages recognized by register automata are calle dquasi-regular .
+We mention some of the results from [12]: The class of quasi-regul ar languages
+is closed under union, intersection, concatenation, and Klee ne star, but not
+under complementation. The emptiness problem for register au tomata is de-
+cidable. If R1andR2are register automata, and R2has at most 2 registers,
+then it is decidable whether L(R1)⊆L(R2). In [15], diﬀerent versions of reg-
+ister automata are investigated (2-way, alternating, etc.). In particular, it is
+shown that deterministic RA are strictly weaker than RA, which ar e in turn
+strictly weaker than 2-way RA, and that RA are strictly weaker th anMSO∗.
+As the following example shows, the ability of register automata to combine
+global and local properties is severely limited.
+Example 2.2 We take up the printer example from the introduction. Let L0
+be the set of valid traces , i.e., the data words whose string projection matches
+the expression (r∗sr∗tr∗)∗and for which each class string satisﬁes (rst)∗. We
+claim that there is no register automaton for L0. For the sake of a contradic-
+tion, assume that register automaton Raccepts L0. Let kbe the number of
+registers of R. Letwbe the data string (r,1)· · ·(r,k+ 1)(s,1)(t,1)· · ·(s,k+
+1)(t,k+ 1). Asw∈L0,Rhas an accepting run ρonw. After reading the ﬁrst
+k+1positions of w, there is at least one data value d∈ {1,... ,k +1}that does
+not occur in any register of R. We can conclude that Ralso accepts the string
+w′/\e}atio\slash∈L0resulting from wby replacing (s,d),(t,d)with (s,k+ 2),(t,k+ 2).
+6
+
+--- Page 7 ---
+3 Data and Class-Memory Automata
+As seen in the previous section, register automata only have a lim ited abil-
+ity to check local properties, e.g., in general they cannot ch eck whether the
+class strings of a data word belong to some given regular languag e. With an
+automata model in mind that can check regular local and globa l properties it
+is natural to consider a combination of a ﬁnite state automaton reading the
+(string projection of the) whole input word and an automaton r eading the
+diﬀerent class strings.
+In this section, we introduce class-memory automata (CMA) , an automaton
+model which basically combines a global and a local automaton and allows
+some interaction between them. We will show then that class memo ry au-
+tomata have exactly the same expressive power as data automata that were
+introduced in [3] mainly as a tool for a decidability proof.
+CMAs have two advantages over data automata: they are concept ually slightly
+simpler and they have a meaningful notion of determinism.
+Deﬁnition 3.1 Aclass-memory automaton Cis a tuple (Q,Σ,δ,q I,FL,FG),
+where Qis a ﬁnite set of states, Σis a ﬁnite alphabet, qIis the initial state,
+•δ: (Q×Σ×(Q∪ {⊥} ))→ P (Q)is atransition function ; and
+•FG⊆FL⊆Qare the sets of globally and locally accepting states ,
+respectively.
+The semantics of class memory automata (CMA) is deﬁned throu gh the no-
+tion of class-memory functions. Such a function simply assi gns to every data
+value dthe state of the automaton that was assumed after reading the last
+(previous) position with value d. More formally, a class-memory function
+is a function f: ∆→Q∪ {⊥} such that f(d)/\e}atio\slash=⊥for only ﬁnitely many d.
+Aconﬁguration ofCis a pair (q,f)where q∈Qandfis a class-memory
+function. We call qtheglobal state ofCandf(d)thelocal state ofd.
+The initial conﬁguration of Ais(qI,fI), where fI(d) =⊥for all d∈∆. When
+reading a pair (a,d)∈Σ×∆, the automaton can go from conﬁguration (q,f)
+to(q′,f′)if (1) q′∈δ(q,a,f (d)), (2) f′(d) =q′, and (3) for all d′/\e}atio\slash=d,
+f′(d′) =f(d′). The automaton accepts if, for the ﬁnal conﬁguration (q,f),
+q∈FGandf(d)∈FL∪{⊥} , for all d∈∆. A CMA is deterministic if each
+δ(p,a,q )is a singleton.
+It should be noted that δnaturally induces a transition relation which is a
+subset of ( Q×Σ×(Q∪ {⊥} ))×Q. We freely switch back and forth between
+these two points of view.
+7
+
+--- Page 8 ---
+wi
+ip
+wb(s,W) (r,I)
+(r,I) (r,I)
+(r,I) (t,p)(s,W)(t,p)
+Fig. 2. A CMA for L0. The labels are explained in Example 3.2
+Example 3.2 We construct a CMA Cthat accepts the language L0from
+Example 2.2. The automaton C, depicted in Figure 2, has four states
+•p(the printer is printing for the current process),
+•i(the current process is neither printing nor waiting for a pr int),
+•wi(the current process is waiting for a print and the printer is idle)
+•wb(the current process is waiting for a print but the printer is busy)
+Edge labels (σ,p)indicate that the transition can be taken reading symbol σ,
+in case the class memory is p. Here Wabbreviates wiorwbandIstands for
+ior⊥.
+To get a better understanding of the automaton let us have a lo ok at the tran-
+sitions leaving p. In state pthe automaton just read some (s,d)reﬂecting the
+start of a print for the process number d. Thus, there are only two possible
+kinds of next data symbols: either (t,d)which ends the print of process dor
+(r,d′)which moves process d′/\e}atio\slash=dinto the waiting state. It should be noted
+that no (s,d′)could be read next.
+We next show that CMAs are not “yet another automata model for da ta
+strings”. Indeed, as mentioned before, they are equivalent to the automata
+model of [3] which in turn has a robust characterization by exi stential monadic
+second-order formulas with two ﬁrst-order variables.
+Data automata implement the idea of combining a global with a local automa-
+ton in a diﬀerent way: the global automaton is a string transduc er, the local
+automaton reads the class strings induced by its output.
+Deﬁnition 3.3 ([3]) Adata automaton (DA) Dis a pair (A,B), where A
+is a nondeterministic letter-to-letter transducer (the base automaton ) with
+a ﬁnite output alphabet ΓandBan NFA (the class automaton ). A data
+wordw=w1... w nover Σis accepted by Dif there is an accepting run of A
+on the marked string projection mstr (w), yielding an output string g1... g n,
+such that Baccepts each string gi1... g ikinduced by a class of w.
+Example 3.4 We construct a data automaton D= (A,B)for the language
+L0from Examples 2.2 and 3.4 (cf. Figure 3). The transducer Amakes sure
+that the string projection matches (r∗sr∗tr∗)∗, and copies its input to the class
+strings. The class automaton Bveriﬁes that each class string matches (rst)∗.
+8
+
+--- Page 9 ---
+A: i bs
+tr rB:c w
+pr
+s t
+Fig. 3. A data automaton for the language L0.Ahas states i(idle) and b(busy).
+Bhas states c(computing), w(waiting) and p(printing).
+We aim to show next that data automata and CMAs are expressively eq uiv-
+alent. As a technical preparation for that proof we ﬁrst show tha t it is not
+necessary that a DA Areads the marked string projection mstr( w) (indicat-
+ing where the data value changes): we deﬁne unmarked data automata in
+the same way as data automata but the base automaton reads str( w) instead
+of mstr( w) and show that the expressive power of unmarked data automata
+is the same as that of data automata. It should be stressed that than ks to
+Proposition 3.6 we could deﬁne CMAs do read str( w) as opposed to mstr( w).
+We illustrate the coloring technique used in the proof of this r esult with an
+example.
+Example 3.5 We consider the language L1of traces in which the pattern
+(t,d)(r,d)does not occur, i.e., after a print job of a process terminates i t
+can request the next one only after some other event occurred. We note that
+a DA whose base automaton reads mstr (w)can easily accept this language
+by simply avoiding the pattern (t,b)(r,1), forb∈ {0,1}. It is, however, less
+obvious how a data automaton can do this if its base automaton only sees
+str(w). Intuitively, the class automaton has no clue whether betwee n atand
+the subsequent rof some class some other event occurred. The base automaton,
+on the other hand, does not know about data values whatsoever. Nevertheless,
+by working together, the base and class automaton can accept L1by using the
+coloring technique explained next. The idea is that the base automaton guesses
+a color (black or yellow), for each t-position and each r-position, such that the
+following two conditions hold.
+(1) Every r-position shares the color of the previous t-position in the same
+class (if it exists).
+(2) If an r-position immediately follows a t-position they have diﬀerent colors.
+Obviously, if colors can be assigned such that (1) and (2) hold , then w∈L1.
+Furthermore, condition (1) can be checked by the class autom aton, condition
+(2) by the base automaton.
+It remains to show that for each w∈L1a coloring fulﬁlling (1) and (2) can be
+found. To this end, we associate with wa directed graph G(w)whose vertices
+are the positions of wcarrying torrand which has an edge from itojif
+(i)j < i ,jcarries tandiis the next r-position of win the class of j, or
+(ii)j=i+ 1,icarries tandjcarries r.
+9
+
+--- Page 10 ---
+r
+d1
+1
+br
+d2
+2
+bs
+d1
+3
+bt
+d1
+4
+br
+d3
+5
+ys
+d2
+6
+bt
+d2
+7
+yr
+d1
+8
+bs
+d3
+9
+bt
+d3
+10
+br
+d2
+11
+ys
+d1
+12
+bt
+d1
+13
+bs
+d2
+14
+bt
+d2
+15
+b
+Fig. 4. A data string wwith its graph G(w) and the induced coloring.
+The intuitive meaning of an edge (i,j)is that the color of idetermines the color
+ofj. Observe that each node in G(w)has in-degree at most one. Furthermore,
+there are no cycles. Thus, we can assign colors as follows: (1) Each node of
+in-degree 0 gets the color black. (2) Whenever there is an edg e(i,j)andiis
+at-position which is already colored then jgets a diﬀerent color than i. (3)
+Whenever there is an edge (i,j)andiis anr-position which is already colored
+thenjgets the same color as i. Clearly, this leads to a coloring respecting
+conditions (1) and (2). Figure 4 gives an illustration.
+Proposition 3.6 For every data automaton, there is an equivalent unmarked
+data automaton.
+Proof. LetD= (A,B) be a data automaton. We construct an equivalent
+data automaton D′= (A′,B′) with the claimed restriction. Intuitively, on
+input str( w),A′guesses a marked string vand simulates the behavior of A
+onv. Simultaneously, together with B′, it checks that v= mstr( w) using the
+coloring technique of Example 3.5.
+Thus, ﬁrst of all, A′guesses, for each position i, whether it has the same
+data value as position i−1. Furthermore, for each i, it guesses a subset Siof
+the set S={open(black) ,open(yellow) ,close(black) ,close(yellow) }. More pre-
+cisely, Sicontains exactly one opening element, open(black) or open( yellow),
+if position iis (guessed to be) in a diﬀerent class than i−1. Likewise, Sicon-
+tains either close(black) or close(yellow) if position iis in a diﬀerent class than
+i+1. At position i, the output of A′is just ( gi,Si), where giis the output of A
+when reading position iof mstr( w). The automaton ( A′,B′) has to make sure
+that the positions with a data value change are guessed correctl y, i.e., that
+the open-position after each close-position has a diﬀerent dat a value. To this
+end, (A′,B′) accepts if the following two conditions hold, for every posi tioni.
+(1) If open( c)∈Si, for some color cthen the previous position j < i with the
+same data value fulﬁlls close( c)∈Sj(if such a position exists).
+(2) If i >1 and open( c)∈Si, for some color c, then close( c′)∈Si−1, where
+c′/\e}atio\slash=c.
+Again, (1) can be checked by the class automaton B′and (2) by the base
+automaton A′. Clearly, if (1) and (2) are satisﬁed, A′guessed the marked
+string correctly and thus ( A′,B′) accept if and only if ( A,B) would have
+10
+
+--- Page 11 ---
+accepted. On the other hand, if the marking is guessed, there is a coloring
+fulﬁlling (1) and (2) which is shown in complete analogy to Exa mple 3.5.
+Now we turn to the main result of this section.
+Proposition 3.7 DAs and CMAs are expressively equivalent.
+Proof (Sketch). We show that, for every unmarked DA, there is an equiva-
+lent CMA. The simulation of an unmarked DA D= (A,B) by a CMA Cis just
+a generalization of Example 3.2. The states of Csimply combine the states of
+AandB; the state set QCofCisQA×QB. A conﬁguration (( q,q′),f) ofC
+thus represents the current state qofAand, for each data value d, the current
+state of Bis just the second component of f(d). More precisely: if Ahas a
+transition from ptop′that reads an aand outputs a t, andBhas a transition
+fromqtoq′that reads a t, then Chas a transition (( p,x),a,(y,q),(p′,q′)),
+for each state xofAandyofB. Ifqis an initial state of B, then Calso has
+a transition (( p,x),a,⊥,(p′,q′)), for each state xofA. The locally accepting
+states FLofCare those whose second components are accepting in B, and
+the globally accepting states FGare those where the ﬁrst component is also
+accepting in A.
+We next show how a CMA Ccan be simulated by a DA D= (A,B). The idea
+is simple: for each position with a data value d,Aguesses f(d), and simulates
+Cbased on this guess. Bchecks that the guesses were correct. More precisely,
+Ahas the same state set QasC. IfChas a transition ( p,a,q,p′) then Acan
+go from state ptop′, reading aand outputting ( q,p′) (where q=⊥is also
+allowed). Bchecks, for each data value, that the guesses of Aare consistent.
+For this purpose, Bhas state set Q∪ {qI,q−}, where the locally accepting
+states of Care accepting in B. From the initial state qIit enters state pif it
+reads a symbol of the form ( ⊥,p) andq−, otherwise. Likewise, from a state pit
+enters p′when it reads a symbol ( p,p′) and q−, otherwise. It is straightforward
+thatDaccepts the same language as C.
+Note that in both directions, the translation can be computed in polynomial
+time.
+4 Expressiveness
+In this section, we compare the expressive power of CMAs with that of RAs.
+The main result is that CMAs are strictly stronger than register au tomata.
+Remarkably, this result does not carry over to the determinist ic counterparts.
+11
+
+--- Page 12 ---
+Theorem 4.1 CMAs are strictly more expressive than RAs.
+Proof. The set L0of valid traces is not recognized by any RA (Example 2.2)
+but by a CMA (Example 3.2). It remains to show that for every RA, w e
+can construct an equivalent CMA. Let R= (Q,q0,F,k,P ) be a ﬁxed RA
+withkregisters. Without loss of generality, we can assume that each stat e
+qdetermines whether it is reached by a read or a write transitio n. Let ρ=
+(q0,τ0),... , (qn,τn) be a run of Ron input w= (a1,d1)· · ·(an,dn). Note that,
+after each step i,diis stored in some register of R, i.e.,τi(j) =di, for some j.
+We say that a transition using register jcloses the register if either it is the
+last transition involving jin the run or there is no transition reading from j
+before the next write to j.
+Intuitively, the CMA Cguesses, for each transition, whether it closes the
+register. To ensure that the guesses are correct, Cmakes use of the coloring
+technique that was already used in Example 3.5 and Proposition 3.7. More pre-
+cisely, the states of Care of the form ( q,l,S,p ), where q∈Q,l∈ {1,... ,k }
+andSis a subset of {open(black) ,open(yellow) ,close(black) ,close(yellow) }
+andpstores some more information to be speciﬁed below. Intuitively , it cor-
+responds to a conﬁguration of Rwith state q, in which the last transition
+aﬀected register l, and in which this transition was a write iﬀ open( b)∈S, for
+someband it closed the register iﬀ close( c)∈S, for some c. We show that C
+can be constructed such that the following holds.
+Claim. Chas a run ρ= (q0,l0,S0,p0),... , (qn,ln,Sn,pn) onw, fulﬁlling con-
+dition (1)-(3) below if and only if Rhas an accepting run on w, where we call
+a position opening if open( b)∈Si, for some b, and closing if close( c)∈Si, for
+somec.
+(1) The transitions of Care consistent with the transition relation of R, i.e.,
+for each i, 0< i≤n,Rhas a read transition ( li,qi−1,ai)→qior a write
+transition ( qi−1,ai)→(qi,li), and, if iis opening, then the latter applies.
+(2) For each position i, there is an opening position j≤iand a closing
+position j′≥iwith (a) li=lj=lj′, (b)di=dj=dj′, and (c) for all
+positions m,j < m < j′it holds either lm/\e}atio\slash=lianddm/\e}atio\slash=diorlm=li,
+dm=diandSm=∅.
+(3) If open( b)∈Si, for some b, then either there is no j < i withdj=di, or
+the following two conditions hold.
+(a) For the largest position j < i withdj=di, close( b)∈Sj.
+(b) If the largest position m < i withlm=ljis closing then close( c)∈Sm,
+forc/\e}atio\slash=b.
+We ﬁrst note how these conditions can be ensured by C: (1) is straightforward.
+(2) can be checked by the local states. For each data value, the se quence of
+opening, closing and other positions must be ok. Condition (3a) can also be
+12
+
+--- Page 13 ---
+checked by using local states whereas (3b) uses the global state. The necessary
+information is stored in the p-component of the states of C.
+It remains to prove the above claim. Let us ﬁrst assume that there is a run ρ
+ofCfulﬁlling conditions (1)-(3). We have to show that there is an accepting
+runρ′ofR. We construct ρ′inductively and show by induction that, for each
+i, the preﬁx of ρ′ofisteps is consistent and leads to a conﬁguration ( qi,τi),
+where for each l≤kone of the following conditions holds.
+•τi(l) =τ0(l) and lj/\e}atio\slash=l, for every j≤i.
+•τi(l) =dj, for the maximal j≤iwithlj=l.
+Fori= 0, the conditions clearly hold. Assume now that the i-th transition
+ofCcorresponds to the read transition ( li,qi−1,ai)→qi. By (1), iis not an
+opening position. Thus, (2) guarantees that the maximum j < i withlj=li
+fulﬁlls di=dj. Therefore, τi−1(li) =di, the read transition can be applied
+byRand the induction statement holds for i. Otherwise, the i-th transition
+corresponds to the write transition ( qi−1,ai)→(qi,li). By (1), iis an opening
+position and, if dihas occurred before its last occurrence was at a closing
+position. We have to make sure that di/\e}atio\slash=τi−1(li), equivalently that for the
+maximal position j < i withlj=liit holds dj/\e}atio\slash=di. Let us assume otherwise.
+Condition (1) implies that jis a closing position. Let bbe its corresponding
+color. By (3b), there must be a position m,j < m < i , with lm=liand thus
+τi−1(lj)/\e}atio\slash=dj=di. Asljis the register in which diwas stored last time, by
+induction diis not stored in any other register either.
+By a similar argument as in Example 3.5 and Proposition 3.7 it ca n be shown
+that a run of Cfulﬁlling (1) - (3) exists if Rhas an accepting run. It is suﬃcient
+to notice that, in condition (3), the closing color of mdetermines the opening
+color of iwhich in turn determines the closing color of j < m . Thus, in the
+underlying graph each node has in-degree at most one.
+In the next section, we show that Model Checking for CMAs is expen sive,
+due to non-determinism. Thus, it is natural to consider determi nistic CMAs
+(D-CMAs) which turn out to be quite expressive but less powerful th an CMAs.
+Proposition 4.2 Deterministic RA and D-CMAs are expressively incompa-
+rable.
+Proof. The language L0of valid traces can be recognized by a deterministic
+CMA (Example 3.2), but not by any RA (Example 2.2). For the opp osite
+direction, we show that L1, deﬁned in Example 3.5 cannot be accepted by a
+deterministic CMA. Note that L1can be easily checked by a deterministic RA.
+Consider data words wn= (t,1)(t,2)...(t,n), forn∈N. For any deterministic
+CMA C, ifnis large enough, there are i < j such that the state of Cafter
+13
+
+--- Page 14 ---
+reading position iofwnis the same as after reading position j. Thus, for the
+conﬁguration ( q,f) after position jwe have f(i) =f(j) =q. We conclude that
+wj·(r,i) is accepted by Cif and only if wj·(r,j) is accepted. But wj·(r,i)
+is inL1while wj·(r,j) is not.
+The above proof also shows that a statement corresponding to Prop osition 3.6
+does nothold for deterministic CMAs.
+As discussed in the introduction, data languages can also be descri bed in
+terms of logic. In particular, when using fragments of ﬁrst ord er logic, we
+let variables range over positions in words, and use predicates to talk about
+the labels, data values, and order of positions. It is shown in [3] t hat empti-
+ness for data automata is decidable, and that they capture FO2(+1,<,∼),
+that is, the two-variable fragment of FO with the usual string pr edicates
++1 and <, and the ∼-predicate, which is true for two positions in the same
+class. Actually, marked data automata are shown to be expressively equiva-
+lent to EMSO2(+1,<,∼,⊳), i.e., (the two-variable fragment of) existential
+monadic second-order logic with the class successor ⊳as additional predicate.
+By Propositions 3.6 and 3.7 and their constructive proofs, all t hese results
+carry over to unmarked data automata and CMAs. As L1is deﬁned by the
+FO2(+1,∼)-formula ∀x∀y(x+ 1 = y∧t(x)∧r(y))→x/\e}atio\slash∼ywe can conclude
+the following.
+Proposition 4.3 D-CMAs cannot express all FO2(+1,∼)-deﬁnable proper-
+ties.
+5 Algorithmic Properties
+The model checking problem for automata asks whether a data word wis in the
+language L(A), for an automaton A. IfAis ﬁxed, we refer to the complexity
+of the problem as data complexity . IfAis considered as part of the input we
+speak about combined complexity .
+Proposition 5.1 (a) For D-CMAs and deterministic RAs, data and com-
+bined complexity are polynomial.
+(b) The data complexity (and the combined complexity) of mode l checking for
+CMAs is NP-complete.
+Proof. In (a), every new input pair ( a,d) uniquely deﬁnes the next transition.
+Thus the unique run on a word can be constructed in polynomial t ime. For
+(b), NP-membership is easy, since a run of the automaton on a word c an be
+guessed. We show NP-hardness by a reduction from 3-CNF-SAT. An instan ce
+14
+
+--- Page 15 ---
+φ=φ1∧ · · · ∧ φmof 3-CNF-SAT can be encoded as a data word of length 3 m
+in the following way. We associate with each variable some data v alue, in a
+pairwise distinct fashion. Each clause is encoded by a data word o ver{+,−}3.
+E.g., if x1appears negatively in the ﬁrst clause and dis its associated data
+value then the ﬁrst sub-word contains ( −,d).
+Now we construct a CMA C. The basic idea is that Cwill guess the truth
+values of the variables, and verify that it has guessed correctl y. Each state
+ofCis a tuple ( v,p,c ), where vis a variable truth value from{0,1},pis a
+position from{0,1,2}, indicating how many positions in the current clause
+Chas read, and cis aclause truth value from{0,1}, indicating whether the
+current clause has yet been proved to be true (according to the guessing of the
+truth values). The initial state is (0 ,0,0). Let (( v,p,c ),f) be a conﬁguration
+ofCand let ( a,d) be the next input pair. We will describe the possible next
+conﬁgurations ( v′,p′,c′) ofC.
+•Iff(d) =⊥thenv′∈ {0,1}(Cguesses a truth value for the variable of d).
+•Iff(d) = (v′′,p′′,c′′)/\e}atio\slash=⊥thenv′=v′′(the automaton does not change the
+truth value of a variable).
+•Ifp=ithenp′=i+ 1 mod 3.
+•Ifc= 0 the next transition on input ( a,d) depends on aandv′′. Ifa= +
+andv′′= 1 or if a=−andv′′= 0 then c′= 1, unless p= 2, in which
+casec′= 0. Otherwise, c′= 0 or, if p= 2, there is no further transition: the
+truth assignment did not satisfy the last clause and thus Crejects.
+•Ifc= 1 and p <2 then c′= 1. If c= 1 and p= 2 then c′= 0 (indicating
+that the new clause has not been satisﬁed yet).
+All states with p= 0 are accepting. Obviously, Caccepts if and only if it
+guessed a satisfying assignment for φ, which implies the statement of the
+proposition.
+For RAs, the data and combined complexity are (probably) diﬀer ent.
+Proposition 5.2 (a) The data complexity of model checking for RAs is poly-
+nomial.
+(b) The combined complexity of model checking for RAs, param eterized by the
+number of registers, is W[1]-hard.1
+Proof (Sketch). For (a), consider an RA Rwithkregisters. The number
+of possible conﬁgurations of Ron input wis bounded by |Q| ·/parenleftBig|w|
+k/parenrightBig
+·k!. Thus,
+one can check w∈L(R) in polynomial time by inductively computing the set
+of reachable conﬁgurations, for each position of w.
+1For an introduction to ﬁxed-parameter complexity and W[1], see, e.g., [8,6,10].
+15
+
+--- Page 16 ---
+The proof of (b) is by reduction from parameterized k-Clique. In this problem,
+we are given a Graph G= (V,E) and a positive integer k(the parameter).
+The question is whether Ghas a clique of size k. The problem is known to be
+W[1]-complete [7]. Given Gandk∈N, we construct a word wover alphabet
+{a,b,c}with data values from Vand an RA Rwithk+ 1 registers as follows.
+The word wconsists of two parts. The ﬁrst part is just ( a,v1)...(a,vn), where
+v1,... ,v nare the vertices in V. The second part is a concatenation of all strings
+(b,u)(c,v) such that u,v∈Vbut (u,v)/\e}atio\slash∈E. When Rreads the ﬁrst part, it
+nondeterministically selects kvertices that are stored in the ﬁrst kregisters.
+When reading the second part, it immediately rejects if it rea ds (b,u)(c,v),
+for which uandvare stored in a register. If it reaches the end of wwithout
+reading such a pair, it accepts.
+No parameterized upper bound for this problem is yet known, ex cept that it
+belongs to XP (as can be seen from the proof of Proposition 5.2(a) ).
+2-Way Deterministic CMAs. Since deterministic CMAs are clearly weaker
+than general CMAs, it is natural to ask whether we can allow them t o move
+both ways. A 2-way CMA is a CMA in which the head of the automaton can
+move to the right or to the left in one step. To this end, the inpu t string wis
+padded by a symbol to the left and to the right to enable the automaton
+to recognize the ends of the strings. The class memory function i s generalized
+in a straightforward way: f(d) is just the state taken after reading some po-
+sition ( σ,d) the last time (and ⊥if such a position has not yet been visited).
+Transitions depend on the current state and the class memory fun ction, just
+as for 1-way CMAs. We omit a formal deﬁnition.
+Unfortunately, the 2-way extension does not preserve decidabi lity, as we show
+next.
+Theorem 5.3 Emptiness for 2-way deterministic CMAs is undecidable.
+Proof. We use a reduction from Post’s Correspondence Problem (PCP) whi ch
+is well-known to be undecidable [11]. An instance Iof PCP is a sequence
+(x1,y1),... , (xn,yn) of pairs, where xi,yi∈ {a,b}∗fori= 1,... ,n . This in-
+stance has a solution if there exist m∈Nandi1,... ,i m∈ {1,... ,n }such
+thatxi1· · ·xim=yi1· · ·yim. Given an instance I={(x1,y1),... , (xn,yn)}of
+PCP, we construct a 2-way deterministic CMA Cwhose language is nonempty
+if and only if Ihas a solution.
+We encode solution candidates as data words wover Σ = {a,b,#}∪{1,... ,n }.
+Ifi1,... ,i mis a solution, str( w) will be i1xi1· · ·imxim#i1yi1· · ·imyim. We refer
+to positions with a number as index positions and to the others (besides #) as
+letter positions . Each data value (besides the one for #) will appear exactly
+twice. For 1 ≤j≤m, the two occurrences of ijget the same data values.
+16
+
+--- Page 17 ---
+Furthermore, two letters from {a,b}in the ﬁrst and the second half of wget the
+same data value if they represent the same position in xi1... x im=yi1... y im.
+The automaton Cintended to accept all data strings u#vencoding correct
+solutions to I, works in four stages, each of which uses its own state space. To
+this end, let u= (a1,d1)· · ·(an,dn) and v= (a′
+1,d′
+1)· · ·(a′
+m,d′
+m)
+In the ﬁrst stage, the automaton checks that the word following an index
+character ijreally is xij(yij). For this it uses state set Q1and works as a DFA
+over words without data, ignoring the class memory function. When this is
+done, it returns to the ﬁrst position of the word. After the ﬁrst sta ge, we know
+that for each data value, the class memory function assigns a stat e inQ1.
+In the second stage, Cchecks that each data value appears exactly twice, once
+inuand once in v, and that it appears together with the same label in uand
+v. This is done in two passes. The ﬁrst pass from left to right checks t hat
+each data value appearing in valso appears, with the same label, in u. The
+second pass checks the dual property with uandvswitched. In the ﬁrst pass,
+Cuses one state pa, for each a∈Σ. Inside u, it checks, for each position i,
+thatf(di)∈Q1and enters state pai. Inside v, it checks, for each position j
+thatf(dj) =paj. Here, falways refers to the current class memory function.
+The second pass is done in an analogous fashion.
+After stage 2, Ccan make use of the fact that each data value occurs exactly
+once in uandv(besides the value of #). In particular it can remember data
+values as follows: If Cuses a certain state pexactly once in uat a position i
+then it can move into vand identify the unique position i′withdi′=diby
+simply searching for the ﬁrst position i′withf(di′) =p. Next, Ccan move to
+the left, ”mark” di′by another state qand ﬁnd it’s way back to position iin
+u.
+In stage 3, this technique is used to check that the sequence of da ta values
+occurring at the index positions in uis the same as in v. To this end, Cgoes
+to the ﬁrst index position iofuand marks it with a state p. Then it moves
+to the smallest index position j > i ofuand marks it with a state q. Next
+it moves to the right until it reaches the position i′corresponding to iand
+veriﬁes that it does not see the corresponding position j′ofjon its way thus
+verifying that j′> i′as required. Next it moves back to position i(basically to
+”erase the memory”), and continues with the second and third in dex position
+ofuasiandjand so on.
+In the last stage, Cchecks that the data value sequences induced by the letter
+positions are also identical in uandv. Clearly, Caccepts a string u#vafter
+these 4 stages, if and only if it encodes a PCP solution.
+17
+
+--- Page 18 ---
+6 Closure Properties
+For the automata-theoretic approach to static analysis and ve riﬁcation, closure
+properties are of great importance, since they facilitate mo dular reasoning.
+In this section, we consider the closure properties of the classes of languages
+deﬁned by nondeterministic and deterministic CMAs. We ﬁrst prove a negative
+result; the class Rof languages recognized by CMAs is not closed under Kleene
+star. We then show that by extending deterministic CMAs with Presb urger
+conditions, we obtain a decidable model closed under Boolean o perations.
+Proposition 6.1 The class Rof languages accepted by CMAs is eﬀectively
+closed under intersection, union and concatenation. It is not closed under
+complementation and Kleene star.
+Proof. Closure under union and intersection for data automata was show n
+in [3]. To prove closure under concatenation, let C1= (Q1,Σ,δ1,q1
+I, F1
+L,F1
+G)
+andC2= (Q2,Σ,δ2,q2
+I,F2
+L,F2
+G) be CMAs. An automaton CforL(C1)·L(C2)
+is constructed as follows. It starts by simulating C1and at some point, if the
+current state is in F1
+G, it non-deterministically switches to C2. To this end, Q1
+andQ2have to be disjoint. During the second phase, Crejects whenever it
+encounters an input ( a,d) such that f(d)∈Q1−F1
+L. On the other hand, if
+f(d)∈F1
+Lit just behaves as C2forf(d) =⊥. The globally accepting set is
+F2
+G, the locally accepting set is F1
+L∪F2
+L.
+We next show that Ris not closed under Kleene star. The proof is a reduc-
+tion from the halting problem for 2-counter machines withou t input. Such
+automata have only ε-transitions between states, which perform counter op-
+erations. A counter operation can increase, decrease, or zero- check a counter.
+The counters can never have negative values. The machine halt s if it reaches
+a ﬁnal state with empty counters. The halting problem is known t o be unde-
+cidable. We show that if Rwere closed under Kleene star, we could eﬀectively
+reduce the halting problem for 2-counter machines to the emp tiness problem
+for CMAs. This is a contradiction, since emptiness for CMAs is deci dable.
+Each run of a 2-counter machine induces a word over Γ = {c+
+1,c−
+1,c0
+1,c+
+2,c−
+2,c0
+2}
+where c+
+i,c−
+i,c0
+irepresent incrementing, decrementing, and zero-checking c ounter
+i, respectively. With each counter automaton Awe associate a language LA⊆
+Γ∗as follows. A string w=w1· · ·wnis inLAifqnis an accepting state of
+Aand there is a sequence q0,... ,q nof states of Asuch that, for each i >0,
+Ahas a transition consistent with qi−1,wi,qi, i.e., Acan go from qi−1toqi
+while performing operation wi. Note that we ignore that a transition might be
+applicable only if the counters allow it. Clearly, for each Aa DFA accepting
+LAcan be eﬀectively constructed.
+18
+
+--- Page 19 ---
+LetLc1be the data language with string projections of the form( c+
+1+c−
+1+
+c+
+2+c−
+2+c0
+2)∗c0
+1(c0
+2+ε) such that each class string is either c+
+1c−
+1or does not
+contain c+
+1orc−
+1. It is easy to see that Lc1can be recognized by a CMA C1.
+Symmetrically, we deﬁne the language Lc2with string projections in ( c+
+2+c−
+2+
+c+
+1+c−
+1+c0
+1)∗c0
+2(c0
+1+ε) such that every class string is either c+
+2c−
+2or doesn’t
+contain c+
+2orc−
+2.Lc2is recognized by CMA C2. Towards a contradiction, let
+us now assume that Ris closed under Kleene star and that C′
+1andC′
+2are
+CMAs for L∗
+c1andL∗
+c2, respectively. For each 2-counter automaton Awe can
+then eﬀectively construct a CMA CAforL∗
+c1∩L∗
+c2∩L′
+A, where L′
+Ais the set of
+data words whose string projection is in LA. We claim that Ahas an accepting
+computation if and only if L(CA)/\e}atio\slash=∅, yielding the desired contradiction.
+It should be stressed that A/mapsto→CAis indeed eﬀective even though our assump-
+tion that Ris closed under Kleene star does not yield C′
+1andC′
+2. But from
+the assumption we can conclude that they exist and therefore an a lgorithm
+for computing A/mapsto→CAalso exists. it is crucial here that C′
+1andC′
+2do not
+depend on A.
+Given an accepting run ρofA, we can construct a data word waccepted by
+CAas follows: the string projection of wis obtained from the transitions of
+ρin a straightforward manner. Furthermore, each position with a symbol c+
+i
+(corresponding to incrementing counter ifrom some mtom+1) gets the same
+data value as the position (carrying c−
+i) that corresponds to the subsequent
+decrementation of counter ifromm+ 1 to m. This data value does not occur
+anywhere else. All other (zero check) positions get distinct dat a values. Clearly,
+wis accepted by CA. On the other hand, it is straightforward to check that
+each data string accepted by CAinduces an accepting run of A. The proof
+thatRis not closed under Kleene star is thus completed.
+The proof that Ris not closed under complementation is very similar. First it
+shows that there is a CMA Cfor the complement of L∗
+c1∩L∗
+c2. The construc-
+tion of Cis straightforward: it is basically the union of several automa ta, each
+checking one type of violated constraint. If Rwere closed under complementa-
+tion we would obtain a CMA C′forL∗
+c1∩L∗
+c2. Thus we could again eﬀectively
+construct an automaton for L∗
+c1∩L∗
+c2∩L′
+Afrom a 2-counter automaton A.
+Proposition 6.2 The class of languages recognized by deterministic CMAs
+is eﬀectively closed under intersection. It is notclosed under union, comple-
+mentation, concatenation, or Kleene star.
+Proof. For intersection, closure is shown by a straightforward product con-
+struction. For Kleene star, non-closure follows from the proof of Proposi-
+tion 6.1, since the automata involved there can be made determ inistic.
+19
+
+--- Page 20 ---
+Union. LetL′be the set of all data words over {a,b}such that all data values
+are diﬀerent, and the last letter is a b. LetL′′be all data words over {a}such
+that each data value appears exactly twice. It is easy to see tha t both L′and
+L′′can be recognized by deterministic CMA. We show that no determin istic
+CMA can recognize L=L′∪L′′. Towards a contradiction, we assume that
+there is such a CMA C. Letnbe the number of states of C, and consider a
+data word wof length n+ 1 over {a}such that all data values are diﬀerent.
+Then there exist two positions i < j≤n+1 such that the conﬁguration ( qj,fj)
+ofCafter reading wup to position jhasfj(di) =fj(dj). Let wiandwjbe
+the preﬁxes of wup to position iandj, respectively. The conﬁgurations of C
+after reading wiorwjmust both be such that the memory for each data value
+is a locally accepting state, but the global state is rejecting . This is because C
+should accept the words obtained from wiandwjby appending a b-position
+with a fresh data value at the end.
+Now consider the word wiwi. This word belongs to L, so the conﬁguration of C
+after reading it must be both locally and globally accepting. Since the global
+state and the memories for the data values appearing in wiare identical after
+reading wiorwj, the transitions taken when reading wiafterwjare exactly
+the same as when reading wiafterwi. But this means that Cwould accept
+wjwi, which is a contradiction, since wjwi/\e}atio\slash∈L.
+As the class is closed under intersection but not under union, it c an clearly
+not be closed under complement.
+Concatenation. LetL′be the set of all data words over alphabet {a,b}that end
+with letter a. LetL′′be the language over {a,b}such that all data values are
+diﬀerent. We claim that no deterministic CMA recognizes the c oncatenation
+language L=L′·L′′. Assume there were such a CMA Cwithnstates.
+Let, for each i,uibe the word ( b,1)(b,2)· · ·(b,i) and let wibe word wi=
+un+1(a,0)un(a,0)· · ·ui.Letqidenote the state of Cafter reading wi, for each i.
+We claim that the states q1,... ,q n+1are pairwise diﬀerent, yielding the desired
+contradiction as Conly has nstates. To this end, let us assume qi=qj,i < j .
+Asjdoes not occur in the suﬃx of wiafter the preﬁx wj, we can conclude for
+the conﬁguration ( q,f) ofCafter reading withatf(i) =f(j) =qj. Thus, C
+accepts wi·(b,j) if and only if it accepts wi·(b,i). But since wi·(b,j)∈L
+andwi·(b,i)/\e}atio\slash∈L, our assumption qi=qjwas wrong.
+Presburger conditions.
+As one of our motivations for the introduction of CMAs was that t hey have a
+natural notion of determinism, Proposition 6.2 is rather bad n ews. This moti-
+vates the following extension of CMAs by Presburger conditions: the extension
+does not enlarge the power of CMAs but it yields an extension of D CMAs that
+is closed under Boolean operations.
+20
+
+--- Page 21 ---
+Instead of just requiring that the memory states for all data val ues are locally
+accepting, we generalize the acceptance condition as follo ws. Suppose that
+CMA Chas states Q={q1,... ,q m}. Each computation ρofCwith ﬁnal
+conﬁguration ( p,f) induces a function g:Q→N, where g(q) is the number
+of data values dwithf(d) =q. We consider atomic formulas of two kinds:
+(1)q, where q∈Qand (2) ( q1+· · ·+qkmodc) =c′, where the qiare from
+Qandc,c′are constant numbers. A conﬁguration ( p,f) fulﬁlls qiﬀp=q. It
+fulﬁlls ( q1+· · ·+qkmodc) =c′iﬀ (g(q1) +· · ·+g(qk) mod c) =c′. Any
+Boolean combination of such formulas is a limited Presburger formula . A
+Presburger CMA Cis a CMA with a limited Presburger formula Φ. A run
+ofCis accepting if its ﬁnal conﬁguration satisﬁes Φ.
+Proposition 6.3 For each Presburger CMA there is an equivalent CMA.
+Proof (Sketch). LetCbe a Presburger CMA with formula Φ. We assume,
+w.l.o.g., that in Φ negation occurs only before atomic formu las. There is a
+CMA for each formula qand¬q. The global accepting set simply has to be
+set to {q}orQ− {q}, respectively. The other kind of atomic formulas can be
+handled by a modulo counter in a straightforward manner. E.g. , for a formula
+(q1−q2mod 3) = 0, a modulo counter is added to the global state of the
+automaton which is incremented (modulo 3) whenever the auto maton enters
+a state q1or leaves (locally) state q2. The Boolean combinations can be taken
+care of by the globally accepting state.
+Proposition 6.4 The class of languages accepted by deterministic Presburge r
+CMAs is closed under Boolean operations.
+Proof. LetA= (Q,Σ,∆,δ,q I,Φ) and B= (P,Σ,∆,γ,p I,Ψ) be deterministic
+CMAs. To construct an automaton that accepts the complement of L(A), we
+only need to negate Φ. For the intersection or the union of L(A) and L(B),
+we construct the product automaton A×Band use the conjunction (or the
+disjunction) of Φ and Ψ, where, e.g., in the atomic modulo form ulas each qof
+Ais replaced by the sum of those q′ofA×Bwithqin their A-component.
+The following result completes Figure 1.
+Proposition 6.5 For each deterministic Presburger CMA there is an equiv-
+alent 2-way deterministic CMA.
+Proof (Sketch). We only sketch the proof idea. Let Abe a deterministic
+Presburger CMA. The 2-way deterministic CMA A′ﬁrst simulates A. When
+Areaches the end of the input, A′traverses the string backwards and counts,
+for each state pofA, for how many classes the computation of Aended in p.
+21
+
+--- Page 22 ---
+Of course, A′cannot literally compute this number but it is able to comput e
+it modulo N, the product of all numbers coccurring in some atomic formula
+ofA’s Presburger formula. When A′reaches the left end of the string it can
+decide whether Awould have accepted.
+7 CMA with Synchronization and Reset
+The expressive power of CMAs is suﬃcient to handle a large number o f proper-
+ties relevant in parameterized veriﬁcation. Still, there a re many natural prop-
+erties that cannot be expressed. In this section we investigate w ays of strength-
+ening the expressive power, while maintaining decidability o f the emptiness
+problem. We begin with an example of a relatively simple veriﬁ cation property
+that cannot be expressed by CMAs.
+Example 7.1 Consider a variation Lsof the language L0from Examples 2.2,
+3.4, and 3.2 where we use an additional symbol n(network failure). When a
+network failure occurs, all printer jobs that have been requ ested but not yet
+started are lost and thus the requests have to be repeated. Th e network failure
+notiﬁcations are sent by a special network process. In other words, Lsis the
+set of data words wsuch that
+(1) if a class string contains a symbol n, then it contains only nsymbols (i.e.,
+it matches n∗),
+(2) each other class string of wmatches (rst+r)∗,
+(3) if i⊳jand both iandjcarry label r, there is a position kwithi < k < j
+that has label n,
+(4) if i⊳j,ihas label r, and jhas label s, there is no position kwith
+i < k < j that has label n, and
+(5) str (w)matches ((r+n)∗s(r+n)∗t(r+n)∗)∗.
+Proposition 7.2 There is no CMA that recognizes the language /suppress L sfrom Ex-
+ample 7.1.
+Proof. We consider a sublanguage L′
+sofLsfrom Example 7.1 in which no
+request ever gets handled. The string projections of words in L′
+smatch the
+expression ( r∗n)∗. The data values are such that if two r-positions belong to
+the same class, then there is an n-position between them (a process cannot
+send a new request until a network error has occurred). It is cle ar that if no
+CMA accepts L′
+s, then no CMA accepts Ls.
+Suppose there were a CMA Cwithmstates, that accepted L′
+s. We deﬁne a
+consistency property Cmust have. Let w∈L′
+sand let i < j ber-positions
+22
+
+--- Page 23 ---
+ofw, with data values dianddj, and with no n-position between them (thus
+di/\e}atio\slash=dj). Let ( q,f) be a conﬁguration of Cafter reading wup to position
+iin an accepting run ρonw. Then we must have f(di)/\e}atio\slash=f(dj). Indeed, if
+f(di) =f(dj), the automaton could not tell the diﬀerence between dianddj
+when reading the rest of w. Thus ρwould also be an accepting run on the
+wordw′/\e}atio\slash∈L′
+sobtained from wby replacing all occurrences of diwithdj, and
+vice versa, in the suﬃx starting at position i+ 1. For words in L′
+swe use ni
+to denote the ith position with label nandBifor the ithblock , that is, the
+positions between ni−1andni(we interpret n0as the beginning of the word).
+We now construct a word wsuch that no CMA can satisfy the above property
+when reading w. As data values we use natural numbers. In block Bi, all data
+values have a 1 in the ith bit of their binary representation. Suppose that we
+can construct wso that the following is fulﬁlled. For each i < j there is a data
+valuemi,jwith ones in bits iandjand zeroes in all bits between iandjsuch
+thatmi,jappears in the ﬁrst half of Biand in the second half of Bj. Letρbe
+an accepting run of Conw, and let Qi, for each ibe the set of states used in
+ρwhen reading the ﬁrst half of Bi. Now suppose that the number of blocks is
+2m. Then there are i < j withQi=Qj. Since mi,jappears in the ﬁrst half of
+Bi, and doesn’t appear between BiandBj, the memory state for mi,jwhen
+Cstarts reading Bjwill be some state qi,j∈Qi. When reading the ﬁrst half
+ofBj, all states in Qj=Qiare used. Thus, after reading half of Bj, some
+data value appearing there will have memory state qi,j. But since mi,jis yet
+to appear in Bj, this violates the consistency property deﬁned above.
+It remains to show that we can construct wso that for each pair i,j, there is
+a data value mi,jwith the above property. We use 2mblocks, and data values
+with binary representations of length 2 m·2m. Thus, for each i≤2mthere are
+at least 22mdata values with ones in bit i. Formi,jwe can choose the value
+that has ones only in bits iandj. After placing mi,j, for each pair i,j, in the
+ﬁrst half of Biand the second of Bj, we can pad the two halves of Bk, for each
+k, with unrelated data values (with ones in bit k), until each half has length
+exactly 2m.
+As mentioned in the introduction, CMAs can combine global regu lar proper-
+ties with local regular properties (of the class strings). The ” communication”
+between the global and the local properties is limited: the g lobal automaton
+can “send information” to a class donly when a symbol ( σ,d) occurs in the
+input. In particular, it is not possible to broadcast a global ev ent to all classes
+simultaneously.
+It is exactly this limitation that prohibits CMAs from recogn izingLsfrom Ex-
+ample 7.1: all processes have to be simultaneously informed that print requests
+have been lost.
+23
+
+--- Page 24 ---
+We now study a stronger class of automata. It is equipped with tra nsitions
+that model a synchronous failure broadcast to all processes, and can therefore
+recognize Ls.
+Deﬁnition 7.3 ACMA with synchronization is a CMA C= (Q,Σ,δ,q I,
+g,FL,FG)equipped with a synchronization function g:Q→ P (Q∪ {⊥} ).
+Some of the transitions apply g. When such a transition is taken from a con-
+ﬁguration the automaton ﬁrst changes state and updates the m emory function
+for the current data value as usual, assuming a conﬁguration (q,f). Then, it
+updates the class memory function by setting f(d)to some state in g(f(d)),
+unless f(d) =⊥.
+Constructing a CMA with synchronization that recognizes Lsfrom Exam-
+ple 7.1 is fairly straightforward. Unfortunately, with the fu ll power of this
+extension, we overstep the border of decidability.
+Theorem 7.4 Emptiness for CMAs with synchronization is undecidable.
+Proof. The proof resembles the undecidability proof from Propositio n 6.1. In
+particular, it is a reduction from the halting problem for 2- counter machines
+without input. We again use the symbols Γ = {c+
+1,c−
+1,c0
+1,c+
+2,c−
+2,c0
+2}with the
+same intended meaning. We further use additional symbols # 1and # 2: after
+eachc0
+ian arbitrary number of # isymbols can occur. The proof can be more
+easily stated in terms of data automata. In a nutshell, CMA with sy nchro-
+nization correspond to data automata with the ability to push a ﬁxed symbol
+$ to all class strings in one step. More precisely, $ is inserted int o each class
+string at the current position of the class automaton. Thus, from a 2-counter
+automaton A, we construct a data automaton Dsuch that Ahas an accepting
+run if and only if L(D)/\e}atio\slash=∅. In principle, runs of Acorrespond to strings over
+Γ in a similar fashion as in Proposition 6.1. The treatment of zer o tests is the
+crucial point. Whenever a zero check for counter ioccurs, and a class already
+has seen c+
+ibut not c−
+ithen the counter iis not zero, and thus the data string
+should not be accepted. On the other hand, having seen c+
+j, forj/\e}atio\slash=idoes not
+harm as the value of the other counter is arbitrary.
+The idea of the reduction is to use synchronization to handle ze ro checks.
+More precisely, at a symbol c0
+i, the automaton pushes the symbol $ to all
+class strings. For classes having seen c+
+ibut not c−
+ithis shall lead to rejection.
+However, classes having seen c+
+j, forj/\e}atio\slash=i, should not be aﬀected by the zero
+test. To this end, we use the additional symbols: After c0
+i, an arbitrary number
+of # jcan occur with the intention that each of them has the data val ue of
+some class that has seen c+
+jbut not yet c−
+j.
+Thus, a class string is rejected by Dif it contains a symbol $ between c+
+i
+andc−
+iand there is no symbol # iright after the $. More precisely, each class
+24
+
+--- Page 25 ---
+string must be of the form c+
+i($# i)∗c−
+i($ + # i)∗or should not contain any c+
+i
+orc−
+i. The computation of the base automaton checks that the input st ring
+corresponds to a sequence of states of Awhich is locally consistent, and that
+blocks of # j,j/\e}atio\slash=ionly occur after c0
+i. It is not hard to show that if Ahas an
+accepting run ρ, a data string wρaccepted by Dcan be constructed.
+For the reverse part of the proof, let wbe a data string accepted by D.
+Clearly, there is a sequence ρof states of Acorresponding to wwhich is
+locally consistent. It remains to show that there is such a ρwhich is actually
+a run of A(i.e., where the transitions are consistent with the counters). For
+the sake of a contradiction, let us assume that some zero test corre sponding
+to a position labeled c0
+iis inconsistent. I.e., there is a class with some data
+value d, in which c+
+ihas occurred but no subsequent c−
+ihas been seen. Thus,
+in the class string of dthe symbol $ is inserted but the subsequent block of
+symbols does not contain # i. We can conclude that the class string wdofd
+is rejected by D, a contradiction. This is simply because there is no way to
+get the symbol # ibehind $ in wd: another $ is pushed to wdbefore the next
+block of # isymbols .
+Since full synchronization is too powerful, we next suggest a li mited version
+of synchronization, which allows the automaton to forget all information com-
+puted so far for the classes. This ability, which we call reset, is enough to
+capture Lsfrom Example 7.1.
+Deﬁnition 7.5 A class-memory automaton with reset is a CMA with syn-
+chronization function gsuch that for all states q, either g(q) ={q}org(q) =
+{⊥}.
+Example 7.6 We construct a CMA with reset that recognizes Lsfrom Exam-
+ple 7.1. This automaton is very similar to the one in Example 3 .2. We only
+need to add transitions for the network failure symbol nand a synchronization
+function that they apply. When reading an nwith data value din a conﬁgu-
+ration (γ,f), the automaton always requires that f(d) =⊥. Ifγ∈ {p,wb}the
+automaton goes to state wband if γ∈ {i,wi}it goes to i.
+The synchronization function gis deﬁned by g(p) =pandg(wi) =g(wb) =
+g(i) =⊥. All transitions that read an napply gwhile none of the other does.
+The intuition behind this deﬁnition is the following. When a network failure
+occurs, the only process that is remembered is the one current ly printing (if
+there is one). This process has class memory p. If the automaton was in state
+porwb, it goes to wb, signifying that the printer is busy. I the automaton was
+iniorwi, it goes to i, signifying that the printer is idle.
+Corollary 7.7 CMA with reset are strictly stronger than ordinary CMA.
+25
+
+--- Page 26 ---
+Proposition 7.8 Emptiness for CMA with reset is decidable.
+Proof. The proof is similar to the one for data automata in [3]. We brie ﬂy
+sketch the idea of that proof. It shows that for each data automa tonD=
+(A,B) a multicounter automaton M(on non-data strings) can be constructed
+which accepts the set str( L(D)). Thus, given a ﬁnite alphabet string v,M
+checks whether vcan be extended to a data word wthat is accepted by D.
+To this end, Muses one counter cq, for each state qofB. When reading w,
+Mguesses when the classes change, simulates what Awould do, and, for each
+class, what Bwould do with the parts of the class strings produced so far.
+The counter cqis used to keep track of for how many classes Mguesses that
+the part of the class string seen so far would lead Bto state q. At the end,
+for each state qofBwhich is not ﬁnal it is required that cq= 0. Some more
+details are needed to ensure L(M) = str( L(D)). Modifying the proof to work
+for CMA instead of data automata is straightforward; we use one c ounter per
+state of the CMA.
+The only thing we need to add is how the multicounter automato nMshould
+handle reset transitions. What it needs to do is to set all its coun ters that
+represent states qfor which g(q) =⊥to zero. Ordinary multicounter automata
+cannot do this. It is shown in [16], however, that emptiness for m ulticounter
+automata with this ability is still decidable.2
+Even though we have seen that the addition of a reset capability was enough
+to capture Lsfrom Example 7.1, it is of course not the solution to every veriﬁ -
+cation problem. As mentioned in the introduction, the landsca pe of modeling
+tools for data languages is quite heterogeneous, and in many c ases, it seems
+that we will have to select the model we use carefully, after ana lyzing the
+problem we actually want to solve. Sometimes we may have to eng ineer new
+models in order to capture a particular problem. Below, we gi ve another ex-
+ample of how CMAs may be taken as the basis for designing slightly st ronger
+model, which is still decidable.
+Example 7.9 Consider again a printer system, but one in which a partial
+network failure may occur. Computations of this system may be m odeled as a
+slight modiﬁcation of the data language Lsfrom Example 7.1. Thus, let Ltbe
+the language obtained by removing rule (4) from the deﬁnitio n ofLs.
+We now deﬁne an automaton model which, like CMAs with reset, is a spe-
+cial case of CMAs with synchronization, and which, among other t hings, can
+recognize Lt.
+2The automaton model in [16] is called priority multicounter automata, and can
+actually do more than what we need here.
+26
+
+--- Page 27 ---
+Deﬁnition 7.10 LetCbe a CMA with synchronization, Qthe states of C,
+andgits synchronization function. Consider the graph Gg= (Q,E)ofg
+deﬁned as follows. There is an edge from ptoqif and only if q∈g(p). A
+subset E′ofEdeﬁnes a permutation on Qif it is functional and bijective
+(each state in Qhas exactly one incoming and one outgoing edge in E′). We
+say that Chasrestricted synchronization if there is a subset of Ethat
+induces a permutation on Q.
+Example 7.11 We construct a CMA Ctwith restricted synchronization that
+accepts Lt. This automaton is very similar to the one in Example 7.6, and
+also extends automaton CforL0from Example 3.2. Automaton Ctuses the
+same states as C, plus two additional states niandnb, which are used for the
+classes of the network processes. The synchronization funct iongis deﬁned by
+•g(i) ={i},
+•g(wi) ={i,wi},
+•g(p) ={p},
+•g(wb) ={i,wb},
+•g(ni) ={ni},
+•g(nb) ={nb}.
+Since p∈g(p)for all states p,gclearly provides restricted synchronization.
+For each state in {p,wb,nb }there is an additional transition to nbthat reads
+andnand checks that the memory for the data value is in {⊥,ni,nb }. For
+each state in {i,wi,ni }there is a corresponding transition to ni. The outgoing
+transitions from niandnbare identical to those of wiandwb, respectively.
+When Csreads an n, the synchronization function is applied. Intuitively, the
+automaton guesses which jobs have to resend a print request a nd sets their
+state to i.
+Corollary 7.12 CMAs with restricted synchronization are strictly stronger
+than CMAs.
+Proof. The language L′
+sfrom the proof of Proposition 7.2 is also a sublan-
+guage of Lt.
+Proposition 7.13 Emptiness for CMAs with restricted synchronization is de-
+cidable.
+Proof. As in the proof of Proposition 7.8 we only have to extend the ar-
+gument for DAs from [3]. For an outline of this argument, see the proof of
+Proposition 7.8.
+27
+
+--- Page 28 ---
+To extend this construction to a CMA Cwith restricted synchronization we do
+the following. Let gbe the synchronization function of C, and Gg= (Q,E).
+Assume that E′∈Einduces a permutation on Q. What should Mdo to
+simulate a synchronizing transition of C? If, for example, g(p) ={q}and
+g(q) ={p}, then the counters cpandcqshould switch their values. Instead
+of performing this switch by incrementing and decrementing c ounters, Mcan
+simply change the interpretation of the aﬀected counters. I.e ., the counter
+representing pbecomes that for qand vice versa. Since there is only a ﬁ-
+nite number of assignments of counters to states, the corresponde nce between
+counters and states of Ccan be maintained in the state of M. When simulat-
+ing a synchronizing transition, Mupdates this assignment according to the
+edges in E′.
+So far, we haven’t explained what happens if g(q) for some state qis not a
+singleton, i.e., in Gg,qhas at least one outgoing edge in E\E′. Assume that
+g(q) ={p1,... ,p k}, and that ( q,p1)∈E′. When Msimulates a synchronizing
+transition, it ﬁrst nondeterministically transfers counter co ntent from cqto
+cp2,... ,c pk, and only then updates the counter assignment, assigning cqtop1.
+In this way, all synchronizing actions of Ccan be simulated.
+Acknowledgments. We thank Miko/suppress laj Boja´ nczyk, Anca Muscholl and Luc
+Segouﬁn for many valuable discussions.
+References
+[1] P. Abdulla, B. Jonsson, M. Nilsson, and M. Saksena. A surv ey of regular model
+checking. In CONCUR’04 , volume 3170 of LNCS , pages 35–48, 2004.
+[2] M. Arenas, W. Fan, and L. Libkin. Consistency of XML speci ﬁcations. In
+Inconsistency Tolerance , volume 3300 of LNCS , pages 15–41, 2005.
+[3] M. Boja´ nczyk, A. Muscholl, T. Schwentick, L. Segouﬁn, a nd C. David. Two-
+variable logic on words with data. In LICS’06 , pages 7–16, 2006.
+[4] P. Bouyer, A. Petit, and D. Th´ erien. An algebraic approa ch to data languages
+and timed languages. Information and Computation , 182(2):137–162, 2003.
+[5] S. Demri and R. Lazi´ c. LTL with the freeze quantiﬁer and r egister automata.
+InLICS’06 , pages 17–26, 2006.
+[6] R. G. Downey. Parameterized complexity for the skeptic. InCCC’03 , pages
+147–169, 2003.
+[7] R. G. Downey and M. R. Fellows. Fixed-parameter tractabil ity and
+completeness II: On completeness for W[1]. TCS, 141(1-2):109–131, 1995.
+28
+
+--- Page 29 ---
+[8] R. G. Downey and M. R. Fellows. Parameterized Complexity . Springer, 1999.
+[9] E. Emerson and K. Namjoshi. Reasoning about rings. In POPL’95 , pages
+85–94, 1995.
+[10] J. Flum and M. Grohe. Parameterized Complexity Theory . Springer, 2006.
+[11] J. Hopcroft and J. Ullman. Introduction to Automata Theory, Languages, and
+Computation . Addison-Wesley, 1979.
+[12] M. Kaminski and N. Francez. Finite-memory automata. TCS, 132(2):329–363,
+1994.
+[13] M. Kaminski and T. Tan. Regular expressions for languag es over inﬁnite
+alphabets. In K. Chwa and J. Munro, editors, COCOON 04 , volume 3106
+ofLNCS , pages 171–178, 2004.
+[14] F. Neven. Automata, logic, and XML. In CSL ’02 , volume 2471 of LNCS , pages
+2–26, 2002.
+[15] F. Neven, T. Schwentick, and V. Vianu. Finite state mach ines for strings over
+inﬁnite alphabets. ACM transactions on computational logic , 15(3):403–435,
+2004.
+[16] K. Reinhardt. Counting as Method, Model and Task in Theoretical Computer
+Science . 2005. Habilitation Thesis, University of T¨ ubingen.
+[17] H. Sakamoto and D. Ikeda. Intractability of decision pr oblems for ﬁnite-memory
+automata. TCS, 231(2):297–308, 2000.
+[18] L. Segouﬁn. Automata and logics for words and trees over an inﬁnite alphabet.
+InComputer Science Logic (CSL) , volume 4207 of LNCS , pages 41–57, 2006.
+[19] T. Wilke. Automaten und Logiken zur Beschreibung zeitabh¨ angiger Sy steme.
+PhD thesis, University of Kiel, 1994.
+29

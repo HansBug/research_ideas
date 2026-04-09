@@ -1,0 +1,311 @@
+--- Page 1 ---
+Strix:
+Explicit Reactive Synthesis Strikes Back!
+Philipp J. Meyer , Salomon Sickert(B),
+and Michael Luttenberger
+Technical University of Munich, Munich, Germany
+{meyerphi,sickert,luttenbe }@in.tum.de
+Abstract. Strix is a new tool for reactive LTL synthesis combining
+a direct translation of LTL formulas into deterministic parity automata(DPA) and an eﬃcient, multi-threaded explicit state solver for parity
+games. In brief, Strix (1) decomposes the given formula into simpler
+formulas, (2) translates these on-the-ﬂy into DPAs based on the queriesof the parity game solver, (3) composes the DPAs into a parity game, and
+at the same time already solves the intermediate games using strategy
+iteration, and (4) ﬁnally translates the winning strategy, if it exists, intoa Mealy machine or an AIGER circuit with optional minimization using
+external tools. We experimentally demonstrate the applicability of our
+approach by a comparison with Party ,BoSy ,a n d ltlsynt using the
+syntcomp2017 benchmarks. In these experiments, our prototype can
+compete with BoSy and ltlsynt with only Party performing slightly
+better. In particular, our prototype successfully synthesizes the full and
+unmodiﬁed LTL speciﬁcation of the AMBA protocol for n= 2 masters.
+1 Introduction
+Reactive synthesis refers to the problem of ﬁnding for a formal speciﬁcation of
+an input-output relation, in our case a linear temporal logic (LTL) , a match-
+ing implementation [ 22], e.g. a Mealy machine or an and-inverter-graph (AIG) .
+Since the automata-theoretic approach to synthesis involves the construction of
+a potentially double exponentially sized automaton (in the length of the spec-iﬁcation) [ 13], most existing tools focus on symbolic and bounded methods in
+order to combat the state-space explosion [ 5,9,11,18]. A beneﬁcial side eﬀect of
+these approaches is that they tend to yield succinct implementations.
+In contrast to these approaches, we present a prototype implementation of
+an LTL synthesis tool which follows the automata theoretic approach using par-
+ity games as an intermediate step. Strix
+1uses the LTL-to-DPA translation
+This work was partially funded and supported by the German Research Foundation
+(DFG) projects “Game-based Synthesis for Industrial Automation” (253384115) and
+“Veriﬁed Model Checkers” (317422601).
+1https://strix.model.in.tum.de/
+c/circlecopyrtThe Author(s) 2018
+H. Chockler and G. Weissenbacher (Eds.): CAV 2018, LNCS 10981, pp. 578–586, 2018.https://doi.org/10.1007/978-3-319-96145-3
+_31
+
+--- Page 2 ---
+Strix: Explicit Reactive Synthesis Strikes Back! 579
+presented in [ 10,23] and the multi-threaded explicit-state parity game solver
+presented in [ 14,20]: First, the given formula is decomposed into much simpler
+requirements, often resulting in a large number of safety and co-safety condi-
+tions and only a few requiring B¨ uchi or parity acceptance conditions, which is
+comparable to the approach of [ 5,21]. These requirements are then translated
+on-the-ﬂy into automata, keeping the invariant that the parity game solver can
+easily compose the actual parity game. Further, by querying only for states that
+are actually required for deciding the winner, the implementation avoids unnec-essary work.
+The parity game solver is based on the strategy iteration of [19] which itera-
+tively improves non-deterministic strategies, i.e. strategies that can allow severalactions for a given state as long as they all are guaranteed to lead to the speciﬁed
+system behaviour. When translating the winning strategy into a Mealy automa-
+ton or an AIG this non-determinism can be used similarly to “don’t cares” when
+minimizing boolean circuits. Strategy iteration oﬀers us two additional advan-
+tages, ﬁrst, we can directly take advantage of multi-core systems; second, wecan reuse the winning strategies which have been computed for the intermediate
+arenas.
+Related Work and Experimental Evaluation. From the tools submitted to synt-
+comp2017 ,ltlsynt [15] is closest to our approach: it also combines an LTL-
+to-DPA-translation with an explicit-state parity game solver, but it does notintertwine the two steps, instead it uses a diﬀerent approach for the translation
+leading to one monolithic DPA which is then turned in a parity game. In con-
+trast, the two best performing tools from syntcomp2017 ,BoSy and Party ,
+use bounded synthesis, by reduction either to SAT, SMT, or safety games.
+In order to give a realistic estimation of how our tool would have faired at
+syntcomp2017 (TLSF/LTL track), we tried to re-create the benchmark envi-
+ronment of syntcomp2017 as close as possible on our hardware: in its current
+state, our tool would have been ranked below Party , but before ltlsynt and
+BoSy . Due to time and resource constraints, we could only do an in-depth com-
+parison with the current version of ltlsynt ; in particular we used the TLSF
+speciﬁcation of the complete
+2AMBA protocol for n= 2 as a benchmark. We
+refer to Sect. 3for details on the benchmarking procedure.
+2 Design and Implementation
+Strix is implemented in Java and C++. It supports LTLand TLSF [16] (only
+the reduced basic variant) as input languages, while the latter one is preferred,
+since it contains more information about the speciﬁcation. We describe the mainsteps of the tool in the following paragraphs with examples given in Fig. 1.
+2i.e. no decomposition in masters and clients or structural properties were used.
+
+--- Page 3 ---
+580 P. J. Meyer et al.
+Splitting and Translation. As a preprocessing step the speciﬁcation is split into
+syntactic (co)safety and (co)B¨ uchi formulas, and one remaining general LTL for-
+mula. These are then translated into the simplest deterministic automaton class
+using the constructions of [ 10,23]. To speed up the process these automata are
+constructed on-the-ﬂy, i.e., states are created only if requested by later stages.Furthermore, since DPAs can be easily complemented, the implementation trans-
+lates the formula and its negation and chooses the faster obtained one.
+Fig. 1. Synthesis of a simple arbiter with two clients. Here, a winning strategy is already
+obtained on the partial arena: always take any of the non-dashed edges.
+Arena Construction. Here we construct one product automaton and combine
+the various acceptance conditions into a single parity acceptance condition: for
+this, we use the idea underlying the last-appearance-record construction, known
+from the translation of Muller to parity games, to directly obtain a parity game
+again.
+Parity Game Solving. The parity game solver runs in parallel to the arena
+construction on the partially constructed game in order to guide the translationprocess, with the possibility for early termination when a winning strategy for the
+system player is found. It uses strategy iteration that supports non-deterministic
+strategies [ 19] from which we can beneﬁt in several ways: First, in the translation
+process, the current strategy stays valid when adding nodes to the arena and
+thus can be used as initial strategy when solving the extended arena. Second, the
+non-deterministic strategies allow us to later heuristically select actions of thestrategy that minimize the generated controller and to identify irrelevant output
+signals (similar to “don’t care”-cells in Karnaugh maps). Finally, the strategy
+iteration can easily take advantage of multi-core architectures [ 14,20].
+Controller Generation and Minimization. From the non-deterministic strategy
+we obtain an incompletely speciﬁed Mealy machine and optionally pass it to
+
+--- Page 4 ---
+Strix: Explicit Reactive Synthesis Strikes Back! 581
+the external SAT-based minimizer MeMin [1] for Mealy machines and extract
+a more compact description.
+AIGER Circuit Generation and Minimization. We translate the minimized
+Mealy machine with the tool Speculoos3into an AIGER circuit. In parallel,
+we also construct an AIGER circuit out of the non-minimized Mealy machine,
+since this can sometimes result in smaller circuits. The two AIGER circuits arethen further compressed using ABC [6], and the smaller one is returned.
+3 Experimental Evaluation
+We evaluate Strix on the TLFS/LTL-track benchmark of the syntcomp2017
+competition, which consists of 177 realizable and 67 unrealizable temporal logicsynthesis speciﬁcations [ 15]. The experiment was run on a server with an Intel
+E5-2630 v4 clocked at 2.2 GHz (boost disabled). To mimic syntcomp2017 we
+imposed a limit of 8 threads for parallelization, a memory limit of 32 GB anda timeout of one hour for each speciﬁcation. Every speciﬁcation for that a tool
+correctly decides realizability within these limits is counted as solved for the
+category Realizability , and every speciﬁcation for that it can additionally pro-
+duce an AIGER circuit that is successfully veriﬁed is counted as solved for the
+category Synthesis . For this we veriﬁed the circuits with an additional time
+limit of one hour using the nuXmv model checker [ 7] with the check
+ltlspec
+andcheck ltlspec klive routines in parallel.
+We compared Strix with ltlsynt in the latest available release (version 2.5)
+at time of writing. This version diﬀers from the one used during syntcomp2017
+as it contains several improvements, but also performs worse in a few cases and
+exhibits erroneous behaviour: for Realizability , it produced one wrong answer,
+and for Synthesis , it failed in 72 cases to produce AIGER circuits due to a
+program error.
+Additionally, we compare our results with the best conﬁguration of the top
+tools competing in syntcomp2017 :Party (portfolio), ltlsynt and BoSy
+(spot). Due to the diﬃculty of recreating the syntcomp2017 hardware setup4,
+we compiled the results for these tools in Table 1from the syntcomp2017 web-
+page5combining them with our results.
+3https://github.com/romainbrenguier/Speculoos
+4syntcomp2017 was run on an Intel E3-1271 v3 (4 cores/8 threads) at 3.6 GHz
+with 32GB of RAM available for the tools. As stated above, we imposed the sameconstraints regarding timeout, maximal number of threads, and memory limit; but
+the Intel E3-1271 v3 runs at 3.6 GHz (with boost 4.0 GHz), while the Intel E5-2630
+v4 used by us runs at only 2.2 GHz (boost disabled) resulting in a lower per-thread-performance (potentially 30% slower); on the other hand our system has a larger
+cache and a theoretically much higher memory bandwidth from up to 68.3 GB/s
+compared to 25.6 GB/s (for random reads, as in the case of dynamically generatedparity games, these numbers are much closer). It seems therefore likely that for some
+benchmark-tool combinations our system is faster while for others it is slower.
+5http://syntcomp.cs.uni-saarland.de/syntcomp2017/experiments/
+
+--- Page 5 ---
+582 P. J. Meyer et al.
+TheQuality rating compares the size of the solutions according to the synt-
+comp2017 formula, where a tool gets 2 −log10n+1
+r+1quality points for each ver-
+iﬁed solution of size nfor a speciﬁcation with reference size r. We now move on
+to a detailed discussion of the results and their interpretation.
+Table 1. Results for Strix compared with ltlsynt and selected results from synt-
+comp2017 on the TLSF/LTL-track benchmark and on noteable instances. We mark
+timeouts by time,m e m o u t sb y mem, and errors by err.
+Realizability. We were able to correctly decide realizability for 163 and unre-
+alizability for 51 speciﬁcations, resulting in 214 solved instances. We solve ﬁve
+instances that were previously unsolved in syntcomp2017 .
+Synthesis. We produced AIGER circuits for 148 of the realizable speciﬁcations.
+In 15 cases, we only constructed a Mealy machine, but the subsequent steps
+(MeMin for minimization or Speculoos for circuit generation) reached the
+time or memory limit. We were able to verify correctness for 146 of the cir-
+cuits, reaching the model checking time limit in two case. Together with the 51
+speciﬁcations for which we determined unrealizability, this results in 197 solvedinstances.
+Quality. We produced 36 solutions that are smaller than any solution during
+syntcomp2017 . The most signiﬁcant reductions are for the AMBA encoder
+and the full arbiter, with reductions of over 75%, and for ltl2dba
+E4and
+ltl2dba E6, where we produce indeed the smallest implementation there is.
+
+--- Page 6 ---
+Strix: Explicit Reactive Synthesis Strikes Back! 583
+3.1 Eﬀects of Minimization
+We could reduce the size of the Mealy machine in 80 cases, and on average
+by 45%. However the data showed that this did not always reduce the size
+of the generated AIGER circuit: in 13 cases (most notably for several arbiterspeciﬁcations) the size of the circuit generated from the Mealy machine actually
+increased when applying minimization (on average by 190%), while it decreased
+in 62 cases (on average by 55%).
+We conjecture that the structure of the product-arena is sometimes amenable
+to compact representation in an AIGER circuit, while after the (SAT-based)minimization this is lost. In these cases the SAT/SMT-based bounded synthesis
+tools such as BoSy and Party also have diﬃculties producing a small solution,
+if any at all.
+3.2 Synthesis of Complete AMBA AHB Arbiter
+To test maturity and scalability of our tool, we synthesized the AMBA AHB
+arbiter [ 2], a common case study for reactive synthesis. We used the parameter-
+ized speciﬁcation from [ 17]f o r n= 2 masters, which was also part of SYNT-
+COMP2016 , but was left unsolved by any tool. With a memory limit of 128 GB,
+we could decide realizability within 26 min and produce a Mealy machine with83 states after minimization. While specialised GR(1) solvers [ 2,4,12] or decom-
+positional approaches [ 3] are able to synthesize the speciﬁcation in a matter of
+minutes, to the best of our knowledge we are the ﬁrst full LTL synthesis tool thatcan handle the complete non-decomposed speciﬁcation in a reasonable amount
+of time. For comparison, ltlsynt (2.5) needs more than 2.5 days on our system
+and produces a Mealy machine with 340 states.
+3.3 Discussion
+The ltlsynt tool is part of Spot [ 8], which uses a Safra-style determinization
+procedure for NBAs. Conceptually, it also uses DPAs and a parity game solver asa decision procedure. However, as shown in [ 10] the produced automata tend to
+be larger compared to our translation, which probably results in the lower quality
+score. Our approach has similar performance and scales better on certain cases.
+The instances where ltlsynt performs better than Strix are speciﬁcations that
+we cannot split eﬃciently and the DPA construction becomes the bottleneck.
+Bounded synthesis approaches ( BoSy ,Party ) tend to produce smaller
+Mealy machines and to be able to handle larger alphabets. However, they fail
+when the minimal machine implementing the desired property is large, even ifthere is a compact implementation as a circuit. In our approach, we can often
+solve these cases and still regain compactness of the implementation through
+minimization afterwards. The strength of the Party portfolio is the combina-
+tion of traditional bounded synthesis and a novel approach by reduction to safety
+games, which results in a large number of solved instances, but reduces the avg.
+quality score.
+
+--- Page 7 ---
+584 P. J. Meyer et al.
+Future Work. Strix combines Java (LTL simpliﬁcation and automata trans-
+lations) and C++ (parity game construction and solving). We believe that apure C++ implementation will further improve the overall runtime and reduce
+the memory footprint. Next, there are several algorithmic questions we want
+to investigate going forward, especially expanding parallelization of the tool.Furthermore, we want to reduce the dependency on external tools for circuit
+generation in order to be able to ﬁne-tune this step better. Especially replac-
+ing Speculoos is important, since it turned out that it was unable to handle
+complex transition systems.
+References
+1. Abel, A., Reineke, J.: MeMin: SAT-based exact minimization of incompletely spec-
+iﬁed mealy machines. In: Proceedings of the IEEE/ACM International Conference
+on Computer-Aided Design, ICCAD 2015, Austin, TX, USA, 2–6 November 2015,pp. 94–101 (2015). https://doi.org/10.1109/ICCAD.2015.7372555
+2. Bloem, R., Galler, S.J., Jobstmann, B., Piterman, N., Pnueli, A., Weiglhofer, M.:
+Specify, compile, run: hardware from PSL. Electr. Notes Theor. Comput. Sci.190(4), 3–16 (2007). https://doi.org/10.1016/j.entcs.2007.09.004
+3. Bloem, R., Jacobs, S., Khalimov, A.: Parameterized synthesis case study: AMBA
+AHB. In: Proceedings of the 3rd Workshop on Synthesis, SYNT 2014, Vienna,Austria, 23–24 July 2014, pp. 68–83 (2014). https://doi.org/10.4204/EPTCS.157.
+9
+4. Bloem, R., Jobstmann, B., Piterman, N., Pnueli, A., Sa’ar, Y.: Synthesis of reac-
+tive(1) designs. J. Comput. Syst. Sci. 78(3), 911–938 (2012). https://doi.org/10.
+1016/j.jcss.2011.08.007
+5. Bohy, A., Bruy` ere, V., Filiot, E., Jin, N., Raskin, J.-F.: Acacia+, a tool for LTL
+synthesis. In: Madhusudan, P., Seshia, S.A. (eds.) CAV 2012. LNCS, vol. 7358, pp.
+652–657. Springer, Heidelberg (2012). https://doi.org/10.1007/978-3-642-31424-
+7
+45
+6. Brayton, R., Mishchenko, A.: ABC: an academic industrial-strength veriﬁcation
+tool. In: Touili, T., Cook, B., Jackson, P. (eds.) CAV 2010. LNCS, vol. 6174, pp.24–40. Springer, Heidelberg (2010). https://doi.org/10.1007/978-3-642-14295-6
+5
+7. Cavada, R., et al.: The nuXmv symbolic model checker. In: Biere, A., Bloem, R.
+(eds.) CAV 2014. LNCS, vol. 8559, pp. 334–342. Springer, Cham (2014). https://
+doi.org/10.1007/978-3-319-08867-9 22
+8. Duret-Lutz, A., Lewkowicz, A., Fauchille, A., Michaud, T., Renault, ´E., Xu, L.:
+Spot 2.0 — a framework for LTL and ω-automata manipulation. In: Artho, C.,
+Legay, A., Peled, D. (eds.) ATVA 2016. LNCS, vol. 9938, pp. 122–129. Springer,
+Cham (2016). https://doi.org/10.1007/978-3-319-46520-3 8
+9. Ehlers, R.: Unbeast: symbolic bounded synthesis. In: Abdulla, P.A., Leino, K.R.M.
+(eds.) TACAS 2011. LNCS, vol. 6605, pp. 272–275. Springer, Heidelberg (2011).
+https://doi.org/10.1007/978-3-642-19835-9 25
+10. Esparza, J., Kˇ ret´ınsk´y, J., Raskin, J.-F., Sickert, S.: From LTL and limit-
+deterministic B¨ uchi automata to deterministic parity automata. In: Legay, A.,
+Margaria, T. (eds.) TACAS 2017. LNCS, vol. 10205, pp. 426–442. Springer, Hei-
+delberg (2017). https://doi.org/10.1007/978-3-662-54577-5 25
+
+--- Page 8 ---
+Strix: Explicit Reactive Synthesis Strikes Back! 585
+11. Faymonville, P., Finkbeiner, B., Tentrup, L.: BoSy: an experimentation framework
+for bounded synthesis. In: Majumdar, R., Kunˇ cak, V. (eds.) CAV 2017. LNCS,
+vol. 10427, pp. 325–332. Springer, Cham (2017). https://doi.org/10.1007/978-3-
+319-63390-9 17
+12. Godhal, Y., Chatterjee, K., Henzinger, T.A.: Synthesis of AMBA AHB from formal
+speciﬁcation: a case study. STTT 15(5–6), 585–601 (2013). https://doi.org/10.
+1007/s10009-011-0207-9
+13. Gr¨ adel, E., Thomas, W., Wilke, T. (eds.): Automata Logics, and Inﬁnite Games: A
+Guide to Current Research. LNCS, vol. 2500. Springer, Heidelberg (2002). https://
+doi.org/10.1007/3-540-36387-4
+14. Hoﬀmann, P., Luttenberger, M.: Solving parity games on the GPU. In: Van Hung,
+D., Ogawa, M. (eds.) ATVA 2013. LNCS, vol. 8172, pp. 455–459. Springer, Cham
+(2013). https://doi.org/10.1007/978-3-319-02444-8 34
+15. Jacobs, S., Basset, N., Bloem, R., Brenguier, R., Colange, M., Faymonville, P.,
+Finkbeiner, B., Khalimov, A., Klein, F., Michaud, T., P´ erez, G.A., Raskin, J.,
+Sankur, O., Tentrup, L.: The 4th reactive synthesis competition (SYNTCOMP
+2017): benchmarks, participants and results. arXiv:1711.11439 [cs.LO] (2017)
+16. Jacobs, S., Klein, F., Schirmer, S.: A high-level LTL synthesis format: TLSF v1.1.
+In: Proceedings of the Fifth Workshop on Synthesis, SYNT@CAV 2016, Toronto,
+Canada, 17–18 July 2016, pp. 112–132 (2016). https://doi.org/10.4204/EPTCS.
+229.10
+17. Jobstmann, B.: Applications and optimizations for LTL synthesis. Ph.D. thesis,
+Graz University of Technology (2007)
+18. Khalimov, A., Jacobs, S., Bloem, R.: PARTY parameterized synthesis of token
+rings. In: Sharygina, N., Veith, H. (eds.) CAV 2013. LNCS, vol. 8044, pp. 928–933.
+Springer, Heidelberg (2013). https://doi.org/10.1007/978-3-642-39799-8 66
+19. Luttenberger, M.: Strategy iteration using non-deterministic strategies for solving
+parity games. arXiv:0806.2923 [cs.GT] (2008)
+20. Meyer, P.J., Luttenberger, M.: Solving mean-payoﬀ games on the GPU. In: Artho,
+C., Legay, A., Peled, D. (eds.) ATVA 2016. LNCS, vol. 9938, pp. 262–267. Springer,
+Cham (2016). https://doi.org/10.1007/978-3-319-46520-3 17
+21. Morgenstern, A., Schneider, K.: Exploiting the temporal logic hierarchy and the
+non-conﬂuence property for eﬃcient LTL synthesis. In: Proceedings of the First
+Symposium on Games, Automata, Logic, and Formal Veriﬁcation, GANDALF
+2010, Minori (Amalﬁ Coast), Italy, 17–18 June 2010, pp. 89–102 (2010). https://
+doi.org/10.4204/EPTCS.25.11
+22. Pnueli, A., Rosner, R.: On the synthesis of a reactive module. In: Proceedings
+of the 16th ACM SIGPLAN-SIGACT Symposium on Principles of ProgrammingLanguages, POPL 1989, pp. 179–190. ACM, New York (1989). https://doi.org/10.
+1145/75277.75293
+23. Sickert, S., Esparza, J., Jaax, S., Kˇ ret´ınsk´y, J.: Limit-deterministic B¨ uchi automata
+for linear temporal logic. In: Chaudhuri, S., Farzan, A. (eds.) CAV 2016. LNCS,
+vol. 9780, pp. 312–332. Springer, Cham (2016). https://doi.org/10.1007/978-3-319-
+41540-6
+17
+
+--- Page 9 ---
+586 P. J. Meyer et al.
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intended
+use is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.

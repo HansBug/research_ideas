@@ -1,0 +1,694 @@
+--- Page 1 ---
+HyLAA: A Tool for Computing
+Simulation-Equivalent Reachability for Linear Systems
+Stanley Bak
+Air Force Research Laboratory
+Aerospace Systems Directorate
+stanleybak@gmail.comParasara Sridhar Duggirala
+Department of Computer Science and
+Engineering
+University of Connecticut
+psd@uconn.edu
+ABSTRACT
+Simulations are a practical method of increasing the conﬁ-
+dence that a system design is correct. This paper presents
+techniques which aim to determine all the states that can be
+reached using a particular hybrid automaton simulation al-
+gorithm, a property we call simulation-equivalent reachability.
+Although this is a slightly weaker property than traditional
+reachability, its computation can be efﬁcient and accurate.
+We present HyLAA, the ﬁrst tool for simulation-equivalent
+reachability for hybrid automata with afﬁne dynamics. Hy-
+LAA’s analysis is exact; upon completion, the tool provides
+a concrete simulation trace to an unsafe state if and only if
+the hybrid automaton simulation engine could produce such
+a trace. In the backend, the tool implements an efﬁcient al-
+gorithm for continuous post that exploits the superposition
+principle of linear systems, requiring only n+ 1simulations
+per mode for an n-dimensional linear system. This technique
+is capable of analyzing a replicated helicopter system with
+over 1000 state variables in less than 20 minutes. The tool
+also contains several novel performance enhancements, such
+as invariant constraint elimination, warm-start linear pro-
+gramming, and trace-guided set deaggregation.
+1. INTRODUCTION
+Cyber-physical systems (CPS) that involve interaction be-
+tween software and the physical world can naturally be mod-
+eled using the hybrid automaton formalism. These models
+allow a mix of discrete and continuous behaviors. Often,
+the continuous evolution is deﬁned with differential equa-
+tions that are linear (or afﬁne). Such differential equations
+represent commonly observed physical systems such as au-
+tonomous vehicles, hardware circuits, biological systems, etc.
+As these CPS are deployed in safety-critical scenarios, it is
+important to ensure that these systems satisfy the safety spec-
+iﬁcation. Further, if a given system design does not satisfy
+DISTRIBUTION A. Approved for public release; Distribution un-
+limited. (Approval AFRL PA #88ABW-2016-2897, 30 SEPT 2016)
+Permission to make digital or hard copies of part or all of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full citation
+on the ﬁrst page. Copyrights for third-party components of this work must be honored.
+For all other uses, contact the Owner/Author. Copyright is held by the owner/author(s).
+HSCC’17, April 18 - 20, 2017, Pittsburgh, PA, USA
+c2017 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-4590-3/17/04. . . $15.00
+DOI: http://dx.doi.org/10.1145/3049797.3054973the safety speciﬁcation, it is useful for debugging to provide
+the system designer with a concrete counterexample which
+violates the speciﬁcation.
+Due to increased complexity of CPS, a model-based design
+framework is increasingly being adopted by industries to do
+design and development. In this approach, the CPS is mod-
+eled in a framework such as Simulink/Stateﬂow or Model-
+ica and is tested under varying scenarios by using numerical
+simulations. These simulations, even when they have nu-
+merical errors, are regarded as very close approximations of
+the real behaviors and used for system design and debug-
+ging. For CPS, the space of uncertainties is often uncount-
+able, and therefore, one cannot usually conclude that the sys-
+tem satisﬁes the safety speciﬁcation from a ﬁnite number of
+sample simulations.
+In this paper, we introduce a tool called HyLAA (Hybrid
+Linear Automata Analyzer) that performs simulation-based
+veriﬁcation for hybrid automata with linear ODEs. HyLAA
+implements an algorithm that computes the reachable set of
+states of an n-dimensional linear system using only n+1sim-
+ulations [10]. HyLAA’s goal is to perform simulation-equivalent
+reachability for bounded time. That is, it computes the set
+of states that would be encountered by a hybrid automa-
+ton simulation algorithm for all possible nondeterministic
+choices in the initial state and the discrete transitions. Hy-
+LAA declares a system to be safe if and only if all the simula-
+tions are safe; it declares a system to be unsafe if and only if
+there exists a counterexample simulation trace that violates
+the safety property, and it produces such a trace.
+For efﬁciency, the tool makes two assumptions. First, nu-
+merical computations are considered exact and errors due to
+ﬂoating point computations are ignored. Second, the tool as-
+sumes that the underlying ODE simulation engine provides
+exact simulations for the dynamics. We believe that these
+assumptions are reasonable, given the crucial role ﬂoating-
+point simulations already play in system analysis and de-
+sign. In practice, ﬂoating point errors are usually small, and
+to reduce/eliminate these errors further, one can use simula-
+tion engines with arbitrary precision [1, 12, 5]. Analysis of
+HyLAA is different from other simulation based veriﬁcation
+tools such as C2E2 [9], Breach [8], or Strong [7] in two as-
+pects. First, these tools aim to prove safety irrespective of the
+semantics of the simulation engine used. Second, in worst
+case, the number of simulations would be exponential in the
+number of dimensions.
+To clarify, we emphasize the differences between a hybrid
+automaton simulation algorithm and an ODE simulation engine .
+A simulation of hybrid automaton records an execution of
+
+--- Page 2 ---
+the hybrid automaton starting from an initial state while tak-
+ing into account the different modes, invariants and discrete
+transitions(the speciﬁc algorithm is presented later). To do
+this, HyLAA makes use of an ODE simulation engine, which
+can only simulate the behavior of the system according to
+a given differential equation. In the context of MATLAB,
+a hybrid automaton simulation algorithm would be similar
+to simulation engine underlying Simulink / Stateﬂow (al-
+though our semantics are slightly different, see the next sec-
+tion), whereas an ODE simulation engine refers to a standard
+ODE solver such as ode45 .
+2. PRELIMINARIES
+We consider afﬁne hybrid automata deﬁned as follows.
+DEFINITION 1.An afﬁne hybrid automaton is deﬁned as a tu-
+plehLoc;X;Flow;Inv;Trans;Guard iwhere
+Loc is a ﬁnite set of locations (also called modes).
+XRnis the state space of the behaviors.
+Flow :Loc!AfﬁneDeq (X)assigns an afﬁne differential equa-
+tion_x=Alx+Blfor locationlof the hybrid automaton.
+Inv :Loc!2Rnassigns an invariant set for each location.
+TransLocLoc is the set of discrete transitions.
+Guard :Trans!2Rndeﬁnes the set of states where a discrete
+transition is enabled.
+For the hybrid automata we consider, the invariants and guards are
+given as conjunction of linear constraints.
+A reachability problem combines an afﬁne hybrid automa-
+ton with an initial set of states Q, which is a ﬁnite set of el-
+ements inLoc2Rn, where second element in the pair is
+given as conjunction of linear constraints. An initial stateq0is
+a pair (Loc 0;x0), where an element exists in the initial set of
+states with the given location Loc 0, and the point x0satisﬁes
+both the corresponding linear constraints and the invariant
+ofLoc 0. Unsafe states are indicated by having an explicit set
+of error modes, ULoc.
+Given an initial state q0= (Loc 0;x0), an execution of the
+hybrid automaton (x0) =0a11a2:::is a sequence of tra-
+jectories and actions such that each iis the solution of the
+afﬁne differential equation for the location Lociand respects
+its invariant, ( 0starts from Loc 0), the state before a discrete
+transitionaishould satisfy the Guard (ai)and the state after
+the discrete transition satisﬁes the invariant of the successor
+modeLoci+1. We abuse notation and denote the state of the
+system following a trajectory after time tasi(q0;t)whereq0
+is the initial state of the trajectory.
+The closed form expression for the trajectories is given us-
+ing the state transformation matrix i:R0R0!Rnn
+wherei(x0;t) =  i(t;0)x0+Rt
+0(t;s)Bi(s)ds. For linear
+time invariant systems (LTIs), the state transformation ma-
+trixi(t2;t1) =eAi(t2t1). For efﬁciently analyzing these
+models, numerical simulations from an ODE simulation en-
+gine are routinely used. We now deﬁne a trace produced by
+a hybrid automaton simulation algorithm.
+DEFINITION 2.Given a hybrid automaton Hand an initial
+set of statesQ, a sequence H(q0;h) =q0;q1;q2;:::, where each
+qi= (Loci;xi), is called a (q0;h)-simulation of Hif and only if
+q02Qand each pair (qi;qi+1)corresponds to either (i) a con-
+tinuous trajectory in location Loci=Loci+1such that a trajec-
+tory starting from xiwould reach xi+1afterhtime units with
+Figure 1: Due to superposition, (c+v1+v2;t) =c0+v0
+1+v0
+2, where
+c0=(c;t),v0
+1=(c+v1;t)(c;t)andv0
+2=(c+v2;t)(c;t).
+In the star representation, only the center and the basis vectors change as time
+elapses. The star’s predicate, j1j1^j2j1remains the same.
+xi2Inv(Loci), or (ii) a discrete transition from LocitoLoci+1
+wherea= (Loci;Loc i+1)anda2Trans such thatxi=xi+1,
+xi2Guard (a)andxi+12Inv(Loci+1). We drop the subscript
+when it is clear from context. Bounded-time variants of these sim-
+ulations are called (q0;h;T )-simulations.
+For these simulations, his called the step size andTis called
+time bound . Pairs of states corresponding to (i) are said to
+arise from a continuous-post step , and pairs from condition (ii)
+come from a discrete-post step .
+Notice that hybrid automaton simulation traces which con-
+form to Deﬁnition 2 do not check if the invariant is violated
+for the entire time interval, but only at multiples of the step
+sizeh. Also, the discrete transitions are only enabled at time
+instances that are multiples of hand nondeterminism is al-
+lowed in discrete transitions if more than one guard is sat-
+isﬁed, or the invariant remains true. One subtlety is that
+discrete-post pairs only have the invariant checked in the
+ﬁrst state. This has the effect of allowing discrete transi-
+tions from states where the invariant is false (i.e., guards are
+checked before invariants). This is necessary to handle the
+common case of systems where a guard is the negation of a
+location’s invariant, and a step of the simulation may jump
+over the boundary. If such behaviors are not desired, the
+guards can be explicitly strengthened to include the negation
+of the invariant.
+For readers familiar with the simulation engines in stan-
+dard tools like Simulink / Stateﬂow or Modelica, the de-
+scribed trajectories do not perform any special zero-crossing
+detection and the transitions are not necessarily urgent . In this
+paper, we attempt to determine if an afﬁne hybrid automaton
+is safe with respect all bounded-time simulations that con-
+form to the conditions in Deﬁnition 2.
+DEFINITION 3.A given simulation H(q0;h)is said to be safe
+with respect to an unsafe set of modes Uif and only if8(Loci;xi)2
+H(q0;h),Loci=2U. Safety for time-bounded simulations are de-
+ﬁned similarly.
+DEFINITION 4.A hybrid automaton Hwith an initial set of
+statesQ, time bound T, and unsafe set of modes Uis said to be safe
+if all simulations starting from Qfor bounded time Tare safe.
+Solutions to linear ODEs (in our case trajectories iin each
+mode) satisfy a superposition property, illustrated in Figure 1.
+Given any initial state x0, vectorsv1;:::;v mwherevi2Rn,
+and scalars 1;:::; m,
+i(x0+m
+i=1ivi;t) =i(x0;t)+m
+i=1i(i(x0+vi;t)i(x0;t)):
+
+--- Page 3 ---
+Before describing the algorithm for computing the reach-
+able set, we ﬁnally introduce a data structure called a general-
+ized star , which is used to represent the reachable set of states
+in HyLAA.
+DEFINITION 5.Ageneralized star is a tuplehc;V;Piwhere
+c2Rnis called the center ,V=fv1;v2;:::;v mgis a set ofm
+(n) vectors in Rncalled the basis vectors , andP:Rn!
+f>;?gis a predicate. A generalized star deﬁnes a subset of Rn
+as follows.
+[ [] ] =fxj9= [1;:::; m]Tsuch that
+x=c+ n
+i=1iviandP() =>g
+Sometimes we will refer to both and[ [] ]as. In this paper, we
+consider predicates Pthat are conjunctions of linear constraints.
+3. REACHABILITY ALGORITHM
+In this section, we present an algorithm for computing the
+simulation-equivalent reachable set of states for linear hy-
+brid systems. The description is divided into two parts: (1)
+computing the set of states for the linear dynamics without
+considering the invariants and discrete transitions, and (2)
+accommodating the invariants in each location and account-
+ing for discrete transitions between locations.
+3.1 Continuous Dynamics
+States reachable under continuous evolution are computed
+by exploiting the superposition principle and using the gen-
+eralized star representation. For an n-dimensional linear sys-
+tem, this technique requires at most n+1simulations. Let the
+initial set of states Qbe given as a generalized star hc;V;Pi
+whereV=fv1;v2;:::;v mg. The ODE simulation engine for
+continuous dynamics, with initial state x0, step sizeh, and
+number of steps k, denoted(x0;h;k), returns a sequence
+x0;x1;:::;x ksuch thatxi=(x0;ih). We denote xias
+(x0;h;k)[i]. The reachable set at time instances ihis com-
+puted by Algorithm 1 as a generalized star.
+Algorithm 1: Algorithm that computes the simulation-
+equivalent reachable set at time instances ihfromn+ 1
+simulations.
+input : Initial Set: =hc;V;Pi, time step: h, steps:k
+output:Reach () =Reach 0();:::;Reach k()
+1 for eachifrom0tokdo
+2c0 (c;h;k )[i];
+3 for eachvj2Vdo
+4x0
+j (c+vj;h;k)[i];
+5v0
+j x0
+jc0;
+6V0 fv0
+1;:::;v0
+mg;
+7Reach i() hc0;V0;Pi;
+8 AppendReach i()toReach ();
+9 returnReach ();
+The algorithm in line 2 computes the state of trajectory
+starting from the initial state cat timeihasc0. The loop
+in lines 3 to 5 computes x0
+j, the state of the trajectory starting
+fromc+vjat timeih. The reachable set at time ihis given as
+as generalized star hc0;V0;Pi, whereV0=fv0
+1;:::;v0
+ngwith
+v0
+j=x0
+jc0. The correctness of Algorithm 1 follows fromthe superposition principle and has been previously estab-
+lished [10]. An illustration of the reachable set computation
+as described in the algorithm is presented in Figure 1.
+With this algorithm, extracting concrete trajectories which
+reach a given star is straightforward. This process involves
+expressing the desired point as a vector sum of star’s cen-
+ter and scalar multiples along each of the basis vectors. The
+scalar multiples, for an ordered basis set, is called a basis
+point . The desired trajectory is the sequence of points where
+the state at discrete time step is obtained by the vector sum
+of the corresponding center and the multiplication of basis
+point with the corresponding basis vector matrix.
+3.2 Hybrid Dynamics
+In this section, we use the described continuous-post al-
+gorithm while accounting for invariants and discrete tran-
+sitions to perform simulation-equivalent reachability. The
+pseudo-code is given in Algorithm 2.
+Algorithm 2: Algorithm that computes the simulation-
+equivalent reachable set for hybrid automata.
+input : Initial set of states: Q, Time step: h
+output: Simulation-equivalent reachable set
+1ReachSet ;;cur_state ;;waiting ;;
+2 forq2Qdo
+3push (waiting;q);
+4 while:empty (waiting )_cur_state6=;do
+5 if cur_state =;then
+6 /* discrete-post step */
+7h;li pop(waiting );
+8  \Inv(l);
+9 if 6=;then
+10 for q2discreteTransitions (;l)do
+11 push (waiting;q);
+12 cur_state h;li;
+13 ReachSet cur_state[ReachSet ;
+14 else
+15 /* continuous-post step */
+16h;li cur_state ;
+17  Alg1(;h;1);
+18 for q2discreteTransitions (;l)do
+19 push (waiting;q);
+20  \Inv(l);
+21 if 6=;then
+22 cur_state h;li;
+23 ReachSet cur_state[ReachSet ;
+24 else
+25 cur_state ;;
+26 returnReachSet ;
+For each given iteration of the outermost loop, the algo-
+rithm performs one discrete transition or computes the reach-
+able set according to continuous evolution by one step. First,
+each of the elements of the initial set of states Q, which are
+pairs of stars and locations, are pushed onto the waiting list
+in line 3.
+Initially, the reachable set for discrete transitions is calcu-
+lated in lines 7 to 13 (called discrete post). In a discrete-post
+step, the set of states that violate the invariant are pruned in
+
+--- Page 4 ---
+line 8, followed by checking for guard successors in line 10.
+Pruning the set of states that violate the invariant ﬁrst en-
+sures two conditions as required in Deﬁnition 2: (i) all ini-
+tial states satisfy the invariant of initial location, and (ii) after
+each discrete-post step, the invariant of the destination mode
+is satisﬁed. If the set of states that satisfy the invariant is non-
+empty, in line 12 the star is assigned to cur_state and then it
+gets added to the ﬁnal reachable set.
+After cur_state is assigned, the algorithm will compute the
+reachable set with the continuous dynamics (called contin-
+uous post). In line 17, the earlier continuous algorithm is
+called for a single step h. In the continuous-post operation,
+guard checking (line 18) is performed before invariant trim-
+ming (line 20). This is needed to maintain the condition of
+valid simulations in Deﬁnition 2 that discrete-post steps are
+possible even if the destination state does not satisfy the in-
+variant of the current mode (this was to be able simulate the
+common case of guards being the complements of a state’s
+invariant). Finally, if the reachable set for one step satisﬁes
+the invariant, line 22 updates cur_state and adds it to the ﬁ-
+nal reachable set. Otherwise, cur_state is discarded, and the
+next state can be removed from the waiting list.
+As a side effect, this algorithm always keeps track of the
+reachable set that satisﬁes the invariant (line 20). That is,
+if the invariant is violated by a given state in the current
+reachable set, its future continuous trajectory is not part of
+the reachable set. Without this operation, some of the states
+which have previously violated the invariant could re-enter
+the invariant region, and then appear to be reachable. A sim-
+ulation trajectory as deﬁned in Deﬁnition 2, however, could
+not contain such states. Some reachable set computation tools
+postpone the pruning of the reachable set until all continuous-
+post steps complete (the invariant becomes completely false
+or the time bound is reached), which can lead to this type of
+error. A demonstration of this is provided in Section 4.2.
+The HyLAA implementation has several enhancements to
+the described algorithm. In HyLAA, time is tracked by main-
+taining the cumulative number of continuous-post operations
+performed on each star, and another condition for stopping a
+continuous-post step is if the number of steps performed ex-
+ceeds the desired time bound. Additionally, the guard check
+in the discrete-post logic is optional, depending on if the user
+wants to support urgent transitions, where no time elapses.
+It may be desirable to disable these since they can lead to in-
+ﬁnite loops where time does not pass (Zeno behavior). Fur-
+ther, star aggregation may need to be performed in order
+to prevent large numbers of states from being added to the
+waiting list. However, aggregated stars may be overapproxi-
+mative and not correspond to real simulations, so deaggre-
+gation may be necessary to ﬁnd concrete counter-example
+traces. This approach will be discussed more in Section 4.4.
+In terms of efﬁciency and data structures, the predicates in
+stars are conjunctions of linear constraints. Checking for in-
+tersections with guards and invariants (which are linear con-
+straints), can be done by performing a linear optimization
+in the normal direction of the linear constraint’s hyperplane,
+subject to the constraints that the predicate of the star is true.
+If an intersection exists, pruning states that violate invariant
+would require adding an extra constraint to the star. Check-
+ing if a star is empty can also be done by checking if any point
+satisﬁes the star’s linear constraints (the objective can be 0).
+Thus all the main operations needed for Algorithm 2 can be
+exactly and efﬁciently performed.4. HYLAA TOOL IMPLEMENTATION
+The HyLAA tool implements the theory presented in Sec-
+tion 3. The tool is developed in Python, although many of the
+core computation components are libraries written in other
+languages. Simulations are performed using scipy , which
+uses the FORTRAN library odepack ’slsoda solver. This
+solver supports a wide variety of differential equations and
+allows the user to set the simulation accuracy. Linear pro-
+gramming is performed using the glpk library, and matrix
+operations are done using numpy . Visualization for the reach-
+able set is provided using the libraries in matplotlib . Hy-
+LAA supports a live animation mode which shows the gen-
+eralized stars during the course of the computation, a step-
+by-step mode when the user presses a button before each
+continuous or discrete-post operation, and a video export
+mode that uses ffmpeg to output the visualization to a ﬁle
+format such as .mp4 . The model input ﬁle is Python code
+instantiating HyLAA-speciﬁc objects. To ease model devel-
+opment, we have created a printer using the HyST model
+conversion tool [2]. This allows input models to be created
+in the SpaceEx [11] format using the SpaceEx model editor,
+and then exported and used by HyLAA.
+In this section, we describe three novel features of HyLAA
+namely, invariant constraint propagation, warm-start opti-
+mization, and trace based aggregation and present some ex-
+perimental evaluation in comparison to other tools. Owing
+to space limitations, all the three features have not been fully
+described and proofs of correctness are not presented. The
+experimental evaluations have been limited to instances that
+highlight the new features in HyLAA and are not extensive.
+The algorithms behind each of the features and the corre-
+sponding correctness proofs are presented in other work [4].
+4.1 Continuous-Post Scalability
+We ﬁrst evaluate the scalability of HyLAA, which uses the
+n+ 1 simulations approach described in Section 3.1. In or-
+der to do this, we use the helicopter/controller benchmark
+provided on the SpaceEx website1. We use the same param-
+eters as the x8_over_time_large variant of the bench-
+mark, which consists of a 28-dimensional helicopter plus a
+time dimension, a nondeterministic set of initial states with a
+30 second target time and a 0.1 second step size. As this sys-
+tem contains no discrete switches, it serves as an evaluation
+of the efﬁciency of the continuous-post operation. We com-
+pared HyLAA with supp andstc scenarios in SpaceEx [11]
+using the default accuracy settings. In order to show scala-
+bility, we replicated the helicopter several times within the
+same model. This was repeated until the computation did
+not ﬁnish within the 20 minute timeout. We also attempted to
+use the linear reachability mode from Flow* [6] 2.0.0, but did
+not succeed in ﬁnding a suitable set of parameters with the
+0.1 time step, although we did get Flow* to complete the sin-
+gle helicopter case with a smaller time step in about 10 min-
+utes. The results are shown in Figure 2. HyLAA’s approach
+generally performs better, and is able to complete a 365 di-
+mensional system (13 helicopters) in under a minute, and a
+1065 dimensional system (38 helicopters) in under 20 min-
+utes. The execution of the reachability tools was scripted us-
+ing the hypy library [3], along with a model transformation
+pass for replicating the helicopter system written in HyST [2].
+The measurements were performed using a 2.30GHz Intel i5-
+1http://spaceex.imag.fr/news/helicopter-example-posted-39
+
+--- Page 5 ---
+ 0 5 10 15 20 25 30 35 40 45 50 55
+ 0  50  100  150  200  250  300  350  400Seconds
+DimensionsTool Scalability - Replicated Helicopter (1 min)
+SpaceEx stc
+SpaceEx supp
+Hylaa(a) 1 min limit
+ 0 200 400 600 800 1000 1200
+ 0  200  400  600  800  1000  1200Seconds
+DimensionsTool Scalability - Replicated Helicopter (20 mins)
+SpaceEx stc
+SpaceEx supp
+Hylaa
+(b) 20 min limit
+Figure 2: Scalability of reachability computation on the replicated helicopter
+system with a one minute and 20 minute time limit. The n+ 1 simulation
+continuous-post operation in HyLAA is generally faster than the supp and
+stc methods implemented in SpaceEx.
+(a) SpaceEx supp
+ (b) SpaceEx stc
+ (c) HyLAA
+Figure 3: Plots ofx8over time for a two-helicopter system show that the
+default settings used for measuring SpaceEx produce less accurate reachability
+plots than HyLAA. Note the y-axis scale with the supp method is much larger.
+5300U CPU with 16 GB ram running Ubuntu 14.04 x64.
+Note that the guarantees provided by SpaceEx and Hy-
+LAA are different. SpaceEx computes reachable set that in-
+cludes states encountered by trajectories at all time instances
+whereas HyLAA computes reachable set at discrete instances
+of time. However, HyLAA can produce concrete counterex-
+ample traces. We would also like to highlight that there is
+an inherent challenge in comparing reachability tools, since
+the choice of parameters often provides a trade off between
+accuracy and runtime. Under the measured default parame-
+ters, Figure 3 compares output plots for the 2-helicopter case
+forx8over time, which shows that HyLAA’s result appears
+more accurate. While the supp scenario seems to reach states
+wherex8>20, HyLAA’s output always remains bounded
+in[0:45;0:45]. Furthermore, HyLAA’s accuracy does not
+change for higher dimensional variants. Of course, we could
+increase SpaceEx’s accuracy through parameter selection, but
+this would serve only to increase the computation times mea-
+sured in Figure 2, and it would be difﬁcult to justify one
+choice of parameters over another.
+(a) SpaceEx stc
+ (b) Flow*
+ (c) HyLAA
+Figure 4: Invariant trimming is performed when y> 5:1.
+4.2 Invariant Constraint Elimination
+During a continuous-post operation, it is possible that the
+generalized star being tracked has a partial intersection with
+the invariant. HyLAA eliminates states where the invariant
+is violated by adding an additional linear constraint into the
+predicate of the generalized star. This constraint is propa-
+gated forward in time and is added to predicates of all the
+following generalized stars. Therefore, successive time steps
+with a partial invariant intersection result in more constraints
+being added to the star. For this reason, HyLAA checks if
+each newly-added constraint is strictly stronger than the pre-
+vious one, and drops the previous one if so. Without this op-
+timization, the number of constraints added would be equal
+to the number of steps where a partial intersection takes place,
+which gets larger as the step size is decreased.
+An example demonstrating this is the harmonic oscillator
+system, with _x=yand _y=x. Trajectories of this system
+rotate clockwise around the origin. The initial states are x2
+[6;5]andy2[0;1], and the single mode’s invariant is
+taken as 0y5:1. In this system, trajectories from most
+of the initial states actually violate the invariant, and should
+be pruned from the reachable set.
+Reachability plots for this system in SpaceEx stc, Flow*
+and HyLAA are shown in Figure 4. Notice that SpaceEx
+does not perform such pruning during the continuous-post
+operation (instead postponing it until afterwards), resulting
+in large error in the computed set of states. Flow*’s result
+appears correct, with the seeming overapproximation being
+an artifact of the octagon plotting mode. HyLAA’s general-
+ized star adds several constraints to account for the invari-
+ant and hence the ﬁnal star in the reachable set has 79 con-
+straints. With invariant constraint elimination, this number
+is reduced to 25.
+4.3 Warm-Start Linear Programming
+At each step during a continuous-post operation, the gen-
+eralized star representation of reachable set must handle pos-
+sible discrete transitions by checking if a guard condition
+can be satisﬁed. Moreover, additional constraints might be
+added to the star to prune the states that violate invariant. If
+plotting is enabled, the generalized star set has to be pro-
+jected accurately on a 2-d plane for visualization. A sim-
+ple box overapproximation can be rendered by ﬁnding max-
+imum and minimum values of each axis variables. To obtain
+a more accurate plot, HyLAA chooses a number equidistant
+angles (for example, 64), maximizes the cost function along
+these directions, and renders the projection on 2d plane. Since
+these operations are performed by solving linear programing
+(LP) problems, the optimization of the LP engine is essential
+to HyLAA’s performance.
+HyLAA uses the GNU Linear Programming Kit ( glpk )
+to solve LPs, which is an optimized ANSI C implementa-
+
+--- Page 6 ---
+tion that gets called from HyLAA’s Python code. Internally,
+glpk uses a two-phase Simplex method to solve LPs. The
+ﬁrst phase comes up with a feasible solution and the second
+phase applies the simplex heuristics to drive the feasible so-
+lution to the optimal solution. To improve the performance
+of solving multiple linear programs, HyLAA uses a warm-
+start LP optimization. Here, HyLAA stores the solution of
+the previous LP , and uses it as an initial guess for subsequent
+LPs. This allows glpk to skip the ﬁrst phase of LP , and in
+many instances the second phase as well. For example, when
+plotting, a vertex of the star is the maximal point for many
+plotting directions. In these cases, the LP engine would be
+able to detect this and terminate immediately with zero ad-
+ditional Simplex iterations.
+This warm-start optimization is helpful during guard (and
+invariant) intersections as well. For guard intersections, Hy-
+LAA ﬁnds the vertex of the star that is closest to the guard.
+After a single time step, the basis vectors in the star often
+only change slightly, and thus the same vertex of the star is
+often remains the closest one to the guard. The previous LP
+solution, in this case, would immediately lead to the new LP
+solution and improves the efﬁciency of HyLAA.
+4.4 Trace-Guided Deaggregation
+A well-known issue with ﬂow-pipe construction reacha-
+bility analysis is that, upon encountering a guard intersec-
+tion, a single set of states might yield to multiple states in
+the successor location after a discrete transition. This can be
+observed in the invariant trimming example in Figure 4. If
+there was a guard with condition y5:1, then the guard
+would be enabled at multiple time steps, creating several
+successor stars in the next mode. As the time duration for
+which the guard is enabled remains constant, using a smaller
+step size might increase the number of successor stars. In the
+worst case, every star set has multiple successor stars during
+a discrete transition, leading to an exponential increase in the
+number of stars to be tracked after a few discrete transitions.
+One common solution to this problem is to aggregate states
+in the same mode prior to each continuous-post operation.
+While this prevents the exponential problem described above,
+it might lead to a different set of potential problems. First, the
+aggregation is usually not exact. For generalized stars where
+the predicate is a set of linear constraints, for example, the
+exact union of two stars cannot generally be expressed us-
+ing a conjunction of linear constraints. To see this, notice that
+a set of linear constraints deﬁnes a convex set, whereas the
+union of two stars can be non-convex, or even disjoint. Since
+the aggregation is not exact, it is no longer the case that if an
+aggregated star reaches an unsafe state then a concrete trace
+exists to the unsafe state. Second, in general, full aggrega-
+tion based on convex representations (such as support func-
+tions in SpaceEx or parallelotopes in Flow*) cannot bound
+error. To see this, imagine the single mode whose reachable
+set was shown in Figure 4 contains a guard with a true con-
+dition. Since the guard is always enabled, all of the states in
+the plot would be aggregated. Therefore, perfect convex ag-
+gregation would include all of the states in the middle of the
+semi-circle, that are not part of the reachable set.
+Thus, it is undesirable not to do aggregation due to expo-
+nential blowup in tracked states, but it is also undesirable to
+do aggregation due to unbounded error with convex over-
+approximations. HyLAA includes a compromise between
+these two, where aggregation is performed aggressively, but,upon reaching a guard, a concrete trace needs to be generated
+which reaches the guard. If such a trace cannot be gener-
+ated, it means one of the stars along the path from the initial
+states to the current star includes an aggregated star which
+contributes to the overapproximation. This aggregated star
+is identiﬁed by backtracking, split into two smaller aggre-
+gated stars with less overapproximation, and the reachable
+set computation is resumed with the new aggregated stars.
+In this way, a guard is taken if and only if a concrete trace
+exists to the guard. Since the set of unsafe states is deﬁned
+as subset of modes in the hybrid automaton, such a state will
+only be reached if there exists a concrete path. To the authors
+knowledge, this is the ﬁrst approach to offer such aggrega-
+tion and deaggregation strategies. A video demonstration of
+the deaggregation method is available on HyLAA website2.
+5. CONCLUSION
+In this paper, we have presented a tool called HyLAA for
+performing simulation-equivalent reachability of afﬁne hy-
+brid automata. HyLAA can efﬁciently compute all the states
+reached by a speciﬁc hybrid automaton simulation algorithm.
+We have demonstrated the efﬁciency of the continuous-post
+operation on HyLAA by computing reachable set of a 1065
+dimensional system in under 20 minutes, and described sev-
+eral improvements to handle the discrete transitions.
+HyLAA is still in its early phases and many further en-
+hancements are being considered. We plan to add support
+for resets on guards, as well as support for nondeterminis-
+tic inputs within the differential equations. We wish to add
+support for hierarchical models and parallelize the simula-
+tion engine to improve scalability.
+6. REFERENCES
+[1]Computer Assisted Proofs in Dynamic Groups (CAPD) .
+http://capd.ii.uj.edu.pl/index.php.
+[2] S. Bak, S. Bogomolov, and T. T. Johnson. HyST: A source transformation
+and translation tool for hybrid automaton models. In 18th International
+Conference on Hybrid Systems: Computation and Control , Seattle,
+Washington, Apr. 2015. ACM.
+[3] S. Bak, S. Bogomolov, and C. Schilling. High-level hybrid systems
+analysis with hypy. In ARCH 16: Proc. of the 3rd Workshop on Applied
+Veriﬁcation for Continuous and Hybrid Systems , 2016.
+[4] S. Bak and P . S. Duggirala. Rigorous simulation-based analysis of linear
+hybrid systems. In Tools and Algorithms for the Construction and Analysis of
+Systems . Springer, 2017.
+[5] O. Bouissou and M. Martel. GRKLib: a guaranteed runge kutta library.
+InIMACS , 2006.
+[6] X. Chen, E. Abraham, and S. Sankaranarayanan. Taylor model ﬂowpipe
+construction for non-linear hybrid systems. 2013 IEEE 34th Real-Time
+Systems Symposium , 0:183–192, 2012.
+[7] Y. Deng, A. Rajhans, and A. A. Julius. STRONG: a trajectory-based
+veriﬁcation toolbox for hybrid systems. In Quantitative Evaluation of
+Systems , pages 165–168. Springer, 2013.
+[8] A. Donzé. Breach, a toolbox for veriﬁcation and parameter synthesis of
+hybrid systems. In Computer Aided Veriﬁcation , pages 167–170. Springer,
+2010.
+[9] P . S. Duggirala, S. Mitra, M. Viswanathan, and M. Potok. C2E2: a
+veriﬁcation tool for stateﬂow models. In Tools and Algorithms for the
+Construction and Analysis of Systems , pages 68–82. Springer, 2015.
+[10] P . S. Duggirala and M. Viswanathan. Parsimonious, simulation based
+veriﬁcation of linear systems. In International Conference on Computer
+Aided Veriﬁcation , pages 477–494. Springer, 2016.
+[11] G. Frehse, C. Le Guernic, A. Donzé, S. Cotton, R. Ray, O. Lebeltel,
+R. Ripado, A. Girard, T. Dang, and O. Maler. SpaceEx: Scalable
+veriﬁcation of hybrid systems. In Proc. 23rd International Conference on
+Computer Aided Veriﬁcation (CAV) , LNCS. Springer, 2011.
+[12] N. Nedialkov. VNODE-LP: Validated solutions for initial value problem
+for ODEs. Technical report, McMaster University, 2006.
+2http://stanleybak.com/hylaa/#hscc2017

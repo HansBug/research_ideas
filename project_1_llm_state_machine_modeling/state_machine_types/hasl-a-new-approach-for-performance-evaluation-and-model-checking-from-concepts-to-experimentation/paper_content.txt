@@ -1,0 +1,2372 @@
+--- Page 1 ---
+Laboratoire Sp´ eciﬁcation & V´ eriﬁcation
+´Ecole Normale Sup´ erieure de Cachan
+61, avenue du Pr´ esident Wilson
+94235 Cachan Cedex FranceHASL: a New Approach for
+Performance Evaluation and Model
+Checking from Concepts to
+Experimentation
+Paolo Ballarini, Benoˆ ıt Barbot, Marie Duﬂot, Serge
+Haddad and Nihal Pekergin
+March 2015
+Research report LSV-15-04 (Version 1)
+
+--- Page 3 ---
+HASL: a New Approach for Performance Evaluation and
+Model Checking from Concepts to Experimentation
+Paolo Ballarinia, Beno ˆıt Barbotb, Marie Duﬂotc, Serge Haddadb, Nihal Pekergind
+aEcole Centrale de Paris, France
+bLSV , ENS Cachan & CNRS & INRIA, France
+cUniversit ´e de Lorraine- LORIA, Nancy, France
+dLACL, Universit ´e Paris-Est Cr ´eteil, France
+Abstract
+We introduce the Hybrid Automata Stochastic Language (HASL), a new temporal logic
+formalism for the veriﬁcation of Discrete Event Stochastic Processes (DESP). HASL
+employs a Linear Hybrid Automaton (LHA) to select preﬁxes of relevant execution
+paths of a DESP. LHA allows rather elaborate information to be collected on-the-ﬂy
+during path selection, providing the user with powerful means to express sophisticated
+measures. A formula of HASL consists of an LHA and an expression Zreferring
+to moments of path random variables . A simulation-based statistical engine is em-
+ployed to obtain a conﬁdence interval estimate of the expected value of Z. In essence,
+HASL provides a unifying veriﬁcation framework where temporal reasoning is natu-
+rally blended with elaborate reward-based analysis. Moreover, we have implemented
+a tool, named C OSMOS , for performing analysis of HASL formula for DESP modelled
+by Petri nets. Using this tool we have developed two detailed case studies: a ﬂexible
+manufacturing system and a genetic oscillator.
+Keywords: Discrete Event Stochastic Process, Statistical Model Checking,
+Performance Evaluation.
+1. Introduction
+From model checking to quantitative model checking. Since its introduction [27],
+model checking has quickly become a prominent technique for veriﬁcation of discrete-
+event systems. Its success is mainly due to three factors: (1) the ability to express
+speciﬁc properties by formulas of an appropriate logic, (2) the ﬁrm mathematical foun-
+dations based on automata theory and (3) the simplicity of the veriﬁcation algorithms
+which has led to the development of numerous tools. While the study of systems re-
+quires both functional, performance and dependability analysis, originally the tech-
+niques associated with these kinds of analysis were different. However, in the mid
+nineties, classical temporal logics were adapted to express properties of Markov chains
+and veriﬁcation procedures have been designed based on transient analysis of Markov
+chains [8].
+From numerical model checking to statistical model checking. The numerical tech-
+niques for quantitative model checking are rather efﬁcient when a memoryless property
+Preprint submitted to Performance Evaluation February 4, 2015
+
+--- Page 4 ---
+can be exhibited (or recovered by a ﬁnite-state memory), limiting the combinatory ex-
+plosion due to the necessity to keep track of the history. Unfortunately both the formula
+associated with an elaborated property and the stochastic process associated with a real
+application make rare the possibility of such a pattern. In these cases, statistical model
+checking [47] is an alternative to numerical techniques. Roughly speaking, statistical
+model checking consists in sampling executions of the system (possibly synchronised
+with some automaton corresponding to the formula to be checked) and comparing the
+ratio of successful executions with a threshold speciﬁed by the formula. The advantage
+of statistical model checking is the small memory requirement while its drawback is its
+inability to generate samples for execution paths of potentially unbounded length.
+Limitations of existing logics. A topic that has not been investigated is the suitabil-
+ity of the temporal logic to express (non necessarily boolean) quantities deﬁned by
+path operators (minimum, integration, etc.) applied on instantaneous indicators. Such
+quantities naturally occur in standard performance evaluation. For instance, the aver-
+age length of a waiting queue during a busy period or the mean waiting time of a client
+are typical measures that cannot be expressed by the quantitative logics based on the
+concept of successful execution probability like CSL [6].
+Our contribution. Following the idea to relieve these limitations, we introduce a
+new language called Hybrid Automaton Stochastic Language (HASL) which provides
+a uniﬁed framework both for model checking and for performance and dependability
+evaluation1. Evaluating a system using HASL allows both the probability computation
+of a complex set of paths as well as elaborate performability measures. The use of
+conditional expectation over these subsets of paths signiﬁcantly enlarges the expressive
+power of the language.
+A formula of HASL consists of an automaton and an expression. The automaton is
+a Linear Hybrid Automaton (LHA), i.e. an automaton with clocks, called in this con-
+textdata variables , where the dynamic of each variable (i.e. the variable’s evolution)
+depends on the model states. This automaton is synchronised with the model of the
+system, precisely selecting accepting paths while maintaining detailed information on
+the path through data variables. The expression is based on moments of path random
+variables associated to path executions. These variables are obtained by operators like
+time integration on data variables.
+HASL extends the expressiveness of automaton-based CSL as CSLTA[26] and its
+extension to multi-clocks [21] with state and action rewards and sophisticated update
+functions especially useful for performance and dependability evaluation. On the other
+hand it extends reward enriched versions of CSL, (CSRL [9]) with a more elaborate
+selection of path executions, and the possibility to consider multiple rewards. Therefore
+HASL makes possible to consider not only standard performability measures but also
+complex ones in a generic manner.
+A statistical veriﬁcation tool, named C OSMOS , has been developed for this lan-
+guage. We have chosen generalised stochastic Petri nets (GSPN) as high level for-
+malism for the description of the discrete event stochastic process since (1) it allows a
+ﬂexible modelling w.r.t. the policies deﬁning the process (choice, service and memory)
+1A preliminary version of this language has been presented in [11].
+2
+
+--- Page 5 ---
+and (2) due to the locality of net transitions and the simplicity of the ﬁring rule it leads
+to efﬁcient path generation. This tool has been presented in [10].
+We have developed in this paper two detailed case studies relative to ﬂexible man-
+ufacturing systems (FMS) and to gene expression. The choice of FMS was guided by
+the fact that they raise interesting analysis issues: productivity, ﬂexibility, fault toler-
+ance, etc. While analysis of such systems is usually based on standard performance
+indices, we demonstrate the usefulness of HASL through elaborate transient formulas.
+Similarly, biological measures often concern the shape of trajectories which can only
+be expressed by complex formulas. In addition, our experiments demonstrate the time
+efﬁciency of the C OSMOS tool.
+Organisation. In section 2, we describe the class of stochastic models we refer to (i.e.
+DESP). In section 3, we formally introduce the HASL language and we provide an
+overview of the related work, where the expressiveness of HASL is compared with that
+of existing logics. Section 4 is dedicated to the presentation of the basic principles of
+statistical model checking as well as the C OSMOS software tool for HASL veriﬁcation.
+In section 5, we present two full case studies: a ﬂexible manufacturing system and a
+genetic oscillator. Finally, in section 6, we conclude and give some perspectives.
+2. Discrete Event Stochastic Process
+We describe in this section a large class of stochastic models that are suitable for
+HASL veriﬁcation, namely Discrete Event Stochastic Processes (DESP). Such a class
+includes in particular the main type of stochastic models targeted by existing stochastic
+logics, namely Markov chains. The deﬁnition of DESP we introduce is similar to that
+of generalised semi-Markov processes [28] as well as that given in [2].
+Syntax. DESPs are stochastic processes consisting of a (possibly inﬁnite) set of states
+and whose dynamic is triggered by a set of discrete events. We do not consider any
+restriction on the nature of the distribution associated with events. In the sequel dist(A)
+denotes the set of distributions whose support is A.
+Deﬁnition 1. A DESP is a tuple
+D=/angbracketleftS,π0,E,Ind,enabled,delay,choice,target /angbracketrightwhere
+•Sis a (possibly inﬁnite) set of states,
+•π0∈dist(S)is the initial distribution on states,
+•Eis a ﬁnite set of events,
+•Ind is a set of functions from StoRcalled state indicators (including the con-
+stant functions),
+•enabled :S→2Eare the enabled events in each state with for all s∈S,
+enabled (s)/negationslash=∅.
+•delay :S×E→dist(R+)is a partial function deﬁned for pairs (s,e)such that
+s∈Sande∈enabled (s).
+3
+
+--- Page 6 ---
+•choice :S×2E×R+→dist(E)is a partial function deﬁned for tuples
+(s,E/prime,d)such thatE/prime⊆enabled (s)and such that the possible outcomes of
+the corresponding distribution are restricted to e∈E/prime.
+•target :S×E×R+→Sis a partial function describing state changes through
+events deﬁned for tuples (s,e,d )such thate∈enabled (s).
+From syntax to semantics. Given a state s,enabled (s)is the set of events enabled in
+s. For an event e∈enabled (s),delay (s,e)is the distribution of the delay between
+the enabling of eand its possible occurrence. Furthermore, if we denote dthe earliest
+delay in some conﬁguration of the process with state s, andE/prime⊆enabled (s)the set
+of events with minimal delay, choice (s,E/prime,d)describes how the conﬂict is randomly
+resolved: for all e/prime∈E/prime,choice (s,E/prime,d)(e/prime)is the probability that e/primewill be selected
+amongE/primeafter waiting for the delay d. The function target (s,e,d )denotes the target
+state reached from son occurrence of eafter waiting for dtime units.
+Let us detail these explanations. A conﬁguration of a DESP is described as a triple
+(s,τ ,sched )withsbeing the current state, τ∈R+the current time and sched :
+E→R+∪{+∞} being the function that describes the occurrence time of each
+enabled event ( +∞if the event is not enabled). Starting from a given conﬁguration
+(s,τ ,sched )of a DESP, we can now informally deﬁne the dynamics of a DESP.
+It is an inﬁnite loop, where each iteration consists in the following steps. First the
+functionsched providesE/prime, the set of enabled events with minimal delay, i.e. E/prime=
+{e∈enabled (s)|∀e/prime∈enabled (s), sched (e)≤sched (e/prime)}. The corresponding
+delaydis equal tosched (s)−τfor anys∈E/prime. Then the probability distribution
+choice (s,E/prime,d)randomly speciﬁes which event e∈E/primewill be sampled. The next
+states/primeis then deﬁned by target (s,e,d ). Finally the function sched is updated as
+follows. First for all events e/primedifferent from ethat are still enabled, sched (e/prime)is
+maintained while for all other enabled event e/primein states/prime, a new delay d/primeis sampled
+according to the distribution delay (s/prime,e/prime)andsched (e/prime)is set toτ+d+d/prime. Whene/primeis
+disabled,sched (e/prime)is set to +∞. The three elements of a conﬁguration being updated,
+the system can now start a new iteration. Let us now give a more formal deﬁnition
+ofsched and the families of random variables corresponding to the successive states,
+events and time instants of a trace of the DESP.
+Operational semantics of a DESP . Given a discrete event system, its execution is char-
+acterised by a (possibly inﬁnite) sequence of events {e1,e2,...}and occurrence time
+of these events. Only the events can change the state of the system. In the stochastic
+framework, the behaviour of a DESP is deﬁned by three families of random variables:
+•e1,...,en,... deﬁned over the set of events Edenoting the sequence of events
+occurring in the system;
+•s0,...,sn,... deﬁned over the (discrete) state space of the system, denoted as
+S.s0is the system initial state and snforn > 0is the state reached after the
+nthevent. The occurrence of an event does not necessarily modify the state of
+the system, and therefore sn+1may be equal to sn;
+4
+
+--- Page 7 ---
+•τ0≤τ1≤···≤τn≤··· deﬁned over R+, whereτ0is the initial instant and
+τnforn>0is the instant of the occurrence of the nthevent.
+We start from the syntactical deﬁnition of a DESP and show how we obtain the three
+families of random variables {sn}n∈N,{en}n∈N∗and{τn}n∈N. This deﬁnition is
+inductive w.r.t. nand includes some auxiliary families.
+Notation. In the whole section, when we write an expression like Pr(en+1=e|e∈
+E/prime
+n), we also mean that this conditional probability is independent from any random
+eventEvthat could be deﬁned using the previously deﬁned variables:
+Pr(en+1=e|e∈E/prime
+n) =Pr(en+1=e|e∈E/prime
+n∧Ev)
+The family{sched (e)n}n∈Nwhose range is R+∪{+∞} denotes the current
+schedule for event ein statesn(with value∞ifeis not scheduled). Now τn+1is
+deﬁned byτn+1= min(sched (e)n|e∈E)and the family{E/prime
+n}n∈Ndenotes the set
+of events with minimal schedule: E/prime
+n={e∈E|∀e/prime∈E,sched (e)n≤sched (e/prime)n}.
+From this family we obtain the conditional distribution of en+1:
+Pr(en+1=e|e∈E/prime
+n∧τn+1−τn=d) =choice (sn,E/prime
+n,d)(e).
+Nowsn+1=target (sn,en+1,τn+1−τn)and:
+•For everye∈E,Pr(sched (e)n+1=∞|e /∈enabled (sn+1)) = 1
+•For everye∈E,
+Pr(sched (e)n+1=sched (e)n|e∈enabled (sn+1)∩enabled (sn)∧e/negationslash=en+1) = 1
+•For everye∈Eandd∈R+,
+Pr(τn+1≤sched (e)n+1≤τn+1+d|e∈enabled (sn+1)∧(e /∈enabled (sn)∨
+e=en+1)) =delay (sn+1,e)(d). Notice that delay is deﬁned by its cumulative
+distribution function.
+We start the induction by:
+•Pr(τ0= 0) = 1 ,Pr(s0=s) =π0(s)
+•For everye∈E,Pr(sched (e)0=∞|e /∈enabled (s0)) = 1
+•For everye∈Eandd∈R+,Pr(sched (e)0≤d|e∈enabled (s0)) =delay (s0,e)(d).
+We deﬁne the subset Prop⊆Ind ofstate propositions taking values in{0,1}.
+The setsInd andProp will be used in the sequel to characterise the information on
+the DESP known by the automaton (LHA) corresponding to a formula. In fact the LHA
+does not have direct access to the current state of the DESP but only through the values
+of the state indicators and state propositions.
+Note that by deﬁnition the evolution of a DESP is naturally suitable for discrete
+event simulation. However, while it can model almost all interesting stochastic pro-
+cesses, it is a low level representation since the set of states is explicitly described. A
+solution for a higher level modelling is to choose one of the formalisms commonly
+used for representing Markov chains (e.g. Stochastic Petri Nets [1] or Stochastic Pro-
+cess Algebras [29]), that can straightforwardly be adapted for representation of a large
+class of DESPs. It sufﬁces that the original formalisms are provided with formal means
+to represent the type of delay distribution of each transition/action (function delay of
+Deﬁnition 1) as well as means to encode the probabilistic choice between concurrent
+events (i.e. function choice of Deﬁnition 1).
+Our approach is based on Generalised Stochastic Petri Net (GSPN), a formalism
+particularly well suited for concurrent and distributed systems which yields to highly
+efﬁcient veriﬁcation of properties. Below we informally outline the basis of GSPN
+5
+
+--- Page 8 ---
+speciﬁcation (for a formal account we refer the reader to [1]) pointing out the differ-
+ences between “original” GSPNs and our variant.
+GSPN models. A GSPN model is a bipartite graph consisting of two classes of nodes:
+places andtransitions . Places may contain tokens (representing the state of the mod-
+elled system) while transitions indicate how tokens “ﬂow” within the net (encoding the
+model dynamics). The state of a GSPN consists of a marking indicating the distribu-
+tion of tokens among the places (i.e. how many tokens each place contains). Roughly
+speaking a transition tis enabled whenever every input place oftcontains a number
+of tokens greater than or equal to the multiplicity of the corresponding (input) arc. An
+enabled transition may ﬁre, consuming tokens (in a number indicated by the multiplic-
+ity of the corresponding input arcs) from its input places, and producing tokens (in a
+number indicated by the multiplicity of the corresponding output arcs) in its output
+places . Transitions can be either timed (denoted by empty bars) or immediate (denoted
+by ﬁlled-in bars, see Figure 1). Transitions are characterised by: (1) a distribution
+which randomly determines the delay before ﬁring it; (2) a priority which determin-
+istically selects among the transitions scheduled the soonest, the one to be ﬁred; (3)
+aweight , that is used in the random choice between transitions scheduled the soonest
+with the same highest priority. With the original GSPN formalism [1] the delay of
+timed transitions is assumed exponentially distributed, whereas with our GSPN it can
+be given by any distribution. Thus a GSPN timed-transition is characterised by a tuple:
+t≡(type,par,pri,w ), wheretype indicates the type of distribution (e.g. uniform),
+parindicates the parameters of the distribution (e.g [α,β]),pri∈R+is a priority
+assigned to the transition and w∈R+is used to probabilistically choose between
+transitions occurring with equal delay and equal priority. Observe that the information
+associated with a transition (i.e. type,par,pri,w ) is exploited in different manners
+depending on the type of transition. For example for a transition with a continuous dis-
+tribution the priority ( pri) and weight ( w) records are superﬂuous (hence ignored) since
+the probability that the schedule of the corresponding event is equal to the schedule of
+the event corresponding to another transition is null. Similarly, for an immediate tran-
+sition (denoted by a ﬁlled-in bar) the speciﬁcation of the distribution type (i.e. type)
+and associated parameters ( par) is irrelevant (hence also ignored). Therefore these
+unnecessary informations are omitted in Figure 1.
+Running example. This model will be used in Section 3 for describing, through a cou-
+ple of LHA examples, the intuition behind hybrid automata based veriﬁcation. We
+consider the GSPN model of Figure 1 (inspired by [1]). It describes the behaviour of
+an open system where two classes of clients (processes) (namely 1 and 2) compete to
+access a shared resource (memory). Class i-clients (i∈{1,2}) enter the system ac-
+cording to a Poisson process with parameter λi(corresponding to the exponentially
+distributed timed transition Arriwith rateλi). On arrival, clients cumulate in places
+Reqiwaiting for the resource to be free (a token in place Free witnessing that the
+resource is available). The exclusive access to the shared resource is regulated either
+deterministically or probabilistically by the priority (prii) and the weight (wi) of im-
+mediate transitions Start 1andStart 2. Thus in presence of a competition (i.e. one or
+more tokens in both Req1andReq2) a classiclient wins the competition with a class
+6
+
+--- Page 9 ---
+Arr1 (Exp,λ1)
+Req1
+(pri1,w1) Start 1
+Acc1
+Serv 1Free
+Req2Arr2 (Exp,λ2)
+(pri2,w2)Start 2
+Acc2
+Serv 2
+(Unif, [α2,β2]) (Unif, [α1,β1])
+Figure 1: The GSPN description of a shared resource system.
+j/negationslash=iclient with probability 1ifprii>prij, and with probability wi/(wi+wj)if
+prii=prij. The occupation time of the resource by a class iclient is assumed to be
+uniformly distributed within the interval [αi,βi](corresponding to transitions Servi).
+Thus on ﬁring transition Servithe resource is released and a class iclient leaves the
+system.
+3. HASL
+The use of statistical methods instead of numerical ones gives us the possibility
+to relieve the limitations that were inherent to numerical methods, in terms of model
+and properties. When numerical model checking was focusing on Markovian models,
+statistical methods permit to use a very wide range of distributions, and to synchronise
+such a model with an automaton that includes linearly evolving variables, complex up-
+dates and constraints. We are no more limited to the probability with which a property
+is satisﬁed, we can also compute the expected value of performability parameters such
+as waiting time, number of clients in a system, production cost of an item. In this
+section, we present the Hybrid Automata Stochastic Language, ﬁrst introduced in [11],
+and illustrate its expressiveness on examples. We intuitively describe the syntax and
+semantics of HASL before formally deﬁning them in the next subsections. A formula
+of HASL consists of two parts:
+•The ﬁrst component of a formula is a hybrid automaton that synchronises with
+an inﬁnite timed execution of the considered DESP until some ﬁnal location
+is reached (i.e. the execution is successful) or the synchronisation fails. This
+automaton uses data variables evolving along the path. They both enable to
+select the subset of successful executions and maintain detailed information on
+the path.
+•The second component of a formula is an expression based on the data variables
+that expresses the quantity to be evaluated. In order to express path indices, they
+7
+
+--- Page 10 ---
+include path operators such as min and max values along an execution, value
+at the end of a path, integral over time and the time average value operator.
+Conditional expectations over the successful paths are applied to these indices in
+order to obtain the value of the formula2.
+In order to illustrate our formalism, we consider the automaton of Figure 2. Its
+purpose is to compute the lower and upper bounds on the waiting time for clients of
+type 1 in the DESP of Figure 1. It has three data variables, whose evolution rate is
+indicated in location l0. Variablex2(resp.x3) is a counter to record the number of
+completed (resp. started) accesses of type 1 clients to the shared resource. Variable
+x1counts the cumulated waiting time for all clients of type 1, thus the rate of x1in
+locationl0is equal to the number of type 1 clients waiting for the resource ( Req1). The
+transitions can either be synchronised and triggered by the actions of the DESP (the
+self loops) where Serv 1(resp.Start 1) denotes the end (resp. beginning) of type 1
+service, or autonomous (denoted by /sharp) and triggered by the evolution of the variables’
+values (transition to the ﬁnal location l1).
+l0
+˙x1:Req 1
+˙x2:0,˙x3:0l1Serv 1,/latticetop,{x2++}Start 1,/latticetop,{x3++}
+E\{Serv 1,Start 1},/latticetop,∅/sharp,x2≥k,∅
+Figure 2: An LHA to compute the bounds on the waiting time
+An execution of this automaton terminates in ﬁnal location l1afterktype 1 clients
+have completed their access to the shared resource. The formulas used to compute
+the aforementioned bounds are presented in page 15. Let us explain the behaviour of
+the synchronised product of the LHA and the DESP, based on the following execution
+withk= 1. Initially in the DESP two transitions ( Arr1andArr2) are enabled and
+so (randomly) scheduled respectively at times 3 and 17). The LHA starts in location
+l0with all variables initialised to 0. Since the rate of x2inl0is null, the autonomous
+transition labelled by /sharpand guarded by x2≥1cannot be eventually ﬁred. So the initial
+state of this execution is: ((Free, 0,(Arr1:3,Arr 2:17)),(l0,(0,0,0))where the ﬁrst
+component of this couple is the marking of the GSPN, the current time, and the time
+schedules of its enabled transitions while the second component is the location of the
+LHA and the values of its data variables. Then transition Arr1is ﬁred synchronising
+with the loop below l0.Start 1is now enabled and is scheduled immediately (due
+to its Dirac distribution). In addition, Arr1is again enabled and scheduled (at time
+12). This leads to: ((Req1+Free, 3,(Arr1:12,Arr 2:17,Start 1:3)),(l0,(0,0,0))).
+The ﬁring of Start 1is synchronised with the upper right loop incrementing x3. This
+2As seen later on, the existence of expectations requires syntactical or semantical restrictions on the
+formula and/or on the DESP.
+8
+
+--- Page 11 ---
+leads to: ((Acc1,3,(Arr1:12,Arr 2:17,Serv 1:15)),(l0,(0,0,1))). A new client of
+type 1 arrives at time 12, with the scheduling of a new client at time 20: (Req1+
+Acc1,12,(Arr1: 20,Arr 2: 17,Serv 1: 15)),(l0,(0,0,1))). When the ﬁrst client is
+served at time 15, this leads to a synchronisation with the upper left loop and x2is
+incremented. In addition the rate of x1is 1, and so at the time of the ﬁring x1is incre-
+mented by 3: (Req1+Free, 15,(Arr1:20,Arr 2:17,Start 1:15,/sharp:15)),(l0,(3,1,1))).
+Observe that the autonomous transition and a synchronised one are scheduled at the
+same time (15). Since an autonomous transition has higher priority, it is ﬁred. The
+resulting location is a ﬁnal one and so the reached state is an absorbing state of the
+product: (Req1+Free, 15,(l1,(3,1,1))).
+We will now proceed to a more formal deﬁnition of the automata and expressions
+used in HASL.
+3.1. Synchronised Linear Hybrid Automata
+Syntax. The ﬁrst component of a HASL formula is a restriction of a hybrid automa-
+ton [3], namely a synchronised Linear Hybrid Automaton (LHA). Such automata ex-
+tend the Deterministic Timed Automata (DTA) used to describe properties of Markov
+chain models [26, 21]. Simply speaking, LHA are automata whose set of locations is
+associated with a n-tuple of real-valued variables (called data variables) whose rate can
+vary.
+In our context, the LHA is used to synchronise with DESP paths. However, it
+can evolve in an autonomous way. The symbol /sharp, associated with these autonomous
+changes, is thus used to denote a pseudo-event that is not included in the event set
+Eof the DESP. The transitions in the synchronised system (DESP + LHA) are either
+autonomous, i.e.time-triggered (or rather variable-triggered) and take place as soon as
+a constraint is satisﬁed, or synchronised i.e.triggered by the DESP and take place when
+an event occurs in the DESP. The LHA will thus take into account the system behaviour
+through synchronised transitions, but also take its own autonomous transitions in order
+to evaluate the desired property.
+The values of the data variables x1,...,xnevolve with a linear rate depending both
+on the location of the automaton and on the current state of the DESP. More precisely,
+the function ﬂowassociates with each location of the automaton an n-tuple of indicators
+(one for each variable) and, given a state sof a DESP and a location l, the ﬂow of
+variablexiin(s,l)isﬂowi(l)(s)(where ﬂowi(l)is theithcomponent of ﬂow(l)). Our
+model also uses constraints , which describe the conditions for an edge to be traversed,
+andupdates , which describe the actions taken on the data variables on traversing an
+edge. A constraint of an LHA edge is a boolean combination of inequalities of the
+form/summationtext
+1≤i≤nαixi+c≺0whereαi,c∈Indare indicators, and ≺∈{=,<,>,≤,≥}.
+The set of constraints is denoted by Const . Given a location and a state, an expression
+of the form/summationtext
+1≤i≤nαixi+clinearly evolves with time. An inequality thus gives an
+interval of time during which the constraint is satisﬁed. We say that a constraint is left
+closed if, whatever the current state sof the DESP (deﬁning the values of indicators),
+the time at which the constraint is satisﬁed is a union of left closed intervals. These
+special constraints are used for the “autonomous” edges, to ensure that the ﬁrst time
+instant at which they are satisﬁed exists. We denote by lConst the set of left closed
+constraints.
+9
+
+--- Page 12 ---
+Anupdate is more general than the reset of timed automata. Here each data variable
+can be set to a linear function of the variables’ values. An update Uis then ann-tuple
+of functions u1,...,unwhere eachukis of the form xk=/summationtext
+1≤i≤nαixi+cwhere the
+αiandcare indicators. The set of updates is denoted by Up.
+Deﬁnition 2. Asynchronised linear hybrid automaton (LHA) is deﬁned by a tuple A=
+/angbracketleftE,L, Λ,Init,Final,X,ﬂow,→/angbracketrightwhere:
+•Eis a ﬁnite alphabet of events;
+•Lis a ﬁnite set of locations;
+•Λ :L→Prop is a location labelling function;
+•Init is a subset of Lcalled the initial locations;
+•Final is a subset of Lcalled the ﬁnal locations;
+•X= (x1,...xn)is an-tuple of data variables;
+•ﬂow:L/mapsto→Indnis a function which associates with each location one indicator
+per data variable representing the evolution rate of the variable in this location.
+ﬂowidenotes the projection of ﬂow on its ithcomponent.
+•The transition relation →⊆L×/parenleftbig
+(2E×Const )/unionmulti({/sharp}×lConst )/parenrightbig
+×Up×Lis a
+set of edges, where the notation lE/prime,γ,U−−−−→l/primemeans that (l,E/prime,γ,U,l/prime)∈→ and
+/unionmultidenotes the disjoint union.
+FurthermoreAfulﬁls the following conditions.
+•Initial determinism: ∀l/negationslash=l/prime∈Init,Λ(l)∧Λ(l/prime)⇔false . This must hold
+whatever the interpretation of the indicators occurring in Λ(l)andΛ(l/prime).
+•Determinism on events: ∀E1,E2⊆Es.t.E1∩E2/negationslash=∅,∀l,l/prime,l/prime/prime∈L,if
+l/prime/primeE1,γ,U−−−−→landl/prime/primeE2,γ/prime,U/prime
+−−−−−→l/primeare two distinct transitions, then either Λ(l)∧
+Λ(l/prime)⇔false orγ∧γ/prime⇔false . Again this equivalence must hold whatever
+the interpretation of the indicators occurring in Λ(l),Λ(l/prime),γandγ/prime.
+•Determinism on /sharp:∀l,l/prime,l/prime/prime∈L,ifl/prime/prime/sharp,γ,U−−−→landl/prime/prime/sharp,γ/prime,U/prime
+−−−−→l/primeare two distinct
+transitions, then either Λ(l)∧Λ(l/prime)⇔false orγ∧γ/prime⇔false .
+•No/sharp-labelled loops: For all sequences
+l0E0,γ0,U0−−−−−−→l1E1,γ1,U1−−−−−−→···En−1,γn−1,Un−1−−−−−−−−−−−→ lnsuch thatl0=ln, there exists
+i≤nsuch thatEi/negationslash=/sharp.
+10
+
+--- Page 13 ---
+Illustration. In order to make this deﬁnition more concrete, we get back to the au-
+tomaton of Figure 2. On this automaton the set of events EisArri,StartiandServi
+withi∈{1,2}corresponding to the events of the associated GSPN of Figure 1. The
+setLof locations consists of l0andl1. Locationl0is initial and location l1is ﬁnal.
+There are no labelling functions (such as acc1 ,noacc andacc2 which can be found
+in Figure 3). The set of data variables is X={x0,x1,x2}. Concerning the ﬂow, the
+last two variables have rate 0 in l0whereasx0evolves with a rate that is equal to the
+marking of place Req1in Figure 1. The rate of variables in state l1is irrelevant as a
+path ends as soon as this state is reached. Concerning the transitions the top left loop
+onl0is triggered as soon as action Serv 1is ﬁred in the GSPN, it has trivial constraint
+/latticetop(True) and its update consists in incrementing x2. The transition from l0tol1is not
+synchronised (label /sharp), has a left closed constraint x2≥kand no update.
+Discussion. The automata we consider are deterministic in the following (non usual)
+sense. Given a path σof a DESP, there is at most one synchronisation with the linear
+hybrid automaton. The three ﬁrst constraints ensure that the synchronised system is still
+a stochastic process. The fourth condition disables “divergence” of the synchronised
+product, i.e. the possibility of an inﬁnity of consecutive autonomous events without
+synchronisation.
+It should also be said that the restriction to linear equations in the constraints and
+to a linear evolution of data variables can be relaxed, as long as they are not involved in
+autonomous transitions. Polynomial evolution of constraints could easily be allowed
+for synchronised edges for which we would just need to evaluate the expression at a
+given time instant. Since the best algorithms solving polynomial equations operate in
+PSPACE [19], such an extension for autonomous transitions cannot be considered for
+obvious efﬁciency reasons.
+Notations. Avaluationν:X→Rmaps every data variable to a real value. In
+the following, we use Val to denote the set of all possible valuations. The value of
+data variable xiinνis denotedν(xi). Let us ﬁx a valuation νand a states. Given
+an expression exp =/summationtext
+1≤i≤nαixi+crelated to variables and indicators, its in-
+terpretation w.r.t. νandsis deﬁned by exp(s,ν) =/summationtext
+1≤i≤nαi(s)ν(xi) +c(s).
+Given an update U= (u1,...,un), we denote by U(s,ν)the valuation deﬁned by
+U(s,ν)(xk) =uk(s,ν)for1≤k≤n. Letγ≡exp≺0be a constraint, we
+write (s,ν)|=γifexp(s,ν)≺0. Letϕbe a state proposition. We write s|=ϕif
+ϕ(s) =true .
+Semantics. The role of a synchronised LHA is, given an execution of a corresponding
+DESP, to decide whether the execution is to be accepted or not, and also to main-
+tain data values along the execution. Before deﬁning the model associated with the
+synchronisation of a DESP Dand an LHAA, we need to introduce a few notations
+to characterise the evolution of a synchronised LHA. Given a state sof the DESP, a
+non ﬁnal location land a valuation νofA, we deﬁne the effect of time elapsing by:
+Elapse (s,l,ν,δ ) =ν/primewhere, for every variable xk,ν/prime(xk) =ν(xk)+ﬂowk(l)(s)×δ.
+We also introduce the autonomous delay Autdel (s,l,ν ):
+Autdel (s,l,ν ) = min(δ|∃l/sharp,γ,U−−−→l/prime∧s|= Λ(l/prime)∧(Elapse (s,l,ν,δ ))|=γ)
+11
+
+--- Page 14 ---
+WheneverAutdel (s,l,ν )is ﬁnite, we know that there is at least one executable
+transition with minimal delay and, thanks to the “determinism on /sharp” of deﬁnition 2, we
+know that this transition is unique. In the following we denote Next (s,l,ν )the target
+location of this ﬁrst transition and Umin (s,l,ν )its update. We now proceed to the for-
+mal deﬁnition of the DESP, D/prime=/angbracketleftS/prime,π/prime
+0,E/prime,Ind/prime,enabled/prime,target/prime,delay/prime,choice/prime/angbracketright
+associated with the synchronisation of a DESP Dand an LHAA.
+•S/prime= (S×L×Val)/unionmulti{⊥} among which (S×Final×Val)/unionmulti{⊥} are the
+absorbing states.
+•π/prime
+0(s,l,ν ) =/braceleftbiggπ0(s)if(l∈Init∧s|= Λ(l)∧ν= 0)
+0otherwise
+andπ/prime
+0(⊥) = 1−Σs∈S,l∈L,ν∈Valπ/prime
+0(s,l,ν ).
+Note that this deﬁnition gives a distribution since, due to “initial determinism”
+of deﬁnition 2, for every s∈S, there is at most one l∈Init such thats|= Λ(l).
+•E/prime=E/unionmulti{/sharp}
+•Ind/prime=∅. In factInd/primeis useless since there is no more synchronisation to make.
+•ifAutdel (s,l,ν )/negationslash=∞then
+enabled/prime(s,l,ν ) =enabled (s)∪{/sharp}
+else
+enabled/prime(s,l,ν ) =enabled (s)
+•delay/prime((s,l,ν ),e) =delay (s,e)for everye∈enabled (s)and, whenever /sharp∈
+enabled/prime(s,l,ν ),delay/prime((s,l,ν ),/sharp)is a Dirac function with a spike for the value
+Autdel (s,l,ν ).
+•choice/prime((s,l,ν ),E/prime,d)(e) =
+
+1if(/sharp∈E/prime∧e=/sharp)
+0if(/sharp∈E/prime∧e/negationslash=/sharp)
+0ife /∈E/prime
+choice (s,E/prime,d)(e)otherwise
+Again this is coherent since, as soon as /sharp /∈E/prime, thenE/primeis a subset of enabled (s)
+on whichchoice is thus deﬁned.
+•For a synchronised event e,
+ife∈enabled (s)and there exists lE/prime,γ,U−−−−→l/primewithe∈E/primesuch that
+target (s,e,d )|= Λ(l/prime)andElapse (s,l,ν,d )|=γthen
+target/prime((s,l,ν ),e,d) = (target (s,e,d ),l/prime,ν/prime)
+withν/prime=U(Elapse (s,l,ν,d ))
+else
+target/prime((s,l,ν ),e,d) =⊥
+Due to the determinism, there is at most one such transition.
+•For an autonomous event /sharp∈enabled/prime(s,l,ν ),
+target/prime((s,l,ν ),/sharp) = (s,l/prime,ν/prime)withl/prime=Next (s,l,ν )and
+ν/prime=Umin (s,l,ν )(Elapse (s,l,ν,Autdel (s,l,ν )))
+12
+
+--- Page 15 ---
+•In order to get a DESP, for any absorbing state one adds a special event tick
+only enabled in absorbing states with Dirac distribution on value 1 (so that time
+diverges in these states).
+Roughly speaking, as long as the automaton is not in a ﬁnal state, the product of
+a DESP and an LHA waits for the ﬁrst transition to occur. If it is an autonomous one
+then only the location of the automaton and the valuation of variables change. If it is
+a synchronised event triggered by the DESP, either the LHA can take a corresponding
+transition and the system goes on with the next transition or the system goes to a ded-
+icated rejecting state ⊥implying the immediate end of the synchronisation. In case of
+a conﬂict of two transitions, an autonomous and a synchronised one, the autonomous
+transition is taken ﬁrst.
+Note that, by initial determinism, for every s∈Sthere is at most one l∈Init
+such thatssatisﬁes Λ(l). In case there is no such lthe synchronisation starts and
+immediately ends up in the additional state ⊥. Determinism on events ( resp. on/sharp)
+ensures that there is always at most one synchronised ( resp. autonomous) transition
+ﬁreable at a given instant.
+Example. The three LHAs of Figure 2, 3 and 4 intend to illustrate the expressiveness
+of LHAs in the context of HASL. When the ﬁrst two are meant to synchronise with
+the shared resource system of Figure 1, the last one expresses a property of the ﬂexible
+manufacturing systems presented in Figure 8. Note that in the LHAs presented here-
+inafter,/sharplabels for autonomous transitions are omitted; furthermore, label Eis used to
+denote universal synchronisation (i.e. synchronisation with any event). The example
+of Figure 2 uses indicator dependent ﬂows and has already been explained on page 8.
+The LHA in Figure 3 illustrates the interest of associating state propositions with
+locations of the LHA (function Λof Deﬁnition 2). In the ﬁgure, three such propositions
+are used, associated to non ﬁnal locations: acc1(there is a token in place Acc1),acc2
+(there is a token in place Acc2) and noacc (there is no token neither in Acc1nor in
+Acc2). The interest of such propositions is that the automaton can take a transition to
+locationl1only if acc1has value 1 in the corresponding state of the system. Hence,
+starting from location Init, no matter which precise event occurs in the system, the
+automaton will switch from Init tol1andl2depending on which class of clients has
+access to the resource. The fact that for example three different transitions labelled with
+Ewithout any constraint are available in location Init does not induce non determin-
+ism as only one of these transitions is possible at a time thanks to the state propositions.
+The automaton uses variables x0that is used to count the number of granted resource
+accesses and x1that expresses the difference of resource usage between clients of class
+1 and 2. To do so variable x1has ﬂow 1 ( resp. -1) when the resource is used by class
+1 (resp. 2) clients, and 0 when the resource is not used. In ﬁgures, we denote the ﬂow
+of variablexby˙x. As soon as kclients have been given a resource access, the system
+terminates in location l3orl4depending on which client type has used the resource for
+the longest cumulated period.
+The LHA of Figure 4 is meant to compute the probability to have at least Kproduct
+completions (events corresponding to transitions Serv 1andServ 2of the FMS Petri
+nets of section 5) in a time interval of duration Dduring horizon mD. The three
+13
+
+--- Page 16 ---
+Init
+˙x0:0
+˙x1:0
+noaccl1
+˙x0:0
+˙x1:1
+acc1l2
+˙x0:0
+˙x1:−1
+acc2E,/latticetop,∅ E,/latticetop,∅ E,/latticetop,∅
+E,/latticetop,{x0++}
+E,/latticetop,∅ E,/latticetop,{x0++}E,/latticetop,∅
+l3l4/sharp,x0=k
+∧x1≥0,∅/sharp,x0=k∧x1≥0,∅ /sharp,x0=k∧x1≥0,∅/sharp,x0=k
+∧x1<0,∅
+/sharp,x0=k∧x1<0,∅ /sharp,x0=k∧x1<0,∅
+Figure 3: An LHA to compute the difference of shared resource usage.
+variables represent respectively the total time ( x1), the time and the number of product
+completions since the beginning of the interval ( x2andx3). The automaton reaches
+a ﬁnal state when the time horizon is reached (state l1). The value of x4at the ﬁnal
+location represents the proportion of successful K-completions.
+l0
+˙x1:1
+˙x2:1
+˙x3:0
+˙x4:0l1{Serv 1,Serv 2},/latticetop,
+{x3:=x3+1}
+E\{Serv 1,Serv 2},/latticetop,∅/sharp,x1<m×D∧x2=D∧x3≥K,
+{x2:=0,x3:=0,x4:=x4+1}
+/sharp,x1<m×D∧x2=D∧x3≤K−1,
+{x2:=0,x3:=0}/sharp,x1=m×D∧x3≥K,
+{x4:=1
+m×(x4+1)}
+/sharp,x1=m×D∧x3≤K−1,{x4:=1
+m×x4}
+Figure 4: An LHA for experiment φ3of FMS case study (section 5.1)
+3.2. HASL expressions
+The second component of an HASL formula is an expression related to the automa-
+ton. Such an expression, denoted Z, is based on moments of a path random variable Y
+and deﬁned by the grammar:
+Z::=c|P|E[Y]|Z+Z|Z−Z|Z×Z|Z/Z
+Y::=c|Y+Y|Y×Y|Y/Y|LAST (y)|MIN (y)
+|MAX (y)|INT (y)|AVG (y)
+y::=c|x|y+y|y×y|y/y(1)
+Preliminary assumption. Before explaining this syntax, we emphasise that given an
+inﬁnite path of the synchronised product, the formula is evaluated on the ﬁnite pre-
+ﬁx that ends when the path reaches an absorbing state. In the general case, it would
+be possible that an inﬁnite path does not admit such a preﬁx. Here we assume that
+14
+
+--- Page 17 ---
+given a DESPDand a HASL formula (A,Z), with probability 1, the synchronising
+path generated by a random execution path of Dreaches an absorbing conﬁguration.
+This semantical assumption can be ensured by structural properties of Aand/orD. For
+instance, the time bounded Until of CSL guarantees this property. As a second exam-
+ple, the time unbounded Until of CSL also guarantees this property when applied on
+ﬁnite CTMCs where all terminal strongly connected components of the chain include
+a state that either fulﬁls the target sub-formula of the Until operator or falsiﬁes the
+continuing sub formula. This (still open) issue is also addressed in [42, 30].
+The variable yis an arithmetic expression built on top of LHA data variables ( x)
+and constants ( c). A path variable Yis a path dependent expression built on top of
+basic path random variables such as LAST (y)(i.e. the value of ywhen reaching the
+absorbing state), MIN (y)(resp.MAX (y)), the minimum (resp. maximum), value
+ofyalong a synchronising path, INT (y)(i.e. the integral over time along the ﬁnite
+preﬁx ) and AVG (y)(the average value of yalong a path). Finally Z, the actual tar-
+get of HASL veriﬁcation, is either P, denoting the probability that a path is accepted
+by the LHA or an arithmetic expression. Such an expression is built on top of the
+ﬁrst moment of Y(E[Y]), and thus allowing for the consideration of diverse signiﬁ-
+cant characteristics of Y(apart from its expectation) as the quantity to be estimated,
+including, for example, the variance Var[Y]≡E[Y2]−E[Y]2and the covariance
+Covar [Y1,Y2]≡E[Y1Y2]−E[Y1]E[Y2]. Note that for efﬁciency reasons, in the im-
+plementation of the C OSMOS software tool, we have considered a restricted version of
+grammar (1), where products and quotients of data variables (e.g. x1×x2andx1/x2)
+are allowed only within the scope of the LAST operator ( i.e.not withMIN ,MAX ,
+INT orAVG ). Indeed, allowing products and quotients as arguments of path oper-
+ators such as MAX orMIN requires the solution of a linear programming problem
+during the generation of a synchronised D×A path which, although feasible, would
+considerably affect the computation time.
+Example. With the LHA of Figure 2, we can express bounds for the average wait-
+ing time until the ﬁrst kclients have been served. The upper (resp. lower) bound
+on the waiting time is computed by the ﬁnal value of x1divided byk(resp.x3). In
+our formalism it corresponds to the expressions E[LAST (x1)/k]for the upper bound
+and to E[LAST (x1)/LAST (x3)]for the lower bound. Referring to the LHA of Fig-
+ure 3, we can consider path random variables such as Y=LAST (x1)(the ﬁnal
+difference of shared resource usage), or Y=AVG (x1)(the average along paths of
+such a difference). Furthermore, with a slight change of the automaton (setting x0
+to 0 ( resp. 1) when reaching l4(resp.l3)),E[LAST (x0)]will give the probability
+to reachl3. Finally, on the LHA of Figure 4, the ratio of time intervals of the form
+[nD,(n+ 1)D[during which Kproduct completions occur is evaluated through ex-
+pression E[LAST (x4)].
+Semantics. We emphasise that the (conditional) expectation of a path random variable
+is not always deﬁned. There are two obvious necessary conditions on the synchronised
+product: (1) almost surely the random execution ends either in a ﬁnal state of the LHA
+or in the rejecting state, and (2) with positive probability the random execution ends in
+a ﬁnal state of the LHA. However these conditions are not sufﬁcient. Different restric-
+15
+
+--- Page 18 ---
+tions on the path formula ensure the existence of expectations. For instance, when the
+formula only includes bounded data variables and the operator INT and the division
+are excluded, the expectation exists. Divisions may be allowed when the path expres-
+sion is lower bounded by a positive value: in the example of Figure 2, LAST (x3)
+is lower bounded by LAST (x2)which is lower bounded by k. The existence of re-
+generation points of the synchronised product may also entail the existence of such
+expectations. We do not detail the numerous possible sufﬁcient conditions but in all
+considered applications here, it can be proved that the expectations exist.
+3.3. Expressiveness of HASL
+In this subsection we ﬁrst give an overview of related logics. Then we discuss the
+expressiveness of HASL and show how it improves the existing formalisms to capture
+more complex examples and properties, and facilitates the expression and the compu-
+tation of costs and rewards.
+CSL and its variants. In [6] Continuous Stochastic Logic (CSL) has been introduced
+and the decidability of the veriﬁcation problem over a ﬁnite continuous-time Markov
+chain (CTMC) has been established. CSL extends the branching time reasoning of CTL
+to CTMC models by replacing the discrete CTL path-quantiﬁers All andExists
+with a continuous path-quantiﬁer that expresses that the probability of CTMC paths
+satisfying a given condition fulﬁls a given bound. Several variants have been intro-
+duced and studied such as CSRL [9], that extends CSL to take into account Markov
+reward models, i.e. CTMCs with a single reward on states or possibly on actions [38],
+that is used to specify an interval (on the accumulated reward) on the Until orNext
+operator. asCSL, introduced in [7] replaces the interval time constrained Until of
+CSL by a regular expression with a time interval constraint. These path formulas can
+express elaborated functional requirements as in CTL∗but the timing requirements
+are still limited to a single interval globally constraining the path execution. In the
+logic CSLTA[26], path formulas are deﬁned by a single-clock deterministic timed au-
+tomaton. This logic has been shown strictly more expressive than CSL and also more
+expressive than asCSL when restricted to path formulas.
+DTA. In [21], deterministic timed automata with multiple clocks are considered and
+the probability for random paths of a CTMC to satisfy a formula is shown to be the
+least solution of a system of integral equations. The cost of this more expressive model
+is both a jump in the complexity as it requires to solve a system of partial differential
+equations, and a loss in guaranty on the error bound.
+M(I)TL. Several logics based on linear temporal logic (LTL) have been introduced
+to consider timed properties, including Metric (Interval) Temporal logic in which the
+Until operator is equipped with a time interval. Chen et al. [20] have designed pro-
+cedures to approximately compute desired probabilities for time bounded veriﬁcation,
+but with complexity issues. The question of stochastic model checking on (a sublogic
+of) M(I)TL properties, has also been tackled see e.g. [49].
+Observe that all of the above mentioned logics have been designed so that numer-
+ical methods can be employed to decide about the probability measure of a formula.
+16
+
+--- Page 19 ---
+This very constraint is at the basis of their limited expressive scope which has two as-
+pects: ﬁrst the targeted stochastic models are necessarily CTMCs; second the expres-
+siveness of formulas is constrained by decidability/complexity issues. Furthermore the
+evolution of stochastic logics based on CTL seems to have followed two directions:
+one targeting temporal reasoning capability (in that respect the evolutionary pattern
+is: CSL→asCSL→CSLTA→DTA), the other targeting performance evaluation ca-
+pability (evolutionary path: CSL →CSRL→CSRL+impulse rewards). A unifying
+approach is currently not available, thus, for example, one can calculate the probabil-
+ity for a CTMC to satisfy a sophisticated temporal condition expressed with a DTA,
+but cannot, assess performance evaluation queries at the same time (i.e. with the same
+formalism).
+HASL. As HASL is inherently based on simulation for assessing measures of a model,
+it naturally allows for releasing the constraints imposed by logics that rely on numer-
+ical solution of stochastic models. From a modelling point of view, HASL allows for
+studying a broad class of stochastic models (i.e. DESP), which includes, but is not
+limited to, CTMCs. From an expressiveness point of view, the use of LHAs allows for
+generic variables, which include, but are not limited to, clock variables (as per DTA).
+This means that sophisticated temporal conditions as well as elaborate performance
+measures of a model can be accounted for in a single HASL formula, rendering HASL
+a uniﬁed framework suitable for both model-checking and performance and depend-
+ability studies. Note that the nature of the (real-valued) expression Z, available in
+grammar (1) page 14, generalises the common approach of stochastic model checking
+where the outcome of veriﬁcation is (an approximation of) the mean value of a certain
+measure (with CSL, asCSL, CSLTAand DTA a measure of probability).
+It is also worth noting that the use of data variables and extended updates in the
+LHA enables to compute costs/rewards naturally. The rewards can be both on loca-
+tions and on actions. First using an appropriate ﬂow in each location of the LHA,
+possibly depending on the current state of the DESP we get “state rewards”. Then, by
+considering the update expressions on the edges of the LHA, we can model sophisti-
+cated “action rewards” that can either be a constant, depend on the state of the DESP
+and/or depend on the values of the variables. Thus HASL extends the possibilities of
+CSRL (and extensions [38]). The extension does not only consist of the possibility to
+deﬁne multiple rewards (that can be handled, for example, through the reward-enriched
+version of CSL supported by the PRISM [40] tool) but rather of their use. First several
+rewards can be used in the same formula, and last but not least these rewards have a
+more active role, as they can not only be evaluated at the end of the path, but they can
+also take an important part in the selection of enabled transitions, hence of accepted
+paths. It is for example possible and easy to characterise the set of paths along which
+a reward reaches a given value and after that never goes below another value, a typical
+example that neither PRISM-CSL nor CSRL can handle.
+Limitations of HASL. Finally, we brieﬂy discuss two features that are available in the
+above mentioned stochastic logics but not in HASL. First HASL does not allow to
+properly model nesting of probabilistic operators. The key reason is that this nesting
+is meaningful only when an identiﬁcation can be made between a state of the proba-
+17
+
+--- Page 20 ---
+bilistic system and a conﬁguration (comprising the current time and the next scheduled
+events). While this identiﬁcation was natural for Markov chains, it is not possible with
+DESP and general distributions that have no memoryless property, and therefore this
+operation has not been considered in HASL. Furthermore, even for Markovian systems,
+the complexity of the statistical method on formulas with nesting is quite high [47] as
+the veriﬁcation time per state along a path is no longer constant.
+A similar problem arises for the steady state operator. The existence of a steady
+state distribution raises theoretical problems, except for ﬁnite Markov chains. With
+HASL we allow for not only inﬁnite state systems but also non Markovian behaviours.
+However, when the DESP has a regeneration point, various steady state properties can
+be computed considering the sub-execution between regeneration points.
+In conclusion it is worth noting that these limitations are rather due to the veriﬁca-
+tion method (statistical in our case) and to the expressiveness of the model (allowing
+non Markovian systems) than to a particular tool. All this information given, partic-
+ularly concerning nested and steady state formulae, we can now state and prove our
+claim about the respective expressiveness of HASL, CSRL and CSLTA:
+Proposition 1. Given a non nested transient CSRL formula P⊿/triangleleftqφand a system de-
+scribed as a Markov Reward Model, it is possible to build an LHA to estimate the
+probabilitypforφto hold, and then decide whether it fulﬁls the bound required ( i.e.
+p⊿/triangleleftq with⊿/triangleleft∈{<,>,≤,≥}).
+To prove this proposition, we ﬁrst need to characterise what is a non nested transient
+CSRL formula. Following the grammar given in [9], such a formula is either a boolean
+combination of atomic propositions, or of the form P⊿/triangleleftqXI
+JϕorP⊿/triangleleftqϕUI
+Jψwithϕ
+andψbeing boolean combinations of atomic propositions. Roughly speaking, path
+formulaXI
+Jϕmeans that the ﬁrst transition in the system will occur after a time delay
+in intervalIand accumulated reward within interval J, and that it will lead to a state
+satisfyingϕ. The second path formula ϕUI
+Jψmeans that the path reaches, with a
+delay inIand a cumulated reward in Ja state satisfying ψ, and that all preceding
+states satisfy ϕ. The case of boolean formulas being rather trivial, we will focus on
+P⊿/triangleleftqXI
+JandP⊿/triangleleftqUI
+J
+The kind of systems on which CSRL formulas are checked is called Markov Re-
+ward Model (MRM), which consists of a ﬁnite state labelled continuous time Markov
+chain plus two reward structures: one on actions and one on states. In our formal-
+ism, the MRM will be represented by both a GSPN and an LHA. The underlying la-
+belled Markov chain will be represented by a GSPN. For each state siof the MRM
+we create one place Piof the GSPN, and an indicator pithat is true when a token
+is in placePi, and for every couple of states (si,sj)such that the rate in the MRM
+isR(si,sj) =rij>0, we add a transition tijwith input place Pi, output place Pj
+and exponential distribution using rate rij. The atomic propositions of the MRM are
+simply encoded as indicators, now on places instead of states.
+For a formula of the kind P⊿/triangleleftqXI
+Jϕthe LHA is quite simple. First the boolean for-
+mulaϕis transformed straightforwardly into a state proposition pϕon the GSPN. It has
+one initial location Initiper statesiof the MRM, plus two ﬁnal locations, one called
+f1labelled with pϕ, the otherf2with¬pϕ. It also has three data variables, twith rate
+1 in every location for the global time, OK with rate 0 in every location to determine
+18
+
+--- Page 21 ---
+whether an execution satisﬁes the property or not, and rto capture the reward struc-
+ture. In order to ensure initial determinism (see Deﬁnition 2), each Initjis labelled
+with indicator pj. The reward structure is captured by a data variable rwhose rate in
+Initiisρ(si), the reward on state siin the MRM. Then, for every transition (si,sj)
+with impulse reward ι(si,sj)of the MRM, the LHA has three transitions starting from
+Initi. The ﬁrst one, taken if state sjof the MRM does not satisfy ϕ, setsOK to 0
+and leads to location f2. The two other transitions lead to f1and setOK to 1 or 0
+depending on whether the interval constraint c=t∈I∧r+ι(si,sj)∈Jis satisﬁed
+or not. The probability to satisfy XI
+Jϕis computed by the expression E[LAST (OK)]
+that can then be compared to bound q.
+As for Until operator, it is also possible to build an LHA to compute the desired
+probability, but this automaton is more complicated. In order not to make this part
+too long, we just give here an idea of the LHA checking Until formulas. It is again
+built based on the corresponding MRM. First, if the value 0 is not both in IandJ, for
+the states satisfying ¬ϕthe synchronisation ends immediately setting OK to 0. If 0
+belongs to both intervals then, starting in a state satisfying ¬ϕ∧ψ, the synchronisation
+immediately ends setting OK to 1. For all other states of the MRM we create a cor-
+responding location in the LHA from which we will follow the evolution of the MRM
+(with rates on locations modelling the state rewards and updates modelling the impulse
+rewards). A further distinction has to be made between locations satisfying both ϕand
+ψand others. Indeed, in the ﬁrst case, time can pass without further transition of the
+GSPN and the formula become true. This has to be detected. Otherwise, the transitions
+will then synchronise with those of the GSPN and check whether time and reward after
+the MRM transition are within the interval bounds. If yes then the execution will either
+end ifψis satisﬁed or if neither ϕnorψare, settingOK to 1 and 0 respectively, or
+go on until the above solution occurs. If time or reward passes over its interval, the
+synchronisation ends setting OK to 0. In all other cases the synchronisation goes on.
+On the automata built according to the above described method, the desired proba-
+bility can then be computed using again expression E[LAST (OK)]and compared to
+the desired bound
+Proposition 2. Given a non nested transient CSLTAformulaP⊿/triangleleftqA(φ1,...,φn)and a
+system described as a Continuous Time Markov Chain, it is possible to build an LHA
+to estimate the probability pfor an execution to be accepted by the DTA A(φ1,...,φn),
+and then decide whether it fulﬁlls the bound required ( i.e.p ⊿/triangleleft q with⊿/triangleleft∈{<,>,≤
+,≥}).
+Since DTA is a class of automata that is a strict subset of LHA , the construction is
+rather simple since the DTA can itself be used. It however has to be slightly modiﬁed.
+Indeed, the DTA was rejecting executions not satisfying the property. For the LHA
+we need to accept all executions and add a variable OK that is set to 0 or 1 depending
+whether the execution satisﬁes the desired property. Thus all transitions leading to
+an accepting location are enriched with the update OK:=1. Furthermore, for every
+location of the automaton we add transitions setting OK to 0 and leading to a new
+accepting location KO to ensure that every transition of the GSPN can synchronise
+with the LHA. For example in a location with a single outgoing transition labelled
+19
+
+--- Page 22 ---
+e,x≤a,∅we add two transitions to KO with label E\{e},true,OK := 0 and
+e,x>a,OK := 0.
+4. Software Support
+In order to provide a software support to the HASL formalism we developed
+COSMOS3[10], a prototype software platform for HASL-based veriﬁcation. In this
+section, we describe the C OSMOS tool including its architecture and providing as well
+a comparison with other platforms featuring statistical model checking functionalities:
+PRISM [40], U PPAAL-SMC [16], M ARCIE [31] and P LASMA [34]. We start with a brief
+summary of conﬁdence interval estimation, the statistical method that C OSMOS relies
+on.
+4.1. Conﬁdence Interval Estimation.
+In statistics, Conﬁdence Interval (CI) estimation is a method for estimating an inter-
+val which is likely to contain the exact value that an (unknown) parameter θof a certain
+population may assume. The peculiarity of CI estimation is twofold: i) it allows for
+specifying how reliable the estimate should be by choosing the desired conﬁdence level
+α∈(0,1)); ii) it allows for specifying how accurate the estimate should be by choosing
+the desired admitted error bound (i.e. the width δof the resulting interval). In other
+words, if we repeatedly estimate the interval for a given θwe are guaranteed that the
+(possibly different) resulting intervals will contain the actual value of θin a proportion
+corresponding to (1−α).
+Static sample size estimation. Originally CI estimation works by collecting (through
+execution of experiments) a ﬁxed number nof samplesX1,...Xnof the target param-
+eterθ. Sampled values are then used to calculate the interval containing θ. The general
+form of the 100(1−α)%conﬁdence-interval for the expected value µθofθ, denoted
+CIα
+µθ, is:
+CIα
+µθ= (PEµθ)±EBα
+wherePEµθis a Point Estimate of µθandEBαis the Error Bound, which corresponds
+to the semi-width of the CI interval, i.e. EBα=δ/2. The sample mean X=/summationtextn
+i=1Xi
+n
+is used as ( unbiased ) Point Estimator of µθ. On the other hand the expression for
+the EB depends on assumptions concerning the nature of target parameter θ(hence of
+samplesX1,...Xn). C OSMOS handles three kinds of variables:
+•Indicator variables (Bernoulli variables) used for evaluation of unknown proba-
+bilities. In this case, we provide an error bound applying the Clopper-Pearson
+method [23].
+3COSMOS is an acronym of the french sentence “ Concept et Outils Statistiques pour le MOd `eles
+Stochastiques ” whose english translation would sound like: “Tools and Concepts for Statistical analysis
+of Stochastic MOdels”.
+20
+
+--- Page 23 ---
+•Bounded variables used for evaluation of proportions, ratios, mean number of
+clients in a system with ﬁnite capacity, etc. In this case, we provide an error
+bound applying the Chernoff-Hoeffding method [33].
+•General variables without any additional knowledge. In this case using the cen-
+tral limit theorem, we provide an asymptotically correct error bound based on an
+approximation by a normal distribution with unknown mean and variance.
+There are three parameters for the interval estimation: the size of the samples, the
+error bound and the conﬁdence level. In the case of indicator or bounded variables,
+the user provides two of them and the third one is computed before the sampling. For
+general variables, the size of the sample, and one more parameter (the error bound
+or the conﬁdence level) must be given, and the remaining one is computed after the
+sampling. Thus, the sample size is ﬁxed before the sampling.
+Dynamic sample size estimation. When the user wants to a priori provide the error
+bound and the conﬁdence level for a general variable, the system can perform a dy-
+namic number of samples depending on some stopping condition. While an exact
+condition cannot be achieved, Chow and Robbins [22] provide a stopping condition
+ensuring that when the error bound goes to 0, then the probability that the unknown
+expectation belongs to the interval associated with their method converges to the conﬁ-
+dence level. C OSMOS also offers this functionality. Compared to conservative methods
+like Clopper-Pearson and Chernoff-Hoeffding ones, the simulation time is signiﬁcantly
+reduced, as illustrated in Figure 6.
+Conﬁdence interval for expressions. The previous paragraphs deal with the case of a
+single estimation. HASL expressions include an arbitrary number of estimations de-
+noted by operator E[](see Equation (1)). Assume that we have to perform nestimations
+for which we get CI [ai,bi]and conﬁdence level αifori= 1...n . Then the conﬁ-
+dence level of the whole expression is given by α= 1−/summationtextn
+i=11−αi. The CI of the
+expression is obtained by applying operations on intervals like:
+[a,b] + [a/prime,b/prime] = [a+a/prime,b+b/prime],[a,b]−[a/prime,b/prime] = [a−b/prime,b−a/prime],
+[a,b]×[a/prime,b/prime] = [min(aa/prime,ab/prime,ba/prime,bb/prime),max(aa/prime,ab/prime,ba/prime,bb/prime)], etc.
+4.2. Hypothesis testing
+When one is not interested in the actual value of a statistic but rather wants to decide
+whether this value is above or below a threshold, hypothesis testing methods can be
+used. For a Bernoulli variable of unknown mean p, and given two probabilities p0<p1
+(the maximal probability of false positive and true negative results), the Sequential
+Probability Ratio Test (SPRT) [46] is an optimal sequential test for deciding whether
+p≥p0orp≤p1holds.
+4.3. The COSMOS Tool
+COSMOS code generation scheme. COSMOS is implemented in C++ and relies on the
+BOOST libraries for random number generation functionalities. The tool is designed
+according to a model driven code generation scheme (Figure 5): the inputs Dand
+21
+
+--- Page 24 ---
+Aare parsed in order to generate a C++ code that implements the simulation of the
+synchronized product of the inputs. The code generator takes advantage of the structure
+of the GSPN and the LHA to produce an efﬁcient code.
+More precisely the code generation works as follows: From the GSPN given as
+input the tool produces C++ functions for ﬁring transitions, checking whether a tran-
+sition is enabled and computing the probability distributions. For any transition t, the
+set of transitions that might become enabled or disabled due to the ﬁring of tare also
+generated. These informations are obtained by an analysis of the structure of the Petri
+net. They signiﬁcantly increase the speed of simulation by testing only a small subset
+of transitions after each ﬁring.
+In order to perform an efﬁcient synchronization of the LHA with the GSPN, the tool
+generates data that links synchronized transitions of the automaton with transitions of
+the net. Checking the ﬁring of an autonomous transition of the LHA requires to gener-
+ate a function that manages a system of linear equations associated with the transition.
+Due to the syntactical constraints for autonomous transitions, the function computes
+the exact ﬁring time of such a transition. A timed integral occurring in a formula of
+HASL is also efﬁciently determined thanks to the linear constraint requirement.
+The generated code is linked with a library containing parts of the simulator that
+are independent of the model and the formula. This library contains the main function
+that determines the next event to occur by means of an event heap and the generated
+code. In addition a pseudo random generator computes delays for the new events that
+are put into the heap.
+ParametersCommand lineBoost Random GeneratorSimulatorStatistical EvaluationResultLHA ParserGSPN ParserCommand LineParserCode GeneratorLHA.cppGSPN.cppmodel.grmlproperty.grml
+Figure 5: COSMOS’s model-driven code generation scheme
+COSMOS launches several copies of the resulting executable code in parallel that
+repeatedly generate trajectories and send back the evaluation of the formulas on these
+trajectories. C OSMOS aggregates these evaluations and stops the simulation depend-
+ing on the selected statistical method (see above). The compilation time is generally
+negligible compared to the simulation time.
+Input and Output ﬁles. COSMOS uses the XML-based ﬁle format of CosyVerif [24]
+named GrML both for the GSPN and the LHA. C OSMOS can output results in different
+ways. By default the mean value and conﬁdence interval of each HASL formula is
+written in a text ﬁle with some statistics about the simulation (number of generated
+paths, execution time, etc.). Several options allow to output intermediate results, traces
+of simulation and graphics.
+Interface. COSMOS interface can be either a command line tool or a graphical user
+interface. The command line requires as parameters the path to the GSPN and LHA
+22
+
+--- Page 25 ---
+ﬁles and several options which set the statistical parameters and the output format.
+COSMOS is integrated into the CosyVerif [24] platform which provides a graphical
+interface.
+HASL Implementation. COSMOS implements a slight extension of HASL. This exten-
+sion does not enhance the expressive power of HASL but adds some macros allowing
+more compact syntax. First, the operator VAR is provided as a macro for E[Y2]−
+E[Y]2. Second, two macros allow to compute PDF (Probability Density Function) and
+CDF (Cumulative Density Function). Their syntax is PDF (Y,step,start,end )
+(respectively CDF (Y,step,start,end )) whereYis an expression deﬁned like in (1).
+PDF (resp.CDF ) is translated by C OSMOS into several HASL formulas, each of
+them compute the probability for Y∈[start +i·step;start + (i+ 1)·step[(resp.
+Y≥start +i·step) withi<(end−start )/step . An example of their use is provided
+in the second case study.
+4.4. Related Tools
+Numerous tools are available for performing SMC, some of them also performing
+numerical model checking. Here is a non exhaustive list of tools freely available for
+universities: C OSMOS [12], P LASMA [35], P RISM [37], U PPAAL [17], M ARCIE [31],
+APMC [32], Y MER [48], M RMC [36] and V ESTA [41]. As A PMC is partly integrated
+in P RISM , we have discarded it. Since 2011, M RMC has not been updated and the
+corresponding team seems to use U PPAAL . Finally, the link for downloading V ESTA
+is not valid anymore. So we focus on the following tools: Y MER, PRISM , UPPAAL ,
+PLASMA , M ARCIE and C OSMOS .
+YMER is a statistical model checker for CTMCs and generalised semi-Markov
+processes described using the P RISM language. Its property speciﬁcation language
+is a fragment of CSL without the steady-state operator but including the unbounded
+Until .
+PRISM is a tool for performing model checking on probabilistic models that has
+been used for numerous applications. The numerical part of P RISM can analyse dis-
+crete and continuous time Markov chains, Markov decision processes and probabilistic
+timed automata. The statistical part only deals with Markov chains as it cannot handle
+nondeterminism. The P RISM language deﬁnes a probabilistic system as a synchronised
+product between reactive modules, thus can describe large systems in a compact way.
+The veriﬁcation procedures of P RISM take as input a wide variety of languages for the
+speciﬁcation of properties. Most of them are based on CSL or PCTL.
+UPPAAL is a veriﬁcation tool including many formalisms: timed automata, timed
+games, priced timed automata, etc. It supports automata-based and game-based veri-
+ﬁcation techniques and has shown its ability to analyse large scale applications. It has
+recently been enriched with a statistical model checker engine to verify timed systems
+with a stochastic semantics. The speciﬁcation language is PLTL (i.e. an adaptation of
+LTL with path operators substituted for quantiﬁers) with bounded Until .
+PLASMA is a platform dedicated for statistical model checking. It accepts the P RISM
+language but extended with more general distributions and a dedicated biological lan-
+guage for the models. The property speciﬁcation language is a restricted version of
+PLTL with a single threshold operator. Furthermore, P LASMA is built with a plugin
+23
+
+--- Page 26 ---
+system allowing a developer to extend it, and it can be integrated in another software
+via a library.
+MARCIE is a tool for qualitative and quantitative analysis of Generalised Stochastic
+Petri nets. It relies on Interval Decision Diagram (IDD) to represent symbolically the
+state space of the Petri net. The implementation of IDD is mostly parallel, taking
+advantages of multicore architectures. It has been recently extended with a simulation
+engine for the model checking of PLTL formulas. Like C OSMOS , M ARCIE can deal
+with unbounded until properties as long as the user guarantees the termination. It has
+been developed for the study of chemical reaction networks and thus facilitates the
+modelling of such systems.
+Discussion. The formalisms are characterised by different features: model speciﬁ-
+cations (dedicated languages in P RISM or standard formalisms in C OSMOS , M ARCIE
+and U PPAAL ), expressiveness of the formalisms (supported distributions, presence of
+clocks, etc.) and dedicated application based languages (e.g. for biological systems
+in P LASMA and M ARCIE ). While the probabilistic extension of U PPAAL is similar to
+COSMOS , the differences come essentially from the initial motivations. As U PPAAL in-
+tends to attribute a stochastic semantics to originally non probabilistic timed automata,
+the available probability distributions are restricted (exponential for transitions having
+guards without upper time bound, and uniform otherwise). C OSMOS which is con-
+structed as a statistical model checker provides several well known distributions (expo-
+nential, normal, deterministic, uniform, gamma, etc.). Even if any general distribution
+can be approximated by combining several exponential distributions, the simulation
+cost increases with the required accuracy. M ARCIE only supports exponential and im-
+mediate distributions.
+The property speciﬁcation is expressed by a formula for most of the tools but it is a
+combination of an expression and an automaton for C OSMOS . The available operators
+in formulas often exclude unbounded Until and nesting of probabilistic operators
+(only possible for Markovian models). Moreover the evolution of the time and data
+variables are subject to some restrictions.
+4.5. Tool Evaluation
+We performed several experiments aimed at evaluating C OSMOS both in terms of
+accuracy and runtime. For this purpose we consider two popular workbench mod-
+els. The ﬁrst one, a tandem queuing system (TQS), is available on the P RISM web
+page [40], the second one is a model of dining philosophers (DPM). We run experi-
+ments with C OSMOS , PRISM (version 4.0.2), U PPAAL-SMC (version 4.1.13), P LASMA
+(version 1.1.4), Y MER (version 3.1) and M ARCIE (version 1178M). These are the stable
+version available from the corresponding web sites.
+The TQS is a M/Cox 2/1queue composed with a M/M/ 1queue. For the exper-
+iments, we use queue capacities : N= 5, the arrival rate : λ= 20 , the service rates
+of the ﬁrst phase in the ﬁrst queue : µ1= 0.2,µ/prime
+1= 1.8(for clients without second
+service phase), the service rate of the second phase in the ﬁrst queue : µ2= 2and the
+service rate in the second queue : κ= 4 as in [37]. The DPM is a mutual exclusion
+problem where Nphilosophers are sitting around a table. Initially thinking, they can
+24
+
+--- Page 27 ---
+decide to eat by taking two forks shared with their right and left neighbours. How-
+ever a contention problem may arise due to the sharing of resources (forks). For the
+experiments, the rate of all exponential distributions is chosen as 10. PRISM supports
+Chernoff-Hoeffding, SPRT methods and the sequential conﬁdence interval computa-
+tion using approximations to Student and Normal laws. U PPAAL and P LASMA sup-
+port Chernoff-Hoeffding and SPRT methods while Y MER only supports SPRT method.
+MARCIE uses a static sample size algorithm which is not described in the manual. So
+for experiments with M ARCIE , we set the number of samples to the one required by
+Chernoff-Hoeffding method. C OSMOS provides Chernoff-Hoeffding, Chow-Robbins
+and Gaussian methods for the sequential conﬁdence interval estimation and the SPRT
+method.
+For the TQS model we consider the following time-bounded reachability measure:
+φTQS≡The probability that the ﬁrst queue in the tandem gets full within time T. For
+the dining philosopher model we consider the following measure: φDPM≡The prob-
+ability to reach a deadlock state before Nphilosophers eat . A deadlock occurs when
+all philosophers have taken one fork. Both properties can be straightforwardly encoded
+in CSL and HASL, hence equivalent veriﬁcation experiments can be performed by all
+tools.
+0100020003000400050006000
+0102030405060708090100Simulation Time
+Number of PhilosophersCosmos(C&R)
+Cosmos(Hoeﬀding)
+UPPAAL
+PRISM-CIPRISM-ACI
+PRISM-APMC
+PLASMA
+MARCIE
+(a) The philosophers model
+050100150200250
+0 50 100 150 200Simulation time
+Time Bound (b) The TQS model
+Figure 6: Comparison of simulation time for probability measures
+Experiment settings. We have set the following statistical parameters: the conﬁdence
+level is 0.95and the width of conﬁdence interval is 0.005, the probability of error is
+0.005for the hypothesis testing and the width of the indifference region is 0.001. To
+fulﬁl these parameters, tools must generate large number of trajectories. The other
+parameters have been set to their default value. Most tools can take advantage of par-
+25
+
+--- Page 28 ---
+allelisation but for simplicity we use only one processor4for the comparison.
+DPM experiments. Figure 6(a) refers to the runtime for the DPM as a function of the
+number of philosophers. C OSMOS is the fastest of the tools using Chernoff-Hoeffding
+bounds. For 100 philosophers, M ARCIE is1.4times slower, U PPAAL is1.5times slower,
+PLASMA is1.9times slower, and P RISM -APMC is2.5times slower. Among the tools us-
+ing sequential procedures, the two versions of P RISM have similar runtime and C OSMOS
+is up to 1.9times faster.
+TQS experiments with conﬁdence intervals. Results about the runtime comparison
+with different time bounds Tare reported in Figure 6(b). There are two kinds of be-
+haviours for tools depending on the applied statistic method. For the ﬁrst one that
+corresponds to the Chernoff-Hoeffding method, the simulation time is increasing with
+the time bound T. About 295000 trajectories are required to obtain the speciﬁed con-
+ﬁdence interval. For the second one that corresponds to sequential conﬁdence interval
+methods, the required number of samplings decreases when the time bound goes to
+inﬁnity. This phenomenon is a consequence of the evolution of the satisfaction proba-
+bility ofφTQS that goes to 1 when Tgoes to inﬁnity.
+COSMOS is again the fastest of the tools using Chernoff-Hoeffding method. When
+the time bound is 200, PLASMA is approximatively 2.6times slower, M ARCIE is3.7
+times slower, U PPAAL is4.2times slower and P RISM -APMC is6.5times slower. Among
+the tools using sequential procedures, when the time bound is 40the two versions of
+PRISM have similar runtime and C OSMOS is up to 2.8times faster.
+4.5.1. TQS experiments with sequential hypothesis testing.
+Results on hypothesis testing are reported in Table 1. Each value is the mean over
+100experiments. The threshold value for the hypothesis is always very close the nu-
+merical value in order to increase the number of trajectories performed by tools. Re-
+sults conﬁrm that hypothesis testing methods are faster than conﬁdence interval based
+methods. The number of trajectories generated by all tools are similar to each other.
+In most cases C OSMOS is the fastest, Y MER being up to 1.8times slower, U PPAAL 2.8
+times slower, and P RISM 6times slower.
+Time NumValue p≥?UPPAAL PRISM YMER COSMOS
+10 0.17505 0.17 4.78 12.02 3.29 3.36
+20 0.33574 0.33 11.54 23.78 7.48 5.08
+40 0.56931 0.564 21.23 46.47 14.00 7.78
+80 0.81894 0.814 20.10 43.46 13.01 7.60
+200 0.98655 0.981 2.81 8.10 1.92 2.74
+Table 1: Runtime comparison for the TQS for Sequential Testing
+4These experiments have been executed on a MacBook Pro, with processor 2.4 GHz Intel Core 2 Duo.
+26
+
+--- Page 29 ---
+Figure 7: Runtime for a probability measure of the TQS model for Sequential Testing
+05101520253035404550
+0 20 40 60 80 100 120 140 160 180 200Simulation time
+Time Bound
+Uppaal Prism -CI Y mer Cosmos
+Accuracy comparison. To assess the accuracy of C OSMOS we compared its output
+with the one produced by P RISM via both its numerical engine (P RISM -n) and its sta-
+tistical engine (P RISM -s)5: results indicate that C OSMOS and P RISM -s are comparably
+accurate with the estimated intervals always containing the (actual) value obtained with
+the numerical engine of P RISM . Using the value computed by the numerical engine of
+PRISM , we perform a coverage test of C OSMOS : we compute the ratio of simulations
+that return a conﬁdence interval which contains the real value. This ratio is always
+close to the conﬁdence level.
+5. Case Studies
+In this section we demonstrate the potential of HASL model checking through two
+different applications, namely an industrial modelling and a biological modelling ap-
+plication. In the ﬁrst case study we develop a complete (GSPN) model of a production
+process, which includes the representation of different routing policies and we analyse
+them through dedicated HASL formulae. In the second case study we focus on a model
+of biological oscillator (i.e. the circadian-clock) for which we show how we can per-
+form a detailed analysis of its oscillatory characteristics (i.e. period analysis) by means
+of HASL.
+5.1. Flexible Manufacturing System
+Flexible Manufacturing Systems (FMS) design has been introduced to optimise
+manufacturing systems according to different criteria. The goal is to evaluate and com-
+pare several manufacturing system architectures before selecting the suitable one ac-
+cording to a selection of speciﬁc criteria. This process implies resorting to formal
+models and evaluation methods. Although the vast majority of FMS stochastic mod-
+elling studies have been focused on the analysis of steady-state -based measures such
+5Experiments were executed with conﬁdence level=99.99%, interval width=0.01.
+27
+
+--- Page 30 ---
+asthroughput ,productivity ,makespan [18], the relevance of transient-analysis of FMS
+models has been extensively demonstrated [39]. In [13], we have proposed a composi-
+tional framework targeted to modelling FMSs by means of the HASL veriﬁcation ap-
+proach. Here we focus on the transient analysis and more precisely with ﬁxed horizon:
+thus it can be straightforwardly shown that all expectations related to these transient
+properties exist. Furthermore, it is well known that for systems presenting regenerative
+points (like idle states), every steady-state measure can be obtained by averaging the
+corresponding transient measure between two occurrences of a regenerative point.
+5.1.1. FMS model
+We now proceed to the description of our FMS case study. We ﬁrst state the ar-
+chitecture of the system, composed of two machines served by two conveyor belts.
+Then we present two possible routing policies, and ﬁnally we describe the experiments
+we performed on this system. The numerical results as well as their interpretation are
+given in section 5.1.2.
+Architecture. The raw material arrives to an unbounded buffer which is represented by
+place Products in GSPN models (see Figure 8). The inter-arrival times are distributed
+according to a uniform distribution within interval [a1,a2]. A uniform distribution is
+chosen, rather than a deterministic one, in order to represent small variabilities due
+to logistic problems. The raw materials are oriented to one of the two conveyor belts
+according to a strategy that will be explained later. Each conveyor belt i∈{1,2}
+consists of an unbounded input buffer, represented by place Bufferiin the GSPN model,
+and a set of equally distanced positions, represented by places Posj
+i. Here we consider
+4 positions,j∈{1,...,4}. The transitions Mvj
+idenote the movements on the conveyor
+i, from Bufferiall the way to the input buffer Qiof machinei. Transitions Mvj
+iwith
+j >1andStartiare deterministic with parameter Tunitwhich represents transport time
+of one pallet between two successive positions. Transition Mv1
+iis immediate. Priorities
+denotedπkin the ﬁgure are introduced to ensure that all tokens progress simultaneously
+(without them, a token could move from Pos4
+itoQi, blocking the conveyor belt before
+all tokens have moved forward). They satisfy the condition πk<πlwheneverk<l .
+Conveyor belt idrives materials to place Qithat represents both the bounded input
+buffer of machine iand the output buffer of conveyor i. When it is full (i.e. two tokens
+inQi), the conveyor belt iis blocked (as ensured by inhibitor arcs of weight 2). The
+service in machine iis represented by transition Serveiin the GSPN model. The service
+duration in machine ifollows a lognormal distribution, LnN(µ,σ2);6
+We consider two models. In the ﬁrst one we suppose that there is no machine
+failure so the service is always available, we refer to this model as M1. In the second
+one that we refer as M2, we suppose a failure/repair model for each machine. The time
+between two successive failures is distributed according to an Erlang distribution. The
+reparation time is uniformly distributed in the interval [r1,r2].
+6with scale parameter µand shape parameter σ2. The expectation is given by eµ+σ2/2and the variance
+by(eσ2−1)e2µ+σ2.
+28
+
+--- Page 31 ---
+Routing policies. In manufacturing systems, the routing policy to send material to one
+among several machines doing the same job is an important question as a bad policy
+can have a signiﬁcant impact on the efﬁciency of the whole system. Here we consider
+two policies S1andS2to choose the transport unit (conveyor belt) to drive raw material
+from the input buffer to one of the machines.
+PolicyS1.
+If one of the conveyor belts is blocked and the other is available, then put the material
+to the available one (transitions In1
+i). If both conveyor belts are available and if the
+number of material in conveyor iis greater than a given threshold liwhile for the other
+conveyor is less than its own threshold lj, put the material in the conveyor which does
+not exceed its threshold ( In2
+i). Otherwise, one of the conveyor is randomly chosen
+with probability 0.5(In2
+iorIn3
+i).
+PolicyS2.
+Choose the conveyor belt with the smallest number of occupied positions. If these
+numbers are equal, choose randomly a conveyor with probability 0.5(Iniwith inhibitor
+arcs).
+The top GSPN model of Figure 8 represents a FMS with policy S1and non-failing
+machines (model M1) while the bottom one represents a FMS with policy S2and fail-
+ing/repair machines (model M2). The two other options (policy S1, modelM2and pol-
+icyS2, modelM1) can easily be deduced from the ﬁgures given by adding/removing
+fail and repair transitions.
+Evaluating the system. We have chosen several meaningful properties in order to as-
+sess the quality of the FMS design w.r.t. different model assumptions: routing policies,
+and presence of failures. We also study the behaviour of C OSMOS and in particular
+its runtime and the accuracy of its results (witnessed by the width of the conﬁdence
+intervals).
+φ1:First we want to characterise the bottlenecks of the architecture. More pre-
+cisely, a large ratio of blocking time for the conveyor may indicate that the buffer of
+the server should be enlarged. Furthermore if some cost is associated with the re-
+starting of the conveyors, decreasing this ratio can induce signiﬁcant savings. So φ1
+denotes the ratio of blocking time for conveyor 1. Since we study this formula in a
+symmetric framework the choice of the conveyor is irrelevant.
+φ2:In order to support additional load due to client requests, it is important to
+estimate the average completion time for a product. Using Little formula (on the long
+run), it is equivalent to compute the expected number of products in the system which
+is denoted by φ2. We estimate this value depending on the relative rate of the two
+machines.
+φ3:For logistic issues, the time is divided in periodic intervals. It is required to
+guarantee a certain number of production on each of these cycles. This can be charac-
+terised by some thresholds relative to the number of items produced inside an interval.
+Failing to meet this threshold may have dramatic consequences for the company. So
+φ3is the probability to produce at least Kproducts (the threshold) in a time interval of
+the form [iD,(i+ 1)D[for0≤i<m during horizon T=mD (see Figure 4 for the
+LHA expressing this formula).
+29
+
+--- Page 32 ---
+Arrive
+Products
+InConv 1InConv 2
+In3
+1
+π8
+In2
+1
+π9In1
+1
+π10
+Buﬀer 1
+Ready 1Finish 1
+π5
+Start 1
+π7Waiting 1Mv1
+1
+π6Pos1
+1Mv2
+1
+π5Pos2
+1Mv3
+1
+π4Pos3
+1Mv4
+1
+π3Pos4
+1Mv5
+1
+π2Q1Serve 1In3
+2
+π8
+In1
+2
+π10In2
+2
+π9
+Buﬀer 2Ready 2 Finish 2
+π5Start 2
+π7
+Waiting 2
+Mv1
+2
+π6Pos1
+2Mv2
+2
+π5Pos2
+2Mv3
+2
+π4Pos3
+2Mv4
+2
+π3Pos4
+2Mv5
+2
+π2Q2Serve 2
+l12
+2
+2
+22
+2l222222
+2
+22
+Arrive
+Products
+InConv 1InConv 2
+In1
+π8In2
+π8
+Buﬀer 1
+Ready 1 Finish 1
+π5
+Start 1
+π7Waiting 1Mv1
+1
+π6Pos1
+1Mv2
+1
+π5Pos2
+1Mv3
+1
+π4Pos3
+1Mv4
+1
+π3Pos4
+1Mv5
+1
+π2Q1
+Fail1 Up1
+Down 1Repair 1Serve 1Buﬀer 2
+Ready 2 Finish 2
+π5
+Start 2
+π7Waiting 2Mv1
+2
+π6Pos1
+2Mv2
+2
+π5Pos2
+2Mv3
+2
+π4Pos3
+2Mv4
+2
+π3Pos4
+2Mv5
+2
+π2Q2
+Fail2 Up2
+Down 2Repair 2Serve 2
+InConv 1+1
+InConv 2+12
+2
+2
+222
+2
+2
+22
+Figure 8: GSPNs for policies S1(above) andS2(below).
+5.1.2. Numerical results
+Unless speciﬁed otherwise, all numerical results have been obtained with a conﬁ-
+dence interval level 0.99and with a conﬁdence interval width 0.01. The transport time
+of pallets between two successive positions is Tunit = 0.5time unit. In the following
+tables,Tdenotes the simulation horizon, S.T. denotes the simulation time in seconds,
+N.P. denotes the number of paths for the required accuracy of the estimation, and C.I.
+denotes the conﬁdence interval width. In the experiences, the inter-arrival distribution
+of raw material is Unif[0.45,0.55]. We ﬁrst study model M1without machine failures.
+In table 2, we consider property φ1with respect to horizon Tunder policy S1with
+thresholdsl1= 3,l2= 3 and under policy S2. The service rates in machines are
+symmetric and the service distribution is LnN(−0.683046,0.83255) with expectation
+1/1.4and variance (1/1.4)2.
+We observe that the values seem to become stable when T >6400 . For short hori-
+zons, the sample variance is high, necessitating a large number of generated paths. The
+sample variance then decreases when the simulation horizon increases, and becomes
+constant when the situation seems to stabilise. The blocking probability for conveyor
+1 is slightly smaller under policy S1than underS2.
+In Table 3, we present the expected number of products in the system with the
+30
+
+--- Page 33 ---
+T S1 S2
+φ1 S.T. N.P.φ1 S.T. N.P.
+10 0.113 0.07 3060 0.098 0.03 2680
+50 0.221 0.19 2070 0.218 0.16 2060
+100 0.243 0.25 1390 0.243 0.22 1480
+400 0.255 0.48 730 0.259 0.49 730
+1600 0.259 1.37 560 0.263 1.19 570
+6400 0.260 4.66 530 0.265 4.32 530
+25600 0.260 18.66 520 0.265 16.61 520
+102400 0.261 75.34 520 0.265 65.83 520
+Table 2: The ratio of blocking time of conveyor 1 for model M1under policies S1andS2.
+thresholdsl1= 3,l2= 3. We note that the expected number of products in the system
+is greater under policy S2.Thus the mean production time for a product is better in the
+long term under policy S1.
+T S1 S2
+φ2 S.T. N.P.φ2 S.T. N.P.
+10 5.299 1.51 109120 5.354 1.35 113040
+50 7.601 34.29 559050 8.478 44.41 842390
+100 8.085 67.85 553750 9.185 93.19 875700
+400 8.471 116.24 236130 9.756 166.78 388840
+1600 8.569 133.71 67770 9.905 187.82 109350
+6400 8.596 139.13 17550 9.943 199.72 29020
+25600 8.599 136.18 4290 9.950 196.08 7090
+102400 8.602 152.78 1190 9.951 208.64 1870
+Table 3: The expected number of products in the system for model M1under policies S1andS2.
+In the next experiments, we study the impact of increasing the machine service
+rates. Indeed, when the response time constraints are not met for a given FMS ar-
+chitecture, one solution may be the replacement of one or both machines with more
+efﬁcient ones. For this purpose, we evaluate different conﬁgurations in order to deter-
+mine the most suitable one. In particular, we consider conﬁgurations with a ﬁxed total
+service rate which is 1.5 times the original total service rate (used in table 3). In the
+asymmetric case, i.e. φ2(asy), the service rate of the second machine is set to twice the
+rate of the ﬁrst machine while the service rate is not modiﬁed for the ﬁrst machine. In
+the symmetric case, i.e. φ2(sym), service rates of both machines are the same and they
+are increased by 1.5 times the original value. In table 4 we give results of both policies
+forφ2(asy) with different threshold values (l1,l2)forS1, and forφ2(sym) withl1= 3,
+l2= 3forS1.
+By comparing results in Tables 3, and 4, we observe that increasing the service
+rate reduces signiﬁcantly the mean number of products in the system. We observe that
+symmetric increase gives better results than asymmetric increase for both policies. Fur-
+thermore, policy S1is better than policy S2for all experiences for the expected number
+of products in the system. The best performance is reached by symmetric increase un-
+der policyS1with threshold (l1,l2) = (3,3). For asymmetric conﬁguration of the S1
+policy, asymmetric thresholds (l1,l2) = (1,4)and(l1,l2) = (1,5)seem to provide
+better results. Such results may be useful during the cost-contribution analysis of FMS
+designing. In the case we consider here, for example, the designer knows that investing
+31
+
+--- Page 34 ---
+T φ2(asy) φ2(sym)
+S2 S1 S2S1
+(3,5) (3,4) (3,3) (2,3) (1,3) (1,4) (1,5) (3,3)
+10 4.889 4.748 4.764 4.785 4.689 4.624 4.590 4.611 4.149 4.110
+50 6.626 5.817 5.835 5.928 5.762 5.695 5.587 5.576 5.011 4.762
+100 6.892 5.964 5.994 6.108 5.888 5.827 5.723 5.722 5.198 4.855
+400 7.087 6.074 6.107 6.226 5.998 5.958 5.831 5.841 5.415 4.925
+1600 7.133 6.079 6.124 6.236 6.030 5.977 5.848 5.863 5.503 4.950
+6400 7.141 6.101 6.115 6.239 6.050 5.983 5.861 5.860 5.525 4.956
+25600 7.153 6.103 6.133 6.251 6.044 5.982 5.859 5.860 5.527 4.955
+102400 7.154 6.098 6.129 6.259 6.042 5.987 5.861 5.864 5.518 4.958
+Table 4: The expected number of products in the system for model M1with asymmetric service rates
+φ2(asy), different thresholds for policy S1, and symmetric service rates.
+on a single twice-faster machine (i.e. asymmetric conﬁguration) is, performance-wise,
+less convenient as investing on a pair of 50% faster machines (i.e. symmetric conﬁgu-
+ration). Thus he/she can opt for either possibility based on machine costs.
+In remaining tables, we compare models M1andM2. Failures occur according to
+anErlang distribution of 4stages of exponential distribution with mean value 1000 ,
+Erlang (4,1000) , while repair time follows a uniform distribution Unif(30,50). Thus
+the mean time to failure is 4000 while mean repair time is 40time units. First we
+report again in Table 5 the experiences of Tables 3 for model M1and we give the
+results for model M2. In short horizons, models M1andM2have similar behaviours.
+As expected, in large horizons, the number of products in the system signiﬁcantly
+increases due to failures under both policies. However policy S1performs better than
+policyS2in modelM2.
+T M1(no faults) M2(faults)
+S1 S2 S1 S2
+φ2 S.T.φ2 S.T.φ2 S.T.φ2 S.T.
+10 5.299 1.51 5.354 1.35 5.317 0.02 5.350 0.02
+50 7.601 34.29 8.478 44.41 7.620 0.44 8.499 0.49
+100 8.085 67.85 9.185 93.19 8.655 2.39 9.885 2.99
+400 8.471 116.24 9.756 166.78 21.616 106.91 26.929 118.43
+1600 8.569 133.71 9.905 187.82 33.936 738.59 42.118 748.87
+6400 8.596 139.13 9.943 199.72 38.691 1724.47 47.796 1737.40
+25600 8.599 136.18 9.950 196.08 39.950 2026.30 49.279 2104.75
+102400 8.602 152.78 9.951 208.64 40.286 2193.67 49.701 2205.40
+Table 5: The expected number of products in the system for models M1andM2with failures/repairs under
+policiesS1andS2.
+In Table 6, we present results for property φ3with the required number of produc-
+tionsK= 95 during each time interval D= 50 , and with a conﬁdence interval width
+0.005for modelM1and modelM2with failures. We observe that in the case when
+the FMS is subject to failures, the probability of having at least 95 productions during
+time interval D= 50 signiﬁcantly decreases. Moreover for both models M1andM2,
+the policiesS1andS2provide similar performances for this property contrasting with
+the different expected number of products in the system ( φ2) under these policies.
+32
+
+--- Page 35 ---
+T M1(no faults) M2(faults)
+S1 S2 S1 S2
+φ3 S.T.φ3 S.T.φ3 S.T.φ3 S.T.
+50 0.046 0.841 0.020 0.321 0.047 0.893 0.021 0.367
+100 0.479 1.108 0.449 1.035 0.423 1.869 0.395 1.522
+400 0.807 1.203 0.771 1.361 0.578 1.999 0.553 2.034
+1600 0.886 2.029 0.852 1.970 0.633 2.133 0.622 2.091
+6400 0.908 5.239 0.872 5.078 0.651 5.289 0.641 4.858
+25600 0.912 19.340 0.877 17.508 0.654 18.280 0.646 16.446
+102400 0.914 77.016 0.878 69.205 0.655 72.776 0.648 65.585
+Table 6: The probability to complete at least K= 95 productions during a time interval D= 50 under both
+policies, for model M1andM2.
+5.2. Analysis of oscillations in a model of the circadian clock
+Many real-life systems are characterised by oscillatory dynamics, i.e. their evolu-
+tion follows a periodic trend. Given a stochastic oscillator, a relevant issue is to be able
+to assess its basic oscillatory characteristics such as for example how long (on average)
+a period lasts for, or also how regular the exhibited periods are. Here we consider
+a model of biological oscillator known as circadian-clock, and we demonstrate how
+HASL can effectively be used to estimate its periodic character. Model checking based
+analysis of stochastic oscillators has been considered using different types of temporal
+logic formalisms and tools [5, 14, 43, 25]. Based on Spieler’s approach [43] in which
+timed-automata monitors are used to assess the period duration of a CTMC oscillator,
+here we show how, through LHA monitors , we can extend the capability of analysing
+oscillator by not only measuring the period duration but also its ﬂuctuation.
+5.2.1. A stochastic model of the circadian clock
+Circadian clocks are biological mechanisms responsible for keeping track of daily cy-
+cles of light and darkness. The cycling behaviour involves a network of biochemical
+species which exhibit a periodic signal . Here we consider a simple model (presented
+in [45]) of a circadian network consisting of chemical equations (2). The model in-
+volves 2 genes, geneA and geneR, expressing the activator proteinA, respectively the
+repressor proteinR. Both genes can be in either of two (mutually exclusive) states: 1)
+having the promoter region free (represented by species DA, respectively DR); 2) hav-
+ing a molecule of activator Aattached to the promoter region (represented by species
+D/prime
+A, respectively D/prime
+R). The model accounts for protein expression , i.e. a two steps pro-
+cess in which ﬁrst the gene transcribes an mRNA molecule, MA(resp.MR), which is
+then translated into the target protein, A(resp.R).
+Network reactions. mRNA transcription is modelled by reactions R5,R6(for geneA)
+andR7,R8(for geneR). Notice that transcription happens at different speed depending
+on the state of the gene. If a gene’s promoter is freethen transcription (i.e R6,R8)
+is slower (see rates in Table 7), if a molecule of activator Ais attached to a gene’s
+promoter through R1(resp.R3) transcription (i.e R5,R7) is faster. The remaining
+reactions are as follows: mRNA translation corresponds to R9(resp.R10); the com-
+plexation of proteinAandRis modelled by R11, whileR12models its “asymmetric”
+reverse, i.e. the degradation of Awhile complexed and consequent release of R(only);
+33
+
+--- Page 36 ---
+simple degradation of each species is modelled by R13,R14,R15andR16. The (con-
+tinuous) kinetic rate constants7(taken from [45]) are given in Table 7.
+R1:A+DAγA−→D/prime
+AR2:D/prime
+AθA−→A+DAR3:A+DRγR−→D/prime
+R
+R4:D/prime
+RθR−→DR+A R 5:D/prime
+Aα/prime
+A−→MA+D/prime
+AR6:DAαA−→MA+DA
+R7:D/prime
+Rα/prime
+R−→MR+D/prime
+RR8:DRαR−→MR+DRR9:MAβA−→MA+A
+R10:MRβR−→MR+R R 11:A+RγC−→C R 12:CδA−→R
+R13:AδA−→∅ R14:RδR−→∅ R15:MAδMA−→∅
+R16:MRδMR−→∅
+(2)
+Stochastic model. Chemical equations (2) can give rise to either a system of ODEs
+(in the continuous-deterministic semantics) or to a stochastic process (in the discrete-
+stochastic semantics). Here we focus on the discrete-stochastic semantics: Figure 9
+shows the GSPN encoding of equations (2) developed with C OSMOS . The conﬁgura-
+tion of the GSPN requires setting the initial population and the rates of each transition.
+Following [45], we consider a model with a single copy of each gene, and we fur-
+ther assume that the promoter region of both genes is initially free. Thus initially we
+setDA=DR= 1 andD/prime
+A=D/prime
+R= 0. Observe that a gene can only be in either
+of two states (e.g. DAorD/prime
+A) hence the following invariant conditions must hold:
+DA+D/prime
+A= 1 andDR+D/prime
+R= 1. The remaining species are initially supposed to
+be inexistent, hence they are initialised to 0. Concerning the conversion of the reaction
+rate constants, for simplicity we assume a unitary volume of the system under consid-
+eration, hence all continuous rates in Table 7 can be used straightforwardly as rates of
+the corresponding discrete-stochastic reactions. In this case we assume all reactions
+following a negative exponential law thus yielding a CTMC model. Furthermore, we
+assume all reactions following the mass action law (i.e. the kinetic rate of a reaction is
+given by the product of the rate constant with the population of each reactant), which
+in GSPN terms means all transitions in Figure 9 are associated with (single-server)
+marking-dependent exponential distributions whose rate constants correspond to those
+in Table 7.
+We stress that the resulting CTMC has nine dimensions with four bounded
+dimensions, i.e., DA,D/prime
+A,DR,D/prime
+R∈ { 0,1}, and ﬁve unbounded dimensions
+MA,A,MR,R,C∈N, therefore its state space is S⊆{0,1}4×N5. Furthermore
+the CTMC can be proved to be ergodic, that is, each of its states has a ﬁnite mean
+recurrence time, which means that a drift towards inﬁnity is not possible. As a con-
+sequence the HASL speciﬁed random variables we consider later on for assessing the
+oscillatory characteristic of the circadian clock CTMC have a well deﬁned mean value.
+7Notice that rates of ﬁrst order reactions are expressed in h−1units whereas rates of second order reac-
+tions are expressed in mol−1h−1
+34
+
+--- Page 37 ---
+αA 50h−1αR 0.01h−1δA 1h−1δR 0.2h−1
+αA/prime500h−1αR/prime 50h−1γA=γR1mol−1h−1γC2mol−1h−1
+βA 50h−1βR 5h−1θA 50h−1θR 100h−1
+δMA 10h−1δMR 0.5h−1
+Table 7: Reactions’ rates for the circadian oscillator
+.
+The oscillatory dynamics of the circadian clock network can be observed by look-
+ing at some trajectories. Figure 10 depicts examples of realisations of the activator A
+(red-plot) and repressor R(blue-plot) dynamics along a simulated trace of the GSPN
+model of Figure 9. The left plots correspond to the original rates (i.e. δR= 0.2) for
+which the exhibited period duration is approximatively 24, while the right plots corre-
+spond to a 10times speed-up of the repressor degradation (i.e. δR= 2) which induces
+a more than halved period duration of approximatively 11. In the remainder we for-
+mally assess various measures related to the period of oscillations, including the mean
+value of the period duration.
+R15
+δMAMAR6
+αA
+R9
+βADAR1
+γAR2
+θAR4
+θRR3
+γRDRR8
+αRMRR16
+δMR
+R11
+γC AR R1
+βR
+CR5
+α/prime
+AD/prime
+AD/prime
+R R7
+α/prime
+R
+R12
+δAR14
+δR
+Figure 9: GSPN encoding of the system (2) of chemical equations corresponding to the circadian-clock.
+35
+
+--- Page 38 ---
+ 0 500 1000 1500 2000
+ 0 10 20 30 40 50 60 70 80 90 100Number of moleculesTime (min)AR
+ 0 500 1000 1500 2000
+ 0 10 20 30 40 50 60 70 80 90 100Number of moleculesTime (min)ARFigure 10: Single trajectory showing the oscillatory character of activator Aand repressor Bdynamics with
+normal repressor’s degradation rate δR=0.2(left) and with 10×speed-up, i.e. δR= 2 (right).
+5.2.2. Measuring the noisy-period of stochastic oscillations with HASL
+HASL-based analysis of oscillations relies on the concept of noisy periodicity [43],
+i.e. a weaker characterisation of periodicity of a function. A function f:R+→Ris
+said noisy periodic with respect to given thresholds L<H∈R+(inducing the partition
+ofR+intolow: [0,L),mid : [L,H),high : [H,+∞)) iffperpetually switches
+fromlowtohigh and back to low. Such a generic characterisation extends naturally
+to traces of a DESP as illustrated in Figure 11).
+p1LHlowmidhighp2p0T
+Figure 11: Example of noisy periodic trace corresponding to a given ( L<H ) partition of a DESP state
+space.
+A (noisy) period corresponds to the time interval between two consecutive crossing
+points corresponding to entering in one extreme of the partition, interleaved by at least
+one crossing point into the opposite extreme. For example in Figure 11 the ﬁrst period
+p1corresponds to the duration between the ﬁrst mid-to-lowcrossing and the succes-
+sivemid-to-lowcrossing interleaved by a mid-to-high crossing. Notice that the ﬁrst
+complete period ( p1) might be preceded by a spurious period (i.e. p0) which should be
+discarded as there’s no guarantee that T= 0 corresponds with an actual mid-to-low
+crossing, hence with the actual beginning of p0.
+TheAperautomaton. We introduce an LHA (Figure 12), denoted Aper, designed for
+detecting realisations of noisy periods of a given observed species (in this case A).
+36
+
+--- Page 39 ---
+More speciﬁcally, Aperis designed for assessing two characteristics of an oscillatory
+trace: the mean period duration (denoted ¯tp) and the period ﬂuctuation (denoted s2
+tp)
+over the ﬁrst Nperiods detected along a trace. Period ﬂuctuation represents how much
+(on average) a single period realisation deviates from the mean duration computed
+over the periods observed along a trace. From the point of view of analysis the period
+ﬂuctuation is a useful indication of the regularity of the observed oscillator. Aper
+consists of an initial transient ﬁlter (locationsl0,l/prime
+0) plus three main locations low,
+mid andhigh (corresponding to the partition of A’s domain induced by thresholds
+L<H ). Initially the simulated trajectory unfolds for a given duration ( initT ) letting
+Aperwithinl0,l/prime
+0without doing anything.8AfterinitT time unitsAperenters low9
+where the actual oscillation analysis begins.
+E,(n<N),;E,(n<N^top= 0),;E,(n<N),{top:=1}E,(n<N),;
+],(n=N),;],(n=N),;
+],(n=N),;ALLAHAHE,(n<N),;E,(n<N),;E,(n<N),;E,(n=1^top= 1),{n++,t:=0,t o p:=0}E,(2n<N^top= 1),{n++,t o p:=0}tp:=f(tp,n),ftp:=g(ftp,¯tp,n),tp:=0}E,(0n1^top= 1),{n++,t o p:=0,¯tp:=f(¯tp,n),tp:=0}low˙t:1mid˙t:1high˙t:1l0˙t:1Skipping the initial transient, until initT second have passed and A<=LA>Ll00],tinitT,;E,>,{t:=0,n:=1}E,>,;E,>,;Aper
+end],tinitT,{t:=0,n:=1}
+Figure 12: An LHA for selecting noisy periodic traces wrt. partition low= (−∞,L], mid= (L,H)and
+high= [H−∞).
+From lowthe automaton follows the proﬁle of Ahence moving to mid as soon as
+L<A<H holds, and then to high as soon asA≥H. WithApera period starting point
+is associated with the ﬁrst mid-to-lowcrossing that follows a mid-to-high crossing10.
+Hence the ﬁrst detected period (crossing from lowtohigh and back tolow) is discarded
+as its duration may be spurious. Aperuses six variables (Table 8): tis a timer that keeps
+track of simulation time; ncounts the number of detected noisy-periods while topis a
+boolean ﬂag used for distinguishing the mid tolowcrossing points that correspond to
+the closure of one period (i.e. when a traversal from mid-to-lowhas been preceded by
+8This is useful for eliminating the effect of the initial transient from long run measures as already dis-
+cussed in [4].
+9the choice of beginning measuring in lowis arbitrary, equivalently Apercan be deﬁned so that analysis
+starts in either mid orhigh .
+10again equivalent versions of Apercan be easily obtained which detect periods by considering different
+starting points, e.g period that starts with a crossing from mid tohigh .
+37
+
+--- Page 40 ---
+name domain update deﬁnition
+t R≥0 reset
+n N increment
+top bool complement
+tp R≥0 reset
+¯tp R≥0 f(¯tp,tp,n) =1
+n+1(¯tpn·n+tp)
+s2
+tp R≥0g(s2
+tp,¯tp,tp,n) =1
+n[(n−1)s2
+tp+ (tp−¯tp)(tp−f(¯tp,tp,n+ 1))]
+Table 8: The data variables of automata Aperof Figure 12 for measures of noisy-periodicity
+a traversal from high -to-mid) from those who do not. Notice that, in order to ignore
+the ﬁrst potentially spurious period ( p0in Figure 11), nis initially set to n:=−1on
+entering lowfrom the initial transient ﬁlter, and the simulation time tis then reset on
+detection of the closure of the ﬁrst spurious detected (i.e. on entering lowfrom mid
+whenn=−1). Furthermore tpstores the duration of the last detected period ( tp),
+whiletpmaintain the mean duration of all (so far) detected periods and s2
+tpstores the
+ﬂuctuation of the period duration for all (already) detected periods. Notice that the
+ﬂuctuation (i.e. s2
+tp) is computed on the ﬂy (see Table 8) by adaptation of the so-called
+online algorithm for computing the variance out of a sample of observations. Finally
+the analysis of simulated trajectories stops (by entering the accepting location end) as
+soon as theNthperiod has been detected. For Aperwe consider the following target
+measures:
+•Z1≡E[LAST (t)/N]: corresponding to the mean value of the period duration
+for the ﬁrstNdetected periods.
+•Z2≡PDF (LAST (t)/N,s,l,h ): corresponding to the PDF of the period du-
+ration over the ﬁrst Ndetected periods, where [l,h]represents the considered
+support of the estimated PDF, and [l,h]is discretised into uniform subintervals
+of widths
+•Z3≡E[LAST (s2
+tp)]: corresponding to the ﬂuctuation of the noisy-period dura-
+tion.
+Results. We run a number of experiments for assessing the inﬂuence of the repressor
+degradation rate ( δR) on the period of the circadian oscillator. Figure 13(a) shows three
+plots representing the PDF of the period obtained through evaluation of formula Z2for
+three values of δR(i.e.0.1,0.2and2). WithδR=0.2(i.e. the original value as in [45])
+the PDF is centered at t= 24.9, i.e. slightly more than the expected 24 hours duration
+for a normally functioning circadian clock. Speeding up by a factor 10 the repressor
+degradation (i.e. δR= 2) yields a slightly more than halved oscillation period (i.e.
+PDF centered at T= 10.8). Finally slowing down the degradation rate of a half (i.e.
+δR=0.1) yields a less than doubled oscillation period (i.e. PDF centered at T=40.7).
+Figure 13(b) compares the measured mean value of the period (red plot, computed
+withZ1) with the period ﬂuctuation (blue plot, computed with Z3). Such plots are
+38
+
+--- Page 41 ---
+ 0 0.02 0.04 0.06 0.08 0.1 0.12 0.14 0.16 0.18 0.2
+ 0 5 10 15 20 25 30 35 40 45probabilityperiod durationDELTAr=2.0DELTAr=0.2DELTAr=0.1(a) PDFs of the period duration
+ 0 5 10 15 20 25 30 35 40 45 50
+ 0 0.2 0.4 0.6 0.8 1 1.2 1.4 1.6 1.8 2mean,fluctuationdegradation rate of Repressorperiod mean valueperiod fluctuation (b) mean value and ﬂuctuation of the period
+Figure 13: PDFs (left) and mean value v. ﬂuctuation (right) of the period of the circadian clock model in
+function of the repressor degradation rate.
+in agreement with the PDF plots of Figure 13(a) and conﬁrm the general outcome
+of this analysis which is: slowing down the degradation of the repressor results in
+increasing the length of the period as well as its irregularity (i.e. the period ﬂuctua-
+tion also increases). In fact the period ﬂuctuation (blue plot Figure 13(b)) decreases
+with the increase of δRwhich means that a slower degradation of the repressor cor-
+responds to an increase in the irregularity of the periods. This is in agreement with
+the PDF plots of Figure 13(a) as the width of the PDF bell-shaped curves increases
+with the increase of δR). All plots in Figure 13 result from sampling of ﬁnite trajec-
+tories consisting of N= 100 periods, where periods have been detected using L= 1
+andH= 1000 as partition thresholds, and target estimates have been computed with
+99% conﬁdence and conﬁdence-interval width of 0.01. The PDF plots in Figure 13(a)
+have been computed using a discretisation of the period support interval [0,50]into
+subintervals of width 0.1. Finally, in order to assess the effect that the initial transient
+of the circadian clock model may have on the outcome of measuring, we repeated all
+of the above discussed experiments with different values of the initT parameter (e.g.
+initT∈{1,10,50,100,500,1000,...}) which determines the starting measuring point
+forAper. The outcomes of repeated experiments turned out to be essentially the same
+and hence independent of the chosen initT value, indicating that initialisation period
+for the circadian clock is quite short.
+6. Conclusion
+We have presented a new framework for expressing elaborate properties related to
+stochastic processes. A formula of HASL returns either a probability (as the previous
+approaches do) or a conditional expectation whose condition is based on acceptance by
+a linear hybrid automaton. Such a framework can be used both for probabilistic valida-
+tion of functional properties or for elaborate performance analysis. We have developed
+a tool C OSMOS and we have experimentally validated it on Flexible Manufacturing
+Systems and biological case studies, thus illustrating the feasibility of this statistical
+based approach.
+39
+
+--- Page 42 ---
+While the empirical efﬁciency has been established, we aim at overcoming the well-
+known limitations of the statistical approach. In a recent work [15], an importance
+sampling method has been designed and implemented in C OSMOS accelerating the
+path generation when faced to difﬁcult acceptance condition related to a rare event.
+Another research direction consists in analysing the structure of the DESP in order to
+circumvent the constraint that almost surely a path is accepted or rejected by the LHA.
+References
+[1] Ajmone Marsan, M., Balbo, G., Conte, G., Donatelli, S., Franceschinis, G.: Mod-
+elling with Generalized Stochastic Petri Nets. John Wiley & Sons (1995)
+[2] Alur, R., Courcoubetis, C., Dill, D.: Model-checking for probabilistic real-time
+systems. In: ICALP’91, LNCS 510, pp. 115–126 (1991)
+[3] Alur, R., Courcoubetis, C., Henzinger, T.A., Ho, P.H.: Hybrid automata: An
+algorithmic approach to the speciﬁcation and veriﬁcation of hybrid systems. In:
+Hybrid Systems, LNCS 736, pp. 209–229 (1992)
+[4] Amparore, E.G., Ballarini, P., Beccuti, M., Donatelli, S., Franceschinis, G.: Ex-
+pressing and computing passage time measures of gspn models with hasl. In:
+J.M. Colom, J. Desel (eds.) Petri Nets, Lecture Notes in Computer Science , vol.
+7927, pp. 110–129. Springer (2013)
+[5] Andrei, O., Calder, M.: Trend-based analysis of a population model of the akap
+scaffold protein. T. Comp. Sys. Biology 14, 1–25 (2012)
+[6] Aziz, A., Sanwal, K., Singhal, V ., Brayton, R.: Model-checking CTMCs. ACM
+Trans. on Computational Logic 1(1), 162–170 (2000)
+[7] Baier, C., Cloth, L., Haverkort, B., Kuntz, M., Siegle, M.: Model checking action-
+and state-labelled Markov chains. IEEE Trans. on Software Eng. 33(4), 701–710
+(2007)
+[8] Baier, C., Haverkort, B., Hermanns, H., Katoen, J.P.: Model-checking algorithms
+for CTMCs. IEEE Trans. on Software Eng. 29(6), 524–541 (2003)
+[9] Baier, C., Haverkort, B.R., Hermanns, H., Katoen, J.P.: On the logical charac-
+terisation of performability properties. In: ICALP’00, LNCS 1853, pp. 780–792
+(2000)
+[10] Ballarini, P., Djafri, H., Duﬂot, M., Haddad, S., Pekergin, N.: COSMOS: a statis-
+tical model checker for the hybrid automata stochastic logic. In: Proc. QEST’11,
+pp. 143–144. IEEE Computer Society Press (2011)
+[11] Ballarini, P., Djafri, H., Duﬂot, M., Haddad, S., Pekergin, N.: HASL : an expres-
+sive language for statistical veriﬁcation of stochastic models. In: Proc. Value-
+tools’2011, pp. 306–315 (2011)
+40
+
+--- Page 43 ---
+[12] Ballarini, P., Djafri, H., Duﬂot, M., Haddad, S., Pekergin, N.: HASL: An ex-
+pressive language for statistical veriﬁcation of stochastic models. In: P.H. Sam-
+son Lasaulce Dieter Fiems, L. Vandendorpe (eds.) Proceedings of the 5th Inter-
+national Conference on Performance Evaluation Methodologies and Tools (V AL-
+UETOOLS’11), pp. 306–315. Cachan, France (2011)
+[13] Ballarini, P., Djafri, H., Duﬂot, M., Haddad, S., Pekergin, N.: Petri nets compo-
+sitional modeling and veriﬁcation of ﬂexible manufacturing systems. In: CASE,
+pp. 588–593. IEEE (2011)
+[14] Ballarini, P., Guerriero, M.: Query-based veriﬁcation of qualitative trends
+and oscillations in biochemical systems. Theoretical Computer Science
+411(20), 2019 – 2036 (2010). DOI 10.1016/j.tcs.2010.02.010. URL
+http://www.sciencedirect.com/science/article/pii/S0304397510001052
+[15] Barbot, B., Haddad, S., Picaronny, C.: Coupling and importance sampling for
+statistical model checking. In: C. Flanagan, B. K ¨onig (eds.) Proc. TACAS’12,
+LNCS , vol. 7214, pp. 331–346. Springer, Tallinn, Estonia (2012)
+[16] Bulychev, P.E., David, A., Larsen, K.G., Mikucionis, M., Poulsen, D.B., Legay,
+A., Wang, Z.: Uppaal-smc: Statistical model checking for priced timed automata.
+In: Proceedings 10th Workshop on Quantitative Aspects of Programming Lan-
+guages and Systems, EPTCS , vol. 85, pp. 1–16 (2012)
+[17] Bulychev, P.E., David, A., Larsen, K.G., Mikucionis, M., Poulsen, D.B., Legay,
+A., Wang, Z.: Uppaal-smc: Statistical model checking for priced timed automata.
+In: H. Wiklicky, M. Massink (eds.) QAPL, vol. 85, pp. 1–16 (2012)
+[18] Buzacoott, J.A., Shantikumar, J.G.: Stochastic Models of Manufacturing Sys-
+tems. Prentice-Hall (1993)
+[19] Canny, J.: Some algebraic and geometric computations in PSPACE. In: Proc.
+STOC’88, pp. 460–467 (1988)
+[20] Chen, T., Diciolla Marco an Kwiatkowska, M., Mereacre, A.: Time-bounded ver-
+iﬁcation of ctmcs against real-time speciﬁcations. In: 9th International Confer-
+ence, FORMATS 2011, Lecture Notes in Computer Science, pp. 26–42. Springer
+(2011)
+[21] Chen, T., Han, T., Katoen, J.P., Mereacre, A.: Quantitative model checking of
+CTMC against timed automata speciﬁcations. In: Proc. LICS’09, pp. 309–318
+(2009)
+[22] Chow, Y .S., Robbins, H.: On the asymptotic theory of ﬁxed-width sequential
+conﬁdence intervals for the mean. Annals of Mathematical Statistics 36(2), 457–
+462 (1965)
+[23] Clopper, C.J., Pearson, E.S.: The use of conﬁdence or ﬁducial limits illustrated
+in the case of the binomial. Biometrika 26(26), 404–413 (1934)
+41
+
+--- Page 44 ---
+[24] CosyVerif home page. http://www.cosyverif.org
+[25] David, A., Larsen, K.G., Legay, A., Mikucionis, M., Poulsen, D.B., Sedwards, S.:
+Runtime veriﬁcation of biological systems. In: ISoLA (1), pp. 388–404 (2012)
+[26] Donatelli, S., Haddad, S., Sproston, J.: Model checking timed and stochastic
+properties with CSLTA. IEEE Trans. on Software Eng. 35, 224–240 (2009)
+[27] Emerson, E.A., Clarke, E.M.: Characterizing correctness properties of parallel
+programs using ﬁxpoints. In: Proc. of ICALP’80, LNCS 85, pp. 169–181 (1980)
+[28] Glynn, P.W.: On the role of generalized semi-Markov processes in simulation
+output analysis. In: Proc. Conf. Winter simulation, pp. 38–42 (1983)
+[29] Gorrieri, R., Herzog, U., Hillston, J.: Uniﬁed speciﬁcation and performance eval-
+uation using stochastic process algebras. Perform. Eval. 50(2/3), 79–82 (2002)
+[30] He, R., Jennings, P., Basu, S., Ghosh, A.P., Wu, H.: A bounded statistical ap-
+proach for model checking of unbounded until properties. In: Proc. ASE’10, pp.
+225–234 (2010)
+[31] Heiner, M., Rohr, C., Schwarick, M.: MARCIE - Model checking And Reacha-
+bility analysis done efﬁCIEntly. In: J. Colom, J. Desel (eds.) Proc. PETRI NETS
+2013, LNCS , vol. 7927, pp. 389–399. Springer (2013)
+[32] Herault, T., Lassaigne, R., Peyronnet, S.: APMC 3.0: Approximate veriﬁcation
+of discrete and continuous time Markov chains. In: Proc. QEST’06, pp. 129–130
+(2006)
+[33] Hoeffding, W.: Probability inequalities for sums of bounded random variables.
+Journal of the American Statistical Association 58(301), pp. 13–30 (1963)
+[34] J ´egourel, C., Legay, A., Sedwards, S.: A platform for high performance statistical
+model checking - plasma. In: TACAS, Lecture Notes in Computer Science , vol.
+7214, pp. 498–503 (2012)
+[35] J ´egourel, C., Legay, A., Sedwards, S.: A platform for high performance statistical
+model checking - plasma. In: C. Flanagan, B. K ¨onig (eds.) TACAS, vol. 7214,
+pp. 498–503. Springer (2012)
+[36] Katoen, J.P., Zapreev, I.S., Hahn, E.M., Hermanns, H., Jansen, D.N.: The ins and
+outs of the probabilistic model checker MRMC. QEST pp. 167–176 (2009)
+[37] Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: Veriﬁcation of proba-
+bilistic real-time systems. In: G. Gopalakrishnan, S. Qadeer (eds.) Proc. 23rd
+International Conference on Computer Aided Veriﬁcation (CA V’11), LNCS , vol.
+6806, pp. 585–591. Springer (2011)
+[38] L.Cloth, Katoen, J.P., Khattri, M., Pulungan, R.: Model checking Markov reward
+models with impulse rewards. In: Proc. DSN’05 (2005)
+42
+
+--- Page 45 ---
+[39] Narahari, Y ., Viswanadham, N.: Transient analysis of manufacturing systems per-
+formance. IEEE Trans. on Robotics and Automation 10 (2) , 230–244 (1994)
+[40] PRISM home page. http://www.prismmodelchecker.org
+[41] Sen, K., Viswanathan, M., Agha, G.: On statistical model checking of stochastic
+systems. In: CA V , Lecture Notes in Computer Science , vol. 3576, pp. 266–280.
+Springer (2005)
+[42] Sen, K., Viswanathan, M., Agha, G.: VESTA: A statistical model-checker and
+analyzer for probabilistic systems. In: Proc. QEST’05, pp. 245–246 (2005)
+[43] Spieler, D.: Characterizing oscillatory and noisy periodic behavior in markov
+population models. In: Proc. QEST’13 (2013)
+[44] Tweedie, R.L.: Sufﬁcient conditions for ergodicity and recur-
+rence of markov chains on a general state space. Stochastic
+Processes and their Applications 3(4), 385–403 (1975). URL
+http://EconPapers.repec.org/RePEc:eee:spapps:v:3:y:1975:i:4:p:385-403
+[45] Vilar, J., Kueh, H.Y ., Barkai, N., Leibler, S.: Mechanisms of noise-resistance in
+genetic oscillators. Proc. National Academy of Sciences of the United States of
+America 99(9), 5988–5992 (2002)
+[46] Wald, A.: Sequential tests of statistical hypotheses. The Annals of Mathematical
+Statistics 16(2), 117–186 (1945)
+[47] Younes, H., Simmons, R.: Statistical probabilistic model checking with a focus
+on time-bounded properties. Inf. Comput. 204(9), 1368–1409 (2006)
+[48] Younes, H.L.: Ymer: A statistical model checker. In: Computer Aided Veriﬁca-
+tion, pp. 429–433. Springer (2005)
+[49] Zuliani Paolo an Platzer, A., Clarke, E.M.: Bayesian statistical model checking
+with application to stateﬂow/simulink veriﬁcation. Formal Methods in System
+Design 43(2), 338–367 (2013)
+Appendix A. Ergodicity of CTMC model of Circadian Clock
+In Section 5.2 we have introduced a number of HASL speciﬁcations for analysing the
+oscillations of the circadian clock CTMC model. Such speciﬁcations represent the
+expected value of certain random variables like, for example, (Aper,E[LAST (t)/N]),
+which represents the expected value of the period duration for the ﬁrst Ndetected
+periods .
+In order to argue that the expected values for such HASL speciﬁed random variables
+exist we need to demonstrate that the circadian clock CTMC model is ergodic .
+Ergodicity of Markov chains . Ergodicity is a relevant property of Markov chains
+as it ensures the existence of a unique stationary distribution for the chain. A ﬁnite
+43
+
+--- Page 46 ---
+state Markov chain is ergodic if it is irreducible, i.e., it consists of a single Strongly
+Bottom Connected Component, and aperiodic, or, otherwise said, if all of its states are
+recurrent , which means each state sihas probability 1 that the ﬁrst return time in si,
+denotedτi, is ﬁnite, i.e, Prob (τi<∞) = 1 . An inﬁnite state Markov chain is ergodic
+if all of its state are positive recurrent which means that each state has a ﬁnite mean
+recurrence time E[τi]<∞(for all states si). Here we are interested in the inﬁnite
+state case, since the Circadian clock CTMC model is, as we will see, inﬁnite state.
+Proving of the ergodicity of general state Markov chains is a well know problem
+for which a variety of well established results have been proved, e.g., [44]. For random
+walk like chains, such as the Circadian clock chain, proving the ergodicity corresponds
+with, essentially, showing that the chain “drifts” consistently back towards the “centre”
+of the state space, or, otherwise said, that there exists a ﬁnite (positive recurrent) “cen-
+tre” region of the state space and that the further we move away from it the stronger we
+are attracted towards it.
+One way of showing that a chain drifts consistently towards the “centre” of the state
+space is by showing that the state space Scan be partitioned into a family of (mutually
+disjoint) subsets Aj⊆Swhich induces an ordering with respect to their distance from
+the “centre”, thus E[/bardblA1/bardbl]≤E[/bardblA2/bardbl]≤...(whereE[/bardblAj/bardbl]denotes the average
+distance of region Ajfrom the “centre”). Then a sufﬁcient condition for ergodicity is
+to show that there exists an index k>0with a corresponding bound bk∈R+such that
+for allj≥kthe ratioτj→j+ 1/τj+ 1→j≤bk, whereτj→j+ 1represents the rate at which
+partitionAj+1is entered from Ajwhereasτj+ 1→jrepresents the rate at which partition
+Ajis entered from Aj+1. In the following proposition we apply such a schema to show
+the ergodicity of the CTMC model of the Circadian clock model.
+R1:A+DAγA−→DAR2:DAθA−→A+DAR3:A+DRγR−→DR
+R4:DRθR−→DR+A R 5:DAα/prime
+A−→MA+DAR6:DAαA−→MA+DA
+R7:DRα/prime
+R−→MR+DRR8:DRαR−→MR+DRR9:MAβA−→MA+A
+R10:MRβR−→MR+R R 11:A+RγC−→C R 12:CδA−→R
+R13:AδA−→∅ R14:RδR−→∅ R15:MAδMA−→∅
+R16:MRδMR−→∅
+(A.1)
+Proposition 3. The Circadian clock CTMC corresponding to equations (A.1) is er-
+godic.
+Proof (sketch) . We proceed by showing the following properties of the CTMC: its
+irreducibility, its inﬁniteness with respect to 4 (out of 9) dimensions, the existence of
+state space partitions that demonstrate the absence of drift towards inﬁnity along the 4
+inﬁnite dimensions.
+44
+
+--- Page 47 ---
+We start by pointing out that the CTMC obtained from equations (A.1) is 9-
+dimensional. We denote its states:
+s≡(DA,DA,DR,DR,MA,A,MR,R,C )∈S⊆N9
+where symbolic names (e.g. DA,DR,...)represent the population of the corre-
+sponding species. Given the state space S, a states∈Sand a symbolic name
+X∈{DA,DA,DR,DR,MA,A,MR,R,C}we introduce the following notation:
+•s(X)represents the population of species Xin states
+•s[↑X](resp.s[↓X]) denotes the state obtained from sby incre-
+menting (resp. decrementing) the Xcomponent of one unit. For
+example, given s≡ (DA,DA,DR,DR,MA,A,MR,R,C )thens[↑
+A]≡ (DA,DA,DR,DR,MA,A+ 1,MR,R,C )ands[↓A]≡
+(DA,DA,DR,DR,MA,A−1,MR,R,C ).
+Initial state . The initial state is s0= (DA,DA,DR,DR,MA,A,MR,R,C ) =
+(1,0,1,0,0,0,0,0,0), meaning that initially the gene for protein Aand that for
+proteinRare in the inactive state, and all other components are “empty”.
+Invariants . For any state of the Circadian clock CTMC the following invariants hold:
+DA+DA= 1
+DR+DR= 1.(A.2)
+This is to say that the systems account for one copy of gene A and one of gene R
+and that each gene can only always be in either of two states: inactive (DA,DR) or
+activated (DA,DR). The invariants (A.2) are a straightforward consequence of:
+•the initial state of the system which is: DA=DR= 1andDA=DR= 0(while
+all other species are initially 0).
+•the reactions that involve species DA,DA, i.e.,R1,R2,R5,R6
+•the reactions that involve DR,DR, i.e.,R3,R4,R7,R8
+In fact reactions R6(resp.R5) letDA(resp.DA) unvaried while R1transformDA
+intoDA(by means of a molecule of A) but it is counterbalanced by the reverse reaction
+R2. Similarly reactions R8(resp.R7) letDR(resp.DR) unvaried while R3transform
+DRintoDR(by means of a molecule of A) but it is counterbalanced by the reverse
+reactionR4. As a consequence of the invariants (A.2) the domain for the ﬁrst four
+components of a state is constrained to the boolean values, hence the state space Sof
+the CTMC is bounded by:
+S⊆{0,1}4×N5
+45
+
+--- Page 48 ---
+Birth-death structure of the circadian clock CTMC . The circadian clock CTMC has
+the structure of a multi-dimensional birth-death process along each of its unbounded
+dimensions. In particular for each state s∈{0,1}4×N5the following holds:
+•birth-death of MA: a state-dependent rate transition smax(DA·αA,DA·α/prime
+A)−−−−−−−−−−−−−→
+s↑MAexists as well as a transition with state-dependent rate sMA·δMA−−−−−−→s↓MA.
+•birth-death of MR: a state-dependent rate transition smax(DR·αR,DR·α/prime
+R)−−−−−−−−−−−−−→
+s↑MRexists as well as a transition with state-dependent rate sMR·δMR−−−−−−→s↓MR
+•birth-death of A: a state-dependent rate transition sMA·βA−−−−−→s↑Aexists as well
+as a state-dependent rate transition sMA·δA−−−−→s↓A
+•birth-death of R: a state-dependent rate transition sMR·βR− −−−−→s↑Rexists as well
+as a state-dependent rate transition sMR·δR−−−−→s↓R
+•birth-death of C: a state-dependent rate transition sA·R·δC−−−−−→s↑Cexists as well
+as a state-dependent rate transition sC·δA−−−→s↓C,↓A
+s=(DA,DA,DR,DR,MA,A,MR,R,C)s["MA]s["A]s["R]
+s[#A,#R,"C)s[#A](MA+1)·MA(MR+1)·MRMR·R(A+1)·A(R+1)·Rmax(↵R,↵0R)max(↵A,↵0a)A·R·C(C+1)·AMA·AA·AMR!1
+MA!1A!1R!1s["MR]
+MA·AC+max(A, R) C
+Figure A.14: Birth-death transitions along the unbounded dimensions of the circadian clock CTMC
+46
+
+--- Page 49 ---
+Observe that because of invariant (A.2) the birth rate of MA, respectively MR, are both
+step functions with 2 possible constant levels, i.e., αA,α/prime
+AforMAandαR,α/prime
+Rfor
+MR. Without loss of generality, in the ergodicity analysis we will replace the two-steps
+birth rates with a single constant rate corresponding to the maximum between the two
+possible rates (as in Figure A.14). Thus for reasoning about ergodicity we will consider
+sαmax
+A−−−→s[↑MA]as constant rate birth transition for MAandsαmax
+R−−−→s[↑MR]
+forMR(whereαmax
+A=max(αA,α/prime
+A)andαmax
+R=max(αR,α/prime
+R))11. Figure A.14
+illustrates the multi-dimensional birth-death structure of the circadian clock CTMC
+along its 5 unbounded dimensions. Transitions with constant rate are depicted in red,
+whereas those with state-dependent rates are depicted in blue. Furthermore note that
+the transitions along the Cdimension are depicted with thin lines to highlight the fact
+that the “unboundedness” of Cin only a consequence of that of AandR, hence is
+“weaker” than that of A,R,MAandMRas the only transition yielding an increase of
+Calso decrease both AandRof one unit.
+Irreducubility . Proving the irreducibility of the CTMC boils down to showing that
+for any pair of generic states s1,s2∈S s1∗/squigglerights2, i.e.s2is reachable from s1and
+viceversa,s2∗/squigglerights1. To prove this we adopt the following strategy:
+c1.ﬁrst we prove that S={0,1}4×N5, that is, we show that from the initial
+states0= (1,0,1,0,0,0,0,0,0)∗/squiggleright(DA,DA,DR,DR,MA,A,MR,R,C )
+∀(DA,DA,DR,DR,MA,A,MR,R,C )∈{0,1}4×N5.
+c2.Then we prove the opposite, that is, that
+(DA,DA,DR,DR,MA,A,MR,R,C )∗/squiggleright s0,
+∀(DA,DA,DR,DR,MA,A,MR,R,C )∈{0,1}4×N5.
+The proof of c1andc2corresponds to showing that from the initial state it is al-
+ways possible to perform a multidimensional random-walk leading to any state in
+{0,1}4×N5and that, because of the structure of the CTMC, such a random walk
+can be decomposed in a sequence of mono-dimensional walks along each dimension
+of the CTMC. We break down the proof of existence of a multi-dimensional random
+walk in a number of auxiliary properties. In so doing we adopt the following notation:
+s= (DA,DA,DR,DR,MA,A,MR,R,C )denote a generic state and s[X/prime∼X]
+denote a generic state which is identical to sexcept with respect to the Xdimen-
+sion whose value satisﬁes the relationship X/prime∼X, with∼∈{<,>}. For example
+s[M/prime
+A<MA]denotes a state s/primewhich is identical to sexcept with respect to its MA
+component for which s/prime(MA)<s(MA).
+P1.a (inc MA)s∗/squigglerights[M/prime
+A> MA],∀M/prime
+A> MA. This is straight-
+forwardly true since because of invariant (A.2) for any state s=
+(DA,DA,DR,DR,MA,A,MR,R,C )then eithersR5−−→s[↑MA]orsR6−−→s[↑
+MA].
+11Note that if we prove that such a faster divergent process is ergodic the actual process with the two-step
+birth-rate is also ergodic.
+47
+
+--- Page 50 ---
+P1.b (dec MA)s∗/squigglerights[M/prime
+A< MA],∀M/prime
+A< MAand given that
+MA>0. This is straightforwardly true since for any state s=
+(DA,DA,DR,DR,MA,A,MR,R,C ), ifMA>0thensR15−−→s[↓MA].
+P2.a (inc MR)s∗/squigglerights[M/prime
+R> MR],∀M/prime
+R∈NwithM/prime
+R> MR. This is
+straightforwardly true since because of invariant (A.2) for any state s=
+(DA,DA,DR,DR,MA,A,MR,R,C )then eithersR7−−→s[↑MR]orsR8−−→s[↑
+MR].
+P2.b (dec MR)s∗/squigglerights[M/prime
+R< MR],∀M/prime
+R< MRand given that
+MR>0. This is straightforwardly true since for any state s=
+(DA,DA,DR,DR,MA,A,MR,R,C ), ifMR>0thensR16−−→s[↓MR].
+P3.a (inc A)s∗/squigglerights[A/prime>A]∀A/prime>A and given that MA>0. This is straightfor-
+wardly true since for any state s= (DA,DA,DR,DR,MA,A,MR,R,C ), if
+MA>0thensR9−−→s[↑A].
+P4.a (inc R)s∗/squigglerights[R/prime>R]∀R/prime>R and given that MR>0. This is straightfor-
+wardly true since for any state s= (DA,DA,DR,DR,MA,A,MR,R,C ), if
+MR>0thensR10−−→s[↑R].
+P5.a (inc C)s∗/squigglerights[C/prime=C+m,A/prime=A−m,R =R−m]given thatA,R > 0
+andm=min(A,R). This is straightforwardly true since for any state s=
+(DA,DA,DR,DR,MA,A,MR,R,C ), ifA,R> 0thensR11−−→s[↑C,↓A,↓R].
+P5.b (dec C)s∗/squigglerights[C/prime<C,R>R ]given thatC>0. This is straightforwardly true
+since for any state s= (DA,DA,DR,DR,MA,A,MR,R,C ), ifC > 0then
+sR12−−→s[↓C,↑R].
+The proof of c1and c2follows by combination of the above properties. Thus
+from the initial state s0= (1,0,1,0,0,0,0,0,0)there exists a random walk
+to any state (1,0,1,0,MA,A,MR,R,C )(∀MA,A,MR,R,C∈N) which fol-
+lows simply by composition of the Pi.a properties (the incproperties). Similarly
+from any state (1,0,1,0,MA,A,MR,R,C )there exists a random walk to s0=
+(1,0,1,0,0,0,0,0,0)which follows simply by composition of the Pi.b properties (the
+decproperties). Finally note that the extensions of the above results to the entire set
+{0,1}4×N5is a straightforward consequence since genes DAandDRcan be activated
+in any stateswithS(A)>0, and once activated can always (autonomously) deactivate.
+Drift towards the “centre” of the state-space . Having seen that the CTMC is irre-
+ducible and has 5 unbounded dimensions, i.e., (MA,A,MR,R,C ), we now demon-
+strate that the chain consistently drift towards a ﬁnite region of the state space. To do
+so we focus on an abstracted version of the CTMC where we only consider the ﬁve
+unbounded species, hence we disregard the genes components DA,DA,DRandDR,
+which we know being invariant. By disregarding the invariant components of the chain
+48
+
+--- Page 51 ---
+we eliminate the reactions R1,R2,R3,R4which regard the activation/deactivation
+swapping of genes DA,DRand we subsume two pairs of reactions. R5:DAαA−→
+MA+DAandR6:DAα/prime
+A−→MA+DAare subsumed by R∗
+6:∅αmax
+A−→MArepre-
+senting the unconditional production of MAat constant rate αmax
+A=max(αA,α/prime
+A).
+SimilarlyR7:DRαR−→MR+DRandR8:DRα/prime
+R−→MR+DRare subsumed by
+R∗
+8:∅αmax
+R−→MAwithαmax
+R=max(αR,α/prime
+R). The resulting abstracted systems is
+given by equations (A.3).
+R∗
+6:∅αmax
+A−→MA R∗
+8:∅αmax
+R−→MRR9:MAβA−→MA+A
+R10:MRβR−→MR+R R 11:A+RγC−→C R 12:CδA−→R
+R13:AδA−→∅ R14:RδR−→∅ R15:MAδMA−→∅
+R16:MRδMR−→∅(A.3)
+We stress that demonstrating the lack of divergency for the abstracted CTMC
+model (A.3) implies the lack of divergency also for the original CTMC (A.1).
+To demonstrate that the abstracted CTMC model (A.3) do not drift towards inﬁnity
+(along any unbounded dimension) we need to ﬁnd a partition through which the state
+space is split in classes containing states at constant level of population (e.g. the class
+of states for which MA=nAandMR=nR, etc). We then need to shown that, for
+such partition, there exist “boundary classes” that is, we need to show that, along each
+dimension, once reached a class representing a certain population level then the rate
+for moving towards a higher population class is smaller than that for moving towards
+lower population classes.
+State-space partition . LetS⊂N5be the state space of CTMC model (A.3). Let Γ =
+{γ1,...,γi}be a set of atomic conditions referring to the species of the CTMC model,
+withγi≡(Xi∼ni)ni∈Nand∼∈{<,≤,≥,>,=,/negationslash=}orγi≡(fi(X1,...Xm)∼
+ni)withfi()≡max(), orfi()≡min(). We denote S[Γ]the subset of Sthat fulﬁl
+the conjunction of conditions in Γ(i.e.S[Γ] ={s∈S|∧γi∈Γ(γi)}). Based on such
+notation we determine the following subclasses of S:
+•S[MA=nA, MR=nR]: the set of states s∈Ssuch that the population of
+MAisnAand that ofMRisnR, withnA,nR∈N
+•S[MA=nA, MR=nR, max (A, R)=n]: the set of states s∈Ssuch that
+the population of MAisnA, that ofMRisnRand the maximum between the
+population of AandRisn, withnA,nR,n∈N
+It is straightforward to show that both of the above classes represent actual partitions
+ofS, that is:
+•S=∪(nA,nR)∈N2S[MA=nA,MR=nR]and all ofS[MA=nA,MR=nR]are
+pairwise disjoint.
+49
+
+--- Page 52 ---
+•S=∪(nA,nR,n)∈N3S[MA=nA,MR=nR,max (A,R)=n]and all ofS[MA=
+nA,MR=nR,max (A,R)=n]are pairwise disjoint.
+Furthermore the two classes represent two partitions with different granularity. In fact
+for a ﬁxed (nA,nR)∈N2the classesS[MA=nA,MR=nR,max (A,R) =n]
+∀n∈Nrepresent a partition of S[MA=nA,MR=nR], i.e.,S[MA=nA,MR=
+nR]=∪n∈NS[MA=nA,MR=nR,max (A,R)=n]
+1,0,1,01,0,1,11,0,1,21,0,1,31,0,1,4
+ARRR2RRR3R4R
+1,1,1,01,1,1,11,1,1,21,1,1,31,1,1,4
+RRR2RRR3R4R
+AAAA
+AAAAA
+A1,2,1,01,2,1,11,2,1,21,2,1,31,2,1,4
+RRR2RRR3R4R
+AAAA
+2A2A2A2A2A
+A1,3,1,01,3,1,11,3,1,21,3,1,31,3,1,4
+RRR2RRR3R4R
+AAAA
+3A3A3A3A3A
+A1,4,1,01,4,1,11,4,1,21,4,1,31,4,1,4
+RRR2RRR3R4R
+AAAA
+max(A,R)=0max(A,R)=1max(A,R)=2max(A,R)=3MA=MR=14A4A4A4A4A
+Figure A.15: Details of internal partition of a generic S[MA=nA,MR=nR]class,nA,nR∈N
+Figure A.15 shows details of the internal partition of a generic class
+S[MA=nA,MR=nR]withnA,nR∈N, highlighting subclasses
+S[MA=nA,MR=nR,max (A,R) =n]forn∈N. Note that in Figure A.15
+only the internal transitions of S[MA=nA,MR=nR]are drawn (for transitions
+to/fromS[MA=nA,MR=nR]and its neighbours classes see Figure A.17).
+Concerning the internal transitions observe that each state of a generic subclass
+S[max(A,R) =n](n∈N) admits a single (constant rate) transition towards
+S[max(A,R) =n+ 1] except the “corner” state, i.e., s= (nA,n,nR,n), which
+has two outgoing transitions (with rate nAβA, respectively nRβR). Therefore from
+s= (nA,n,nR,n)the actual rate for entering subclass S[max(A,R)=n+1]is given
+by the sumnAβA+nRβR, i.e. the rate of the minimum between the two competing
+transitions. From this observation we can devise an approximated chain (shown in
+Figure A.16) which represents transitions between the subclasses S[max(A,R) =n]
+of class [MA=nA,MR=nR]. Observe that such chain over approximates the
+original chain (Figure A.15) since it assumes that transitions towards subclasses with
+50
+
+--- Page 53 ---
+increasingn=max(A,R)have ratenAβA+nRβR, whereas from the actual graph in
+Figure A.15 we know that only the “corner” state has rate nAβA+nRβRwhereas all
+remaining states happens with a slower rate (either nAβAornRβR). Therefore if we
+prove that the chain of Figure A.16 cannot diverge along the max(A,R)dimension,
+then obviously also the original chain in Figure A.15 cannot.
+nAA+nRRnAA+nRRmax(nR,nA)max(A,R)=nMA=nA,MR=nRmax(A,R)=0max(R,A)
+Figure A.16: Approximated transitions graph for internal subclasses of a generic class S[MA=nA,MR=
+nR]
+Drift toward the centre inside a class S[MA=nA, MR=nR]. Let us
+consider the transition graph of Figure A.16. Transitions along the increasing
+direction of max(A,R)happen at constant rate nRβR+nAβAwhereas transi-
+tions in the decreasing direction happens at a rate which depends on the subclass
+S[max(A,R) =n], i.e.max(nδR,nδA). Therefore there exists k∈Nsuch that
+∀n > k ,max(nRβR,nAβA)< max (nδR,nδA), which proves that the drift cannot
+diverge towards inﬁnity within each class S[MA=nA,MR=nR].
+max(A,R)=0max(A,R)=nMA=n!,MR=nRMA=nA,MR=nR+1
+MA=nA+1,MR=nR↵maxR
+nA,0,nR,0nA,0,nR,nnA,n,nR,nnA,n,nR,0nA+1,0,nR,0nA+1,0,nR,nnA+1,n,nR,nnA+1,n,nR,0nA,0,nR+1,0nA,0,nR+1,nnA,n,nR+1,nnA,n,nR+1,0(nR+1)MR(nR+1)MR↵maxR(nR+1)MR↵maxR(nR+1)MR↵maxR↵maxA(nA+1)MA↵maxA
+↵maxA(nA+1)MA↵maxA(nA+1)MA(nA+1)MA
+Figure A.17: Details of transitions between neighbours of a generic class S[MA=nA,MR=nR]
+51
+
+--- Page 54 ---
+Drift toward the centre between different classes S[MA=nA, MR=nR]. We
+now focus on the analysis of drift along the remaining two unbounded dimensions,
+i.e.,MAandMR. Observe that classes S[MA=nA,MR=nR]are connected by
+two pairs of transitions: those representing the synthesis and degradation of mRNA
+MA, resp.MR, that is,R∗
+6andR15, respectively R∗
+8andR16. Figure A.17 give
+details of the transitions between a generic class S[MA=nA,MR=nR]and the
+two “increasing” neighbours classes, i.e., S[MA=nA+1,MR=nR]andS[MA=
+nA,MR=nR+1]. On the other hand Figure A.18 shows the complete transition graphs
+between classes S[MA=nA,MR=nR]which is obtained directly by abstraction of
+the actual graph in Figure A.17. Observe that transitions along the increasing direction
+(i.e. ofMA→∞ ,MR→∞ ) happen at constant rate αmax
+A, resp.αmax
+R, whereas
+those in the decreasing directions have rate which depends on the MA(resp.MR)
+population corresponding to the considered class. Therefore there exists kA,kR∈N
+such that∀nA> kA,nR> kR,αmax
+A< nAδMAandαmax
+R< nRδMRwhich proves
+that the drift between classes S[MA=nA,MR=nR]cannot diverge towards inﬁnity
+along neither of the two unbounded dimensions MAandMR.
+/square
+MA=0,MR=0MA=nA,MR=0MA=0,MR=nRMA=nA,MR=nR↵maxAMAnAMA↵maxA↵maxAMAnAMA↵maxA↵maxRnRMRMR↵maxR↵maxRnRMRMR↵maxR
+Figure A.18: Transitions graph for classes S[MA=nA,MR=nR], with (nA,nR)∈N2
+52

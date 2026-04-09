@@ -1,0 +1,2182 @@
+--- Page 1 ---
+Visibly Pushdown Transducers
+Emmanuel Filiota, Jean-Fran¸ cois Raskina, Pierre-Alain Reynierb, Fr´ ed´ eric Servaisa,c, Jean-Marc Talbotb
+aUniversit´ e Libre de Bruxelles
+bLaboratoire d’Informatique Fondamentale de Marseille, Univers it´ e Aix-Marseille-CNRS
+cHaute´Ecole de Bruxelles
+Abstract
+Visibly pushdown transducers ( VPT) extend visibly pushdown automata (VPA) with outputs. They read
+nested words, i.e. ﬁnite words on a structured alphabet part itioned into call, return and internal symbols,
+and produce output words, which are not necessarily nested. As forVPA, the behavior of the stack is
+synchronized with the types of input symbols: on reading a ca ll symbol, exactly one stack symbol is pushed
+onto the stack; on reading a return symbol, exactly one stack symbol is popped from the stack; and the
+stack is untouched when reading internal symbols. Along the ir transitions VPTcan append words on their
+output tape, whose concatenation deﬁne the resulting outpu t word. Therefore VPTdeﬁne transformations
+from nested words to words and can be seen as a subclass of push down transducers. In this paper, we study
+the algorithmic, closure and expressiveness properties of VPT.
+Keywords: Visbily Pushdown Automata, Transducers, Functionality
+1. Introduction
+General context
+Over the years, XML [9] has become a standard formalism for da ta exchange over the internet. XML
+data, also known as XML documents, are essentially a textual representation of information. Compared to
+the traditional relational databases, the main feature of X ML is its weak structure that is embodies by XML
+tags. Problems for XML databases are rather similar to the on es of relational databases. To cite a few,
+validation (“does an XML document has a correct shape wrt to s ome declaration ?”), querying (“what are
+theinformationassociatedwiththetag /a\}bracketle{ta/a\}bracketri}htintheXMLdocument?”), computationofviews/transformati ons
+(“compute from the XML document representing a library a doc ument enumerating for each author the list
+of books he has contributed to”) can be considered.
+This XML formalism induced the development of practical too ls [57, 26, 13, 8, 42] as well as theoretical
+studies on formal tools for manipulating XML documents. Thi s latter has led to deﬁne and study new
+formal objects or to consider well-known ones with a new pers pective, impacting signiﬁcantly research in
+formal language theory.
+More concretly, an XML document is built from information (o r data) that are grouped by means of
+tags using a well-parenthesing policy. As for parenthesis, there exist some opening (e.g. /a\}bracketle{tarticle/a\}bracketri}ht) as well
+as closing tags (e.g. /a\}bracketle{t/article/a\}bracketri}ht). Such a document is exampliﬁed on Fig. 1.
+As pairs of tags can be nested one into the other, this nesting induces a tree structure of the document,
+often refered to as the DOM (Document Object Model) tree. Hen ce, tree automata are good candidates
+as theoretical foundations of XML processing tools. Indeed , some new tree automata models, motivated
+by XML, have been developped and investigated [44, 45]. An al ternative is to consider the document in
+Email addresses: efiliot@ulb.ac.be (Emmanuel Filiot), jraskin@ulb.ac.be (Jean-Fran¸ cois Raskin),
+pierre-alain.reynier@lif.univ-mrs.fr (Pierre-Alain Reynier), frederic.servais@gmail.com (Fr´ ed´ eric Servais),
+jean-marc.talbot@lif.univ-mrs.fr (Jean-Marc Talbot)
+Preprint submitted to Elsevier July 15, 2018
+
+--- Page 2 ---
+its textual form, as a sequence of symbols together with an ad ditional nesting structure that associates an
+opening tag with its closing matched tag. This point of view h as been adopted in the XML manipulating
+library SAX [42]. Words together with this implicit nesting given by tags are a particular case of nested
+words. Automata, named visibly pushdown automata, running on these objects have ﬁrst been introduced
+in [4].
+Our contribution to this research area is the design and the s tudy of a formal mathematical tool to
+process nested words; the present paper proposes for this pu rpose visibly pushdown transducers ( VPT),
+that extend visibly pushdown automata ( VPA) with outputs, as an abstract model of machines for deﬁning
+transformations of nested words.
+Nested Words
+Nested words are ﬁnite sequences of symbols equipped with a n esting structure. The term nesting
+structure refers to a structure that is organized on the basis of layers some of which are contained into the
+others. Special symbols, namely callandreturnsymbols, can be used to add a nesting structure, through
+a call/return matching relation. Other (untyped) symbols a re called internal symbols. Formally, a nested
+word is deﬁned as a word over a structured alphabet. In a neste d word, some call symbols (resp. return
+symbols) may be pending if they do not match any return symbol (resp. call symbol). Nested words without
+any pending symbols are called well-nested words .
+Nested words arise naturally in many applications as models of data which are both linearly and hierar-
+chically ordered. Executions of structured programs as wel l as XML documents are examples of data that
+are naturally modelled as nested words [5]. The sequence of c alls and returns (resp. opening and closing
+tags), adds nesting structures to program executions and XM L data respectively. More generally, any tree-
+structured data can be linearized into a nested word by consi dering a depth-ﬁrst left-to-right traversal of
+the tree.
+As an example, consider the XML document of Fig.1 representi ng an article with its (simpliﬁed)
+structure. Opening and closing tags correspond to call and r eturn symbols, and the unstructured data
+are words over internal symbols. More precisely, the alphab et is partitioned into call symbols Σ c=
+{/a\}bracketle{tarticle/a\}bracketri}ht,/a\}bracketle{tsection/a\}bracketri}ht,/a\}bracketle{ttitle/a\}bracketri}ht,/a\}bracketle{tcontent/a\}bracketri}ht}, return symbols Σ r={/a\}bracketle{t/article/a\}bracketri}ht,/a\}bracketle{t/section/a\}bracketri}ht,/a\}bracketle{t/title/a\}bracketri}ht,/a\}bracketle{t/content/a\}bracketri}ht}and
+internal symbols Σ i={a,...,z,A,...,Z }.
+Automata for nested words
+Alur and Madhusudan introduced visibly pushdown automata (VPA) as a pushdown machine to de-
+ﬁne languages of nested words [5], called visibly pushdown l anguages. More precisely, VPAoperate on a
+structured alphabet, partitioned into call, return and int ernal symbols. When reading a call symbol the
+automaton must push one symbol on its stack, when reading a re turn symbol it must pop a symbol on
+top of its stack, and when reading an internal symbol it canno t touch its stack. As nested words can be
+naturally viewed as trees, visibly pushdown automata inher it all the good properties of tree automata [14].
+Most notably, they are closed under all Boolean operations, and all the classical decision problems such
+as emptiness, universality, ﬁniteness are decidable. This is in contrast to general pushdown automata that
+deﬁne context-free languages, for which it is well-known th at most interesting problems are undecidable.
+The fundamental reason why VPAenjoy good properties is that the stack behavior, i.e.whether it pops,
+pushes or does not change, is driven by the input symbol. Ther efore, all the stacks on a same input have
+the same height (we say that the stacks are synchronized ). Although VPAare equivalent to tree automata,
+they run on words and operate from left to right. This perspec tive has led to many applications, such as
+new logics for nested words [2], streaming XML validation an d queries [1, 24, 36, 35], and program analysis
+[31, 30, 3].
+Transducers for nested words
+Transducers are machines that deﬁne transformations (also calledtransductions ) of input to output
+words. Fig. 1 gives two examples of transformations. The ﬁrs t transformation R0takes a nested word
+representing an XML document and outputs an (unstructured) text version of it. The second transformation
+2
+
+--- Page 3 ---
+/a\}bracketle{tarticle/a\}bracketri}ht
+/a\}bracketle{ttitle/a\}bracketri}htVisibly Pushdown Transducers /a\}bracketle{t/title/a\}bracketri}ht
+/a\}bracketle{tsection/a\}bracketri}ht
+/a\}bracketle{ttitle/a\}bracketri}htIntroduction /a\}bracketle{t/title/a\}bracketri}ht
+/a\}bracketle{tcontent/a\}bracketri}ht
+The present work proposes [...]
+/a\}bracketle{t/content/a\}bracketri}ht
+/a\}bracketle{t/section/a\}bracketri}ht
+/a\}bracketle{tsection/a\}bracketri}ht
+/a\}bracketle{ttitle/a\}bracketri}htPreliminaries /a\}bracketle{t/title/a\}bracketri}ht
+/a\}bracketle{tcontent/a\}bracketri}ht
+In this section [...]
+/a\}bracketle{t/content/a\}bracketri}ht
+/a\}bracketle{t/section/a\}bracketri}ht
+...
+/a\}bracketle{t/article/a\}bracketri}ht
+XMLVisibly Pushdown Transducers
+Section: Introduction
+The present work proposes [...]
+Section: Preliminaries
+In this section [...]
+...
+Text
+/a\}bracketle{thtml/a\}bracketri}ht
+/a\}bracketle{tbody/a\}bracketri}ht
+/a\}bracketle{th1/a\}bracketri}htVisibly Pushdown Transducers /a\}bracketle{t/h1/a\}bracketri}ht
+/a\}bracketle{th2/a\}bracketri}htIntroduction /a\}bracketle{t/h2/a\}bracketri}ht
+/a\}bracketle{tp/a\}bracketri}ht
+The present work proposes [...]
+/a\}bracketle{t/p/a\}bracketri}ht
+/a\}bracketle{th2/a\}bracketri}htPreliminaries /a\}bracketle{t/h2/a\}bracketri}ht
+/a\}bracketle{tp/a\}bracketri}ht
+In this section [...]
+/a\}bracketle{t/p/a\}bracketri}ht
+...
+/a\}bracketle{t/body/a\}bracketri}ht
+/a\}bracketle{t/html/a\}bracketri}ht
+HTMLR0
+R1
+Figure 1: Transformations from XML to Text and HTML
+R1transforms the XML document into an HTML document. While tra nsformation R0completely ﬂattens
+the input document, transformation R1preserves its structure.
+Word transducers usually extend automata by producing part ial output words on their transitions.
+The ﬁnal output of an input word is obtained as the (left-to-r ight) concatenation of all the partial output
+words produced along a successful computation. A notable ex ample of word transducers is the ﬁnite state
+transducers , that deﬁne rational relations, and are built on top of ﬁnite state automata. These transducers
+have been deeply studied [7] but are not suitable to deﬁne tra nsformations of documents with a nesting
+structure. With such documents, before entering an additio nal level of nesting, it is usually important to
+store some information about the current nesting level, and to recover it when leaving the nested layer. This
+is normally implemented with a stack data structure. Anothe r example is the pushdown transducers that
+extend pushdown automata. Clearly, such transducers inher it the bad properties of pushdown automata,
+and most problems of interest in the theory of transducers ar e undecidable for this class of transducers.
+In this paper, we introduce visibly pushdown transducers (VPT), that extend VPAwith outputs. The
+output alphabet is, however, not structured. VPTare therefore nested word to word transducers. If the
+output alphabet is structured, then obviously VPToutput nested words. The goal of this paper is to show
+that, like VPA,VPTenjoy good properties and form a robust class of transducers .
+Example 1. As a ﬁrst example, consider the VPTT0of Fig. 2 that implements the XML-to-text transfor-
+mationR0of Fig. 1. Its runs start in state q0. When reading the call symbol /a\}bracketle{tarticle/a\}bracketri}ht,T0pushes the symbol
+γon the stack ( +γ), outputs the empty word ε, and moves to state q1, from which it can read only /a\}bracketle{ttitle/a\}bracketri}ht,
+outputsε, pushes γand moves to state q2. At this point, the input document is expected to be a sequenc e
+of characters in Σithat corresponds to the title of the article. On the loop on q2,αis intended to be any
+internal symbols from Σi. On that loop, nothing is pushed on the stack and αis simply copied to the output.
+3
+
+--- Page 4 ---
+q0 q1 q2 q3 q4
+q4/a\}bracketle{tarticle/a\}bracketri}ht|ε,+γ /a\}bracketle{ttitle/a\}bracketri}ht|ε,+γα|α
+/a\}bracketle{t/title/a\}bracketri}ht|\n\n,−γ /a\}bracketle{t/article/a\}bracketri}ht|ε,−γ
+/a\}bracketle{tsection/a\}bracketri}ht|Section: ,+γ/a\}bracketle{t/section/a\}bracketri}ht|ε,−γ
+/a\}bracketle{tcontent/a\}bracketri}ht|ε,+γ /a\}bracketle{t/content/a\}bracketri}ht|ε,−γ
+α|α
+Figure 2: VPTimplementing the transformation T0of Fig. 1
+q0 q1 q2 q3 q4
+q6 q7 q8 q9 q10/a\}bracketle{tarticle/a\}bracketri}ht|/a\}bracketle{thtml/a\}bracketri}ht/a\}bracketle{tbody/a\}bracketri}ht,+γ /a\}bracketle{ttitle/a\}bracketri}ht|/a\}bracketle{th1/a\}bracketri}ht,+γα|α
+/a\}bracketle{t/title/a\}bracketri}ht|/a\}bracketle{t/h1/a\}bracketri}ht,−γ /a\}bracketle{t/article/a\}bracketri}ht|/a\}bracketle{t/body/a\}bracketri}ht/a\}bracketle{t/html/a\}bracketri}ht,−γ
+α|α α|α/a\}bracketle{tsection/a\}bracketri}ht|ε,+γ /a\}bracketle{t/section/a\}bracketri}ht|ε,−γ
+/a\}bracketle{ttitle/a\}bracketri}ht|/a\}bracketle{th2/a\}bracketri}ht,+γ /a\}bracketle{t/title/a\}bracketri}ht|/a\}bracketle{t/h2/a\}bracketri}ht,−γ /a\}bracketle{tcontent/a\}bracketri}ht|/a\}bracketle{tp/a\}bracketri}ht,+γ /a\}bracketle{t/content/a\}bracketri}ht|/a\}bracketle{t/p/a\}bracketri}ht,−γ
+Figure 3: VPTimplementing the transformation T1of Fig. 1
+The only way to exit that loop is to read the closing symbol /a\}bracketle{t/title/a\}bracketri}ht. If it is the case, then two ”new line”
+symbols are appended to the output and γis popped from the stack ( −γ).
+The other transitions of T0are self-intuitive. Note that T0accepts only well-matched input nested words;
+for instance, the only way to match /a\}bracketle{tarticle/a\}bracketri}htis to close it with /a\}bracketle{t/article/a\}bracketri}ht. In general, the deﬁnition of nested
+words does not impose any well-matched restriction on the ca ll and return symbols in the input word but it
+is something that can be syntactically ensured, for instanc e by using a diﬀerent stack symbol for each pair
+of corresponding call/return symbols.
+Finally, the domain of T0, i.e. the set of all input nested words that have at least one o utput by T0, is
+a visibly pushdown language that can be deﬁned by the VPAobtained by projecting away the output words
+of the transitions of T0. Note that this domain also contains documents where the sec tions can be nested in
+other sections, since it is not necessary to close an opening tag/a\}bracketle{tsection/a\}bracketri}htbefore opening a new one.
+Example 2. The transformation R1can be implemented by the VPTT1of Fig. 3. The output alphabet is
+assumed to be structured, where call symbols are opening HTM L tags and return symbols are closing HTML
+tags. Observe that in this VPT, sections cannot nest other sections, therefore T1andT0do not have the same
+domain. The main title of the article is processed by states q1,q2andq3, while section titles are processed
+by states q6,q7andq8, and those states can be accessed only if /a\}bracketle{tsection/a\}bracketri}htis read on the input. Note that
+on reading /a\}bracketle{tarticle/a\}bracketri}ht, two call symbols are output. Similarly on reading /a\}bracketle{t/article/a\}bracketri}ht, two return symbols are
+output.
+4
+
+--- Page 5 ---
+Contributions
+In this paper, we study the closure and algorithmic properti es of classes and extensions of VPT. The
+results are summarized in Table 1. First we distinguish thre e classes of VPT:
+•the class of deterministic VPT(dVPT), whose underlying input VPAis deterministic (and thus, deﬁne
+only functions),
+•the class of functional VPT(fVPT), which might be non-deterministic but which deﬁne functio ns,
+•the class of VPT, which can be non-deterministic and deﬁne relations of arbi trary arity.
+Closure properties. Closure by Boolean operators usually do not carry over to tra nsducers. As for ﬁnite
+state transducers, VPT-transductions are not closed by intersection, nor by compl ement (because any input
+has a ﬁnite number of outputs, while an output may have an inﬁn ite number of pre-images). Closure by
+union is however obtained classically by using non-determi nism. Closure under composition is a desirable
+property of transducers. This property holds for FST. Unfortunately VPTare not closed under composition.
+We introduce later the class of well-nested VPTto recover closure by composition.
+Decision Problems. First, the emptiness problem asks whether the transduction deﬁned by a VPTis empty.
+Clearly, it is a property of the domain of the transduction, w hich is deﬁned by the VPAunderlying the
+VPT(obtained by projecting the output words). Therefore, empt iness is decidable in PTimeforVPT. The
+translation membership problem asks, given a pair ( u,v) of input and output words and a VPTT, whether
+Ttranslates uintov. It is decidable in PTimefor all classes of VPTwe consider in this paper.
+Thetypechecking problem is motivated by practical applications. It asks, gi ven aVPTT, and an input
+and an output types given as VPA, whether any input document of the given input type is transf ormed
+into an output document of the given output type. In the setti ng of XML for instance, this amounts to
+check, given an XSLT transformation, an input and an output X ML schemas, whether the image of any
+XML document, valid for the input schema, is a document valid for the output schema. This problem is
+unfortunately undecidable for VPTbecause one can deﬁne any context-free language ( CFL) as the co-domain
+of aVPT, and as we show, testing the inclusion of a CFLinto a visibly pushdown language is undecidable.
+One of the most desirable property of transducers is decidab leequivalence checking , i.e. testing whether
+two given transducers deﬁne the same relation. However even for ﬁnite state transducers this problem
+is undecidable. The classical way to recover decidability i s to bound the arity of the relations deﬁned
+by the transducers. Given k∈N, a transducer is k-valued if every input word has at most kdiﬀerent
+translations. In particular, 1-valued transducers deﬁne e xactly the class of functional transducers. For
+ﬁnite-state transducers, equivalence of k-valued transducers is decidable [58]. For VPT, the decidability
+of equivalence for k-valued transducers is still open, but we show that equivale nce of functional VPTis
+Exptime-complete , and even decidable in PTimefordVPT, which makes this class very appealing.
+Although functionality and more generally k-valuedness are semantical properties, we show that they
+are both decidable, in PTimefor functionality and in coNPfork-valuedness. The PTimecomplexity is a
+nice consequence of strong result by Plandowski who shows th at testing the equivalence of two morphisms
+applied on a context-free language is decidable in PTime[47]. For k-valuedness, one reduces the problem
+to deciding language emptiness of a reversal-bounded count er pushdown machine, which is known to be
+decidable [29], and we show that it is in coNP.
+All these decision problems but emptiness and translation m embership are undecidable for (non-visibly)
+pushdown transducers, making VPTan appealing class lying in between ﬁnite state transducers and push-
+down transducers.
+Well-nested VPT.Visibly pushdown transducers form a reasonable subclass of pushdown transductions,
+but, contrarily to the class of ﬁnite state transducers, it i s not closed under composition and the type
+checking is undecidable against VPA. A closer exam of these weaknesses, shows that they are due to the
+fact that the output alphabet is not structured, or more prec isely, to the fact that the stack behavior is
+not synchronized with the output word. We introduce the clas s ofwell-nested visibly pushdown transducers
+5
+
+--- Page 6 ---
+(wnVPT). They are visibly pushdown transducers that produce outpu t on a structured alphabet and whose
+output is somehow synchronized with the stack and thus, the i nput. We show that this class is closed
+under composition and that its type checking problem agains t visibly pushdown automata is decidable.
+This makes this class a very attractive one, as its propertie s are nearly as good as the properties of ﬁnite
+state transducers, but they enjoy an extra expressiveness t hat is desirable for dealing with documents with
+a nesting structure. Results on wnVPTand functional wnVPTare summarized in Table 1.
+Moreover, the class of well-nested VPTdeﬁne, modulo linearization, unranked tree to unranked tre e
+transformations. We precisely compare the expressiveness of well-nested VPTwith that of known classes
+of (unranked) tree transducers, most notably, top-down tre e transducers running on binary encodings of
+unranked trees [14], uniform tree transducers [38], and mac ro tree transducers [19]. While VPTare incom-
+parable to the ﬁrst two classes, we show that they are strictl y less expressive, modulo some tree encoding,
+than macro tree transducers.
+VPTwith regular look-ahead. We then study the extension of visibly pushdown transducers with look-ahead
+(VPTla). They are visibly pushdown transducers that have the abili ty to inspect the suﬃx of the word.
+We show that this ability does not add expressiveness, and we exhibit a construction for removing, at an
+exponential cost, the look-ahead. Moreover, we show that th e deterministic VPTwith look-ahead exactly
+capture the functional VPTtransductions. Finally, we show that, while they are expone ntially more suc-
+cinct than VPT, testing equivalence or inclusion is done with the same comp lexity. Results on VPTlaand
+deterministic VPTlaare summarized in Table 1.
+Application: streaming transformations
+Perhaps the best application and motivation for studying th eVPTmodel, as they can read linearisations
+of trees as nested words, is streaming XML transformations. While this paper is a thorough study of the
+fundamental properties of VPT, we have also investigated various streamability problems in [20] for VPT
+transformations. Let us brieﬂy mention here the main result s. Deterministic VPTcan eﬃciently processed
+XML documents in streaming with a memory that depends only on the height of the stack (i.e. the depth
+of the XML tree). However, there are some VPTtransformations that can still be evaluated with height-
+dependent memory but are not realizable by any deterministi cVPT. In [20], we have shown that checking
+whether a function realized by a (non-deterministic) VPTcan be evaluated with a memory that depends
+only on the depth of the tree, is a decidable problem. The memo ry may however be exponential in the
+depth of the tree. Nevertheless, we have shown that the class VPT-deﬁnable functions that can be evaluated
+with a memory that depend only polynomially on the depth of th e XML tree is decidable. Streamability
+problems for more expressive classes of tree transducers (s uch as macro tree transducers) have not yet been
+investigated, but the extra expressive power of those trans ducers (such as copying or moving subtrees)
+makes the transformations they deﬁne more likely to be non st reamable. Related results on the application
+of visibly pushdown automata to stream validation and queri es have also been obtained in [52, 35, 23, 24].
+Content and organization of the paper
+Visibly pushdown transducers have been ﬁrst introduced in [ 48] and some (negative) results sketched in
+this publication are exposed in the present article. Howeve r, [48] focusses on transducers that allow produc-
+tiveε-moves, leading to very powerful machines. Therefore, for s uch machines, most of the problems that
+we investigate here are undecidable. Instead for consider h ere the real-time version of these transducers.
+This article gathers material on visibly pushdown transduc ers that appeared as short version in conference
+proceedings; in particular, the results from [21] and [22] a re extensively presented here. Additionaly, mo-
+tivatived by XML applications, we consider visibly pushdow n transducers as tree transformers. As a new
+contribution, we will draw a comparison betwwen visibly pus hdown transducers and several classes of tree
+transducers that have been previously deﬁned.
+In Section 2, we introduce the basic notions used along this p aper. Section 3 introduces visibly pushdown
+automataandsurveysthemainknownresults. InSection4,we deﬁneVPTandstudytheirclosureproperties.
+Section 5 presents our results on the decision problems intr oduced previously for the class of VPT, most
+6
+
+--- Page 7 ---
+dVPTfVPTVPTfwnVPTwnVPTdVPTla
+VPTla
+Decision Problems
+Emptiness P P P P P ExpC ExpC
+Translation Membership P P P P P P P
+Typechecking (against VPA)und und und ExpC ExpC und und
+Functionality - - P-P-ExpC
+k-Valuedness - - coNP -coNP -coNExp
+Equivalence P ExpC und ExpC und ExpC und
+Closure Properties
+Union /B1 /B1 Ꜽ /B1 Ꜽ /B1 Ꜽ
+Intersection /B1 /B1 /B1 /B1 /B1 /B1 /B1
+Composition /B1 /B1 /B1 Ꜽ Ꜽ /B1 /B1
+Inverse /B1 /B1 /B1 /B1 /B1 /B1 /B1
+Table 1: Decision Problems and closure properties for all classes of VPT
+notably, functionality, equivalence of functional VPTandk-valuedness. In Section 6 we introduce the class
+of well-nested VPTand show their closure under composition and study the typec hecking problem. We
+also provide a detailed comparison with tree transducers in Section 7. Finally in Section 8, we study the
+extension of VPTwith regular look-ahead.
+2. Preliminaries
+2.1. Words.
+Analphabet Σ is a non-empty ﬁnite set, its elements are called symbolsorletters. A word uover Σ is a
+ﬁnite, possibly empty, sequence of letters of Σ, i.e.u=a1...an, withai∈Σ for all i≤n. The length of
+the word uisn, its number of letters. The empty word is denoted by εand its length is 0. The set of all
+words over Σ is denoted by Σ∗.
+Letu,v∈Σ∗be two words over Σ. The mirror image ofu=a1...an∈Σ∗, denoted by ur, is the word
+an...a1. We write u/precedesequalvifuis apreﬁxofv,i.e.v=uwfor some w∈Σ∗, and we write u−1vfor the
+word obtained after removing the preﬁx ufromv,i.e.u−1v=w. We denote by w=u∧v∈Σ∗thelongest
+common preﬁx ofuandv,i.e.wis the longest word such that w/precedesequaluandw/precedesequalv.
+2.2. Morphism.
+Let Σ,∆ be two ﬁnite alphabets. A morphism is a mapping Φ : Σ∗→∆∗such that Φ( ε) =εand for all
+u,v∈Σ∗, Φ(uv) = Φ(u)Φ(v). A morphism can be ﬁnitely represented by its restriction o n Σ, i.e. by the set
+of pairs ( a,Φ(a)) for all a∈Σ. Therefore, for all words u=a1...an∈Σ∗, we have Φ( u) = Φ(a1)...Φ(an).
+The size of Φ is |Σ|+Σa∈Σ|Φ(a)|.
+2.3. Languages.
+Let Σ be an alphabet. A set of words over Σ, L⊆Σ∗, is called a language over Σ. The concatenation of
+two languages L1andL2is the language L1·L2={u1u2|u1∈L1∧u2∈L2}; when clear from the context,
+we may omit the ·operator and write L1L2instead of L1·L2. The set of words, Ln, is the set of words
+obtained by concatenating exactly nwords of L, forn >0, andL0={ε}. Thestar language ofLis deﬁned
+asL∗=/uniontext
+n≥0Ln, andL+denotes the set/uniontext
+n≥1Ln. Themirror, resp. the complement , ofLis deﬁned as
+Lr={ur|u∈L}, resp. as L= Σ∗\L. Aclassof languages Lis a set of languages, i.e.L ⊆2Σ∗.
+We denote by NFA(resp.NPA) the class of non-deterministic ﬁnite state automata (resp . non-
+deterministic pushdown automata). It is well-known that NFA(resp.NPA) deﬁne the class of regular
+languages (resp. context-free languages). We denote by CFLthe class of context-free languages.
+7
+
+--- Page 8 ---
+2.4. Transductions.
+Let Σ and ∆ be two alphabets. A transduction Rfrom Σ∗to ∆∗is a binary relation between words of
+Σ∗and words of ∆∗, i.e.R⊆Σ∗×∆∗. We say that vis atransduction , or animage, ofubyRwhenever
+(u,v)∈R. The set of all images of ubyRis denoted R(u) ={v∈∆∗|(u,v)∈R}. We extend this
+notation to sets of words, let L⊆Σ∗, we denote by R(L) =∪u∈LR(u) the set of all transductions by Rof
+words in L. ThedomainofR, denoted by dom(R), is the set {u∈Σ∗| ∃v∈∆∗: (u,v)∈R}. Therangeof
+R, denoted by range(R), is the set {v∈∆∗| ∃u∈Σ∗: (u,v)∈R}.
+Transductions are subsets of Σ∗×∆∗, as such, the set-related operations do apply to transducti ons. For
+example, the intersection of two transductions R1∩R2={(u,v)|(u,v)∈R1∧(u,v)∈R2}is the standard
+set intersection. The inversetransduction of a transduction Rfrom Σ∗to ∆∗is the relation R−1={(u,v)|
+(v,u)∈R}from ∆∗to Σ∗. Thecomposition of a transduction R1from Σ 1∗to Σ2∗andR2from Σ 2∗to ∆∗is
+the transduction R2◦R1from Σ 1∗to ∆∗such that R2◦R1={(u,v)| ∃w∈Σ2∗: (u,w)∈R1∧(w,v)∈R2}.
+Therestriction of a transduction Rto a language Lis a transduction, denoted by R|L, such that its domain
+is the domain of Rrestricted to words that belong to L, and the image of a word is the image of this word
+byR,i.e.R|L={(u,v)|(u,v)∈R∧u∈L}.
+Transducers are machines to deﬁne transductions. They usually extend au tomata with outputs. Two
+famous examples of transducers are the non-deterministic ﬁ nite state transducers ( NFT) and the non-
+deterministic pushdown transducers ( NPT) that respectively extend NFAandNPAwith outputs [7].
+2.5. Structured Alphabets and Nested Words.
+A structured alphabet, Σ, is a triple Σ = (Σ c,Σi,Σr), where Σ c, Σi, and Σ r, are disjoint alphabets that
+contain the call, theinternal, and the returnsymbols respectively (or simply the calls, theinternals and the
+returns). We identify Σ with the alphabet Σ c∪Σi∪Σrand write a∈Σ whena∈Σc,a∈Σiora∈Σr.
+The structure of the alphabet Σ induces a nesting structure on the words over Σ. A call position signals
+anadditional levelofnesting, whileareturnpositionmark stheendofanestinglevel. Aword uiswell-nested
+if it is of the following inductive form:
+(i) the empty word u=ε,
+(ii) an internal symbol u=awitha∈Σi,
+(iii)u=cvr, wherec∈Σcis thematching call (ofr),r∈Σris thematching return (ofc), andvis a
+well-nested word, or
+(iv)u=u1u2whereu1andu2are well-nested words.
+Within a well-nested word, each call, resp. return, has a uni que matching return, resp. call. The set of
+well-nested words over Σ is denoted by Σ∗
+wn.
+For a nested word ufrom Σ∗
+wn, itsnesting level is deﬁned as: ( i) 0 ifuis equal to εor toafor some ain
+Σi, (ii) the nesting level of u′plus one if u=cu′rforcin Σcandrin Σr, and (iii) the maximum of the
+heights of u′,u′′ifu=u′u′′.
+Example 3. Consider a structured alphabet Σsuch that a∈Σi, and for all j,cj∈Σcandrj∈Σr. The
+wordu=c0c1aar1c2ar2r0c3r3is well-nested. For all 0≤i≤3, the matching return of the call ciis the
+returnri.
+The word ar1c2ar2r0c3c4r4is not well-nested. r1andr0are unmatched returns, while c3is an unmatched
+call. The matching return of c2, resp.c4, isr2, resp.r4.
+3. Visibly Pushdown Automata
+We introduce in this section visibly pushdown automata [4], which will be then generalized with output
+to deﬁne visibly pushdown transducers.
+8
+
+--- Page 9 ---
+AVPAis a pushdown automaton that operates on a structured alphab et. Its behavior is constrained by
+the type of the input letter. This restriction on the use of th e stack ensures that the height of the stack
+along reading a word depends on the word only and not on the par ticular run used to read it. Therefore, the
+stacks of all VPAreading a same input word have the same height at any given pos ition in the input word.
+This enables the important product construction and yields closure under intersection. The structure of the
+input words and the restriction on the stack behavior make VPAvery close to tree automata, as shown in
+[5], so that they inherit all the good properties of tree auto mata.
+We now formally deﬁne VPA, then we recall all closure properties and the main decision procedures for
+this class of automata. Finally, we compare the expressive p ower ofVPL, regular languages and context-free
+languages. All results and proofs (and much more) can be foun d in [5].
+3.1. Visibly pushdown automata
+AVPAis deﬁned by a set of states Q(some are initial and some are ﬁnal), a stack alphabet Γ and
+a transition relation δ. There are three types of transitions, call, return and internal transitions , which
+correspond to the type of the input letter it reads. A call transition occurs when the automaton reads a
+call symbol. In that case it must push exactly one symbol onto its stack (and cannot read the stack). A
+return transition occurs when the automaton reads a return symbol. In that case it must pop exactly one
+symbol from its stack. Additionally, a VPAcan make return transitions on empty stack. The empty stack
+is represented by the unremovable bottom of the stack symbol ⊥. Aninternal transition occurs when the
+automaton reads an internal symbol. In that case the stack is neither touched nor read. A VPAstarts its
+execution in one of the predeﬁned initial states and with its stack empty. It accepts a word if it terminates
+its reading in one of the predeﬁned ﬁnal states, possibly wit h a non-empty stack.
+Deﬁnition 4 (Visibly Pushdown Automata) .Avisibly pushdown automaton (VPA) on ﬁnite words over a
+structured alphabet Σ = (Σ c,Σi,Σr) is a tuple A= (Q,I,F,Γ,δ) where:
+•Qis a ﬁnite set of states, I⊆Q, is the set of initial states, F⊆Q, is the set of ﬁnal states,
+•Γ is the (ﬁnite) stack alphabet, and ⊥/∈Γ is the bottom of the stack symbol,
+•δ=δc⊎δi⊎δris the transition relation where :
+–δc⊆Q×Σc×Γ×Qare thecall transitions ,
+–δr⊆Q×Σr×(Γ∪{⊥})×Qare thereturn transitions , and
+–δi⊆Q×Σi×Qare theinternal transitions .
+A conﬁguration of Ais a pair ( q,σ) whereq∈Qis a state and σ∈ ⊥·Γ∗a stack. Let w=a1...albe a
+word on Σ, and ( q,σ),(q′,σ′) be two conﬁgurations of A. Arunof theVPAAoverwfrom (q,σ) to (q′,σ′)
+is a sequence of transitions ρ=t1t2...tl∈δ∗(whereδ∗is the set of words on δconsidered as an alphabet)
+such that there exist q0,q1,...ql∈Qandσ0,...σl∈ ⊥·Γ∗with (q0,σ0) = (q,σ), (ql,σl) = (q′,σ′), and for
+each 0< k≤l, we have either:
+•tk= (qk−1,ak,γ,qk)∈δcandσk=σk−1γ,
+•tk= (qk−1,ak,γ,qk)∈δr, andσk−1=σkγorσk−1=σk=γ=⊥, or
+•tk= (qk−1,ak,qk)∈δi, andσk−1=σk.
+Note that when w=ε(i.e.l= 0), a run ρoverwis necessarily an empty sequence and this run goes
+from any conﬁguration onto itself. We write qc,+γ− −− →q′when (q,c,γ,q′)∈δc,qr,−γ− −− →q′when (q,r,γ,q′)∈δr,
+andqa− →q′when (q,a,q′)∈δi. We also write A|= (q,σ)u− →(q′,σ′) when there is a run of Aoverufrom
+(q,σ) to (q′,σ′), moreover we may omit Aor the stacks σorσ′, when it is clear or irrelevant in the context.
+A run over wfrom (q,σ) to (q′,σ′) isaccepting ifq∈I,σ=⊥, andq′∈F. A word wisaccepted byA
+if there exists an accepting run of Aoverw. Note that it implies that εis accepted iﬀ I∩F/\e}atio\slash=∅.L(A),
+9
+
+--- Page 10 ---
+thelanguage ofA, is the set of words accepted by A. A language Lover Σ is a visibly pushdown language
+(VPL) if there is a VPAAover Σ such that L(A) =L.
+AVPAA= (Q,I,F,Γ,δ)issaidtobe deterministic ifthefollowingconditionshold: ( i)if(q,a,γ,q′),(q,a,γ′,q′′)∈
+δcthenγ=γ′andq′=q′′, (ii) (q,a,γ,q′),(q,a,γ,q′′)∈δrthenq′=q′′, (iii) (q,a,q′),(q,a,q′′)∈δithen
+q′=q′′, and (iv)|I|= 1. The set of deterministic VPAis denoted dVPA. AVPAis said to be unambiguous
+if it admits at most one accepting run per input.
+The size of a VPAAis deﬁned by |A|=|Q|+|δ|+|Γ|.
+q0 q1 q2 q3c,+γ0 r,−γ r,−γ0
+r,−γ0c,+γ r,−γ
+Figure 4: VPAA3on Σc={c}and Σ r={r}.
+Example 5. The deterministic VPAA3= (Q,I,F,γ,δ )is represented in Figure 4, where Q={q0,q1,q2,q3},
+I={q0},F={q0,q3},Γ ={γ0,γ}, andδis represented by the edges of the graph. It recognizes the no n
+regular language {cnrn|n≥0}.
+Example 6. LetΣ ={a,b,c,d}. The context-free language {anbncmdm|n,m≥0}is aVPLfor the
+partition Σc={a,c}andΣr={b,d}. However the context-free language L={anbncmam|n,m≥0}is not
+aVPLfor any partition of Σ.
+3.2. Closure Properties
+Closure under union is obtained thanks to non-determinism, while closure under complement is obtained
+with a determinization procedure. We recall the product con struction which underlies the closure under
+intersection.
+The product of the VPAAandBis aVPAthat simulates in parallel AandB. A state of the product
+is a pair of states: a state of Aand one of B. The stack simulates both stacks. This is possible because t he
+stacks of AandBaresynchronized ,i.e.they are either both popped or both pushed. Therefore the sta ck
+of the product contains pairs of symbols: a symbol from the st ack ofAand another from the stack of B.
+The product is obtained by taking the cartesian product of th e set of states and of the stack alphabet of
+the twoVPA, and by a synchronized product of the transition relation.
+Deﬁnition 7 (Product) .LetA1= (Q1,I1,F1,Γ1,δ1)andA2= (Q2,I2,F2,Γ2,δ2)be twoVPA. The product
+ofA1andA2is aVPA:
+A1⊗A2= ((Q1×Q2),(I1×I2),(F1×F2),(Γ1×Γ2),(δ1⊗δ2))
+whereδ1⊗δ2is deﬁned as follows, for all a∈Σ,q1,q′
+1∈Q1,q2,q′
+2∈Q2,γ1∈Γ1,γ2∈Γ2:
+calls and returns ((q1,q2),a,(γ1,γ2),(q′
+1,q′
+2))∈δ1⊗δ2iﬀ(q1,a,γ1,q′
+1)∈δ1and(q2,a,γ2,q′
+2)∈δ2.
+returns on ⊥((q1,q2),a,⊥,(q′
+1,q′
+2))∈δ1⊗δ2iﬀ(q1,a,⊥,q′
+1)∈δ1and(q2,a,⊥,q′
+2)∈δ2.
+internals ((q1,q2),a,(q′
+1,q′
+2))∈δ1⊗δ2iﬀ(q1,a,q′
+1)∈δ1and(q2,a,q′
+2)∈δ2.
+10
+
+--- Page 11 ---
+Each transition of the product A1⊗A2corresponds to a pair formed by a transition of A1and a transition
+ofA2. Furthermore, any run ρofA1⊗A2over a word uis in a one to one correspondence with a pair
+formed by a run ρ1ofA1overuand a run ρ2ofA2overu. We therefore may write ρ=ρ1⊗ρ2. Clearly
+the language accepted by the product of two VPAis the intersection of the languages accepted by these
+automata.
+AVPAthat recognizes the complement of the language of a VPAAis obtained by determinization [5]
+ofA, completion (adding a sink state and the corresponding tran sitions) and by complementing the set of
+ﬁnal states. The resulting VPAcan be exponentially larger.
+Finally, note that for a given structured alphabet Σ, the cla ss ofVPLover Σ is not closed under mirror
+image. Indeed, Let c∈Σcandr∈Σr, the language L={cnrn|n≥0}is aVPL, but its mirror image
+L′={rncn|n≥0}is not. Moreover, it is not closed under morphism. For exampl e, consider the language
+Land a morphism hwithh(c) =randh(r) =c, thenh(L) =L′which is not a VPL.
+The closure properties are summarized in the following prop osition.
+Proposition 8 (Closure [5]) .The class of VPLis closed under union, intersection, complement, Kleene st ar
+and concatenation. When the languages are given by VPA, these closure are eﬀective and can be computed
+in exponential time for the complement and polynomial for th e other operations. If a VPAis deterministic,
+its complement can be computed in polynomial time.
+We now compare the expressive power of VPLwith regular languages and context-free languages.
+Given an NFAA(running on some alphabet that turns to be structured), one c an easily construct in
+linear time an equivalent VPAwhose runs are in a one-to-one correspondence with the runs o fA: for all
+(p,a,q)∈δwe have ( p,a,γ,q)∈δ′
+cifa∈Σc, (p,a,γ,q)∈δ′
+rand (p,a,⊥,q)∈δ′
+rifa∈Σrand (p,a,q)∈δ′
+i
+ifa∈Σi, whereδ′is the transition relation of the VPAandγis a unique arbitrary stack symbol. Therefore
+the class of VPLis a strict generalization of regular languages. Note that, this does not hold if the automaton
+is not allowed to make return transitions on the empty stack ( ⊥), neither if it should accept only by empty
+stack (and not by ﬁnal states). Indeed, it would not be able to recognize, in the former case, the language
+{r}wherer∈Σr, and, in the latter case, the language {c}wherec∈Σc.
+While the class of VPLis a strict subclass of CFL(see Example 6), there is also a strong connection
+the other way round between those classes. Recall that the ta gged alphabet ˆΣ = (Σ,Σ,Σ) is a structured
+alphabet where Σ ={a|a∈Σ}and Σ={a|a∈Σ}are the call and the return symbols respectively. The
+projection π:ˆΣ→Σ is deﬁned as π(a) =π(a) =π(a) =afor alla∈Σ. AnyCFLcan be obtained as the
+projection of some VPL.
+Proposition 9 (Relation with CFL[5]).We have VPL/subsetnoteqlCFL. LetA∈VPL, one can construct in linear
+time an equivalent NPA. Moreover, let L∈CFL(Σ)there exists a VPLL′onˆΣsuch that π(L′) =L.
+The main decision problems for VPAare all decidable. Decidability of the emptiness and of the m em-
+bership problems are direct consequences of the correspond ing decidability results for pushdown automata.
+Then, as a consequence of the decidability of the emptiness a nd the closure under Boolean operations,
+universality, inclusion and equivalence are all decidable .
+Theorem 10 ([5]).The emptiness and membership problem for VPAare decidable in PTime. Universality,
+inclusion and equivalence of VPAareExpTime -c, and in PTimewhen the VPAare deterministic.
+The inclusion problems of NFAintoVPAand conversely are both decidable. However, inclusion of NFA
+into non-deterministic pushdown automata ( NPA) is undecidable, therefore so is the inclusion of VPAinto
+NPA. However, inclusion of an NPAinto anNFAis decidable as one can compute the product of the
+complement of NFAwith the NPA. This gives a pushdown automaton that is empty if and only if t he
+inclusion holds. In contrast, for the inclusion of a NPAinto aVPA, we prove the next proposition.
+Proposition 11 (Inclusion with CFL).GivenC∈CFL(deﬁned by some NPA) andV∈VPL(deﬁned by
+someVPA), it is undecidable whether V⊆C(respectively C⊆V) holds.
+11
+
+--- Page 12 ---
+Proof.The undecidability of V⊆Cis a direct consequence of the undecidability of the inclusi on ofNFA
+intoNPA.
+For the other direction, let ( u1,v1),(u2,v2),...,(un,vn) be an instance of the Post Correspondence
+Problem (PCP) deﬁned on some ﬁnite alphabet ∆. We deﬁne a CFLand aVPLlanguages on the structured
+alphabet Σ = (Σ c,∅,Σr) with Σ c= ∆ and Σ r={1...n}. For all j, we letlj=|uj|. TheCFLlanguage is
+C={vi1...vik#(ik)lk...(i1)l1|i1,...,ik∈Σr}. LetV′={ui1...uik#(ik)lk...(i1)l1|i1,...,ik∈Σr}. It
+is easy to check that V′is aVPLon Σ, therefore its complement V=V′also is. Clearly the PCP instance
+is negative if and only if C⊆V. Finally, note that CandVare obviously deﬁnable by NPAandVPA
+respectively.
+4. Visibly Pushdown Transducers
+Visibly pushdown transducers ( VPT) are visibly pushdown automata with outputs. They are a gene ral-
+ization of non-deterministic ﬁnite state transducers, and form a strict subclass of pushdown transducers.
+We deﬁne a VPTas aVPAwith an output morphism. While the input alphabet is structu red and
+synchronizes the stack of a VPT(i.e.the stack of its underlying VPA), the output is not structured: the
+output alphabet is not necessarily a structured alphabet. I n this section Σ = (Σ c,Σi,Σr) is the input
+structured alphabet and ∆ is the arbitrary output alphabet.
+Deﬁnition 12 (Visibly Pushdown Transducers) .Avisibly pushdown transducer (VPT) fromΣto∆is a
+pairT= (A,Ω)where the VPAA= (Q,I,F,Γ,δ)is the underlying automaton and Ωis a morphism from
+δto∆∗called the output.
+ArunρofTover a word u=a1...alis a run of its underlying automaton A(Deﬁnition 4), i.e.it is a
+sequence of transition ρ=t1...tl∈δ∗. The output of ρis the word v= Ω(ρ) = Ω(t1...tl) = Ω(t1)...Ω(tl).
+We write ( q,σ)u/v− − →(q′,σ′) when there exists a run on ufrom (q,σ) to (q′,σ′) producing vas output. The
+transducer Tdeﬁnes a binary word relation R(T) ={(u,v)| ∃q∈I,q′∈F,σ∈Γ∗,(q,⊥)u/v− − →(q′,σ)}.
+We say that a transduction is a VPTtransduction whenever there exists a VPTthat deﬁnes it. test As
+usual, the domainofT(denoted by dom(T)) and the rangeofT(denoted by range(T)) are respectively the
+domain and the range of R(T). We say that Tis functional whenever R(T) is, and that Tis deterministic
+(resp. unambiguous) if Ais.
+The class of functional (resp. deterministic) VPTis denoted by fVPT(resp.dVPT), and the class of all
+VPT(resp. functional VPT, resp. deterministic VPT) transductions is denoted by R(VPT) (respR(fVPT),
+resp.R(dVPT)). The size |T|ofT= (A,Ω) is|A|+|Ω|.
+Remark 13. AsVPAdo not allow ε-transitions, neither do VPTon the input. However some transitions
+might output the empty word ε. In that sense the class of VPTdeﬁned in Deﬁnition 12 is the class of
+real-time VPT.
+Visibly pushdown transducers have been ﬁrst introduced in [ 48] and independently in [55]. In these
+papers,VPTallow for ε-transitions that can produce outputs and only a single lett er can be produced by
+each transition. Adding ε-transitions to VPTcan only be done by disallowing the use of the stack for such
+transitions. Indeed, the visibly constraints, asks that th e input word drives the behavior of the stack, therefore,
+this is only compatible with internal ε-transitions.
+When the two classes of transducers NFTandNPTare augmented with ε-transitions, then these new
+classes enjoy closure under inverse, contrarily to their ε-free counterparts. However, with such internal
+ε-transitions, the enhanced class of VPTis still not closed under inverse. Indeed, the following tra nsduction
+is aVPTtransduction, but its inverse cannot be deﬁned by such VPT:
+{(cnrn,ε)|n≤0∧r∈Σr∧c∈Σc}
+Morevover, using ε-transitions the way of [48] and [55] causes many interestin g problems to be undecid-
+able, such as functionality and equivalence (even of functi onal transducers). Therefore we prefer to stick to
+12
+
+--- Page 13 ---
+Deﬁnition 12 of VPT, they are exactly the so called nested word to word transduce rs of [54] and correspond
+to the deﬁnition of [21]. XML-DPDTs [34], equivalent to left -to-right attribute grammars, correspond to the
+deterministic VPT.
+In the sequel, we do not investigate further VPTaugmented with ε-transitions.
+Relations between the classes of transducers and of transdu ctions we have considered so far can be
+depicted as :
+dVPT/subsetnoteqlfVPT/subsetnoteqlVPT R(dVPT)/subsetnoteqlR(fVPT)/subsetnoteqlR(VPT)
+For the classes of machines, the ﬁrst inclusion on the left is trivial as a determinitic VPTadmits at most
+oneacceptingrunonanyofits inputsandthus, isfunctional ; moreover, itisstrictas fVPTcontains machines
+that are not deterministic. The inclusion on the right is str ict asVPTcan describe non-functional relations
+thanks to the non-determinism of their underlying VPA. The same argument holds for transductions,
+separating strictly R(fVPT) fromR(VPT). The ﬁrst inclusion for transductions comes from the inclu sion
+of the corresponding classes of machines. It is strict since we will see an example in the next section of
+a functional VPTthat has no equivalent deterministic VPT. Finally, note that an unambiguous VPTis
+necessarily functional but the converse is false as we will s ee in the next section.
+4.1. Examples
+We present various examples to illustrate the deﬁnition of VPT.
+q0 q1r/ba,−γc/a,+γ r/a,−γ
+Figure 5: A VPTT1on Σc={c}and Σ r={r}.
+Example 14. This ﬁrst example is a deterministic VPTT1= (A,Ω)represented in Figure 5. It operates
+on the input structured alphabet Σ = (Σ c,Σi,Σr)whereΣc={c},Σr={r}, andΣi=∅. It produces words
+over the alphabet ∆ ={a,b}.
+The underlying automaton is the VPAA1= (Q1,I1,F1,Γ1,δ1)where the set of states is Q1={q0,q1},
+the set of initial states is I1={q0}, the set of ﬁnal states F1={q1}, the stack alphabet is Γ1={γ}, and the
+transition relation is δ1={(q0,c,γ,q 0),(q0,r,γ,q 1),(q1,r,γ,q 1)}. The domain of T1is the language L(A1),
+i.e.the set:
+dom(T1) =L(A1) ={cnrm|1≤m≤n}
+The output morphism Ω1is deﬁned on δas follows. Ω1((q0,c,γ,q 0)) =a,Ω1((q0,r,γ,q 1)) =ba, and
+Ω1((q1,r,γ,q 1)) =a.
+A run starts in the initial state q0. When in state q0, the transducer reads any number of cand for each
+of them it outputs an aand pushes γonto the stack (push operations are represented as +γ). In state q0it
+can also read an rif the top of the stack is γ(that is if at least one cwas read before), it pops the symbol γ
+(represented as −γ), outputs the word baand changes its state to q1. While in q1, the transducer can read
+as many ras they are symbols γon the stack, for each rit outputs aand pops γ. The run is accepting if
+and only if it ends in the ﬁnal state q1.
+ClearlyT1implements the following (functional) transduction {(cnrm,anbam)|1≤m≤n}. The range
+ofT1is the context-free language range (T1) ={anbam|1≤m≤n}which is not a visibly pushdown language
+for any partition of the output alphabet.
+13
+
+--- Page 14 ---
+The next example presents a non-deterministic VPT. ThisVPTis, however, functional, furthermore
+one can easily show that there is no equivalent deterministi cVPT. In other words, it is an example of
+non-determinizable functional VPT.
+q0
+q1q2
+q3
+c/ac,+γc/bc,+γ
+a/εb/ε
+c/c,+γ
+r/r,−γ r/r,⊥c/c,+γr/r,−γ r/r,⊥
+Figure 6: A VPTT4on Σc={c}, Σr={r}, and Σ i={a,b}.
+Example 15. TheVPTT4of Figure 6 starts in state q0, it ﬁrst reads a cand guesses the last letter to
+be either an aor ab. If the last letter is an a, resp. a b, it outputs ac, resp.bc, and goes to state q1,
+resp.q2. In states q1andq2, the transducer performs a simple copy of the words formed by candrletters.
+Finally it checks that the last letter matches its initial gu ess, and if so enters the ﬁnal state q3. TheVPT
+T4implements the functional transduction {(cwα,αcw )|α∈ {a,b},w∈ {c,r}∗}. Note that T4uses return
+transition on ⊥, it permits to read the return symbol reven when the stack is empty.
+4.2. Expressiveness
+The domain of a VPTis the language accepted by its underlying automaton, there fore the domain is
+a visibly pushdown language. The range of a VPTis the image of the language of its runs by the output
+morphism. The runs of a VPAform aCFL(even aVPL), and as the image of a CFLby a morphism is a
+CFL, so is the range of a VPT. Finally, by Proposition 9, it is easy to show that for any CFLLthere exists
+aVPTsuch that its range is L.
+Proposition 16 (Domain, range and image) .LetTbe aVPT. The domain of Tis aVPL, and its range is
+aCFL. Moreover, for any CFLL′overΣ, there exists a VPTwhose range is L′. All the constructions can
+be done in PTime.
+The class of VPTis a strict subclass of pushdown transducers. Indeed, any VPTis clearly a non-
+deterministic pushdown tranducer. But some non-determini stic pushdown transductions are not VPTtrans-
+duction,forinstancethosenon-deterministicpushdowntr ansductionwhosedomainisacontext-freelanguage
+but not a VPL. Obviously, VPTforms a strict superclass of ﬁnite state transducers.
+This last result obviously does not hold for ﬁnite state tran ducers with εtransitions, as our VPTdo not
+haveε-transitions, they can, therefore, not implement all trans ductions deﬁned by such transducers.
+4.3. Closure Properties
+We now turn to closure properties. The product of a VPTT= (A,Ω) by a VPABis deﬁned as the
+VPTwhose underlying automaton is the product of AwithBand whose output is the output of T, that is
+T|B= (A⊗B,Ω◦π1) whereπ1is the projection on the ﬁrst component.
+14
+
+--- Page 15 ---
+Proposition 17 (Domain restriction) .R(T|B) =R(T)|L(B).
+The range of T|Bis equal to the image of L(B) byT. Therefore by Proposition 16, the image of a VPL
+by aVPTis a context-free language.
+Corollary 18. LetTbe aVPT, andBbe aVPA. The image of L(B)byTis a context-free language and
+anNPArepresenting it can be computed in PTime.
+Note also that for any word u∈Σ∗the language {u}is aVPL, therefore one can compute a NPA
+representing the image of a word in PTime.
+As usual, thanks to non-determinism, transductions deﬁned byVPTare closed under union.
+Proposition 19 (Closure under union) .The class of VPTis eﬀectively closed under union. A VPTrepre-
+senting the union of T1andT2can be computed in O(|T1|+|T2|).
+However, it is not closed for other operators.
+Proposition 20 (Non-Closure) .The class of VPTand ofdVPTare not closed under intersection, comple-
+ment, composition, nor inverse. The class of dVPTis not closed under union.
+Proof.The class of VPTanddVPTis not closed under intersection : inspired by ﬁnite state tr ansducers, we
+prove this result for a structured alphabet containing only internal symbols.
+Let Σ = {a,b}and ∆ = {c}be two alphabets. Let T1be a transducer deﬁning the transduction
+R(T1) ={(ambn,cm)|m,n≥0}and the transducer T2has the same underlying automaton and deﬁnes the
+transduction R(T2) ={(ambn,cn)|m,n≥0}. We have
+R(T1)∩R(T2) ={(anbn,cn)|n≥0}
+The domain of this transduction is not a VPLlanguage (remind that aandbare internals). Therefore, this
+transduction cannot be deﬁned by a VPT.
+Non-closure under inverse is a consequence of Proposition 1 6: the language of the domain and the co-
+domain do not belong to the same family of languages. It is als o a consequence of the fact that VPT, resp
+dVPT, are realtime, and thus for any VPTT, for any word w,T(w) is a ﬁnite set while a word wcan be
+the image of an inﬁnite number of input words.
+Non-closure under composition can be proved by producing tw oVPTwhose composition transforms a
+VPLinto a non CFLlanguage. Formally, let Σ = (Σ c,Σr,Σi) be the structured alphabet with Σ c={c},
+Σr={r1,r2}, Σi={a}. First consider the following VPLlanguage: L1={cnrn
+1am|n,m≥0}. We can
+easily construct a VPTthat transforms L1into the language L2={cnanrm
+2|n,m≥0}. Applying the
+identity transducer on L2restricted to well-nested words, it produces the non CFLlanguage L3={cnanrn
+2|
+n≥0}. This identity transducer has a domain which is a VPLand thus it extracts from L2the well-nested
+words which form the non CFLsetL3. Note that these two transducers are deterministic. Theref ore this
+completes the proof that neither VPTnordVPTare closed under composition.
+5. Decision Problems
+In this section, we study relevant decision problems for tra nsductions for the class of VPT: emptiness,
+membership, type checking, functionality and k-valuedness, inclusion and equivalence.
+5.1. Emptiness and Translation Membership
+Theemptiness problem asks, given a VPTT, whether R(T) =∅holds. Note that it amounts to check
+the emptiness of dom(T).
+Thetranslation membership problem asks, given a VPTTand a pair of input and output words, u∈Σ∗
+andv∈∆∗whether ( u,v)∈R(T) holds.
+The emptiness and translation membership problems are deci dable inPTimefor pushdown transducers.
+Therefore, since VPTare pushdown transducers, these results trivially hold for VPT.
+Proposition 21 (Decidable problems) .The emptiness and the translation membership problems are d ecid-
+able inPTimeforVPT.
+15
+
+--- Page 16 ---
+5.2. Type Checking
+Thetype checking problem for aVPTTagainstVPAasks, given two VPAA,Bdeﬁning respectively an
+input language L(A) and an output language L(B) whether the images of any word of the input language
+belong to the output language, i.e.whether R(T)(L(A))⊆L(B) holds.
+Theorem 22 (Type Checking) .The type checking problem for VPTagainstVPAis undecidable.
+Proof.Let Σ be an alphabet and ˆΣ = (Σ c,Σi,Σr) the tagged alphabet on Σ. Recall that πΣis the morphism
+fromˆΣ into Σ that ’removes’ the tag, i.e.a,aandaare all mapped to a. LetAbe aNPAandL=L(A)
+andA2aVPAwithL2=L(A2). LetTbe theVPTfromˆΣ into Σ such that for all u∈ˆΣ∗we have
+T(u) =πΣ(u). By Proposition 9, one can construct a VPAA1withπΣ(L(A1)) =L, that is, if L1=L(A1),
+T(L1) =L. Therefore T(L1)⊆L2if and only if L⊆L2. As the inclusion of a NPAinto aVPAis undecidable
+(Proposition 11), so is the type checking of VPTagainstVPA.
+Note that this undecidability result is not a weakness of VPTas it already holds for the type checking
+of ﬁnite state transducers against VPA(the transduction of the previous proof can be implemented b y some
+ﬁnite-state transducer).
+One way to overcome this problem is to restrict the output cla ss of languages to regular languages. In
+this case, the type checking becomes decidable in ExpTime . We will see later how to get decidability of
+type checking against VPAby restricting the class of VPT.
+5.3. Functionality
+AVPTTisfunctional ifR(T) is a function. The functionality problem aims to decide whether a VPT
+Tis functional. In this section we prove that this problem is i nPTime.
+Let us start with some example.
+q0
+q4 q6 q5q2 q1 q3
+q7
+c1/dfc,γ 1c3/a,γ3 r3/ε,γ3c1/d,γ1c3/f,γ3 r3/cab,γ 3r1/g,γ1
+r1/bg,γ1c2/ε,γ2 r2/cabcab,γ 2
+c2/abc,γ 2 r2/bca,γ 2
+Figure 7: A functional VPTon Σc={c1,c2,c3}and Σ r={r1,r2,r3}.
+Example 23. Consider the VPTTof Figure 7. Call and return symbols are denoted by candrrespectively.
+The domain of Tis dom(T) ={c1(c2)nc3r3(r2)nr1|n∈N}. For each word of dom (T), there are two accept-
+ing runs, corresponding respectively to the upper and lower part ofT(therefore it is not unambiguous). For
+instance, when reading c1, it pushes γ1and produces either d(upper part) or dfc (lower part). By following
+the upper part (resp. lower part), it produces words of the fo rmdfcab(cabcab)ng(resp.dfc(abc)na(bca)nbg).
+TheVPTTof Example 23 is functional. Indeed, the upper part performs the transformation:
+c1cn
+2c3r3rn
+2r1→dfcab(cabcab)ng=df(cab)2n+1g
+16
+
+--- Page 17 ---
+and the lower part performs:
+c1cn
+2c3r3rn
+2r1→dfc(abc)na(bca)nbg=df(cab)2n+1g
+The challenge for deciding functionality for VPTlies in the fact that for some functional VPToutputs are
+produced in some desynchronised manner and the diﬀerence in their lengths might get arbitrarily long. This
+notion has been formalized as the delaybetween two output words uandvas ∆(u,v) = ((u∧v)−1u,(u∧
+v)−1v). Note that the fact that delays remains bounded is the core o f the proof of the decidability of
+functionality for ﬁnite-state transducers [6]. As shown by this example, the delay between two outputs for
+aVPTcan grow arbitrarily, even if it is functional. Indeed, afte r reading c1cn
+2, the upper part outputs just
+d, while the lower part outputs dfc(abc)n: the delay between both outputs is fc(abc)nand grows linearly
+with the height of the stack. For Tto be functional, the upper run must catch up its delay before reaching
+an accepting state. In this case, it will catch up with the out puts produced on the return transitions.
+The decision procedure for functionality of VPTis based on the squaring construction [6] and on the
+decidability of the morphism equivalence problem [47]. The squareT2of aVPTTis realized through a
+product construction of the underlying automaton with itse lf. Intuitively, it is a transducer that simulates
+any two parallel transductions of T, where by parallel transductions we mean two transductions over the
+same input word. Each transition of the square simulates two transitions of Tthat have the same input
+letter. The output of a transition tofT2that simulates the transitions t1andt2ofTis the pair of output
+words formed by the outputs of t1andt2. If Ω is the output morphism of T, we write OTfor Ω(δ), that is,
+the set of words that are output of transitions of T, then the output alphabet of T2is the set of pairs of
+words in OT,i.e.OT×OT.
+Recall that the transitions of the product A1⊗A2of twoVPA,A1andA2(See Deﬁnition 7), are in a one
+to one correspondence with pairs formed by a transition of A1and a transition of A2over the same input
+letter. We can therefore write ( t1,t2), where t1andt2are transitions of A1andA2, to denote a transition
+ofA1⊗A2.
+Deﬁnition 24 (Square) .LetT= (A,Ω)be aVPT, whereA= (Q,I,F,Γ,δ)andΩis a morphism from δ
+to∆∗, and let OT= Ω(δ). ThesquareofTis theVPTT2= (A⊗A,Ω′)whereΩ′is a morphism from δ⊗δ
+toOT×OTdeﬁned as: Ω′((t1,t2)) = (Ω(t1),Ω(t2)).
+Note that the square T2is aVPTand therefore its range is a context-free language (Proposi tion 16) over
+the alphabet OT×OT.
+The procedure to decide functionality of a VPTTis based on the following observation. A run ρ=
+(t1,t′
+1)...(tk,t′
+k) ofT2simulates two runs, say ρ1=t1...tkandρ2=t′
+1...t′
+k, ofTover a same input word.
+Theoutputof ρisthesequenceofpairsofwordsΩ′(ρ) = Ω′((t1,t′
+1)...(tk,t′
+k)) = (Ω(t1),Ω(t′
+1))...(Ω(tk),Ω(t′
+k)).
+Therefore the projection on the ﬁrst component, resp. secon d, of the output of ρgives the output of the
+corresponding run of T, that is Ω( ρ1) and Ω(ρ2) respectively. These projections on the ﬁrst and second com -
+ponents can be deﬁned by two morphisms Π 1and Π 2as follows: Π 1((u1,u2)) =u1and Π 2((u1,u2)) =u2.
+Clearly, Tis functional if and only if these two morphisms are equal on a ny output of T2,i.e.if for all
+w= (u1,u′
+1)...(uk,u′
+k)∈range(T2) we have Π 1(w) = Π2(w) that is u1...uk=u′
+1...u′
+k. In other words
+the two morphisms must be equivalent on the range of T2.
+This last problem is called the morphism equivalence problem . It asks, given two morphisms and a
+language, whether the images of any word of the language by th e ﬁrst and the second morphism are equal.
+Lemma 25. Tis functional iﬀ Π1andΠ2are equivalent on range (T2).
+Plandowski showed that the morphism equivalence problem is decidable in PTimewhen the language is
+a context-free language given by a grammar in Chomsky normal form.
+Theorem 26 ((Plandowski [47]).) .LetΦ1,Φ2be two morphisms from Σto∆and a CFG G(alternatively
+aNPA), testing whether Φ1andΦ2are equivalent on L(G)can be done in PTime.
+By Proposition 16, one can construct in PTimea pushdown automaton that recognizes the range of T2.
+Then, applying Theorem 26 directly yields a PTimeprocedure for testing the functionality of T.
+Theorem 27 (Functionality) .Functionality of VPTis decidable in PTime.
+17
+
+--- Page 18 ---
+5.4. Equivalence and inclusion
+Theequivalence, resp. the inclusion, problems for transducers, asks whether two VPTT1andT2satisfy
+R(T1) =R(T2) (resp.R(T1)⊆R(T2)).
+These problems are already undecidable for ﬁnite-state tra nsducers [25]. Therefore, they are also unde-
+cidable for VPT.
+Let us consider now functional VPT: given two functional VPT,T1andT2, they are equivalent, resp. T1
+is included into T2, if and only if their union is functional and they have the sam e domains, resp. the domain
+T1is included into the domain of T2. The domains being VPLs, testing their equivalence or the language
+inclusion is ExpTime-c [5]. Testing the equivalence or the inclusion of the domains is easier when the VPT
+are deterministic, it can be done in PTime[5]. Therefore both procedures, i.e.equivalence or inclusion
+testing, can be done in PTimewhen the VPTare deterministic. If we assume that both transducers are
+total, then obviously we do not have to test the equality or in clusion of their domains. Therefore, in that
+case equivalence and inclusion of their transductions can a lso be tested in PTime.
+Theorem 28 (Equivalence and inclusion of fVPT).The inclusion and the equivalence problems are :
+•undecidable for VPT
+•ExpTime-c for functional VPT
+•inPTimefor either deterministic VPT[54] ortotalfunctional VPT
+5.5.k-valuedness
+Given some (ﬁxed) integer k∈Nand aVPTT,Tis said to be k-valuedifuhas at most kimages by T
+for allu∈Σ∗. Thek-valuedness problem asks, given as input a VPTT, whether it is k-valued.
+Thek-valued transductions are a slight generalization of funct ional transductions. In the case of ﬁnite
+state transducers, k-valued and functional transducers share the interesting c haracteristic to have decidable
+equivalence and inclusion problems. In this section we show that deciding k-valuedness for VPTcan be
+done in co- NPTime . We, however, leave open the question of deciding the equiva lence or the inclusion of
+k-valuedVPT.
+The idea is to generalize the construction for deciding func tionality presented in the previous section.
+This previous construction is based on the square and the mor phism equivalence problem. We use here the
+k-power and the multiple morphisms equivalence problem [29] , which generalizes the morphism equivalence
+problem to kmorphisms, instead of 2.
+The main tool of the decision procedure is the class of bounde d reversal counter automata introduced
+by Ibarra [33]. We proceed in three steps. First, we have show n in [21] that the procedure of [29] for
+deciding emptiness of such machines can be executed in co- NPTime . Second, as a direct consequence, we
+show that the procedure for deciding the multiple morphism e quivalence problem in [29] can be executed
+in co-NPTime . Finally, we show how to use this last result to decide the k-valuedness problem for VPTin
+co-NPTime .
+5.5.1. Reversal-Bounded Counter Automata
+Acounter automaton is a ﬁnite state or pushdown automaton, called the underlyin g automaton, aug-
+mented with one or several counters. On an input letter, a cou nter automaton behaves like the underlying
+automaton, but on each transition it can also increment or de crement one or several of its counters. More-
+over, the transitions can be guarded by zero tests on some of i ts counters, that is, transitions can be triggered
+conditionally depending on whether the current value of som e counters is zero.
+Deﬁnition 29. Letm∈N, acounter automaton withmcounters is a tuple C= (A,inc,dec,zero ), where
+Ais an automaton, either NFAorPA,δis the transition relation of A,inc,decandzeroare functions from
+δto{0,1}m.
+18
+
+--- Page 19 ---
+A runρof a counter automaton with mcounters is a run of its underlying automaton, that is a seque nce
+of transitions ρ=t1...tk∈δ∗, such that there exist for each 0 < i≤msomeci
+1,ci
+2...ci
+k∈Nwhich are the
+successive values of the i-th counter such that the following conditions hold:
+ci
+j+1=ci
+j+πi(inc(tj)−dec(tj))
+ci
+j= 0 ifπi(zero(tj)) = 1
+The ﬁrst condition states that the counter is incremented or decremented according to the value of the
+functions incanddecfor the transition, and the second condition asks that the va lue of the i-th counter be
+0 wheni-th component of the value of the zerofunction for the transition is 1. Note that the values ci
+jof
+the counters are natural numbers, this implies that a transi tion that induces a decrease on a counter cannot
+occur when this counter value is 0. A run is accepting if it is a n accepting run of the underlying automaton.
+As usual, the language L(A) ofAis the set of words with at least one accepting run.
+Counterautomataarepowerfulandthussomeessentialprobl emsareundecidable: withjusttwocounters,
+emptiness is undecidable [43].
+We say that a counter is in increasing mode , resp.decreasing mode , if the last operation on that counter
+was an increment, resp. a decrement. Reversal-Bounded Counter Automata , introduced by O. Ibarra in [33],
+are counter automata such that each counter can alternate at most a predeﬁned number of times between
+increasing and decreasing modes. This restriction on the be havior of the counters yields decidability of the
+emptiness problem.
+Deﬁnition 30. Letr,m∈N, anr-reversal m-counter automaton Ais anm-counter automaton such that
+in any run (accepting or not) each counter alternates at most rtimes. We denote the set of r-reversal
+m-counter automaton by RBCA(r,m), resp.RBCPA(r,m), when the underlying automaton is an NFA, resp.
+when it is an NPA.
+For ﬁnite state automata with reversal-bounded counters em ptiness is decidable in PTime(ifrandm
+are ﬁxed)[27]. The proof is developed in two steps. First the y prove that there is a witness of non-emptiness
+if and only if there is one of polynomial size. Then, testing e mptiness can be done with an NLogSpace
+algorithm similar to the one for testing emptiness of standa rdNFA.
+Interestingly, adding a pushdown store (in other words, a st ack) to these machines, does not break
+decidability of the emptiness. A procedure for deciding emp tiness of pushdown automata with reversal-
+bounded counters was ﬁrst published in [33]. In [21], we show that this procedure can be executed in co-
+NPTime (for a ﬁxed number of counters). For that we use a recent resul t that permits the construction in
+linear time ofanexistential Presburgerformula represent ingtheParikh image ofacontext-free language [56].
+Ourresulthasbeenimprovedin[28]whereitisshownthatthe co-NPTime upperboundstillholdsevenifthe
+number of counters is not ﬁxed, for a slightly more general mo del (where increment/decrement/comparisons
+of arbitrary constants are allowed). Moreover, [28] shows t hat this co- NPupper bound is also a lower bound.
+Even if the model of [28] is slightly more general (a translat ion to our setting requires an exponential blow-
+up), the proof of this lower bound can be easily adapted to our setting [53]. Therefore we have the following
+theorem.
+Theorem 31 ([33, 21, 28]) .Letm,r∈Nbe ﬁxed integers. The emptiness problem for r-reversal m-counters
+pushdown automata is co- NPComplete . This result still holds if mis not ﬁxed [28].
+5.5.2. Multiple Morphism Equivalence Problem
+Themultiple morphism equivalence problem is a generalization of the morphism equivalence problem
+(see Theorem 26). It asks, given a set of pairs of morphisms an d a language L, whether for any word uin
+Lthere is always at least one of the pairs of morphisms such tha t the image of uby both morphisms are
+equal.
+Deﬁnition 32 (MultipleMorphismEquivalenceProblem) .Givenℓpairs of morphisms (Φ1,Ψ1),...,(Φℓ,Ψℓ)
+fromΣ∗to∆∗and a language L⊆Σ∗,(Φ1,Ψ1),...,(Φℓ,Ψℓ)are equivalent on Lif for all u∈L, there
+existsisuch that Φi(u) = Ψi(u).
+19
+
+--- Page 20 ---
+The multiple morphism equivalence problem was proved to be d ecidable in [29] on any class of languages
+whose Parikh images are eﬀectively semi-linear. In the case of context-free languages, we show that it can
+be decided in co- NPTime . It is in fact a consequence of the co- NPTime bound on the emptiness test for
+RBCPA.
+Theorem 33. Letℓ∈Nbe ﬁxed. Given ℓpairs of morphisms and a pushdown automaton A, testing whether
+they are equivalent on L(A)can be done in co- NPTime .
+Proof.In order to prove this theorem, we brieﬂy recall the procedur e of [29] in the particular case of
+pushdown machines. In order to decide the morphism equivale nce problem of ℓpairs of morphisms on a CFL
+L, theideaistoconstructan RBCPA(1,2ℓ)thatacceptsthelanguage L′={w∈L|Φi(w)/\e}atio\slash= Ψi(w) for alli}.
+Clearly,L′=∅iﬀ the morphisms are equivalent on L. We construct a pushdown automaton A′augmented
+with2ℓcounters c11,c12,...,c ℓ1,cℓ2thatsimulates Aontheinputwordandcountsthelengthsoftheoutputs
+by the 2ℓmorphisms. For all i∈ {1,...,ℓ},A′guesses some position piwhere Φ i(w) and Ψ i(w) diﬀer: it
+increments in parallel (with ε-transitions) the counters ci1andci2and non-deterministically decides to stop
+incrementing after pisteps. Then when reading a letter a∈Σ, the two counters ci1andci2are decremented
+by|Φi(a)|and|Ψi(a)|respectively (by possibly several transitions as the count ers can be incremented by at
+most one at a time). When one of the counter reaches zero, A′stores the letter associated with the position
+(in the state). At the end of the computation, for all i∈ {1,...,ℓ}, one has to check that the two letters
+associated with the position piin Φi(w) and Ψ i(w) are diﬀerent. If nis the number of states of Aandmis
+the maximal length of an image of a letter a∈Σ by the 2 ℓmorphisms, then A′hasO(n·m·|∆|2ℓ) states,
+because for all 2 ℓcounters one has to store the letters at the positions repres ented by the counter values.
+This is polynomial as ℓis ﬁxed. Note that the resulting machine is 1-reversal bound ed (counters start at
+zero and are incremented up to a position in the output word, a nd then are decremented to zero).
+We can conclude the proof by combining this result with the co -NPTime procedure for testing the
+emptiness of 1-reversal counter pushdown automata (Theore m 31).
+5.5.3. Deciding k-valuedness
+We extend the squaring construction we used for deciding fun ctionality. We deﬁne a notion of k-power
+for the class of VPT, wherek∈N. Thek-power of Tsimulates kparallel executions on the same input. Note
+that this construction is possible for VPT(but not for general PTs) because two runs along the same input
+have necessarily the same stack behavior. Let T= (A,Ω) be aVPTwithA= (Q,I,F,Γ,δ) andOT= Ω(δ)
+the set of outputs of the transitions of T. As this set is ﬁnite, it, and all its power Ok
+T, can be regarded as
+an alphabet. The k-power of Tis aVPTfrom words over Σ to words over ( OT)kdeﬁned as follows.
+Deﬁnition 34 (k-Power).Thek-power of T, denoted Tk, is theVPTdeﬁned from Σto(OT)kbyTk=
+(Ak,/vectorΩ), where/vectorΩis the morphism from δk(ktimes the ⊗-product of δ) to(OT)kdeﬁned by /vectorΩ(t1,...,tk) =
+(Ω(t1),...,Ω(tk)).
+The transducer Tkcan be viewed as a machine that simulates kcopies of T. In other words let u=
+a1...an∈Σ∗, we have:
+Tk|= (p1,...pk)u/(v11,...v1k)...(vn1,...vnk)− −−−−−−−−−−−−−−−− → (q1,...qk)
+if and only if
+T|=piu/v1i...vni− −−−−−− → qifor all 1≤i≤k
+The outputs of Tkare sequences of k-tuples on OT. We consider now the morphisms that realize the
+projection of the outputs of Tkonto one of its kcomponents. For all k≥0, we deﬁne the morphisms
+Π1,...,Πkas follows:
+Πi: (OT)k→Σ∗
+(u1,...,u k)/mapsto→ui
+Clearly, we obtain the following equivalence:
+20
+
+--- Page 21 ---
+Lemma 35. Tisk-valued iﬀ (Πi,Πj)1≤i/ne}ationslash=j≤k+1are equivalent on range (Tk+1).
+Proof.First note that dom(T) =dom(Tk).
+Suppose that Tisk-valued and let β∈range(Tk+1). We prove that there exists i/\e}atio\slash=jsuch that
+Πi(β) = Π j(β). There exists u∈dom(Tk+1) such that Tk+1(u) =β. The word βcan be decomposed
+asβ= (v1
+1,...,v1
+k+1)...(vn
+1,...,vn
+k+1) where ( vj
+1,...,vj
+k+1)∈(OT)k+1for allj. SinceTisk-valued, there
+existsi/\e}atio\slash=jsuchthat v1
+i...vn
+i=v1
+j...vn
+j. BydeﬁnitionofΠ iandΠj, Πi(u) =v1
+i...vn
+i=w1
+j...wn
+j= Πj(u).
+Conversely, suppose that Tis notk-valued. Therefore there exists u∈dom(T) =dom(Tk+1) and
+v1,...,v k+1all pairwise diﬀerent such that vi∈T(u) for alli. By deﬁnition of Tk+1, eachvican be decom-
+posed as v1
+i...vn
+isuch that β= (v1
+1,...,v1
+k+1)...(vn
+1,...,vn
+k+1)∈Tk+1(u). By deﬁnition of Π 1,...,Πk+1,
+we get Π i(β) =vi/\e}atio\slash=vj= Πj(β) for alli/\e}atio\slash=j. Therefore, Π iand Π jare not equivalent on range(Tk+1).
+By Proposition 16, the language range(Tk) is a context-free language. By Theorem 33, as range(Tk) is
+represented by an automaton of polynomial size if kis ﬁxed, we get:
+Theorem 36 (k-valuedness) .Letk≥0be ﬁxed. The problem of deciding whether a VPTisk-valued is in
+co-NPTime .
+We conjecture that the equivalence of two k-valuedVPTis decidable, but leave it as an open problem.
+Fork-valuedFST, it is known to be decidable, and the procedure relies on the e xistence of a decomposition
+of anyk-valuedFSTas a ﬁnite union of functional FST[58, 50]. This decomposition is based on a notion of
+delay between output of runs on the same input. Generalising this notion of delay to VPTis a challenging
+open problem, and would likely lead to an eﬀective decomposi tion result for k-valuedVPT, as ﬁnite unions
+of functional VPT. We now show that equivalence of ﬁnite unions of functional VPTis decidable. As a
+consequence, a decomposition result for VPTwould give decidability of equivalence for k-valuedVPT.
+Lemma 37. GivenT,T1,...,T kfunctional VPT, on can decide whether R(T)⊆/uniontextk
+i=1R(Ti)?
+Proof.We reduce this problem to the emptiness of a reversal-bounde d counter pushdown automaton A,
+such that L(A)/\e}atio\slash=∅iﬀR(T)/\e}atio\slash⊆/uniontextk
+i=1R(Ti).Asimulates a run of Ton an input word u∈Σ∗, and in
+parallel, check that for all i∈ {1,...,k}, eitheru/\e}atio\slash∈dom(Ti) orTi(u)/\e}atio\slash=T(u). The construction of Ais
+similar to the k-valuedness test. Awill guess a partition P1⊎P2of{1,...,k}, will check that (1) for all
+i∈P1,u/\e}atio\slash∈dom(Ti), by simulating the run of the complement of the underlying VPAofTi(assumed to
+be deterministic), and (2) for all i∈P2,Ti(u)/\e}atio\slash=T(u), by using two counters cianddi, initialised non-
+deterministically to the same value, that point a mismatch i n the output of T(u) andTi(u) respectively at
+theci-th position, or that exhibit diﬀerent output length. As for k-valuedness test, the counter have only
+1-reversal.
+This lemma gives immediately the following theorem:
+Theorem 38. The following problem is decidable: given k1functional VPTT1,...,T k1, andk2functional
+VPTG1,...,G k2, does/uniontextk1
+i=1R(Ti) =/uniontextk2
+i=1R(Gi)hold ?
+6. Well-Nested VPT
+The main results of the previous section showed that functio nality and, more generally, k-valuedness are
+decidable for VPT. As a consequence, the equivalence and inclusion problem fo r functional VPTis decidable.
+All these problems are undecidable for pushdown transducer s.
+On the other hand, contrary to the class of NFT, the class of VPTis not closed under composition and
+the type checking problem against VPAis undecidable. A closer look at the reason for this non-clos ure and
+undecidability results points to an interesting subclass o fVPT. Both of these weaknesses of the model can
+be solved by adding a ’visibly’ constraint on the output of th eVPT.
+Indeed, the non-closure under composition can be viewed as a consequence of the fact that the stack
+of the two involved VPTare not synchronized. The stack of the ﬁrst VPTis guided by the input word,
+21
+
+--- Page 22 ---
+while the stack of the second is guided by the output of the ﬁrs tVPT. Constraining the VPTwith some
+synchronization between its input and its output yields clo sure under composition.
+A similar observation holds for the undecidability of the ty pe checking. In this problem three stacks are
+involved: the stack of the input VPA, the one of the involved transducer and the one of the output VPA.
+The stack of the input VPAand the one of the VPTare both synchronized by the input word. On the other
+hand, the stack of the output VPAis guided by the output of the VPT.
+In this section we introduce the class of well-nested VPT(wnVPT). These transducers are VPTthat
+produce words over a structured output alphabet ∆ = (∆ c,∆i,∆r). The “visibly” restriction for wnVPTasks
+the nesting level of the input and the output words to be synch ronized, that is the nesting level of the output
+just before reading a call (on the input) must be equal to the n esting level of the output just after reading
+the matching return (on the input). This simple syntactic re striction yields a subclass of VPTthat is closed
+under composition and has a decidable type checking problem againstVPLs. Recently, these positive results
+have been extended to more general classes of VPTsuitable to describe tree-to-tree transformations [49].
+6.1. Deﬁnition
+A well-nested VPTis aVPTwith a notion of synchronization between the input and the ou tput. This
+synchronization is enforced with the following syntactic r estriction: for all call and return transitions that
+use the same stack symbol, the concatenation of the output wo rd of the call transition with the output word
+of the return transition must be a well-nested word. Moreove r the output word of any internal transition
+must be a well-nested word.
+Deﬁnition 39. LetT= (A,Ω)be aVPTwithA= (Q,I,F,Γ,δ)andΩa morphism from δinto∆∗,Tis
+well-nested if:
+•For allγ∈Γ, alltc= (q,c,γ,q′)∈δcand alltr= (p,r,γ,p′)∈δr,Ω(tc)Ω(tr)is well-nested.
+•For allt∈δi, thenΩ(t)is well-nested.
+•For allt⊥= (q,r,⊥,q′)∈δr, we have that Ω(t⊥)is call-matched (all call symbols have a matching
+return).
+We denote by wnVPTthe class of well-nested VPT.
+Example 40. In the example of Figure 8 the transducer is well-nested. Ind eed, one can check that the outputs
+associated with γ1areu1=c1c2r2c2afor the call and v1=r1ar2for the return, their concatenation forms
+a well-nested word: u1v1=c1c2r2c2ar1ar2∈Σ∗
+wn. Similarly, the outputs associated with γ2areu2=c1r1a
+for the call and v2=εfor the return, their concatenation produces a well-nested word:u2v2=c1r1a∈Σ∗
+wn.
+Finally, the lone internal transition produces a well-nest ed word: c1r1∈Σ∗
+wn.
+q0 q1a/c1r1c/c1c2r2c2a,γ1 r/r1ar2,γ1
+c/c1r1a,γ2 r/ε,γ2
+Figure 8: A wnVPTfrom Σ c={c},Σr={r},and Σ i={a}to ∆c={c1,c2},∆r={r1,r2},and ∆ i={a}.
+22
+
+--- Page 23 ---
+Note that this restriction implies that, in contrast with th e class of VPT, someNFThave no equivalent
+wnVPT. Indeed, the transduction that maps all input letter to a sin gle call symbol ccannot be deﬁned by
+awnVPT, while it easily can with an NFT.
+Moreover, there are context-free languages that are not the range of any wnVPT. For example the
+context-free language {rncn|n≥0}, wherer∈∆randc∈∆c, is not the range of any wnVPT. But
+the context-free language {anbn|n≥0}, wherea,b∈∆i, is not a VPL, but it is the range of the VPT
+transduction {(cnrn,anbn)|n≥0}, which is easily deﬁned by a wnVPT. Furthermore, any VPL, and
+therefore any regular language, is, trivially, the range of somewnVPT. So the class of languages formed by
+the range of wnVPTlies in between VPLsandCFLs.
+The next proposition states that the image of a well-nested w ord by a wnVPTis always a well-nested
+word. This is easily proved by induction on the length of the i nput word (note that on a well-nested word,
+aVPTdoes not use any return transition on empty stack).
+Proposition 41. LetT∈wnVPT,u∈Σ∗
+wnandv∈T(u), thenv∈Σ∗
+wn. Moreover, for all u∈Σ∗
+wn,
+v∈Σ∗, andq,q′∈Qif(q,⊥)u|v− − →(q′,⊥)is a run of Tthenv∈Σ∗
+wn.
+In the next sections, we show that the class of well-nested VPTis closed under composition and has a
+decidable type checking problem.
+6.2. Composition
+The closure under composition of wnVPTfollows from the following observation. The well-nested pr op-
+erty ofwnVPTstates that two transitions, one that pushes a stack symbol a nd another that pops the same
+symbol, produce two words whose concatenation forms a well- nested word. This well-nested property of a
+wnVPTcarries over to sequences of transitions. This is formalize d in the following lemma and is proved
+easily by induction on the length of the sequence.
+Lemma 42. LetTbe awnVPTandv,v′be two words such that vv′∈Σ∗
+wn. For any two runs (q1,⊥)v/w−−→
+(q′
+1,σ),(q2,σ)v′/w′
+−−−→(q′
+2,⊥)ofT, thenww′∈Σ∗
+wn.
+Given two well-nested VPTT1andT2, consider a run of T1over an input word and a run of T2over the
+output of the run of T1. Because T1is aVPT, its stack content before reading a well-nested sub-word uis
+the same than after reading u, that is the stack is unchanged after reading a well-nested w ord. Moreover,
+because T1is well-nested, the output of the sub-run of T1overuis a well-nested word v. Therefore, the
+stack content of T2is the same before reading vthan after reading it. In other words, the stacks of T1and
+T2are synchronized on well-nested input words (when performi ng the composition of T1withT2), but they
+do not necessarily have the same height. As a consequence, it is possible to simulate both stacks with a
+single stack. This is achieved by considering as a single mov e the sequence of moves of the second stack on
+the sub-word v(output of the transition of T1).
+ThewnVPTTthat implements the composition of T1andT2simulates both VPTas follows. A state of
+Tis a pair of states of T1andT2. On input letter a, there is a transition from ( q1,q2) to (q′
+1,q′
+2) if there is a
+transition from state q1toq′
+1inT1producing v, and if there is a sequence of transitions ρofT2fromq2toq′
+2
+overv, all this assuming the stack content of each VPTdoes allow the moves. The output of this transition
+is the output of ρ. The content of the stack of Tconsists of pairs ( γ,σ) whereγis the stack symbol of T1
+andσis the sequence of stack symbols produced or consumed when T2readsv.
+We now formally provide the construction and prove its corre ctness.
+Theorem 43 (Closure by composition) .The class of wnVPTis closed under composition. Moreover, given
+twownVPT, one can construct in PTimeawnVPTdeﬁning their composition.
+Proof.Wlog we suppose that the alphabets have no internal symbol (t hey can be simulated by a call directly
+followed by a return, e.g.ifa∈Σithen replace it by cara∈ΣcΣr). To simplify the presentation, we do
+not give the details of the constuction of return transition s on the empty stack. Using the third item of
+23
+
+--- Page 24 ---
+Deﬁnition 39, one can prove that when a VPTT2is applied on the ouputs produced by some wnVPTT1,
+then each time the stack of T1is empty, so is that of T2.
+Consider two wnVPTT1= (A1,Ω1) andT2= (A2,Ω2). We note Ai= (Qi,Ii,Fi,Γi,δi) fori∈ {1,2}.
+We build a wnVPTTsuch that
+∀u,w∈Σ∗,w∈T(u)⇐⇒ ∃v∈Σ∗, v∈T1(u)∧w∈T2(v)
+Let Γ′={σ∈Γ∗
+2| ∃q,q′∈Q2,v∈Ω1(δ1) : (q,⊥)v/.− − →(q′,σ)}. We deﬁne T= (A,Ω) with A=
+(Q,I,F,Γ,δ) whereQ=Q1×Q2,I=I1×I2,F=F1×F2, and Γ = Γ 1×Γ′. The transition relation δis
+deﬁned as follows:
+Calls:Letc∈Σc. Then (q1,q2)c/w,(γ,σ)− −−−−− → (q′
+1,q′
+2)∈δif there exists v∈Σ∗such that ( q1,⊥)c/v− − →(q′
+1,γ) is
+a run of T1and (q2,⊥)v/w−−→(q′
+2,σ) is a run of T2.
+Returns: Letr∈Σr. Then (q1,q2)r/w,(γ,σ)− −−−−− → (q′
+1,q′
+2)∈δif there exists v∈Σ∗such that ( q1,γ)r/v− − →(q′
+1,⊥)
+is a run of T1and (q2,σ)v/w−−→(q′
+2,⊥) is a run of T2.
+First, we establish that Tis well nested. Let consider two transitions ( q1,q2)c/w,(γ,σ)− −−−−− → (q′
+1,q′
+2) and
+(q3,q4)r/w′,(γ,σ)− −−−−−− → (q′
+3,q′
+4) inδ. Let us show that ww′∈Σ∗
+wn. By deﬁnition of δ, there exist words v,v′∈Σ∗
+such that we have T2|= (q2,⊥)v/w−−→(q′
+2,σ),T2|= (q4,σ)v′/w′
+−−−→(q′
+4,⊥) andvv′∈Σ∗
+wn. Therefore by
+Lemma 42 ww′is well-nested. So we have shown that Tis awnVPT.
+Second, we prove that Trecognizes the composition of the transducers T1andT2. Letu,w∈Σ∗, we
+prove by induction on the length of uthat there exists a run ρonuinT, starting in an initial conﬁguration,
+and producing was output, if and only if there exists a word v∈Σ∗, a runρ1onuinT1, starting in an
+initial conﬁguration and producing vas output, and a run ρ2onvinT2, starting in an initial conﬁguration
+and producing was output. Moreover, if ρiends in some conﬁguration ( qi,γi
+1...γi
+ni)∈Qi×Γ∗
+i, andρ
+ends in conﬁguration (( p1,p2),(γ1,σ1)...(γk,σk))∈Q×Γ∗, then we can require that p1=q1,p2=q2,
+γ1...γk=γ1
+1...γ1
+n1andσ1...σk=γ2
+1...γ2
+n2.
+The base case u=εis trivial. For the induction, we distinguish two cases whet her the last symbol of u
+is a call or a return:
+•ifu=u′·cwithc∈Σc, then the result follows from the deﬁnition of the transitio ns ofT: there exists
+inTa push transition on cof the form (( q1,q2),⊥)c/w− − →((q′
+1,q′
+2),(γ,σ)) if and only if there exists a
+wordvand two runs in T1andT2of the form ( q1,⊥)c/v− − →(q′
+1,γ) and (q2,⊥)v/w−−→(q′
+2,σ).
+•ifu=u′·rwithr∈Σr, then again by deﬁnition of the transitions of T, there exists in Ta pop
+transition on rof the form (( q1,q2),(γ,σ))r/w− − →((q′
+1,q′
+2),⊥) if and only if there exists a word vand
+two runs in T1andT2of the form ( q1,γ)r/v− − →(q′
+1,⊥) and (q2,σ)v/w−−→(q′
+2,⊥). By the induction
+property, we have that the stacks are equal on each component , and thus the same pop transitions can
+be triggered.
+By deﬁnition, the run ρis accepting if and only if both runs, ρ1andρ2are accepting. This concludes
+the proof of the correctness of our construction.
+Remark 44. One can observe that the above construction, taking as input two transducers T1andT2, is still
+valid ifT2is not well-nested. In this case, the result of the construct ion is aVPTthat correctly implements
+the composition of T1andT2.
+24
+
+--- Page 25 ---
+6.3. Type Checking against VPL
+In this section we show that the type checking problem is deci dable for wnVPT.
+Theorem 45 (Type Checking) .The type checking problem for wnVPTagainstVPAisExpTime-c . It is
+inPTimeif theVPAconstraining the output language is deterministic.
+Proof.For theExpTime-hard part, ﬁrst note that we can construct a wnVPTTidwhose domain is the
+set of well-nested words on the structured alphabet Σ and who se relation is the identity relation. Given
+anyVPAA1,A2, we have that Tid(L(A1))⊆L(A2) if and only if L(A1)⊆L(A2). This later problem is
+ExpTime-c (See Theorem 10).
+To prove it is in ExpTime , note that given a wnVPTTand twoVPAA1,A2, we have T(L(A1))⊆L(A2)
+iﬀT|A1◦IdA2=∅, whereIdA2is awnVPTthat deﬁnes the identity function over the complement of
+L(A2) (it is of exponential size in the size of A2ifA2is non-deterministic, and of polynomial size if A2is
+deterministic). By Theorem 43, one can construct a wnVPTT′forT|A1◦IdA2inExpTime (and inPTime
+ifA2is deterministic). Finally, the emptiness test can be done i nPTimein the size of T′.
+7. Comparison to Tree Transducers
+In this section we investigate the relative expressive powe r ofwnVPTand several classes of tree trans-
+ducers.
+Relation between trees, tree automata, structured words an dVPAhave been thoroughly investigated
+in [1]. Unranked trees can be encoded as well-nested words. T he linearization of a tree is such an encoding,
+it corresponds to a depth-ﬁrst left-to-right traversal of t he tree. This encoding corresponds to the common
+interpretation of XML documents as trees [32]. A node nis encoded by a call ( i.e.an opening tag) and its
+matching return ( i.e.closing tag), and the encoding of the subtree rooted at nlies in between this call and
+return.
+Through linearization, wnVPTcan be used to deﬁne unranked tree transformations. An unran ked tree
+transformations is deﬁnable by a wnVPTif the relation on words, induced by the linearization of the input
+and output trees, is. We compare the expressive power of wnVPTon unranked trees to several models of
+tree transducers.
+With the aim to apprehend the expressive power of wnVPTwith regards to unranked tree transductions,
+we ﬁrst deﬁne the unranked tree transducers ( UTT). They are macro forest transducers without parame-
+ters [46]. We show that wnVPTare strictly less expressive than UTT. As a consequence, wnVPTare also
+less expressive than macro forest transducers, a class that includes UTT.
+A second model of unranked tree transformations is formed by the uniform tree transducers [38], a
+model inspired by XSLT [13]. We show that the expressiveness of this model is incomparable with the one
+ofwnVPT.
+Finally, a popular trick for deﬁning unranked tree transfor mations, is to ﬁrst encode trees as binary
+trees and then use a binary tree transducer, such as the top-d own tree transducers ( TDTT) [14]. We recall
+the ﬁrst-child next-sibling encoding of unranked trees int o binary trees, and we show that TDTT, with this
+encoding, are incomparable to wnVPT. However, both classes are included into macro tree transdu cers, the
+binary (or ranked) tree version of macro forest transducers .
+7.1. Unranked Trees and Hedges - Ranked Trees
+Unranked Trees and Hedges. We deﬁne unranked trees andhedges(that are sequences of unranked trees)
+over an alphabet Σ. They are deﬁned as terms over the binary op erator·(concatenation of an unranked
+tree with an hedge), the constant 0 (the empty hedge) and the a lphabet Σ. They are generated by the
+following grammar:
+h:= 0|t·h t:=f(h) wheref∈Σ
+We denote by HΣandUΣthe set of hedges and unranked trees respectively. We identi fy the tree tand
+the hedge t·0, so that UΣ⊂ HΣ. For all f∈Σ, we may write finstead of f(0). When it is clear from the
+25
+
+--- Page 26 ---
+context we may also omit the operator ·. Note that all hedges are of the form t1·····tk·0 fork≥0 and
+t1,...,tk∈ UΣ. We extend ·to concatenation of hedges in the following manner:
+(t1·····tk·0)·(t′
+1·····t′
+k′·0) =t1····tk·t′
+1·····t′
+k′·0
+Theheightof an hedge is deﬁned inductively as: height(0) = 0,height(t·h) = max( height(t),height(h)) and
+height(f(h)) = 1+ height(h) wheref∈Σ.
+Example 46. The following tree f(f(a a a)b b b)is an unranked tree. Its root is labelled by fand has 4
+children labelled f,b,b, andbrespectively. The b’s are leaves while, the fchild has 3 children labelled a.
+Ranked Trees. A ranked tree is a tree whose symbols have a predeﬁned ﬁxed num ber of children. Unranked
+trees can be encoded by ranked trees via, for example, a ﬁrst- child next-sibling encoding (fcns).
+Aranked alphabet is a pair (Σ ,ar) where Σ is an alphabet and aris a function that associates with each
+letter its arity: ar: Σ→N. Fork∈N, the set of letters of arity kis denoted by Σ k.
+The setTr
+Σofranked trees over Σ is deﬁned as the set of terms generated by the following grammar :
+t:=a|f(t1,...tk) where a∈Σ0andf∈Σk
+Abinary tree is a ranked tree whose symbols have arity 0 or 2. The set of bina ry trees is denoted by T2
+Σ.
+First-Child Next-Sibling Encoding. Unranked trees and hedges can be encoded into binary trees. W e present
+the ﬁrst-child next-sibling (fcns) encoding [14]. Each nod e of the unranked tree is encoded by a node of the
+binary tree. Consider the binary tree encoding t1of the unranked tree t2and suppose that the node n1
+int1encodes the node n2int2. The left child of n1encodes the ﬁrst child of n2, while the right child of
+n1encodes the next sibling of n2. ifn2has no child (resp. no sibling) the left (resp. right) child o fn2is
+labelled with the special symbol ⊥/∈Σ.
+The encoding is deﬁned on hedges by the function fcns : HΣ→ T2
+Σsuch that:
+fcns(0) = ⊥
+fcns(f(h)·h′) =f(fcns(h),fcns(h′))
+Example 47 (Complete Binary Trees) .Lettndenote the complete binary tree of height nover the alphabet
+Σ ={f,a}wheref, resp.a, has arity 2, resp. 0. We have t0=a,t1=f(a,a),t2=f(f(a,a),f(a,a)), and
+more generally tn=f(tn−1,tn−1). Theirfcnsencoding is deﬁned inductively as:
+fcns(t0) =a(⊥,⊥)
+fcns(t1) =f(a(⊥,a(⊥,⊥)),⊥)
+fcns(tn) =f(f(fcns(tn−2),fcns(tn−1)),⊥)
+Therefore the height of fcns(tn)is equal to 2+height(fcns(tn−1))that is
+height(fcns(tn)) = 2∗height(tn)
+Example 48 (Hedge).The hedge a1a2...anis encoded as
+a1(⊥,a2(⊥,a3(⊥,...an(⊥,⊥)...)))
+Note that the height of the hedge is 1 while the height of its fcnsencoding is equal to the number of nodes
+in the hedge.
+26
+
+--- Page 27 ---
+7.2. Unranked Tree Transductions.
+An unranked tree transduction is a relation Rubetween unranked trees, i.e.it is a subset of UΣ×UΣ.
+We present some examples that we use later to separate classe s of transductions.
+Example 49 (Yield).The yield transduction transforms a hedge into the hedge con taining its leaves. For
+example, the tree f(g(ag(bc))def)is mapped to the hedge abcdef.
+Example 50 (Duplicate) .Theduplicate transduction duplicates a subtree as follows:
+R2={f(t)→f(tt)|t∈ UΣ∧f∈Σ}
+Example 51 (Swap).Theswaptransduction swap two subtrees. It is deﬁned as Rswap={f(t1t2)→
+f(t2t1)|t1,t2∈ UΣ∧f∈Σ}.
+Example 52 (Odd).Theoddtransduction transforms trees of the form f(an)by replacing the odd, resp.
+even, leaves with leaves labelled a, resp.b. It is deﬁned as Rodd={f(a2n)→f((ab)n)|n≥0}.
+A ranked tree transduction is a relation Rrbetween ranked trees, i.e.it is a subset of Tr
+Σ×Tr
+Σ. Through
+ﬁrst-child next-sibling encoding, a ranked tree transduct ionRrcan be used to deﬁne an unranked tree
+transduction RuasRu= fcns−1◦Rr◦fcns.
+7.3.wnVPTon Unranked Trees
+Given an alphabet Σ, recall that the tagged alphabet ˆΣ is the structured alphabet deﬁned as: ˆΣ =
+(Σ,Σ,Σ) whereΣ ={a|a∈Σ}is the set of call symbols, and Σ ={a|a∈Σ}is the set of return symbols.
+Hedges to words. The linearization function lin:HΣ→ˆΣ∗transforms an hedge into a word. It corresponds
+to a depth-ﬁrst left-to-right traversal of the tree. It is de ﬁned as follows:
+lin(0) =εlin(t·h) =lin(t)lin(h)lin(f(0)) =flin(f(h)) =flin(h)f(h/\e}atio\slash= 0)
+We extend the function linto sets of hedges as usual. Let S⊂ HΣ, thenlin(S) ={lin(t)|t∈S}.
+Example 53. The word fgagbcggdef fis the linearization of the tree f(g(ag(bc))def).
+wnVPTon trees. Withthelinearizationoftrees, wecannowdeﬁneunrankedtr eetransductionwith wnVPT.
+AwnVPTTimplements a tree transduction TT⊆ UΣ×UΣif for all t∈ UΣwe have:
+R(T)(lin(t)) =lin(TT(t))
+Example 54 (Yield).The yield transduction of Example 49 is easily deﬁned by a wnVPTthat deletes all
+calls and returns and copy any internal to the output.
+q0 q1 q2 q3
+f/f,+γ a/a f/f,−γa/b
+Figure 9: A wnVPTToddon Σc={f}, Σr={r}, Σi={a,b}.
+Example 55 (Odd).The odd transduction of Example 52 maps trees of the form f(a2n)onto trees of the
+formf((ab)n), the linearization gives:
+fa a...a af →fa b...a bf
+It can be deﬁned by the wnVPTToddof Figure 9.
+Clearly, the duplicate and the swap transductions of Exampl e 50 and 51 cannot be implemented by
+wnVPT. Indeed, one can easily check that the linearization of the r ange ofR2(the duplicate transduction)
+is not context-free. While regarding Rswap, with a classical pumping argument one can prove that it is no t
+deﬁnable by a wnVPT.
+27
+
+--- Page 28 ---
+7.4. Transducers for Unranked Trees
+Unranked Tree Transducers. we present here a model of unranked tree transducers ( UTT) that run di-
+rectly on unranked trees and more generally, on hedges. They are deﬁned as parameter-free macro forest
+transducers (MFT) [46].
+WithUTT, an hedge, f(h)h′, is rewritten in a top down manner. The root node of the left mo st tree,
+f(h), is transformed into an hedge over the output alphabet acco rding to an initial rule. Some of the leaves
+of this output hedge are insertion points for the result of th e recursive application of the rules on either the
+hedgehof the children or on the hedge h′containing the siblings.
+Let Σ be an (unranked) alphabet. An unranked tree transducer (UTT) over Σ is a tuple T= (Q,I,δ)
+whereQis a set of states, I∈Qis a set of initial states and δis a set of rules of the form:
+q(0)→0 q(f(x1)·x2))→r
+whereq∈Q,h∈ HΣ,f∈Σ, andris a right-hand side generated by the following grammar:
+r::= (q,x)|0|ur|rr
+u::=f(r)
+withq∈Qandx∈ {x1,x2}.
+The semantics of Tis deﬁned via mappings /llbracketq/rrbracket:HΣ→2HΣfor allq∈Qas follows:
+/llbracketq/rrbracket(0) = {0}
+/llbracketq/rrbracket(f(h)·h′) =/uniontext
+q(f(x1)·x2)→r/llbracketr/rrbracket[x1/mapsto→h,x2/mapsto→h′]
+where /llbracket./rrbracketρfor a valuation ρ:{x1,x2} → H Σis deﬁned by:
+/llbracket0/rrbracketρ={0}
+/llbracket(q,x)/rrbracketρ=/llbracketq/rrbracket(ρ(x))
+/llbracketur/rrbracketρ={t·h|t∈/llbracketu/rrbracketρ,h∈/llbracketr/rrbracketρ}
+/llbracketr1r2/rrbracketρ={h1·h2|h1∈/llbracketr1/rrbracketρ,h2∈/llbracketr2/rrbracketρ}
+/llbracketf(r)/rrbracketρ={f(h)|h∈/llbracketr/rrbracketρ}
+The transduction of a UTTT= (Q,I,δ) is deﬁned as R(T) ={(t,t′)| ∃q∈I, t′∈/llbracketq/rrbracket(t)}.
+Example 56 (Yield).The yield transduction of Example 49 is deﬁned by a UTTT= ({q0,q},{q},δ)with
+the following rules:
+q(f(x1)·x2)→q(x1)·q(x2) for allf∈Σ
+q(f(x1)·x2)→f(q0(x1))·q(x2)for allf∈Σ
+q0(0) →0
+where the procedure (or state) qguesses (with non-determinism) whether the ﬁrst tree, with its root labelled
+f, has children or not. If it has no child then it outputs fand applies q0(which only accepts 0). Otherwise,
+it recursively calls qon the hedge of the children.
+Example 57 (Swap).The swap transduction of Example 51 is deﬁned by a UTTT= (Q,{q0},δ)with
+Q={q0,q,q′,q⊥}and the following rules:
+q⊥(0) →0
+qid(0) →0
+q0(f(x1)·x2)→f(qswap(x1))·q⊥(x2)for allf∈Σ
+qswap(f(x1)·x2)→q′(x2)·f(qid(x1) for allf∈Σ
+qid(f(x1)·x2)→f(qid(x1))·qid(x2) for allf∈Σ
+q′(f(x1)·x2)→f(qid(x1)·q⊥(x2)) for allf∈Σ
+where the procedure (or state) q0ensure that the transduction only accepts trees, qswapperform the swap
+operation, q′ensures that the root node has exactly 2 children, and qidperforms the identity transduction.
+28
+
+--- Page 29 ---
+Example 58 (Duplicate and Odd) .The duplicate and odd transduction of Example 50 and Example 52 can
+be deﬁned with a transducer similar to the UTTof the previous example.
+UTTcan in fact simulate wnVPT. Therefore they are clearly strictly more expressive than wnVPT, as
+duplicate and swap examples are deﬁnable by UTTbut not by wnVPT.
+Proposition 59. UTTare strictly more expressive than wnVPT.
+Proof.Let Σ be an alphabet and T= (Q,I,F,{γ},δ) be awnVPToverˆΣ that implements an unranked
+tree transduction. We construct an equivalent UTTT′= (Q′,I′,δ′). We let Q′=Q×QandI′=I×F.
+We informally explain the rules of T′on an example. Let h=f(h1)·h2be an hedge. Suppose that there
+exists a run of T′onhfrom a pair of states ( p1,q1). It means that there exists a run of Tonlin(h) from
+the conﬁguration ( p1,⊥) to (q1,⊥). When reading f,T′must apply a call transition of Tonfof the form
+tc= (p1,f,γ,p′
+1) for some p′
+1together with a return transition tr= (q′
+1,f,γ,p′′
+1), for some p′′
+1. Therefore
+T′has to guess the transitions to apply and continue its evalua tion ofh1from the state ( p′
+1,q′
+1) and the
+evaluation of h2from the state ( p′′
+1,q1). Ifh2is empty, then T′requires that p′′
+1=q1. The rules of T′are
+formally deﬁned as follows, for all p,p′,p′′,q,q′∈Q:
+(p,p)(0) →0
+(p,q)(f(x1)·x2)→lin−1(uyv)·(p′′,q)(x2) if
+
+tc= (p,f,γ,p′)∈δc
+tr= (q′,f,γ,p′′)∈δr
+u= Ω(tc)
+v= Ω(tr)
+y= (p′,q′)(x1)
+Note that lin−1(uyv) (where yis considered as an internal symbol) is well-deﬁned as Tis a well-nested
+VPTthat implements an unranked tree transduction. Therefore t he symbols of uandvare well-matched
+and form an unranked tree.
+AUTTT= (Q,I,δ) isnon-duplicating , resp.order-preserving , if for all rules q(f(x1)·x2))→r∈δ,
+neitherx1norx2occur more than one time in r, resp.x2never occurs before x1inrin a depth-ﬁrst
+left-to-right order. In fact non-duplicating and order-pr eserving UTTare still more expressive than wnVPT.
+Restricting further this class, one may consider non-dupli cating and order-preserving UTTsuch that the
+ruler::=rris replaced by r::=rq(x2) whereq∈Q. In other words, wnVPTareUTTsuch that the result
+of the transformation of the siblings hedge must be directly concatenated to the result of the transformation
+of the leftmost tree. Let us denote UTTSthis class.
+Proposition 60. UTTSandwnVPTare equally expressive.
+Proof.The inclusion of wnVPTintoUTTSfollows from the proof of Proposition 59 where the built UTTis
+actually a UTTS.
+Conversely, for a UTTST= (Q,I,δ), we deﬁne a wnVPTT′= (A′,Ω) overˆΣ withA′= (Q′,I′,F′,Γ′,δ′)
+such that Q′=Q,I′=F,F′={q|q(0)→0∈δ}, Γ′=δandδ′is given by:
+•tc= (q,f,q1,f(x1,x2)→u1q1(x1)u2q2(x2)) belongs to δcwith Ω(tc) =u1
+•tr= (q′,f,q2,f(x1,x2)→u1q1(x1)u2q2(x2)) belongs to δrwith Ω(tr) =u2ifq′(0)→0 is a rule from
+δ
+It can be shown by induction that for any well-nested word uoverˆΣ, there exists a run in T′from (q,⊥) to
+(q′,⊥) withq′(0)→0 is a rule from δproducing the word viﬀ inT,v∈/llbracketlin−1(u)/rrbracket.
+29
+
+--- Page 30 ---
+Uniform Tree Transducers.. Inspired by XSLT transformations, Neven and Martens [38] ha ve introduced
+uniform tree transducers (UUTT) as a simple model of unranked tree transductions. They form a strict
+subclass of UTT. They also operate in a top-down manner but a rule is always ap plied to all children
+uniformly. Their work mainly investigates the complexity o f the type checking problem parameterized by
+several restrictions on the transformations [39, 40, 41].
+Auniform tree transducer over an alphabet Σ is a tuple T= (Q,q0,δ) whereQis a ﬁnite set of states,
+q0∈Qis the initial state and δis a set of rules of the form q(a)→rwhereris inductively deﬁned by:
+r::= 0|ur u ::=a|q|f(r)
+wherea,f∈Σ,q∈Q.
+The semantics of Tis deﬁned via mappings /llbracketq/rrbracket:HΣ→2HΣfor allq∈Qas follows:
+/llbracketq/rrbracket(0) = {0}
+/llbracketq/rrbracket(t1·····tk) ={t′
+1·····t′
+k|t′
+i∈/llbracketq/rrbracket(ti),1≤i≤k}
+/llbracketq/rrbracket(f(h)) =/uniontext
+q(f)→r∈δ/llbracketr/rrbracketh
+where /llbracket./rrbrackethfor an hedge h=t1·····tk∈ HΣis deﬁned by:
+/llbracket0/rrbracketh={0}
+/llbracketur/rrbracketh={t′h′|t′∈/llbracketu/rrbracketh, h′∈/llbracketr/rrbracketh}
+/llbracketa/rrbracketh={a}
+/llbracketq/rrbracketh=/llbracketq/rrbracket(h)
+/llbracketf(r)/rrbracketh={f(h′)|h′∈/llbracketr/rrbracketh}
+The transduction of T= (Q,q0,δ) is deﬁned as R(T) ={(t,t′)|t′∈/llbracketq0/rrbracket(t)}.
+As these transducers have the ability to duplicate subtrees , they can clearly deﬁne some transductions
+that cannot be deﬁned by wnVPT. On the other hand, the transduction Roddof Example 52 cannot be
+deﬁned by a uniform tree transducer as diﬀerent transformat ions are applied on odd and even children
+respectively.
+Proposition 61. wnVPTandUUTTare incomparable.
+Macro Forest Transducers.. We deﬁned the UTTas a restriction of macro forest transducers ( MFT), they
+areMFTwithout parameters. Therefore, MFTare strictly more expressive than wnVPT. They are actually
+also strictly more expressive than UTT[46].
+7.5. Transformations by means of Ranked Tree Transducers.
+In this section we investigate the expressive power of ranke d (binary) tree transducers (that run on fcns
+encodings of unranked trees) to deﬁne unranked tree transdu ctions.
+Top-down binary tree transducers.. Let (Σ,ar) be a ranked alphabet with constant and binary symbols only.
+A top-down binary tree transducer ( TDTT) over Σ [14] is a tuple T= (Q,I,δ) whereQis a set of states,
+I⊆Qis a set of initial states and δis a set of rules of the form
+q(a)→t q (f(x1,x2))→r
+whereq∈Q,t∈ Tr
+Σ,a∈Σ0,f∈Σ2, andris a term generated by the following grammar:
+r::=a|(q,x)|f(r,r)
+wherea∈Σ0,f∈Σ2,q∈Q, andx∈ {x1,x2}.
+The semantics of Tis deﬁned via mappings /llbracketq/rrbracket:Tr
+Σ→2Tr
+Σfor allq∈Qas follows:
+/llbracketq/rrbracket(a) = {t|q(a)→t∈δ}
+/llbracketq/rrbracket(f(t1,t2)) =/uniontext
+q(f(x1,x2))→r/llbracketr/rrbracket[x1/mapsto→t1,x2/mapsto→t2]
+30
+
+--- Page 31 ---
+where /llbracket./rrbracketρfor a valuation ρ:{x1,x2} → Tr
+Σis inductively deﬁned by:
+/llbracketa/rrbracketρ ={a}
+/llbracket(q,x)/rrbracketρ=/llbracketq/rrbracket(ρ(x))
+/llbracketf(r1,r2)/rrbracketρ={f(t1,t2)|t1∈/llbracketr1/rrbracketρ,t2∈/llbracketr2/rrbracketρ}
+The transduction of a TDTTT= (Q,I,δ) is deﬁned as
+R(T) ={(t,t′)| ∃q∈I, t′∈/llbracketq/rrbracket(t)}
+The height of the image of a tree tby aTDTTis linearly bounded by the height of t.
+Proposition 62. LetTbe aTDTT. There exists k∈N, such that for all (t,t′)∈R(T),h(t′)< kh(t)
+holds.
+We recall that TDTTcan deﬁne unranked tree transductions since a TDTTTon Σ∪ {⊥}deﬁnes the
+unranked tree transduction TUgiven by fcns−1◦R(T)◦fcns =TU.
+Example 63 (Yield).The yield transduction maps every tree onto the hedge formed by its leaves. Yield
+is not deﬁnable by a TDTT. Indeed, the fcnsencoding of an hedge a1...anhas height n. Consider the
+complete binary tree of height n. The height of its fcnsencoding is proportional to n. However it has
+2nleaves. Therefore the height of the fcnsencoding of its yield is 2n. According to Proposition 62 this
+transduction cannot be deﬁned by a TDTT.
+The yield example shows that wnVPTcan deﬁne transduction that are not deﬁnable with TDTT. On the
+other hand, because TDTTcan duplicate and swap parts of the input, they can deﬁne some transductions
+thatwnVPTcannot.
+Proposition 64. TDTTandwnVPTare incomparable.
+Macro Tree Transducers.. We say that, contrary to TDTT,wnVPThave the ability to concatenate hedges
+(and so do UTT). This is the reason why TDTTcannot deﬁne the yield transduction, while wnVPTcan.
+We have already mentionned MFT; they turn out to be a slight generalization of macro tree tra nsducers
+(MTT) [19].MFTcan be viewed as macro tree transducers ( MTT) with the ability to concatenate hedges.
+However, thanks to parameters, MTThave also the possibility to express hedge concatenation (f or the
+ﬁrst-child-next-sibling encoding).
+A transduction is linear size increase when the size of every output tree is linearly bounded by the size
+of the corresponding input tree. For linear size increase tr ansduction, the class of functional macro tree
+transductions is closed under composition [37]. Moreover, anyMFTtransduction can be obtained as the
+composition of two MTT[46]. Therefore, for linear size increase functional unran ked tree transductions
+the class of macro forest and macro tree transducers are equi valent. Moreover, the linear size increase
+macro tree transductions are exactly the MSO deﬁnable funct ional transductions [18]. Functional wnVPT
+transductions are linear size increase (as there is no dupli cation), therefore MSO transductions and macro
+tree transductions subsume functional wnVPTtransductions.
+7.6. Summary
+In this section, we summarize on Fig. 10 the relative express iveness of the classes we have considered.
+UTTare strictly more expressive than TDTT. However, if the derivation r::=rris disallowed in the
+deﬁnition of the right-hand sides of UTT, we obtain a class which is equivalent to TDTTwith the fcns
+encoding of unranked trees. Indeed, a rule q(f(x1)·x2)→rof aUTTcorresponds to a rule q(f(x1,x2))→
+fcns(r) of aTDTT.
+31
+
+--- Page 32 ---
+UUTT /subsetnoteql/\e}atio\slash⊆/\e}atio\slash⊇ UTTS=wnVPT /subsetnoteqlUTT/subsetnoteqlMFT/\e}atio\slash⊆/\e}atio\slash⊇TDTT /subsetnoteql
+Figure 10: Relative expressiveness of classes of transducers for unranked trees
+8. Visibly Pushdown Transducers with Regular Look-ahead
+In this section, we investigate the extension of visibly pus hdown transducers with visibly pushdown look-
+ahead (VPTla). They are visibly pushdown transducers that can check, at a ny time, whether the longest
+well-nested subword starting at the current position belon gs to a regular (VPL) language. First, we show
+thatVPTlaare not more expressive than VPT, but are exponentially more succinct. Removing look-ahead s,
+even from a deterministic VPTla, can be done at the price of adding non-determinism, but only in an
+unambiguous manner. This closure by regular look-aheads sh ows the robustness of the class of VPT. We
+then prove that the class of deterministic VPTlacoincides exactly with the class of functional VPT, yielding
+a simple characterization of functional VPT. More generally, we show that any relation deﬁnable by a VPT
+can be uniformized by a function deﬁnable by a deterministic VPTla.
+An interesting corollary of these results is that any functi onalVPTis equivalent to an unambiguous one,
+a result which was already known [10] for VPT, and also for ﬁnite-state transducers [15, 51, 16], and whic h
+was extended to k-valued transducers and k-ambiguous ﬁnite-state transducers [50].
+Finally, we show that while VPTlaare exponentially more succinct than VPT, checking equivalence or
+inclusion of functional VPTlais, as for VPT,ExpTime-c . Additionally, we derive similar results for visibly
+pushdown automata with look-ahead.
+8.1. Deﬁnitions
+Inordertosimplifynotationsandproofswesupposethatthe structuredalphabethasnointernalsymbols,
+that is Σ = (Σ c,∅,Σr). Indeed, as previously suggested, one can encode an intern al symbol with a speciﬁc
+call symbol directly followed by a speciﬁc return symbol. Mo reover we also assume for simplicity that words
+are well-nested. More precisely, we suppose that VPAandVPTdo not allow return transitions on the empty
+stack (⊥). Furthermore, their stack must be empty in order to accept a word. It is not diﬃcult however to
+extend the results of this section to the general deﬁnitions ofVPAandVPT.
+Given a word wover Σ we denote by prefwn(w) the longest well-nested preﬁx of w. E.g. prefwn(crc) =cr,
+prefwn(crcrrcrr) =crcr. We deﬁne a VPTTwith visibly pushdown look-ahead (simply called look-ahea d
+in the sequel) informally as follows. The look-ahead is give n by aVPAA. On a call symbol c,Tcan trigger
+the look-ahead starting from a chosen initial state pof theVPA. The look-ahead tests membership of the
+longest well-nested preﬁx of the current suﬃx of the input (t hat starts by the letter c) toL(A[p]), where
+A[p] is theVPAAwith a single initial state ﬁxed to be p. If the preﬁx is in L(A[p]) then the transition of T
+can be ﬁred. When we consider nested words that encode trees, look-ahead corresponds to inspecting the
+subtree rooted at the current node and all right sibling subt rees (in other words, the current hedge).
+A visibly pushdown automaton with look-ahead is a visibly pu shdown automaton Aand a look ahead
+VPAB. Each call transition of Ais associated with a state of B. A call transition can be triggered only if
+the longest well-nested preﬁx starting at the current call p osition belong to L(B[q]).
+Deﬁnition 65 (VPAla).AVPAwith look-ahead ( VPAla) is a triple Ala= (A,B,ξ)whereA,Bare twoVPA
+andξ:δA
+c→QBis a function that associates with any call transition of Aa state of B.
+Letu∈Σ∗. A run of Alaonu=a1...alis a runρ=t1...tl∈δAofAsuch that, if tk∈δA
+c, then we
+have prefwn(ak+1...al)∈L(B[ξ(tk)]). The size of a VPAlaAla= (A,B,ξ) is the size of Aplus the size of B.
+We denote transitions of Alaas tuples ( q,α,p,γ,q′), where t= (q,α,γ,q′) is a transition of Aandp=ξ(t).
+Such transitions are also denoted by qα,p,γ− −− →q′in the sequel.
+32
+
+--- Page 33 ---
+q0c/a,qa,+γ
+c/c,q¬a,+γ
+a/a,qf,+γr/r,−γqa qf
+q¬ac,+γ
+r,−γa,+γc,+γ
+r,−γ
+a,+γ
+c,+γr,+γ
+Figure 11: A VPTla(left) and its look-ahead (right) on Σ c={c,a}and Σ r={r}
+AVPAlaisdeterministicwhentheinputsymbol, thetopofthestacks ymbolandthelook-aheaddetermine
+univocally the next transition. For call transitions, this means that the look-aheads must be disjoint, i.e.
+for a given state qand a given call symbol c, the language of the look-aheads associated with all transi tions
+fromqwith input letter cmust be disjoint. Moreover, the look-ahead automaton must b e deterministic.
+Deﬁnition 66 (Deterministic VPAla).AVPAlaAla= (A,B,ξ)is deterministic if
+•Bis deterministic
+•Ais deterministic on return transitions
+•for allt1,t2∈δA
+c, ift1andt2are transitions from the same state and on the same symbol, th en
+L(B[ξ(t1)])∩L(B[ξ(t2)]) =∅.
+Note that deciding whether some VPAlais deterministic can be done in PTime. One has to check that
+for each state qand each call symbol c, the languages of the VPLsguarding the transitions from state qand
+readingcarepairwise disjoint.
+Deﬁnition 67 (VPTla).A visibly pushdown transducer with look-ahead ( VPTla) from some alphabet Σto
+some alphabet ∆is a pair T= (Ala,Ω)whereAla= (A,B,ξ)is aVPAlaandΩis the output morphism
+deﬁne from δAto∆∗, whereδAis the transition relation of A.
+All the notions and notations deﬁned for VPT, like transduction relation, domain, range, and so on, can
+be deﬁned similarly for VPTla.
+Transducers with look-ahead are particularly well-suited for deﬁning transductions whose behavior may
+depend on some part of the input that lies further after the cu rrent position in the input word. We now
+give an example of such a transduction.
+Example 68. LetΣc={c,a},Σr={r}be the call and return symbols of the alphabet. Consider the
+transductions such that: (i)aandrare mapped to aandrrespectively; (ii)cis mapped either to cif noa
+appears in the longest well-nested word starting at c, and to aif anaappears. E.g. ccrrarcr is mapped to
+acrrarcr , andcccrrcrcarrr toaacrraraarrr .
+TheVPTlaTrepresented in Figure 11 implements this transduction. The look-ahead automaton is
+depicted on the right, while the transducer in itself is on th e left. When starting in state qa, respectively q¬a,
+the look-ahead automaton accepts well-nested words that co ntain an a, respectively do not contain any a.
+When starting in state qfit accepts any well-nested word. The transducer rewrites cintoaif the well-nested
+word starting at ccontains an a(transition on the top), otherwise it just copy a c(transition on the right).
+This is achieved using the states qaandq¬aof the look-ahead automaton. Other input symbols, i.e. aand
+r, are just copied to the output (left and bottom transitions) .
+33
+
+--- Page 34 ---
+8.2. Expressiveness
+We show in this section that adding look-aheads to VPTdoes not add expressiveness. In other words,
+everyVPTlais equivalent to a VPT. Furthermore, we show that one can eﬀectively construct an e quivalent
+VPTwith an unavoidable exponential blow-up.
+First, let us present in Example 69 a VPTthat is equivalent to the VPTladeﬁned in Example 68.
+Example 69. TheVPTTdeﬁnes the transduction of Example 68, it is deﬁned by Q={q,qa,q¬a},I={q},
+F=Q,Γ ={γ,γa,γ¬a}andδcontains the following transitions:
+qorqac/a,γ− −− →qaqorqac/a,γa− −−− → q qc/c,γ¬a− −−−− → q¬a
+qorqaa/a,γ−−−→ q q ¬ac/c,γ¬a− −−−− → q¬a
+qorq¬ar/r,γa− −−− → qaqorq¬ar/r,γ− −− → q q ¬ar/r,γ¬a− −−−− → q¬a
+The state qa, resp.q¬a, means that there is, resp. is not, an ain the longest well-nested word that starts
+at the current position. The state qindicates that there is no constraints on the appearance of a. IfTis in
+stateqand reads a c, there are two cases: it outputs an aor ac. If it chooses to output an a, then it must
+check that an aoccurs later. There are again two cases: either Tguesses there is an ain the well-nested
+word that starts just after cand takes the transitions qc/a,γ− −− →qa, or it guesses an aappears in the well-nested
+word that starts after the matching return of c, in that latter case it takes the transition qc/a,γa− −−− →qand uses
+the stack symbol γato carry over this information. If on cit chooses to output c, it must check that there
+is noalater by using the transition qc/a,γ¬a− −−−− →q¬a. Other cases are similar.
+Note that the VPTof Example 69 relies heavily on non-determinism. The constr uction we present
+replaces look-aheads with non-determinism.
+The main challenge when constructing a VPTequivalent to a given VPTlais to simulate an unbounded
+number of look-aheads at once. Indeed, a look-ahead is trigg ered at each call and is ’live’ until the end of the
+well-nested subword starting at this call. If the input word has height k≥1, then for a given run of a VPTla,
+there might be ksimultaneously running look-aheads. For example, on the wo rdckrkthere are krunning
+look-aheads after reading the last c, that is, there is one look-ahead for each strictly smaller n esting level.
+Furthermore, there is another case that might produces many simultaneous running look-aheads. Consider
+the word c1crcrcr...crr 1, in this case when reading ca new look-ahead is triggered, this look-ahead will
+run until r1, therefore, after reading ksuccessive crthere are (at least) ksimultaneous running look-aheads.
+Note that these klook-aheads all started at the same nesting level.
+Recall that summaries, that were deﬁned in the context of the determinization of VPA(see [5]), are pairs
+of states. More precisely, for a given VPA, a pair ( p,q) is a summary if there exists a well-nested word w
+such that ( q,⊥) is accessible from ( p,⊥) by reading w. In the next theorem, we uses summaries to handle
+the simulation of look-aheads that started at a strictly les s deeper nesting level and a subset construction
+for those that started at the same nesting level.
+Theorem 70. For any VPTla(resp.VPAla)Tla, withnstates, one can construct an equivalent VPT(resp.
+VPA)T′, withO(n·2n2+1)states. Moreover, if Tlais deterministic, then T′is unambiguous.
+Proof.Weﬁrstprovetheresultfor VPAla. LetAla= (A,B,ξ)withA= (Q,I,F,Γ,δ)andB= (Qla,Fla,Γla,δla).
+We construct the VPAA′= (Q′,I′,F′,Γ′,δ′) as follows (where IdQladenotes the identity relation on Qla):
+•Q′=Q×2Qla×Qla×2Qla,
+•I′={(q0,IdQla,∅)|q0∈I},
+•F′={(q,R,L)∈Q′|q∈F,L⊆Fla},
+•Γ′= Γ×2Qla×Qla×2Qla×Σc.
+34
+
+--- Page 35 ---
+The automaton A′simulates Aand its running look-aheads as follows. A state of A′is a triple ( q,R,L).
+The ﬁrst component is the state of A. The second and third components are used to simulate the run ning
+look-aheads. When reading a call c,A′non-deterministically chooses a new look-ahead triggered byA. This
+look-ahead is added to all running look-aheads that started at the same nesting level. A′ensures that the
+run will fail if the longest well-nested preﬁx starting at cis not in the language of the chosen look-ahead.
+TheLcomponent contains the states of all running look-aheads tr iggered at the current nesting level. The
+Rcomponent is the set of summaries necessary to update the L-component. When reading a call the L
+component is put onto the stack. When reading a return, A′must check that all look-ahead states in Lare
+ﬁnal, i.e. A′ensures that the chosen look-aheads are successful.
+After reading a well-nested word wifA′is in state ( q,R,L), withq∈Q,R⊆Qla×QlaandL⊆Qla,
+we have the following properties. The pair ( p,p′)∈Riﬀ there exists a run of Bfromptop′onw. If some
+p′′is inL, there exists a run of a look-ahead that started when reading a call symbol of wat depth 0 which
+is now in state p′′. Conversely, for all look-aheads that started when reading a call symbol of wat depth 0,
+there exists a state p′′∈Land a run of this look-ahead that is in state p′′.
+w c w′ r
+L
+new l-a p0
+pushc,R,L∪ {p0} popc,R,L∪ {p0}
+R L′′⊆Fla
+R′′L′R′
+Figure 12: Simulating the look-aheads
+Let us consider a word wcw′rfor some well-nested words w,w′(depicted on Fig. 12). Assume that A′
+is in state ( q,R,L) after reading w(on the ﬁgure, the relation Ris represented by dashed arrows and the
+setLby bold points, and other states by small points). We do not re present the A-component of the states
+on the ﬁgure but rather focus on RandL. The information that we push on the stack when reading cis
+the necessary information to compute a state ( q′,R′,L′) ofA′reached after reading wcw′r. After reading
+the call symbol c, we go in state ( q′,IdQla,∅) for some q′such that qc,p0,+γ− −−−− →q′∈δc, wherep0∈Qlais the
+starting state of a new look-ahead. Note that determinism of Ais preserved. On the stack we put the tuple
+(γ,R,L∪{p0},c) whereγ,R,L,p 0,chave been deﬁned before.
+Now, suppose that after reading wcw′theVPAA′is in state ( q′′,R′′,L′′). It means that Ais in state
+q′′after reading wcw′, and (p,p′)∈R′′iﬀ there exists a run of Bfromptop′onw′, andL′′is the set of
+states reached by the look-aheads that started at the same de pth asw′. Therefore we ﬁrst impose that any
+transition from ( q′′,R′′,L′′) reading rmust satisfy L′′⊆Fla. Clearly, R′can be constructed from c,Rand
+R′′. Finally, L′is a set such that for all p∈L∪{p0}, there exists p′∈L′and a run of Afromptop′on
+cw′r. If such an L′does not exist, there is no transition on r. The set L′can be constructed from L∪{p0}
+andR′′.
+We now deﬁne the transitions formally:
+1. for all q,R,L,c,γ , we have: ( q,R,L)c,(γ,R,L∪{p0},c)− −−−−−−−−−− → (q′,IdQla,∅)∈δ′
+cwhenever qc,p0,γ− −−− →q′∈δc,
+2. for all R,L,r,γ,q′′,R′′,L′′,q′,R′,L′, we have: ( q′′,R′′,L′′)r,(γ,R,L,c )− −−−−−− → (q′,R′,L′)∈δ′
+riﬀ the following
+conditions hold:
+(i)q′′r,γ− − →q′∈δr,
+35
+
+--- Page 36 ---
+(ii)L′′⊆Fla,
+(iii)R′={(p,p′)| ∃sc,γ− − →s′∈δla
+c·∃(s′,s′′)∈R′′·(p,s)∈Rands′′r,γ− − →p′∈δla
+r},
+(iv) for all p∈L, there exist p′∈L′,γ∈Γ,s,s′∈Qlasuch that ( s,s′)∈R′′,pc,γ− − →s∈δla
+c,
+s′r,γ− − →p′∈δla
+r.
+We sketch the proof of correctness of the construction. Let w∈Σ∗such that wis a preﬁx of a well-nested
+word,i.e.it is a word with no unmatched return, but it may have some unma tched calls. We deﬁne sh(w)
+as the longest well-nested suﬃx of w, we call sh(w) thesubhedge ofw. For instance, if w=c1c2r2c3r3, then
+sh(w) =c2r2c3r3. However if w=c1c2, thensh(w) =ε.
+First, one can check (e.g. by induction on the length of w) that the successive computations of the R
+component of the state ensures that the following property h olds: for all words w∈Σ∗preﬁx of a well-nested
+word, if there is a run of A′fromq′
+0to (q,R,L) onw, then for all p,p′∈Qla, (p,p′)∈Riﬀ there is a run
+ofAonsh(w) fromptop′.
+Withthislastpropertyitiseasytoshowthatthefollowingp ropertyalsoholds: let w=c1w1r1c2w2r2...cnwnrn
+where all wiare well-nested. A run of Tonwwill trigger a new look-ahead at each call ci, all these look-
+aheads will still be ’live’ until rn. These look-aheads are simulated by the Lcomponent of the state of
+A′. If there is a run of Aonw, it means that all look-aheads accepts the respective remai ning suﬃxes
+ofw, and therefore after reading rithere are iaccepting runs of the previous look-aheads. Suppose that
+those accepting runs are in the states Qiafter reading ri. By suitable choices of L-components ( A′is non-
+deterministic on L-components), we can ensure that there is an accepting run of A′such that after reading
+ritheL-component of the states is Qi, for alli. Conversely, if there is an accepting run of A′onw, then
+one can easily reconstruct accepting runs of the look-ahead s.
+Next, let show that if Ais deterministic, then A′is unambiguous. Indeed, it is deterministic on return
+transitions. If there are two possible transitions qc,p1,γ1− −−− →q1andqc,p2,γ2− −−− →q2on a call symbol c, asAis
+deterministic, we know that either the look-ahead starting inp1or the look-ahead starting in p2will fail. In
+A′, there will be two transitions that will simulate both look- aheads respectively, and therefore at least one
+continuation of the two transitions will fail as well. There fore there is at most one accepting computation
+per input word in A.
+Finally, let show that the construction also works for trans ducers. Let T= (Ala,Ω) where Ala= (A,B,ξ)
+is aVPAla. We construct T′= (A′,Ω′) whereA′is theVPAobtained as above, and Ω′is obtained thanks
+to the following observation. Each transition t′of the new VPAA′is associated with one transition tof
+the original VPAlaA(but several transitions of A′might be associated with the same transition of A). We
+simply deﬁne the output morphism Ω′(t′) as Ω(t). One can easily check that R(T) =R(T′).
+8.3. Succinctness.
+The exponential blow-up in the construction of Theorem 70 is unavoidable. Indeed, it is obviously
+already the case for ﬁnite state automata with regular look- ahead. These ﬁnite state automata can be easily
+simulated by VPAon ﬂat words (in (Σ cΣr)∗, recall that we suppose the alphabet Σ has no internal symbol )
+in that case the stack is useless. For example, consider for a llnthe language Ln={vuv| |v|=n}. One
+can construct a ﬁnite state automaton with regular look-ahe ad withO(n) states that recognizes Ln. For all
+i≤n, when reading the i-th letter aithe automaton uses a look-ahead to test whether the m−n−i-th
+letter is equal to ai, wheremis the length of the word. Without a regular look-ahead, any a utomaton has
+to store the ﬁrst nletters of win its states, then it guesses the m−n-th position and checks that the preﬁx
+of sizenis equal to the suﬃx of size n. A simple pumping argument shows that the automaton needs at
+least|Σ|nstates.
+Proposition 71 (Succinctness) .VPAlaare exponentially more succinct than VPA.
+36
+
+--- Page 37 ---
+8.4. Functional VPTandVPTla
+While there is no known syntactic restriction on VPTthat captures all functional VPT, we show that the
+class of deterministic VPTlacaptures all functional VPT. Given a functional VPTwe construct an equivalent
+deterministic VPTla. This transformation yields an exponentially larger trans ducer.
+We prove a slightly more general result: for a given VPTTwe construct a deterministic VPTlaTlasuch
+thatR(Tla) is included into R(T) and the domain of TandTlaare equal. Clearly, this implies that if Tis
+functional then TlaandTare equivalent.
+For a given VPTthe number of accepting runs associated with a given input mi ght be unbounded. The
+equivalent VPTlahas to choose only one of them by using look-aheads. This is do ne by ordering the states
+and extending this order to runs. Similar ideas have been use d in [17] to show an equivalent result for top-
+down tree transducers. The main diﬃculty with VPTis to cope with nesting. Indeed, when the transducer
+enters an additional level of nesting, its look-ahead canno t inspect the entire suﬃx but is limited to the
+current nesting level. When reading a call, choosing (thank s to some look-ahead) the smallest run on the
+current well-nested preﬁx is not correct because it may not b e possible to extend this run to an accepting
+run on the entire word. Therefore the transducer has to pass s ome information from one level to the next
+level of nesting about the chosen global run. For a top-down t ree transducer, as the evaluation is top-down,
+the transformation of a subtree is independent of the transi tion choices done in the siblings subtrees.
+Theorem 72. For allVPTT, one can construct a deterministic VPTlaTlawith at most exponentially many
+more states such that R(Tla)⊆R(T)and dom (Tla) =dom(T). IfTis functional, then R(Tla) =R(T).
+Proof.We ﬁrst sketch the construction and then formally deﬁne it.
+Sketch of the construction We order the states of Tand use look-aheads to choose the smallest runs
+wrt to an order on runs that depends on the structure of the wor d. LetT= (A,Ω) be a functional VPT
+withA= (Q,q0,F,Γ,δ). Wlog we assume that for all q,q′∈Q, allα∈Σ, there is at most one γ∈Γ such
+that (q,α,γ,q′)∈δ. A transducer satisfying this property can be obtained by du plicating the states with
+transitions, i.e. by taking the set of states Q×δ.
+We construct an equivalent deterministic VPTlaT′= ((A′,B,ξ),Ω′), where ( A′,B,ξ) is a deterministic
+VPAlawithA′= (Q′,q0,F′,Γ′,δ′) and
+•Q′={q0}∪Q2,
+•F′=F×Qifq0/\e}atio\slash∈Fotherwise F′= (F×Q)∪{q0}.
+•Γ′= Γ×Q×Q.
+The look-ahead automaton Bis deﬁned later.
+Before deﬁning δ′formally, let us explain it informally. There might be sever al accepting runs on an
+input word w, each of them producing the same output, as Tis functional. To ensure determinism, when T′
+reads one symbol it must choose exactly one transition, the l ook-ahead are used to ensure that the transition
+is part of an accepting run. The idea is to order the states by a total order <Qand to extend this order
+to runs. The look-ahead will be used to choose the next transi tion ofTthat has to be ﬁred, so that the
+choice will ensure that Tfollows the smallest accepting run on w. However the look-ahead can only visit
+the current longest well-nested preﬁx, and not the entire wo rd, so it can not, on its own, check that the run
+on this well-nested preﬁx is compatible with a complete acce pting run on the whole input word. Therefore
+the “parent” of the call chas to pass some information about the global run to its “chil d”c. In particular,
+whenT′is in state ( q,q′) for some state q′, it means that Tis in state qand the state reached after reading
+the last return symbol of the longest-well nested current pr eﬁx must be q′.
+Consider a word of the form w=c1w1r1w2c3w3r3wherewiare well-nested, this word is depicted on
+Fig. 13. Suppose that, before evaluating w,T′is in state ( q1,q3). It means that the last transition Thas
+to ﬁre when reading r3hasq3as a target state. When reading the call symbol c1,T′uses a look-ahead to
+determine the smallest triple of states ( q′
+1,q′
+2,q2) such that there exists a run on wthat starts in q1and
+such that after reading c1it is in state q′
+1, before reading r1it is in state q′
+2, after reading r1it is in state
+37
+
+--- Page 38 ---
+q2and after reading r3it is in state q3. Then,T′ﬁres the call transition on c1that with source and target
+statesq1andq′
+1respectively (it is unique by hypothesis), put on the stack t he states ( q2,q3) and passes to
+w1(in the state) the information that the chosen run on w1terminates by the state q′
+2, i.e. it goes to the
+state (q′
+1,q′
+2). (see Fig. 13). On the ﬁgure, we do not explicit all the state s and anonymous components are
+denoted by . When reading r1,T′pops from the stack the tuple ( γ,q2,q3) and therefore knows that the
+transition to apply on r1has target state q2and the transition to apply on r3has target state q3. Then it
+passesq3to the current state.
+(q1,q3)
+(q′
+1,q′
+2) ( q′
+2,q′
+2)(q2,q3) ( ,q3)
+(,) ( ,)(,q3)look-ahead to choose
+the smallest ( q′
+1,q′
+2,q2) i
+i+1c1 w1 r1 w2 c3w3r3
+push (γ,q2,q3) pop (γ,q2,q3)
+Figure 13: From VPTto deterministic VPTla.
+When the computation starts in q0, we do not know yet what return transition has to be ﬁred at the
+end of the hedge. This case can be easily treated separately b y a look-ahead on the ﬁrst call symbol that
+determine the smallest 4-tuple of states ( q1,q′
+2,q2,q3) which satisﬁes the conditions described before, but to
+simplify the proof, we assume that the VPTaccepts only words of the form cwr, wherewis well-nested, so
+that one only needs to consider triples of states.
+Formal construction of T′We deﬁne the transition relation formally. For all states q1,q′
+1,q′
+2,q2,q3∈Q,
+it is easy to deﬁne a VPAAq1,q′
+1,q′
+2,q2,q3whose size is polynomial in the size of Tthat accepts a word wiﬀ it
+is of the form c1w1r1w3wherew1,w3are well-nested and there exists a run of Tonwthat starts in state q1
+and is in state q′
+1after reading c1, in state q′
+2before reading r1, in state q2after reading r1and in state q3
+after reading w3. Note that if w3=εthen ifq3/\e}atio\slash=q2, thenw/\e}atio\slash∈L(Aq1,q′
+1,q′
+2,q2,q3). We denote by Aq1,q′
+1,q′
+2,q2,q3
+the complement of Aq1,q′
+1,q′
+2,q2,q3.
+Let<be a total order on states, extended lexicographically to tu ples. We let Bq1,q′
+1,q′
+2,q2,q3be aVPA
+with initial state pq1,q′
+1,q′
+2,q2,q3that deﬁnes the language:
+L(Bq1,q′
+1,q′
+2,q2,q3) =L(Aq1,q′
+1,q′
+2,q2,q3)∩/intersectiondisplay
+(s1,s′
+2,s2)∈Q3
+(s1,s′
+2,s2)<(q1,q′
+2,q2)L(Aq1,s1,s′
+2,s2,q3)
+SuchaVPAexistsas VPAareclosedbyintersectionandcomplement. Itssizehowever maybeexponential
+in|Q|. We deﬁne the look-ahead VPAas the union of all those VPA,B=/unionmultitextBq1,q′
+1,q′
+2,q2,q3. We now deﬁne
+the call and return transitions of A′, as well as the mappings Ω′andξ, as follows. For all c∈Σc,r∈Σr,γ∈
+Γ,q1,q′
+1,q′
+2,q3,q∈Q,u∈Σ∗:
+•ift= (q1c,γ− − →q′
+1)∈δA
+c∧Ω(t) =u, then
+t′= (q1,q3)c,(γ,q2,q3)− −−−−−− → (q′
+1,q′
+2)∈δA′
+c∧Ω′(t′) =u∧ξ(t′) =pq1,q′
+1,q′
+2,q2,q3
+•ift=q0c,γ− − →q′
+1∈δA
+c∧Ω(t) =u, then
+t′=q0c,(γ,q3,q3)− −−−−−− →∈ δA′
+c∧Ω′(t′) =u∧ξ(t′) =pq0,q′
+1,q′
+2,q3,q3(q′
+1,q′
+2)
+•ift= (q′
+2r,γ− − →q2)∈δA
+r∧Ω(t) =u, then
+t′= (q′
+2,q)r,(γ,q2,q3)−−−−−−→ (q2,q3)∈δA′
+r∧Ω′(t′) =u
+38
+
+--- Page 39 ---
+Let us show now that the transducer T′is deterministic: return transitions are fully determined by the
+statesq′
+2,q2,q3and the input letter r(by our ﬁrst assumption there is at most one transition in Tfromq′
+2to
+q2). Forcalltransitions,supposethatfrom( q1,q3)therearetwopossiblelook-aheadsfromstates pq1,q′
+1,q′
+2,q2,q3
+andpq1,s′
+1,s′
+2,s2,s3. By deﬁnition of the look-aheads, we have L(B[pq1,q′
+1,q′
+2,q2,q3])∩L(B[pq1,s′
+1,s′
+2,s2,s3]) =∅.
+Moreover, there cannot be two transitions with the same look -ahead as transitions are fully determined by
+q1,q3,q2,q′
+2,q′
+1(there is at most one call transition by our assumption with s ource and target states q1and
+q′
+1respectively). A simple analysis of the complexity shows th at the look-ahead Ahas exponentially many
+more states than T(the exponentiation comes from the complement in the deﬁnit ion ofBq1,q′
+1,q′
+2,q2,q3and
+from the intersection).
+This construction, followed by the construction of Theorem 70, allows one to recover a result that was
+already shown in [11]:
+Corollary 73. For all functional VPTT, one can eﬀectively construct an equivalent unambiguous VPTT′.
+The resulting unambiguous VPTmight be doubly exponentially larger, while the constructi on of [11],
+which is more direct, is singly exponential.
+8.5. Decision Problems
+In this section, we study the decision problems for VPAlaandVPTla. In particular, we prove that
+while being exponentially more succinct than VPA, resp.VPT, the equivalence and inclusion of VPAlaand
+functional VPTlaremains decidable in ExpTime , as equivalence of VPAand functional VPT.
+Theorem 74. The emptiness problem for VPAla, resp.VPTla, isExpTime-c , even when the look-aheads
+are deterministic.
+Proof.The upper bound for VPAlais obtained straightforwardly by ﬁrst removing the look-ah eads (modulo
+an exponential blow-up) and then checking the emptiness of t he equivalent VPA(inPTime). Checking
+emptiness of a VPTlaamounts to check emptiness of its domain, which is a VPAla.
+For the lower-bound, we reduce the problem of deciding empti ness of the intersection of ndeterministic
+top-down tree automata, which is known to be ExpTime-c [14].
+Givenndeterministictop-downbinarytreeautomata T1,...,T noveranalphabet∆, onecanconstructin
+linear-time ndeterministic VPAA1,...,A nthatdeﬁnethesamelanguagesas T1,...,T nrespectively, modulo
+thenaturalencodingoftreesasnestedwordsoverthestruct uredalphabet ˜∆ ={ca|a∈∆}⊎{ra|a∈∆}[23]
+The encoding corresponds to a depth-ﬁrst left-to-right tra versal of the tree. For instance, enc(f(f(a,b),c)) =
+cfcfcaracbrbrfccrcrf.
+We now construct a VPAlaAover the alphabet Σ = ˜∆⊎{ci|1≤i≤n}∪{ri|1≤i≤n}such that A
+is empty iﬀ/intersectiontext
+iL(Ti) =∅. The language of Acontains all words of the form wn,t=c1r1...cnrnenc(t) for
+some ranked tree t∈/intersectiontext
+iL(Ti) over ∆.
+TheVPAlaAworks as follows. The nﬁrst call symbols are used to run nlook-aheads. When the i-th call
+ciis read, a look-ahead Bichecks that enc(t)∈L(Ai): it ﬁrst count that 2( n−i+1) symbols have been read
+and go to the initial state of Ai. If the look-ahead does not accept the suﬃx, then the computa tion stops.
+Therefore there is an accepting run of Aonwn,tiﬀenc(t)∈/intersectiontext
+iL(Ai). Clearly, Ais empty iﬀ/intersectiontext
+iL(Ai) =∅.
+Finally, note that the size of |A|is polynomial in/summationtext
+i|Ai|and that as the Aiare deterministic so are the
+look-aheads.
+It is now easy to prove that testing functionality is ExpTime-c .
+Theorem 75. Functionality of VPTlaisExpTime-c , even for deterministic look-aheads.
+Proof.For theExpTime upper-bound, we ﬁrst apply Theorem 70 to remove the look-ahe ads. This results
+in aVPTpossibly exponentially bigger. Then functionality can be t ested inPTime(Theorem 27).
+The lower bound is a direct consequence of the lower bound for the emptiness problem. Indeed, one can
+construct a VPTlathat produces two diﬀerent outputs for each word in its domai n, thisVPTlais therefore
+functional if and only if it is empty.
+39
+
+--- Page 40 ---
+The equivalence and inclusion problems for VPAareExpTime-c (see [5]). Therefore, one can decide the
+equivalence and inclusion for VPAlaby ﬁrst removing the look-ahead with an exponential blow-up , and then
+use theExpTime procedure for VPA. This yields a 2- ExpTime procedure. We show in the next result,
+that it is possible to decide it in ExpTime . The idea is to construct in PTimetwo alternating (ranked)
+tree automata equivalent to the VPAmodulo the ﬁrst-child next-sibling encoding. Look-aheads are encoded
+as universal transitions. The result follows from the fact t hat the equivalence and inclusion problems for
+alternating tree automata are decidable in ExpTime [14].
+Theorem 76. The equivalence and inclusion problems for VPAlaisExpTime-c , even when the look-aheads
+are deterministic.
+Proof.LetA1,A2be twoVPA. We show how to check L(A1) =L(A2) inExpTime . Well-nested words
+over the alphabet Σ = Σ c⊎Σrcan be translated as unranked trees over the alphabet ˜Σ = Σ c×Σr. Those
+unranked trees can be again translated as binary trees via th e classical ﬁrst-child next-sibling encoding [14].
+VPAover Σ can be translated into equivalent top-down tree autom ata over ﬁrst-child next-sibling encodings
+on˜Σ of well-nested words over Σ in PTime[23]. Look-aheads of VPAinspect the longest well-nested preﬁx
+of the current suﬃx. This corresponds to subtrees in ﬁrst-ch ild next-sibling encodings of unranked trees.
+Therefore VPAwith look-aheads can be translated into top-down tree autom ata with look-aheads that
+inspect the current subtree. Top-down tree automata with su ch look-aheads can be again translated into
+alternating tree automata: triggering a new look-ahead cor responds to a universal transition towards two
+states: the current state of the automaton and the initial st ate of the look-ahead. This again can be done in
+PTime. TheVPAA1andA2are equivalent if and only if their associated alternating t rees are equivalent,
+which can be tested in ExpTime [14].
+Lower bounds Thelowerboundsareadirectconsequenceofthelowerboundf ortheemptinessproblem.
+Indeed, a VPAlais empty if and only if it is equivalent to, resp. included int o, the empty language.
+As a consequence of the ExpTime bound for testing equivalence or inclusion of VPAlaand theExpTime
+bound for testing functionality, the equivalence of two fun ctionalVPTlais inExpTime . Indeed, it amounts
+to check the equivalence or inclusion of the domains and to, t hen, check that the union is still functional.
+Theorem 77. The equivalence and inclusion problems for functional VPTlaisExpTime-c , even if the
+transducers and their look-aheads are deterministic.
+9. Conclusion
+In this paper, we have introduced the class of visibly pushdo wn transducers. We have shown that,
+contrarily to the more expressive class of pushdown transdu cers, it enjoys good algorithmic and closure
+properties. We however leave some problems as open. Let us me ntion the two that we consider the most
+important ones:
+•Problem 1 Given two k-valuedVPTT0,T1, decide whether they are equivalent.
+•Problem 2 Given a functional VPTT, decide whether it is equivalent to a deterministic one.
+The ﬁrst problem is known to be decidable for ﬁnite state tran sducers [50] and undecidable for pushdown
+transducers. Thesecondproblem is challenging for eﬃcient evaluation ofstreaming transformations. Indeed,
+a transformation that can be deﬁned by a deterministic VPTcan be evaluated with a memory that only
+stores the stack and the current state, which is, in practice , very eﬃcient on very wide and reasonably
+deep structured documents, such as XML ones. Again, this pro blem is decidable (in PTime) for ﬁnite state
+transducers [12, 59, 6] and undecidable for pushdown transd ucers.
+40
+
+--- Page 41 ---
+10. Acknowledgments
+Emmanuel Filiot is an FNRS research associate and Jean-Fran ¸ cois Raskin is Professeur Francqui de
+Recherche 2015-2018 (ULB) funded by the Francqui foundatio n. This work was partially supported by
+ANR project DELTA, grant ANR-16-CE40-0007, by the ARC proje ct “Transform” (F´ ed´ eration Wallonie-
+Bruxelles), and the FNRS CDR project “Flare” J013116F.
+References
+[1] Alur, R., 2007. Marrying words and trees. In: 26th ACM SIGMOD -SIGACT-SIGART Symposium on Principles of
+Database Systems, PODS 2007. Vol. 5140 of LNCS. pp. 233–242.
+[2] Alur, R., Arenas, M., Barcel´ o, P., Etessami, K., Immerman, N., Lib kin, L., 2008. First-order and temporal logics for
+nested words. Logical Methods in Computer Science 4 (4).
+[3] Alur, R., Chaudhuri, S., 2010. Temporal reasoning for procedu ral programs. In: Barthe, G., Hermenegildo, M. V. (Eds.),
+VMCAI. Vol. 5944 of Lecture Notes in Computer Science. Springer, pp. 45 –60.
+URLhttp://dx.doi.org/10.1007/978-3-642-11319-2
+[4] Alur, R., Madhusudan, P., 2004. Visibly pushdown languages. I n: 36th ACM symposium on Theory of computing, STOC
+2004. pp. 202–211.
+[5] Alur, R., Madhusudan, P., 2009. Adding nesting structure to wo rds. Journal of the ACM 56 (3), 1–43.
+[6] B´ eal, M.-P., Carton, O., Prieur, C., Sakarovitch, J., 200 3. Squaring transducers: an eﬃcient procedure for deciding
+functionality and sequentiality. Theoretical Computer Science 292 (1) , 45–63.
+[7] Berstel, J., dec 2009.
+[8] Boag, S., Chamberlin, D., Fernandez, M. F., Florescu, D., Robie, J. , Simon, J., 2007. XQuery 1.0: An XML query
+language, W3C recommendation.
+[9] Bray, T., Paoli, J., Maler, E., Yergeau, F., Sperberg-McQueen, C. M ., Nov. 2008. Extensible Markup Language (XML)
+1.0 (Fifth Edition). W3C recommendation, W3C, http://www.w3.org/TR/2008/REC-xml-20081126/ .
+[10] Chistikov, D. V., Majumdar, R., 2013. A uniformization th eorem for nested word to word transductions. In: Implemen-
+tation and Application of Automata - 18th International Confer ence, CIAA 2013, Halifax, NS, Canada, July 16-19, 2013.
+Proceedings. Vol. 7982 of Lecture Notes in Computer Science. Springer, pp. 97–108.
+[11] Chistikov, D. V., Majumdar, R., 2013. A uniformization th eorem for nested word to word transductions. In: CIAA. pp.
+97–108.
+[12] Choﬀrut, C., 1977. Une caract´ erisation des fonctions s´ equent ielles et des fonctions sous-s´ quentielles en tant que relations
+rationnelles. Theoretical Computer Science 5 (3), 325–337.
+[13] Clark, J., 1999. XSL Transformations (XSLT) version 1.0, W 3C recommendation.
+[14] Comon, H., Dauchet, M., Gilleron, R., Jacquemard, F., Lugiez, D., L¨ oding, C., Tison, S., Tommasi, M., 2007. Tree
+automata techniques and applications.
+[15] Eilenberg, S., 1974. Automata, Languages, and Machines. Academ ic Press.
+[16] Elgot, C. C., Mezei, J. E., 1965. On relations deﬁned by generalized ﬁnite automata. IBM Journal of Research and
+Development 9, 47–68.
+[17] Engelfriet, J., 1978. On tree transducers for partial function s. Information Processing Letters 7 (4), 170–172.
+[18] Engelfriet, J., Maneth, S., 2003. Macro tree translations of l inear size increase are MSO deﬁnable. SIAM Journal on
+Computing 32, 950–1006.
+[19] Engelfriet, J., Vogler, H., 1985. Macro tree transducers. Journa l of Computer and System Sciences 31 (1), 71–146.
+[20] Filiot, E., Gauwin, O., Reynier, P.-A., Servais, F., 2011. S treamability of nested word transductions. In: FSTTCS. pp.
+312–324.
+[21] Filiot, E., Raskin, J.-F., Reynier, P.-A., Servais, F., Talb ot, J.-M., 2010. Properties of visibly pushdown transducers. In:
+35th International Symposium on Mathematical Foundations of Co mputer Science, MFCS 2010. pp. 355–367.
+[22] Filiot, E., Servais, F., 2012. Visibly pushdown transducers wi th look-ahead. In: SOFSEM 2012: Theory and Practice of
+Computer Science - 38th Conference on Current Trends in Theory and Practi ce of Computer Science, ˇSpindler˚ uv Ml´ yn,
+Czech Republic, January 21-27, 2012. Proceedings. Vol. 7147 of Lecture Notes in Computer Science. Springer, pp. 251–263.
+[23] Gauwin, O., 2009. Streaming tree automata and xpath. Ph.D . thesis, Universit´ e Lille 1.
+URLhttp://tel.archives-ouvertes.fr/tel-00421911/
+[24] Gauwin, O., Niehren, J., Tison, S., 2009. Earliest query answeri ng for deterministic nested word automata. In: 17th
+International Symposium on Fundamentals of Computation Theory , FCT 2009. Vol. 5699 of LNCS. pp. 121–132.
+[25] Griﬃths, T. V., 1968. The unsolvability of the equivalence pr oblem for lambda-free nondeterministic generalized machines.
+Journal of the ACM 15 (3), 409–413.
+[26] Groups, W. X. Q. W., 2007. The XPath 2.0 standard.
+[27] Gurari, E. M., Ibarra, O. H., 1983. A note on ﬁnite-valued a nd ﬁnitely ambiguous transducers. Theory of Computing
+Systems 16 (1), 61–66.
+[28] Hague, M., Lin, A. W., 2011. Model checking recursive programs with numeric data types. In: 23rd International Confer-
+ence on Computer Aided Veriﬁcation, CAV 2011. pp. 743–759.
+[29] Harju, T., Ibarra, O. H., Karhumaki, J., Salomaa, A., 20 02. Some decision problems concerning semilinearity and com-
+mutation. Journal of Computer and System Sciences 65, 278–294.
+41
+
+--- Page 42 ---
+[30] Harris, W. R., Jha, S., Reps, T. W., 2012. Secure programming v ia visibly pushdown safety games. In: Madhusudan, P.,
+Seshia, S. A. (Eds.), Computer Aided Veriﬁcation - 24th Internationa l Conference, CAV 2012, Berkeley, CA, USA, July
+7-13, 2012 Proceedings. Vol. 7358 of Lecture Notes in Computer Science. Sp ringer, pp. 581–598.
+[31] Heizmann, M., Hoenicke, J., Podelski, A., 2010. Nested interpolan ts. In: Hermenegildo, M. V., Palsberg, J. (Eds.), POPL.
+ACM, pp. 471–482.
+[32] Hors, A. L., Hgaret, P. L., Wood, L., Nicol, G., Robie, J., Cha mpion, M., Byrne, S., 2004. Document object model (dom),
+W3C recommendation.
+[33] Ibarra, O. H., 1978. Reversal-bounded multicounter machines a nd their decision problems. Journal of the ACM 25 (1),
+116–133.
+[34] Koch, C., Scherzinger, S., 2007. Attribute grammars for scal able query processing on XML streams. International Journal
+on Very Large Data Bases 16 (3), 317–342.
+[35] Kumar, V., Madhusudan, P., Viswanathan, M., 2007. Visibly pushdown automata for streaming XML. In: 16th interna-
+tional conference on World Wide Web, WWW 2007. pp. 1053–1062.
+[36] Madhusudan, P., Viswanathan, M., 2009. Query automata for nested words. In: 34th International Symposium on Math-
+ematical Foundations of Computer Science, MFCS 2009. Vol. 5734 of LN CS. Springer Berlin / Heidelberg, pp. 561–573.
+[37] Maneth, S., 2003. The macro tree transducer hierarchy collapses fo r functions of linear size increase. In: 23rd Conference
+on Foundations of Software Technology and Theoretical Computer S cience, FST TCS 2003. pp. 326–337.
+[38] Martens, W., Neven, F., 2003.Typecheckingtop-downuniformu nrankedtreetransducers.In: 9thInternationalConference
+on Database Theory, ICDT 2003. pp. 64–78.
+[39] Martens, W., Neven, F., 2004. Frontiers of tractability for ty pechecking simple xml transformations. In: 23th ACM
+SIGMOD-SIGACT-SIGART Symposium on Principles of Database System s, PODS 2004. pp. 23–34.
+[40] Martens, W., Neven, F., 2005. On the complexity of typechecking t op-down xml transformations. Theoretical Computer
+Science 336 (1), 153–180.
+[41] Martens, W., Neven, F., 2007. Frontiers of tractability for ty pechecking simple xml transformations. Journal of Computer
+and System Sciences 73 (3), 362–390.
+[42] Megginson, D., 2004. Simple API for XML (SAX 2.0).
+URLhttp://www.saxproject.org/
+[43] Minsky, M. L., 1967. Finite and Inﬁnite Machines. Prentice-Ha ll.
+[44] Murata, M., 1999. Hedge automata: a formal model for xml sch emata.
+[45] Neven, F., Schwentick, T., 2002. Query automata over ﬁnite tr ees. Theor. Comput. Sci. 275 (1-2), 633–674.
+URLhttp://dx.doi.org/10.1016/S0304-3975(01)00301-2
+[46] Perst, T., Seidl, H., 2004. Macro forest transducers. Information Processing Letters 89 (3), 141–149.
+[47] Plandowski, W., 1994. Testing equivalence of morphisms on contex t-free languages. In: Second Annual European Sympo-
+sium on Algorithms, ESA 1994. pp. 460–470.
+[48] Raskin, J.-F., Servais, F., 2008. Visibly pushdown transducers. In: 35th International Colloquium on Automata, Languages
+and Programming, ICALP 2008. Vol. 5126 of LNCS. pp. 386–397.
+[49] Reynier, P.-A., Talbot, J.-M., 2014. Visibly pushdown tran sducers with well-nested outputs. In: Proc. 18th International
+Conference on Developments in Language Theory (DLT’14). Vol. 8633 o f LNCS. Springer, pp. 129–141.
+[50] Sakarovitch, J., de Souza, R., 2010. Lexicographic decomposi tion of k -valued transducers. Theory of Computing Systems
+47 (3), 758–785.
+[51] Sch¨ utzenberger, M. P., 1976. Sur les relations rationnelles ent re monoides libres. Theoretical Computer Science 3 (2),
+243–259.
+[52] Segouﬁn, L., Vianu, V., 2002. Validating streaming XML docu ments. In: 21th ACM SIGMOD-SIGACT-SIGART Sym-
+posium on Principles of Database Systems, PODS 2002. pp. 53–64.
+[53] Servais, F., 2011. Visibly pushdown transducers. Ph.D. thesis, Uni versit´ e Libre de Bruxelles.
+URLhttp://theses.ulb.ac.be/ETD-db/collection/available /ULBetd-09292011-142239/
+[54] Staworko, S., Laurence, G., Lemay, A., Niehren, J., 2009. Equi valence of deterministic nested word to word transducers.
+In: 17th International Symposium on Fundamentals of Computati on Theory, FCT 2009. Vol. 5699 of LNCS. pp. 310–322.
+[55] Thomo, A., Venkatesh, S., Ye, Y. Y., 2008. Visibly pushdown tra nsducers for approximate validation of streaming XML.
+In: 5th international conference on Foundations of information a nd knowledge systems, FoIKS 2008. pp. 219–238.
+[56] Verma, K. N., Seidl, H., Schwentick, T., 2005. On the complexi ty of equational horn clauses. In: 20th International
+Conference on Automated Deduction, CADE 2005. Vol. 3632 of LNCS. pp . 337–352.
+[57] Walmsley, P., Fallside, D. C., Oct. 2004. XML Schema Part 0: Pri mer Second Edition. W3C recommendation, W3C,
+http://www.w3.org/TR/2004/REC-xmlschema-0-20041028/ .
+[58] Weber, A., 1993. Decomposing ﬁnite-valued transducers and deciding their equivalence. SIAM Journal on Computing
+22 (1), 175–202.
+[59] Weber, A., Klemm, R., 1995. Economy of description for single-val ued transducers. Information and Computation 118 (2),
+327–340.
+42

@@ -1,0 +1,2338 @@
+--- Page 1 ---
+15
+Software Model Checking Using Languages of Nested Trees
+RAJEEV ALUR , University of Pennsylvania
+SWARAT CHAUDHURI , Rice University
+P . MADHUSUDAN , University of Illinois
+While model checking of pushdown systems is by now an established technique in software veriﬁcation,
+temporal logics and automata traditionally used in this area are unattractive on two counts. First, logicsand automata traditionally used in model checking cannot express requirements such as pre/post-conditionsthat are basic to analysis of software. Second, unlike in the ﬁnite-state world, where the μ-calculus has
+a symbolic model-checking algorithm and serves as an “assembly language” to which temporal logics canbe compiled, there is no common formalism—either ﬁxpoint-based or automata-theoretic—to model-checkrequirements on pushdown models. In this article, we introduce a new theory of temporal logics and automatathat addresses the above issues, and provides a uniﬁed foundation for the veriﬁcation of pushdown systems.
+The key idea here is to view a program as a generator of structures known as nested trees as opposed
+to trees. A ﬁxpoint logic (called N
+T-μ) and a class of automata (called nested tree automata ) interpreted on
+languages of these structures are now deﬁned, and branching-time model-checking is phrased as languageinclusion and membership problems for these languages. We show that N
+T-μand nested tree automata
+allow the speciﬁcation of a new frontier of requirements usable in software veriﬁcation. At the same time,their model checking problem has the same worst-case complexity as their traditional analogs, and can besolved symbolically using a ﬁxpoint computation that generalizes, and includes as a special case, “summary”-based computations traditionally used in interprocedural program analysis. We also show that our logics andautomata deﬁne a robust class of languages—in particular, just as the μ-calculus is equivalent to alternating
+parity automata on trees, NT- μis equivalent to alternating parity automata on nested trees.
+Categories and Subject Descriptors: D.2.4 [ Software Engineering ]: Software/Program Veriﬁcation— Model
+checking ; F.1.1 [ Computation by abstract devices ]: Models of computation— Automata ; F.3.1 [ Theory of
+Computation ]: Specifying and Verifying and Reasoning about Programs; F.4.1 [ Theory of Computation ]:
+Mathematical Logic— Temporal logic
+General Terms: Algorithms, Theory, VeriﬁcationAdditional Key Words and Phrases: Logic, speciﬁcation, veriﬁcation, μ-calculus, inﬁnite-state, model-
+checking, games, pushdown systems, interprocedural analysis
+ACM Reference Format:
+Alur, R., Chaudhuri, S., and Madhusudan, P. 2011. Software model checking using languages of nested trees.
+ACM Trans. Program. Lang. Syst. 33, 5, Article 15 (November 2011), 45 pages.DOI=10.1145/2039346.2039347 http://doi.acm.org/10.1145/2039346.2039347
+This work was partially supported by the National Science Foundation under CAREER award #0953507 and
+CAREER award #0747041.Authors’ addresses: R. Alur, Computer and Information Science Department, University of Pennsyl-
+vania, 3451 Walnut Street, Philadelphia, PA 19104; email: alur@cis.upoenn.edu; S. Chaudhuri, Com-
+puter Science Department, Rice University, 6100 Main, Houston, TX 77005; email: swarat@rice.edu;P. Madhusudan, University of Illinois at Urbana-Champaign, 601 East John Street, Champaign, IL 61802;email: madhu@illinois.edu.
+Permission to make digital or hard copies of part or all of this work for personal or classroom use is granted
+without fee provided that copies are not made or distributed for proﬁt or commercial advantage and thatcopies show this notice on the ﬁrst page or initial screen of a display along with the full citation. Copyrights forcomponents of this work owned by others than ACM must be honored. Abstracting with credit is permitted.
+To copy otherwise, to republish, to post on servers, to redistribute to lists, or to use any component of this
+work in other works requires prior speciﬁc permission and/or a fee. Permissions may be requested fromPublications Dept., ACM, Inc., 2 Penn Plaza, Suite 701, New York, NY 10121-0701 USA, fax +1 (212)
+869-0481, or permissions@acm.org.
+c/circlecopyrt2011 ACM 0164-0925/2011/11-ART15 $10.00
+DOI 10.1145/2039346.2039347 http://doi.acm.org/10.1145/2039346.2039347
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 2 ---
+15:2 R. Alur et al.
+1. INTRODUCTION
+Because of concerted research over the last three decades, model checking of ﬁnite-
+state reactive systems is now well understood theoretically as well as applied in
+practice [Clarke et al. 1999]. The theories of temporal logics and automata have
+played a foundational role in this area. For example, in branching-time model checking[Emerson and Clarke 1982; Emerson and Lei 1985], the problem is to verify require-
+ments such as: “Every execution of the system must eventually reach a state ssuch
+that every state reachable from ssatisﬁes a certain property.” These requirements are
+written formally using ﬁnite-state tree automata or temporal logics like the μ-calculus.
+Due to deep relationships between these formalisms and the theory of tree languages,
+the veriﬁcation problem becomes equivalent to the following language-theoretic ques-tion: does the tree unfolding of the system belong to an ω-regular language of trees
+satisfying this requirement? Decision procedures based on ﬁxpoints [Emerson and Lei
+1985] or tree automata [Kupferman et al. 2000] are now used to answer this question.
+Veriﬁcation of software, however, is a different story. Unlike in the veriﬁcation of
+ﬁnite-state systems, now we must handle unbounded data structures, allocated on the
+heap as well as the stack. The software model checking approach [Ball and Rajamani2001] to this problem is based on data abstraction . Here, the data in the program is
+abstracted by a ﬁnite number of bits, but the semantics of control—loops, branches and
+procedure calls—are modeled precisely. As most realistic programs have proceduralcontrol ﬂow, it is common in this setting to abstract programs using pushdown models ,
+or ﬁnite-state machines equipped with a pushdown stack (variants such as recursive
+state machines [Alur et al. 2005] and boolean programs [Ball and Rajamani 2000] have
+also been considered). Such a machine is viewed as a generator of a tree unfolding
+capturing all executions of the program; the program is correct if this tree belongs tothe language of “correct” trees. Model checking is performed as before using language-
+theoretic decision procedures.
+There are, of course, deviations from the classical setting: since pushdown models
+have inﬁnitely many conﬁgurations, answering these queries requires inﬁnite-state
+model checking . Many positive results are known in this area—for instance, model-
+checking the μ-calculus, often called the “assembly language for temporal logics,” is
+decidable on sequential pushdown models [Walukiewicz 2001; Burkart and Steffen
+1999]. However, many attractive computational properties that hold in the ﬁnite-state
+world are lost. For instance, consider the property: “A state satisfying a proposition p
+is reachable from the current state.” This property is expressible in the μ-calculus by
+a formula ϕ=μX.(p∨/angbracketleft /angbracketrightX). In ﬁnite-state model checking, ϕnot only states a property,
+but syntactically encodes a symbolic ﬁxpoint computation: start with the states satisfy-ingp, add states that can reach the previous states in one step, then two steps, and so
+on. This is the reason why hardware model-checkers like SMV translate a speciﬁcation
+given in a simpler logic into the μ-calculus, which is now used as a directive for ﬁx-
+point computation. Known model-checking algorithms for the μ-calculus on pushdown
+models, however, are complex and do not follow the structure of the formula. In par-
+ticular, they cannot capture the natural, “summarization”-based ﬁxpoint computationsfor interprocedural software analysis that have been known for years [Reps et al. 1995;
+Sharir and Pnueli 1981].
+Another issue with directly applying classical temporal speciﬁcations in this context
+is expressiveness. Traditional logics and automata used in model-checking deﬁne reg-
+ular languages of words and trees, and cannot argue about the unbounded nesting of
+calls and returns found in recursive programs. Consider the property of local reach-
+ability : “a state satisfying pis reachable in the same procedural context (i.e., before
+control returns from the current context, and not within the scope of new contexts
+transitively spawned from this context via calls).” This property cannot be captured
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 3 ---
+Software Model Checking Using Languages of Nested Trees 15:3
+Fig. 1 . A nested tree.
+by regular languages of words or trees. Other requirements include Floyd-Hoare-style
+preconditions and postconditions [Hoare 1969] (“if pholds at a procedure call, then
+qholds on return”), interface contracts used in real-life speciﬁcation languages such
+as JML [Burdy et al. 2003], stack-sensitive access control requirements arising in
+software security [Wallach and Felten 1998], and interprocedural dataﬂow analysis[Reps 1998].
+While checking pushdown requirements on pushdown models is undecidable in gen-
+eral, individual static analysis techniques are available for all the above applications.There are practical static checkers for interface speciﬁcation languages and stack
+inspection-type properties, and interprocedural dataﬂow analysis [Reps et al. 1995]
+can compute dataﬂow information involving local variables. Less understood is theclass of languages to which these properties correspond and the way they relate to
+each other. Is there a uniﬁed logical formalism that can connect all these seemingly
+disparate dots, extending the model-checking paradigm to properties such as above?Can we offer the programmer a ﬂexible, decidable temporal logic or automaton model
+to write these requirements?
+These are not merely academic questions. A key practical attraction of model-
+checking is that a programmer, once offered a temporal speciﬁcation language, can
+tailor a program’s requirements without getting lost in implementation details. A logic
+as above would extend this paradigm to interprocedural reasoning. Adding syntacticsugar to it, one could obtain domain-speciﬁc applications—for example, one can con-
+ceive of a language for module contracts or security policies built on top of such a
+formalism.
+1.1. Our Contributions
+In this article, we offer a new theory of logics and automata that forms a uniﬁedformal basis for branching-time model checking of procedural programs. (The articleconsolidates results that we have previously published as conference articles [Alur et al.
+2006a, 2006b], and generalizes similar efforts for the simpler linear-time setting [Alur
+and Madhusudan 2009; 2004; 2006].) Unlike in prior approaches, we do not view the
+program as the generator of a tree unfolding. Instead, a program is modeled by a
+pushdown model called a nested state machine , whose unfolding is given by a graph
+called a nested tree (Figure 1). This graph is obtained by augmenting the inﬁnite tree
+unfolding of the program with a set of extra edges, known as jump-edges , that connect
+a node in the tree representing a procedure call to the tree nodes representing thematching returns of the call. As a call may have a number of matching returns along
+the different paths from it, a node may have multiple outgoing jump-edges. As calls
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 4 ---
+15:4 R. Alur et al.
+and returns in executions of a structured program are properly nested, jump-edges
+never cross.
+We develop a theory of regular languages of nested trees through a ﬁxpoint logic and
+ac l a s so f ω-automata interpreted on nested trees. The former is analogous to, and a
+generalization of, the μ-calculus [Kozen 1983; Gr ¨adel et al. 2002] for trees; the latter
+are generalizations of tree automata. The branching-time model-checking question nowbecomes: Does the nested tree generated by a program belong to the language of nested
+trees deﬁned by the requirement?
+Our ﬁxpoint calculus over nested trees is known as N
+T-μ. The variables of this calcu-
+lus evaluate not over sets of states, but rather over sets of substructures that capture
+summaries of computations in the “current” program block. The ﬁxpoint operators in
+the logic then compute ﬁxpoints of summaries. For a node sof a nested tree repre-
+senting a call, consider the tree rooted at ssuch that the leaves correspond to exits
+from the current context. In order to be able to relate paths in this subtree to the trees
+rooted at the leaves, we allow marking of the leaves: a 1-ary summary is speciﬁed bythe root sand a subset Uof the leaves of the subtree rooted at s. Each formula of the
+logic is evaluated over such a summary. The central construct of the logic corresponds
+to concatenation of call trees: the formula /angbracketleftcall/angbracketrightϕ{ψ}holds at a summary /angbracketlefts,U/angbracketrightif the
+node srepresents a “call” to a new context starting with node t, there exists a summary
+/angbracketleftt,V/angbracketrightsatisfying ϕ, and for each leaf vthat belongs to V, the subtree /angbracketleftv,U/angbracketrightsatisﬁes ψ.
+Intuitively, a formula /angbracketleftcall/angbracketrightϕ{ψ}asserts a constraint ϕon the new context, and requires
+ψto hold at a designated set of return points of this context. To state local reachability,
+we would ask, using the formula ϕ, that control returns to the current context, and,
+using ψ, that the local reachability property holds at some return point. While this
+requirement seems self-referential, it may be captured using a ﬁxpoint formula.
+We show that N
+T-μcan express requirements like local reachability, Hoare-style
+pre- and postconditions, and stack-sensitive access control properties, which refer to
+the nested structure of procedure calls and returns and are not expressible in tradi-
+tional temporal logics. We also show that model checking N T-μon pushdown models is
+EXPTIME -complete, and therefore equal in complexity to the problem of model checking
+the far weaker logic C TL[Walukiewicz 2001] on these abstractions. Like the classi-
+cal symbolic algorithm for model checking the μ-calculus on ﬁnite-state systems, but
+unlike the far more complex algorithm for μ-calculus model checking on pushdown sys-
+tems, our algorithm computes symbolic ﬁxpoints in a syntax-directed way (except in
+this case, the sets used in the ﬁxpoint computation are sets of summaries rather thanstates). The kind of summary computation traditionally known in interprocedural pro-
+gram analysis is a special case of this algorithm. Thus, just like the μ-calculus in case
+of ﬁnite-state programs, N
+T-μcan be used as a language into which interprocedural
+program analyses can be compiled.
+As for automata on nested trees, they are a natural generalization of automata on
+trees. While reading a node in a tree, a tree automaton can nondeterministically pickdifferent combinations of states to be passed along tree edges. In contrast, an automaton
+on nested trees can send states along tree edges and jump edges , so that its state while
+reading a node depends on the states at its parent and the jump-predecessor (if oneexists). As jump-edges connect calls to matching returns, these automata naturally
+capture the nesting of procedural contexts.
+Like tree automata, automata on nested trees come in nondeterministic and al-
+ternating ﬂavors, and can accept nested trees by various acceptance conditions. As
+parity is the most powerful of the acceptance conditions common in ω-automata theory,
+we mainly focus on two classes of such automata: nondeterministic parity automata on
+nested trees (N
+PNTAs) and alternating parity automata on nested trees (A PNTAs). These
+automata can nondeterministically label a nested tree with states while maintaining
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 5 ---
+Software Model Checking Using Languages of Nested Trees 15:5
+constraints like “If a node is labeled q, then all its tree-children are labeled with the
+states q1andq2, and all its jump-children are labeled q2andq3” (this is an example of an
+alternating constraint). We ﬁnd that, unlike in the setting of tree automata, nondeter-ministic and alternating automata have different expressive power here, and A
+PNTAs
+enjoy more robust mathematical properties. For example, these automata are closed
+under all Boolean operations. Also, automata-theoretic model checking using A PNTAsi s
+EXPTIME -complete, matching that for alternating tree automata on pushdown models.
+In a result analogous to the equivalence between the μ-calculus and alternating
+parity tree automata, we ﬁnd that N T-μhas the same expressive power as A PNTAs.
+This strengthens our belief that N T-μis not just another ﬁxpoint logic, but captures
+the essence of regularity in nested trees. Our proof offers polynomial translations from
+APNTAst oN T-μand vice-versa, as well as insights about the connection between runs
+of A PNTAs and the notion of summaries in N T-μ. This result is especially intriguing as
+the model checking algorithms for N T-μand A PNTAs are very different in ﬂavor—while
+the latter reduces to pushdown games, the former seems to have no connection to thevarious previously known results about trees, context-free languages, and pushdown
+graphs. It also helps us compare the expressiveness of N
+T-μwith that of classical
+temporal logics and the temporal logic C ARET [Alur et al. 2004], which is a linear-time
+temporal logic for context-sensitive speciﬁcation. Finally, we show that the satisﬁability
+problem for N T-μand the emptiness problem of A PNTAs are undecidable—another
+intriguing difference between languages of nested trees and languages of trees.
+1.2. Organization
+The structure of this article is as follows. In Section 2, we deﬁne nested trees, and
+introduce nested state machines as abstractions of structured programs. In Section 3,
+we present the logic N T-μand show that it is closed under bisimulation; in Section 4, we
+demonstrate its use in specifying program properties. In Section 5, we discuss in detail
+our symbolic model-checking algorithm for N T-μ. In Section 6, we introduce automata
+on nested trees. In Section 7, we study expressiveness results concerning N T-μand
+automata on nested trees—in particular, the equivalence of N T-μand A PNTAs. We
+conclude with some discussion in Section 8.
+2. NESTED TREES
+In the formal methods literature, the branching behavior of a nondeterministic program
+is commonly modeled using inﬁnite trees [Clarke et al. 1999]. The nondeterminism in
+the program is modeled via tree branching, so that each possible program execution
+is a path in the tree. Nested trees are obtained by augmenting this tree with an extraedge relation, known as the jump-edge relation . A jump-edge connects a tree node
+representing a procedure call to the node representing the matching return. Thus, a
+nested tree model of program behavior carries more information about the structure ofthe program than a tree model.
+As calls and returns in structured programs are nested, jump-edges in nested trees
+do not cross, and calls and returns are deﬁned respectively as sources and targetsof jump-edges. In addition, since a procedure call may not return along all possible
+program paths, a call-node smay have jump-successors along some, but not all, paths
+from it. If this is the case, we add a jump-edge from sto a special node ∞.
+Deﬁnition 2.1 ( Nested Tree ). Let T=(S,r,→) be an unordered inﬁnite tree with
+node set S, root rand edge relation →⊆ S×S.L e t
++−→ denote the transitive (but not
+reﬂexive) closure of the edge relation, and let a (ﬁnite or inﬁnite) path inTfrom node
+s1be a (ﬁnite or inﬁnite) sequence π=s1s2···sn···over S, where n≥2a n d si→si+1
+for all 1 ≤i.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 6 ---
+15:6 R. Alur et al.
+input x;
+procedure foo()
+{
+L1: write(e);
+if(x) then
+L2: foo()
+else
+L3: think;
+while (x) do
+L4: read(e);
+L5: return;
+}
+Fig. 2 . A sample program.
+Anested tree is a directed acyclic graph ( T,/arrowhookleft→), where /arrowhookleft→⊆ S×(S∪{ ∞ } )i sas e t
+of jump-edges. A node ssuch that s/arrowhookleft→tors/arrowhookleft→∞ (similarly t/arrowhookleft→s)f o rs o m e tis a
+call (similarly, return ) node; the remaining nodes are said to be local . The intuition is
+that if s/arrowhookleft→t, then a call at sreturns at t;i fs/arrowhookleft→∞ , then there exists a path from
+salong which the call at snever returns. The jump-edges must satisfy the following
+properties.
+(1) If s/arrowhookleft→tors/arrowhookleft→∞ , then there is no tsuch that t/arrowhookleft→s. In other words, the sets
+of call and return nodes are disjoint (also, by deﬁnition, the set of local nodes is
+disjoint from both of these sets).
+(2) If s/arrowhookleft→t,t h e n s+−→ t, and we do not have s→t. In other words, jump-edges
+represent nontrivial forward jumps.
+(3) If s/arrowhookleft→tand s/arrowhookleft→t/prime, then neither t+−→ t/primenort/prime+−→ t. In other words, a call-node
+has at most one matching return along every path from it.
+(4) if s/arrowhookleft→tand s/prime/arrowhookleft→t,t h e n s=s/prime. In other words, every return node has a unique
+matching call.
+(5) For every call node s, we have either (a) on every path from s, there is a node tsuch
+that s/arrowhookleft→t,o r( b ) s/arrowhookleft→∞ . In other words, a call node has a jump-edge to ∞if there
+is a path along which the call does not return.
+(6) If there is a path πsuch that for nodes s,t,s/prime,t/primelying on πwe have s+−→ s/prime,s/arrowhookleft→t,
+and s/prime/arrowhookleft→t/prime, then either t+−→ s/primeort/prime+−→ t. Intuitively, jump-edges along a path do
+not cross.
+(7) For every pair of call-nodes s,s/primeon a path πsuch that s+−→ s/prime, if there is no node
+tonπsuch that s/prime/arrowhookleft→t, then a node t/primeonπcan satisfy s/arrowhookleft→t/primeonly if t/prime+−→ s/prime.
+Intuitively, if a call does not return, neither do the calls that were pending when it
+was invoked.
+LetNT(/Sigma1)b et h es e to f /Sigma1-labeled nested trees. A language of nested trees is a subset
+ofNT(/Sigma1).
+We refer to →as the tree-edge relation. For an alphabet /Sigma1,a/Sigma1-labeled nested tree is
+a structure T=(T,/arrowhookleft→,λ), where ( T,/arrowhookleft→) is a nested tree with node set S,a n dλ:S→/Sigma1
+is a node-labeling function. All nested trees in this article are /Sigma1-labeled.
+Consider the recursive procedure fooin Figure 2. The procedure may read or write an
+expression eor perform an action think , has branching dependent on an input variable
+x, and can call itself recursively. Actions of the program are marked by labels L1–L5
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 7 ---
+Software Model Checking Using Languages of Nested Trees 15:7
+......
+......
+call
+returnlocal{en}{en}
+{ex}
+{ex}{ex}{rd}
+{rd}{rd}
+{wr}{wr}{wr}
+{tk}{tk}{tk}
+∞
+{end}{end}
+{end}{end}{end}s
+s
+Fig. 3 . A nested tree.
+for easy reference. We will abstract this program and its behaviors, and subsequently
+specify it using temporal logics and automata.
+Figure 3 shows a part of a nested tree modeling the branching behavior of this
+program. As the loop and the branch in the procedure depend on an environment-
+dependent variable, we model them by a nondeterministic loop and a nondeterministic
+branch. The choice of the alphabet /Sigma1labeling this tree depends on the desired level of
+detail. We choose it to consist of subsets of a set of atomic propositions AP, comprising
+the propositions wr,rd,en,ex,tk,a n d end, respectively encoding a write statement,
+aread statement, a procedure call leading to a beginning of a new context, the return
+point once a context ends, the statement think , and the statement return . A node is
+labeled by the proposition for a statement if it is the control point from which the
+statement is executed— for example, the control point immediately preceding a read
+statement is labeled rd. Each path in the underlying tree captures a sequence of pro-
+gram statements—for example, the path fragment starting at the node sand ending
+ats/primecaptures a (partial) execution that ﬁrst executes write , then calls foorecursively,
+then writes again, then makes another recursive call, ending once it has exited bothcalls. Note that some of the maximal paths are ﬁnite—these capture terminating execu-
+tions of the program—and some are not. Also, a call may return along some paths from
+it, and yet not on some others. A path consisting of tree- and jump-edges that takesa jump-edge whenever possible is interpreted as a local path through the top-level
+context.
+Ifs/arrowhookleft→t,t h e n sis the jump-predecessor oftand tthejump-successor ofs. Let us now
+consider the set of tree edges. If sis a call node (i.e., if s/arrowhookleft→tfor some t,o rs/arrowhookleft→∞ ), then
+each tree-edge out of sis called a call edge .I fsis a return node, then every tree-edge
+with destination sis areturn edge . The remaining tree-edges are said to be local .
+The fact that a tree-edge ( s,t) exists and is a call, return or local edge is respectively
+denoted by s
+call−→ t,sret−→ t,o rsloc−→ t. Note that given the restrictions we have imposed
+on jump-edges, the sets of call, return and local edges deﬁne a partition of the set of
+tree-edges. Also, if a node has an outgoing tree-edge labeled call, then all its outgoing
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 8 ---
+15:8 R. Alur et al.
+tree-edges are labeled call. Finally, if sret−→ s1and sret−→ s2for distinct s1and s2,t h e n
+s1and s2have the same jump-predecessor.
+The labeling of tree-edges as call, return, or local edges will prove extremely useful
+to us; in particular, our ﬁxpoint calculus will use the labels call,ret,a n d locas modal-
+ities. Interestingly, the jump-edges in a nested tree are completely captured by the
+classiﬁcation of the tree edges into call, return, local edges. To see why, let us deﬁnethetagged tree of a nested tree as follows.
+Deﬁnition 2.2 ( Tagged Tree ). For a nested tree T=(T,/arrowhookleft→,λ) with edge set E,
+thetagged tree ofTis the node and edge-labeled tree Struct (T)=(T,λ,η :E→
+{call,ret,loc}), where η(s,t)=aiffsa−→ t.
+Now consider any (nonnested) tree T=(S,r,−→) whose edges are labeled by tags
+call,retand locand that satisﬁes the constraint: if a node has an outgoing edge labeled
+call, then all its outgoing edges are labeled call. Let us call a word β∈I∗balanced if it
+is of the form
+β:=callβ/primeret β/prime:=β/primeβ/prime|callβ/primeret|loc.
+We deﬁne a relation /arrowhookleft→/prime⊆S×Sas: for all s,s/prime,w eh a v e s/arrowhookleft→/primetiff
+(1) There is a path s0s1s2···snsuch that s0=sand sn=s/primeinStruct (T).
+(2) The word η(s0,s1).η(s1,s2)···η(sn−1,sn) is balanced.
+Consider the set Sucof nodes sucsuch that: (1) outgoing edges from sucare labeled
+call, and (2) there is at least one path sucs1s2···inTsuch that for no i≥1d ow eh a v e
+suc/arrowhookleft→/primesi. Intuitively, Succonsists of calls that do not return along at least one path.
+Let us now construct the relation /arrowhookleft→/prime/prime=/arrowhookleft→/prime∪{(suc,∞):suc∈Suc}. It is easily veriﬁed
+that ( T,/arrowhookleft→/prime/prime) is a nested tree, and that if T=Struct (T) for some nested tree T,t h e n
+T=(T,/arrowhookleft→/prime/prime). In other words, Tis the tagged tree of a unique nested tree, and the
+latter can be inferred given T.
+Ordered, Binary Nested Trees . Note that in the deﬁnition of nested trees we have
+given, the tree structure underlying a nested tree is unordered. While this is thedeﬁnition we will use as the default deﬁnition in this thesis, we will ﬁnd use for
+ordered, binary nested trees in a few occasions.
+Deﬁnition 2.3 ( Ordered, Binary Nested Tree ). Let T=(S,r,→
+1,→2) be an ordered
+binary tree, where Sis a set of nodes, ris the root, and →1,→2⊆S×Sare the left-and
+right-edge relations. Then ( T,/arrowhookleft→) is an ordered, binary nested tree if (( S,r,→1∪→ 2),
+/arrowhookleft→) is a nested tree by Deﬁnition 2.1.
+Labeled, ordered nested trees are analogous to labeled, unordered nested trees: for
+an alphabet /Sigma1,a/Sigma1-labeled ordered nested tree is a structure T=(T,/arrowhookleft→,λ), where
+(T,/arrowhookleft→) is a nested tree with node set S,a n d λ:S→/Sigma1is a node-labeling map.
+2.1. Nested State Machines
+Now we deﬁne a class of abstractions for recursive programs—called nested state
+machines —whose branching-time semantics is deﬁned by nested trees. Like push-
+down automata and recursive state machines [Alur et al. 2005], nested state machines
+(NSMs) are suitable for precisely modeling changes to the program stack due to proce-
+dure calls and returns. The main difference is that the semantics of an NSM is deﬁnedusing a nested tree rather than using a stack.
+Syntax .L e tAPbe a ﬁxed set of atomic propositions; let us ﬁx /Sigma1=2
+APas an alphabet
+ofobservables . We give the following deﬁnition.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 9 ---
+Software Model Checking Using Languages of Nested Trees 15:9
+Deﬁnition 2.4 ( Nested State Machine ). A nested state machine (NSM) is a structure
+of the form M=/angbracketleftVloc,Vcall,Vret,vin,κ,/Delta1 loc,/Delta1call,/Delta1ret/angbracketright. Here, Vlocis a ﬁnite set of local
+states ,Vcalla ﬁnite set of call states ,a n d Vreta ﬁnite set of return states .W ew r i t e V=
+Vloc∪Vcall∪Vret. The state vin∈Vis the initial state ,a n dt h em a p κ:V→/Sigma1labels each
+state with an observable. There are three transition relations: a local transition relation
+/Delta1loc⊆(Vloc∪Vret)×(Vloc∪Vcall), acall transition relation /Delta1call⊆Vcall×(Vloc∪Vcall),
+and a return transition relation /Delta1ret⊆(Vloc∪Vret)×Vcall×Vret.
+A transition is said to be from the state vif it is of the form ( v,v/prime)o r(v,v/prime,v/prime/prime), for some
+v/prime,v/prime/prime∈V.I f(v,v/prime)∈/Delta1locfor some v,v/prime∈V,t h e nw ew r i t e vloc−→v/prime;i f(v,v/prime)∈/Delta1call,w e
+write vcall−→v/prime;i f(v,v/prime,v/prime/prime)∈/Delta1ret,w ew r i t e( v,v/prime)ret−→v/prime/prime. Intuitively, while modeling a
+program by an NSM, a call state models a program state from which a procedure call
+is performed; the call itself is modeled by a call transition in /Delta1call. A return state of an
+NSM models a state to which the control returns once a called procedure terminates.The shift of control to a return state is modeled by a return transition ( v,v
+/prime,v/prime/prime)i n/Delta1ret.
+Here, the states vandv/prime/primeare respectively the current and target states, and v/primeis the
+state from which the last “unmatched” call-move was made. The intuition is that whenthe NSM made a call transition from v
+/prime, it pushed the state v/primeon an implicit stack. On
+return, v/primeis on top of the stack right before the return-move, which can depend on this
+state and, on completion, pops it off the stack. This captures the ability of a structuredprogram to use its procedural stack, which is the essence of context-sensitivity. A state
+that is neither a call nor a return is a local state, and a transition that does not modify
+the program stack is a local transition.
+Let us now abstract our example program (Figure 2) into a nested state machine
+M
+foo. The abstraction simply captures control ﬂow in the program, and consequently,
+has states v1,v2,v3,v4,a n d v5corresponding to lines L1, L2, L3, L4, and L5. We also
+have a state v/prime
+2to which control returns after the call at L2 is completed. The set Vloc
+of local states is {v1,v3,v4,v5}, the single call state is v2, and the single return state is
+v/prime
+2. The initial state is v1. Now, let us have propositions rd,wr,tk,en,ex,a n d end that
+hold respectively iff the current state represents the control point immediately before
+a read, a write, a think-statement, a procedure call, a return point after a call, and a
+return instruction. More precisely, κ(v1)={wr},κ(v2)={en},κ(v/prime
+2)={ex},κ(v3)={tk},
+κ(v4)={rd},a n d κ(v5)={end}(for easier reading, we will, from now on, abbreviate
+singletons such as {rd}just as rd).
+The transition relations of Mfooare given by:
+—/Delta1call={(v2,v1)}
+—/Delta1loc={(v1,v2),(v1,v3),(v/prime
+2,v4),(v/prime
+2,v5),(v3,v4),(v3,v5),(v4,v4),(v4,v5)},a n d
+—/Delta1ret={(v5,v2,v/prime
+2)}.
+Branching-Time Semantics . The branching-time semantics of Mis deﬁned via a
+2AP-labeled unordered nested tree T(M), known as the unfolding ofM. Consider the
+V-labeled (unordered) nested tree TV(M)=(T,/arrowhookleft→,λ), known as the execution tree ,
+that is the unique nested tree satisfying the following conditions:
+(1) if ris the root of T,t h e n λ(r)=vin;
+(2) for every node sand every distinct call, return or local transition in Mfromλ(s),s
+has precisely one outgoing call, return or local tree edge;
+(3) for every pair of nodes sand t,i fsa−→ t,f o r a∈{call,loc}, in the tagged tree of this
+nested tree, then we have λ(s)a−→λ(t)i nM;
+(4) for every s,t,i fsret−→ tin the tagged tree, then there is a node t/primesuch that t/prime/arrowhookleft→t
+and (λ(s),λ(t/prime))ret−→λ(t)i nM.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 10 ---
+15:10 R. Alur et al.
+)b( )a( s1s2
+s2s3
+s3
+s4s4
+s5
+s5s6s6
+s7s7s8
+s8s9
+s9s10s10
+s11
+s11s12
+s12s13s14s15s15
+p
+pp
+ppp
+ppp
+qq
+qq
+q
+q
+color 1color 2
+Fig. 4 . (a) A nested tree (b) A 2-colored summary.
+Note that a node sis a call or return node in this nested tree respectively iff λ(s)i sa
+call and return state of M. Now we have T(M)=(T,/arrowhookleft→,λ/prime), where λ/prime(s)=κ(λ(s)) for
+all nodes s. For example, the nested tree in Figure 3 is the unfolding of Mfoo.
+While unfoldings of nested state machines are most naturally viewed as unordered
+nested trees, we can also deﬁne an NSM’s unfolding as an ordered, binary nested tree. In
+this case, we ﬁx an order on the transitions out of a state and allow at most two outgoing
+transitions from every state (we can expand the state set to make this possible). The
+left and right edge relations in the unfolding Tord(M) respectively correspond to the 1st
+and 2nd transitions out of a state. We leave out the detailed deﬁnition.
+3. NT- μ: A FIXPOINT CALCULUS FOR NESTED TREES
+In this section, we develop N T-μ, our modal ﬁxpoint calculus interpreted on nested
+trees. The variables of this logic are evaluated not over sets of states, but over sets ofsubtrees that capture summaries of computations capturing procedural context. The
+ﬁxpoint operators in the logic then compute ﬁxpoints of summaries. The main technical
+result is that the logic N
+T-μcan be model-checked effectively on nested state machine
+abstractions of software.
+3.1. Summaries
+Now we deﬁne summaries , the objects on which our logic is interpreted. These may
+be viewed as substructures of nested trees capturing procedural contexts; a summary
+models the branching behavior of a program from a state sto each return point of its
+context. Also, to capture different temporal obligations to be met on exiting via differentexits, we introduce a coloring of these exits—intuitively, an exit gets color iif it is to
+satisfy the ith requirement.
+Formally, let a node tofTbe called a matching exit of a node sifs+−→ t, and there
+is an s/primesuch that s/prime+−→ sand s/prime/arrowhookleft→t, and there are no s/prime/prime,t/prime/primesuch that s/prime+−→ s/prime/prime+−→
+s+−→ t/prime/prime,a n d s/prime/prime/arrowhookleft→t/prime/prime. Note that matching exits are deﬁned for all nodes, not just calls.
+Intuitively, a matching exit of sis the ﬁrst “unmatched” return along some path from
+s, for instance, in Figure 4(a), the nodes s8and s12are the matching exits of the node
+s3,a n d s11and s10are the matching exits of s2. Let the set of matching exits of sbe
+denoted by ME(s). Now we deﬁne as follows.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 11 ---
+Software Model Checking Using Languages of Nested Trees 15:11
+Deﬁnition 3.1 ( Summary ). For a nonnegative integer k,ak-colored summary sinT
+is a tuple /angbracketlefts,U1,U2,..., Uk/angbracketright, where sis a node, k≥0, and U1,U2,..., Uk⊆ME(s) (such
+a summary is said to be rooted ats).
+For example, in the nested tree in Figure 4(a), /angbracketlefts1/angbracketrightis a 0-colored summary, and
+/angbracketlefts2,{s11},{s10,s11}/angbracketrightand/angbracketlefts3,{s8},∅/angbracketrightare 2-colored summaries. The set of summaries in
+a nested tree T, each k-colored for some k, is denoted by S. Note that such colored
+summaries are deﬁned for all s, not just “entry” nodes of procedures.
+Observe how each summary describes a subtree along with a coloring of some of
+its leaves. For instance, the summary s=/angbracketlefts2,{s11},{s10,s11}/angbracketrightmarks the subtree in
+Figure 4(b). Such a tree may be constructed by taking the subtree of Trooted at node
+s2,a n d chopping off the subtrees rooted at ME(s2). Note that because of unmatched
+inﬁnite paths from the root, such a tree may in general be inﬁnite. Now, the node s11is
+assigned the color 1, and nodes s10and s11are colored 2. Note that the same matching
+exit might get multiple colors.
+It is useful to contrast our deﬁnition of summaries with the corresponding deﬁnition
+for the linear-time setting. In this case, a pair ( s,s/prime), where s/prime∈ME(s), would sufﬁce as a
+summary— in fact, this is the way in which traditional summarization-based decision
+procedures have deﬁned summaries. For branching-time reasoning, however, such a
+simple deﬁnition is not enough.
+3.2. Syntax
+In addition to being interpreted over summaries, the logic N T-μdiffers from classical
+calculi like the modal μ-calculus [Kozen 1983] in a crucial way: its syntax and semantics
+explicitly recognize the procedural structure of programs. This is done using modalities
+such as /angbracketleftcall/angbracketright,/angbracketleftret/angbracketrightand/angbracketleftloc/angbracketrightthat can distinguish between call, return, and local edges
+in a nested tree. Also, an N T-μformula can enforce different “return conditions” at
+differently colored returns in a summary by passing formulas as “parameters” to call
+modalities. We give the following deﬁnition.
+Deﬁnition 3.2 ( Syntax of NT-μ). Let APbe a ﬁnite set of atomic propositions, Var
+be a ﬁnite set of variables, and {R1,R2,...}be a countable, ordered set of markers .F o r
+p∈AP,X∈Var,a n d k≥0, formulas ϕof N T-μare deﬁned by:
+ϕ:=p|¬p|X|ϕ∨ϕ|ϕ∧ϕ|μX.φ|νX.φ|/angbracketleftcall/angbracketrightϕ{ψ1,ψ2,...,ψ k}|
+[call]ϕ{ψ1,ψ2,...,ψ k}|/angbracketleftloc/angbracketrightϕ|[loc]ϕ|/angbracketleftret/angbracketrightRi|[ret]Ri,
+where k≥0a n d i≥1.
+Let us deﬁne the syntactic shorthands tt=p∨¬pandﬀ=p∧¬pfor some p∈AP.
+Also, let the arity of a N T-μformula ϕbe the maximum ksuch that ϕhas a subformula
+of the form /angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ k}or [call]ϕ/prime{ψ1,...,ψ k}.
+Intuitively, the markers Riin a formula are bound by /angbracketleftcall/angbracketrightand [ call] modalities, and
+variables Xare bound by ﬁxpoint quantiﬁers μXandνX. We require our call-formulas
+to bind all the markers in their scope. Formally, let the maximum marker index ind (ϕ)
+of a formula ϕbe deﬁned inductively as:
+ind(ϕ1∨ϕ2)=ind(ϕ1∧ϕ2)=max{ind(ϕ1),ind(ϕ2)}
+ind(/angbracketleftloc/angbracketrightϕ)=ind([loc]ϕ)=ind(μX.ϕ)=ind(νX.ϕ)
+=ind(ϕ)
+ind(/angbracketleftret/angbracketrightRi)=ind([ret]Ri)=i
+ind(p)=ind(X)=0f o r p∈AP,X∈Var
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 12 ---
+15:12 R. Alur et al.
+ind(/angbracketleftcall/angbracketrightϕ{ψ1,...,ψ k})=ind([call]ϕ{ψ1,...,ψ k})
+=max{ind(ψ1),..., ind(ψk)}.
+We are only interested in formulas where for every subformula /angbracketleftcall/angbracketrightχ/prime{ψ1,...,ψ k}
+or [call]χ/prime{ψ1,...,ψ k},w eh a v e ind(χ/prime)≤k. Such a formula ϕis said to be marker-closed
+ifind(ϕ)=0.
+The set Free (ϕ) of free variables in a N T-μformula ϕis deﬁned as:
+Free (ϕ1∨ϕ2)=Free (ϕ1∧ϕ2)=Free (ϕ1)∪Free (ϕ2)
+Free (/angbracketleftloc/angbracketrightϕ)=Free ([loc]ϕ)=Free (ϕ)
+Free (/angbracketleftret/angbracketrightRi)=Free ([ret]Ri)=∅
+Free (/angbracketleftcall/angbracketrightϕ{ψ1,...,ψ k})=Free ([call]ϕ{ψ1,...,ψ k})=Free (ϕ)∪/parenleftBiggk/uniondisplay
+iFree (ψi)/parenrightBigg
+Free (p)=Free (¬p)=∅forp∈AP
+Free (X)={X}forX∈Var
+Free (μX.ϕ)=Free (νX.ϕ)=Free (ϕ)\{X}.
+A formula ϕis said to be variable-closed if it has Free (ϕ)=∅. We call ϕclosed if it is
+marker-closed and variable-closed.
+3.3. Semantics
+Like in the modal μ-calculus, formulas in N T-μencode sets, in this case sets of sum-
+maries. Also like in the μ-calculus, modalities and Boolean and ﬁxed-point operators
+allow us to encode computations on these sets.
+To understand the semantics of local ( /angbracketleftloc/angbracketrightand [ loc]) modalities in N T-μ, consider
+the 1-colored summary s=/angbracketlefts3,{s8}/angbracketrightin the tree Tin Figure 4(a). We observe that
+when control moves from node s3tos5along a local edge, the current context stays
+the same, though the set of returns that can end it and are reachable from the currentcontrol point can get restricted — that is, ME(s
+5)⊆ME(s3). Consequently, the 1-colored
+summary s/prime=/angbracketlefts5,{s8}/angbracketrightdescribes program ﬂow from s5to the end of the current context,
+and is the local successor of the summary s.N T-μallows us to use modalities /angbracketleftloc/angbracketrightand
+[loc] to assert requirements on such local successors. For instance, in this case, the
+summary swill be said to satisfy the formula /angbracketleftloc/angbracketrightq,a ss/primesatisﬁes q.
+An interesting visual insight about the structure of the tree Tsforscomes from Fig-
+ure 5(a). Note that the tree Ts/primefors/prime“hangs”’ from the former by a local edge; addition-
+ally, (1) every leaf of Ts/primeis a leaf of Ts, and (2) such a leaf gets the same color in sands/prime.
+Succession along call edges is more complex, because along such an edge, a frame is
+pushed on a program’s stack and a new procedural context gets deﬁned. In Figure 4(a),
+take the summary s=/angbracketlefts1/angbracketright, and demand that it satisﬁes the two-parameter call formula
+/angbracketleftcall/angbracketrightϕ/prime{q,p}. This formula asserts a condition on a subtree that: (1) is rooted at a child
+ofs1, and (2) has colors 1 and 2 assigned respectively to the leaves satisfying pand q.
+Clearly, a possible such summary is s/prime=/angbracketlefts2,{s10},{s11}/angbracketright. Our formula requires that s/prime
+satisﬁes ϕ/prime. In general, we could have formulas of the form ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,ψ2,...,ψ k},
+where ψiare arbitrary N T-μformulas.
+Visually, succession along call edges requires a split of the nested tree Tsfor summary
+sin the way shown in Figure 5(b). The root of this structure must have a call-edge to
+the root of the tree for s/prime, which must satisfy ϕ. At each leaf of Ts/primecolored i,w em u s tb e
+able to concatenate a summary tree Trsatisfying ψisuch that (1) every leaf in Tris a
+leaf of Ts, and (2) each such leaf gets the same set of colors in TsandTr.
+As for the return modalities, we use them to assert that we return at a node colored
+i. Because the binding of these colors to temporal requirements was ﬁxed at a context
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 13 ---
+Software Model Checking Using Languages of Nested Trees 15:13
+)b( )a(
+(c)
+s1
+s2color 1color 1
+color 2color 2s
+s
+r1 r2r3ss
+fooP1
+P2P1
+P2
+Fig. 5 . (a) Local modalities; (b) Call modalities; (c) Matching contexts.
+that called the current context, the ret-modalities let us relate a path in the latter
+with the continuation of a path in the former. For instance, in Figure 5(c), where therectangle abstracts the part of a program unfolding within the body of a procedure foo,
+the marking of return points s
+1and s2by colors 1 and 2 is visible inside foo as well
+as at the call site of foo. This lets us match paths P1and P2inside foo respectively
+with paths P/prime
+1and P/prime
+2in the calling procedure. This lets N T-μcapture the pushdown
+structure of branching-time runs of a procedural program.
+Now we deﬁne the semantics of N T-μformally. A N T-μformula ϕis interpreted in an
+environment that interprets variables in Free (ϕ) as sets of summaries in a nested tree
+Twith node set S. Formally, an environment is a map E:Free (ϕ)→2S.L e tu sw r i t e
+[[ϕ]]T
+Eto denote the set of summaries in Tsatisfying ϕin environment E(usually Twill
+be understood from the context, and we will simply write [ [ ϕ]]E). We give Deﬁnition 3.3.
+Deﬁnition 3.3 ( Semantics of NT-μ). For a summary s=/angbracketlefts,U1,U2,..., Uk/angbracketright, where
+s∈Sand Ui⊆ME(s) for all i,ssatisﬁes ϕ,t h a ti s , s∈[[ϕ]]E, if and only if one of the
+following holds:
+—ϕ=p∈APand p∈λ(s)
+—ϕ=¬pfor some p∈AP,a n d p/∈λ(s)
+—ϕ=X,a n d s∈E(X)
+—ϕ=ϕ1∨ϕ2such that s∈[[ϕ1]]Eors∈[[ϕ2]]E
+—ϕ=ϕ1∧ϕ2such that s∈[[ϕ1]]Eands∈[[ϕ2]]E
+—ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,ψ2,...,ψ m}, and there is a t∈Ssuch that (1) scall−→ t,a n d( 2 )
+the summary t=/angbracketleftt,V1,V2,..., Vm/angbracketright, where for all 1 ≤i≤m,Vi=ME(t)∩{s/prime:
+/angbracketlefts/prime,U1∩ME(s/prime),..., Uk∩ME(s/prime)/angbracketright∈[[ψi]]E}, is such that t∈[[ϕ/prime]]E
+—ϕ=[call]ϕ/prime{ψ1,ψ2,...,ψ m}, and for all t∈Ssuch that scall−→ t, the summary t=
+/angbracketleftt,V1,V2,..., Vm/angbracketright, where for all 1 ≤i≤m,Vi=ME(t)∩{s/prime:/angbracketlefts/prime,U1∩ME(s/prime),..., Uk∩
+ME(s/prime)/angbracketright∈[[ψi]]E}, is such that t∈[[ϕ/prime]]E
+—ϕ=/angbracketleftloc/angbracketrightϕ/prime, and there is a t∈Ssuch that sloc−→ tand the summary t=
+/angbracketleftt,V1,V2,..., Vk/angbracketright, where Vi=ME(t)∩Ui, is such that t∈[[ϕ/prime]]E
+—ϕ=[loc]ϕ/prime, and for all t∈Ssuch that sloc−→ t, the summary t=/angbracketleftt,V1,V2,..., Vk/angbracketright,
+where Vi=ME(t)∩Ui, is such that t∈[[ϕ/prime]]E
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 14 ---
+15:14 R. Alur et al.
+—ϕ=/angbracketleftret/angbracketrightRi, and there is a t∈Ssuch that sret−→ tand t∈Ui
+—ϕ=[ret]Ri, and for all t∈Ssuch that sret−→ t,w eh a v e t∈Ui
+—ϕ=μX.ϕ/prime,a n d s∈Sfor all S⊆Ssatisfying [ [ ϕ/prime]]E[X:=S]⊆S
+—ϕ=νX.ϕ/prime, and there is some S⊆Ssuch that (1) S⊆[[ϕ/prime]]E[X:=S]and (2) s∈S.
+HereE[X:=S] is the environment E/primesuch that: (1) E/prime(X)=S,a n d ( 2 ) E/prime(Y)=E(Y)
+for all variables Y/negationslash=X.
+We say a node s satisﬁes a formula ϕif the 0-colored summary /angbracketlefts/angbracketrightsatisﬁes ϕ.A
+nested tree Trooted at s0is said satisfy ϕifs0satisﬁes ϕ(we denote this by T|=ϕ).
+The language of ϕ, denoted by L(ϕ), is the set of nested trees satisfying ϕ.
+A few observations are in order. First, while N T-μdoes not allow formulas of form
+¬ϕ, it is closed under negation so long as we stick to closed formulas. Given a closed
+NT-μformula ϕ, consider the formula Neg(ϕ), deﬁned inductively in the following way:
+—Neg(p)=¬p,Neg(¬p)=p,Neg(X)=X
+—Neg(ϕ1∨ϕ2)=Neg(ϕ1)∧Neg(ϕ2), and Neg(ϕ1∧ϕ2)=Neg(ϕ1)∨Neg(ϕ2)
+—Ifϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,ψ2,...,ψ k},t h e n
+Neg(ϕ)=[call]Neg(ϕ/prime){Neg(ψ1),Neg(ψ2),...,Neg(ψk)}
+—Ifϕ=[call]ϕ/prime{ψ1,ψ2,...,ψ k},t h e n
+Neg(ϕ)=/angbracketleftcall/angbracketrightNeg(ϕ/prime){Neg(ψ1),Neg(ψ2),...,Neg(ψk)}
+—Neg(/angbracketleftloc/angbracketrightϕ/prime)=[loc]Neg(ϕ/prime), and Neg([loc]ϕ/prime)=/angbracketleftloc/angbracketrightNeg(ϕ/prime)
+—Neg(/angbracketleftret/angbracketrightRi)=[ret]Ri,a n dNeg([ret]Ri)=/angbracketleftret/angbracketrightRi
+—Neg(μX.ϕ)=νX.Neg(ϕ), and Neg(νX.ϕ)=μX.Neg(ϕ).
+Deﬁne the unique empty environment as⊥:∅→ S. Now we have the following theorem.
+THEOREM 3.4. For all closed NT-μformulas ϕ,[[ϕ]]⊥=S\[[Neg(ϕ)] ]⊥.
+PROOF . For an environment E,l e tNeg(E) be the environment such that for all vari-
+ables X,Neg(E)(X)=S\E(X). Also, for a summary s=/angbracketlefts,U1,..., Uk/angbracketright, deﬁne Flip(s)t o
+be the summary /angbracketlefts,ME(s)\U1,...,ME(s)\Uk/angbracketright. Thus, a leaf is colored iinFlip(s)i f fi t
+is not colored iins. We lift the map Flip to sets of summaries in the natural way.
+Now, by induction on the structure of ϕ, we prove a stronger assertion: for an N T-μ
+formula ϕand an environment E,w eh a v e[ [ ϕ]]E=S\Flip([ [Neg(ϕ)] ]Neg (E)). Note that the
+theorem follows when we restrict ourselves to variable and marker-closed formulas.
+Cases ϕ=X,ϕ=pandϕ=¬ pare trivial; the cases ϕ=μX.ϕ/primeandϕ=νX.ϕ/primeare
+easily shown as well. We handle a few other interesting cases.
+Suppose ϕ=/angbracketleftret/angbracketrightRi. In this case, Flip([ [Neg(ϕ)] ]Neg (E)) contains the set of summaries
+t=/angbracketleftt,U1,..., Uk/angbracketrightsuch that for all t/primesatisfying tret−→ t/prime,w eh a v e t/∈Ui. It is easy to see
+that the claim holds.
+Ifϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ k},t h e n Flip([ [Neg(ϕ)] ]Neg (E)) equals the set of summaries t=
+/angbracketleftt,U1,..., Uk/angbracketrightsuch that the following holds: for all t/primesatisfying tcall−→ t/prime, the summary
+t/prime=/angbracketleftt/prime,V1,V2,..., Vm/angbracketright, where for all 1 ≤i≤m,Vi=ME(t/prime)∩{s/prime:Flip(/angbracketlefts/prime,ME(s/prime)\
+U1,...,ME(s/prime)\Uk/angbracketright)∈[[Neg(ψi)] ]Neg (E)},s a t i s ﬁ e s t/prime∈[[Neg(ϕ/prime)] ]Neg (E). Using the induction
+hypothesis ﬁrst for the ψi- sa n dt h e nf o r ϕ/prime, we can now obtain our claim.
+Note that the semantics of closed N T-μformulas is independent of the environment.
+Customarily, we will evaluate such formulas in the empty environment ⊥. More impor-
+tantly, the semantics of such a formula ϕdoes not depend on current color assignments;
+in other words, for all s=/angbracketlefts,U1,U2,..., Uk/angbracketright,s∈[[ϕ]]⊥iff/angbracketlefts/angbracketright∈[[ϕ]]⊥. Consequently,
+when ϕis closed, we can infer that “node ssatisﬁes ϕ” from “summary ssatisﬁes ϕ.”
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 15 ---
+Software Model Checking Using Languages of Nested Trees 15:15
+s1s2s
+Fig. 6 . Negated return conditions.
+Third, every N T-μformula ϕ(X) with a free variable Xcan be viewed as a map
+ϕ(X):2S→2Sdeﬁned as follows: for all environments Eand all summary sets S⊆S,
+ϕ(X)(S)=[[ϕ(X)] ]E[X:=S].Then, we have the following proposition.
+PROPOSITION 3.5. The map ϕ:2S→2Sis monotonic— that is, if S⊆S/prime⊆S,t h e nw e
+haveϕ(S)⊆ϕ(S/prime).
+It is not hard to verify that the map ϕ(X) is monotonic, and that therefore, by the
+Tarski-Knaster theorem, its least and greatest ﬁxed points exist. The formulas μX.ϕ(X)
+andνX.ϕ(X), respectively, evaluate to these two sets. From Tarski-Knaster, we also
+know that for a N T-μformula ϕwith one free variable X,t h es e t[ [ μX.ϕ]]⊥lies in the
+sequence of summary sets ∅,ϕ(∅),ϕ(ϕ(∅)),..., and that [ [ νX.ϕ]]⊥is a member of the
+sequence S,ϕ(S),ϕ(ϕ(S)),....
+Alternately, a N T-μformula ϕmay be viewed as a map ϕ:(U1,U2,..., Uk)/mapsto→S/prime,
+where S/primeis the set of all nodes ssuch that U1,U2,..., Uk⊆ME(s) and the summary
+/angbracketlefts,U1,U2,..., Uk/angbracketrightsatisﬁes ϕ. Naturally, S/prime=∅ if no such sexists. Now, while a N T-μ
+formula can demand that the color of a return from the current context is i, it cannot
+assert that the color of a return must not be i (i.e., there is no formula of the form,
+say,/angbracketleftret/angbracketright¬Ri). It follows that the output of the above map will stay the same if we
+grow any of the sets Uiof matching returns provided as input. Formally, we have
+Proposition 3.6.
+PROPOSITION 3.6. Lets=/angbracketlefts,U1,..., Uk/angbracketrightands/prime=/angbracketlefts,U/prime
+1,...U/prime
+k/angbracketrightbe two summaries
+such that U i⊆U/prime
+ifor all i. Then for every environment Eand every NT-μformula ϕ,
+s/prime∈[[ϕ]]Eifs∈[[ϕ]]E.
+Such monotonicity over markings has an interesting ramiﬁcation. Let us suppose
+that in the semantics clauses for formulas of the form /angbracketleftcall/angbracketrightϕ/prime{ψ1,ψ2,...,ψ k}and
+[call]ϕ/prime{ψ1,ψ2,...,ψ k}, we allow t=/angbracketleftt,V1,..., Vk/angbracketrightto be any k-colored summary such
+that (1) t∈[[ϕ/prime]]E, and (2) for all iand all s/prime∈Vi,/angbracketlefts/prime,U1∩ME(s/prime),U2∩ME(s/prime),..., Uk∩
+ME(s/prime)/angbracketright∈[[ψi]]E. Intuitively, from such a summary, one can grow the sets Uito get the
+“maximal” tthat we used in these two clauses. From the above discussion, N T-μand
+this modiﬁed logic have equivalent semantics.
+Finally, let us see what would happen if we did allow formulas of form /angbracketleftret/angbracketright¬Ri,
+which holds at a summary /angbracketlefts,U1,..., Uk/angbracketrightif and only if there is an edge sret−→ tsuch
+that t/∈Ui. In other words, such a formula permits us to state what must not hold at
+a colored matching exit in addition to what must. It turns out that formulas involvingthe above need not be monotonic, and hence their ﬁxpoints may not exist. To see why,
+consider the formula ϕ=/angbracketleftcall/angbracketright(/angbracketleftret/angbracketrightR
+1∧/angbracketleftret/angbracketright(¬R1)){X}) and the nested tree in Figure 6.
+LetS1={ /angbracketlefts1/angbracketright},a n d S2={ /angbracketlefts1/angbracketright,/angbracketlefts2/angbracketright}.V i e w i n g ϕas a map ϕ:2S→2S, we see that:
+(1)ϕ(S2)=∅,a n d( 2 ) ϕ(S1)=/angbracketlefts/angbracketright.
+Thus, even though S1⊆S2,w eh a v e ϕ(S1)/negationslash⊆ϕ(S2). In other words, the monotonicity
+property breaks down.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 16 ---
+15:16 R. Alur et al.
+3.4. Bisimulation Closure
+Bisimulation is a fundamental relation in the analysis of labeled transition systems.
+The equivalence induced by a variety of branching-time logics, including the μ-calculus,
+coincides with bisimulation. In this section, we study the equivalence induced by N T-μ,
+that is, we want to understand when two nodes satisfy the same set of N T-μformulas.
+Consider two nested trees T1andT2with node sets S1and S2(we can assume that
+the sets S1and S2are disjoint) and node labeling maps λ1andλ2.L e t S=S1∪S2(we
+can assume that the sets S1and S2are disjoint), and let λdenote the labeling of Sas
+given by λ1andλ2. Also, we denote by Sthe set of all summaries in T1andT2.
+Deﬁnition 3.7 ( Bisimulation ). The bisimulation relation ∼⊆ S×Sis the greatest
+relation such that whenever s∼tholds, we have:
+(1)λ(s)=λ(t),
+(2) for a∈{call,ret,loc}and for every edge sa−→ s/prime, there is an edge ta−→ t/primesuch that
+s/prime∼t/prime,a n d
+(3) for a∈{call,ret,loc}and for every edge ta−→ t/prime, there is an edge sa−→ s/primesuch that
+s/prime∼t/prime.
+Letr1and r2be the roots of T1andT2respectively. We write T1∼T2ifr1∼r2.
+NT-μis interpreted over summaries, so we need to lift the bisimulation relation to
+summaries. We deﬁne this as follows.
+Deﬁnition 3.8 ( Bisimulation-closed summaries ). A summary /angbracketlefts,U1,..., Uk/angbracketright∈ Sis
+said to be bisimulation-closed if for every pair u,v∈ME(s) of matching exits of s,i f
+u∼v, then for each 1 ≤i≤k,u∈Uiprecisely when v∈Ui.
+Thus, in a bisimulation-closed summary, the marking does not distinguish among
+bisimilar nodes, and thus, return formulas (formulas of the form /angbracketleftret/angbracketrightRiand [ ret]Ri)
+do not distinguish among bisimilar nodes. Two bisimulation-closed summaries s=
+/angbracketlefts,U1,..., Uk/angbracketrightandt=/angbracketleftt,V1,..., Vk/angbracketrightinSand having the same number of colors are said
+to be bisimilar , written s∼t, iffs∼t, and for each 1 ≤i≤k, for all u∈ME(s)a n d v∈
+ME(t), ifu∼v,t h e n u∈Uiprecisely when v∈Vi. Thus, roots of bisimilar summaries
+are bisimilar and the corresponding markings are unions of the same equivalenceclasses of the partitioning of the matching exits induced by bisimilarity. Note that every
+0-ary summary is bisimulation-closed, and bisimilarity of 0-ary summaries coincides
+with bisimilarity of their roots.
+Consider the nested trees SandTin Figure 7. We have named the nodes s
+1,s2,t1,t2
+etc. and labeled some of them with proposition p.N o t et h a t s2∼s4, hence the summary
+/angbracketlefts1,{s2},{s4}/angbracketrightinSis not bisimulation-closed. Now consider the bisimulation-closed sum-
+maries /angbracketlefts1,{s2,s4},{s3}/angbracketrightand/angbracketleftt1,{t2},{t3}/angbracketright. By our deﬁnition, they are bisimilar. However,
+the (bisimulation-closed) summaries /angbracketlefts1,{s2,s4},{s3}/angbracketrightand/angbracketleftt1,{t3},{t2}/angbracketrightare not.
+Our goal now is to prove that bisimilar summaries satisfy the same N T-μformulas.
+For an inductive proof, we need to consider the environment also. We assume that the
+environment Emaps N T-μvariables to subsets of S(the union of the sets of summaries
+of the disjoint structures). Such an environment is said to be bisimulation-closed if for
+every variable X, and for every pair of bisimilar summaries s∼t,s∈E(X) precisely
+when t∈E(X).
+LEMMA 3.9. IfEis a bisimulation-closed environment and ϕis aNT-μformula, then
+[[ϕ]]Eis bisimulation-closed.
+PROOF . The proof is by induction on the structure of the formula ϕ.C o n s i d e rt w o
+bisimulation-closed bisimilar summaries s=/angbracketlefts,U1,..., Uk/angbracketrightandt=/angbracketleftt,V1,..., Vk/angbracketright,a n d
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 17 ---
+Software Model Checking Using Languages of Nested Trees 15:17
+pp
+p p pp
+¬p¬p¬p¬p¬pS T s1
+s2
+s3s4 s5t1
+t2
+t3t4
+ret loc/call
+Fig. 7 . Bisimilarity.
+a bisimulation-closed environment E.W ew a n tt os h o wt h a t s∈[[ϕ]]Eprecisely when
+t∈[[ϕ]]E.
+Ifϕis a proposition or negated proposition, the claim follows from bisimilarity of
+nodes sand t.W h e n ϕis a variable, the claim follows from bisimulation closure of E.
+We consider a few interesting cases.
+Suppose ϕ=/angbracketleftret/angbracketrightRi.ssatisﬁes ϕprecisely when shas a return-edge to some node s/prime
+inUi.S i n c e sand tare bisimilar, this can happen precisely when thas a return edge
+to a node t/primebisimilar to s/prime, and from deﬁnition of bisimilar summaries, t/primemust be in Vi,
+and thus tmust satisfy ϕ.
+Suppose ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ m}. Suppose ssatisﬁes ϕ. Then, there is a call-successor
+s/primeofssuch that /angbracketlefts/prime,U/prime
+1,..., U/prime
+m/angbracketrightsatisﬁes ϕ/prime, where U/prime
+i={u∈ME(s/prime)|/angbracketleftu,U1∩
+ME(u),..., Uk∩ME(u)/angbracketright∈[[ψi]]E}.S i n c e sandtare bisimilar, there exists a call-successor
+t/primeoftsuch that s/prime∼t/prime. For each 1 ≤i≤m,l e t V/prime
+i={v∈ME(t/prime)|∃u∈U/prime
+i.u∼v}. Verify
+that the summaries /angbracketlefts/prime,U/prime
+1,..., U/prime
+m/angbracketrightand/angbracketleftt/prime,V/prime
+1,..., V/prime
+m/angbracketrightare bisimilar. By induction hy-
+pothesis, /angbracketleftt/prime,V/prime
+1,..., V/prime
+m/angbracketrightsatisﬁes ϕ/prime. Also, for each v∈V/prime
+i,f o r1 ≤i≤m, the summary
+/angbracketleftv,V1∩ME(v),..., Vk∩ME(v)/angbracketrightis bisimilar to /angbracketleftu,U1∩ME(u),..., Uk∩ME(u)/angbracketright,f o rs o m e
+u∈Ui, and hence, by induction hypothesis, satisﬁes ψi. This establishes that tsatisﬁes
+ϕ.
+To handle the case ϕ=μX.ϕ/prime,l e t X0=∅.F o r i≥0, let Xi+1=[[ϕ/prime]]E[X:=Xi]. Then [ [ ϕ]]E=
+∪i≥0Xi.S i n c e Eis bisimulation closed, and X0is bisimulation-closed, by induction, for
+i≥0, each Xiis bisimulation-closed, and so is [ [ ϕ]]E.
+As a corollary, we get the following.
+COROLLARY 3.10. IfT1∼T2, then for every closed NT-μformula ϕ,T1|=ϕprecisely
+when T2|=ϕ.
+The proof also shows that to decide whether a nested tree satisﬁes a closed N T-μ
+formula, during the ﬁxpoint evaluation, one can restrict attention only to bisimulation-closed summaries. In other words, we can redeﬁne the semantics of N
+T-μso that the
+setSof summaries contains only bisimulation-closed summaries. It also suggests that
+to evaluate a closed N T-μformula over a nested tree, one can reduce the nested tree by
+collapsing bisimilar nodes as in the case of classical model checking.
+If the two nested trees T1andT2are not bisimilar, then there exists a μ-calculus
+formula (in fact, of the much simpler Hennessy-Milner modal logic, which does notinvolve any ﬁxpoints) that is satisﬁed at the roots of only one of the two trees. This
+does not immediately yield a N
+T-μformula that distinguishes the two trees because N T-
+μformulas cannot assert requirements across return-edges in a direct way. However,
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 18 ---
+15:18 R. Alur et al.
+as we show in Section 7 via an automata-theoretic proof, every closed formula of the
+μ-calculus may be converted into an equivalent formula in N T-μ. Thus, two nested
+trees satisfy the same set of closed N T-μformulas precisely when they are bisimilar.
+Let us now consider two arbitrary nodes sand t(in the same nested tree, or in
+two different nested trees). When do these two nodes satisfy the same set of closed
+NT-μformulas? From the arguments so far, bisimilarity is sufﬁcient. However, the
+satisfaction of a closed N T-μformula at a node sin a nested tree Tdepends solely on
+the subtree rooted at sthat is truncated at the matching exits of s.I nf a c t ,t h ef u l l
+subtree rooted at smay not be fully contained in a nested tree, as it can contain excess
+returns. As a result, we deﬁne the notion of a nested subtree rooted at sas the subgraph
+obtained by taking the tree rooted at sand deleting the nodes in ME(s) along with the
+subtrees rooted at them and the return-edges leading to them (the jump-edge relationis restricted in the natural way).
+For instance, in Figure 7, S
+s1comprises nodes s1and s5and the loc-edge connecting
+them. It is easy to check that for a node sin a nested tree Tand a closed N T-μformula
+ϕ, the summary /angbracketlefts/angbracketrightsatisﬁes ϕin the original nested tree precisely when Tssatisﬁes
+ϕ.I fsand tare not bisimilar, and the non bisimilarity can be established within the
+nested subtrees TsandTtrooted at these nodes, then some closed N T-μformula can
+distinguish them.
+THEOREM 3.11. Two nodes s and t satisfy the same set of closed NT-μformulas
+precisely when Ts∼Tt.
+4. REQUIREMENT SPECIFICATION USING NT- μ
+In this section, we explore how to use N T-μas a speciﬁcation language. On one hand,
+we show how N T-μand classical temporal logics differ fundamentally in their styles
+of expression; on the other, we express properties not expressible in logics like the μ-
+calculus. The example program in Figure 2 (reproduced, along with the correspondingnested tree, in Figure 8) is used to illustrate some of our speciﬁcations. As ﬁxpoint
+formulas are typically hard to read, we deﬁne some syntactic sugar for N
+T-μusing
+CTL-like temporal operators.
+Reachability . Let us express in N T-μthe reachability property Reach that says: “a
+node tsatisfying proposition pcan be reached from the current node sbefore the
+current context ends.” As a program starts with an empty stack frame, we may omitthe restriction about the current context if smodels the initial program state.
+Now consider a nontrivial witness πforReach that starts with an edge scall−→ s/prime.
+There are two possibilities: (1) a node satisfying pis reached in the new context or a
+context called transitively from it, and (2) a matching exit s/prime/primeofs/primeis reached, and at s/prime/prime,
+Reach is once again satisﬁed.
+To deal with case (2), we mark a matching exit that leads to pby color 1. Let Xstore
+the set of summaries of form /angbracketlefts/prime/prime/angbracketright, where s/prime/primesatisﬁes Reach . Then we want the summary
+/angbracketlefts,ME(s)/angbracketrightto satisfy /angbracketleftcall/angbracketrightϕ/prime{X}, where ϕ/primestates that s/primecan reach one of its matching
+exits of color 1. In case (1), there is no return requirement (we do not need the original
+call to return), and we simply assert /angbracketleftcall/angbracketrightX{}.
+Before we get to ϕ/prime, note that the formula /angbracketleftloc/angbracketrightXcaptures the case when πstarts with
+a local transition. Combining the two cases and using C TL-style notation (we write EF cp
+to denote “ pis true before the end of the current context ends”), the formula we want
+is
+EF cp=μX.(p∨/angbracketleftloc/angbracketrightX∨/angbracketleftcall/angbracketrightX{} ∨ /angbracketleft call/angbracketrightϕ/prime{X}).
+Now observe that ϕ/primealso expresses reachability, except: (1) its target needs to satisfy
+/angbracketleftret/angbracketrightR1, and (2) this target needs to lie in the same procedural context ass/prime.I no t h e r
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 19 ---
+Software Model Checking Using Languages of Nested Trees 15:19
+x; input
+foo() procedure
+{
+write(e); L1:
+then if(x)
+foo() L2:
+else
+think; L3:
+do (x) while
+read(e); L4:
+return; L5:
+}......
+......
+call
+returnlocal{en}{en}
+{ex}
+{ex}{ex}{rd}
+{rd}{rd}
+{wr}{wr}{wr}
+{tk}{tk}{tk}
+∞
+{end}{end}
+{end}{end}{end}s
+s
+Fig. 8 . A program and its nested tree.
+words, we want to express what we call local reachability of/angbracketleftret/angbracketrightR1. It is easy to verify
+that
+ϕ/prime=μY.(/angbracketleftret/angbracketrightR1∨/angbracketleftloc/angbracketrightY∨/angbracketleftcall/angbracketrightY{Y}).
+We cannot merely substitute pfor/angbracketleftret/angbracketrightR1inϕ/primeto express local reachability of p.
+However, a formula EFl
+cpfor this property is easily obtained by restricting the formula
+EF cp:
+EFl
+cp=μX.(p∨/angbracketleftloc/angbracketrightX∨/angbracketleftcall/angbracketrightϕ/prime{X}).
+Generalizing, we can allow pto be any N T-μformula that keeps EF cpandEFl
+cpclosed.
+For example, consider the nested tree in Figure 8 that models the unfolding of
+the program in the same ﬁgure. In that case, EFl
+crdand EF cwrare true at the
+control point right before the recursive call in L2 in the top-level invocation of foo(node
+sin the ﬁgure); however, EFl
+cwris not.
+It is now easy to verify that the formula AF cp, which states that “along allpaths from
+the current node, a node satisfying pis reached before the current context terminates,”
+is given by
+AF cp=μX.(p∨([loc]X∧[call]ϕ/prime/prime{X})),
+where ϕ/prime/primedemands that a matching exit colored 1 be reached along all local paths:
+ϕ/prime/prime=μY.(p∨([ret]R1∧[loc]Y∧[call]Y{Y})).
+As in the previous case, we can deﬁne a corresponding operator AFl
+cthat asserts local
+reachability along all paths. For instance, in Figure 8, AFl
+crddoes nothold at node s
+(as the program can skip its while-loop altogether).
+Note that the highlight of this approach to speciﬁcation is the way we split a program
+unfolding along procedure boundaries, specify these “pieces” modularly, and plug the
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 20 ---
+15:20 R. Alur et al.
+summary speciﬁcations so obtained into their call sites. This “interprocedural” reason-
+ing distinguishes it from logics such as the μ-calculus that would reason only about
+global runs of the program.
+Also, there is a signiﬁcant difference in the way ﬁxpoints are computed in N T-μand
+theμ-calculus. Consider the ﬁxpoint computation for the μ-calculus formula μX.(p∨/angbracketleft/angbracketrightX)
+that expresses reachability of a node satisfying p. The semantics of this formula is
+given by a set SXof nodes which is computed iteratively. At the end of the i-th step, SX
+comprises nodes that have a path with at most ( i−1) transitions to a node satisfying
+p. Contrast this with the evaluation of the outer ﬁxpoint in the N T-μformula EF cp.
+Assume that ϕ/prime(intuitively, the set of “jumps” from calls to returns”) has already been
+evaluated, and consider the set SXof summaries for EF cp.A tt h ee n do ft h e ith phase,
+this set contains all s=/angbracketlefts/angbracketrightsuch that shas a path consisting of ( i−1)call and loc-
+transitions to a node satisfying p. However, because of the subformula /angbracketleftcall/angbracketrightϕ/prime{X},i t
+also includes all swhere sreaches pvia a path of at most ( i−1) local and “jump”
+transitions. Note how return edges are considered only as part of summaries pluggedinto the computation.
+Invariance and Until . Now consider the invariance property “on some path from the
+current node, property pholds everywhere till the end of the current context.” A N
+T-μ
+formula EG cpfor this is obtained from the identity EG cp=Neg(AF cNeg(p)). The
+formula AG cp, which asserts that pholds on each point on each run from the current
+node, can be written similarly.
+Other classic branching-time temporal properties like the existential weak until (writ-
+ten as E(p1Wcp2)) and the existential until (E(p1Ucp2)) are also expressible. The
+former holds if there is a path πfrom the current node such that p1holds at every
+point on πtill it reaches the end of the current context or a node satisfying p2(ifπ
+doesn’t reach either, p1must hold all along on it). The latter, in addition, requires p2
+to hold at some point on π. The for-all-paths analogs of these properties ( A(p1Ucp2)
+and A(p1Wcp2)) aren’t hard to write either.
+Neither is it difﬁcult to express local or same-context versions of these properties.
+Consider the maximal subsequence π/primeof a program path πfrom ssuch that each node
+ofπ/primebelongs to the same procedural context as s.AN T-μformula EGlpforexistential
+local invariance demands that pholds on some such π/prime, while AGl
+cpasserts the same
+for all π/prime. Similarly, we can deﬁne existential and universal local until properties, and
+corresponding N T-μformulas E(p1Ul
+cp2)a n d A(p1Ul
+cp2). For instance, in Figure 8,
+E(¬wr Ul
+crd) holds at node s(whereas E(¬wr U crd) does not). “Weak” versions of
+these formulas are also written with ease. For instance, it is easy to verify that we canwrite generic existential, local, weak until properties as
+E(p
+1Wl
+cp2)=νX.((p1∨p2)∧(p2∨/angbracketleftloc/angbracketrightX∨/angbracketleftcall/angbracketrightϕ/prime{X})),
+where ϕ/primeasserts local reachability of /angbracketleftret/angbracketrightR1as before.
+Interprocedural Dataﬂow Analysis It is well known that many classic dataﬂow anal-
+ysis problems can be reduced to temporal logic model-checking over program abstrac-tions [Steffen 1991; Schmidt 1998]. For example, consider the problem of ﬁnding very
+busy expressions in a program that arises in compiler optimization. An expression eis
+said to be very busy at a program point sif every path from smust evaluate ebefore
+any variable in eis redeﬁned. Let us ﬁrst assume that all variables are in scope all
+the time along every path from s. Now label every node in the program’s unfolding im-
+mediately preceding a statement evaluating eby a proposition use(e), and every node
+representing a program state about to redeﬁne a variable in ebymod (e). For example,
+ifeis as in the program in Figure 8, every node labeled wrin the corresponding nested
+tree is also labeled mod (e), and every node labeled rdis also labeled use(e).
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 21 ---
+Software Model Checking Using Languages of Nested Trees 15:21
+Because of loops in the ﬂow graph, we would not expect every path from sto even-
+tually satisfy use(e); however, we can demand that each point in such a loop will have
+a path to a loop exit from where a use of ewould be reachable. Then, a N T-μformula
+that demands that eis very busy at sis
+A((EF cuse(e)∧¬mod (e))Wcuse(e)).
+Note that this property uses the power of N T-μto reason about branching time.
+However, complications arise if we are considering interprocedural paths and ehas
+local as well as global variables. Note that if ein Figure 8 contains global variables,
+then it is not very busy at the point right before the recursive call to foo. This is because
+emay be written in the new context. However, if eonly contains local variables, then
+this modiﬁcation, which happens in an invoked procedural context, does not affect the
+value of ein the original context. While facts involving global variables and expressions
+ﬂow through program paths across contexts, data ﬂow involving local variables follow
+program paths within the same context.
+Local temporal properties are useful in capturing these two different types of data
+ﬂow. Let us handle the general case, where the expression emay have global as well
+as local variables. Deﬁne two propositions mod g(e)a n d mod l(e) that are true at points
+where, respectively, a global or a local variable in eis modiﬁed. The N T-μproperty we
+assert at sis
+νX.(((EFl
+cuse(e))∧¬mod g(e)∧¬mod l(e))∨use(e))∧(use(e)∨([loc]X∧[call]ψ{X,tt})),
+where the formula ψtracks global variables in new contexts:
+ψ=μY.(¬mod g(e)∧(([ret]R1∧/angbracketleftret/angbracketrightR2)∨([call]Y{Y,tt}∧[loc]Y))).
+Note the use of the formula /angbracketleftret/angbracketrightR2to ensure that [ ret]R1is not vacuously true.
+Pushdown Speciﬁcations. The domain where N T-μstands out most clearly from pre-
+viously studied ﬁxpoint calculi is that of pushdown speciﬁcations , that is, speciﬁcations
+involving the program stack. We have already introduced a class of such speciﬁcations
+expressible in N T-μ: that of local temporal properties. For instance, the formula EFl
+cp
+needs to track the program stack to know whether a reachable node satisfying pis
+indeed in the initial calling context. Some such speciﬁcations have previously beendiscussed in context of the temporal logic C
+ARET [Alur et al. 2004]. On the other hand,
+it is well-known that the modal μ-calculus is a regular speciﬁcation language (i.e., it
+is equivalent in expressiveness to a class of ﬁnite-state tree automata), and cannotreason about the stack in this way. We have already seen an application of these richer
+speciﬁcations in program analysis. In the rest of this section, we will see more of them.
+Nested Formulas and Stack Inspection Interestingly, we can express certain proper-
+ties of the stack just by nesting N
+T-μformulas for (nonlocal) reachability and invari-
+ance. To understand why, recall that N T-μformulas for reachability and invariance
+only reason about nodes appearing before the end of the context where they were as-serted. Now let us try to express a stack inspection property such as “if procedure foois
+called, procedure barmust not be on the call stack.” Speciﬁcations like this have pre-
+viously been used in research on software security [Jensen et al. 1999; Esparza et al.2003], and are enforced at runtime in the Java or .NET stack inspection framework.
+However, because a program’s stack can be unbounded, they are not expressible by
+regular speciﬁcations like the μ-calculus. While the temporal logic C
+ARET can express
+such properties, it requires a past-time operator called caller to do so. To express this
+property in N T-μ, we deﬁne propositions cfooand cbarthat respectively hold at every
+call site for fooand bar. Now, assuming control starts in foo, consider the formula
+ϕ=EF c(cbar∧/angbracketleftcall/angbracketright(EF ccfoo){}).
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 22 ---
+15:22 R. Alur et al.
+This formula demands a program path where, ﬁrst, bar is called (there is no return
+requirement), and then, before that context is popped off the stack, a call site for foo
+is reached. It follows that the property we are seeking is Neg(ϕ).
+Other stack inspection properties expressible in N T-μinclude “when procedure foo
+is called, all procedures on the stack must have the necessary privilege.” Like the
+previous requirement, this requirement protects a a privileged callee from a malicious
+caller. However, N T-μalso comes in handy to express properties that protect the caller
+from the callee. For one such scenario [Abadi and Fournet 2003], consider a malicious
+method Awhich, via side-effects or exceptional return conditions, may compromise
+the security of methods that the caller method Bcalls subsequently. To prevent such
+a scenario, we may assert requirements such as “If Ahas ever been on the stack,
+do not execute the sensitive operation X.” Note that stack inspection cannot handle
+this speciﬁcation. This is an example of a dynamic security constraint (mentioned but
+not formalized in Jensen et al. [1999]), which combines reasoning about the program
+stack with reasoning about the global evolution of the program, allowing privileges of
+procedures to change dynamically depending on the privileges used so far.
+Stack Overﬂow . Stack overﬂow, caused by unbounded recursion, is a serious security
+vulnerability in programs written in C-like languages. N T-μcan specify requirements
+that safeguard against such errors. Once again, nested modalities come handy. Supposewe assert AG
+c(/angbracketleftcall/angbracketrightﬀ{}) throughout every context reached through kcalls in succession
+without intervening returns (this can be kept track of using a k-length chain of /angbracketleftcall/angbracketright
+modalities). This will disallow further calls, bounding the stack to height k.
+Other speciﬁcations for stack boundedness include: “every call in every program
+execution eventually returns.” This property requires the program stack to be empty
+inﬁnitely often. Though this requirement does not say how large the stack may get—even if a call returns, it may still overﬂow the stack at some point. Further, in certain
+cases, a call may not return because of cycles introduced by abstraction. However,
+it does rule out inﬁnite recursive loops in many cases; for instance, the program inFigure 8 will fail this property because of a real recursive cycle. We capture it by
+asserting AG
+cTermin at the initial program point, where
+Termin =[call](AFl
+c(/angbracketleftret/angbracketrightR1)){tt}.
+Preconditions and Postconditions. For a program state s, let us consider the set Jmp (s)
+of nodes to which a call from smay return. Then, the requirement: “property pholds at
+some node in Jmp (s)” is captured by the N T-μformula /angbracketleftjump/angbracketrightp=/angbracketleftcall/angbracketright(EFl
+c/angbracketleftret/angbracketrightR1){p}.
+The dual formula [ jump ]p, which requires pto hold at all such jump targets, is also
+easily constructed.
+An immediate application of this is to encode the partial and total correctness re-
+quirements popular in formalisms like Hoare logic and JML [Burdy et al. 2003]. Apartial correctness requirement for a procedure Aasserts that if precondition Pre is
+satisﬁed when Ais called, then if Aterminates, postcondition Post holds upon return.
+Total correctness, additionally, requires Ato terminate. These requirements cannot be
+expressed using regular speciﬁcations. In N
+T-μ, let us say that at every call site to
+procedure A, proposition cAholds. Then a formula for partial correctness, asserted at
+the initial program state, is
+AG c((Pre∧cA)⇒[jump ]Post).
+Total correctness is expressed as
+AG c((Pre∧cA)⇒(Termin ∧[jump ]Post)).
+Access Control. The ability of N T-μto handle local and global variables simultane-
+ously is useful in other domains, for example, access control. Consider a procedure Athat
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 23 ---
+Software Model Checking Using Languages of Nested Trees 15:23
+can be called with a high or low privilege, and suppose we have a rule that Acan access a
+database (proposition access is true when it does) only if it is called with a high privilege
+(priv holds when it is). It is tempting to write a property ϕ=¬priv⇒AG c(¬access )
+to express this requirement. However, a context where Ahas low privilege may lead
+to another where Ahas high privilege via a recursive invocation, and ϕwill not let A
+access the database even in this new context. The formula we are looking for is really
+ϕ/prime=¬priv⇒AGl
+c(¬access ), asserted at every call site for A.
+Multiple Return Conditions. As we shall see in Section 7.2, the theoretical expres-
+siveness of N T-μdepends on the fact that we can pass multiple return conditions as
+“parameters” to N T-μcall formulas. We can also use these parameters to remember
+events that happen within the scope of a call and take actions accordingly on return.
+To see how, we go back to Figure 8, and observe that in any particular invocation
+offoo, it is possible to exit the routine (1) having read the value of ethat was written
+in this invocation, and (2) not having read this value. Suppose that we demand that
+in case (2), the expression emust be read at least once before the end of the current
+context— that is, the value written in the last write must be read by that point. We do
+not require this in case (1)— in this case control may skip the loop. In addition, let us
+require that every path in an invocation of fooreturns and that eis written at least
+once in this path.
+We express these requirements by asserting the N T-μformula ϕat the program point
+right before the recursive call to foo:
+ϕ=/angbracketleftcall/angbracketrightψ/prime{tt,EF crd},
+where ψ/primeis a ﬁxed-point property that states that: each path in the new context must
+either:
+—see a node labeled wrfollowed, not necessarily immediately, by a node labeled rd,
+and then read /angbracketleftret/angbracketrightR1without seeing wragain,
+—see a node labeled wrand then not see a node labeled rdtill a node satisfying /angbracketleftret/angbracketrightR2
+is reached.
+5. MODEL CHECKING
+In this section, we introduce the problem of model checking N T-μover unfoldings of
+nested state machines (NSMs). Our primary result is an iterative, symbolic decision
+procedure to solve this problem. Appealingly, this algorithm follows directly from theoperational semantics of N
+T-μand has the same complexity as the best algorithms for
+model checking C TLor the alternation-free μ-calculus over similar abstractions. We
+also show a matching lower bound.
+For a speciﬁcation given by a (closed) N T-μformula ϕand an NSM Mabstracting
+a program (recall Section 2.1), the model checking problem is to determine if T(M)
+satisﬁes ϕ. We will now offer an algorithm for this problem.
+LetVbe the set of vertices of M, and consider a node sin the execution tree TV(M)
+ofM(deﬁned in Section 2.1). The set ME(s), as well as the return-formulas that hold
+at a summary srooted at s, depend on states at call nodes on the path from the root
+tos. However, we observe that the history of call-nodes up to sis relevant to a formula
+only because they may be consulted by return-nodes in the future, and no formulainterpreted at scan probe “beyond” the nodes in ME(s). Thus, so far as satisfaction of
+a formula goes, we are only interested in the last “pending” call-node; in fact, the state
+of the automaton at this node is all that we need to record about the past.
+Let us now try to formalize this intuition. First, we deﬁne the unmatched call-
+ancestor Anc (s) of a node sin a nested tree T. Consider the tagged tree of T, and recall
+the deﬁnition of a balanced word over tags (given in Section 2). If t=Anc(s), then we
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 24 ---
+15:24 R. Alur et al.
+require that tcall−→ t/primefor some node t/primesuch that in the tagged tree of T, there is a path π
+from t/primetossuch that the sequence of edge labels along πforms a balanced word. Note
+that every node in a nested tree has at most one unmatched call-ancestor. If a node s
+does not have such an ancestor, we set Anc(s)=⊥.
+Now let us consider two k-colored summaries s=/angbracketlefts,U1,U2,..., Uk/angbracketrightands/prime=
+/angbracketlefts/prime,U/prime
+1,U/prime
+2,..., U/prime
+k/angbracketrightin the execution tree TV(M)=(T,/arrowhookleft→,λ)o ft h eN S M M,a n dl e t
+Anc(s)=tand Anc(s/prime)=t/prime, where t,t/primecan be nodes or the symbol ⊥( n o t et h a ti fw e
+have Anc(s)=⊥,t h e n ME(s)=∅,s ot h a t Ui=∅for all i).
+Now we say sands/primeareM-equivalent (written as s≡Ms/primeor simply s≡s/primewhen M
+is clear from the context) if:
+—λ(s)=λ(s/prime);
+—either t=t/prime=⊥,o rλ(t)=λ(t/prime);
+—for each 1 ≤i≤k, there is a bijection /Omega1i:Ui→U/prime
+isuch that for all u∈Ui,w eh a v e
+λ(u)=λ(/Omega1i(u)).
+It is easily seen that the relation ≡is an equivalence. Let us call a set Sof summaries
+inTV(M)M-equivalence-closed (written ≡-closed) if for any two summaries sands/prime
+such that s≡s/prime,w eh a v e s∈Siffs/prime∈S. In other words, such a set is the union of
+a certain number of equivalence classes induced by ≡. Let us call an environment E
+≡-closed if for every variable X,t h es e t E(X)i s≡-closed.
+Note that these deﬁnitions involve summaries in the execution tree TV(M). However,
+each summary in the execution tree may also be viewed as a summary in the unfoldingT(M)o fM, in which case we can interpret N
+T-μformulas involving atomic propositions
+on them.
+Now we prove the following.
+LEMMA 5.1. For any ≡-closed environment E,NT-μformula ϕ, and ≡-equivalent
+summaries sands/prime, we have s∈[[ϕ]]T(M)
+E iffs/prime∈[[ϕ]]T(M)
+E.
+PROOF . The proof is by structural induction on the formula ϕ.L e t sands/primebeM-
+equivalent summaries as in the deﬁnition of M-equivalence above, and let us continue
+to denote the bijection between the i-colored exits of sands/primeby/Omega1i:Ui→U/prime
+i.L e tu s
+denote by λthe labeling of nodes in the execution tree TV(M). We denote λ(s)=λ(s/prime)
+byv0andλ(t)=λ(t/prime)b yv1. It sufﬁces to show that assuming Eis≡-closed, s∈[[ϕ]]E⇒
+s/prime∈[[ϕ]]E.
+We handle some interesting cases.
+—Ifϕ=X, then the claim holds as EisM-equivalence-closed.
+—Suppose ϕ=μX.ϕ/prime.L e t X0=∅,a n df o r i≥0, let Xi+1=[[ϕ/prime]]E[X:=Xi]. Then [ [ ϕ]]E=
+∪i≥0Xi.S i n c e X0isM-equivalence-closed, and EisM-equivalence-closed, and [ [ ϕ/prime]]E/prime
+isM-equivalence-closed for all M-equivalence-closed environments E/prime, by induction
+oni,[ [ϕ]]EisM-equivalence-closed.
+—Suppose ϕ=/angbracketleftret/angbracketrightRi.T h a tm e a n st h a tt h e r ei ss o m e sret−→ usuch that u∈Ui.L e t
+λ(u)=v2;t h e n λ(/Omega1(u))=v2. However, in that case the same transition ( v0,v1)ret−→v2
+can be “ﬁred” from s/primeto/Omega1(u)— that is, s/primeret−→/Omega1(u). In other words s/prime∈[[ϕ]]E.
+—Suppose ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ k}. This means that there is some call-edge scall−→ u
+and a summary u=/angbracketleftu,V1,..., Vk/angbracketrightsatisfying ϕ/primesuch that for all iand all w∈Vi,w e
+have w=/angbracketleftw,U1∩ME(w),..., Uk∩ME(w)/angbracketrightsatisfying ψi.
+Now note that, because λ(s)=λ(s/prime), there is a call-edge s/primecall−→ u/prime. We can show
+inductively that there is a bijection /Omega1/prime:ME(u)→ME(u/prime) such that for any node
+w∈ME(u), we have λ(w)=λ(/Omega1/prime(w)). The reason is that any path in the tree from s
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 25 ---
+Software Model Checking Using Languages of Nested Trees 15:25
+toME(s) is independent of the labeling λ(w) of any node wsuch that w+−→ Anc(s)
+(we can prove this using induction). As λ(s)=λ(s/prime)a n d λ(Anc(s))=λ(Anc(s/prime)), every
+path in from st oan o d ei n ME(s) is simulated by a unique path from s/primet oan o d ei n
+ME(s/prime).
+By restricting /Omega1/primeto the sets V1,V2,...⊆ME(u), we get the bijections /Omega1/prime
+i:Vi→V/prime
+i,f o r
+1≤i≤k. Let us now construct u/prime=/angbracketleftu/prime,V/prime
+1,..., V/prime
+k/angbracketright. We observe that uandu/primeareM-
+equivalent. In that case u/primesatisﬁes ϕ/primein environment E. Likewise, for w∈Vias before,
+letw/prime=/Omega1i(w), and construct the summary w/prime=/angbracketleftw/prime,V/prime
+1∩ME(w/prime),..., V/prime
+k∩ME(w/prime)/angbracketright.
+Then, wandw/primeareM-equivalent, and both satisfy ψi. In that case, s/primesatisﬁes ϕ.
+The remaining cases are handled similarly, establishing the claim.
+Now note that the number of equivalence classes that ≡induces on the set of
+summaries is bounded ! Each such equivalence class may be represented by a tuple
+/angbracketleftv,v/prime,V1,..., Vk/angbracketright, where v∈V,v/prime∈V∪{ ⊥ } ,a n d Vi⊆Vfor all i—for this class of
+the summary s, for instance, we have λ(s)=vandλ(Ui)=Vi;w ea l s oh a v e λ(t)=v/prime
+in case t/negationslash=⊥,a n d v/prime=⊥otherwise. Let us call such a tuple a bounded summary . The
+idea behind the model-checking algorithm of N T-μis that for any formula ϕ, we can
+maintain, symbolically, the set of bounded summaries that satisfy it. Once this setis computed, we can compute the set of bounded summaries for formulas deﬁned in-
+ductively in terms of ϕ. This computation follows directly from the semantics of the
+formula; for instance, the set for the formula /angbracketleftloc/angbracketrightϕcontains all bounded summaries
+/angbracketleftv,v
+/prime,V1,..., Vk/angbracketrightsuch that for some v/prime/prime∈V,w eh a v e vloc−→v/prime/prime, and, letting V/prime/prime
+icomprise
+t h ee l e m e n t so f Vithat are reachable from v/prime/prime,/angbracketleftv/prime/prime,v/prime,V/prime/prime
+1,..., V/prime/prime
+k/angbracketrightsatisﬁes ϕ.
+Let us now deﬁne bounded summaries formally. Consider any state uin an NSM
+Mwith state set V. A state u/primeis said to be the unmatched call-ancestor state of state
+uif there is a node slabeled uinTV(M) such that u/primeis the label of the unmatched
+call-ancestor of s(we have a predicate Anc V(u/prime,u) that holds iff this is true). Note that
+a state may have multiple unmatched call-ancestor states. If there is a node slabeled
+uinTV(M) such that Anc(s)=⊥,w es e t Anc V(⊥,u).
+A state vis amatching exit state for a pair ( u,u/prime), where Anc V(u/prime,u), if there are nodes
+s,s/prime,tinTV(M) such that t∈ME(s),s/primeis the unmatched call-ancestor of s, and labels
+ofs,s/prime,a n d tareu,u/prime,a n d v, respectively, (a pair ( u,⊥) has no matching exit state).
+The modeling intuition is that from a program state modeled by NSM state uand a
+stack with a single frame modeled by the state u/prime, control may reach a u/prime/primein the same
+context, and then return at the state vvia a transition ( u/prime/prime,u/prime)ret−→v. Using well-known
+techniques for pushdown models [Alur et al. 2005], we can compute, given a state u,t h e
+set of u/primesuch that Anc V(u/prime,u), and for every member u/primeof the latter, the set MES (u,u/prime)
+of matching exit states for ( u,u/prime), in time polynomial in the size of M.
+Now we give deﬁnition 5.2.
+Deﬁnition 5.2 ( Bounded summaries ). Let nbe the arity of the formula ϕthat we
+seek to model-check. A bounded summary is a tuple /angbracketleftu,u/prime,V1,..., Vk/angbracketright, where 0 ≤k≤n,
+Anc V(u/prime,u) and for all i,w eh a v e Vi⊆MES (u,u/prime). The set of all bounded summaries in
+Mis denoted by BS.
+LetEBS:Free (ϕ)→2BSbe a bounded environment mapping free variables in ϕto
+sets of bounded summaries, and let ⊥Bdenote the empty environment. We deﬁne a
+mapEval (ϕ,EBS) assigning a set of bounded summaries to a N T-μformula ϕ:
+—Ifϕ=p,f o r p∈AP,t h e n Eval (ϕ,EBS) consists of all bounded summaries
+/angbracketleftu,u/prime,V1,..., Vk/angbracketrightsuch that p∈κ(u)a n d k≤n.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 26 ---
+15:26 R. Alur et al.
+FIXPOINT (X,ϕ,EBS)
+1X=Eval (ϕ,EBS)
+2ifX=EBS(X)
+3 then return X
+4 elser e t u r n FIXPOINT (X,ϕ,EBS[X:=X])
+Fig. 9 . Fixpoint computation for N T-μ.
+—Ifϕ=¬ p,f o r p∈AP,t h e n Eval (ϕ,EBS) consists of all bounded summaries
+/angbracketleftu,u/prime,V1,V2,..., Vk/angbracketrightsuch that p/∈κ(u)a n d k≤n.
+—Ifϕ=X,f o r X∈Var,t h e n Eval (ϕ,EBS)=EBS(X).
+—Ifϕ=ϕ1∨ϕ2thenEval (ϕ,EBS)=Eval (ϕ1,EBS)∪Eval (ϕ2,EBS).
+—Ifϕ=ϕ1∧ϕ2thenEval (ϕ,EBS)=Eval (ϕ1,EBS)∩Eval (ϕ2,EBS).
+—Ifϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ m},t h e n Eval (ϕ,EBS) consists of all bounded summaries
+/angbracketleftu,u/prime,V1,..., Vk/angbracketrightsuch that for some transition ucall−→ u/prime/primeofM, we have a bounded
+summary /angbracketleftu/prime/prime,u/prime/prime,V/prime
+1,V/prime
+2,..., V/prime
+m/angbracketright∈Eval (ϕ/prime,EBS), and for all v∈V/prime
+i, where i=1,..., m,
+we have /angbracketleftv,u/prime,V/prime/prime
+1,..., V/prime/prime
+k/angbracketright∈Eval (ψi,EBS), where V/prime/prime
+j=Vj∩MES (v,u/prime) for all j≤k.
+—Ifϕ=[call]ϕ/prime{ψ1,...,ψ m},t h e n Eval (ϕ,EBS) consists of all bounded summaries
+/angbracketleftu,u/prime,V1,..., Vk/angbracketrightsuch that for all u/prime/primesuch that there is a transition ucall−→ u/prime/primein
+M, we have a bounded summary /angbracketleftu/prime/prime,u/prime/prime,V/prime
+1,V/prime
+2,..., V/prime
+m/angbracketright∈Eval (ϕ/prime,EBS), and for all
+v∈V/prime
+i, where i=1,..., m,w eh a v e /angbracketleftv,u/prime,V/prime/prime
+1,..., V/prime/prime
+k/angbracketright∈Eval (ψi,EBS), where V/prime/prime
+j=
+Vj∩MES (v,u/prime) for all j≤k.
+—Ifϕ=/angbracketleftloc/angbracketrightϕ/prime,t h e n Eval (ϕ,EBS) consists of all bounded summaries of the form
+/angbracketleftu,u/prime,V1...,Vk/angbracketrightsuch that for some vsuch that there is a transition uloc−→v,w eh a v e
+/angbracketleftv,u/prime,V1∩MES (v,u/prime),..., Vk∩MES (v,u/prime)/angbracketright∈Eval (ϕ/prime,EBS).
+—Ifϕ=[loc]ϕ/prime,t h e n Eval (ϕ,EBS) consists of all bounded summaries of the form
+/angbracketleftu,u/prime,V1...,Vk/angbracketrightsuch that for all vsuch that there is a transition uloc−→v,w eh a v e
+/angbracketleftv,u/prime,V1∩MES (v,u/prime),..., Vk∩MES (v,u/prime)/angbracketright∈Eval (ϕ/prime,EBS).
+—Ifϕ=/angbracketleftret/angbracketrightRi,t h e n Eval (ϕ,EBS) consists of all bounded summaries of the form
+/angbracketleftu,u/prime,V1,..., Vk/angbracketrightsuch that for some u/prime/prime∈Vi,Mhas a transition ( u,u/prime)ret−→ u/prime/prime.
+—Ifϕ=[ret]Ri,t h e n Eval (ϕ,EBS) consists of all bounded summaries of the form
+/angbracketleftu,u/prime,V1,..., Vk/angbracketrightsuch that for all transitions of the form ( u,u/prime)ret−→ u/prime/prime,w eh a v e
+u/prime/prime∈Vi.
+—Ifϕ=μX.ϕ/prime,t h e n Eval (ϕ,EBS)=FixPoint (X,ϕ/prime,EBS[X:=∅]).
+—Ifϕ=νX.ϕ/prime,t h e n Eval (ϕ,EBS)=FixPoint (X,ϕ/prime,EBS[X:=BS]).
+HereFixPoint (X,ϕ,EBS) is a ﬁxpoint computation function that uses the formula ϕas
+a monotone map between subsets of BS, and iterates over variable X. This computation
+is as in Figure 9.
+Now we show that to model check a formula ϕon an NSM M,w eo n l y
+have to compute Eval (ϕ,⊥B). Let us ﬁrst deﬁne, for any bounded summary b=
+/angbracketleftv,v/prime,V1,..., Vk/angbracketright,t h es e t Unbound (b) of summaries in TV(M) that it captures. Let
+λbe denote the node-labeling map in TV(M). A summary s=/angbracketlefts,U1,..., Uk/angbracketrightis
+inUnbound (b)i f f λ(s)=v,λ(Anc(s))=v/prime, and for all 1 ≤i≤k,w eh a v e
+λ(Ui)=Vi.
+The map is lifted to sets of bounded summaries in the natural way. We also lift
+the map Unbound to bounded environments. For a bounded environment EBS,t h es e t
+Unbound (EBS) is the environment EinTV(M) such that for every variable X,w eh a v e
+E(X)=Unbound (EBS(X)).
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 27 ---
+Software Model Checking Using Languages of Nested Trees 15:27
+Now observe that:
+(1) for any bounded summary b,t h es e t Unbound (b)i s≡M-closed.
+(2) for any bounded environment EBS, the environment Unbound (EBS)i s≡-closed.
+Next we show inductively that:
+LEMMA 5.3. For any NT-μformula ϕ, bounded environment EBS, and bounded sum-
+mary b, and for all s∈Unbound (b),w eh a v e
+b∈Eval (ϕ,EBS)iffs∈[[ϕ]]Unbound (EBS).
+Now note that if initial state of Misvinand the root of T(M)i ssin,t h e n /angbracketleftsin/angbracketright∈
+Unbound (/angbracketleftvin/angbracketright). Also note that Unbound (⊥B)=⊥, where ⊥is the empty environment
+forT(M). From Lemma 5.3, Theorem 5.4 follows.
+THEOREM 5.4. For an NSM Mwith initial state vinand a closed NT-μformula ϕ,
+T(M)satisﬁes ϕif and only if /angbracketleftvin/angbracketright∈Eval (ϕ,⊥B). Further, Eval (ϕ,⊥B)is inductively
+computable.
+To understand this more concretely, let us see how this model-checking algorithm
+runs on a simple NSM. Consider the NSM abstraction Mfooin Section 2.1. The states
+of this NSM are v1,v2,v3,v4,v5,a n d v/prime
+2; the initial state is v1. The states are labeled
+by the atomic propositions rd,wr,tk,en,a n d exusing a map deﬁned as: κ(v0)=∅,
+κ(v1)={wr},κ(v2)={en},κ(v/prime
+2)={ex},κ(v3)={tk},κ(v4)={rd},a n d κ(v5)={end}. The
+transition relations of Mfooare given by:
+(1)/Delta1call={(v2,v1)},
+(2)/Delta1loc={(v1,v2),(v1,v3),(v/prime
+2,v4),(v/prime
+2,v5),(v3,v4),(v3,v5),(v4,v4),(v4,v5)},a n d
+(3)/Delta1ret={(v5,v2,v/prime
+2)}.
+Now suppose we want to check if a write action is locally reachable from the ini-
+tial state. The N T-μproperty specifying this requirement is ϕ=μX.(wr∨/angbracketleftloc/angbracketrightX∨
+/angbracketleftcall/angbracketrightϕ/prime{X}),where ϕ/prime=μY.(/angbracketleftret/angbracketrightR1∨/angbracketleftloc/angbracketrightY∨/angbracketleftcall/angbracketrightY{Y}).
+We show how to compute the set of bounded summaries satisfying ϕ/prime—the com-
+putation for ϕis very similar. After the ﬁrst iteration of the ﬁxpoint computa-
+tion that builds this set, we obtain the set S1= {{/angbracketleft v5,v2,{v/prime
+2}/angbracketright}(the set of sum-
+maries satisfying /angbracketleftret/angbracketrightR1). After the second step, we obtain the set of summaries
+S2=S1∪{ /angbracketleftv/prime
+2,v2,{v/prime
+2}/angbracketright,/angbracketleftv3,v2,{v/prime
+2}/angbracketright,/angbracketleftv4,v2,{v/prime
+2}/angbracketright}, and the next set computed is S3=
+S2∪{ /angbracketleftv1,v2,{v/prime
+2}/angbracketright}. Note that in these two steps, we only use local edges in the NSM.
+Now, however, we have found a bounded summary starting at the “entry state” of the
+procedure foo, which may be plugged into the recursive call to foo. More precisely, we
+have ( v2,v1)∈/Delta1call,/angbracketleftv1,v2,{v/prime
+2}/angbracketright ∈S3,a n d /angbracketleftv/prime
+2,v2,{v/prime
+2}/angbracketright ∈S3,s ot h a tw em a yn o wc o n -
+struct S4=S3∪/angbracketleftv2,v2,{v/prime
+2}/angbracketright. This ends the ﬁxpoint computation, so that S4is the set
+of summaries satisfying ϕ/prime.
+Let us now analyze the complexity of this algorithm. Let NVbe the number of states
+inM,a n dl e t nbe the arity of the formula in question. Then the total number of
+bounded summaries in Mthat we need to consider is bounded by N=N2
+V2NVn.L e tu s
+now assume that union or intersection of two sets of summaries, as well as membership
+queries on such sets, take linear time. It is easy to see that the time needed to evaluatea non-ﬁxpoint formula ϕof arity n≤|ϕ|is bounded by O(N
+2|ϕ|NV) (the most expensive
+modality is /angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ n}, where we have to match an “inner” summary satisfying
+ϕ/primeas well as n“outer” summaries satisfying the ψi-s). For a ﬁxpoint formula ϕwith
+one ﬁxpoint variable, we may need Nsuch evaluations, so that the total time required
+to evaluate Eval (ϕ,⊥B)i s O(N3|ϕ|NV) .F o raf o r m u l a ϕof alternation depth d,t h i s
+evaluation takes time O(N3dNd
+V|ϕ|), that is, exponential in the sizes of Mas well as ϕ.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 28 ---
+15:28 R. Alur et al.
+It is known that model-checking alternating reachability speciﬁcations on a push-
+down model is E XPTIME -hard [Walukiewicz 2001]. Following constructions similar to
+those in Section 4, we can generate a N T-μformula ϕfrom a μ-calculus formula f
+expressing an alternating reachability property such that: (1) the size of ϕis linear
+in the size of f,a n d( 2 ) Msatisﬁes ϕif and only if Msatisﬁes f. It follows that
+model-checking a closed N T-μformula ϕon an NSM Mis E XPTIME -hard. Combining,
+we conclude the following.
+THEOREM 5.5. Model checking a NT-μformula ϕon an NSM MisEXPTIME -complete.
+Better bounds may be obtained if the formula has a certain restricted form. For
+instance, it can be shown that for linear time (B ¨uchi or reachability) requirements,
+model-checking takes time polynomial in the number of states of M. The reason is
+that in this case, it sufﬁces to only consider bounded summaries of the form /angbracketleftv,v/prime,{v/prime/prime}/angbracketright,
+which are polynomial in number. The ﬁxpoint computation stays the same.
+Note that our decision procedure is very different from known methods for branching-
+time model-checking of pushdown models [Walukiewicz 2001; Burkart and Steffen1999]. These methods are complex, very different from what branching-time model
+checking looks like in the ﬁnite-state setting, and seem difﬁcult to implement. In con-
+trast, our algorithm is a simple ﬁxpoint computation that computes, in a syntax-drivenway, the semantics of N
+T-μformulas over bounded summaries. In this regard, N T-μre-
+sembles the modal μ-calculus, whose formulas encode ﬁxpoint computations over sets;
+to model-check μ-calculus formulas, we merely need to perform these computations.
+Unsurprisingly, our procedure is very similar to classical symbolic model-checking for
+theμ-calculus.
+6. AUTOMATA ON NESTED TREES
+In this section, we study ﬁnite-state automata operating on nested trees, our general-
+ization of automata on trees. Recall that for tree automata, the state while reading a
+(nonroot) tree node depends on its state at the node’s parent. The state of a nested tree
+automaton at a node in a nested tree depends on its states at the node’s parent and the
+node’s jump-predecessor (if it exists). We deﬁne these automata in nondeterministic
+and alternating ﬂavors; the natural semantics of these are respectively over ordered
+and unordered nested trees. Regarding acceptance conditions, we focus on the paritycondition for the most part as it is the most powerful among the popular ω-acceptance
+conditions; however, we also discuss acceptance by ﬁnal state.
+We start with nondeterministic automata.
+Deﬁnition 6.1 (N
+PNTA). A (top-down) nondeterministic parity nested tree automaton
+(NPNTA) over /Sigma1is a structure A=(Q,q0,/Delta1,/Omega1 ) where Qis a ﬁnite set of states ,q0∈Qis
+the initial state, /Delta1⊆Q×/Sigma1×(TT×TT), where TT=Q∪(Q×Q)∪{ ⊥ } ,i sa transition
+relation ,a n d /Omega1:Q→{0,1,..., n},f o rs o m e n∈N,i st h e parity accepting condition
+that assigns a priority to each automaton state.
+NPNTAs accept languages of ordered, binary nested trees. A run of Aon an ordered,
+binary nested tree T=((S,r,→1,→2),/arrowhookleft→,λ) is a labeling ρ:S→Qof nodes of Tby
+automaton states such that:
+(1)ρ(r)=q0;
+(2) for all s,i fρ(s)=qandλ(s)=σ,t h e n
+—if s1and s2are the left and right children of s,t h e nf o rs o m e( q,σ,(τ1,τ2))∈/Delta1,
+we have: (a) if si,f o r i∈{1,2}, is a call or local node, then τi=ρ(si), and (b) if si
+is a return node, then τi=(ρ(t),ρ(si)), where t/arrowhookleft→si
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 29 ---
+Software Model Checking Using Languages of Nested Trees 15:29
+q0
+q1
+q1
+q2q2q2
+call
+returnlocal
+Fig. 10 .A r u n o f a n N PNTA.
+—ifs/primeis the left (similarly, right) child of sand shas no right (similarly, left) child,
+then for some ( q,σ,(τ/prime,⊥))∈/Delta1(similarly, ( q,σ,(⊥,τ/prime))∈/Delta1), we have: (a) if s/primeis a
+call or local node, then τ/prime=ρ(s/prime), and (b) if s/primeis a return node, then τ/prime=(ρ(t),ρ(s/prime)),
+where t/arrowhookleft→s/prime
+Letπidenote the ith vertex in a path πinT.Ar u n ρofAonTisaccepting if for
+all inﬁnite paths πinT,θ/prime=max{θ:/Omega1(ρ(πi))=θfor inﬁnitely many i}is even. An
+ordered, binary nested tree Tisaccepted ifAhas an accepting run on it. The language
+L(A)o fAis the set of nested trees it accepts.
+Figure 10 illustrates part of a run of an N PNTAon a nested tree (let us assume that
+the label of every node is σand that every node has a left child). Transitions include
+(q1,σ,((q0,q2),⊥)) and ( q0,σ,(q1,q2)).
+We can deﬁne an equivalent semantics of N PNTAs by letting the automaton manip-
+ulate a stack rather than consult a node’s jump-predecessor. In this case, Apushes
+the current state while taking a call edge, pops on a return edge, and leaves the stackunchanged on a local edge. As jump-edges are nested, the top of the automaton stack
+at a return node stores the state at the node’s matching call.
+As we shall see, unlike their analogs on trees, nondeterministic automata on nested
+trees do not have robust closure properties. However, this problem goes away for alter-
+nating nested tree automata, which we now consider.
+We interpret our alternating automata on unordered nested trees.
+Deﬁnition 6.2 (A
+PNTA). For a ﬁnite set Q, deﬁne the set TT(Q)o ftransition terms
+whose members fare of the form f:=tt|ﬀ|f∨f|f∧f|/angbracketleftloc/angbracketrightq|[loc]q|
+/angbracketleftcall/angbracketrightq|[call]q|/angbracketleftret,q/prime/angbracketrightq|[ret,q/prime]q, where q,q/prime∈Q.A n alternating parity nested tree
+automaton (APNTA) over /Sigma1is a structure A=(Q,q0,/Delta1,/Omega1 ), where Qis a ﬁnite set of
+states, q0∈Qis the initial state, /Delta1:Q×/Sigma1→TT(Q) is a transition function, and
+/Omega1:Q→{0,1,..., n}is the parity accepting condition.
+We deﬁne the semantics of an A PNTAA=(Q,q0,/Delta1,/Omega1 ) via a parity game. The ac-
+ceptance game G(A,T)o fa /Sigma1-labeled nested tree T=(T,/arrowhookleft→,λ)b yAis played by two
+players AandE. The vertex set of the game graph is V=T×Q×Q∗×TT,a n dt h es e t
+of moves ⇒⊆V×Vis the least set such that:
+—for all v∈Vof the form ( s,q,α,f1∨f2)o r( s,q,α,f1∧f2)f o rs o m e v/prime∈V∪{/epsilon1},w e
+havev⇒(s,q,α,f1)a n d v⇒(s,q,α,f2);
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 30 ---
+15:30 R. Alur et al.
+—for all v∈Vof the form ( s,q,α,/angbracketleftloc/angbracketrightq/prime)) or ( s,q,α,[loc]q/prime)), and for all s/primesuch that
+sloc−→ s/prime,w eh a v e v⇒(s/prime,q/prime,α,f), where f=/Delta1(q/prime,λ(s/prime));
+—for all v∈Vof the form ( s,q,α,/angbracketleftcall/angbracketrightq/prime)o r( s,q,α,[call]q/prime), and for all s/primesuch that
+scall−→ s/prime,w eh a v e v⇒(s/prime,q/prime,q.α,f), where f=/Delta1(q/prime,λ(s/prime));
+—for all v∈Vof the form ( s,q,q/prime/prime.α,/angbracketleftret,q/prime/prime/angbracketrightq/prime)o r( s,q,q/prime/prime.α,[ret,q/prime/prime]q/prime), and for all s/prime
+such that sret−→ s/prime,w eh a v e v⇒(s/prime,q/prime,α,f), where f=/Delta1(q/prime,λ(s/prime));
+The vertex set Vis partitioned into two sets VEandVAcorresponding to the two
+players. The set VAcomprises vertices of the form ( s,q,α,f), where s,qandαare
+arbitrary and fhas the form tt,[call]q,[loc]q,[ret,q/prime]q,o r( f1∧f2). The remaining
+vertices constitute VE. We also lift the priority map /Omega1to/Omega1V:V→{ 0,1,..., n}by
+deﬁning /Omega1V(s,q,α,f)=/Omega1(q) for all s,q,α,a n d f.
+The two players Aand Eplay on the graph starting from the initial position vin=
+(s0,q0,/epsilon1,/Delta1 (q0,λ(s0))) by moving a token along edges of the game graph. Whenever
+the token is in a position v, the player who owns the vertex must move the token.
+Formally, a play ofGis a nonempty, ﬁnite or inﬁnite sequence α=v1v2···that is
+a path in the game graph, where v1=vin. A ﬁnite play is winning for player Aif
+the last position is a player Evertex from which there is no move; analogously, we
+deﬁne winning ﬁnite plays for player E. An inﬁnite play αis winning for player Eif
+θ/prime=max{θ:/Omega1V(vi)=θfor inﬁnitely many i}is even; otherwise, Awins the play (this is
+the standard max-parity acceptance condition for parity games). A strategy for player
+E(orA)i sas u b s e to fe d g e s Str⊆⇒ such that all these edges originate in a vertex
+inVE(orVA).1A play is in accordance with a strategy Strif all edges in the play are
+inStr. A strategy is winning if all maximal plays in accordance with the strategy are
+winning.
+An A PNTAAaccepts a nested tree TifEhas a winning strategy in G(A,T). The
+language L(A)o fAis the set of nested trees accepted by A.
+We also consider automata that accept by the weaker ﬁnal-state condition . For non-
+deterministic versions of such automata, a nested tree is accepted if a special ﬁnal state
+qfis seen along every path in some run on it. In alternating versions, all inﬁnite plays
+are won by A, and if a play reaches a game vertex ( s,qf,α,f)f o rs o m e s,α,a n d f,t h e n
+the game terminates and Eis the winner.
+6.1. Decision Problems
+The model checking problem for A PNTAs on nested state machines is the problem of
+deciding, given an A PNTAAand a nested state machine M,w h e t h e r T(M)∈L(A).
+THEOREM 6.3. The model-checking problem for APNTAs on nested state machines is
+EXPTIME -complete.
+PROOF . We obtain an E XPTIME procedure for this problem via a reduction to a push-
+down parity game . A two-player pushdown parity game is a parity game played on the
+conﬁguration graph of a pushdown system. It is known that pushdown parity games
+are solvable in E XPTIME [Walukiewicz 2001]. Now, given an A PNTAAand a nested state
+machine M,T(M)∈L(A) iff player Ewins the acceptance game of A. Now recall that
+call-edges (similarly, return-edges) in T(M) encode call transitions (similarly, return
+transitions) of M— that is, these capture pushes (similarly pops) to the stack implicit
+in an NSM abstraction. However, these edges are also where the stack of states in thesemantics of Ais pushed (popped). Thus, the implicit stack of Mis “synchronized” with
+1Strategies are often deﬁned in a more general way that refer to the history of the play. This deﬁnition
+sufﬁces as parity games always admit zero-memory strategies [Gr ¨adel et al. 2002].
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 31 ---
+Software Model Checking Using Languages of Nested Trees 15:31
+(a)
+(b)a1a2an $bm1 bm2 bmn
+b21 b22
+b11b1nb2n
+b12
+cim ci2ci1w1w2w3w4w5 wn
+∗
+∗ ∗
+∗
+∗∗∗ $
+$$
+$
+$$
+$ui1=w1
+ui2=w2w3w4
+vi1=w1w2w3
+vi2=w4w5call
+return
+local
+Fig. 11 . (a) Closure properties of A PNTAsa n dN PNTAs; (b) Gadget for undecidability.
+the implicit stack of A, so that the graph of the acceptance game of T(M)b yAhappens
+to be the conﬁguration graph of a pushdown system that is roughly the “synchronizedproduct” of MandA.
+An E
+XPTIME -hardness result for this problem follows from the known hardness
+of the model-checking problem for alternating tree automata on pushdown sys-tems [Walukiewicz 2001].
+While model checking for A PNTAs is decidable, emptiness is not.2
+THEOREM 6.4. Universality for nondeterministic nested tree automata and emptiness
+for alternating nested tree automata are undecidable problems, even for acceptance byﬁnal state.
+P
+ROOF . The proof employs a reduction from the Post’s Correspondence Problem
+(PCP) [Hopcroft and Ullman 1979]. Consider a tuple (( u1,..., uk),(v1,...,v k)), where
+theui’s and vi’s are ﬁnite words over an alphabet A; the PCP is to determine if there is a
+sequence i1,..., im, where ij≤k, such that ui1ui2···uim=vi1vi2···vim=w. Now consider
+nested trees of the form in Figure 11(b) (the jump-edges are omitted to keep the ﬁgure
+simple) such that the initial call-chain is of length mand is labeled by symbols from
+the alphabet {1,..., k}, and the symbols wion the “stem” of local nodes succeeding
+this chain form the string w. Now suppose the sequence of input symbols on the call
+chain is cim···ci1. There are two kinds of return chains hanging from the stem—the
+2This result was obtained independently by C. L ¨oding (2005, Private communication).
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 32 ---
+15:32 R. Alur et al.
+ones marked with the symbol ∗(similarly $) are exactly at the points where wmay be
+possibly factored into ui1,ui2,..., uim(similarly vi1,...,v im). Also, the ith return chain
+(counting from left) of either type is of length i. Then such a nested tree is a witness
+for an instance of PCP being positive. We can, however, show that there is an alternat-ing NTA accepting by ﬁnal state that accepts the set of nested trees bisimilar to such
+witnesses. In fact, we can show that there is a nondeterministic ﬁnal-state NTA that
+accepts any nested tree notof the previous form (under some ordering of edges).
+However, we can prove the emptiness problem of N PNTAs to be solvable in E XPTIME
+by reducing it to that for pushdown tree automata [Kupferman et al. 2002].
+6.2. Closure Properties
+Now we investigate the closure properties of A PNTAsa n dN PNTAs.
+THEOREM 6.5. A PNTAs are closed under union, intersection, and complement. NPNTAs
+are closed under union and intersection.
+PROOF . Proofs that A PNTAs are closed under union and intersection are easy, and
+mirror corresponding results for alternating tree automata. We give a proof sketch ofthe closure of A
+PNTAs under complement.
+Consider an A PNTAA=(Q,q0,/Delta1,/Omega1 ). Let us deﬁne, for every transition term f,t h e
+transition term Neg(f) as follows:
+Neg(f1∨f2)=Neg(f1)∧Neg(f2)
+Neg(f1∧f2)=Neg(f1)∨Neg(f2)
+Neg(tt)=ﬀ
+Neg(ﬀ)=tt
+Neg(/angbracketleftloc/angbracketrightq)=[loc]q
+Neg([loc]q)=/angbracketleftloc/angbracketrightq
+Neg(/angbracketleftcall/angbracketrightq)=[call]q
+Neg(()[call]q)=/angbracketleftcall/angbracketrightq
+Neg(/angbracketleftret,q/prime/angbracketrightq)=[ret,q/prime]q
+Neg([ret,q/prime]q)=/angbracketleftret,q/prime/angbracketrightq.
+Let/Delta1¬be the transition function deﬁned as: if /Delta1(q,σ)=ffor some q,σ,f,t h e n
+/Delta1¬(q,σ)=Neg(f). Also, we deﬁne a new parity acceptance condition /Omega1¬as: for all
+q∈Q,/Omega1¬(q)=1+/Omega1(q). Now we construct an A PNTAA¬which is the same as A, except
+its transition function is /Delta1¬and acceptance condition /Omega1¬.
+Now suppose that in the acceptance game GforAand a nested tree T, Player Ehas
+a winning strategy (i.e., Tis not accepted by A). It is known, from research on parity
+games, that this strategy is memoryless [Gr¨adel et al. 2002]. It can now be shown that
+the same strategy, applied to the acceptance game for TandAneg, is winning for Player
+A. As for the other direction, suppose Player Ehas no winning strategy in G. As parity
+games are determined , this means Ahas a memoryless winning strategy in G. We can
+now show that the same strategy is winning for Ein the acceptance game for A¬(the
+arguments are the same as in the proof of closure of alternating tree automata under
+complement [Gr ¨adel et al. 2002]— as a result, we leave the details out). It follows that
+A¬accepts the complement of L(A).
+Regarding N PNTAs, their closure under union is trivial. As for closure under inter-
+section, consider N PNTAsA1=(Q1,q1
+0,/Delta11,/Omega11)a n dA2=(Q2,q2
+0,/Delta12,/Omega12), and construct
+an N PNTAA∩=(Q,q0,/Delta1,/Omega1 ). Here, Q=Q1×Q2and q0=(q1
+0,q2
+0). Let us now deﬁne
+the “product” Prod (τ1,τ2) of two transition terms τ1andτ2as follows:
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 33 ---
+Software Model Checking Using Languages of Nested Trees 15:33
+—ifτ1=⊥andτ2=⊥,t h e n Prod (τ1,τ2)=⊥;
+—ifτ1=q1andτ2=q2,t h e n Prod (τ1,τ2)=(q1,q2);
+—ifτ1=(q/prime
+1,q1)a n d τ2=(q/prime
+2,q2), then Prod (τ1,τ2)=((q/prime
+1,q/prime
+2),(q1,q2)).
+Then the transition relation /Delta1is the least relation such that for each transition
+(q1,a,(τ1
+1,τ1
+2)) in/Delta11and ( q2,a,(τ2
+1,τ2
+2)) in/Delta12such that Prod (τ1
+1,τ2
+1)a n dProd (τ1
+2,τ2
+2) are
+deﬁned, we have a transition (( q1,q2),a,(Prod (τ1
+1,τ2
+1),Prod (τ1
+2,τ2
+2))) in /Delta1. Finally, we
+deﬁne /Omega1such that for all ( q1,q2)∈Q1×Q2,w eh a v e /Omega1((q1,q2))=max{/Omega11(q1),/Omega12(q2)}.
+It can now be veriﬁed that L(A∩)=L(A1)∩L(A2).
+Observe that by our deﬁnition, languages accepted by A PNTAs are closed under bisim-
+ulation, while those accepted by N PNTAs are not in general. To compare the expres-
+siveness of an A PNTAa n da nN PNTAmeaningfully, we need to consider the language
+obtained by starting with the language Lof the N PNTA, stripping the order between tree
+edges off nested trees in L, and closing it under bisimulation.3Formally, for a language
+Lof ordered nested trees, we deﬁne Unord (L) as the bisimulation closure of the set of
+nested trees (( S,r,→),/arrowhookleft→,λ) such that →= → 1∪→ 2f o rs o m e( ( S,r,→1,→2),/arrowhookleft→,λ)∈L.
+Now we show the following.
+THEOREM 6.6. There is a language L of ordered, binary nested trees such that:
+(1)there is no NPNTAaccepting L, and (2)there is an APNTAaccepting Unord (L).
+PROOF . Consider ordered nested trees of the form in Figure 11(a), where /Sigma1={0,1,$},
+andai,bij∈/Sigma1for all i,j(while the structure in the ﬁgure is not binary, it can be encoded
+as such; also, the jump-edges, omitted to keep the ﬁgure clean, can be reconstructed).
+Let Lgapbe the language of such structures where for all i≤n, there is some k≤m
+such that an−i+1=bki. First, we note that Lgapcannot be recognized by an N PNTAAN
+with Nstates. To see why, take a structure as above where n=m>N, and for each
+1≤i≤n, there is a distinct branch ksuch that an−i+1=bki. In any run, ANmust
+enter two branches in the same state; also, the sequence of states at calls unmatchedtill these points are the same. We can replace one of these branches with the other to
+get an accepting run on a structure not in L
+gap.
+On the other hand, it is easy to build an A PNTAAthat recognizes Unord (Lgap).
+The automaton has a state q,q∗
+0and q∗
+1. While reading the sequence of symbols ai,
+the automaton uses alternation to assert a condition at each i(we can view this
+as the automaton “forking” a copy). This is done such that the copy of Aforked at
+the node labeled an−i+1has state q∗
+an−i+1at that node. On reading the next symbol, this
+copy changes its state to q; it continues reading the structure in this state till it reaches
+the node marked $, at which point it nondeterministically chooses to “check” branch k.
+When it reaches the node labeled bki(i.e., the node ssuch that at the node tsatisfying
+t/arrowhookleft→s, the automaton had state q∗
+jfor some j), it can check if bki=an−i+1and accept
+the nested tree. Aaccepts the structure iff every “copy” forked this way accepts it.
+This is an example of how automata theory for nested trees differs from the theory of
+tree automata. In the latter setting, allowing alternation does not affect an automaton’sexpressiveness. In fact, this is also a point of difference between nested tree automata
+and automata on nested words [Alur and Madhusudan 2004; 2006], as alternating and
+nondeterministic automata on nested words are expressively equivalent.
+Further, Theorem 6.6 implies the following.
+T
+HEOREM 6.7. N PNTAs are not closed under complementation.
+3Alternatively, we could deﬁne A PNTAs on ordered nested trees. Under this deﬁnition as well, A PNTAsa r e
+strictly more powerful than N PNTAs.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 34 ---
+15:34 R. Alur et al.
+PROOF . W eg i v ea nN PNTAANthat accepts the complement of the language Lgapin
+the proof for Theorem 6.6. Consider a nested tree Tin this language. We can assume
+thatThas the same “shape” as the nested tree in Figure 11(a)— that is, there is a
+chain of nodes from the root that ends with a node with multiple children, each of
+which leads to a chain of nodes. This is because an N PNTAcan determine if a nested
+tree violates this property, and accept it if it does.
+While running on nested trees of this form, ANnondeterministically guesses the i
+such that aicannot be “matched” along any of the branches, and lets its state at the
+node labeled aibeq∗
+ai(at other nodes along the stem of a-s, its state is q). Now it sends a
+state to each branch to determine a node ssuch that the automaton state at the node t,
+where t/arrowhookleft→s, is of the form q∗
+j. It compares the label bjkof this node with ai, and rejects
+the nested tree if bjk=ai. The accepts if all the copies sent along the different branches
+accept. It can now be easily veriﬁed that ANaccepts the complement of Lgap.
+The projection over /Sigma11of a language Lof (ordered, unordered) nested trees over
+/Sigma11×/Sigma12is the language Proj/Sigma11(L) obtained by replacing every label ( a,b) in every
+nested tree T∈Lbya. We can show the following.
+THEOREM 6.8. N PNTAs are closed under projection, but APNTAsa r en o t .
+PROOF . First we show that N PNTAs are closed under projection. Consider nested
+trees over /Sigma11×/Sigma12, and let there be an N PNTAAaccepting a language of such trees.
+An N PNTAA/primeaccepting the language Proj/Sigma11(L) is constructed as follows. While reading
+a node labeled a∈/Sigma11,A/primeguesses a second component b∈/Sigma12using nondeterminism,
+and mimics a move of Aon the label ( a,b). It is easy to see that A/primeaccepts Proj/Sigma11(L).
+As for the second part of the theorem, consider a PCP instance as in Theorem 6.4.
+Now consider a simple NSM Msuch that every word over /Sigma11×/Sigma12is the label of a path
+in the nested tree unfolding of M. Now suppose a device existed to select a substructure
+in Figure 11(b) from the unfolding T(M). As in Theorem 6.4, an A PNTAcan check if
+such a substructure is a witness for the given PCP instance. Therefore, if an A PNTAA
+could select an arbitrary substructure of a nested tree before operating on it, then we
+would be able to decide the PCP problem by model checking AonM. This is, however,
+impossible.
+Now note that if A PNTAs were closed under projection, then the preceding selection
+operation could be performed by an A PNTA. By contradiction, A PNTAs are not closed
+under projection.
+7. EXPRESSIVENESS
+In this section, we explore the expressiveness of N T-μand nested tree automata. Our
+main result is a theorem that A PNTAs are exactly as expressive as N T-μ. This result
+is the analog of the equivalence between the modal μ-calculus and alternating parity
+automata on trees [Emerson and Jutla 1991]. We also establish a hierarchy theorem
+for N T-μ, by which the expressiveness of N T-μformulas is connected to their arity.
+7.1. Relationship between N T-μand A PNTAs
+We begin by proving our main expressiveness result.
+THEOREM 7.1. Given any closed NT-μformula ϕ, we can construct an APNTAAϕsuch
+that for any nested tree T,T∈L(ϕ)iffT∈L(Aϕ). The size of Aϕis polynomial in the
+size of ϕ.
+PROOF . The proof is similar in spirit to the known translation from the μ-calculus to
+alternating tree automata [Emerson and Jutla 1991]. The A PNTAAϕis over an input
+alphabet 2AP. For every subformula ψofϕ,Aϕhas a state qψ. The initial state is qϕ.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 35 ---
+Software Model Checking Using Languages of Nested Trees 15:35
+For any variable Xinϕ,l e t/Psi1(X) be the subformula of the form μX.ϕ/primeorνX.ϕ/primethat
+binds X(we assume that each variable in ϕis bound at most once). For instance, if
+ϕ=/angbracketleftcall/angbracketright(μX.(p∨X)){q},t h e n /Psi1(X)=μX.(p∨X). For each bound variable Xinϕ,t h e
+state qXisidentiﬁed with the state q/Psi1(X).
+Letp∈AP,a n d σ∈2AP. The transition relation /Delta1ofAϕis deﬁned inductively over
+the structure of ϕ:
+/Delta1(qp,σ)=ttifp∈σ,e l s eﬀ
+/Delta1(qϕ1∧ϕ2,σ)=/Delta1(qϕ1,σ)∧/Delta1(qϕ2,σ)
+/Delta1(qϕ1∨ϕ2,σ)=/Delta1(qϕ1,σ)∨/Delta1(qϕ2,σ)
+/Delta1(qμX.ϕ/prime,σ)=/Delta1(qϕ/prime,σ)
+/Delta1(qνX.ϕ/prime,σ)=/Delta1(qϕ/prime,σ)
+/Delta1(q/angbracketleftcall/angbracketright(ϕ/prime){ψ1,...,ψ k},σ)=/angbracketleftcall/angbracketrightqϕ/prime
+/Delta1(q[call](ϕ/prime){ψ1,...,ψ k},σ)=[call]qϕ/prime
+/Delta1(q/angbracketleftloc/angbracketrightϕ/prime,σ)=/angbracketleftloc/angbracketrightqϕ/prime
+/Delta1(q[loc]ϕ/prime,σ)=[loc]qϕ/prime
+/Delta1(q/angbracketleftret/angbracketrightRi,σ)=/logicalordisplay
+φ/prime,ψ1≤j≤k(/angbracketleftret,q/angbracketleftcall/angbracketright(φ/prime){ψ1,...,ψ k}/angbracketrightqψi∨
+/angbracketleftret,q[call](φ/prime){ψ1,...,ψ k}/angbracketrightqψi)
+/Delta1(q[ret]Ri,σ)=/logicalordisplay
+φ/prime,ψ1≤j≤k([ret,q/angbracketleftcall/angbracketrightφ/prime{ψ1,...,ψ k}]qψi
+∨[ret,q[call]φ/prime{ψ1,...,ψ k}]qψi).
+The priority of states of the form qμX.ϕand qνX.ϕare respectively odd and even, and
+roughly equal to the alternation depth of ϕ. The priority for all other states is 0. We do
+not deﬁne the acceptance condition in detail as we do not prove its correctness in this
+setting—this is because this part of the proof is exactly the same as in the translation
+from the μ-calculus to alternating parity tree automata.
+We will, however, discuss in some more detail the transition relation of Aϕ. The
+automaton implements the operational semantics of the formula ϕ.I fϕ=porϕ=¬p,
+Aϕchecks if the atomic proposition pholds at the node of the nested tree currently
+being read. Conjunction and disjunction in ϕis captured respectively by conjunction
+and disjunction in the transition relation of Aϕ.I fϕ=X, then in the operational
+semantics of ϕ, the ﬁxpoint formula binding Xis executed recursively. Accordingly, Aϕ
+loops to the state /Psi1(X). At a ﬁxpoint formula of the form μX.ϕ/primeorμX.ϕ/prime, the automaton
+starts the corresponding ﬁxpoint computations by moving to the state for ϕ/prime. All this is
+exactly the same as for the μ-calculus and alternating tree automata. The difference
+from the tree setting is in the treatment of modal operators.
+Ifϕ=/angbracketleftloc/angbracketrightϕ/prime, the corresponding automaton makes a transition to the state for ϕ/prime
+along some loc-edge from the current node. The [ loc] modality is similar. Now suppose
+ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ k}. In this case Aϕtransitions to the state for the formula ϕ’
+along some call-edge from the current node (the [ call] modality is similar, except the
+automaton sends copies along all call-edges). The constraint is that the automaton
+must be at the state qψiat the jump-successors of the current node marked by color
+i. The automaton checks this constraint using its /angbracketleftret/angbracketrightand [ ret] modalities. Consider
+a formula /angbracketleftret/angbracketrightRithat asserts that some ret-successor of the current node has color i.
+Consider such a successor tand its jump-predecessor s. The automaton checks, using
+a disjunction, if the automaton state at node s(in the current copy of the automaton)
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 36 ---
+15:36 R. Alur et al.
+corresponds to any subformula of ϕstarting with a /angbracketleftcall/angbracketrightor [call] modality. If so—that
+is, if a formula of the form /angbracketleftcall/angbracketrightϕ/prime{ψ1,...,ψ k}or [call]ϕ/prime{ψ1,...,ψ k}was asserted at the
+jump-predecessor sof this ret-successor— the automaton has to check that the nested
+tree from node ton satisﬁes the ith return obligation—that is, ψi—asserted by that
+formula. Accordingly, it changes state to qψi.
+THEOREM 7.2. Given any APNTAA, one can construct an NT-μformula ϕAsuch that
+for any nested tree T,T∈L(ϕA)iffT∈L(A). The size of ϕAis polynomial in the size of
+ϕ.
+We will ﬁrst establish the above for alternating nested tree automata Aaccepting by
+aﬁnal state q f. The reason is that the proof is simpler and more intuitive in this case.
+After this, we will present the full proof.
+PROOF . It will be simpler for us to write the formula ϕAusing a set of equations rather
+than in the standard form. Translation from this equational form to the standard form
+is as for the modal μ-calculus [Gr ¨adel et al. 2002].
+Let Q={q1,..., qn}andTT, respectively, be the sets of states and transition con-
+ditions of A. For each q∈Q, we have a marker Rq; for each pair of states q,q/prime∈Q,
+we have a variable Xq,q/prime. Intuitively, a summary /angbracketlefts,Uq1,..., Uqn/angbracketrightis collected in Xq,q/primeiff
+Ahas a way to start at node sat state q, and end up at a return s/prime∈Uqjin state qj,
+having checked that q/primewas the state of the automaton in the current play at the jump-
+predecessor of s/prime. Now for each pair of states q,q/prime∈Q, we deﬁne a map Fq,q/prime:TT→/Phi1,
+where /Phi1is the set of N T-μformulas:
+Fq,q/prime(tt)=tt
+Fq,q/prime(ﬀ)=ﬀ
+Fq,q/prime(f1∧f2)=Fq,q/prime(f1)∧Fq,q/prime(f2)
+Fq,q/prime(f1∨f2)=Fq,q/prime(f1)∨Fq,q/prime(f2)
+Fq,q/prime(/angbracketleftcall/angbracketrightq/prime/prime)=/angbracketleftcall/angbracketright(Xq/prime/prime,q){Xq1,q/prime,..., Xqn,q/prime}
+Fq,q/prime([call]q/prime/prime)=[call](Xq/prime/prime,q){Xq1,q/prime,..., Xqn,q/prime}
+Fq,q/prime(/angbracketleftloc/angbracketrightq/prime/prime)=/angbracketleftloc/angbracketrightXq/prime/prime,q/prime
+Fq,q/prime([loc]q/prime/prime)=[loc]Xq/prime/prime,q/prime
+Fq,q/prime(/angbracketleftret,q/angbracketrightq/prime/prime)=/angbracketleftret/angbracketright(Rq/prime/prime)
+Fq,q/prime([ret,q]q/prime/prime)=[ret]Rq/prime/prime.
+Then the formula ϕAis the formula corresponding to Xq0,γ0when taking the least
+ﬁxpoint of the following equations:
+Xq,q/prime=/braceleftbiggtt ifq=qf /logicalortext
+σ⊆AP((/logicalandtext
+p∈σp)∧(/logicalandtext
+p/∈σ¬p)∧Fq/prime,q(/Delta1(q,σ))) otherwise.
+Now we give the general proof. Our translation from A PNTAst oN T-μuses ﬁnite-state
+alternating parity tree automata, which we will deﬁne now. The automata we use arebisimulation-closed and run on unranked trees—similar deﬁnitions may be found in
+Kirsten’s survey chapter [Gr ¨adel et al. 2002] on alternating tree automata. For a set
+Iof tags, a set Qof states, and a set AP of atomic propositions, let a (ﬁnite-state)
+transition term be of the form g=p|¬p|q|/angbracketlefta/angbracketrightg|[a]g|g∧g|g∨g, where a∈I,
+p∈AP,a n d q∈Q.F i xas e t TT
+atof such terms. A ﬁnite-state alternating parity tree
+automaton (TA) over TTatis a structure M=(Q,q0,γ0,/Delta1,/Omega1 ), where Qis a ﬁnite set
+ofautomaton states ,q0∈Qis the initial state, /Delta1:Q→TTatis atransition function ,
+and/Omega1:Q→{1,2,..., n}is the parity accepting condition that assigns a priority to
+each automaton state.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 37 ---
+Software Model Checking Using Languages of Nested Trees 15:37
+TAs run on unordered inﬁnite trees whose nodes are labeled by 2APand edges by
+I. We skip a formal deﬁnition of the semantics. Intuitively, the term pmeans that the
+proposition pholds at the current node, /angbracketlefta/angbracketrightqmeans that the automaton propagates the
+state qalong some a-labeled edge, and the term [ a]qmeans that the state qis passed
+along all a-edges. Note that we allow complex terms like [ a1]/angbracketlefta2/angbracketrightq, which means that
+the automaton ﬁrst takes all edges labeled a1, and then, from each child of the current
+node so reached, picks an edge labeled a2and passes the state qto it. Terms can be
+combined conjunctively and disjunctively, as is par course for alternating automata.Our acceptance condition is max-parity, meaning a run is accepting if along all its
+inﬁnite paths, the maximum priority seen inﬁnitely often is even. We write T|=Mif
+a labeled tree Tis accepted by M.
+Our proof also depends on a translation from TAs to the modal μ-calculus (actually,
+we will be interested in a syntactic fragment of the μ-calculus). Recall that formulas of
+theμ-calculus over a set of variables Var have syntax
+ϕ=p|¬p|/angbracketlefta/angbracketrightϕ|[a]ϕ|ϕ∧ϕ|ϕ∨ϕ|X|μX.ϕ|νX.ϕ,
+where a∈I,X∈Var and p∈AP.
+Such formulas are interpreted over (2
+AP,I)-labeled trees under environments E:
+X/mapsto→S/prime, where S/primeis a set of nodes in the tree in question. Again, we skip a formal
+deﬁnition of the semantics. We write T,E|=ϕif a tree Tsatisﬁes the formula ϕunder
+an environment E(sometimes we write t,E|=ϕifTin the above is rooted at the node
+t). Ifϕis closed, we can omit E.
+Now we deﬁne a special class of labeled trees obtained by applying a “summariza-
+tion” transformation to nested trees. Speaking roughly, these trees have summariesas their nodes (in addition to some intermediate nodes), and trees rooted at returns
+are “plucked” and “lifted” to the matching call-sites. Formally, let NT be the set of
+all nested trees and Tthe set of all node and edge-labeled trees. We deﬁne a map
+Summarize :NT×N→T.
+Letk≥0a n d I={call,ret,loc}. We consider the augmented set of atomic propositions
+/hatwidestAP=AP∪{leaf
+i:1≤i≤k}, and the set of edge labels /hatwideI=I∪{choose ,in}∪{ i:1≤
+i≤k}. Then for a nested tree S=(((S,s0,→),/arrowhookleft→),λ) whose nodes are labeled by the
+alphabet 2AP, we deﬁne a node and edge-labeled tree T=Summarize (S,k). LetSummS
+k
+be the set of k-colored summaries in S. Then, the set of nodes of TisT⊆(SummS
+k∪T/prime)+,
+where T/prime={(U1,U2,..., Uk) : for all 1 ≤j≤k,Uj⊆ME(u)f o rs o m e u∈S}(the node
+set will be deﬁned more precisely soon). The root of Tist0=/angbracketlefts0,∅,...,∅/angbracketright. The edges
+of the tree are labeled by the alphabet /hatwideIusing a map ηT; the nodes are labeled by the
+alphabet /hatwide/Sigma1=2/hatwidestAPusing a map λT.
+The set Tof nodes and the set ETof edges of Tare those obtained when the computa-
+tion described below reached a ﬁxpoint. The set Leaves of leaf-nodes where we chop Sis
+also obtained as part of the same least ﬁxpoint. Initially, T={t0}and Leaves =ET=∅.
+Now, let us write ta/arrowtailrightt/primeif there is an a-labeled edge from node tto node t/primeinT. Then
+we have the following.
+(1) For each s/primesuch that sloc−→ s/primeinSand each node t.s/∈Leaves inT, where
+s=/angbracketlefts,U1,U2,..., Uk/angbracketrightis a summary in S, we add a node t.s.s/primetoT, where
+s/prime=/angbracketlefts/prime,U/prime
+1,U/prime
+2,..., U/prime
+k/angbracketrightsuch that U/prime
+j=Uj∩MR(s/prime) for all j. Also, we add an
+edge t.sloc/arrowtailrightt.s.s/primetoT.
+(2) For each s/primesuch that scall−→ s/primeinSand each node t.s/∈Leaves , where s=
+/angbracketlefts,U1,U2,..., Uk/angbracketright/∈Leaves is a summary of S:
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 38 ---
+15:38 R. Alur et al.
+(a) we add to Tthe node t1=t.s.s/prime. We also add the edge t.schoose/arrowtailright t1.
+(b) For every t1,w ea d dt o Tevery node that is of the form t2=t1.(V1,V2,..., Vk),
+where V1,..., Vk⊆ME(s/prime). We also add edges t1choose/arrowtailright t2for each such t2.
+(c) For every t2,w ea d dt o Tthe node t3=t2.s/prime, where s/prime=/angbracketlefts/prime,V1,V2,..., Vk/angbracketright,
+and for every s/prime/prime∈Vjfor some j, we add the node t4=t2.s/prime/prime, where s/prime/prime=
+/angbracketlefts/prime/prime,U/prime
+1,U/prime
+2,..., U/prime
+k/angbracketrightis a summary such that U/prime
+i=Ui∩ME(s/prime/prime). We also add the
+edge t2in/arrowtailrightt3, and, for each t4as above such that s/prime/prime∈Vj, the edge t2j/arrowtailrightt4.
+Nodes of the form t.sand t.(V1,..., Vk), where s∈S,t∈{/epsilon1}∪Tand V1,..., Vk⊆T,
+will be sometimes referred to as intermediate nodes .
+(3) For each s/primesuch that sret−→ s/primeinSand each node t.s/∈Leaves ofTsuch that
+s=/angbracketlefts,U1,U2,..., Uk/angbracketrightis a summary, we add the node t.s./tildewides/primetoT, where /tildewides/prime=
+(s/prime,U1,U2,..., Uk). Note that /tildewides/primeis not a summary. We also add the edge t.sret/arrowtailrightt.s./tildewides/prime
+toET,a n d t.s./tildewides/primetoLeaves .
+Note that this also deﬁnes the edge-labeling function ηTinT. The node-labeling
+mapλT:T→/hatwide/Sigma1is deﬁned as: for t∈T\Leaves ,λT(t.s)=λ(s)i ft∈{/epsilon1}∪Tand
+s=/angbracketlefts,U1,..., Uk/angbracketright∈SummS
+k,a n d λT(t.(V1,..., Vk))=λT(t.s)=∅ for all t,s,V1,..., Vk.
+Fort/prime=t./tildewides∈Leaves , where /tildewides=(s,U1,..., Uk), we set λT(t/prime)={leafj:s∈Uj}.
+Now we proceed to the lemmas to be used in this proof. First, let APbe deﬁned as
+before; now for a set Qof TA states, ﬁx the set of atomic terms TTat(Q,AP), comprising
+the terms
+p ¬p
+/angbracketleftloc/angbracketrightq [loc]q
+/angbracketleftret/angbracketrightleafi [ret]leafi
+/angbracketleftcall/angbracketright/angbracketleftchoose /angbracketright([in]q∧[1]q1∧···∧ [k]qk)
+[call]/angbracketleftchoose /angbracketright([in]q∧[1]q1∧···∧ [k]qk)
+for all q,q1,..., qk∈Q,1≤i≤k,a n d p∈AP. Then we have the following Lemma.
+LEMMA 7.3. Given an APNTAA, we can effectively construct a TA F(A)over
+TTat(Q,AP)such that for any nested tree S, we have S∈L(A)iffSummarize (S,k)|=
+F(A). The size of F(A)is polynomial in the size of A.
+The second lemma is an augmentation of the translation from TAs to the modal
+μ-calculus. Consider TAs over the set of atomic terms TTat(Q,AP) deﬁned previously.
+Now consider the syntactic fragment of the μ-calculus, parameterized by TTat,w h o s e
+formulas ϕare given by:
+ϕ=p|¬p|X|ϕ∧ϕ|ϕ∨ϕ|/angbracketleftloc/angbracketrightϕ|[loc]ϕ
+|/angbracketleftcall/angbracketright/angbracketleftchoose /angbracketright([in]ϕ∧[1]ϕ∧···∧ [k]ϕ)
+|[call]/angbracketleftchoose /angbracketright([in]ϕ∧[1]ϕ∧···∧ [k]ϕ)
+|/angbracketleftret/angbracketrightleafi|[ret]leafi|μX.ϕ|νX.ϕ,
+where p∈APand X∈Var.L e t/Phi1(TTat) be the set of formulas in this form. Then we
+have Lemma 7.4.
+LEMMA 7.4. For any TA Mwith state set Q and over the set of atomic terms
+TTat(Q,AP), we can construct a closed formula /Psi1(M)∈/Phi1(TTat)such that for any
+(/hatwide/Sigma1,/hatwideI)-labeled tree T, we have T|=/Psi1(M)iffT|=M. The size of /Psi1(M)is polynomial in
+the size of M.
+The third lemma connects μ-calculus formulas of the above form to N T-μformulas.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 39 ---
+Software Model Checking Using Languages of Nested Trees 15:39
+LEMMA 7.5. Letϕbe a closed μ-calculus formula in /Phi1(TTat). Then, from ϕwe can
+construct a NT-μformula Nest (ϕ)such that for any (/hatwide/Sigma1,/hatwideI)-labeled tree Tsatisfying
+T=Summarize (S,k)for some nested tree Sover 2AP, we have T|=ϕiffS∈L(Nest (ϕ)).
+The size of Nest (ϕ)is polynomial in the size of ϕ.
+Let us ﬁrst establish that if these three lemmas hold, then Theorem 7.2 holds. This
+is proved by the following construction. Given A, we construct the N T-μformula ϕA=
+Nest (/Psi1(F(A))). By these lemmas, this construction is possible. Now ﬁx any structured
+treeS.I fS|=A, then by Lemma 7.3, Summarize (S,k)|=F(A), and by Lemma 7.4,
+Summarize (S,k)|=/Psi1(F(A)). But then, by Lemma 7.5, S|=ϕA. Similarly, if S|=ϕA,i t
+is easily established that S|=A.
+Let us now prove Lemmas 7.3-7.5.
+PROOF OF LEMMA 7.3. Let A=(Q,q0,/Delta1,/Omega1 :Q→{ 1,..., n})b ea nA PNTA.L e t ⊥be
+a special state not in Q. Then states of F(A) are of the form r=(q,γ,θ, m), where
+q∈Q,γ∈Q∪{ ⊥ } ,a n d θ,m∈{1,..., n}are priorities of A. Let us now consider a
+map indexmap :Q×{1,..., n}→{ 1,...,|Q|n}that assigns a unique index to every
+tuple ( q,θ). Intuitively, indexmap assigns an index to the fact that “ Acan end up at a
+matching exit of the current node in state q,w i t h θas the minimum priority seen in
+the current context."
+We will present the semantics of some of the interesting transitions of F(A)i n
+English. Since treatment of alternation is similar in A PNTAs and TAs, we will focus
+on “atomic” transition terms. Suppose F(A) is in state r=(q,γ,θ, p) while reading a
+node tofT. Let us now have, say, /Delta1(q,λ(t))=/angbracketleftcall/angbracketrightq/primeor/Delta1(q,λ(t))=[call]q/prime,I nt h e s e
+two cases, F(A) forks copies to check that the λ(t) is precisely the set of propositions
+satisﬁed at t; it also forks a copy that respectively reads one or all of the call-children
+oft. Each of these children are intermediate nodes, each with (uncountably) many
+choose -children. F(A) now reads oneof these choose -children; once this is done, it is at
+an intermediate node with outgoing transitions labeled in,1,..., k. At this point F(A)
+passes:
+(1) the state ( q/prime,q,0,/Omega1(q/prime)) to the unique child along the edge labeled in;
+(2) the state ( q/prime/prime,q,max(θ,m),m)t oevery child along a transition labeled j, for every
+j,i f f j=indexmap (q/prime/prime,m). Now the move is over.
+If/Delta1(q,λ(t))=/angbracketleftloc/angbracketrightq/primeor [loc]q/prime, then from state r, respectively along some or all loc-
+edges, the TA F(A) passes the state ( q/prime,z,max(θ,/Omega1(q)),/Omega1(q)) (also, copies need to be
+forked to ensure that λ(t) is satisﬁed currently).
+Let us now assume that /Delta1(q,λ(t))=/angbracketleftret,q/prime/prime/angbracketrightq/primeor [ret,q/prime/prime]q/prime. Again, it is made
+sure that λ(t) holds currently. Now, if ris the current state of F(A), the state
+(q/prime,q/prime/prime,max(θ,/Omega1(q)),/Omega1(q)) is passed respectively along some or all ret-edges out of t.
+By deﬁnition of T, the child t/prime=t./tildewides/primei sal e a f .A tt h i sp o i n t F(A) accepts if leafj∈λT(t/prime),
+where j=indexmap (q/prime,max(θ,/Omega1(q))), and rejects otherwise.
+The priority function /hatwide/Omega1of a state r=(q,γ,θ, m) is deﬁned as: /hatwide/Omega1(r)=m.
+The TA F(A) is clearly over the restricted set of transition terms TTat(Q,AP)t h a t
+we ﬁxed. Lemma 7.3 may now be established using arguments used by Walukiewicz
+in the context of pushdown parity games [Walukiewicz 2001]. Finally, note that F(A)
+is polynomial in the size of A.
+PROOF OF LEMMA 7.4. We follow a translation from TAs to the μ-calculus discussed in a
+survey chapter by Alberucci [Gr ¨adel et al. 2002]. The key observation that we exploit is
+that this translation can be carried out even when we restrict TAs to the special form
+that is under consideration here.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 40 ---
+15:40 R. Alur et al.
+The proof proceeds by induction on the index n of the TA M, deﬁned as the maximum
+number of distinct priorities in a strongly connected component in the state transitiongraph of M. It also uses a lemma about the existence of simultaneous ﬁxpoints. We
+will not reproduce the arguments here in detail, but will present a skeleton.
+First, we note that the simultaneous ﬁxpoint theorem holds even for the subset of
+theμ-calculus we consider here.
+L
+EMMA 7.6. Let T 1,..., Tkbe sets of nodes of T,a n dl e t δ1,...,δ k∈/Phi1(TTat)beμ-
+calculus formulas in /Phi1(TTat)with k free variables each. Now consider the monotone
+map F :(T1,..., Tk)/mapsto→([ [δ1(T1,..., Tk)] ],..., [[δk(T1,..., Tk)] ]). There are μ-formulas
+τ1,...,τ k∈/Phi1(TTat)andν-formulas ρ1,...,ρ k∈/Phi1(TTat)such that (τ1,...,τ k)and
+(ρ1,...,ρ k)are, respectively, the least and greatest ﬁxpoints of F.
+The proof of this follows from the fact that simultaneous ﬁxpoints are obtained by
+substitution of variables by formulas, so that the basic structure of the modalities
+remains unaltered.
+Let us now go through the induction. The idea is to inductively replace states ap-
+pearing in inﬁnite cycles by variables. Base case :n=0, so that the automaton does
+not have any cycles in its state transition graph. In this case, the formula /Psi1(M)i s
+obtained by “expanding” the transitions; given the structure of TTat, we conclude that
+the/Psi1(M)i si n /Phi1(TTat).
+For the induction step, consider the TA M(Q/prime,q/prime) obtained by duplicating the state
+q/prime∈Q/prime⊆Qand declaring q/primeas the new initial state, and then replacing all states
+q∈Q/primeby propositions. Intuitively, this operation identiﬁes the runs of Mstarting
+from state q/prime, while “chopping off” said runs at states in Q/prime. Clearly, M(Q/prime,q/prime)i sa l s o
+a TA over TTat; it turns out that M(Q/prime,q/prime) has index less than nand hence can be
+translated to an equivalent formula in /Phi1(TTat). Now we let Q/primebe the set of states of
+maximum priority in M,s e t qito be the i-th state in Q/prime, and consider the formula
+δi∈/Phi1(TTat) equivalent to M(Q/prime,qi). We do this for all i, then plug these formulas δi
+into Lemma 7.6 and obtain the formulas τ1,...,τ kcorresponding to their simultaneous
+ﬁxpoints (depending on whether the maximum priority is odd or even, we will need
+least or greatest ﬁxpoints). We also look at the formula τ0equivalent to M(Q/prime), which
+is simply Mwith states in Q/primemoved to propositions.
+Then, /Psi1(M)=τ0(τ1,...,τ k), which, by our arguments, belongs to /Phi1(TTat). Fur-
+ther, as the proof in Alberucci’s chapter shows, /Psi1(M) is polynomial in the size of M.
+PROOF OF LEMMA 7.5. For subformulas of a μ-calculus formula ϕin/Phi1(TTat), let us deﬁne
+Nest (ϕ) inductively:
+Nest (p)=p (1)
+Nest (¬p)=¬ p (2)
+Nest (X)=X (3)
+Nest (ϕ1∧ϕ2)=Nest (ϕ1)∧Nest (ϕ2)( 4 )
+Nest (ϕ1∨ϕ2)=Nest (ϕ1)∨Nest (ϕ2)( 5 )
+Nest (/angbracketleftloc/angbracketrightϕ)=/angbracketleftloc/angbracketrightNest (ϕ)( 6 )
+Nest ([loc]ϕ)=[loc]Nest (ϕ)( 7 )
+Nest (/angbracketleftcall/angbracketright/angbracketleftchoose /angbracketright
+([in]ϕ∧[1]ψ1∧···∧ [k]ψk))=/angbracketleftcall/angbracketright(Nest (ϕ))
+{Nest (ψ1),...,Nest (ψk)}(8)
+Nest ([call]/angbracketleftchoose /angbracketright
+([in]ϕ∧[1]ϕ1∧···∧ [k]ϕk))=[call](Nest (ϕ))
+{Nest (ψ1),...,Nest (ψk)}(9)
+Nest (/angbracketleftret/angbracketrightleafi)=/angbracketleftret/angbracketrightRi (10)
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 41 ---
+Software Model Checking Using Languages of Nested Trees 15:41
+Nest ([ret]leafi)=[ret]Ri (11)
+Nest (μX.ϕ)=μX.Nest (ϕ) (12)
+Nest (νX.ϕ)=νX.Nest (ϕ) (13)
+Now, let Sbe any nested tree and T=Summarize (S,k) as before; recall that SummS
+k
+is the set of summaries in Sand Tthe set of nodes of T. Consider a μ-calculus
+environment /hatwideE:Var→TforT; for any two bisimilar nodes t1,t2inT, we can assume
+that t1∈/hatwideEifft2∈/hatwideE. Now note that even if we prevent our environments from containing
+nodes not of the form t.s(i.e., if we remove every “nonsummary” node from each of
+the ﬁxpoint sets as they are computed), the semantics of ϕat “summary” nodes of
+form t.s(and hence at the root of T) is not affected. This can be veriﬁed by a simple
+induction. We will assume environments for Tto have this property from now on.
+Now consider the N T-μenvironment E:Var→SummS
+kdeﬁned as: for all X∈Var,
+E(X)={s:si sas u m m a r y ,a n d t.s∈/hatwideE(X)f o rs o m e t}.
+Our inductive hypothesis is: for any environment /hatwideEinT, any node t.sinTwhere s
+is a summary, and any ϕ∈/Phi1(TTat),s∈[[Nest (ϕ)] ]Eifft.s,/hatwideE|=ϕ.
+Cases (1), (2), (4), (5), (6), (7), (10), and (11) are easy. For the case ϕ=X(case 3),
+recall that /hatwideEis bisimulation-closed. For cases (8) and (9) (the call-clauses), note that
+the branching of Texactly captures the semantics of the call clauses of N T-μ.F o rt h e
+caseϕ=μX.ϕ/prime(the case νX.ϕ/primeis similar), assume that TiandBS iare the i-th sets in the
+ﬁxpoint computation in ϕandNest (ϕ) (we can assume that Tiis bisimulation-closed).
+We show that BS i={s:t.s∈Ti}by induction. Initially, T0=∅ andBS 0=∅.N o w ,
+Ti+1={t:t,/hatwideE[X:=Ti]|=ϕ/prime},a n d BS i+1=[[Nest (ϕ/prime)] ]E[X:=BS i. It is easy to see that
+BS i+1={s:t.s∈Ti+1}. It is also easily seen that Nest (ϕ) is linear in the size of ϕ. This
+establishes the theorem.
+Corollaries . Theorems 7.1 and 7.2 imply a few results for N T-μthat we have not
+already derived. Let us deﬁne the satisﬁability problem for N T-μas the problem of
+determining, given an N T-μformula ϕ,i fL(ϕ)=∅. Then, we have the following theorem.
+THEOREM 7.7. Given a NT-μformula, the problem of checking whether there is some
+nested tree that satisﬁes it is undecidable.
+PROOF . By Theorem 6.4, determining if L(A)=∅ is undecidable. However, by
+Theorem 7.2, for every A PNTAAthere is an N T-μformula ϕAsuch that L(A)=L(ϕA).
+Thus, if we could determine, given an N T-μformula ϕ,i fL(ϕ)=∅, then we could solve
+the emptiness problem for A PNTAs. This means the satisﬁability problem for N T-μis
+undecidable.
+The automata-theoretic characterization also makes it easy for us to compare the ex-
+pressiveness of N T-μwith that of other temporal logics. As A PNTAs are more expressive
+than alternating parity tree automata, which are polynomially interconvertible with
+closed μ-calculus formulas, we have the following.
+THEOREM 7.8. Any closed μ-calculus formula ϕmay be converted into an equivalent
+NT-μformula ϕ/prime. The size of ϕ/primeis polynomial in the size of ϕ.
+We may now also relate N T-μto the temporal logic C ARET [Alur et al. 2004], which
+can express many linear-time context-sensitive properties of programs. This is becauseany C
+ARET formula may be translated to an exponentially larger nondeterministic ﬁnite
+automaton on nested words. As such automata form a subclass of A PNTAs, we have the
+following.
+THEOREM 7.9. Any CARET formula ϕmay be translated to an equivalent NT-μformula
+ϕ/prime. The size of ϕ/primeis at worst exponential in the size of ϕ.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 42 ---
+15:42 R. Alur et al.
+7.2. A Hierarchy Theorem for N T-μ
+Now we show that the expressiveness of N T-μformulas increases with their arity. For
+two nested trees T1andT2, respectively, rooted at nodes s1and s2,w es a y T1andT2are
+distinguished by a closed, k-ary N T-μformula ϕi fa n do n l yi f s1satisﬁes ϕand s2does
+not. Then we have the following theorem.
+THEOREM 7.10. For every k ≥1, there is a a closed (k+1)-ary formula ϕk+1,a n dt w o
+nested trees T1andT2, such that ϕk+1can distinguish between T1andT2, but no closed
+k-ary NT-μformula can.
+We will sketch the proof for the case k=1. Before we do so, we need some extra
+machinery. More precisely, we will deﬁne a preorder called quasi-bisimilarity over
+summaries that takes into account their coloring. It turns out that N T-μrespects this
+preorder.
+Consider a pair of k-colored summaries s=/angbracketlefts,U1,..., Uk/angbracketrightandt=/angbracketleftt,V1,..., Vk/angbracketrightsuch
+that each path in the trees rooted at sand tcomprises a chain of loc-edges followed by
+oneret-edge leading to a leaf. Let Sand T, respectively, be the sets of non-leaf nodes
+in these trees. We say that sandtarequasi-bisimilar if there is a relation /precedesequal⊆S×T
+such that s/precedesequaltand
+(1) for all s/prime/precedesequalt/prime,w eh a v e λ(s/prime)=λ(t/prime).
+(2) if s/prime/precedesequalt/prime, then for every s/prime/primesuch that s/primeloc−→ s/prime/prime, there is a t/prime/primesuch that t/primeloc−→ t/prime/primeand
+s/prime/prime/precedesequalt/prime/prime. Also, for every t/prime/primesuch that t/primeloc−→ t/prime/prime, there is an s/prime/primesuch that s/primeloc−→ s/prime/primeand
+s/prime/prime/precedesequalt/prime/prime.
+(3) if s/prime/precedesequalt/prime, then for every s/prime/primesuch that s/primeret−→ s/prime/prime, there is a t/prime/primesuch that t/primeret−→ t/prime/prime,a n d
+for every t/prime/primesuch that t/primeret−→ t/prime/prime, there is an s/prime/primesuch that s/primeret−→ s/prime/prime. Further, if s/prime/prime∈Ui
+then t/prime/prime∈Vi, for all i(note that this is not an “iff” condition).
+Now, we can show inductively that if sandtare quasi-bisimilar, then for every
+variable-free N T-μformula ϕ,i fssatisﬁes ϕ,t h e n tsatisﬁes ϕas well (note that the
+converse is not true; for instance, tmay satisfy [ ret]Rieven when sdoes not). We skip
+the proof.
+Let us now come back to Theorem 7.10. Consider the two nonbisimilar nested trees
+SandTin Figure 12 with initial nodes s0and t0(the jump-edges are not shown, but
+can be reconstructed from the edge labeling). It is easy to see that the 2-ary N T-μ
+formula ϕ=/angbracketleftcall/angbracketright(/angbracketleftloc/angbracketright(/angbracketleftret/angbracketrightR1∧/angbracketleftret/angbracketrightR2)){p,¬p}distinguishes s0and t0. Let us now
+see if there is a closed, 1-ary formula ϕthat can distinguish between SandT. First,
+ifϕis a disjunction or conjunction, we can get a smaller witness for this distinction.
+Further, because trees SandTare of ﬁxed depth, we need only consider ﬁxpoint-free
+formulas. The interesting case is that of formulas of the form ϕ=/angbracketleftcall/angbracketrightϕ/prime{ψ}.
+Assume this formula is satisﬁed by /angbracketlefts0/angbracketright; then there is a bisimulation-closed sum-
+mary of the form s=/angbracketlefts1,U/angbracketrightthat satisﬁes ϕ/prime. For each such s, we ﬁnd a t=/angbracketleftt1,V/angbracketright.
+Note that scan assume only four values; these are /angbracketlefts1,{s9,s4,s5}/angbracketright,/angbracketlefts1,{s10,s6,s7}/angbracketright,
+/angbracketlefts1,{s9,s4,s5,s10,s6,s7}/angbracketright,a n d /angbracketlefts1,∅/angbracketright. The corresponding values of tare/angbracketleftt1,{t6,t7}/angbracketright,
+/angbracketleftt1,{t4,t5}/angbracketright,/angbracketleftt1,{t4,t5,t6,t7}/angbracketright,a n d /angbracketleftt1,∅/angbracketrightrespectively. Note that for any value stakes,
+the corresponding tis quasi-bisimilar to it, which means that tsatisﬁes ϕ/prime. Further, for
+eachv∈Vthere is a bisimilar node u∈U. It follows that if all u∈Usatisfy ψ,t h e n
+so do all v∈V. Then /angbracketleftt0/angbracketrightsatisﬁes ϕ.
+Similarly one can show that /angbracketleftt0/angbracketrightsatisﬁes ϕonly if /angbracketlefts0/angbracketrightsatisﬁes ϕ.
+To extend the proof to arbitrary k, we consider a structure S/primewhere, like in S,t h e
+root has one call-child s1—except s1now has a large number Nofloc-children s/prime. From
+each s/prime,w eh a v e( k+1)ret-edges leading to “leaves” s/prime/prime, each of which is labeled with
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 43 ---
+Software Model Checking Using Languages of Nested Trees 15:43
+p pp p p¬p ¬p¬p ¬p ¬pT Ss0
+s1
+s2 s3
+s4 s5s6s7s8
+s9s10t0
+t1
+t2 t3
+t4 t5t6t7
+call
+ret
+loc
+Fig. 12 .A n a r i t y h i e r a r c h y .
+exactly one proposition from the set AP={p1,p2,..., pk+1}.F o r( N−1) values of s/prime,
+the leaves of the trees rooted at s/primeare labeled such that only kof them have distinct
+labels. But there is a particular s/prime(call it s/prime
+d) for which these leaves get distinct labels
+p1,..., pk+1.
+Now take a structure T/primethat is obtained by removing the subtree rooted at node s/prime
+d
+fromS/prime. Following the methods for the case k=1, we can show that S/primeandT/primemay be
+distinguished by a ( k+1)-ary formula, but by no k-ary formula. We skip the details.
+8. CONCLUSION
+In this article, we have offered a new framework for software model checking of pro-
+cedural programs based on regular languages of nested trees . Temporal speciﬁcation
+logics like the μ-calculus, while mainstays of traditional model checking, cannot specify
+program properties that refer to the nesting of procedural contexts. Our ﬁxpoint logic
+NT-μbased on nested trees, on the other hand, can express context-sensitive program
+requirements such as pre/post-conditions, combinations of local and global temporalproperties, and stack-sensitive security requirements, while admitting tractable, sym-
+bolic model checking. The logic uniﬁes and generalizes many existing logics and ﬁxpoint
+computations, identifying a new class of decidable properties of programs. We havefurther explored the theory of regular languages of nested trees through automata on
+nested trees. We have shown that these languages have many of the attractive proper-
+ties of tree automata— for example, they are closed under logical operations and allowmodel checking— while being more expressive. In a result that “lifts” the equivalence
+between the μ-calculus and alternating parity tree automata and suggests that N
+T-μis
+a canonical calculus for these structures, we have shown N T-μand alternating parity
+automata on nested trees are interconvertible.
+Regarding future directions and open questions, we note that our decision procedure
+for model checking N T-μis very different from known methods for branching-time
+model-checking of pushdown models [Walukiewicz 2001; Burkart and Steffen 1999].
+The latter seem too complex to work in practice; our algorithm, being symbolic innature, appears more implementable. Also, note that our algorithm directly imple-
+ments the operational semantics of N
+T-μformulas over bounded summaries. In fact, in
+this regard N T-μresembles the modal μ-calculus in the setting of ﬁnite-state systems
+whose formulas encode ﬁxpoint computations over sets; to model-check μ-calculus for-
+mulas, we merely need to perform these computations. Unsurprisingly, our procedure
+is very similar to classical symbolic model-checking for the μ-calculus. There is one key
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 44 ---
+15:44 R. Alur et al.
+difference, however: in the latter setting, efﬁcient data structures such as binary deci-
+sion diagrams (BDDs) are used to represent sets of system states. On the other hand,
+we do not yet know of an efﬁcient data structure to store sets of bounded summaries.Note that the problem is more complex than that of representing sets of states; in our
+case, we need to store sets of tuples of the form /angbracketleftv,U
+1,..., Uk/angbracketright, where vis a state and
+theVi-s are sets of states. We leave this as an open question.
+Also of interest will be an axiomatization of N T-μand its applications to the veri-
+ﬁcation of general programs (where data is not abstracted out). Also, note that N T-μ
+expresses properties using forward modalities. As argued in Schmidt [1998], several
+program analysis problems also require backward modalities; extending N T-μto back-
+ward modalities will result in expressing several other dataﬂow problems. How will
+this affect expressiveness and decidability? In general, we believe that nested treesare conceptually fundamental and merit further study. It would be interesting to ex-
+amine languages of nested trees in other ways: do they, for example, have algebraic
+characterizations? Also, can it have applications of nested trees beyond program ver-iﬁcation? Nested word structures are already known to have connections with XML
+query languages, since XML documents have a natural matching tag structure that
+can be modeled by jump-edges. Do nested trees have similar applications?
+REFERENCES
+ABADI,M . ANDFOURNET , C. 2003. Access control based on execution history. In Proceedings of the Network and
+IT Security Conference (NDSS) .
+ALUR,R . ,B ENEDIKT ,M . ,E TESSAMI ,K . ,G ODEFROID ,P . ,R EPS,T . , AND YANNAKAKIS , M. 2005. Analysis of recursive
+state machines. ACM Trans. Prog. Lang. Syst. 27, 4, 786–818.
+ALUR,R . ,C HAUDHURI ,S . , ANDMADHUSUDAN , P. 2006a. A ﬁxpoint calculus for local and global program ﬂows. In
+Proceedings of the 33rd Annual ACM Symposium on Principles of Programming Languages .
+ALUR,R . ,C HAUDHURI ,S . , ANDMADHUSUDAN , P. 2006b. Languages of nested trees. In Proceedings of the Sympo-
+sium on Computer-Aided Veriﬁcation (CAV’06) .
+ALUR,R . ,E TESSAMI ,K . , ANDMADHUSUDAN , P. 2004. A temporal logic of nested calls and returns. In Proceedings
+of the 10th International Conference on Tools and Algorithms for the Construction and Analysis of
+Software . Lecture Notes in Computer Science, vol. 2988. Springer, 467–481.
+ALUR,R . ANDMADHUSUDAN , P. 2004. Visibly pushdown languages. In Proceedings of the 36th ACM Symposium
+on Theory of Computing . 202–211.
+ALUR,R . ANDMADHUSUDAN , P. 2006. Adding nesting structure to words. In Proceedings of the Symposium on
+Developments in Language Theory .
+ALUR,R . ANDMADHUSUDAN , P. 2009. Adding nesting structure to words. J. ACM 56, 3.
+BALL,T . AND RAJAMANI , S. 2000. Bebop: A symbolic model checker for boolean programs. In Proceedings of
+the Workshop on Model Checking of Software . Lecture Notes in Computer Science, vol. 1885. Springer,
+113–130.
+BALL,T . AND RAJAMANI , S. 2001. The SLAM toolkit. In Proceedings of the 13th International Conference on
+Computer Aided Veriﬁcation .
+BURDY ,L . ,C HEON ,Y . ,C OK,D . ,E RNST,M . ,K INIRY ,J . ,L EAVENS ,G . ,L EINO,R . , AND POLL, E. 2003. An overview
+of JML tools and applications. In Proceedings of the 8th International Workshop on Formal Methods for
+Industrial Critical Systems . 75–89.
+BURKART ,O . ANDSTEFFEN , B. 1999. Model checking the full modal mu-calculus for inﬁnite sequential processes.
+Theoret. Comput. Sci. 221 , 251–270.
+CLARKE ,E . ,G RUMBERG ,O . , ANDPELED , D. 1999. Model Checking . MIT Press. CLA e 99:1 1.Ex.
+EMERSON ,E . ANDCLARKE , E. 1982. Using branching-time temporal logic to synthesize synchronization skele-
+tons. Sci. Comput. Prog. 2 , 241–266.
+EMERSON ,E . AND JUTLA , C. 1991. Tree automata, mu-calculus, and determinacy. In Proceedings of the 32nd
+IEEE Symposium on Foundations of Computer Science . 368–377.
+EMERSON ,E . ANDLEI, C. 1985. Modalities for model-checking: Branching time logic strikes back. In Proceedings
+of the 12th ACM Symposium on Principles of Programming Languages . 84–96.
+ESPARZA ,J . ,K UCERA ,A . , ANDSCHWOON , S. S. 2003. Model-checking LTL with regular valuations for pushdown
+systems. Inf. Computation 186, 2, 355–376.
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.
+
+--- Page 45 ---
+Software Model Checking Using Languages of Nested Trees 15:45
+GR¨ADEL ,E . ,T HOMAS ,W . , ANDWILKE, T., Eds. 2002. Automata, Logics, and Inﬁnite Games: A Guide to Current
+Research . Lecture Notes in Computer Science, vol. 2500. Springer.
+HOARE , C. 1969. An axiomatic basis for computer programming. Comm. ACM 12, 10, 576–580.
+HOPCROFT ,J . ANDULLMAN , J. 1979. Introduction to Automata Theory, Languages, and Computation . Addison-
+Wesley.
+JENSEN ,T . ,M ETAYER ,D .L . , AND THORN , T. 1999. Veriﬁcation of control ﬂow based security properties. In
+Proceedings of the IEEE Symposium on Security and Privacy . 89–103.
+KOZEN , D. 1983. Results on the propositional mu-calculus. Theoret. Comput. Sci. 27 , 333–354.
+KUPFERMAN ,O . ,P ITERMAN ,N . , AND VARDI, M. 2002. Pushdown speciﬁcations. In Proceedings of the 9th Inter-
+national Conference on Logics for Programming, Artiﬁcal Intelligence, and Reasoning . Lecture Notes in
+Computer Science, vol. 2514. Springer, 262–277.
+KUPFERMAN ,O . ,V ARDI,M . , AND WOLPER , P. 2000. An automata-theoretic approach to branching-time model
+checking. J. ACM 47, 2, 312–360.
+REPS, T. 1998. Program analysis via graph reachability. Inf. Softw. Tech. 40, 11-12, 701–726.
+REPS,T . ,H ORWITZ ,S . , ANDSAGIV, S. 1995. Precise interprocedural dataﬂow analysis via graph reachability. In
+Proceedings of the ACM Symposium on Principles of Programming Languages . 49–61.
+SCHMIDT , D. 1998. Data ﬂow analysis is model checking of abstract interpretations. In Proceedings of the 25th
+Annual ACM Symposium on Principles of Programming Languages . 68–78.
+SHARIR ,M . AND PNUELI , A. 1981. Two approaches to interprocedural dataﬂow analysis. In Program Flow
+Analysis: Theory and Applications , 189–234.
+STEFFEN , B. 1991. Data ﬂow analysis as model checking. In Proceedings of the Symposium on Theoretical
+Aspects of Computer Software (TACS’91) . Lecture Notes in Computer Science, vol. 526. 346–365.
+WALLACH ,D .S . AND FELTEN , E. W. 1998. Understanding Java stack inspection. In Proceedings of the IEEE
+Symposium on Security and Privacy . 52–63.
+WALUKIEWICZ , I. 2001. Pushdown processes: Games and model-checking. Inf. Comput. 164, 2, 234–263.
+Received November 2010; accepted April 2011
+ACM Transactions on Programming Languages and Systems, Vol. 33, No. 5, Article 15, Publication date: November 2011.

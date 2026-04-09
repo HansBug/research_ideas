@@ -1,0 +1,1797 @@
+--- Page 1 ---
+promot ing access to White Rose research papers  
+   
+White Rose Research Online  
+eprints@whiterose.ac.uk  
+ 
+ 
+ 
+Universities of Leeds, Sheffield and York  
+http://eprints.whiterose.ac.uk/  
+ 
+ 
+ 
+This is a copy of the final published version of a paper published  via gold open access  
+in International Journal on S oftware Tools for Technology Transfer .  
+ 
+This open access article is distributed under the terms of the Crea tive Commons 
+Attribution Licence (http://creativecommons.org/licenses/by/4.0/ ) which permits 
+unrestricted use, distribution, and reproduction in any medium, provided the 
+original work is properly  cited.  
+ 
+White Rose Re search Online  URL for this paper:  
+http://eprints.whiterose.ac.uk/ 85886  
+ 
+ 
+ 
+ 
+Published paper  
+ 
+Lomuscio, A.R., Qu, H. and Raimondi, F. (2015) MCMAS: an open -source model 
+checker for the verification of multi -agent systems . International Journal on Software 
+Tools for Technology Transfer.  Doi: 10.1007/s10009 -015-0378 -x 
+ 
+ 
+
+--- Page 2 ---
+Int J Softw Tools Technol Transfer
+DOI 10.1007/s10009-015-0378-x
+REGULAR PAPER
+MCMAS: an open-source model checker for the veriﬁcation
+of multi-agent systems
+Alessio Lomuscio1·Hongyang Qu2·Franco Raimondi3
+© The Author(s) 2015. This article is published with open access at Springerlink.com
+Abstract We present MCMAS, a model checker for the
+veriﬁcation of multi-agent systems. MCMAS supports efﬁ-
+cient symbolic techniques for the veriﬁcation of multi-agent
+systems against speciﬁcations representing temporal, epis-
+temic and strategic properties. We present the underlying
+semantics of the speciﬁcation language supported and the
+algorithms implemented in MCMAS, including its fair-
+ness and counterexample generation features. We provide
+a detailed description of the implementation. We illustrate
+its use by discussing a number of examples and evaluate its
+performance by comparing it against other model checkers
+for multi-agent systems on a common case study.
+Keywords V eriﬁcation ·Multi-agent systems ·Model
+checking
+1 Introduction
+Model checking [ 15] is widely recognised as one of the lead-
+ing logic-based techniques for the veriﬁcation of reactive
+systems [ 54]. In this paradigm, a system Sis encoded as a
+B Alessio Lomuscio
+A.Lomuscio@imperial.ac.uk
+Hongyang Qu
+h.qu@shefﬁeld.ac.uk
+Franco Raimondi
+f.raimondi@mdx.ac.uk
+1Department of Computing, Imperial College London,
+London, UK
+2Department of Automatic Control and Systems Engineering,
+University of Shefﬁeld, Shefﬁeld, UK
+3School of Science and Technology, Middlesex University,
+London, UKtransition system, or model, MSby means of a programme
+in a dedicated modelling language such as reactive mod-
+ules [ 1] or NuSMV [ 13]. A speciﬁcation Pof the system is
+represented as a logical formula φP. V erifying whether the
+system Ssatisﬁes the speciﬁcation Pis encoded as the prob-
+lem of checking whether the model MSsatisﬁes the logical
+formula φP, formally written as MS|/equal1φP. Several speci-
+ﬁcations of reactive systems, including liveness ,safety and
+several speciﬁcation patterns [ 20] of interest, can be encoded
+in discrete temporal logic, either in its linear variant LTL,
+or in its branching version CTL. Well-known extensions to
+this approach include employing real-time and probabilistic
+speciﬁcations [ 40,43].
+The fundamental challenge in model checking is the so-
+called state-space explosion , i.e. the fact that the state space
+of a system grows exponentially with the number of variables
+employed to describe it. V arious techniques have been devel-
+oped over the years to tame this difﬁculty including Binary
+Decision Diagrams, abstraction, bounded model checking,
+induction, and assume–guarantee reasoning, thereby result-
+ing in systems with state spaces of 1025and beyond to be
+veriﬁable.
+While this approach has proven successful for a variety
+of systems, including reactive and embedded systems as
+well as hardware designs, multi-agent systems (MAS) are
+often speciﬁed using languages strictly stronger than plain
+temporal logic. MAS are distributed systems whose com-
+ponents, or agents , act autonomously to meet their private
+and joint objectives [ 71]. MAS are typically speciﬁed by
+asserting the intended evolution of high-level properties of
+the agents, including their knowledge [ 24], their beliefs [ 32],
+their intentions [ 18], and obligations [ 35]. This follows the
+successful tradition in MAS-based approaches that involves
+ascribing high-level attitudes to highly autonomous systems
+to better predict and specify their resulting behaviours [ 55].
+123
+
+--- Page 3 ---
+A. Lomuscio et al.
+Speciﬁcally, epistemic logic [ 24], or logic of knowledge,
+has provided a natural and intuitive but yet formally soundand computationally attractive, framework for reasoning
+about security protocols [ 30], agreement protocols [ 66],
+knowledge-bases, etc. By adopting epistemic modalities asprimitives, one can naturally express both private and col-lective (common, or distributed) knowledge of the agents in
+the system. For example, a security requirement concern-
+ing privacy or secrecy in a system run can be translatedinto a speciﬁcation stating that no agent eventually knows
+the fact in question [ 64]. Similarly, mutual authentication,
+is naturally expressed by stating that a principal knows thatanother principal knows that some key is shared [ 5]. Sim-
+ilarly, an epistemic account can provide a natural set of
+speciﬁcations for cache-coherence protocols [ 4]. These are
+only some examples; we refer to the specialised literature formore examples [ 31,64].
+It is therefore compelling to extend traditional model
+checking approaches so that they can support speciﬁca-tions that include agent-based features. However, these are
+often sophisticated modal logics that may involve tailored
+ﬁxed-points computations. So, novel labelling algorithmsevaluating agent-based modalities need to be deﬁned and
+integrated with those for the temporal logics of interest.
+In addition, since agent-based logics traditionally comeequipped with a semantics that is ﬁner-grained than plainKripke models for temporal logic, input languages for the
+system description also need to be tuned to the needs of MAS.
+These include having an intuitive description of the states,actions, local protocols and local evolutions. These consid-
+erations suggest that adapting an existing model checking
+toolkit to the needs of the veriﬁcation of MAS speciﬁed byepistemic and other logics inspired by MAS is not a simple
+exercise and may, in fact, result in more effort than building
+a dedicated one.
+In this paper, we describe MCMAS , a model check-
+ing toolkit for the veriﬁcation of MAS speciﬁed through a
+range of agent-based logics. MCMAS uses Ordered Binary
+Decision Diagrams (OBDDs, [ 7]) for the symbolic repre-
+sentation of state spaces and dedicated algorithms for the
+computation of a number of epistemic operators encoding
+private and group knowledge and Alternating-time Tempo-ral Logic (A TL) operators. MAS are described in MCMAS
+by means of Interpreted Systems Programming Language
+(ISPL) programs, whose semantics is close to interpreted sys-tems, a popular framework in temporal-epistemic logic [ 24].
+MCMAS is equipped with an Eclipse-based plug-in for
+coding support and offers a number of features typical of
+advanced model checkers, including the graphical represen-tation of counterexamples and witnesses, as well as fairness
+support. MCMAS is released as open source [ 68] and has
+been used in several research projects worldwide. We herepresent MCMAS version 1.2.2, which extends a previous ver-sion [ 47] by means of more efﬁcient algorithms to compute
+the state space and the labelling of formulas. Also, amongother new features, more sophisticated treatment of uniform
+strategies, counterexamples and fairness constraints is now
+supported.
+The rest of the paper is organised as follows. In Sect. 2,w e
+provide the formal underpinnings of the technique the model
+checker implements by giving the syntax and semantics of the
+logics employed as well as the algorithms implemented in thechecker. In Sect. 3we describe ISPL, the input to the model
+checker. Section 4describes the implementation and gives
+a few examples. Section 5focuses on speciﬁc applications
+and reports experimental results. Section 6describes related
+work and concludes the paper.
+2 Symbolic model checking multi-agent systems
+In this section, we give the theoretical foundations of
+MCMAS. We succinctly describe the semantics of inter-preted systems in Sect. 2.1. We give the syntax of A TLK in
+Sect. 2.2and provide model checking algorithms in Sect. 2.3.
+We conclude in Sect. 2.4 by presenting the OBDD-based
+encodings for the algorithms.
+2.1 Interpreted systems
+At the heart of MCMAS and its modelling language is the
+notion of interpreted system as a formalisation of multi-agent
+systems. Interpreted systems were popularised by Fagin et al.
+[24] as a semantics for reasoning about knowledge; they can
+be extended to incorporate game theoretic notions such asthose provided by A TL modalities. Here we loosely follow
+the presentation given in [ 47], where global transitions are
+given as the composition of local transitions.
+We assume AP to be a set of atomic propositions and a
+set of agents Ag={Ag
+0,Ag1,..., Agn}for the system. We
+often refer to Ag0as the environment of the system.
+Deﬁnition 1 (Interpreted systems ) Given a set of agents Ag,
+an interpreted system is a tuple IS=({Li,Act i,Pi,τi}i∈Ag,
+I,h)where:
+–Liis a ﬁnite set of possible local states for agent i.
+–Act iis a ﬁnite set of possible actions for agent i.
+–Pi:Li→2Act i\∅is alocal protocol function for agent i
+returning possible actions at a given local state.
+–τi:Li×Act 0×···× Act n→Liis a determinis-
+ticlocal transition function returning the local state for
+agent iresulting from the execution of a joint action at
+a given local state; we assume that every action is proto-
+col compliant, i.e. if l/prime
+i=τi(li,a0,..., ai,..., an), then
+ai∈Pi(li)for all i∈Ag.
+123
+
+--- Page 4 ---
+MCMAS: an open-source model checker...
+–I⊆L0×L1×···× Lnis the set of initial global states .
+–h⊆L0×···× Ln×AP is a labelling relation encoding
+which atomic propositions are true in which state.
+We say that G=L0×···× Lnis the set of possible global
+states for the system and ACT=Act 0×···× Act nthe set of
+possible joint actions . For a global state g=(l0,..., ln)∈G
+and any i∈Ag, we consider the function li:G→Lisuch
+thatli(g)=li, returning the local state of agent iin the global
+state g.
+Observe that interpreted systems describe ﬁnite-state sys-
+tems composed of agents possibly synchronising with each
+other and the environment via joint actions. Also note thatthe local protocols implement the agents’ decision makingand state the conditions for the transitions in the system. We
+refer to [ 24] for more details.
+Interpreted systems naturally induce Kripke models which
+can be used to interpret our speciﬁcation language. These are
+deﬁned as follows.
+Deﬁnition 2 (Induced models ) Given an interpreted system
+IS=({L
+i,Act i,Pi,τi}i∈Ag,I,h),t h e induced model of
+IS(or simply the model) is a tuple M IS=(Ag,ACT,
+S,T,{∼i}i∈Ag\{Ag0},h)where:
+–Agis the set of agents of IS;
+–ACT⊆Act 0×···× Act nis the set of joint actions for
+the system IS;
+–S⊆L0×···× Lnis the set of global states reachable
+from I via T ;
+–T⊆S×ACT×Sis a transition relation representing
+the temporal evolution of the system. We assume that
+Tis decomposable and deﬁne the transition relation as
+(s,a,s/prime)∈Tiff for all i∈Agwe have τi(li(s),a))=
+li(s/prime);
+–{∼i}i∈Ag\{Ag0}⊆S×Sis the set of equivalence relations,
+one for each agent but not the environment, encoding the
+epistemic accessibility relations. For any i∈Ag\{Ag0},
+we assume that (s,s/prime)∈∼ iiffli(s)=li(s/prime).
+We use the notation sa→s/primeas a shortcut for (s,a,s/prime)∈
+T.W eu s et h et e r m path to denote any sequence of states
+π=(s0,s1,..., sn,...) such that, for all i≥0, we have
+(si,a,si+1)∈Tfor some action a∈ACT . Given a path
+π, we denote with π(k)the state at position k. Given a set of
+agents Γ⊆Agand a joint action a=(a0,a1,..., an),w e
+denote with SΓthe projection of Son the local states of the
+agents in Γand with aΓthe tuple consisting of the elements
+inarestricted to the agents in Γ. In this case, we say that ais
+acompletion foraΓ. For instance, if a=(a0,a1,a2,a3,a4)
+andΓ={1,3},aΓ=(a1,a3)and aAg\Γ=(a0,a2,a4).
+Given Γ⊆Agand ACT ,t h es e t ACT Γdenotes the set of
+all tuples aΓas above.We say that a joint action a∈ACT isenabled in a state
+s∈Sif there exists a state s/prime∈Ssuch that (s,a,s/prime)∈T.
+Similarly, given a group Γ, we say that aΓis enabled in
+a state if there exists a completion of aΓto a joint action
+a∈ACT such that ais enabled in that state. Note that, by
+Deﬁnition 1, each component of an enabled action is locally
+protocol compliant. Further note that since a local action is
+always possible at any local state, the models considered are
+serial, i.e. there are no deadlocks.
+Astrategy for agent iis a function σi:Li→2ACT i\{∅}
+such that if ai∈σi(li), then ai∈Pi(li). Given a group of
+agents Γ,astrategy forΓis a function σΓ:SΓ→2ACTΓ\
+{∅} such that σΓ(lx1,..., lxk)=(σx1(lx1), ... ,σ xk(lxk)),
+where σx1,...,σ xkare strategies for the agents x1,..., xk∈
+Γ.
+The strategies deﬁned above are analogous to the non-
+uniform, incomplete information, memoryless strategies
+in [2]. Note that an agent (or a group of agents) adhering
+to memoryless strategies with incomplete information mayperform different actions in different global states whose
+local component is the same. This allows for an element of
+action “guessing” that is not considered useful when reason-ing in terms of strategic abilities. In these cases, it is more
+meaningful to consider, still under incomplete information
+and memoryless assumptions, deterministic uniform strate-
+gies [37] of the form σ
+i:Si→ACT Γ\∅, which restrict
+the deﬁnition of strategy above by assuming that the same
+action is performed in the global states in which agent ihas
+the same local state.
+The model induced by an interpreted system is said to
+benon-uniform , i.e. along its paths the agents may pick dif-
+ferent actions, compatibly with their protocols, in the samelocal state at different global states. To evaluate an inter-
+preted system under the uniformity assumption, we consider
+the various (uniform) models derived from the induced non-uniform model in which along any path the agents select thesame action whenever they are in the same local state. As we
+will see later, MCMAS supports the veriﬁcation of both uni-
+form and non-uniform models derived from an interpretedsystem.
+2.2 Syntax of ATLK and satisfaction
+We use A TLK as the speciﬁcation language for the agents in
+the system. A TLK combines the logic A TL [ 2] with modal
+operators to reason about the knowledge of the agents in thesystem. As it is known, A TL extends the logic CTL [ 15]
+by replacing CTL temporal operators with strategic cooper-
+ation modalities expressing what state of affairs a coalitionof agents can bring about in a system, irrespective of the
+actions of the other agents. A large amount of work in Artiﬁ-
+cial Intelligence and Multi-Agent Systems routinely employsrich speciﬁcations using the concepts of what an agent, or a
+123
+
+--- Page 5 ---
+A. Lomuscio et al.
+collection of agents, knows about the system and each other
+(e.g. see [ 24] for an introduction to the area) and what a
+group of agents can collectively enforce in the system (e.g.
+see [ 65]). We illustrate this through some scenarios in Sect. 5.
+Deﬁnition 3 (Syntax of ATLK ) The syntax of the logic
+A TLK is deﬁned by the following BNF expression:
+φ::= p|¬φ|φ∨φ|/angbracketleft /angbracketleftΓ1/angbracketright/angbracketrightXφ|/angbracketleft /angbracketleftΓ1/angbracketright/angbracketright[φUφ]|/angbracketleft /angbracketleftΓ1/angbracketright/angbracketrightGφ|
+Kiφ|EΓ2φ|DΓ2φ|CΓ2φ,
+where pis an atomic proposition in AP,i∈Ag\{Ag0},
+Γ1⊆Agdenotes a set of agents and Γ2⊆Ag,Γ2/negationslash=∅ ,
+denotes a non-empty set of agents.
+Since, differently from [ 2], here we work with incomplete
+information, the meaning of the modalities depends on the
+uniformity assumption made on the system. If we do not
+assume uniformity, the reading of the A TL modalities is asfollows. The formula /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφexpresses that the agents in Γ
+can ensure that φholds at the next state irrespective of the
+actions of the agents in Ag\Γ. In other words, the agents in
+Ag\Γcannot ensure that φis false at the next state.
+The formula /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightGφconveys that it is possible that the
+actions of the agents in Γresult in φbeing true forever in the
+future, irrespective of the actions of the agents in Ag\Γ.A s
+above, this means that the agents outside Γcannot ensure φ
+is not uniformly realised. Similarly, the formula /angbracketleft/angbracketleftΓ/angbracketright/angbracketright[φUψ]
+signiﬁes that the agents in Γmay be able to realise ψat some
+point in the future and to ensure that φholds till then.
+While the combination of incomplete information, knowl-
+edge and A TL modalities give rises to the readings above, weare generally interested in evaluating what the agents havethe power to enforce by means of A TL formulas [ 2]. In our
+setting, this is the reading of the A TL operators under the
+assumption of uniformity.
+In this case, the formula /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφis read as “group Γhas
+a strategy to enforce φin the next state (irrespective of the
+actions of the agents not in Γ)”;/angbracketleft/angbracketleftΓ/angbracketright/angbracketrightGφrepresents “group
+Γhas a strategy to enforce φforever in the future”; and
+/angbracketleft/angbracketleftΓ/angbracketright/angbracketright[φUψ]means “group Γhas a strategy to enforce that
+ψholds at some point in the future and can ensure that φ
+holds until then”.
+The remaining operators are used to characterise epistemic
+states of agents as in [ 24]. In particular, Kiφis read as “agent i
+knows φ”,EΓφas “everybody in group Γknows φ”,DΓφas
+“φis distributed knowledge in Γ”, and CΓφas “φis common
+knowledge in Γ. It is known that the standard branching-time
+temporal operators EX,EG, and EU can be expressed by
+considering the “grand coalition of all agents”, e.g. EXφ≡
+/angbracketleft/angbracketleftAg/angbracketright/angbracketrightXφ.
+The satisfaction of A TLK speciﬁcations on induced mod-
+els is deﬁned recursively as follows (recall that given anaction tuple aΓfor the agents only in Γ, we write afor
+any of the completions of aΓ):
+Deﬁnition 4 (Satisfaction ) Given a model M=(Ag,ACT,
+S,T,{∼i}i∈{1...n},h),as t a t e s0∈S, and an A TLK formula
+φ, satisfaction for φinMat state s0, formally (M,s0)|/equal1φ,
+is recursively deﬁned as follows.
+–(M,s0)|/equal1piffp∈h(s0);
+–(M,s0)|/equal1 ¬φiff it is not the case that (M,s0)|/equal1φ;
+–(M,s0)|/equal1φ1∨φ2iff(M,s0)|/equal1φ1or(M,s0)|/equal1φ2;
+–(M,s0)|/equal1 /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφiff there exists a strategy σΓand an
+action aΓ∈σΓ(s0
+Γ)such that for all states s1such that
+s0a→s1,w eh a v e (M,s1)|/equal1φ;
+–(M,s0)|/equal1 /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightGφiff there exists a strategy σΓand an
+action a1
+Γ∈σΓ(s0
+Γ)such that all states s1with s0a1
+→s1
+are such that there is an action a2
+Γ∈σΓ(s1
+Γ)such that all
+states s2with s1a2
+→s2are such that, etc., and we have
+that(M,si)|/equal1φ, for all i≥0.
+–(M,s0)|/equal1 /angbracketleft/angbracketleftΓ/angbracketright/angbracketright[φ1Uφ2]iff there exists a strategy σΓ
+and an action a1
+Γ∈σΓ(s0
+Γ)such that all states s1with
+s0a1
+→s1are such that there is an action a2
+Γ∈σΓ(s1
+Γ)
+such that all states s2with s1a2
+→s2are such that, etc., and
+we have (M,sj)|/equal1φ2,f o rs o m e j≥0, and (M,si)|/equal1
+φ1for all 0 ≤i<j.
+–(M,s0)|/equal1Kiφiff for all s1∈Swe have that if s0∼is1
+then(M,s1)|/equal1φ.
+–(M,s0)|/equal1EΓφiff for all s1∈Swe have that if
+s0/parenleftbigg/uniontext
+i∈Γ∼i/parenrightbigg
+s1then(M,s1)|/equal1φ.
+–(M,s0)|/equal1DΓφiff for all s1∈Swe have that if
+s0/parenleftbigg/intersectiontext
+i∈Γ∼i/parenrightbigg
+s1then(M,s1)|/equal1φ.
+–(M,s0)|/equal1CΓφiff for all s1∈Swe have that if
+s0/parenleftbigg/uniontext
+i∈Γ∼i/parenrightbigg+
+s1, then (M,s1)|/equal1φ, where+denotes
+the transitive closure of the relation.
+We say that an interpreted system IS=({Li,Act i,Pi,
+τi}i∈Ag,I,h)satisﬁes an A TLK speciﬁcation φif and only
+if(MIS,si)|/equal1φ, for all si∈I. We say that that interpreted
+system ISsatisﬁes an A TLK speciﬁcation φunder unifor-
+mity iff at least one of the models MISinduced from IS
+under uniformity is such that (MIS,si)|/equal1φ, for all si∈I.
+The semantics above is observational . In other words, the
+agents’ local states do not necessarily encode all the local
+states encountered by the agent in a run. Note that a boundedform of perfect recall can still be encoded in the seman-
+tics. Observational semantics is commonly regarded as the
+standard treatment of epistemic modalities [ 24] and it does
+not increase the complexity of the model checking prob-
+123
+
+--- Page 6 ---
+MCMAS: an open-source model checker...
+lem when combined with CTL or A TL [ 52]. Perfect recall
+semantics with A TL leads to an undecidable model checkingproblem [ 2].
+2.3 Symbolic model checking ATLK
+We now deﬁne model checking algorithms for the logic
+A TLK; these extend the corresponding ones for CTL [ 15].
+The approach here presented is symbolic in that it usesOrdered Binary Decision Diagrams (OBDDs) [ 7]a sb a s i c
+data structures to encode sets of states and transitions.
+For a given speciﬁcation model, Algorithm 1 reports the
+high-level structure of the recursive model checking algo-
+rithm SAT(φ), returning the set of states of the model in
+which φis true.
+Algorithm 1 Model checking algorithm for A TLK
+Input: φ.
+Output: {s∈S|(M,s)|/equal1φ}.
+1:if(φis an atomic proposition) then
+2: return h(φ);
+3:else if (φis¬φ1)then
+4: return (S\SAT(φ1));
+5:else if (φisφ1∨φ2)then
+6: return (SAT(φ1)∪SAT(φ2));
+7:else if (φisKi(φ1))then
+8: return SAT K(φ1,i);
+9:else if (φisEΓ(φ1))then
+10: return SAT E(φ1,Γ) ;
+11:else if (φisDΓ(φ1))then
+12: return SAT D(φ1,Γ) ;
+13:else if (φisCΓ(φ1))then
+14: return SAT C(φ1,Γ) ;
+15:else if (φis/angbracketleft/angbracketleftΓ/angbracketright/angbracketrightX(φ1))then
+16: return SAT AT LX(φ1,Γ) ;
+17:else if (φis/angbracketleft/angbracketleftΓ/angbracketright/angbracketrightG(φ1))then
+18: return SAT AT LG(φ1,Γ) ;
+19:else if (φis/angbracketleft/angbracketleftΓ/angbracketright/angbracketright [φ1Uφ2])then
+20: return SAT AT LU(φ1,φ2,Γ) ;
+21:end if
+The procedures SAT K,SAT E, and SAT Dfor the epis-
+temic operators are described in Algorithms 2, 3, and 4. These
+take as input the sub-formula to be checked and return theset of states satisfying the epistemic formula.
+They compute the existential pre-image of the set
+SAT(¬φ
+1)with respect to the appropriate epistemic relation,
+i.e. the set of states notsatisfying the epistemic formula. The
+complement of this set with respect to the set of reachable
+states Sis the set of states satisfying the formula in question.
+Algorithm 5 iteratively calculates the set of states that
+can access a state not satisfying φvia a ﬁnite sequence of
+epistemic relations for the agents in Γ. The complement of
+this set with respect to Sis equal to the set of states satisfying
+CΓφ[60].The algorithms for the A TL operators depend on the aux-
+iliary procedure AT L P RE (Γ,X)(see Algorithm 6), which
+computes the set of states Y⊆Sfrom which there exists a
+joint action aΓfor the agents in Γsuch that all action com-
+pletions aofaΓenabled at a state in Ygenerate a transition
+to a state in X. Algorithm 7 employs this procedure directly
+to compute SAT AT LX , while Algorithms 8 and 9 implement
+the standard ﬁx-point algorithms.
+Given the above, to compute whether an interpreted
+system ISvalidates a formula φ(without the uniformity
+assumption) we compute the induced model MISand check
+whether I⊆SAT(φ). To compute whether an interpreted
+system ISvalidates a formula φunder uniformity, we estab-
+lish whether I⊆SAT(φ) on some MISinduced from IS
+under uniformity. The labelling for models generated underthe uniformity assumption is also carried out using Algo-rithm 1; in this case the generation of the induced models
+accounts for the constraints on the actions.
+Algorithm 2 SAT K(φ,i)forKiφ.
+1:X=SAT(¬φ);
+2:Y={s∈S|∃s/prime∈Xsuch that s∼is/prime};
+3:return ¬Y∩S
+Algorithm 3 SAT E(φ,Γ ) forEΓφ.
+1:X=SAT(¬φ);
+2:Y={s∈S|∃s/prime∈Xsuch that ∃i∈Γ,s∼is/prime}
+3:return ¬Y∩S
+Algorithm 4 SAT D(φ,Γ ) forDΓφ.
+1:X=SAT(¬φ);
+2:Y={s∈S|∃s/prime∈Xsuch that ∀i∈Γ,s∼is/prime};
+3:return ¬Y∩S
+Algorithm 5 SAT C(φ,Γ ) forCΓφ.
+1:X=S;Y=SAT(¬φ);
+2:while X/negationslash=Ydo
+3: X=Y;
+4: Y={s∈S|∃s/prime∈Xand∃i∈Γsuch that s∼is/prime};
+5:end while
+6:return ¬X∩S
+2.4 Symbolic model checking and OBDDs
+To verify interpreted systems against speciﬁcations in A TLK
+we use the algorithms above in which operations on sets
+are implemented as operations on Boolean formulae, appro-
+priately encoded as Ordered Binary Decision Diagrams(OBDDs). As an example, consider the Boolean formula
+123
+
+--- Page 7 ---
+A. Lomuscio et al.
+Algorithm 6 AT L P RE (Γ,X).
+1:Z={(s,aΓ)|s∈ Sanda∈ ACT and∃s/prime∈
+Xsuch that (s,a,s/prime)∈T};
+2:W={(s,aΓ)|s∈Sanda∈ACT and∃s/prime∈S\
+Xsuch that (s,a,s/prime)∈T};
+3:Y={s|∃a∈ACT such that (s,aΓ)∈Z\W};
+4:return Y
+Algorithm 7 SAT AT LX(φ,Γ ) for/angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφ.
+1:X=SAT(φ);
+2:Y=AT L P RE (Γ,X);
+3:return Y
+Algorithm 8 SAT AT LG(φ,Γ ) for/angbracketleft/angbracketleftΓ/angbracketright/angbracketrightGφ.
+1:X=SAT(φ);Z=SATφ;Y=S;
+2:while X/negationslash=Ydo
+3: Y=X;
+4: X=Z∩AT L P RE (Γ,X);
+5:end while
+6:return Y
+Algorithm 9 SAT AT LU(φ1,φ2,Γ) for/angbracketleft/angbracketleftΓ/angbracketright/angbracketright[φ1Uφ2].
+1:X=SAT(φ2);Z=SAT(φ1);Y=∅ ;
+2:while X/negationslash=Ydo
+3: Y=X;
+4: X=Y∪(Z∩AT L P RE (Γ,X));
+5:end while
+6:return Y
+f1(x1,x2,x3)=¬ x1∨(x1∧¬x2∧¬x3), where x1,x2,x3
+are Boolean variables. The truth table of this formula is eight
+lines long. Alternatively, f1can be represented by means of
+a binary tree with root node x1,a si nF i g . 1, where the leaves
+represent the truth value of f1. This tree can be simpliﬁed
+as in Fig. 2. Notice that the simpliﬁed tree only has 5 nodes
+instead of 15. In general, the reduced tree can be orders of
+magnitude smaller than the truth table for a given Boolean
+formula.
+Symbolic model checking exploits the compression capa-
+bilities of OBDDs to represent large state spaces efﬁciently.
+A Boolean formula can represent a state in a model. As anexample, consider a model in which S={s
+0,s1,..., s7}.
+The Boolean formula f0(x1,x2,x3)=x1∧x2∧x3can
+be used to encode s0, the Boolean formula f1(x1,x2,x3)=
+¬x1∧x2∧x3to encode s1, etc. The number of Boolean
+variables required to encode a set Sgrows as O(log 2(|S|)).
+The set of states {s0,s1}can be represented by the dis-
+junction of f0with f1. Boolean formulae can be encoded by
+means of OBDDs; Algorithm 1 and all its associated proce-
+dures can operate on OBDDs, including the strategic (A TL)
+and epistemic modalities. We refer to [ 60] for more details
+about the encoding process.x1
+x2
+x3
+0 00 1x3
+0 10 10 1x2
+x3
+1 10 1x3
+1 10 10 10 1
+Fig. 1 The evaluation tree for f1(x1,x2,x3)=¬ x1∨(x1∧¬x2∧¬x3)
+x1
+x2
+x3
+0 11
+0 1
+1
+1 0
+Fig. 2 The OBDD for f1(x1,x2,x3)=¬ x1∨(x1∧¬x2∧¬x3)
+3 Modelling multi-agent systems in ISPL
+In this section, we describe Interpreted Systems Program-
+ming Language (ISPL), the language used to model MASwithin MCMAS. ISPL is strongly based on Interpreted Sys-
+tems as deﬁned in Sect. 2. In this section, we present ISPL’s
+constructs and give its semantics.
+An ISPL program describes a multi-agent system as com-
+posed of a number of agents and an environment. Agents’
+deﬁnitions in ISPL closely follow those of agents in Def-
+inition 1. To describe an agent in ISPL we declare the
+following components. Local states are private, internal
+states of the agents, declared by means of variables, and
+cannot be observed by the other agents. Agents interact witheach other and the environment by means of publicly observ-
+able local actions . Actions are performed in accordance with
+alocal protocol representing the agent’s decision-making
+process. Local states change value over time following a localevolution function , which returns the next local state on the
+basis of the current local state and the joint actions performed
+by all the other agents at a given instant. ISPL’s structure withactions and protocols is deliberately based on interpreted sys-
+tems’ semantics which constitute a widely used framework
+for describing MAS.
+We describe ISPL’s syntax using a simple example, the bit
+transmission protocol [ 24]. In this protocol, a Sender agent
+intends to deliver a message (the value of a bit) to a Receiverover an unreliable communication channel. The channel may
+123
+
+--- Page 8 ---
+MCMAS: an open-source model checker...
+1 Agent Sender
+2 Vars:
+3 bit : {b0, b1}; -- The bit can be either 0 or 1
+4 ack : boolean; -- True when the ack received
+5 end Vars
+6 Actions = {sb0, sb1, epsilon};
+7 Protocol:
+8 bit=b0 and ack=false : {sb0};
+9 bit=b1 and ack=false : {sb1};
+10 ack=true : {epsilon};
+11 end Protocol
+12 Evolution:
+13 ack=true if (ack=false) and
+14 ( ( (Receiver.Action=sendack) and
+15 (Environment.Action=sendSR) )
+16 or
+17 ( (Receiver.Action=sendack) and
+18 (Environment.Action=sendR) )
+19 );
+20 end Evolution
+21 end Agent
+Fig. 3 A simple ISPL example: the Sender Agent
+randomly drop messages in either direction, but it does not
+modify the content of messages. To guarantee communica-
+tion, the Sender keeps sending the same bit to the Receiver
+until it receives an acknowledgement; at this point the Senderstops sending the bit. The Receiver performs no action until abit is received, and keeps sending acknowledgements there-
+after.
+Figure 3reports the modelling of the agent Sender in
+ISPL. The declaration starts with the keyword Agent fol-
+lowed by a string identiﬁer (the name of the agent). The
+variables declared in the V ars section (lines 2–5) deﬁne thelocal states of the agent. In this example, the Sender has four
+possible local states, corresponding to the possible combina-
+tions of the two variables bit andack . ISPL also supports
+the declaration of bounded integers of the form x : a..b;
+where aandbare two integer numbers (e.g. x: 1..4; ).
+Actions are declared as an enumeration of identiﬁers (line
+6). The Protocol section (lines 7–11) associates actions
+to sets of local states; for instance, line 10 represents the
+fact that when the variable ack istrue , the agent must
+perform the action epsilon . Sets of local states are charac-
+terised by Boolean conditions on local states. As an example,
+consider the Boolean condition ack=true on the vari-
+ableack : this corresponds to two local states, one where
+bit=b0 and another where bit=b1 . Boolean expressions
+can also involve arithmetic expressions for integer variables
+(e.g.x>2 and x<5 ) and bit expressions for Boolean
+variables.
+Non-deterministic protocols are encoded in ISPL either
+by specifying more than one target action (see lines 7–10
+in Fig. 5), or by giving different actions for overlapping
+conditions on local states. Observe that, differently from
+knowledge-based programmes [ 25], actions in ISPL are spec-
+iﬁed on conditions on local states and not on the explicitknowledge that agents have. The ISPL section Evolution1 Agent Receiver
+2 Vars:
+3 state : {empty, r0, r1};
+4 end Vars
+5 Actions = {epsilon,sendack};
+6 Protocol:
+7 state=empty : {epsilon};
+8 (state=r0 or state=r1): {sendack};
+9 end Protocol
+10 Evolution:
+11 state=r0 if ( ( (Sender.Action=sb0) and (state=empty)
+12 and (Environment.Action=sendSR) ) or
+13 ( (Sender.Action=sb0) and (state=empty)
+14 and (Environment.Action=sendS) ) );
+15 state=r1 if ( ( (Sender.Action=sb1) and (state=empty)
+16 and (Environment.Action=sendSR) ) or
+17 ( (Sender.Action=sb1) and (state=empty)
+18 and (Environment.Action=sendS) ) );
+19 end Evolution
+20 end Agent
+Fig. 4 A simple ISPL example: the Receiver Agent
+1 Agent Environment
+2 Vars:
+3 state : {S,R,SR,none};
+4 end Vars
+5 Actions = {sendS,sendSR,sendR,sendNone};
+6 Protocol:
+7 state=S: {sendS,sendSR,sendR,sendNone};
+8 state=R: {sendS,sendSR,sendR,sendNone};
+9 state=SR: {sendS,sendSR,sendR,sendNone};
+10 state=none: {sendS,sendSR,sendR,sendNone};
+11 end Protocol
+12 Evolution:
+13 state=S if (Action=sendS);
+14 state=R if (Action=sendR);
+15 state=SR if (Action=sendSR);
+16 state=none if (Action=sendNone);
+17 end Evolution
+18 end Agent
+Fig. 5 A simple ISPL example: the Environment Agent
+describes how the local states of an agent evolve over time
+(lines 12–20 of Fig. 3), using a syntax similar to the one
+employed in NuSMV [ 13]. For instance, lines 13–19 pre-
+scribe that the next value of the variable ack will be true
+if the current value of ack isfalse , agent Receiver is
+performing the action sendack (see Fig. 4), and the Envi-
+ronment agent is performing either the action sendSR or
+sendR (see Fig. 5).
+Figure 4reports the full ISPL code for the Receiver agent.
+In this example, the unreliable channel is modelled by means
+of the Environment. Figure 5reports the ISPL code for the
+Environment; notice (lines 7–10) that its protocol is non-deterministic.
+The environment is described using the keyword
+Environment . One of its features is that some of its local
+states can be observed by other agents. As an example, the
+section Obsvars in Fig. 6lists the variables that are observ-
+able by allthe agents in the system. The variables in the Vars
+section of the environment, instead, can be observed by an
+123
+
+--- Page 9 ---
+A. Lomuscio et al.
+1 Agent Environment
+2 Obsvars:
+3 v3: boolean;
+4 end Obsvars
+5 Vars:
+6 v1: boolean;
+7 v2: boolean;
+8 end Vars
+9 [...]
+10 end Agent
+11
+12 Agent A1
+13 Lobsvars = {v1};
+14 Vars:
+15 [...]
+16 end Agent
+1718 Agent A2
+19 Lobsvars = {v2};
+20 Vars:
+21 [...]
+22 end Agent
+Fig. 6 A simple ISPL example: observable and partially observable
+variables
+1 Evaluation
+2 recbit if ( (Receiver.state=r0) or (Receiver.state=r1) );
+3 recack if ( ( Sender.ack = true ) );
+4 bit0 if ( (Sender.bit=b0) );
+5 bit1 if ( (Sender.bit=b1) );
+6 envworks if ( Environment.state=SR );
+7 end Evaluation
+Fig. 7 A simple ISPL example: atomic variables
+agent only if they appear in the Lobsvars deﬁnition for that
+agent. For instance, agent A1in Fig. 6can observe variable
+v1(but not v2), and agent A2can observe variable v2(but
+notv1). Both agents can observe variable v3. This feature
+enables faster communication and synchronisation between
+the agents and the environment.
+Following the agents’ declarations, an ISPL model con-
+tains the section Evaluation declaring the atomic vari-
+ables for the model. Figure 7reports the deﬁnition of ﬁve
+atomic variables recbit, recack, bit0, bit1,
+envworks . The Boolean condition appearing on the right-
+hand side of each line denotes the set of global states , where
+the propositions hold. The speciﬁcations to be veriﬁed (seetheFormulae section in Fig. 8) are built on the propositions
+deﬁned here.
+The description of a system of agents is completed by
+providing a set of initial states, an optional set of fairnessconditions, and the set of formulae to be veriﬁed. As shown
+in Fig. 8, the set of initial states is declared in the section
+InitStates by means of a Boolean function imposing
+conditions on local states. The Fairness section reports
+a list of Büchi fairness constraints, expressed as Boolean
+formulae. In the example of Fig. 8, it is required that the
+proposition envworks , which captures the fact the Envi-
+ronment is transmitting messages in both directions, must be
+true inﬁnitely often: this means that the channel cannot blockmessages indeﬁnitely. Finally, the section Formulae con-1 InitStates
+2 ( (Sender.bit=b0) or (Sender.bit=b1) ) and
+3 ( Receiver.state=empty) and (Sender.ack=false) and
+4 ( Environment.state=none);
+5 end InitStates
+67 Fairness
+8 envworks;
+9 end Fairness
+1011 Groups
+12 g1 = {Sender,Receiver};
+13 end Groups
+14
+15 Formulae
+16 AG((recack and bit0) -> K(Sender,(K(Receiver,bit0))));
+17 AG((recack and bit0) -> GCK(g1,bit0)));
+18 end Formulae
+Fig. 8 A simple ISPL example: initial states, groups, and fairness con-
+ditions
+tains the speciﬁcations to be checked. These are formulas in
+the logic A TLK; since A TL subsumes CTL, formulas in thelogics CTL or CTLK [ 59] are also supported. As an exam-
+ple, the ﬁrst formula in Fig. 8states that it is always true that,
+when recack is true and the value of the bit is 0, then the
+agent Sender knows that the agent Receiver knows that thevalue of the bit is 0. The second speciﬁcation is stronger and
+states that when recack is true and the value of the bit is 0,
+it is common knowledge in the group g1that the value of the
+bit is 0. The group g1is deﬁned above the speciﬁcations by
+the keyword g1, listing the groups of agents to be considered
+in the epistemic speciﬁcations for the model.
+Semantics of ISPL programs Any ISPL program P
+uniquely denotes an interpreted system IS
+P=({Li,Act i,Pi,
+τi}i∈Ag,I), obtained by instantiating the corresponding ele-
+ments in ISPby means of the corresponding declarations in
+P. More formally:
+– The set of agents in ISPis the set of agents declared in
+P, where the environment in Pis mapped to Ag0inISP.
+– For each agent i, the set of possible local states LiinISP
+is deﬁned by taking the Cartesian product of the corre-
+sponding sets deﬁned for the local variables for agent i
+inP(Section Vars ).
+– For each agent i,t h es e t Act iis the corresponding set of
+actions agent iin the programme P(Section Actions ).
+– For each agent i, the protocol Piis deﬁned by the list
+of Boolean conditions in the Section Protocol for the
+agent iin the programme P.
+– For each agent i, the function τiis deﬁned by the list of
+Boolean conditions in the Section Evolution for the
+agent iin the programme P.
+– The set of global initial states Iis deﬁned by evaluating
+the Boolean conditions in InitStates inP.
+Given an ISPL program Pand the interpreted system
+ISPdenoted by P, we construct the induced model MISP
+by applying Deﬁnition 2toISPand by taking the evalu-
+123
+
+--- Page 10 ---
+MCMAS: an open-source model checker...
+ation hdeﬁned by the Boolean conditions in P(Section
+Evaluation ). Formally, an ISPL program Psatisﬁes a
+speciﬁcation φ(given in section Formulae )i fMISP|/equal1φ.
+Note that since the semantics of ISPL programs is deﬁned in
+terms of their corresponding interpreted system, their evo-lution is deterministic. Also observe that the composition ofthe different agents is synchronous via joint actions as in
+interpreted systems.
+As described in Sect. 2.1, under uniformity, an interpreted
+system induces not just one but a set of uniform models. In
+this case, we say that an ISPL program Psatisﬁes φunder
+uniform semantics if there exists an induced uniform model
+M
+ISPsuch that MISP|/equal1φ.
+As an example, the model generated by the ISPL program
+for the bit transmission protocol is depicted in Fig. 9, where:
+– Global states are represented by rectangles; only the
+local states of the Sender and Receiver are reported,
+for readability the Environment is not. For instance, the
+global state ((b0,false) ,empty) in the top-left cor-
+ner encodes a state in which variable bit for the Sender
+has value r0, variable ack is false, and variable state
+for the Receiver is empty .
+– The temporal transitions are represented by solid arrows
+and for brevity are labelled with the Environment action
+only (the Sender’s and Receiver’s actions are derived
+deterministically from the protocol).
+– The epistemic relations for the Sender are represented by
+dotted lines; dashed lines represent the epistemic rela-
+tions for the Receiver. All reﬂexive relations are omitted.
+It can be manually checked that the ﬁrst speciﬁcation
+given is satisﬁed on the model; so the programme satisﬁesit; whereas the second is false. This is in line with work in
+epistemic logic that establishes that common knowledge can-not be obtained in the presence of a faulty communication
+channel [ 24].
+4 MCMAS: implementation and usage
+MCMAS is implemented in C++ and can be compiled from
+its source code on most platforms (including Windows,
+Linux, Mac, Raspberry Pi and various other UNIX systems).The build recognises most architectures automatically. Pre-
+compiled versions of the tool are also available from the
+support pages [ 68]. In what follows, we describe MCMAS
+ver 1.2.2, released in March 2015.
+4.1 Implementation details
+To illustrate the tool, we discuss a number of implementa-
+tion choices that affect the overall performance of MCMAS .
+In particular, we consider the following issues: (1) vari-
+able ordering in OBDDs; (2) computation of the set of
+reachable states; (3) construction of the temporal and epis-temic transition relations; (4) consistency checks of the input
+model.
+4.1.1 Variable ordering in OBDDs
+The size of an OBDD is very sensitive to the choice of the
+ordering for its Boolean variables. A good ordering can use
+less memory and speed up OBDD operations by orders of
+magnitude with respect to an alternative one. Finding a sta-tic ordering that generates a compact OBDD representation
+((b0,false),empty) ((b0,false),r0) ((b0,true),r0)
+((b1,false),empty) ((b1,false),r1) ((b1,true),r1)SendS
+SendSRSendRSendNone SendR
+SendSR SendSSendNone Send*
+SendS
+SendSRSendRSendNone SendR
+SendSR SendSSendNone
+Send*
+Fig. 9 The model generated from the ISPL code for the bit transmis-
+sion protocol. Solid lines are temporal transitions labelled with actions
+(only the Environment action is reported); the dotted lines represent theepistemic accessibility relations for the Sender; the dashed lines rep-
+resent the epistemic accessibility relations for the Receiver. Reﬂexivelinks and the local states of the environment are omitted
+123
+
+--- Page 11 ---
+A. Lomuscio et al.
+for representing the state space and the transition relation is
+challenging. Dynamic reordering is a useful technique aimedat ﬁnding a good compromise between continuous variable
+reordering and efﬁciency with the aim of reducing memory
+consumption during model checking.
+In some cases when the overhead of dynamic reorder-
+ing cannot be offset by its savings, it may be more
+efﬁcient to disable it completely, a feature supported by
+MCMAS. It is normally advantageous to provide heuris-tics for dynamic reordering tailored to speciﬁc models to
+reduce the overhead of evaluating all the possible orderings.
+The CUDD library [ 61]u s e db y MCMAS allows group-
+ing OBDD variables so that the order of variables in the
+same group is not changed during reordering. This approach
+reduces the number of orderings that need to be explored.MCMAS provides four different initial OBDD groupingstrategies:
+1. Boolean variables for current and successor states are
+interleaved. The resulting ordering is: (v
+0,v/prime
+0)···(vn,
+v/prime
+n)X0,... Xn, where v0,...v i0are variables encoding
+the local states for agent 0 and the other agents, and
+primed variables encode successor states. The variables
+X0...Xnencode actions and are grouped at the end.
+2. A variation of the above whereby variables for actions
+are interleaved with states: (v0,v/prime
+0)X0···(vn,v/prime
+n)Xn.
+3. For each agent, all the variables for the current state
+are grouped at the beginning, followed by the vari-
+ables used to encode actions, followed by primed vari-
+ables to encode successor states: (v0,...,v i0)X0(v/prime
+0,
+...,v/prime
+i0)...( v inN+1,...,v n)Xn(viN+1,...,v n),
+4. A variation of the case above whereby variables for the
+actions follow the variables for the states: (v0,...,v i0)
+(v/prime
+0,...,v/prime
+i0)X0···(viN+1,...,v n)(v iN+1,...,v n)Xn.
+The ﬁrst two strategies are similar to those used by
+NuSMV and other model checkers. The default OBDD order-ing strategy in MCMAS is the second one reported above,but, as we show later, some models beneﬁt from the third and
+fourth heuristics.
+4.1.2 Computing the set of reachable states
+Let ISbe an interpreted system and M
+IS=(Ag,ACT,
+S,T,{∼i}i∈{1...n},h)its induced model. In what follows the
+function image (x,T)returns the set of states accessible from
+xunder the transition relation T. MCMAS uses OBDDs to
+represent states and functions; the corresponding operationsare conducted directly on OBDDs.Algorithm 10 Three approaches to compute reachable states
+1:S⇐0;q⇐I;
+2:while S/negationslash=qdo
+3: S⇐q;q⇐S∪image (S,T);
+4:end while
+1:S⇐0;n⇐I;q⇐I
+2:while S/negationslash=qdo
+3: S⇐q;n=image (n,T);q⇐S∪n;
+4:end while
+1:S⇐0;n⇐I;q⇐I
+2:while S/negationslash=qdo
+3: S⇐q;n=image (n,T)\S;q⇐S∪n;
+4:end while
+MCMAS provides three approaches to compute the set
+of reachable states (see Algorithm 10). Experiments show
+that the time to construct OBDDs for reachable states bythese approaches varies for different models and platforms(e.g. 32-bits Linux, 64-bits Linux, 32-bits Windows, etc.).
+No approach is consistently superior to the others. Note that
+MCMAS does not compute a single OBDD for Tto avoid
+unnecessary computation time. Instead, the tool builds ntran-
+sition relations T
+i⊆S×ACT×S,0≤i≤n, one for each
+agent and the environment; these are deﬁned on the basis ofthe local transition functions τ
+0,...,τ n(see Deﬁnition 1)a s
+follows: Ti(s,a,s/prime)iffli(s/prime)=τi(li(s),a). When the image
+ofxwith respect to Tis needed, MCMAS executes a loop
+to construct the intersection of T0,..., Tnwith x, i.e.
+y=x∩T0∩T1∩···∩ Tn.
+Note that xis also encoded over the whole set of OBBD
+variables, among which those for actions and successor states
+are abstracted away.
+4.1.3 Building the temporal and epistemic relations
+It is often the case that the set of reachable states is only a
+small subset of the set of possible global states. While it may
+be time consuming to build a single OBDD for the complete
+transition relation Tfor computing the reachable states, com-
+puting the partial transition relation Treach usually speeds
+up the process when checking properties on reachable states.
+Formally, Treach is computed as follows:
+Treach=S∩T0∩T1∩···∩ Tn,
+where Sis the set of reachable states. In other words, Treach
+is the projection of Ton reachable states.
+In Algorithm 2, the epistemic-indistinguishable relation
+∼ican be pre-computed for each agent i. As in the case for the
+123
+
+--- Page 12 ---
+MCMAS: an open-source model checker...
+transition relation T, the computation of ∼iis usually time
+consuming. MCMAS employs variable masking to compute
+the OBDD encoding of the epistemic relations. For a set X
+of states, we compute the set Yof indistinguishable state
+with respect to ∼ias follows: let Vbe the set of all OBDD
+variables encoding global states, and Vi⊆Vbe the set of
+OBDD variables encoding the local states for agent i.
+1. We ﬁrst compute an OBDD X/primeby removing the OBDD
+variables in V\Vi, which are not part of agent i’s encod-
+ing. X/primeis characterised by the following set:
+X/prime={s∈L0×···× Ln|∃s/prime∈Xsuch that s/prime
+i=si},
+where siands/prime
+iare the local states of agent iinsands/prime,
+respectively.
+2. The OBDD Yis computed as Y=X/prime∩S, where Sis the
+set of reachable states.
+The above two steps can be performed efﬁciently using the
+procedures available in the CUDD library, and are applicableto Algorithms 3, 4 and 5.
+For efﬁciency purposes, MCMAS implements optimised
+algorithms for the veriﬁcation of CTL operators, rather thanemploying the procedures for the A TL modalities.
+4.1.4 Fairness for ATLK
+In a number of circumstances, it is desirable to remove cer-
+tain unwanted behaviours from the possible executions of
+a system. For instance, consider the code for the Environ-
+ment of the bit transmission protocol reported in Fig. 5.
+The protocol for this agent allows the environment to blockmessages forever ; yet, the designer is likely to want to
+describe a situation in which the communication chan-
+nel randomly drops messages, but it is not continuouslyfaulty.
+The removal of unwanted behaviours is often achieved by
+imposing fairness conditions . In the case of branching log-
+ics such as A TLK, this requires the deﬁnition of constraints
+outside the model and the use of purpose-built veriﬁcation
+algorithms which extend the standard labelling algorithmpresented in Sect. 2.3.
+Fairness conditions are declared in MCMAS using an
+optional set of Boolean formulae constructed using atomic
+propositions from AP. In line with the standard literature,
+an inﬁnite path in a model is said to be fair if all the Boolean
+formulae from the set of fairness conditions are true inﬁnitely
+often along the path.
+MCMAS implements the standard algorithms for the ver-
+iﬁcation of temporal operators under fairness [ 15]. When the
+fairness options are enabled all operators are evaluated onthe set of fair paths as discussed in [ 9].4.1.5 Witnesses, counterexamples and strategy synthesis
+To assist with advanced validation support, MCMAS enables
+the user to inspect witnesses and counterexamples. These are
+provided as trees , instead of traces, adopting the algorithm
+described in [ 16]. MCMAS further extends [ 16] by:
+1. by generating fair counterexamples and witnesses upon
+request. This is done by integrating the algorithm
+described in [ 14] for the temporal operators with the gen-
+eration of the counter-example tree;
+2. by including additional cases for the additional operators.
+Algorithm 11 generates a counterexample for the formula
+K
+iφby picking a state not satisfying φ(the remaining
+epistemic operators are treated in a similar way). A sim-
+ilar algorithm can be used to compute a counterexample
+forKiφunder fairness by replacing SATφis replaced by
+SATF
+φandSbySFin Algorithm 11. Algorithm 12 builds
+a witness for a formula of the form /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφby comput-
+ing the set Zof states in which agents not in Γcan move
+to a state satisfying ¬φ, and returns an element from
+its complement. Algorithm 13, instead, returns a witness
+for a formula of the form /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightφ1Uφ2. This algorithm
+and a similar one for formulae of the form /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightGφ(not
+reported here) follow the standard procedure for Until
+and Globally operators of CTL (see [ 15] for additional
+details).
+Algorithm 11 Counterexample for Kiφin state s.
+1:X=SAT¬φ;
+2:Y={s/prime∈S|s∼is/prime};
+3:pick s/primeinY∩Xandreturn s/prime
+Algorithm 12 Witness for /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightXφin state s.
+1:X=SAT¬φ;
+2:Y={(s,aΓ)|∃s/prime∈Ssuch that (s,a,s/prime)∈T};
+3:Z={(s,aΓ)|∃s/prime∈Xsuch that (s,a,s/prime)∈T};
+4:pick(s,aΓ)inY\Zandreturn {s/prime∈S|(s,a,s/prime)∈T}
+Algorithm 13 Witness for /angbracketleft/angbracketleftΓ/angbracketright/angbracketrightφ1Uφ2in state s.
+1:P=SATφ1;Q=SATφ2;X=¬(P∪Q);
+2:W={s}\Q;V={s};
+3:while W/negationslash=∅ do
+4: Y={(s/prime,aΓ)|s/prime∈W∧∃s/prime/prime∈Ssuch that (s/prime,a,s/prime/prime)∈T};
+5: Z={(s/prime,aΓ)|s/prime∈W∧∃s/prime/prime∈Xsuch that (s/prime,a,s/prime/prime)∈T};
+6: Y=Y\Z;
+7: pick(s,aΓ)inYandY1={s/prime/prime∈S|(s,a,s/prime/prime)∈T};
+8: W=Y1\(V∪Q);V=V∪Y1;
+9:end while
+10:return V
+Notice that, in line with [ 1], MCMAS currently generates
+A TL witnesses and counterexamples without fairness, as this
+123
+
+--- Page 13 ---
+A. Lomuscio et al.
+would require double-exponential algorithms and cause visu-
+alisation problems for the traces obtained.
+Finally, it is customary for model checkers to compute
+counterexample for universal formulae that do not hold in a
+model, and witnesses for existential formulae that are truein a model. MCMAS extends this approach as follows (allformulae are assumed to be in negation normal form):
+– MCMAS generates a counterexamples for universal for-
+mulas containing an existential formula. For instance, if
+the formula AFEG φis false, MCMAS generates a coun-
+terexample consisting a loop reachable from the initial
+state in which EGφdoes not hold.
+– MCMAS generates a witness for existential formulas
+containing a universal formula. For instance, if the for-
+mula EFA G φis true, MCMAS generates a witness
+consisting of a path leading from the initial state to astate in which AGφholds.
+– MCMAS generates witnesses or counterexamples for
+Boolean combinations of either universal or existential
+formulae (including the cases mentioned above).
+MCMAS also provides limited support for strategy syn-
+thesis for A TLK speciﬁcations. Strategy synthesis is the
+problem of deducing the strategies the agents need to employ
+so that a given speciﬁcation is satisﬁed. Given an interpreted
+system and an A TLK speciﬁcation over a set of agents in Γ,
+if the speciﬁcation is satisﬁed, MCMAS can often return a
+witness model. This witness contains the actions that every
+agent in Γperforms at various states thereby making the for-
+mula true. The strategies of the agents in Γcan therefore be
+synthesised from the output. Note that the synthesised strate-
+gies are guaranteed to be protocol compliant due to how themodel is generated.
+4.1.6 Consistency checking
+It is known that bounded integer types may generate over-
+ﬂows in a reachable state. Due to the encoding strategyadopted in MCMAS , the value of a variable exceeding its
+upper bound is truncated to a value within its domain. This
+might lead to unexpected behaviours. To avoid this MCMAS
+allows users to verify the presence of overﬂows as an optionalcheck. This is carried out by encoding the transition relation
+T
+overﬂow in such a way that an expression on the right-hand
+side of an assignment is assumed to be beyond the bounds ofthe left-hand side variable, and then by constructing the con-
+junction of T
+overﬂow and the reachable states R. A non-empty
+conjunction indicates the existence of an overﬂow.
+The ISPL semantics requires that each state must have a
+successor state. So, checking deadlock states that do not have
+successor states is necessary to guarantee correct results ofmodel checking, as deadlock states violate the premises ofthe model checking algorithm for EG. Checking the presence
+of a deadlock state is implemented by model checking theformula EG true on the model. If the formula does not hold
+in all states, then there exists a deadlock state.
+4.2 MCMAS usage
+In its basic form the executable ﬁle mcmas is a standard
+command-line tool that takes as input the ISPL model to be
+veriﬁed. The executable accepts a number of command-lineoptions, including:
+– The options -o,-g, and -dare used, respectively, to
+select the algorithm to be used to order OBDD variables,
+to group OBDD variables, and to disable dynamic OBDD
+reordering.
+– The option -eis used to select the algorithm to be used
+to generate the reachable state space (see Algorithm 10).
+– The options -kand-aare used to check for deadlocks
+and arithmetic overﬂows in the model.
+– The option -cis used to select the way in which coun-
+terexamples and witnesses are displayed. If this option isselected, the user can also tune the generation of coun-terexamples and witnesses using additional parameters
+provided using the options -p,-f,-l, and-w(we refer
+to the online documentation for a detailed description ofthese).
+– The option -uniform is used to force the generation of
+uniform models as described in Sect. 2.2.
+MCMAS can also be used to perform interactive simula-
+tions : from the command line, this is achieved by invoking
+the tool with the -soption.
+To improve usability, a graphical interface is available.
+The GUI is implemented as an Eclipse plug-in. The plug-in
+creates a new menu in Eclipse that guides the interaction.
+Currently, this interface supports the following features:
+–ISPL program editing This helps users create MCMAS
+projects and ISPL program skeletons; it implements syn-
+tax highlighting; it performs dynamic syntax checking
+(a separate ISPL compiler was implemented in Java +ANTLR [ 58] for this); it provides an outline view and
+the synchronisation between the outline view and the
+ISPL editor; it also supports text formatting and content
+assist.
+–Interactive execution mode This mode implements the
+-soption described above to perform interactive sim-
+ulations. It allows users to execute their model step bystep by selecting an initial state ﬁrst, and subsequently
+by choosing a successor state among those reachable via
+the enabled transitions. Users can backtrack an execu-tion to the beginning at any step. Simulations can be
+123
+
+--- Page 14 ---
+MCMAS: an open-source model checker...
+Fig. 10 The ISPL Editor (Eclipse plug-in)
+performed either explicitly, i.e. without OBDD encod-
+ing, or symbolically. The explicit simulation is performed
+by the Eclipse plug-in and does not require interactionwith MCMAS. The symbolic simulation is more appro-
+priate for large models and requires the installation of
+MCMAS.
+–Veriﬁcation In this modality the GUI invokes MCMAS
+to execute the model checking procedures. Counterex-
+amples and witness traces are displayed in a graphic wayusing the dot utility from the Graphviz package [ 27];
+states are shown as nodes and transitions as edges. When
+the mouse is rolled over a node in the graph, the cor-
+responding state is highlighted. The executions can beprojected onto a subset of agents to mask unwanted infor-
+mation of other agents.
+A screenshot of the Eclipse-based ISPL editor with syntax
+highlighting is shown Fig. 10. A simple counterexample for
+a formula involving A TL operators is shown in Fig. 11.
+5 Scenarios and applications
+In the past 10 years, MCMAS has been used to verify a wide
+number of systems ranging from simple multi-agent systems
+protocols to industrial scenarios [ 21–23,28,29,44,48–50]. In
+the following, we summarise a few instructive examples, butrefer to the references above for more details.The ISPL encodings for the scenarios below were either
+manually given, or automatically generated by means of
+dedicated compilers. While other traditional model check-ers could be used to model the scenarios, as we will see
+below, the speciﬁcations checked are based on epistemic or
+A TL formulas, hence normally not veriﬁable with traditionalcheckers.
+We here focus on the tool functionality; the next section
+covers its performance when compared to other tools.
+5.1 Example scenarios
+We begin with simple scenarios from the artiﬁcial intelli-
+gence and MAS literature and then move on to describe more
+complex use cases.
+5.1.1 The muddy children puzzle
+The muddy children puzzle [ 24] concerns a group of nchil-
+dren out playing in the ﬁeld; kof them get mud on their
+forehead. They sit in a circle and see only the foreheads
+of other children, but not their own. An adult arrives and
+announces “At least one of you is muddy!”; he pauses andthen asks: “Does anyone of you know whether you are
+muddy?”. The adult repeats this question over and over. After
+each question, the children, assumed to be perfect reasoners,answer “I do not know”. By reasoning about what children
+123
+
+--- Page 15 ---
+A. Lomuscio et al.
+Fig. 11 A model witness (Eclipse plug-in)
+know and what they learn from each announcement it is pos-
+sible to show that at round kthe muddy children say that they
+know they are muddy.
+MCMAS can be used to verify that the children give the
+correct answer at each round, and have the correct knowl-edge at the end of the protocol. To do this we encode each
+child by means of an agent and use a set of initial states to
+generate a random assignment of muddy foreheads. We canthen, for example, verify the speciﬁcation stating that when amuddy child speaks, he indeed knows that he is muddy. This
+is captured by the formula below:
+AG((muddy
+i∧saysknowsi)→KChild imuddyi)
+where the proposition “saysknowsi” is true after child isays
+that he knows whether or not he is muddy.
+Given the small size of the state space per child, the analy-
+sis can be performed on a very large number of children.Keeping track of the number of round of questions is not
+problematic but leads to a larger state space.
+To evaluate the performance of MCMAS and the speed
+difference among various OBDD orderings, we ran MCMAS
+on a sequence of models increasing the number of children.
+All the experiments below and later were carried out on anAMD Phenom 9600B 2.3 GHz Processor with 8 GB mem-ory running Linux kernel version 3.11.0-18. Any run that
+exceeded 24 h is reported as a timeout.
+Table 1shows that MCMAS is able to handle a large num-
+ber of children. The default OBDD ordering works well up
+to 100 children; ordering 3 and 4 are more efﬁcient for thelarger models.
+5.1.2 One hundred prisoners
+This puzzle concerns 100 prisoners kept in solitary conﬁne-
+ment [ 19]. One day the warden gathers all the prisoners in
+the dining hall for dinner and announces that from the fol-
+lowing day he will randomly choose one prisoner every dayfor questioning. The interrogation room has only a light gov-
+erned by a toggle switch. Prisoners can observe whether the
+light is on when they enter the room. During their visit theyare allowed to switch the light on or off as they please. Whilein the interrogation room, a prisoner may announce that he
+believes that all prisoners have already visited the interro-
+gation room. If a prisoner makes this announcement andthis corresponds to the truth, then all prisoners are set free;
+if the announcement is not correct, all prisoners are exe-
+cuted. The prisoners are granted one meeting to coordinatetheir actions before the interrogations begin. It is assumed
+that prisoners can count days and that the light is initially
+off.
+To check whether the puzzle’s solution is correct, we can
+model the prisoners’ behaviours, corresponding to the solu-
+tion of the puzzle, in ISPL and verify the formula
+/angbracketleft/angbracketleftPrisoners /angbracketright/angbracketrightF(Release ) (1)
+assuming Release to be true on the model only if all prison-
+ers are free. MCMAS ﬁnds the formula to be true thereby
+conﬁrming the correctness of the solution. Table 2reports
+the performance of MCMAS on this example. As in the
+muddy children puzzle, we found that the default OBDD
+ordering is the most efﬁcient when the model is small,while other orderings offer better performance on larger
+models.
+5.1.3 Tian Ji racing horses
+As documented above, differently from other tools, MCMAS
+can also be used to synthesise strategies by inspecting a modelwitness of an A TLK formula. In the Tian Ji puzzle, a king
+and a general called Tian Ji have a yearly horse racing com-
+petition. Both the king and the general have three horses,which are assumed to have high ,medium , and low speed.
+The rules of the competition prescribe three rounds; in each
+round the king and Tian Ji should use the horse with thesame speed. The overall winner is the person who wins the
+123
+
+--- Page 16 ---
+MCMAS: an open-source model checker...
+Table 1 Experimental results
+for muddy childrenNumber ofchildrenNumber of
+OBDD varsTime (s)
+OBDD
+ordrng 1OBDD
+ordrng 2OBDD
+ordrng 3OBDD
+ordrng 4
+20 111 0 .61 0 .50 0 .76 0 .76
+40 213 11 .46 6 .57 8 .76 10 .68
+60 313 40 .29 39 .58 54 .16 97 .67
+80 415 165 .62 144 .44 190 .46 192 .49
+100 515 736 .04 431 .85 466 .05 385 .31
+120 615 920 .02 1036 .89 784 .44 787 .35
+Table 2 Experimental results
+for 100 prisonersNumber ofprisonersNumber of
+OBDD varsTime (s)
+OBDD
+ordrng 1OBDD
+ordrng 2OBDD
+ordrng 3OBDD
+ordrng 4
+5 40 0.40 0.34 0.41 0.43
+10 88 13.79 13.00 11.50 11.4815 123 118.23 122.57 126.75 126.9320 161 1573.96 1692.87 1636.44 913.0225 196 6541 8682 6083 7107
+highest number of runs. However, for any given speed, the
+king’s horses always run faster than the general’s. Therefore,
+Tian Ji is always bound to loose the race, unless he cheats andemploys horses in a different way. Tian Ji knows that the king
+will run the horses in the three races from the fastest to the
+slowest. MCMAS can be used to ﬁnd the winning strategyfor the general: we encode the king and the general by means
+of two agents. We ﬁx the protocol for the king, and we allow
+the general to choose any horse at any given level. We canthen inspect the winning strategy for Tian Ji by analysing thewitness for the formula:
+/angbracketleft/angbracketleftTianJi/angbracketright/angbracketrightF(win) (2)
+Figure 12illustrates the state space for the example. In each
+state the general’s available horses are labelled with capital
+letters; the king’s horses are labelled with lower case letters.
+The current score is written as a pair where the ﬁrst numberstands for the general’s wins and the second for the king’s.The horses participating in each round are labelled with tran-
+sitions. The general’s strategy is shown as a solid line. The
+leaves of the tree represent the number of victories for thegeneral Tian Ji and the king, respectively.
+The experimental results for various number of horses are
+reported in Table 3. On this scenario, the OBDD ordering 1
+offers the best performance on large models. It is worth point-
+ing out that the running time for the model with 40 horses
+is shorter than that with 35 horses under the ﬁrst OBDDordering. This is because the former model has better struc-G: HML
+K: hml
+0 : 0
+G: ML
+K: ml
+0 : 1H:h
+G: HL
+K: ml
+0 : 1 M:h
+G: HM
+K: ml
+0 : 1L:h
+G: L
+K: l
+0 : 2M:m
+G: M
+K: l
+0 : 2 L:m
+G: L
+K: l
+1 : 1 H:m
+G: H
+K: l
+0 : 2L:m  M:m
+G: M
+K: l
+1 : 1H:m
+0 : 3 L:l
+1 : 2M:l  L:l H:l
+2 : 1 M:l
+Fig. 12 The general’s strategy in the Tian Ji puzzle
+tural regularity, which makes the OBDD operations more
+efﬁcient.
+5.2 Applications
+We now turn to larger applications and use cases outside the
+domain of multi-agent systems.
+123
+
+--- Page 17 ---
+A. Lomuscio et al.
+Table 3 Experimental results
+for racing horsesNumber ofchildrenNumber of
+OBDD varsTime (s)
+OBDD
+ordrng 1OBDD
+ordrng 2OBDD
+ordrng 3OBDD
+ordrng 4
+53 90 .09 0 .03 0.03 0 .02
+10 65 0 .47 0 .34 0.35 0 .47
+15 85 5 .66 3 .17 2.86 5 .62
+20 111 50 .22 259 .95 37.78 37 .67
+25 131 179 .48 589 .59 148.47 145 .36
+30 151 1000 .06 1612 .75 1011.45 1001 .54
+35 177 2449 .73 2307 .21 525.21 2078 .08
+40 197 224 .21 329 .09 Timeout 3278 .78
+5.2.1 Veriﬁcation of authentication protocols
+Authentication protocols are a class of security protocols
+whereby two or more agents need to acquire knowledge
+of their identity, typically to initiate secure communication.Authentication protocols are notoriously difﬁcult to analyse,
+due to the possible existence of subtle bugs such as man-in-
+the-middle attacks and impersonation. Formal models havebeen employed to analyse authentication protocols; how-ever, they are often limited to reachability analysis only,
+thereby imposing rather severe limitations on the class of
+speciﬁcations that can be veriﬁed. Speciﬁcations concerningauthentication are amenable to be expressed in a temporal-
+epistemic logic language as they concern states of knowledge
+of the principals in a system.
+Authentication protocols expressed in CAPSL, a main-
+stream language for the description of security protocols,
+were automatically veriﬁed with MCMAS in [ 5]. Speciﬁ-
+cally, a compiler was built to translate protocols from theClark–Jacobs and SPORE repository [ 62]i n t oM C M A S
+readable input. This involved devising a translation from
+the SPORE protocol description into ISPL and a transla-tion from the SPORE protocol speciﬁcations (“goals” in
+CAPSL) into appropriate temporal-epistemic formulas. The
+methodology is completely automatic and was evaluated onwell-known key establishment protocols. The tool conﬁrmed
+bugs already known in some key establishment protocols
+and veriﬁed the correctness of others. Since MCMAS alsoprovides counterexamples when a speciﬁcation is false, anattack could easily be derived by inspecting the output of the
+checker.
+The performance of the methodology was in line with
+state-of-the-art model checkers for security protocols. It has
+been argued, see, e.g. [ 8,31], that epistemic speciﬁcations
+are considerably more intuitive for the security analyst asthey refer precisely to the states of knowledge of the princi-
+pals, which are the basic primitive in security analysis. This
+increase in expressiveness allows also the validation of otherspeciﬁcations, including the distributed detection of attacksat run-time [ 6]. Lazy intruder models are known to increase
+the effectiveness of model checking approaches for securityprotocols [ 3]; they can also be applied in the context of secu-
+rity speciﬁcations [ 46].
+5.2.2 Veriﬁcation of anonymity protocols
+Anonymity protocols are a class of protocols aimed at estab-
+lishing the privacy of principals during an exchange. For
+example, the onion routing protocol can guarantee the com-
+munication between two parties without their identities beingrevealed to any third party.
+Onion routing and a number of other anonymity protocols
+have been analysed with MCMAS. One well-known exam-ple in this class is the dining cryptographers protocol [ 12],
+which can be described as follows. A group of ncryptog-
+raphers shares a meal around a circular table. Either one ofthem paid for the meal or their employer did. They would liketo discover whether one of them paid without revealing the
+identity of the payer (in case one of them did pay). To this
+end, every cryptographer tosses a coin and shows the out-come to his right-hand neighbour. Comparing his own coin
+to the coin shown to him, each cryptographer who did not
+pay for dinner announces whether the two coins agree or not.However, if a cryptographer paid for the meal, he announces
+the opposite of what he sees. By parity considerations, one
+can show that an even number of cryptographers claimingthat the two coins are different entails that their employerpaid for the dinner, while an odd number of “different” utter-
+ances signiﬁes that one of the cryptographers paid for the
+dinner. The protocol can naturally be formalised in ISPL.The speciﬁcation of the protocol can very easily be captured
+in an epistemic setting: after the announcements the cryp-
+tographers acquire common knowledge of the payer; but ifthis is one of them no one knows who this is, other than
+the payer itself. This analysis cannot be replicated on tradi-
+tional checkers. We refer to Sect. 6.2for more details on this
+scenario including the epistemic speciﬁcations checked.
+123
+
+--- Page 18 ---
+MCMAS: an open-source model checker...
+5.2.3 Automatic veriﬁcation of WS-BPEL services
+Web services consist of distributed, networked applications
+exchanging messages to perform a given function. A key
+problem in service-oriented computing is to design and man-age the service composition, whereby two or more servicescollaborate to achieve a certain task. Model checking has
+been used in this context to verify whether or not services are
+composed correctly according to some temporal speciﬁca-tions. A common approach involves modelling the services as
+ﬁnite-state machines and verify their composition by means
+of a traditional checker.
+In this context, to avoid the difﬁculties and the error-prone
+task of manually encoding several services, a compiler from
+WS-BPEL into ISPL was built [ 51]. WS-BPEL [ 57]i st h e
+leading language and de facto industrial standard for servicecomposition. The compiler parses the input and constructs
+an internal automata-based representation for the ﬁnite-state
+machines deﬁned in the WS-BPEL code and encodes thesein ISPL. The resulting code can then be passed to MCMAS
+for veriﬁcation.
+This methodology was evaluated in the context of a large
+use case of software procurement developed within a collab-
+orative EU project. In the use case a client company places
+an order for software and hardware to be deployed by a num-ber of parties. Several providers propose the equipment tothe company which is given the opportunity of changing the
+design a number of times before deployment. Penalties are
+applied to the parties should they deviate from the procure-ment process. The interaction continues into the integration
+and testing phases of the hardware with additional contracts
+regulating the extent to which modiﬁcations can be requestedby the client, compensation claims, reports from technical
+experts and insurance providers. The reachable state space
+of the scenario consists approximately of 10
+6states.
+In the scenario, a number of speciﬁcations pertaining to
+the knowledge of the parties in the exchange can be veriﬁed.
+For example, it can be shown that as long as the client is
+not in breach of contract, he knows that either the system isinstalled correctly or some penalty to third parties will apply.
+This and other speciﬁcations can be veriﬁed in a few seconds.
+We refer to [ 51] and the source code for additional details.
+Other scenarios from services and business process mod-
+elling were similarly investigated by means of MCMAS. We
+found that scenarios generating state spaces up to 10
+12could
+be analysed with no difﬁculty.
+6 Related work
+The ﬁrst version of MCMAS was ﬁrst made available asopen-source in 2003. In the past 10 years, the checker under-went a number of extensions and revisions that lead to a ﬁrstdocumented release in [ 53] and a second in [ 47]. Unsup-
+ported, experimental releases continue and include a moduleto perform parameterised veriﬁcation [ 41,42], and dedicated
+for the veriﬁcation of strategy logic speciﬁcations [ 10,11].
+This area is fast evolving; in the past few years a numberof checkers have appeared that offer functionalities relatedto those offered by MCMAS. We compare the various func-
+tionalities and, when possible, the performance of the most
+prominent ones below.
+6.1 Verics
+V erics is a SA T-based model checker targeting real-time spec-
+iﬁcations and multi-agent systems [ 39]. V erics implements
+bounded model checking algorithms for CTL, real-time
+CTL, and variants of CTL that include epistemic operators.Bounded model checking and OBDDs represent radically
+different approaches to model checking; the former is based
+on a partial exploration of the model and the check madeon a propositional encoding of the problem; the latter, as
+it was discussed here, relies on the full exploration of the
+model. Several comparisons were made between V erics andMCMAS, see, e.g. [ 38]. The conclusions drawn from them
+are that the techniques appear complementary with differ-
+ent advantages and disadvantages depending on the speciﬁc
+scenario considered. In terms of usability MCMAS’s inputlanguage is likely to be more intuitive to researchers familiar
+with MAS semantics and applications. Conversely, V erics’s
+input format may be more appealing to users familiar withreal-time systems. In a related line, OBDDs and bounded
+model checking have recently been combined in an extension
+of MCMAS in [ 36], producing very attractive experimental
+results and thereby demonstrating that the two techniquescan usefully be combined in a wide range of scenarios.
+This conclusion was also recently reached in [ 56] where
+an OBDD-based approach for bounded model checking forLTLK was developed on V erics. The results obtained can-
+not be compared to the ones reported here as the underlying
+temporal logics have different expressivity.
+6.2 MCK
+MCK was the ﬁrst OBDD-based model checker supporting
+temporal-epistemic speciﬁcation [ 26]; it has recently been
+re-released with improved functionalities including a graph-
+ical interface [ 67]. Its current version supports CTL
+∗as the
+underlying temporal logic. MCK implements a variety of
+semantics including observational semantics, perfect recall
+and clock semantics. Given the high computational cost ofthese semantics, some are supported only in limited form; for
+example perfect recall is only supported for one agent. Some
+functionality for probabilistic reasoning was also recentlyadded [ 33] and an extension to bounded model checking has
+123
+
+--- Page 19 ---
+A. Lomuscio et al.
+Table 4 Experimental results comparing the performance of MCMAS, MCK, and MCTK on the dining cryptographer protocol
+Number of cryptographers MCMAS MCK MCTK
+OBDD vars (9 n+3) Time (s) OBDD vars (6 n+2) Time (s) OBDD vars (6 n+2) Time (s)
+54 8 0 .017 32 1.401 32 0 .024
+10 93 0 .091 62 74.655 62 0 .128
+20 183 0 .667 122 47937 122 34 .790
+30 273 1 .476 Timeout 182 2 .946
+40 363 5 .053 Timeout 242 20 .786
+50 453 13 .437 Timeout 302 72 .444
+60 543 14 .180 Timeout Timeout
+also recently been explored [ 34]. While the original version
+of MCK used a different OBDD-handler, the current one usesCUDD as MCMAS.
+To compare MCK (and MCTK, as we discuss below)
+to MCMAS uniformly, we used the dining cryptographerbenchmark [ 12]d i s c u s s e di n[ 38]. We instructed each model
+checker to verify that the protocol maintains the privacy of the
+payer as intended. Speciﬁcally, we veriﬁed that if cryptogra-pher 1 did not pay the bill, then, after the announcements are
+made, either he knows that no cryptographers paid, or that
+someone paid, but in this case he does not know who did.This can be formalised by the following formula
+AG/parenleftbigg/parenleftBig
+n/logicalanddisplay
+i=1ci_announced ∧¬c1_paid/parenrightBig
+→/parenleftBig
+Kc1(n/logicalanddisplay
+i=1¬ci_paid)
+∨/parenleftbig
+Kc1(n/logicalordisplay
+i=2ci_paid)∧n/logicalanddisplay
+i=2¬Kc1(ci_paid)/parenrightbig/parenrightBig/parenrightbigg
+, (3)
+where nis the number of cryptographers, ci_announced
+represents the announcement made by cryptographer i, and
+ci_paid encodes the fact that cryptographer ipaid the bill.
+In the experiments, we used encodings of the scenario
+from both the MCMAS and MCK packages and adapted them
+to ensure the same number of variables were used in eachmodel. In the experiments, we used observational semanticssince several agents are present and no model checker sup-
+ports perfect recall under this setting.
+The experiments were carried out on the same setup as
+previously reported. Table 4shows the experimental results
+obtained with dynamic variable reordering enabled. The
+results reported are consistent with other experiments wehave run.
+In summary, both MCK and MCMAS offer functionali-
+ties to verify epistemic logic under different semantics. Theydiffer in the modelling language employed as well as someadvanced features supported. While MCMAS also supports
+A TL, MCK supports a probabilistic version of epistemiclogic and a very limited form of perfect recall. They are both
+OBDD based. Our tests appear to suggest that MCMAS is
+more efﬁcient in the treatment of large state spaces; this maybe due to a more effective construction of the global state
+space.
+6.3 MCTK
+MCTK is a NuSMV-based [ 13] model checker for knowl-
+edge and time [ 63,69]. In MCTK, epistemic formulas are
+encoded by exploiting locality of propositions and labelling
+of transitions. As such, it does not support interpreted systems
+semantics which is a feature of MCMAS. A model checkerfor knowledge based on NuSMV with similar characteris-
+tics was previously presented in [ 45]. Note that NuSMV
+is among the fastest and most mature OBDD-based modelchecker available. As above, we compared the performanceof MCTK to that of MCK and MCMAS on the same example
+above by adapting the encoding of the dining cryptographers
+protocol to ensure the same state space is present. In our tests,we found MCTK to be considerably slower than MCMAS
+due to the efﬁcient implementation of the model checking
+algorithm for epistemic logic in MCMAS. It should be alsonoted that MCTK’s input is given in SMV; this is adequate
+for modelling reactive systems, but may not be suitable for
+MAS where actions and protocols feature prominently. As afurther consequence of this, no support for A TL is offered inMCTK. In addition, none of the debugging facilities present
+in MCMAS, including counterexample generations for epis-
+temic speciﬁcations, are offered by MCTK.
+6.4 NuSMV
+To evaluate MCMAS in a broader context, we now report
+the results obtained by comparing MCMAS to NuSMV
+when checking the dining cryptographer benchmark and agame-theoretical scenario from [ 17]a g a i n s t plain CTL spec-
+123
+
+--- Page 20 ---
+MCMAS: an open-source model checker...
+Table 5 Experimental results comparing the performance of MCMAS and NuSMV on the dining cryptographer problem
+Number
+of cryptosMCMAS NuSMV
+Num of OBDD
+vars1.2.2 (CUDD 2.5.0) 1.0 (CUDD 2.4.1) Num of OBDD
+varsWithout dyn reorder With dyn reorder
+Time (s) Mem (KB) Time (s) Mem (KB) Time (s) Mem (KB) Time (s) Mem (KB)
+10 93 0.10 11,056 0.10 10,972 62 0.87 16,060 0.09 12,668
+20 183 0.65 13,572 0.58 13,504 122 3151.35 4,891,100 0.27 13,932
+30 273 1.45 15,332 2.01 21,764 182 Overﬂow 2.05 17,04050 453 12.98 16,076 10.06 40,708 302 Overﬂow 8.64 21,004100 903 185.72 60,800 284.22 49,780 602 Overﬂow 117.77 42,516150 1353 1916 72,172 1619 91,976 902 Overﬂow 397 68,176200 1803 841.4 58,872 3057 76,608 1202 Overﬂow 2560 102,840250 2253 3040 80,680 8705 221,404 1502 Overﬂow Timeout
+Table 6 Experimental results comparing the performance of MCMAS and NuSMV on the card game scenario from [ 17]
+Number
+of cardsMCMAS NuSMV
+Num of OBDD
+vars1.2.2 (CUDD 2.5.0) 1.0 (CUDD 2.4.1) Num of OBDD
+varsWithout dyn reorder With dyn reorder
+Time (s) Mem (KB) Time (s)Mem (KB) Time (s) Mem (KB) Time (s) Mem (KB)
+85 9 0 . 3 7 1 1 ,592 0.41 11 ,552 56 0.16 17,772 1.58 15,880
+10 97 7.61 38 ,712 12.47 38 ,376 94 507.63 2,441,688 1035.89 154,124
+12 113 515.4 94 ,100 273.8 88 ,992 110 Overﬂow Timeout
+14 129 17,783 1 ,191,864 10,552 539 ,552 126 Overﬂow Timeout
+iﬁcations. As in previous cases, to ensure the tests are robust,
+we inspected and compared the resulting models and statespaces.
+The results are reported in Tables 5and 6. Table 5was
+constructed by checking the dining cryptographers imple-mentations discussed earlier in Table 4against the CTL
+formula:
+AG/parenleftbigg/parenleftBign/logicalanddisplay
+i=1ci_announced ∧¬NSA _paid/parenrightBig
+→n/logicalanddisplay
+i=1ci_paid/parenrightbigg
+,
+where NSA _paid stands for NSA (for which the cryptog-
+raphers work) paying for the dinner.
+Table 6contains the result obtained when checking the
+scenario against the CTL speciﬁcation
+AG(allred 1→AF win 1),
+which reports a winning condition for player 1. The scenario
+was scaled by considering the number of cards present.
+Both MCMAS and NuSMV offer several features to ﬁne-
+tune certain parameters in the model checking algorithms.
+We used the defaults for both of them and tested both withreordering enabled and disabled. Differently from NuSMV ,which often offers a better performance without reordering,
+MCMAS’s state-space construction is heavily dependent onreordering; given this MCMAS’s results are reported with
+this feature enabled. Indeed, Table 6shows that NuSMV is
+faster and uses more memory when reordering is disabled.NuSMV could not verify the model with 12 cards due to
+memory overﬂow irrespective of whether or not reordering
+was enabled. In contrast, MCMAS could handle the cases for12 and 14 cards before timing out with 16 cards. To present
+a fair comparison, we also linked MCMAS version 1.0 to
+CUDD 2.4.1, which is the version used by NuSMV version2.5.4
+1[70]. Table 6shows the results from both versions of
+MCMAS.
+The tables above are not intended to give a comprehen-
+sive performance evaluation of the two checkers. They arepurely meant to show that MCMAS’s performance is broadly
+in line with NuSMV , one of the most commonly used sym-
+bolic model checkers. We expect NuSMV to be faster thanMCMAS on other models not tested here.
+1MCMAS version 1.2.2 does not support CUDD 2.4.1, as the C++
+interface between CUDD 2.5.0 and CUDD 2.4.1 is considerably differ-ent.
+123
+
+--- Page 21 ---
+A. Lomuscio et al.
+7 Conclusions
+The continuous rise in the number of autonomous systems
+that are being deployed has made formal veriﬁcation of multi-
+agent systems a very active area of research. In this paper,we have presented the toolkit MCMAS, a model checkersupporting speciﬁcations tailoring multi-agent systems. We
+have discussed the details of the underlying semantics, its
+input language, the functionalities offered and evaluated it inthe context of signiﬁcant use cases and other checkers.
+MCMAS is released as GNU GPL open-source software
+and is currently used in a number of projects worldwide [ 21,
+28,29,44]. Several extensions are currently being devel-
+oped by various groups. Many of these extensions already
+have in-house prototypes featuring, for example, abstraction,symmetry detection, and combinations with bounded modelchecking. This paper does not address these new features but
+instead focuses on the core, underlying technology of the
+MCMAS checker.
+Acknowledgments The authors would like to thank Jakub Michal-
+iszyn and the anonymous reviewers for valuable feedback on earlierversions of this paper.
+Open Access This article is distributed under the terms of the Creative
+Commons Attribution 4.0 International License ( http://creativecomm
+ons.org/licenses/by/4.0/ ), which permits unrestricted use, distribution,
+and reproduction in any medium, provided you give appropriate credit
+to the original author(s) and the source, provide a link to the Creative
+Commons license, and indicate if changes were made.
+References
+1. Alur, R., Henzinger, T., Mang, F., Qadeer, S., Rajamani, S., Tasiran,
+S.: MOCHA: modularity in model checking. In: Proceedings ofthe 10th International Conference on Computer Aided V eriﬁcation(CA V’98), vol. 1427 of Lecture Notes in Computer Science, pp.521–525. Springer (1998)
+2. Alur, R., Henzinger, T.A., Kupferman, O.: Alternating-time tem-
+poral logic. J. ACM 49(5), 672–713 (2002)
+3. Basin, D., Mödersheim, S., Viganò, L.: OFMC: a symbolic model
+checker for security protocols. Int. J. Inf. Secur. 4(3), 181–208
+(2005)
+4. Baukus, K., van der Meyden, K.: A knowledge based analysis of
+cache coherence. In: Proceedings of the 6th International Confer-ence on Formal Engineering Methods (ICFEM04), vol. 3308 ofLecture Notes in Computer Science, pp. 99–114. Springer (2004)
+5. Boureanu, I., Cohen, M., Lomuscio, A.: A compilation method for
+the veriﬁcation of temporal-epistemic properties of cryptographicprotocols. J. Appl. Non Class. Log. 19(4), 463–487 (2009)
+6. Boureanu, I., Cohen, M., Lomuscio, A.: Model checking detectabil-
+ity of attacks in multiagent systems. In: Proceedings of the9th International Conference on Autonomous Agents and Multi-Agent systems (AAMAS10), pp. 691–698. IFAAMAS Press(2010)
+7. Bryant, R.: Graph-based algorithms for boolean function manipu-
+lation. IEEE Trans. Comput. 35(8), 677–691 (1986)
+8. Burrows, M., Abadi, M., Needham, R.: A logic of authentication.
+Proc. R. Soc. Lond. A 426(1871), 233–271 (1989)9. Busard, S., Pecheur, C., Qu, H., Raimondi, F.: Reasoning about
+strategies under partial observability and fairness constraints. In:Proceedings of the 1st International Workshop on Strategic Rea-soning (SR13), vol. 112 of Electronic Proceedings in TheoreticalComputer Science, pp. 71–79 (2013)
+10. ˇCermák, P ., Lomuscio, A., Mogavero, F., Murano, A.: MCMAS-
+SLK: a model checker for the veriﬁcation of strategy logicspeciﬁcations. In: Proceedings of the 26th International Conferenceon Computer Aided V eriﬁcation (CA V14), vol. 8559 of LectureNotes in Computer Science, pp. 525–532. Springer (2014)
+11. Cermák, P ., Lomuscio, A., Mogavero, F., Murano, A.: V erifying
+and synthesising multi-agent systems against one-goal strategylogic speciﬁcations. In: Proceedings of the 29th AAAI Conferenceon Artiﬁcial Intelligence (AAAI15), pp. 2038–2044. AAAI Press(2015)
+12. Chaum, D.: The dining cryptographers problem: unconditional
+sender and recipient untraceability. J. Cryptol. 1(1), 65–75
+(1988)
+13. Cimatti, A., Clarke, E. M., Giunchiglia, E., Giunchiglia, F., Pis-
+tore, M., Roveri, M., Sebastiani, R., Tacchella, A.: NuSMV2: anopen-source tool for symbolic model checking. In: Proceedings ofthe 14th International Conference on Computer Aided V eriﬁcation
+(CA V02), vol. 2404 of Lecture Notes in Computer Science, pp.
+359–364. Springer (2002)
+14. Clarke, E.M., Grumberg, O., McMillan, K.L., Zhao, X.: Efﬁ-
+cient generation of counterexamples and witnesses in symbolicmodel checking. In: Proceedings of the 32nd annual ACM/IEEEDesign Automation Conference (DAC95), pp. 427–432. ACMPress (1995)
+15. Clarke, E.M., Grumberg, O., Peled, D.A.: Model Checking. MIT
+Press, Cambridge (1999)
+16. Clarke, E.M., Jha, S., Lu, Y ., V eith, H.: Tree-like counterexamples
+in model checking. In: Proceedings of the 17th Annual IEEE Sym-posium on Logic in Computer Science (LICS02), pp. 19–29. IEEEComputer Society (2002)
+17. Cohen, M., Dam, M., Lomuscio, A., Russo, F.: Abstraction in
+model checking multi-agent systems. In: Proceedings of the 8thInternational Conference on Autonomous Agents and MultiagentSystems (AAMAS09), pp. 945–952. IFAAMAS Press (2009)
+18. Cohen, P .R., Levesque, H.J.: Intention is choice with commitment.
+Artif. Intell. 42(2–3), 213–261 (1990)
+19. Dehaye, P .O., Ford, D., Segerman, H., V akil, R.: One hundred pris-
+oners and a lightbulb. Math. Intell. 25(4), 53–61 (2003)
+20. Dwyer, M.B., Avrunin, G.S., Corbett, J.C.: Property speciﬁcation
+patterns for ﬁnite-state veriﬁcation. In: Proceedings of the 2ndWorkshop on Formal Methods in Software Practice (FMSP98),pp. 7–15. ACM Press (1998)
+21. El-Menshawy, M., Bentahar, J., El Kholy, W., Dssouli, R.: V er-
+ifying conformance of multi-agent commitment-based protocols.Expert Syst. Appl. 40(1), 122–138 (2013)
+22. Ezekiel, J., Lomuscio, A.: An automated approach to verify-
+ing diagnosability in multi-agent systems. In: Proceedings of the7th IEEE International Conference on Software Engineering andFormal Methods (SEFM09), pp. 51–60. IEEE Computer Society(2009)
+23. Ezekiel, J., Lomuscio, A., Molnar, L., V eres, S.: V erifying fault
+tolerance and self-diagnosability of an autonomous underwatervehicle. In: Proceedings of the 22nd International Joint Confer-ence on Artiﬁcial Intelligence (IJCAI11), pp. 1659–1664. AAAIPress (2011)
+24. Fagin, R., Halpern, J.Y ., Moses, Y ., V ardi, M.Y .: Reasoning about
+Knowledge. MIT Press, Cambridge (1995)
+25. Fagin, R., Halpern, J.Y ., Moses, Y ., V ardi, M.Y .: Knowledge-based
+programs. Distrib. Comput. 10(4), 199–225 (1997)
+26. Gammie, P ., van der Meyden, R.: MCK: Model checking the logic
+of knowledge. In: Proceedings of the 16th International Conference
+123
+
+--- Page 22 ---
+MCMAS: an open-source model checker...
+on Computer Aided V eriﬁcation (CA V04), vol. 3114 of Lecture
+Notes in Computer Science, pp. 479–483. Springer (2004)
+27. Gansner, E.R., North, S.C.: An open graph visualization system
+and its applications. Softw. Pract. Exp. 30, 1203–1233 (1999)
+28. Gerard, S.N., Singh, M.P .: Formalizing and verifying protocol
+reﬁnements. ACM Trans. Intell. Syst. Technol. 4(2), 21 (2013)
+29. De Giacomo, G., Felli, P .: Agent Composition Synthesis based
+on A TL. In: Proceedings of the 9th International Conference onAutonomous Agents and Multi-Agent systems (AAMAS10), pp.499–506. IFAAMAS Press (2010)
+30. Halpern, J.Y ., Pucella, R.: Modeling adversaries in a logic for secu-
+rity protocol analysis. In: Proceedings of the Workshop on FormalAspects of Security (FASec02), vol. 2629 of Lecture Notes in Com-puter Science, pp. 115–132. Springer (2002)
+31. Halpern, J.Y ., van der Meyden, R.: A logical reconstruction of
+SPKI. J. Comput. Secur. 11(4), 581–613 (2004)
+32. Hintikka, J.: Knowledge and Belief, An Introduction to the Logic
+of the Two Notions. Cornell University Press, Ithaca (1962)
+33. Huang, X., Luo, C., van der Meyden, R.: Symbolic model checking
+of probabilistic knowledge. In: Proceedings of the 13th Conferenceon Theoretical Aspects of Rationality and Knowledge (TARK11),pp. 177–186. ACM (2011)
+34. Huang, X., Luo, C., van der Meyden, R.: Improved bounded model
+checking for a fair branching-time temporal epistemic logic. In:Proceedings of the 6th International Workshop on Model Check-ing and Artiﬁcial Intelligence (MoChArt10), vol. 6572 of LectureNotes in Computer Science, pp. 95–111. Springer (2011)
+35. Jones, A.J.I., Sergot, M.J.: On the characterisation of law and
+computer systems: the normative systems perspective. In: DeonticLogic in Computer Science: Normative System Speciﬁcation, chap12. Wiley (1993)
+36. Jones, A.V ., Lomuscio, A.: Distributed bdd-based bmc for the
+veriﬁcation of multi-agent systems. In: Proceedings of the 9thInternational Conference on Autonomous Agents and Multi-Agentsystems (AAMAS10), pp. 675–682. IFAAMAS Press (2010)
+37. Jonker, G.: Feasible strategies in alternating-time temporal epis-
+temic logic. Master’s thesis, University of Utrech, The Netherlands(2003)
+38. Kacprzak, M., Lomuscio, A., Niewiadomski, A., Penczek, W., Rai-
+mondi, F., Szreter, M.: Comparing BDD and SA T based techniquesfor model checking Chaum’s dining cryptographers protocol. Fun-damenta Informaticae 63(2,3), 221–240 (2006)
+39. Kacprzak, M., Nabialek, W., Niewiadomski, A., Penczek, W., Pól-
+rola, A., Szreter, M., Wozna, B., Zbrzezny, A.: V erics 2007—amodel checker for knowledge and real-time. Fundamenta Infor-maticae 85(1–4), 313–328 (2008)
+40. Konrad, S., Cheng, B.H.C.: Real-time speciﬁcation patterns. In:
+Proceedings of the 27th International Conference on Software
+Engineering (ICSE05), pp. 372–381. ACM Press (2005)
+41. Kouvaros, P ., Lomuscio, A.: Automatic veriﬁcation of parametrised
+interleaved multi-agent systems. In: Proceedings of the 12th Inter-national Conference on Autonomous Agents and Multi-AgentSystems (AAMAS13), pp. 861–868. IFAAMAS (2013)
+42. Kouvaros, P ., Lomuscio, A.: A cutoff technique for the veriﬁcation
+of parameterised interpreted systems with parameterised environ-ments. In: Proceedings of the 23rd International Joint Conferenceon Artiﬁcial Intelligence (IJCAI13), pp. 2013–2019. AAAI Press(2013)
+43. Kwiatkowska, M.Z., Norman, G., Parker, D.: Prism 4.0: veriﬁcation
+of probabilistic real-time systems. In: Proceedings of the 23rd Inter-national Conference on Computer Aided V eriﬁcation (CA V11),vol. 6806 of Lecture Notes in Computer Science, pp. 585–591.Springer (2011)
+44. Latif, N.A., Hassan, M.F., Hasan, M.H.: Formal veriﬁcation for
+interaction protocol in agent-based e-learning system using modelchecking toolkit-mcmas. In: Proceedings of the 2nd Interna-tional Conference on Software Engineering and Computer Systems
+(ICSECS11), vol. 180 of Communications in Computer and Infor-mation Science, pp. 412–426. Springer (2011)
+45. Lomuscio, A., Pecheur, C., Raimondi, F.: V eriﬁcation of knowledge
+and time with nusmv. In: Proceedings of the 20th International JointConference on Artiﬁcial Intelligence (IJCAI07), pp. 1384–1389.AAAI (2007)
+46. Lomuscio, A., Penczek, W.: LDYIS: a framework for model check-
+ing security protocols. Fundamenta Informaticae 85(1–4), 359–375
+(2008)
+47. Lomuscio, A., Qu, H., Raimondi, F.: MCMAS: A model checker
+for the veriﬁcation of multi-agent systems. In: Proceedings of the21th International Conference on Computer Aided V eriﬁcation(CA V09), vol. 5643 of Lecture Notes in Computer Science, pp.682–688. Springer (2009)
+48. Lomuscio, A., Qu, H., Sergot, M.J., Solanki, M.: V erifying tem-
+poral epistemic properties of web service compositions. In: Pro-ceedings of the 5th International Conference on Service-OrientedComputing (ICSOC’07), vol. 4749 of Lecture Notes in ComputerScience, pp. 456–461. Springer (2007)
+49. Lomuscio, A., Qu, H., Solanki, M.: Towards verifying compliance
+in agent-based web service compositions. In: Proceedings of the 7th
+International Conference on Autonomous Agents and Multi-Agent
+systems (AAMAS08), pp. 265–272. IFAAMAS Press (2008)
+50. Lomuscio, A., Qu, H., Solanki, M.: Towards verifying contract
+regulated service composition. In: Proceedings of the 8th Interna-tional Conference on Web Services (ICWS08), pp. 254–261. IEEEComputer Society (2008)
+51. Lomuscio, A., Qu, H., Solanki, M.: Towards verifying contract
+regulated service composition. Auton. Agents Multi Agent Syst.24(3), 345–373 (2012)
+52. Lomuscio, A., Raimondi, F.: The complexity of model checking
+concurrent programs against CTLK speciﬁcations. In: Proceedingsof the 4th International Workshop on Declarative Agent Languagesand Technologies (DALT06), vol. 4327 of Lecture Notes in Com-puter Science, pp. 29–42. Springer (2006)
+53. Lomuscio, A., Raimondi, F.: MCMAS: A model checker for multi-
+agent systems. In: Proceedings of the 12th International Conferenceon Tools and Algorithms for Construction and Analysis of Systems(TACAS06), vol. 3920 of Lecture Notes in Computer Science, pp.450–454. Springer (2006)
+54. Manna, Z., Pnueli, A.: The temporal logic of reactive and concur-
+rent systems, vol. 1. Springer, New Y ork (1992)
+55. McCarthy, J.: Ascribing mental qualities to machines. In: Philo-
+sophical Perspectives in Artiﬁcial Intelligence. Harvester Press(1979)
+56. Meski, A., Penczek, W., Szreter, M., Wozna-Szczesniak, B.,
+Zbrzezny, A.: Bdd-versus sat-based bounded model checking for
+the existential fragment of linear temporal logic with knowledge:algorithms and their performance. Auton. Agents Multi Agent Syst.28(4), 558–604 (2014)
+57. Organization for the Advancement of Structured Information
+Standards (OASIS): Web Services Business Process ExecutionLanguage (WS-BPEL) V ersion 2.0 (2007)
+58. Parr, T.: The Deﬁnitive ANTLR Reference: Building Domain-
+Speciﬁc Languages. Pragmatic Bookshelf, Raleigh (2007)
+59. Penczek, W., Lomuscio, A.: V erifying epistemic properties of
+multi-agent systems via bounded model checking. FundamentaInformaticae 55(2), 167–185 (2003)
+60. Raimondi, F., Lomuscio, A.: Automatic veriﬁcation of multi-agent
+systems by model checking via ordered binary decision diagrams.J. Appl. Log. 5(2), 235–251 (2007)
+61. Somenzi, F.: CUDD: CU decision diagram package-release 2.5.0.
+http://vlsi.colorado.edu/fabio/CUDD (2012)
+62. SPORE: Security protocols open repository. http://www.lsv.
+ens-cachan.fr/spore . Accessed 1 June 2014
+123
+
+--- Page 23 ---
+A. Lomuscio et al.
+63. Su, K., Sattar, A., Luo, X.: Model checking temporal logics of
+knowledge via OBDDs. Comput. J. 50(4), 403–420 (2007)
+64. Syverson, P .F., Stubblebine, S.G.: Group principals and the for-
+malization of anonymity. In Proceedings of the World Congresson Formal Methods in the Development of Computing Systems(FM99), vol. 1708 of Lecture Notes in Computer Science, pp. 814–833 (1999)
+65. van der Hoek, W., Lomuscio, A., Wooldridge, M.: On the complex-
+ity of practical A TL model checking. In: Proceedings of the 5thInternational Joint Conference on Autonomous Agents and Multi-agent Systems (AAMAS06), pp. 201–208. ACM Press (2006)
+66. van Oorschot, P .: Extending cryptographic logics of belief to key
+agreement protocols. In: Proceedings of the 1st ACM conferenceon Computer and communications security (CCS93), pp. 232–243.ACM press (1993)67. MCK. http://cgi.cse.unsw.edu.au/~mck/pmck/ . Accessed 1 June
+2014
+68. MCMAS. http://vas.doc.ic.ac.uk/software/mcmas/ . Accessed 1
+June 2014
+69. MCTK. http://sites.google.com/site/cnxyluo/MCTK/ . Accessed 1
+June 2014
+70. NuSMV . http://nusmv.fbk.eu/ . Accessed 1 June 2014
+71. Wooldridge, M.: An Introduction to MultiAgent Systems, 2nd edn.
+Wiley, Hoboken (2009)
+123

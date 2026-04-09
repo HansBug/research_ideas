@@ -1,0 +1,917 @@
+--- Page 1 ---
+DryVR : Data-Driven Veriﬁcation and
+Compositional Reasoning for Automotive
+Systems
+Chuchu Fan(B), Bolun Qi, Sayan Mitra,
+and Mahesh Viswanathan
+University of Illinois at Urbana-Champaign,
+Champaign, USA
+{cfan10,bolunqi2,mitras,vmahesh }@illinois.edu
+Abstract. We present the DryVR framework for verifying hybrid con-
+trol systems that are described by a combination of a black-box simu-
+lator for trajectories and a white-box transition graph specifying mode
+switches. The framework includes (a) a probabilistic algorithm for learn-
+ing sensitivity of the continuous trajectories from simulation data, (b) a
+bounded reachability analysis algorithm that uses the learned sensitivity,
+and (c) reasoning techniques based on simulation relations and sequen-
+tial composition, that enable veriﬁcation of complex systems under long
+switching sequences, from the reachability analysis of a simpler system
+under shorter sequences. We demonstrate the utility of the framework
+by verifying a suite of automotive benchmarks that include powertrain
+control, automatic transmission, and several autonomous and ADAS fea-
+tures like automatic emergency braking, lane-merge, and auto-passing
+controllers.
+1I n t r o d u c t i o n
+The starting point of existing hybrid system veriﬁcation approaches is the avail-
+ability of nice mathematical models describing the transitions and trajecto-
+ries. This central conceit severely restricts the applicability of the resulting
+approaches. Real world control system “models” are typically a heterogeneous
+mix of simulation code, diﬀerential equations, block diagrams, and hand-crafted
+look-up tables. Extracting clean mathematical models from these descriptions is
+usually infeasible. At the same time, rapid developments in Advanced Driving
+Assist Systems (ADAS), autonomous vehicles, robotics, and drones now make
+the need for eﬀective and sound veriﬁcation algorithms stronger than ever before.
+TheDryVR framework presented in this paper aims to narrow the gap between
+sound and practical veriﬁcation for control systems.
+M. Viswanathan—This work is supported by the grants CAREER 1054247 and CCF
+1422798 from the National Science Foundation.
+c⃝Springer International Publishing AG 2017
+R. Majumdar and V. Kunˇ cak (Eds.): CAV 2017, Part I, LNCS 10426, pp. 441–461, 2017.
+DOI: 10.1007/978-3-319-63387-9 22
+
+--- Page 2 ---
+442 C. Fan et al.
+Model Assumptions. Consider an ADAS feature like automatic emergency
+braking system (AEB). The high-level logic deciding the timing of when and
+for how long the brakes are engaged after an obstacle is detected by sensors is
+implemented in a relatively clean piece of code and this logical module can be
+seen as a white-box . In contrast, the dynamics of vehicle itself, with hundreds of
+parameters, is more naturally viewed as a black-box .T h a ti s ,i tc a nb es i m u l a t e d
+or tested with diﬀerent initial conditions and inputs, but it is nearly impossible
+to write down a nice mathematical model.
+The empirical observation motivating this work is that many control systems,
+and especially automotive systems, share this combination of white and black
+boxes (see other examples in Sects. 2.1,2.5,[21]). In this paper, we view hybrid
+systems as a combination of a white-box that speciﬁes the mode switches and
+a black-box that can simulate the continuous evolution in each mode. Suppose
+the system has a set of modes Landncontinuous variables. The mode switches
+are deﬁned by a transition graph G—a directed acyclic graph (DAG) annotated
+with allowed switching times. The black-box is a set of trajectories TLinRnfor
+each mode in L.Instead of a closed form description of TL, we have a simulator ,
+that can generate sampled data points on individual trajectories. Combining a
+transition graph G, a set of trajectories TL,a n das e to fi n i t i a ls t a t e s ,w eo b t a i n
+a hybrid system for which executions, reachability, and trace containment can
+be deﬁned naturally.
+A number of automotive systems we have studied are naturally represented
+in the above style: in powertrain [ 30]a n dt r a n s m i s s i o n[ 34] control systems the
+mode transitions are brought about by the driver or the control algorithm,
+and in either case it is standard to describe typical switching behavior using
+time-triggered signals; in automatic emergency braking (AEB), merge and auto-
+passing control, once the maneuver is activated, the mode transitions occur
+within certain time intervals. Similar observations hold in other examples.
+Safety Veriﬁcation Algorithm. With black-box modules in our hybrid sys-
+tems, we address the challenge of providing guaranteed veriﬁcation. Our approach
+is based on the idea of simulation-driven reachability analysis [ 15,16,22]. For a
+given mode ℓ∈L,ﬁ n i t e l ym a n ys i m u l a t i o n so ft h et r a j e c t o r i e so f ℓand a dis-
+crepancy function bounding the sensitivity of these trajectories, is used to over-
+approximate the reachable states. For the key step of computing discrepancy for
+modes that are now represented by black-boxes, we introduce a probabilistic algo-
+rithm that learns the parameters of exponential discrepancy functions from simu-
+lation data. The algorithm transforms the problem of learning the parameters of
+the discrepancy function to the problem of learning a linear separator for a set of
+points in R2that are obtained from transforming the simulation data. A classi-
+cal result in PAC learning, ensures that any such discrepancy function works with
+high probability for all trajectories. We performed dozens of experiments with a
+variety of black-box simulators and observed that 15–20 simulation traces typ-
+ically give a discrepancy function that works for nearly 100% of all simulations.
+The reachability algorithm for the hybrid system proceeds along the topologically
+
+--- Page 3 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 443
+sorted vertices of the transition graph and this gives a sound bounded veriﬁcation
+algorithm, provided the learned discrepancy function is correct.
+Reasoning. White-box transition graphs in our modelling, identify the switch-
+ing sequences under which the black-box modules are exercised. Complex sys-
+tems have involved transition graphs that describe subtle sequences in which
+the black-box modules are executed. To enable the analysis of such systems, we
+identify reasoning principles that establish the safety of system under a com-
+plex transition graph based on its safety under a simpler transition graph. We
+deﬁne a notion of forward simulation between transition graphs that provides
+a suﬃcient condition of when one transition graph “subsumes” another—if G1
+is simulated by G2then the reachable states of a hybrid system under G1are
+contained in the reachable states of the system under G2. Thus the safety of
+the system under G2implies the safety under G1. Moreover, we give a simple
+polynomial time algorithm that can check if one transition graph is simulated
+by another.
+Our transition graphs are acyclic with transitions having bounded switching
+times. Therefore, the executions of the systems have a time bound and a bounded
+number of mode switches. An important question to investigate is whether estab-
+lishing the safety for bounded time, enables one to conclude the safety of the
+system for an arbitrarily long time and for arbitrarily many mode switches. With
+this in mind, we deﬁne a notion of sequential composition of transition graphs
+G1andG2, such that switching sequences allowed by the composed graph are
+the concatenation of the sequences allowed by G1with those allowed by G2.
+Then we prove a suﬃcient condition on a transition graph Gsuch that safety
+of a system under Gimplies the safety of the system under arbitrarily many
+compositions of Gwith itself.
+Automotive Applications. We have implemented these ideas to create the
+Data-d riven S ystem for Veriﬁcation and Reasoning ( DryVR ). The tool is able
+to automatically verify or ﬁnd counter-examples in a few minutes, for all the
+benchmark scenarios mentioned above. Reachability analysis combined with
+compositional reasoning, enabled us to infer safety of systems with respect to
+arbitrary transitions and duration.
+Related Work. Most automated veriﬁcation tools for hybrid systems rely
+on analyzing a white-box mathematical model of the systems. They include
+tools based on decidability results [ 3,24,28], semi-decision procedures that over-
+approximate the reachable set of states through symbolic computation [ 4,7,25],
+using abstractions [ 1,5,8,38], and using approximate decision procedures for
+fragments of ﬁrst-order logic [ 33]. More recently, there has been interest in devel-
+oping simulation-based veriﬁcation tools [ 2,10–12,16,17,31]. Even though these
+are simulation based tools, they often rely on being to analyze a mathematical
+model of the system. The type of analysis that they rely on include instrumenta-
+tion to extract a symbolic trace from a simulation [ 31], stochastic optimization
+
+--- Page 4 ---
+444 C. Fan et al.
+to search for counter-examples [ 2,17], and sensitivity analysis [ 10–12,16]. Some
+of the simulation based techniques only work for systems with linear dynam-
+ics [26,27]. Recent work on the APEX tool [ 36] for verifying trajectory planning
+and tracking in autonomous vehicles is related our approach in that it targets
+the same application domain.
+2M o d e l i n g / S e m a n t i c F r a m e w o r k
+We introduce a powertrain control system from [ 30]a sar u n n i n ge x a m p l et o
+illustrate the elements of our hybrid system modeling framework.
+2.1 Powertrain Control System
+This system ( Powertrn ) models a highly nonlinear engine control system. The rel-
+evant state variables of the model are intake manifold pressure ( p), air-fuel ratio
+(λ), estimated manifold pressure ( pe)a n di n t e r g r a t o rs t a t e( i). The overall sys-
+tem can be in one of four modes startup ,normal ,powerup ,sensorfail . A SimulinkR⃝
+diagram describes the continuous evolution of the above variables. In this paper,
+we mainly work on the Hybrid I/O Automaton Model in the suite of powertrain
+control models. The SimulinkR⃝model consists of continuous variables describ-
+ing the dynamics of the powertrain plant and sample-and-hold variables as the
+controller. One of the key requirements to verify is that the engine maintains the
+air-fuel ratio within a desired range in diﬀerent modes for a given set of driver
+behaviors. This requirement has implications on fuel economy and emissions. For
+testing purposes, the control system designers work with sets of driver proﬁles
+that essentially deﬁne families of switching signals across the diﬀerent modes.
+Previous veriﬁcation results on this problem have been reported in [ 14,18]o na
+simpliﬁed version of the powertrain control model.
+2.2 Transition Graphs
+We will use Lto denote a ﬁnite set of modes or locations of the system under
+consideration. The discrete behavior or mode transitions are speciﬁed by what
+we call a transition graph over L.
+Deﬁnition 1. Atransition graph is a labeled, directed acyclic graph G=⟨L,
+V,E,vl a b ,e l a b ⟩,w h e r e( a ) Lis the set of vertex labels, also called the set of
+modes ,Vthe set of vertices, E⊆V × V is the set of edges, vlab:V→L is a vertex
+labeling function that labels each vertex with a mode, and elab:E→R≥0×R≥0is
+an edge labeling function that labels each edge with a nonempty, closed, bounded
+interval deﬁned by pair of non-negative reals.
+For cyclic graph with bounded number of switches and bounded time, we
+can ﬁrst unfold it to a required depth to obtain the DAG. Since Gis a DAG,
+there is a nonempty subset Vinit⊆V of vertices with no incoming edges and a
+
+--- Page 5 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 445
+nonempty subset Vterm⊆Vof vertices with no outgoing edges. We deﬁne the set
+of initial locations of GasLinit={ℓ|∃v∈V init,vl a b (v)=ℓ}.A( m a x i m a l ) path
+of the graph Gis a sequence π=v1,t1,v2,t2,...,v ksuch that, (a) v1∈V init,(b)
+vk∈V term, and for each ( vi,ti,vi+1) subsequence, there exists ( vi,vi+1)∈E,
+andti∈elab((vi,vi+1)).Paths Gis the set of all possible paths of G.F o ra
+given path π=v1,t1,v2,t2,...,v kitstrace ,d e n o t e db y vlab(π), is the sequence
+vlab(v1),t1,vl a b (v2),t2,..., vl a b (vk). Since Gis a DAG, a trace of Gcan visit
+the same mode ﬁnitely many times. Trace Gis the set of all traces of G.
+0
+startup1
+normal2
+normal34sensorfail
+powerup[5,10][10,15] [5,10]
+[5,10] [10,15][20,25]
+Fig. 1. A sample transition graph for Powertrain system.An example transition
+graph for the Powertrain
+system of Sect. 2.1is
+shown in Fig. 1. The
+set of vertices V=
+{0,..., 4}and the vlab’s
+andelab’s appear adja-
+cent to the vertices and
+edges.
+Trace Containment. We will develop reasoning techniques based on reacha-
+bility, abstraction, composition, and substitutivity. To this end, we will need
+to establish containment relations between the behaviors of systems. Here
+we deﬁne containment of transition graph traces. Consider transition graphs
+G1,G2,with modes L1,L2,and a mode map lmap :L1→L 2. For a trace
+σ=ℓ1,t1,ℓ2,t2,...,ℓ k∈Trace G1,s i m p l i f y i n gn o t a t i o n ,w ed e n o t eb y lmap (σ)
+the sequence lmap (ℓ1),t1,l m a p (ℓ2),t2,. . . , l m a p (ℓk). We write G1≼lmapG2iﬀ
+for every trace σ∈Trace G1, there is a trace σ′∈Trace G2such that lmap (σ)i s
+a preﬁx of σ′.
+Deﬁnition 2. Given graphs G1,G2and a mode map lmap :L1→L 2,ar e l a t i o n
+R⊆V 1×V 2is aforward simulation relation from G1toG2iﬀ
+(a) for each v∈V 1init,t h e r ei s u∈V 2initsuch that (v,u)∈R,
+(b) for every (v,u)∈R,lmap (vlab 1(v)) = vlab 2(u),a n d
+(c) for every (v,v′)∈E 1and(v,u)∈R, there exists a ﬁnite set u1,...,u ksuch
+that: (i) for each uj,(v,u j)∈R,a n d( i i ) elab 1((v,v′))⊆∪jelab 2((u, u j)).
+Proposition 1. If there exists a forward simulation relation from G1toG2with
+lmap then G1≼lmapG2.
+Sequential Composition of Graphs. We will ﬁnd it convenient to deﬁne
+thesequential composition of two transition graphs. Intuitively, the traces of the
+composition of G1andG2will be those that can be obtained by concatenating
+a trace of G1with a trace of G2.T ok e e pt h ed e ﬁ n i t i o n sa n dn o t a t i o n ss i m p l e ,
+we will assume (when taking sequential compositions) |Vinit|=|Vterm|=1 ;t h i s
+is true of the examples we analyze. It is easy to generalize to the case when this
+
+--- Page 6 ---
+446 C. Fan et al.
+does not hold. Under this assumption, the unique vertex in Vinitwill be denoted
+asvinitand the unique vertex in Vtermwill be denoted as vterm.
+Deﬁnition 3. Given graphs G1=⟨L,V1,E1,vl a b 1,e l a b 1⟩andG2=⟨L,V2,E2,
+vlab 2,e l a b 2⟩such that vlab 1(v1term)=vlab 2(v2init),t h e sequential composition
+ofG1andG2is the graph G1◦G2=⟨L,V,E,vl a b ,e l a b ⟩where
+(a)V=(V1∪V 2)\{v2init)},
+(a)E=E1∪{(v1term,u)|(v2init,u)∈E 2}∪{ (v,u)∈E 2|v̸=v2init},
+(a)vlab(v)=vlab 1(v)ifv∈V 1andvlab(v)=vlab 2(v)ifv∈V 2,
+(a) For edge (v,u)∈E,elab((v,u))equals (i) elab 1((v,u)),i fu∈V 1,( i i )
+elab 2((v2init,u)),i fv=v1term,( i i ) elab 2((v,u)), otherwise .
+Given our deﬁnition of trace containment between graphs, we can prove a
+very simple property about sequential composition.
+Proposition 2. LetG1andG2be two graphs with modes Lthat can be sequen-
+tial composed. Then G1≼idG1◦G2,w h e r e idis the identity map on L.
+The proposition follows from the fact that every path of G1is a preﬁx of a
+path of G1◦G2.L a t e ri nS e c t . 4.1we see examples of sequential composition.
+2.3 Trajectories
+The evolution of the system’s continuous state variables is formally described
+by continuous functions of time called trajectories . Let nbe the number of
+continuous variables in the underlying hybrid model. A trajectory for an n-
+dimensional system is a continuous function of the form τ:[ 0,T]→Rn,w h e r e
+T≥0. The interval [0 ,T] is called the domain ofτand is denoted by τ.dom. The
+ﬁrst state τ(0) is denoted by τ.fstate ,l a s ts t a t e τ.lstate =τ(T) and τ.ltime =T.
+For a hybrid system with Lmodes, each trajectory is labeled by a mode in L.
+Atrajectory labeled by Lis a pair ⟨τ,ℓ⟩where τis a trajectory and ℓ∈L.
+AT1-preﬁx of⟨τ,ℓ⟩,f o ra n y T1∈τ.dom,i st h el a b e l e d - t r a j e c t o r y ⟨τ1,ℓ⟩
+with τ1:[ 0,T1]→Rn,s u c ht h a tf o ra l l t∈[0,T1],τ1(t)=τ(t). A set of labeled-
+trajectories TLis preﬁx-closed if for any ⟨τ,ℓ⟩∈T L ,a n yo fi t sp r e ﬁ x e sa r ea l s oi n
+TL. A set TLisdeterministic if for any pair ⟨τ1,ℓ1⟩,⟨τ2,ℓ2⟩∈T L ,i fτ1.fstate =
+τ2.fstate andℓ1=ℓ2then one is a preﬁx of the other. A deterministic, preﬁx-
+closed set of labeled trajectories TLdescribes the behavior of the continuous
+variables in modes L.W ed e n o t eb y TLinit,ℓ={τ.fstate |⟨τ,ℓ⟩∈T L } ,t h es e to f
+initial states of trajectories in mode ℓ.W i t h o u tl o s sg e n e r a l i t yw ea s s u m et h a t
+TLinit,ℓis a connected, compact subset of Rn.W ea s s u m et h a tt r a j e c t o r i e sa r e
+deﬁned for unbounded time, that is, for each ℓ∈L,T > 0, and x∈T L init,ℓ,t h e r e
+exists a ⟨τ,ℓ⟩∈T L ,w i t h τ.fstate =xandτ.ltime =T.
+In control theory and hybrid systems literature, the trajectories are assumed
+to be generated from models like ordinary diﬀerential equations (ODEs) and
+diﬀerential algebraic equations (DAEs). Here, we avoid an over-reliance on the
+models generating trajectories and closed-form expressions. Instead, DryVR
+works with sampled data of τ(·)g e n e r a t e df r o ms i m u l a t i o n so rt e s t s .
+
+--- Page 7 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 447
+Deﬁnition 4. Asimulator for a (deterministic and preﬁx-closed) set TLof tra-
+jectories labeled by Lis a function (or a program) simthat takes as input a mode
+label ℓ∈L,a ni n i t i a ls t a t e x0∈T L init,ℓ,a n daﬁ n i t es e q u e n c eo ft i m ep o i n t s
+t1,...,t k, and returns a sequence of states sim(x0,ℓ ,t 1),...,s i m (x0,ℓ ,t k)such
+that there exists ⟨τ,ℓ⟩∈T L with τ.fstate =x0and for each i∈{1,...,k },
+sim(x0,ℓ ,t i)=τ(ti).
+The trajectories of the Powertrn system are described by a SimulinkR⃝dia-
+gram. The diagram has several switch blocks and input signals that can be set
+appropriately to generate simulation data using the SimulinkR⃝ODE solver.
+For simplicity, we assume that the simulations are perfect (as in the last
+equality of Deﬁnition 4). Formal guarantees of soundness of DryVR are not
+compromised if we use validated simulations instead.
+Trajectory Containment. Consider sets of trajectories, TL1labeled by L1and
+TL2labeled by L2, and a mode map lmap :L1→L 2.F o ral a b e l e dt r a j e c t o r y
+⟨τ,ℓ⟩∈T L 1,d e n o t eb y lmap (⟨τ,ℓ⟩)t h el a b e l e d - t r a j e c t o r y ⟨τ,lmap (ℓ)⟩.W r i t e
+TL1≼lmapTL2iﬀ for every labeled trajectory ⟨τ,ℓ⟩∈T L 1,lmap (⟨τ,ℓ⟩)∈T L ∈.
+2.4 Hybrid Systems
+Deﬁnition 5. Ann-dimensional hybrid system His a 4-tuple ⟨L,Θ ,G , TL⟩,
+where (a) Lis a ﬁnite set of modes, (b) Θ⊆Rnis a compact set of initial
+states, (c) G=⟨L,V,E,e l a b ⟩is a transition graph with set of modes L,a n d( d )
+TLis a set of deterministic, preﬁx-closed trajectories labeled by L.
+Astate of the hybrid system His a point in Rn×L.T h es e to fi n i t i a ls t a t e s
+isΘ×L init.S e m a n t i c so f His given in terms of executions which are sequences of
+trajectories consistent with the modes deﬁned by the transition graph. An exe-
+cution ofHis a sequence of labeled trajectories α=⟨τ1,ℓ1⟩...,⟨τk−1,ℓk−1⟩,ℓk
+inTL,s u c ht h a t( a ) τ1.fstate ∈Θandℓ1∈L init,( b )t h es e q u e n c e path(α)
+deﬁned as ℓ1,τ1.ltime ,ℓ2,...ℓ kis in Trace G,a n d( c )f o re a c hp a i ro fc o n s e c u t i v e
+trajectories, τi+1.fstate =τi.lstate .T h es e to fa l le x e c u t i o n so f His denoted by
+Execs H. The ﬁrst and last states of an execution α=⟨τ1,ℓ1⟩...,⟨τk−1,ℓk−1⟩,ℓk
+areα.fstate =τ1.fstate ,α.lstate =τk−1.lstate , and α.fmode =ℓ1α.lmode =ℓk.
+As t a t e ⟨x, ℓ⟩isreachable at time tand vertex v(of graph G) if there exists
+an execution α=⟨τ1,ℓ1⟩...,⟨τk−1,ℓk−1⟩,ℓk∈Execs H,ap a t h π=v1,t1,...v k
+inPaths G,i∈{1,...k }, and t′∈τi.domsuch that vlab(π)=path(α),v=vi,
+ℓ=ℓi,x=τi(t′), and t=t′+/summationtexti−1
+j=1tj.The set of reachable states, reach tube,
+and states reachable at a vertex vare deﬁned as follows.
+ReachTube H={⟨x, ℓ, t ⟩|for some v,⟨x, ℓ⟩is reachable at time tand vertex v}
+Reach H={⟨x, ℓ⟩|for some v,t,⟨x, ℓ⟩is reachable at time tand vertex v}
+Reachv
+H={⟨x, ℓ⟩|for some t,⟨x, ℓ⟩is reachable at time tand vertex v}
+Given a set of (unsafe) states U⊆Rn×L, the bounded safety veriﬁcation
+problem is to decide whether Reach H∩U=∅.I nS e c t . 3we will present DryVR ’s
+algorithm for solving this decision problem.
+
+--- Page 8 ---
+448 C. Fan et al.
+Remark 1. Deﬁning paths in a graph Gto be maximal (i.e., end in a vertex in
+Vterm) coupled with the above deﬁnition for executions in H,e n s u r e st h a tf o ra
+vertex vwith outgoing edges in G, the execution must leave the mode vlab(v)
+within time bounded by the largest time in the labels of outgoing edges from v.
+An instance of the bounded safety veriﬁcation problem is deﬁned by (a) the
+hybrid system for the Powertrn which itself is deﬁned by the transition graph of
+Fig.1and the trajectories deﬁned by the SimulinkR⃝model, and (b) the unsafe
+set (Up): in powerup mode, t>4∧λ/∈[12.4,12.6], in normal mode, t>4∧λ/∈
+[14.6,14.8].
+Containment between graphs and trajectories can be leveraged to conclude
+the containment of the set of reachable states of two hybrid systems.
+Proposition 3. Consider a pair of hybrid systems Hi=⟨Li,Θi,Gi,TLi⟩,i∈
+{1,2}and mode map lmap :L1→L 2.I fΘ1⊆Θ2,G1≼lmapG2,a n d TL1≼lmap
+TL2,t h e n Reach H1⊆Reach H2.
+2.5 ADAS and Autonomous Vehicle Benchmarks
+This is a suite of benchmarks we have created representing various common
+scenarios used for testing ADAS and Autonomous driving control systems. The
+hybrid system for a scenario is constructed by putting together several individual
+vehicles. The higher-level decisions (paths) followed by the vehicles are captured
+by transition graphs while the detailed dynamics of each vehicle comes from a
+black-box SimulinkR⃝simulator from MathworksR⃝[35].
+Each vehicle has several continuous variables including the x, y-coordinates of
+the vehicle on the road, its velocity, heading, and steering angle. The vehicle can
+be controlled by two input signals, namely the throttle (acceleration or brake)
+and the steering speed. By choosing appropriate values for these input signals,
+we have deﬁned the following modes for each vehicle — cruise :m o v ef o r w a r da t
+constant speed, speedup : constant acceleration, brake : constant (slow) decelera-
+tion, embrake : constant (hard) deceleration. In addition, we have designed lane
+switching modes chleftandchright in which the acceleration and steering are
+controlled in such a manner that the vehicle switches to its left (resp. right) lane
+in a certain amount of time.
+For each vehicle, we mainly analyze four variables: absolute position ( sx) and
+velocity ( vx)o r t h o g o n a lt ot h er o a dd i r e c t i o n( x-axis), and absolute position ( sy)
+and velocity ( vy)a l o n gt h er o a dd i r e c t i o n( y-axis). The throttle and steering are
+captured using the four variables. We will use subscripts to distinguish between
+diﬀerent vehicles. The following scenarios are constructed by deﬁning appropriate
+sets of initial states and transitions graphs labeled by the modes of two or more
+vehicles. In all of these scenarios a primary safety requirement is that the vehicles
+maintain safe separation. See [ 21]f o rm o r ed e t a i l so ni n i t i a ls t a t e sa n dt r a n s i t i o n
+graphs of each scenario.
+Merge :Vehicle A in the left lane is behind vehicle B in the right lane. A switches
+through modes cruise ,speedup ,chright , and cruise over speciﬁed intervals to
+
+--- Page 9 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 449
+merge behind B. Variants of this scenario involve Balso switching to speedup
+orbrake .
+AutoPassing :Vehicle A starts behind B in the same lane, and goes through a
+sequence of modes to overtake B. If B switches to speedup before A enters
+speedup then A aborts and changes back to right lane.
+Merge3 :Same as AutoPassing with a third car C always ahead of B.
+AEB:Vehicle A cruises behind B and B stops. A transits from cruise toembrake
+possibly over several diﬀerent time intervals as governed by diﬀerent sensors
+and reaction times.
+3I n v a r i a n t V e r i ﬁ c a t i o n
+As u b p r o b l e mf o ri n v a r i a n tv e r i ﬁ c a t i o ni st oc o m p u t e ReachTube H,o rm o r e
+speciﬁcally, the reachtubes for the set of trajectories TLin a given mode, up to a
+time bound. This is a diﬃcult problem, even when TLis generated by white-box
+models. The algorithms in [ 11,15,20]a p p r o x i m a t er e a c h t u b e su s i n gs i m u l a t i o n s
+and sensitivity analysis of ODE models generating TL. Here, we begin with a
+probabilistic method for estimating sensitivity from black-box simulators.
+3.1 Discrepancy Functions
+Sensitivity of trajectories is formalized by the notion of discrepancy functions
+[15]. For a set TL,adiscrepancy function is a uniformly continuous function
+β:Rn×Rn×R≥0→R≥0, such that for any pair of identically labeled trajectories
+⟨τ1,ℓ⟩,⟨τ2,ℓ⟩∈T L ,a n da n y t∈τ1.dom∩τ2.dom:( a ) βupper-bounds the
+distance between the trajectories, i.e.,
+|τ1(t)−τ2(t)|≤β(τ1.fstate ,τ2.fstate ,t), (1)
+and (b) βconverges to 0 as the initial states converge, i.e., for any trajectory τ
+andt∈τ.dom,i fas e q u e n c eo ft r a j e c t o r i e s τ1,...,τ k,...hasτk.fstate →τ.fstate ,
+then β(τk.fstate ,τ .fstate ,t)→0. In [ 15]i ti ss h o w nh o wg i v e na β, condition (a)
+can used to over-approximate reachtubes from simulations, and condition (b)
+can be used to make these approximations arbitrarily precise. Techniques for
+computing βfrom ODE models are developed in [ 19,20,29], but these are not
+applicable here in absence of such models. Instead we present a simple method
+for discovering discrepancy functions that only uses simulations. Our method is
+based on classical results on PAC learning linear separators [ 32]. We recall these
+before applying them to ﬁnd discrepancy functions.
+Learning Linear Separators. For Γ ⊆R×R,alinear separator is a pair
+(a, b)∈R2such that
+∀(x, y)∈Γ.x≤ay+b. (2)
+
+--- Page 10 ---
+450 C. Fan et al.
+Let us ﬁx a subset Γ that has a (unknown) linear separator ( a∗,b∗). Our
+goal is to discover some ( a, b)t h a ti sal i n e a rs e p r a t o rf o rΓb ys a m p l i n gp o i n t s
+in Γ1. The assumption is that elements of Γ can be drawn according to some
+(unknown) distribution D.W i t hr e s p e c tt o D, the error of a pair ( a, b)f r o m
+satisfying Eq. 2,i sd e ﬁ n e dt ob e errD(a, b)=D({(x, y)∈Γ|x>a y +b})w h e r e
+D(X) is the measure of set Xunder distribution D. Thus, the error is the
+measure of points (w.r.t. D) that ( a, b) is not a linear separator for. There is
+a very simple (probabilistic) algorithm that ﬁnds a pair ( a, b)t h a ti sal i n e a r
+separator for a large fraction of points in Γ, as follows.
+1. Draw kpairs ( x1,y1),...(xk,yk) from Γ according to D;t h ev a l u eo f kwill
+be ﬁxed later.
+2. Find ( a, b)∈R2such that xi≤ayi+bfor all i∈{1,...k }.
+Step 2 involves checking feasibility of a linear program, and so can be done
+eﬃciently. This algorithm, with high probability, ﬁnds a linear separator for a
+large fraction of points.
+Proposition 4. Letϵ, δ∈R+.I fk≥1
+ϵln1
+δthen, with probability ≥1−δ,t h e
+above algorithm ﬁnds (a, b)such that errD(a, b)<ϵ.
+Proof. The result follows from the PAC-learnability of concepts with low VC-
+dimension [ 32]. However, since the proof is very simple in this case, we reproduce
+it here for completeness. Let kbe as in the statement of the proposition, and
+suppose the pair ( a, b) identiﬁed by the algorithm has error >ϵ.W ew i l lb o u n d
+the probability of this happening.
+LetB={(x, y)|x>a y +b}.W ek n o wt h a t D(B)>ϵ.T h ea l g o r i t h mc h o s e
+(a, b) only because no element from Bwas sampled in Step 1. The probability
+that this happens is ≤(1−ϵ)k.O b s e r v i n gt h a t( 1 −s)≤e−sfor any s, we get
+(1−ϵ)k≤e−ϵk≤e−ln1
+δ=δ.T h i sg i v e su st h ed e s i r e dr e s u l t .
+Learning Discrepancy Functions. Discrepancy functions will be computed
+from simulation data independently for each mode. Let us ﬁx a mode ℓ∈L,
+and a domain [0 ,T] for each trajectory. The discrepancy functions that we will
+learn from simulation data, will be one of two diﬀerent forms, and we discuss
+how these are obtained.
+Global exponential discrepancy (GED) is a function of the form
+β(x1,x2,t)=|x1−x2|Keγt.
+Here Kandγare constants. Thus, for any pair of trajectories τ1andτ2(for
+mode ℓ), we have
+∀t∈[0,T].|τ1(t)−τ2(t)|≤|τ1.fstate −τ2.fstate |Keγt.
+1We prefer to present the learning question in this form as opposed to one where we
+learn a Boolean concept because it is closer to the task at hand.
+
+--- Page 11 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 451
+Taking logs on both sides and rearranging terms, we have
+∀t.ln|τ1(t)−τ2(t)|
+|τ1.fstate −τ2.fstate |≤γt+l nK.
+It is easy to see that a global exponential discrepancy is nothing but a linear
+separator for the set Γ consisting of pairs (ln|τ1(t)=τ2(t)|
+|τ1.fstate −τ2.fstate |,t)f o ra l lp a i r s
+of trajectories τ1,τ2and time t. Using the sampling based algorithm described
+before, we could construct a GED for a mode ℓ∈L,w h e r es a m p l i n gf r o mΓ
+reduces to using the simulator to generate traces from diﬀerent states in TLinit,ℓ.
+Proposition 4guarantees the correctness, with high probability, for any separator
+discovered by the algorithm. However, for our reachability algorithm to not be
+too conservative, we need Kandγto be small. Thus, when solving the linear
+program in Step 2 of the algorithm, we search for a solution minimizing γT+lnK.
+Piece-Wise Exponential Discrepancy (PED). The second form of discrepancy
+functions we consider, depends upon dividing up the time domain [0 ,T]i n t o
+smaller intervals, and ﬁnding a global exponential discrepancy for each inter-
+val. Let 0 = t0,t1,...t N=Tbe an increasing sequence of time points. Let
+K, γ 1,γ2,...γ Nbe such that for every pair of trajectories τ1,τ2(of mode ℓ), for
+every i∈{1,...,N }, and t∈[ti−1,ti],|τ1(t)=τ2(t)|≤|τ1(ti−1)−τ2(ti−1)|Keγit.
+Under such circumstances, the discrepancy function itself can be seen to be
+given as
+β(x1,x2,t)=|x1−x2|Ke/summationtexti−1
+j=1γj(tj−tj−1)+γi(t−ti−1)fort∈[ti−1,ti].
+If the time points 0 = t0,t1,...t N=Tare ﬁxed, then the constants K, γ 1,γ2,...
+γNcan be discovered using the learning approach described for GED; here, to
+discover γi,w et a k eΓ ito be the pairs obtained by restricting the trajectories to
+be between times ti−1andti.T h es e q u e n c eo ft i m ep o i n t s tiare also dynamically
+constructed by our algorithm based on the following approach. Our experience
+suggests that a value for γthat is ≥2 results in very conservative reach tube
+computation. Therefore, the time points tiare constructed inductively to be as
+large as possible, while ensuring that γi<2.
+Experiments on Learning Discrepancy. We used the above algorithm to
+learn discrepancy functions for dozens of modes with complex, nonlinear trajec-
+tories. Our experiments suggest that around 10–20 simulation traces are ade-
+quate for computing both global and piece-wise discrepancy functions. For each
+mode we use a set Strainof simulation traces that start from independently drawn
+random initial states in TLinit,ℓto learn a discrepancy function. Each trace may
+have 100–10000 time points, depending on the relevant time horizon and sample
+times. Then we draw another set Stestof 1000 simulations traces for validating
+the computed discrepancy. For every pair of trace in Stestand for every time
+point, we check whether the computed discrepancy satisﬁes Eq. 1.W eo b s e r v e
+that for |Strain|>10 the computed discrepancy function is correct for 96% of the
+points Stestin and for |Strain|>20 it is correct for more than 99 .9%, across all
+experiments.
+
+--- Page 12 ---
+452 C. Fan et al.
+Algorithm 1. GraphReach (H) computes bounded time reachtubes for each
+vertex of the transition Gof hybrid system H.
+1RS←∅;VerInit ← {⟨Θ, v init⟩};Order ←TopSort (G);
+2forptr=0: len(Order )−1do
+3 curv ←Order[ ptr];
+4 ℓ←vlab(curv);
+5 dt←max{t′∈R≥0|∃vs∈V,(curv,v s)∈E,(t, t′)←elab ((curv,v s))};
+6 forSinit∈{S|⟨S,curv⟩∈VerInit }do
+7 β←LearnDiscrepancy (Sinit,dt,ℓ);
+8 RT←ReachComp (Sinit,dt,β);
+9 RS←RS∪⟨RT,curv⟩;
+10 fornextv ∈curv.succ do
+11 (t, t′)←elab ((curv, nextv ));
+12 VerInit ←VerInit ∪⟨Restr (RT,(t, t′)), nextv ⟩;
+13return RS;
+3.2 Veriﬁcation Algorithm
+In this section, we present algorithms to solve the bounded veriﬁcation problem
+for hybrid systems using learned exponential discrepancy functions. We ﬁrst
+introduce an algorithm GraphReach (Algorithm 1)w h i c ht a k e sa si n p u tah y b r i d
+system H=⟨L,Θ ,G , TL⟩and returns a set of reachtubes—one for each vertex
+ofG—such that their union over-approximates ReachTube H.
+GraphReach maintains two data-structures: (a) RSaccumulates pairs of the
+form ⟨RT, v ⟩,w h e r e v∈VandRTis its corresponding reachtube; (b) VerInit
+accumulates pairs of the form ⟨S, v⟩,w h e r e v∈VandS⊂Rnis the set of states
+from which the reachtube in vis to be computed. Each vcould be in multiple
+such pairs in RSandVerInit .I n i t i a l l y , RS=∅andVerInit ={⟨Θ,v init⟩}.
+LearnDiscrepancy (Sinit,d,ℓ) computes the discrepancy function for mode ℓ,
+from initial set Sinitand upto time dusing the algorithm of Sect. 3.1.
+ReachComp (Sinit,d ,β ) ﬁrst generates ﬁnite simulation traces from Sinitand
+then bloats the traces to compute a reachtube using the discrepancy function β.
+This step is similar to the algorithm for dynamical systems given in [ 15].
+TheGraphReach algorithm proceeds as follows: ﬁrst, a topologically sorted
+array of the vertices of the DAG Gis computed as Order (Line 1). The pointer
+ptriterates over the Order and for each vertex curv the following is computed.
+The variable dtis set to the maximum transition time to other vertices from
+curv (Line 5). For each possible initial set Sinitcorresponding to curv inVerInit ,
+the algorithm computes a discrepancy function (Line 7) and uses it to compute
+ar e a c h t u b ef r o m Sinitup to time dt(Line 8). For each successor nextv ofcurv,
+the restriction of the computed reachtube RTto the corresponding transition
+time interval elab((curv,nextv )) is set as an initial set for nextv (Line 11–12).
+The invariant veriﬁcation algorithm VerifySafety decides safety of Hwith
+respect to a given unsafe set Uand uses GraphReach . This algorithm proceeds
+in a way similar to the simulation-based veriﬁcation algorithms for dynamical
+
+--- Page 13 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 453
+Algorithm 2. VerifySafety (H,U)v e r i ﬁ e ss a f e t yo fh y b r i ds y s t e m Hwith
+respect to unsafe set U.
+initially: I.push (Pa rt i t i o n (Θ))
+1while I̸=∅do
+2 S←I.pop();
+3 RS←GraphReach (H);
+4 ifRS∩U=∅then
+5 continue;
+6 else if ∃(x, l, t )∈RTs.t.⟨RT, v ⟩∈RSand(x, l, t )⊆U then
+7 return UNSAFE, ⟨RT, v ⟩
+8 else
+9 I.push (Pa rt i t i o n (S)) ;
+10 Or,G←RefineGraph (G);
+11return SAFE
+and hybrid systems [ 15,22]. Given initial set Θand transition graph GofH,t h i s
+algorithm partitions Θinto several subsets, and then for each subset Sit checks
+whether the computed over-approximate reachtube RSfrom Sintersects with
+U:( a )I f RSis disjoint, the system is safe starting from S;( b )i fc e r t a i np a r t
+of a reachtube RTis contained in U,t h es y s t e mi sd e c l a r e da su n s a f ea n d RT
+with the the corresponding path of the graph are returned as counter-example
+witnesses; (c) if neither of the above conditions hold, then the algorithm performs
+reﬁnement to get a more precise over-approximation of RS. Several reﬁnement
+strategies are implemented in DryVR to accomplish the last step. Broadly, these
+strategies rely on splitting the initial set Sinto smaller sets (this gives tighter
+discrepancy in the subsequent vertices) and splitting the edge labels of Ginto
+smaller intervals (this gives smaller initial sets in the vertices).
+The above description focuses on invariant properties, but the algorithm and
+our implementation in DryVR can verify a useful class of temporal properties.
+These are properties in which the time constraints only refer to the time since the
+last mode transition. For example, for the Powertrn benchmark the tool veriﬁes
+requirements like “after 4s in normal mode, the air-fuel ratio should be contained
+in [14 .6,14.8] and after 4s in powerup it should be in [12 .4,12.6]”.
+Correctness. Given a correct discrepancy function for each mode, we can prove
+the soundness and relative completeness of Algorithm 2. This analysis closely
+follows the proof of Theorem 19 and Theorem 21 in [ 13].
+Theorem 1. If the β’s returned by LearnDiscrepancy are always discrepancy
+functions for corresponding modes, then VerifySafety (H,U)(Algorithm 2)i s
+sound. That is, if it outputs “SAFE”, then His safe with respect to Uand
+if it outputs “UNSAFE” then there exists an execution of Hthat enters U.
+
+--- Page 14 ---
+454 C. Fan et al.
+3.3 Experiments on Safety Veriﬁcation
+The algorithms have been implemented in DryVR2and have been used to
+automatically verify the benchmarks from Sect. 2and an Automatic Transmis-
+sion System (detailed description of the models can be found in the appendix
+of [21]). The transition graph, the initial set, and unsafe set are given in a text
+ﬁle.DryVR uses simulators for modes, and outputs either “Safe” of “Unsafe”.
+Reachtubes or counter-examples computed during the analysis are also stored
+in text ﬁles.
+(a) Safe reachtube.(b) Unsafe execution.
+Fig. 2. AutoPassing veriﬁcation.Vehicle A’s (red) modes are shown above each subplot.
+Vehicle B (green) is in cruise .T o p : sxA, sx B.B o t t o m : syA, sy B. (Color ﬁgure online)
+The implementation is in Python using the MatLab’s Python API for access-
+ing the SimulinkR⃝simulators. Py-GLPK [ 23] is used to ﬁnd the parameters of
+discrepancy functions; either global (GED) or piece-wise (PED) discrepancy can
+be selected by the user. Z3 [ 9] is used for reachtube operations.
+Figure 2shows example plots of computed safe reachtubes and counter-
+examples for a simpliﬁed AutoPassing in which vehicle B stays in the cruise
+always. As before, vehicle A goes through a sequence of modes to overtake B.
+Initially, for both i∈{A, B},sxi=vxi= 0 and vyi= 1, i.e., both are cruising
+at constant speed at the center of the right lane; initial positions along the lane
+aresyA∈[0,2],s yB∈[15,17]. Figure 2as h o w st h el a t e r a lp o s i t i o n s( sxAin red
+andsxBin green, in the top subplot), and the positions along the lane ( syA
+in red and syBin green, in the bottom plot). Vehicle A moves to left lane ( sx
+decreases) and then back to the right, while B remains in the right lane, as A
+overtakes B (bottom plot). The unsafe set ( |sxA−sxB|<2&|syA−syB|<2)
+is proved to be disjoint from computed reachtube. With a diﬀerent initial set,
+syB∈[30,40],DryVR ﬁnds counter-example (Fig. 2b).
+2The implementation of DryVR with the case studies can be found at https://github.
+com/qibolun/DryVR . We have also moved the Autonomous vehicle benchmark mod-
+els and all the scenarios to Python for faster simulation..
+
+--- Page 15 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 455
+Table 1. Safety veriﬁcation results. Numbers below benchmark names: # vertices and
+edges of G, TH: duration of shortest path in G,R e f :#r e ﬁ n e m e n t sp e r f o r m e d ;R u n t i m e :
+overall running time.
+Model TH Initial set URef Safe Runtime
+Powertrn (5 vers, 6 edges) 80 λ∈[14.6,14.8] Up2 ✓ 217.4s
+AutoPassing (12 vers, 13 edges) 50 syA∈[−1,1]syB∈[14,16] Uc4 ✓ 208.4s
+50 syA∈[−1,1]syB∈[4,6.5] Uc5 ✗ 152.5s
+Merge (7 vers, 7 edges) 50 sxA∈[−5,5]syB∈[−2,2] Uc0 ✓ 55.0s
+50 sxA∈[−5,5]syB∈[2,10] Uc- ✗ 38.7s
+Merge3 (6 vers, 5 edges) 50 syA∈[−3,3]syB∈[14,23]syC∈[36,45] Uc4 ✓ 197.6s
+50 syA∈[−3,3]syB∈[14,15]syC∈[16,20] Uc- ✗ 21.3s
+ATS (4 vers, 3 edges) 50 Erpm ∈[900,1000] Ut2 ✓ 109.2s
+Table 1summarizes some of the veriﬁcation results obtained using DryVR .
+ATS is an automatic transmission control system (see [ 21]f o rm o r ed e t a i l s ) .
+These experiments were performed on a laptop with Intel Core i7-6600U CPU
+and 16 GB RAM. The initial range of only the salient continuous variables are
+shown in the table. The unsafe sets are discussed with the model description.
+For example Ucmeans two vehicles are too close. For all the benchmarks, the
+algorithm terminated in a few minutes which includes the time to simulate,
+learn discrepancy, generate reachtubes, check the safety of the reachtube, over
+all reﬁnements.
+For the results presented in Table 1, we used GED. The reachtube gener-
+ated by PED for Powertrn is more precise, but for the rest, the reachtubes and
+the veriﬁcation times using both GED and PED were comparable. In addi-
+tion to the VerifySafety algorithm, DryVR also looks for counter-examples by
+quickly generating random executions of the hybrid system. If any of these exe-
+cutions is found to be unsafe, DryVR will return “Unsafe” without starting the
+VerifySafety algorithm.
+4R e a s o n i n g P r i n c i p l e s f o r T r a c e C o n t a i n m e n t
+For a ﬁxed unsafe set Uand two hybrid systems H1andH2, proving Reach H1⊆
+Reach H2and the safety of H2,a l l o w su st oc o n c l u d et h es a f e t yo f H1.P r o p o s i -
+tion3establishes that proving containment of traces, trajectories, and initial sets
+of two hybrid systems, ensures the containment of their respective reach sets.
+These two observations together give us a method of concluding the safety of one
+system, from the safety of another, provided we can check trace containment of
+two graphs, and trajectory containment of two trajectory sets. In our examples,
+the set of modes Land the set of trajectories TLis often the same between the
+hybrid systems we care about. So in this section we present diﬀerent reasoning
+principles to check trace containment between two graphs.
+Semantically, a transition graph Gcan be viewed as one-clock timed automa-
+ton, i.e., one can construct a timed automaton Twith one-clock variable such
+that the timed traces of Tare exactly the traces of G. This observation, coupled
+
+--- Page 16 ---
+456 C. Fan et al.
+with the fact that checking the timed language containment of one-clock timed
+automata [ 37] is decidable, allows one to conclude that checking if G1≼lmapG2
+is decidable. However the algorithm in [ 37] has non-elementary complexity. Our
+next observation establishes that forward simulation between graphs can be
+checked in polynomial time. Combined with Proposition 1,t h i sg i v e sas i m p l e
+suﬃcient condition for trace containment that can be eﬃciently checked.
+Proposition 5. Given graphs G1and G2,a n dm o d em a p lmap ,c h e c k i n gi f
+there is a forward simulation from G1toG2is in polynomial time.
+Proof. The result can be seen to follow from the algorithm for checking timed
+simulations between timed automata [ 6] and the correspondence between one-
+clock timed automata; the fact that the automata have only one clock ensures
+that the region construction is poly-sized as opposed to exponential-sized. How-
+ever, in the special case of transition graphs there is a more direct algorithm
+which does not involve region construction that we describe here.
+Observe that if {Ri}i∈Iis a family of forward simulations between G1andG2
+then ∪i∈IRiis also a forward simulation. Thus, like classical simulations, there
+is a unique largest forward simulation between two graphs that is the greatest
+ﬁxpoint of a functional on relations over states of the transition graph. Therefore,
+starting from the relation V1×V 2, one can progressively remove pairs ( v,u) such
+that vis not simulated by u, until a ﬁxpoint is reached. Moreover, in this case,
+since G1is a DAG, one can guarantee that the ﬁxpoint will be reached in |V1|
+iterations.
+Executions of hybrid systems are for bounded time, and bounded number of
+mode switches. This is because our transition graphs are acyclic and the labels
+on edges are bounded intervals. Sequential composition of graphs allows one to
+consider switching sequences that are longer and of a longer duration. We now
+present observations that will allow us to conclude the safety of a hybrid system
+with long switching sequences based on the safety of the system under short
+switching sequences. To do this we begin by observing simple properties about
+sequential composition of graphs. In what follows, all hybrid systems we consider
+will be over a ﬁxed set of modes Land trajectory set TL.idis the identity
+function on L. Our ﬁrst observation is that trace containment is consistent with
+sequential composition.
+Proposition 6. LetGi,G′
+i,i∈{1,2}, be four transition graphs over Lsuch
+that G1◦G2and G′
+1◦G′
+2are deﬁned, and Gi≼idG′
+ifori∈{1,2}.T h e n
+G1◦G2≼idG′
+1◦G′
+2.
+Next we observe that sequential composition of graphs satisﬁes the “semi-
+group property”.
+Proposition 7. LetG1,G2be graphs over Lfor which G1◦G2is deﬁned. Let
+v1termbe the unique terminal vertex of G1. Consider the following hybrid systems:
+H=⟨L,Θ ,G 1◦G2,TL⟩,H1=⟨L,Θ ,G 1,TL⟩,a n d H2=⟨L,Reachv1term
+H1,G2,TL⟩.
+Then Reach H=Reach H1∪Reach H2.
+
+--- Page 17 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 457
+Consider a graph Gsuch that G◦Gis deﬁned. Let Hbe the hybrid system
+with transition graph G, and H′be the hybrid system with transition graph
+G◦G;t h em o d e s ,t r a j e c t o r i e s ,a n di n i t i a ls e tf o r HandH′are the same. Now
+by Propositions 2and3, we can conclude that Reach H⊆Reach H′.O u rm a i n
+result of this section is that under some conditions, the converse also holds. This
+is useful because it allows us to conclude the safety of H′from the safety of H.
+In other words, we can conclude the safety of a hybrid system for long, possibly
+unbounded, switching sequences (namely H′)f r o mt h es a f e t yo ft h es y s t e mu n d e r
+short switching sequences (namely H).
+Theorem 2. Suppose Gis such that G◦Gis deﬁned. Let vtermbe the unique
+terminal vertex of G. For natural number i≥1,d e ﬁ n e Hi=⟨L,Θ ,Gi,TL⟩,
+where Giis the i-fold sequential composition of Gwith itself. In particular, H1=
+⟨L,Θ ,G , TL⟩.I fReachvterm
+H1⊆Θthen for all i,Reach Hi⊆Reach H1.
+Proof. LetΘ1=Reachvterm
+H1.F r o mt h ec o n d i t i o ni nt h et h e o r e m ,w ek n o wt h a t
+Θ1⊆Θ. Let us deﬁne H′
+i=⟨L,Θ1,Gi,TL⟩.O b s e r v et h a tf r o mP r o p o s i t i o n 3,
+we have Reach H′
+i⊆Reach Hi.
+The theorem is proved by induction on i.T h eb a s ec a s e( f o r i=1 )t r i v -
+ially holds. For the induction step, assume that Reach Hi⊆Reach H1. Since
+◦is associative, using Proposition 7and the induction hypothesis, we have
+Reach Hi+1=Reach H1∪Reach H′
+i⊆Reach H1∪Reach Hi=Reach H1.
+Theorem 2allows one to determine the set of reachable states of a set of modes
+Lwith respect to graph Gi, provided Gsatisﬁes the conditions in the statement.
+This observation can be generalized. If a graph G2satisﬁes conditions similar to
+those in Theorem 2,t h e nu s i n gP r o p o s i t i o n 7, we can conclude that the reachable
+set with respect to graph G1◦Gi
+2◦G3is contained in the reachable set with
+respect to graph G1◦G2◦G3.T h ef o r m a ls t a t e m e n to ft h i so b s e r v a t i o na n di t s
+proof is skipped in the interest of space, but we will use it in our experiments.
+4.1 Experiments on Trace Containment Reasoning
+Graph Simulation. Consider the AEB system of Sect. 2.5with the scenario where
+Vehicle B is stopped ahead of vehicle A, and A transits from cruise toembrake
+to avoid colliding with B. In the actual system ( G2of Fig. 3), two diﬀerent sensor
+systems trigger the obstacle detection and emergency braking at time intervals
+[1,2] and [2 .5,3.5] and take the system from vertex 0 ( cruise ) to two diﬀerent
+vertices labeled with embrake .
+To illustrate trace containment reasoning, consider a simpler graph G1that
+allows a single transition of A from cruise toembrake over the interval bigger
+[0.5,4.5]. Using Proposition 3and checking that graph G2≼idG1,i tf o l l o w s
+that verifying the safety of AEB with G1is adequate to infer the safety with
+G2. Figure 3cs h o w st h a tt h es a f er e a c h t u b e sr e t u r n e db yt h ea l g o r i t h mf o r G1
+in red, indeed contain the reachtubes for G2(in blue and gray).
+
+--- Page 18 ---
+458 C. Fan et al.
+(a) Transition graph G1.
+(b) Transition graph G2. (c) AEB Reachtubes.Fig. 3. Graphs and reachtubes for the automatic emergency braking AEB system.
+(Color ﬁgure online)
+Sequential Composition. We revisit the Powertrn example of Sect. 2.1.T h ei n i t i a l
+setΘand unsafe set are the same as in Table 1. Let GAbe the graph ( v0,startup )
+[5,10]−−−→(v1,normal )[10,15]−−−−→(v2,powerup ), and GBbe the graph ( v0,powerup )[5,10]−−−→
+(v1,normal )[10,15]−−−−→(v2,powerup ). The graph G1=(v0,startup )[5,10]−−−→(v1,normal )
+[10,15]−−−−→(v2,powerup )[5,10]−−−→(v3,normal )[10,15]−−−−→(v4,powerup ), can be expressed
+as the composition G1=GA◦GB.C o n s i d e rt h et w oh y b r i ds y s t e m s Hi=
+⟨L,Θi,Gi,TL⟩,i∈{A, B}with ΘA=ΘandΘB=Reachv2
+HA.DryVR ’s estimate
+ofΘBhadλin the range from 14 .68 to 14 .71. The reachset Reachv2
+HBcomputed by
+DryVR hadλfrom 14 .69 to 14 .70. The remaining variables also were observed
+to satisfy the containment condition. Therefore, Reachv2
+HB⊆ΘB.C o n s i d e rt h e
+two hybrid systems Hi=⟨L,Θ ,G i,TL⟩,i∈{1,2},w h e r e G1is (deﬁned above)
+GA◦GB, and G2=GA◦GB◦GB◦GB.U s i n gT h e o r e m 2it suﬃces to analyze H1
+to verify H2.H1was been proved to be safe by DryVR without any reﬁnement.
+As a sanity check, we also veriﬁed the safety of H2.DryVR proved H2safe
+without any reﬁnement as well.
+5C o n c l u s i o n s
+The work presented in this paper takes an alternative view that complete math-
+ematical models of hybrid systems are unavailable. Instead, the available system
+description combines a black-box simulator and a white-box transition graph.
+Starting from this point of view, we have developed the semantic framework,
+a probabilistic veriﬁcation algorithm, and results on simulation relations and
+sequential composition for reasoning about complex hybrid systems over long
+switching sequences. Through modeling and analysis of a number of automo-
+tive control systems using implementations of the proposed approach, we hope
+to have demonstrated their promise. One direction for further exploration in
+this vein, is to consider more general timed and hybrid automata models of the
+white-box, and develop the necessary algorithms and the reasoning techniques.
+
+--- Page 19 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 459
+References
+1. Alur, R., Dang, T., Ivanˇ ci´c, F.: Counter-example guided predicate abstraction of
+hybrid systems. In: Garavel, H., Hatcliﬀ, J. (eds.) TACAS 2003. LNCS, vol. 2619,
+pp. 208–223. Springer, Heidelberg (2003)
+2. Annapureddy, Y., Liu, C., Fainekos, G., Sankaranarayanan, S.: S-taliro: a tool for
+temporal logic falsiﬁcation for hybrid systems. In: Proceedings of the International
+Conference on Tools and Algorithms for the Construction and Analysis of Systems
+(2011)
+3. Asarin, E., Dang, T., Maler, O.: The d/dt tool for veriﬁcation of hybrid systems.
+In: Brinksma, E., Larsen, K.G. (eds.) CAV 2002. LNCS, vol. 2404, pp. 365–370.
+Springer, Heidelberg (2002). doi: 10.1007/3-540-45657-0 30
+4. Balluchi, A., Casagrande, A., Collins, P., Ferrari, A., Villa, T., Sangiovanni-
+Vincentelli, A.L.: Ariadne: a framework for reachability analysis of hybrid
+automata. In: Proceedings of the International Syposium on Mathematical Theory
+of Networks and Systems. Citeseer (2006)
+5. Bogomolov, S., Frehse, G., Greitschus, M., Grosu, R., Pasareanu, C.S., Podelski, A.,
+Strump, T.: Assume-guarantee abstraction reﬁnement meets hybrid systems. In:
+10th International Haifa Veriﬁcation Conference, pp. 116–131 (2014)
+6.ˇCer¯ans, K.: Decidability of bisimulation equivalences for parallel timer processes.
+In: von Bochmann, G., Probst, D.K. (eds.) CAV 1992. LNCS, vol. 663, pp. 302–315.
+Springer, Heidelberg (1993). doi: 10.1007/3-540-56496-9 24
+7. Chen, X., ´Abrah´ am, E., Sankaranarayanan, S.: Flow*: an analyzer for non-linear
+hybrid systems. In: International Conference on Computer Aided Veriﬁcation, pp.
+258–263 (2013)
+8. Clarke, E., Fehnker, A., Han, Z., Krogh, B., Stursberg, O., Theobald, M.: Veriﬁ-
+cation of hybrid systems based on counterexample-guided abstraction reﬁnement.
+In: Garavel, H., Hatcliﬀ, J. (eds.) TACAS 2003. LNCS, vol. 2619, pp. 192–207.
+Springer, Heidelberg (2003). doi: 10.1007/3-540-36577-X 14
+9. de Moura, L., Bjørner, N.: Z3: an eﬃcient SMT solver. In: Ramakrishnan, C.R.,
+Rehof, J. (eds.) TACAS 2008. LNCS, vol. 4963, pp. 337–340. Springer, Heidelberg
+(2008). doi: 10.1007/978-3-540-78800-3 24
+10. Deng, Y., Rajhans, A., Julius, A.A.: Strong: a trajectory-based veriﬁcation toolbox
+for hybrid systems. In: International Conference on Quantitative Evaluation of
+SysTems, pp. 165–168 (2013)
+11. Donz´ e, A.: Breach, a toolbox for veriﬁcation and parameter synthesis of hybrid
+systems. In: Touili, T., Cook, B., Jackson, P. (eds.) CAV 2010. LNCS, vol. 6174,
+pp. 167–170. Springer, Heidelberg (2010). doi: 10.1007/978-3-642-14295-6 17
+12. Donz´ e, A., Maler, O.: Systematic simulation using sensitivity analysis. In:
+Bemporad, A., Bicchi, A., Buttazzo, G. (eds.) HSCC 2007. LNCS, vol. 4416, pp.
+174–189. Springer, Heidelberg (2007). doi: 10.1007/978-3-540-71493-4 16
+13. Duggirala, P.S.: Dynamic analysis of cyber-physical systems. Ph.D. thesis, Univer-
+sity of Illinois at Urbana-Champaign (2015)
+14. Duggirala, P.S., Fan, C., Mitra, S., Viswanathan, M.: Meeting a powertrain veriﬁ-
+cation challenge. In: Kroening, D., P˘ as˘areanu, C.S. (eds.) CAV 2015. LNCS, vol.
+9206, pp. 536–543. Springer, Cham (2015). doi: 10.1007/978-3-319-21690-4 37
+15. Duggirala, P.S., Mitra, S., Viswanathan, M.: Veriﬁcation of annotated models
+from executions. In: Proceedings of International Conference on Embedded Soft-
+ware (EMSOFT 2013), Montreal, QC, Canada, pp. 1–10. ACM SIGBED, IEEE,
+September 2013
+
+--- Page 20 ---
+460 C. Fan et al.
+16. Duggirala, P.S., Mitra, S., Viswanathan, M., Potok, M.: C2E2: a veriﬁcation tool
+for stateﬂow models. In: Baier, C., Tinelli, C. (eds.) TACAS 2015. LNCS, vol. 9035,
+pp. 68–82. Springer, Heidelberg (2015). doi: 10.1007/978-3-662-46681-0 5
+17. Fainekos, G.E., Pappas, G.J.: Robustness of temporal logic speciﬁcations for
+continuous-time signals. Theor. Comput. Sci. 410, 4262–4291 (2009)
+18. Fan, C., Duggirala, P.S., Mitra, S., Viswanathan, M.: Progress on powertrain veri-
+ﬁcation challenge with C2E2. In: Workshop on Applied Veriﬁcation for Continuous
+and Hybrid Systems (ARCH 2015) (2015)
+19. Fan, C., Kapinski, J., Jin, X., Mitra, S.: Locally optimal reach set over-
+approximation for nonlinear systems. In: Proceedings of the 13th ACM-SIGBED
+International Conference on Embedded Software (EMSOFT), EMSOFT 2016, pp.
+6:1–6:10. ACM, New York (2016)
+20. Fan, C., Mitra, S.: Bounded veriﬁcation with on-the-ﬂy discrepancy computation.
+In: Finkbeiner, B., Pu, G., Zhang, L. (eds.) ATVA 2015. LNCS, vol. 9364, pp.
+446–463. Springer, Cham (2015). doi: 10.1007/978-3-319-24953-7 32
+21. Fan, C., Qi, B., Mitra, S., Viswanathan, M.: DRYVR: data-driven veriﬁcation and
+compositional reasoning for automotive systems. arXiv preprint arXiv:1702.06902
+(2017)
+22. Fan, C., Qi, B., Mitra, S., Viswanathan, M., Duggirala, P.S.: Automatic reachabil-
+ity analysis for nonlinear hybrid models with C2E2. In: Chaudhuri, S., Farzan, A.
+(eds.) CAV 2016. LNCS, vol. 9779, pp. 531–538. Springer, Cham (2016). doi: 10.
+1007/978-3-319-41528-4 29
+23. Finley, T.: Python package PyGLPK. http://tﬁnley.net/software/pyglpk/
+24. Frehse, G.: PHAVer: algorithmic veriﬁcation of hybrid systems past HyTech. In:
+Morari, M., Thiele, L. (eds.) HSCC 2005. LNCS, vol. 3414, pp. 258–273. Springer,
+Heidelberg (2005). doi: 10.1007/978-3-540-31954-2 17
+25. Frehse, G., Le Guernic, C., Donz´ e, A., Cotton, S., Ray, R., Lebeltel, O., Ripado,
+R., Girard, A., Dang, T., Maler, O.: SpaceEx: scalable veriﬁcation of hybrid sys-
+tems. In: International Conference on Computer Aided Veriﬁcation, pp. 379–395.
+Springer (2011)
+26. Girard, A., Pappas, G.J.: Veriﬁcation using simulation. In: Hespanha, J.P., Tiwari,
+A. (eds.) HSCC 2006. LNCS, vol. 3927, pp. 272–286. Springer, Heidelberg (2006).
+doi:10.1007/11730637 22
+27. Girard, A., Pola, G., Tabuada, P.: Approximately bisimilar symbolic models for
+incrementally stable switched systems. IEEE Trans. Autom. Contr. 55(1), 116–126
+(2010)
+28. Henzinger, T.A., Ho, P.-H.: HyTech: the cornell hybrid technology tool. In:
+Antsaklis, P., Kohn, W., Nerode, A., Sastry, S. (eds.) HS 1994. LNCS, vol. 999,
+pp. 265–293. Springer, Heidelberg (1995). doi: 10.1007/3-540-60472-3 14
+29. Huang, Z., Fan, C., Mereacre, A., Mitra, S., Kwiatkowska, M.: Invariant veriﬁcation
+of nonlinear hybrid automata networks of cardiac cells. In: Biere, A., Bloem, R.
+(eds.) CAV 2014. LNCS, vol. 8559, pp. 373–390. Springer, Cham (2014). doi: 10.
+1007/978-3-319-08867-9 25
+30. Jin, X., Deshmukh, J.V., Kapinski, J., Ueda, K., Butts, K.: Powertrain control
+veriﬁcation benchmark. In: Proceedings of the 17th International Conference on
+Hybrid Systems: Computation and Control, pp. 253–262. ACM (2014)
+31. Kanade, A., Alur, R., Ivanˇ ci´c, F., Ramesh, S., Sankaranarayanan, S., Shashidhar,
+K.C.: Generating and analyzing symbolic traces of Simulink/Stateﬂow models. In:
+Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS, vol. 5643, pp. 430–445. Springer,
+Heidelberg (2009). doi: 10.1007/978-3-642-02658-4 33
+
+--- Page 21 ---
+DryVR : Data-Driven Veriﬁcation and Compositional Reasoning 461
+32. Kearns, M.J., Vazirani, U.V.: An Introduction to Computational Learning Theory.
+MIT Press, Cambridge (1994)
+33. Kong, S., Gao, S., Chen, W., Clarke, E.: dReach :δ-reachability analysis for
+hybrid systems. In: Baier, C., Tinelli, C. (eds.) TACAS 2015. LNCS, vol. 9035,
+pp. 200–205. Springer, Heidelberg (2015). doi: 10.1007/978-3-662-46681-0 15
+34. Mathworks: Modeling an Automatic Transmission and Controller. http://www.
+mathworks.com/videos/modeling-an-automatic-transmission-and-controller-688
+23.html
+35. Mathworks. Simple 2D Kinematic Vehicle Steering Model and Animation. https://
+www.mathworks.com/matlabcentral/ﬁleexchange/54852-simple-2d-kinematic-veh
+icle-steering-model-and-animation?requestedDomain=www.mathworks.com
+36. O’Kelly, M., Abbas, H., Gao, S., Shiraishi, S., Kato, S., Mangharam, R.: APEX:
+autonomous vehicle plan veriﬁcation and execution (2016)
+37. Ouaknine, J., Worrell, J.: On the language inclusion problem for timed automata:
+closing a decidability gap. In: Proceedings of the 19th Annual IEEE Symposium
+on Logic in Computer Science, pp. 54–63. IEEE (2004)
+38. Roohi, N., Prabhakar, P., Viswanathan, M.: Hybridization based CEGAR for
+hybrid automata with aﬃne dynamics. In: Chechik, M., Raskin, J.-F. (eds.) TACAS
+2016. LNCS, vol. 9636, pp. 752–769. Springer, Heidelberg (2016). doi: 10.1007/
+978-3-662-49674-9 48

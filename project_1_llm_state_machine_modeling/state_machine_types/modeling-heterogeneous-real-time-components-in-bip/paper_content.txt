@@ -1,0 +1,892 @@
+--- Page 1 ---
+Modeling Heterogeneous Real-time Components in BIP
+Ananda Basu, Marius Bozga and Joseph Sifakis
+Verimag, 38610 Gieres, France
+{basu, bozga, sifakis }@imag.fr
+Abstract
+We present a methodology for modeling heterogeneous
+real-time components. Components are obtained as the su-
+perposition of three layers : Behavior, speciﬁed as a setof transitions; Interactions between transitions of the be-
+havior; Priorities, used to choose amongst possible inter-
+actions. A parameterized binary composition operator isused to compose components layer by layer.
+We present the BIP language for the description and
+composition of layered components as well as associatedtools for executing and analyzing components on a dedi-
+cated platform. The language provides a powerful mecha-
+nism for structuring interactions involving rendezvous andbroadcast. We show that synchronous and timed systems
+are particular classes of components. Finally, we provide
+examples and compare the BIP framework to existing onesfor heterogeneous component-based modeling.
+1. Introduction
+A central idea in systems engineering is that complex
+systems are built by assembling components. System de-
+signers deal with a large variety of components, each hav-
+ing different characteristics, from a large variety of view-points, each highlighting different dimensions of a system.
+A central problem is the meaningful composition of hetero-
+geneous components to ensure their correct inter-operation[12].
+One fundamental source of heterogeneity is the com-
+position of subsystems with different execution and inter-
+action semantics. At one extreme of the semantic spec-
+trum are fully synchronized components, which proceed in
+lockstep with a global clock and interact in atomic transac-tions. Such a tight coupling of components is the standard
+model for most synthesizable hardware and for synchronous
+real-time software. At the other extreme are completelyasynchronous components, which proceed at independent
+speeds and interact non-atomically. Such a loose coupling
+of components is the standard model for most multithreadedsoftware. Between the two extremes, a variety of interme-
+diate and hybrid models exist (e.g., globally-asynchronous
+locally-synchronous models).
+Another fundamental source of heterogeneity is the use
+of models that represent a system at varying degrees of de-
+tail and are related to each other in an abstraction (or equiv-
+alently, reﬁnement) hierarchy. A key abstraction in systemdesign is the one relating application software to its im-
+plementation on a given platform. Application software is
+largely untimed, in the sense that it abstracts away fromphysical time. The application code running on a given
+platform, however, is a dynamic system that can be mod-
+eled as a timed or hybrid automaton [3]. The run-time stateincludes not only the variables of the application software,
+but also all variables that are needed to characterize its dy-
+namic behavior, such as time variables and other quanti-ties used to model resources. We need tractable theories
+to relate component-based models at application and imple-
+mentation levels. In particular, such theories must provide
+means for preserving, in the implementation, all essential
+properties of the application software.
+Uniﬁed frameworks encompassing heterogeneity in sys-
+tems design have been proposed in [5, 8, 6, 4]. Neverthe-
+less, in these works uniﬁcation is achieved by reduction to acommon low-level semantic model. We need a framework
+which is not just a disjoint union of submodels, but one
+which preserves properties during model composition andsupports meaningful analyses and transformations across
+heterogeneous model boundaries.
+We present the BIP (Behavior, Interaction, Priority)
+framework for modeling heterogeneous real-time compo-
+nents. BIP integrates results developed at Verimag over the
+past ﬁve years. It is characterized by the following:
+•It supports a component construction methodology
+based on the thesis that components are obtained asthe superposition of three layers. The lower layer de-
+scribes behavior . The intermediate layer includes a
+set of connectors describing the interactions between
+transitions of the behavior. The upper layer is a set of
+priority rules describing scheduling policies for inter-
+actions. Layering implies a clear separation between
+
+--- Page 2 ---
+behavior andstructure (connectors and priority rules).
+•It uses a parameterized binary composition operator on
+components. The product of two components consistsin composing their corresponding layers separately.
+Parameters are used to deﬁne new interactions as well
+as new priority rules between the composed compo-nents [11, 13]. The use of such a composition opera-
+tor allows incremental construction. That is, any com-
+pound component can be obtained by successive com-
+position of its constituents. This is a generalization of
+the associativity/commutativity property for composi-tion operators whose parameters depend on the order
+of composition.
+•It encompasses heterogeneity. It provides a power-
+ful mechanism for structuring interactions involving
+strong synchronization (rendezvous) or weak synchro-nization (broadcast). Synchronous execution is charac-
+terized as a combination of properties of the three lay-
+ers. Finally, timed components can be obtained fromuntimed components by applying a structure preserv-
+ing transformation of the three layers.
+•It allows considering the system construction pro-
+cess as a sequence of transformations in a three-dimensional space: Behavior ×Interaction ×
+Priority . A transformation is the result of the su-
+perposition of elementary transformations for each di-mension. This provides a basis for the study of prop-
+erty preserving transformations or transformations be-
+tween subclasses of systems such as untimed/timed,asynchronous/synchronous and event-triggered/data-
+triggered.
+The paper is structured as follows. Section 2 presents the
+BIP language and the underlying concepts for component
+composition. Section 3 presents the operational semantics
+of the language and associated tools for execution and anal-ysis. Section 4 shows that timed and synchronous systems
+correspond to particular classes of BIP components. This is
+illustrated by examples provided in Section 5. Finally, Sec-tion 6 discusses some more fundamental issues about the
+component construction space and its properties.
+2. The BIP language — Basics for Component
+Composition
+The BIP language supports a methodology for building
+components from:
+•atomic components, a class of components with behav-
+ior speciﬁed as a set of transitions and having empty
+interaction and priority layers. Triggers of transitionsinclude ports which are action names used for synchro-
+nization.
+•connectors used to specify possible interaction pat-
+terns between ports of atomic components.
+•priority relations used to select amongst possible inter-
+actions according to conditions depending on the state
+of the integrated atomic components.
+We provide a description of the main features of the lan-
+guage.
+2.1. Atomic Components
+An atomic component consists of:
+•A set of portsP={p1...p n}. Ports are action names
+used for synchronization with other components.
+•A set of control states S={s1...s k}. Control states
+denote locations at which the components await for
+synchronization.
+•A set of variables Vused to store (local) data.
+•A set of transitions modeling atomic computa-
+tion steps. A transition is a tuple of the form
+(s1,p,g p,fp,s2), representing a step from control
+states1tos2. It can be executed if the guard (boolean
+condition on V)gpis true and some interaction in-
+cluding port pis offered. Its execution is an atomic
+sequence of two microsteps: 1) an interaction includ-ingpwhich involves synchronization between compo-
+nents with possible exchange of data, followed by 2)
+an internal computation speciﬁed by the function f
+pon
+V. That is, if vis a valuation of Vafter the interaction,
+thenfp(v)is the new valuation when the transition is
+completed.
+fullempty
+in
+[0<x]
+y:=f(x)in
+out out
+Figure 1. An atomic component.
+Figure 1 shows an atomic reactive component with two
+portsin,out, variables x,y, and control states empty ,full.
+At control state empty , the transition labeled inis possible
+if0<x. When an interaction through intakes place, the
+variable xis eventually modiﬁed and a new value for yis
+computed. From control state full, the transition labeled
+outcan occur. The omission of guard and function for this
+
+--- Page 3 ---
+transition means that the associated guard is true and the
+internal computation microstep is empty. The syntax for
+atomic components in BIP is the following:
+atom::=
+component component id
+port port id+
+[data type id data id+]
+behavior
+{state state id
+{onport id[provided guard ]
+[dostatement ]tostate id}+}+
+end
+end
+That is, an atomic component consists of a declaration fol-
+lowed by the deﬁnition of its behavior. Declaration consists
+of ports and data. Ports are identiﬁers and for data, basic Ctypes can be used. In the behavior, guard andstatement
+are C expressions and statements respectively. We assume
+that these are adequately restricted to respect the atomicityassumption for transitions e.g. no side effects, guaranteed
+termination.
+Behavior is deﬁned by a set of transitions. The keyword
+state is followed by a control state and the list of outgoing
+transitions from this state. Each transition is labelled by aport identiﬁer followed by its guard, function and a target
+state.
+The BIP description of the reactive component of ﬁg-
+ure 1 is:
+component Reactive
+portin,out
+data intx,y
+behavior
+stateempty
+oninprovided 0<x doy:=f(x)tofull
+statefull
+onouttoempty
+end
+end
+2.2. Connectors and Interactions
+Components are built from a set of atomic components
+with disjoint sets of names for ports, control states, variablesand transitions.
+Notation: We simplify the notation for sets of ports
+in the following manner. We write p
+1|p2|p3|p4for the
+set{p1,p2,p3,p4}by considering that singletons are com-
+posed by using the associative and commutative operation
+|.
+A connector γis a set of ports of atomic components
+which can be involved in an interaction. We assume thatconnectors contain at most one port from each atomic com-
+ponent. An interaction of γis any non empty subset of this
+set. For example, if p1,p2,p3are ports of distinct atomic
+components, then the connector γ=p1|p2|p3has seven
+interactions: p1,p2,p3,p1|p2,p1|p3,p2|p3,p1|p2|p3. Each
+non trivial interaction i.e., interaction with more than one
+port, represents a synchronization between transitions la-beled with its ports.
+Following results in [11], we introduce a typing mech-
+anism to specify the feasible interactions of a connector γ,
+in particular to express the following two basic modes of
+synchronization:
+•Strong synchronization or rendezvous, when the only
+feasible interaction of γis the maximal one, i.e., it con-
+tains all the ports of γ.
+•Weak synchronization or broadcast, when feasible in-
+teractions are all those containing a particular portwhich initiates the broadcast. That is, if γ=p
+1|p2|p3
+and the broadcast is initiated by p1, then the feasible
+interactions are p1,p1|p2,p1|p3,p1|p2|p3.
+The typing mechanism distinguishes between complete
+and incomplete interactions with the following restriction:
+All the interactions containing some complete interaction
+are complete; dually, all the interactions contained in in-
+complete interactions are incomplete. An interaction of aconnector is feasible if it is complete or if it is maximal.
+Preservation of completeness by inclusion of interactions
+allows a simple characterization of interaction types. It issufﬁcient, for a connector γto give the set of its minimal
+complete interactions. For example, if γ=p
+1|p2|p3|p4and
+the minimal complete interactions are p1andp2|p3, then the
+set of the feasible interactions are p1,p2|p3,p1|p4,p2|p3|p4,
+p1|p2|p3,p1|p2|p3|p4.
+If the set of the complete interactions of a connector is
+empty, that is all its interactions are incomplete, then syn-
+chronization is by rendezvous. Broadcast through a port
+p1triggering transitions labeled by ports p2,...,p ncan be
+speciﬁed by taking p1as the only minimal complete inter-
+action.
+The syntax for connectors is the following:
+interaction ::= port id+
+connector::=
+connector conn id=port id+
+[complete = interaction+]
+[behavior
+{oninteraction [ provided guard ][dostatement ]}+
+end]
+That is, a connector description includes its set of ports fol-
+lowed by the optional list of its minimal complete interac-
+tions and its behavior. If the list of the minimal complete
+
+--- Page 4 ---
+interactions is omitted, then this is considered to be empty.
+Connectors may have behavior speciﬁed as for transitions,
+by a set of guarded commands associated with feasible in-
+teractions. If α=p1|p2|...|pnis a feasible interaction then
+its behavior is described by a statement of the form: onα
+provided GαdoFα, where GαandFαare respectively a
+guard and a statement representing a function on the vari-ables of the components involved in the interaction. As for
+atomic components, guards and statements are C expression
+and statements respectively.
+The execution of αis possible if G
+αistrue .I t a t o m -
+ically changes the global valuation vof the synchronized
+components to Fα(v).
+x1x2
+x3p1p2
+p3p1p2
+p3
+(a) (b)x1x2
+x3C1C2
+Figure 2. Interaction types.
+We use a graphical notation for connectors in the form of
+trees. The leaves are singleton interactions and the higher
+level nodes are synchronization types. We denote an incom-
+plete interaction by a bullet and a complete interaction by atriangle. For example, consider the connector C
+1described
+below:
+connector C1=p1|p2|p3
+behavior
+onp1|p2|p3provided ¬(x1=x2=x3)
+dox1,x2,x3:= MAX( x1,x2,x3)
+end
+It represents a strong synchronization between p1,p2and
+p3which is graphically represented in ﬁgure 2(a), where the
+singleton incomplete interactions p1,p2,p3are marked by
+bullets. The behavior for the interaction p1|p2|p3involves a
+data transfer between the interacting components: the vari-
+ablesxiare assigned the maximum of their values if they
+are not equal.
+The following connector describes a broadcast initiated
+byp1. The corresponding graphical representation is shown
+in ﬁg 2(b).
+connector C2=p1|p2|p3
+complete =p1
+behavior
+onp1doskip
+onp1|p2dox2:=x1
+onp1|p3dox3:=x1
+onp1|p2|p3dox2,x3:=x1
+endThis connector describes transfer of value from x1tox2and
+x3.
+Notice that contrary to other formalisms, BIP does not
+allow explicit distinction between inputs and outputs. For
+simple data ﬂow relation, variables can be interpreted as
+inputs or outputs. For instance, x1is an output and x2,x3
+are inputs in C2.
+2.3. Priorities
+Given a system of interacting components, priorities are
+used to ﬁlter interactions amongst the feasible ones depend-
+ing on given conditions. The syntax for priorities is the fol-
+lowing:
+priority::=
+priority priority id[ifcond ] interaction <interaction
+That is, priorities are a set of rules, each consisting of
+an ordered pair of interactions associated with a condition(cond ). The condition is a boolean expression in C on the
+variables of the components involved in the interactions.
+When the condition holds and both interactions are enabled,only the higher one is possible. Conditions can be omitted
+for static priorities. The rules are extended for composition
+of interactions. That is, the rule begin
+1<b e g i n 2means
+that any interaction of the form begin 2|qhas higher priority
+over interactions of the form begin 1|qwhere qis an inter-
+action.
+2.4. Compound Components
+A compound component allows deﬁning new compo-
+nents from existing sub-components (atoms or compounds)
+by creating their instances, specifying the connectors be-
+tween them and the priorities. The syntax of a compound
+component is deﬁned by:
+compound::=
+component component id
+{contains type id{instance id[parameters ]}+}+
+[connector+]
+[priority+]
+end
+The instances can have parameters providing initial values
+to their variables through a named association.
+An example of a compound component named System
+is shown in ﬁgure 3. It is the serial connection of three
+reactive components, deﬁned as:
+component System
+contains Reactive r 1,r2,r3
+connector C1=r1.in
+
+--- Page 5 ---
+full
+outinempty
+full
+outin
+full
+outinC2 C3empty empty
+Systemr2 r1 r3C1 C4
+Figure 3. A compound component.
+complete =r1.in
+connector C2=r1.out|r2.in
+behavior
+onr1.out|r2.indor2.x:=r1.y
+end
+connector C3=r2.out|r3.in
+behavior
+onr2.out|r3.indor3.x:=r2.y
+endconnector C
+4=r3.out
+complete =r3.out
+priority P1r1.in < r 2.out|r3.in
+priority P2r1.in < r 3.out
+priority P3r1.out|r2.in < r 3.out
+end
+We use priorities to enforce a causal order of execution as
+follows: once there is an inthrough C1, the data are pro-
+cessed and propagated sequentially, ﬁnally producing anoutthrough C
+4before a new inoccurs through C1.T h i s
+is achieved by a priority order which is the inverse of the
+causal order.
+3. Implementation
+In this section, we describe brieﬂy the operational se-
+mantics and the execution platform for BIP.
+3.1. Operational semantics
+A detailed and fully formalized operational semantics is
+beyond the scope of this paper. We focus on aspects that
+are crucial for understanding the underlying mechanism for
+execution of interactions between a set of components. For
+the sake of simpliﬁcation, we consider components withoutpriorities. These are only a ﬁltering mechanism for interac-
+tions.
+Consider a compound component built from watomic
+components by using a set of connectors and without prior-
+ity rules. Its meaning is an extended automaton with:
+•A set of variables, which is the union of the sets of
+variables of the atomic components.
+•A set of states, which is the cartesian product of the
+sets of control states of the atomic components.The extended automaton has a set of transitions of the form
+(s,α,g,f,s
+/prime), where:
+•s=(s1,...,s w),sibeing a control state of the ith
+atomic component.
+•αis a feasible interaction associated with a guarded
+command (Gα,Fα), such that there exists a subset
+J⊆{ 1,...,w }of atomic components with transi-
+tions{(sj,pj,gj,fj,s/prime
+j)}j∈Jandα={pj}j∈J.
+•g=(/logicalandtext
+j∈Jgj)∧Gα.
+•f=Fα;[fj]j∈J. That is, the computation starts with
+the execution of Fαfollowed by the execution of all
+the functions fjin some arbitrary order. The result is
+independent of this order as components have disjoint
+sets of variables.
+•s/prime(j)=s/prime
+jifj∈J; otherwise s/prime(j)=sj. That is, the
+states from which there are no transitions labeled withports in α, remain unchanged.
+The extended automaton is a machine with moves of the
+form (s,v)α→(s/prime,v/prime), where sis a state of the automaton
+andvis a valuation of its variables. The move (s,v)α→
+(s/prime,v/prime)is possible if there exists a transition (s,α,g,f,s/prime),
+such that g(v)=true andv/prime=f(v).
+3.2. The BIP Execution Platform
+The BIP framework has been partially implemented in
+the IF toolset [7] and the P ROMETHEUS tool [10]. We have
+developed a full implementation of the toolset that includes:
+•A frontend for editing and parsing BIP and generating
+C++ code to be executed and analyzed on a backendplatform.
+•A backend platform consisting of an engine and the
+infrastructure for executing the generated C++ code.
+•Connections to analysis tools of the IF tool-set.
+The execution engine directly implements the opera-
+tional semantics. At control states, atomic components post
+the port names of enabled transitions. The execution engine
+monitors the state of atomic components and ﬁnds all the
+enabled interactions by evaluating the guards on the connec-tors. Then, between the enabled interactions, priority rules
+are used to eliminate the ones with low priority. Amongst
+the maximal enabled interactions, it executes one and noti-ﬁes the atomic components involved in this interaction. The
+notiﬁed components continue their local computation inde-
+pendently and eventually reach new control states.
+
+--- Page 6 ---
+Two options, one for multithreaded execution (each
+atomic component having a thread) and the other for a sin-
+gle threaded execution (the execution engine being the only
+thread) are implemented.
+The engine has a state space exploration mode, which
+under some restrictions on the code for guards and func-
+tions, generates state graphs that can be analyzed by usingmodel-checking tools.
+The backend, which is the BIP exploration platform,
+has been entirely implemented in C++ on Linux and uses
+POSIX threads. This choice has been made mainly for
+efﬁciency reasons but also to allow a smooth integrationof components with behavior expressed using plain C/C++
+code. The BIP frontend which includes the C++ code gener-
+ator and some editing facilities, is implemented in Java. Inparticular, the frontend uses Eclipse EMF technology and
+associated tools for model representation and model trans-
+formations.
+4. Subclasses of Components
+In this section, we show that timed and synchronous sys-
+tems can be represented as BIP components.
+4.1. Timed Components
+We deﬁne timed components and provide a structure pre-
+serving mapping from timed components to BIP compo-nents deﬁned in section 2.
+Timed components are built from atomic timed compo-
+nents. The deﬁnition of atomic timed components for dis-crete time is inspired from [2]. They have:
+•A set of ports P={p
+1...p n}.
+•A set of control states S={s1...s k}.
+•A set of variables Vpartitioned into two sets Uand
+X, respectively the set of untimed andtimed variables.
+•A set of transitions of the form (s1,p,gu
+p∧
+gt
+p,fp,s2)τp, representing a step from control state s1
+tos2.T h e urgency type τpwhich can be either eager
+orlazy is used to characterize the urgency of the tran-
+sition. As for ordinary transitions, gp=gu
+p∧gt
+pis a
+guard, conjunction of conditions on untimed and timed
+variables respectively and fpis a function on V.
+•A set of evolution functions {φi}1≤i≤kin bijection
+with control states. The function φigives for a given
+valuation xofXat control state siand a given value
+of a discrete time parameter t, the valuation φi(x,t)
+reached when time progresses by t. Further, it satisﬁes
+the following properties:–φi(x,0)=x, and
+–φi(x,t1+t2)=φi(φi(x,t1),t2).
+An atomic timed component Crepresents a transition
+system [2] in the following manner.
+Letsibe a control state of Cand(u,x)be a valuation of
+(U, X ). From the state (si,u,x ),
+•Either an enabled transition can be executed indepen-
+dently of its urgency type - the semantics is the sameas for transitions of BIP components.
+•Or time can progress by one unit, leading to state
+(s
+i,u,φ i(x,1)), if all eager transitions are disabled.
+p
+Si
+Sm Sn Srp
+gpu∧gpt
+fpr
+r
+gr
+frp
+Si
+Sm Sn Srp
+gpu∧gpt
+fpr
+r
+gr
+frtick
+tick
+x:= φi(x,1)
+Figure 4. Transformation from Timed Compo-
+nent to BIP Component.
+We provide a translation from timed to BIP atomic com-
+ponents. The principle of the translation is explained in
+ﬁgure 4. It consists in implementing for each atomic com-ponent, time progress from s
+iand subsequent state changes,
+by a loop transition with guard true and function φi(x,1).
+This transition has a port tick for synchronization with
+other timed components.
+p
+Sitick
+tick
+x:= φi(x,1)r
+Sjtick
+tick
+x:= φj(x,1)m
+Smtick
+tick
+x:= φm(x,1)TickPriority: for all eager transition p, if(gp) Tick < p|q
+for some interaction q
+Figure 5. Composition of Timed Compo-
+nents.
+In the composition of the resulting BIP components from
+the timed components, strong synchronization is necessaryfor the tick ports as shown in the architecture of ﬁgure 5.
+That is, a connector Tick relating all the tick ports is used.
+Tick has an empty set of complete interactions.
+Furthermore, to take into account urgency of the transi-
+tions, we use priorities. For each eager transition with guard
+g
+p, a rule of the form: priority PifgpTick <p |qis used
+
+--- Page 7 ---
+where qis an interaction. This means that strong synchro-
+nization through Tick can occur only if there are no enabled
+eager transitions.
+4.2. Synchronous Components
+Synchronous components are a subclass of components
+built from synchronous atomic components which have:
+•A set of control states S, partitioned into three sets
+Sst/negationslash=∅,Sun,Ssyn/negationslash=∅, respectively the sets of sta-
+ble,unstable andsynchronization states.
+•A particular class of transitions, synchronization tran-
+sitions. These have a special port syn, their guards are
+true and functions are empty. From synchronization
+states only synchronization transitions are possible andlead to stable states.
+•Transitions from unstable states leading either to un-
+stable states or to synchronization states.
+•Stable states with synchronization transition loops. All
+other transitions from these states lead to unstable or
+synchronization states. There is a ﬁnite number of
+transitions in a path between two successive distinctstable states in the transition graph. This guarantees
+that for dealockfree execution, stable states are visited
+inﬁnitely often.
+synsynsyn
+synsynsyn
+Figure 6. Synchronous Atomic Component.
+The general form of a synchronous atomic component
+is shown in ﬁgure 6. Composition of synchronous compo-
+nents is characterized by the following requirements:
+•Ports of transitions from unstable states must belong
+to complete interactions, that is, their execution cannotbe blocked due to synchronization constraints.
+•All the synports are strongly synchronized via a con-
+nector Syn with empty set of complete interactions.
+•Any interaction has higher priority than the syninter-
+action. This enforces progress from stable states and
+prevents livelock by looping on syntransitions.
+The general form of a synchronous architecture is shown
+in ﬁgure 7. The above requirements ensure lockstep exe-
+cution. For such an execution, a run is a sequence of stepssyn syn synSynPriority: Syn < all interactions
+Figure 7. Composition of Synchronous Com-
+ponents.
+leading from one global stable state to another. If all the
+components are at stable states, then each component canexecute a sequence of transitions leading to a synchroniza-
+tion state. From synchronization states, strong synchroniza-
+tion through syn is enforced. This interaction cannot oc-
+cur as long as other interactions are possible, as it has the
+lowest priority. It may happen that during a synchronous
+step some components stay at the same stable state, if thetransitions leaving this state are not enabled. The synchro-
+nization transition loops from stable states allow transitions
+from synchronization states of the other components to beexecuted.
+5. Applications and Case Studies
+In this section we provide examples that were modeled
+and executed in BIP. The ﬁrst example, taken from [1], is a
+performance evaluation problem with timed tasks process-
+ing events from a bursty event generator. The second exam-ple is a synchronous modulo-8 counter.
+5.1. Tasks with Bursty Event Generator
+We model System which is the serial connection of a
+bursty event generator with three tasks t1,t2andt3, running
+on independent CPU’s. A task can execute as soon as its
+predecessor has ﬁnished. The block diagram for System is
+shown in ﬁgure 8(a).
+CPU1
+CPU3CPU2t1
+t3t2 Even
+tGen
+CPU1CPU2t1
+t3t2 EventGen
+(a) (b)
+Figure 8. End to end delay measurement for
+tasks.
+The atomic components of System areTask and
+EventGenerator . For each atomic component, we spec-
+ify its ports, variables and behavior.
+
+--- Page 8 ---
+READY
+EXECstart ε, [c>0]
+c:=c-1, d:=0finish δ
+[d<= WCET ]get ε
+c:=c+1
+get ε
+c:=c+1
+φEXEC(d,1)=d+1SUSPENDpreemptλ
+resumeλget ε
+c:=c+1get preempt resume start
+φSUSPEND (d,1)=dφREADY(d,1)=dfinish
+Figure 9. The Task component.
+φRUN((x,y), 1)=(x+1,y+1)period ε
+[x=T]
+x:=0, k:=k+1
+go δ
+[k ≥0 ∧x + k T ≤J ∧y ≥D]
+y:=0, k:=k-1RUNgo period
+Figure 10. The EventGenerator component.
+A generic timed model of Task is shown in ﬁgure 9,
+which can be used either as a simple task, or as a preempt-able task. It has a timed variable dto enforce worst case
+execution time WCET . In the graphical notation, urgency
+types are associated with ports. We use the notation p
+τ,
+where τcan be either /epsilon1(eager), λ(lazy), or δ(delayable).
+The latter is a composite type very useful in practice. It
+means that the transition labeled with pis considered to be
+lazy at some state if it remains enabled at the next time unit;
+otherwise, it is eager. For instance, the notation finishδin
+ﬁgure 9 means that the transition is lazy when d<WC E T
+and eager when d=WCET .
+The ports and behavior of EventGenerator are shown
+in ﬁgure 10. It has a period Tand a jitter JwithJ>T
+and has a minimum inter-arrival time Dbetween successive
+events being generated.
+The compound component System is a serial connec-
+tion of the EventGenerator and three instances of Task ,
+t1,t2andt3, as shown in ﬁgure 11. In this model, the tasks
+are non-preemptable, so the ports preempt and resume are
+not associated to connectors. Component instances are pa-
+rameterized: EventGenerator instance by the time-period
+T, jitter Jand minimum inter-arrival time D;Task instances
+by their worst case execution time WCET . The BIP descrip-
+tion of System without the priorities enforcing urgency is
+shown below:
+component System
+contains EventGenerator e (T=1 0,J=4 0,D=1 )
+contains Taskt 1(WCET =8 ) ,t2(WCET =4 ) ,t3(WCET =1 )
+connector C0=e.tick |t1.tick|t2.tick|t3.tick
+connector C1=e.period
+complete =e.period
+connector C2=e.go|t1.get
+connector C3=t1.finish |t2.get
+connector C4=t2.finish |t3.get
+connector C5=t3.finish
+complete =t3.finish
+connector C6=t1.start
+complete =t1.start
+connector C7=t2.start
+complete =t2.start
+connector C8=t3.start
+complete =t3.start
+priority ...
+end
+The maximum end-to-end delay was calculated by exhaus-
+tive state space exploration of System composed with an ob-
+server component measuring the end to end delay of the
+events. With the values of the parameters as used in theBIP description above, the maximum delay obtained was
+43 time units ( tick transitions).
+etick
+t1
+finishtick get
+resume
+preempt start
+tickgetresumepreempt startfinisht3
+Systemgo
+t2tick get
+resume
+preempt finish
+startC2
+C0C3
+C4C5C6C7
+C8period
+C1
+Figure 11. Architecture of System.
+Consider a modiﬁcation of System where tasks t1and
+t3share CPU1 and t1can preempt t3, whereas t2runs on
+CPU2, as shown in ﬁgure 8(b). Its BIP description without
+the priorities enforcing urgency is given below:
+component System
+contains EventGenerator e (T=1 0,J=4 0,D=1 )
+contains Taskt 1(WCET =8 ) ,t2(WCET =4 ) ,
+t3(WCET =1 )
+connector C0e.tick |t1.tick|t2.tick|t3.tick
+connector C1=e.period
+complete =e.period
+connector C2=e.go|t1.get
+connector C3=t1.finish |t2.get|t3.resume
+complete =t1.finish |t2.get
+
+--- Page 9 ---
+connector C4=t3.finish |t1.resume
+complete =t3.finish
+connector C5=t1.start |t3.preempt
+complete =t1.start
+connector C6=t3.start |t1.preempt
+complete =t3.start
+connector C7=t2.start
+complete =t2.start
+connector C8=t2.finish |t3.get
+priority P1t3.start < t 1.start
+priority P2t3.start |t1.preempt < t 1.finish |t2.get
+priority ...
+end
+Mutual exclusion between t1andt3is enforced by the con-
+nectors C3,C4,C5andC6. They guarantee that a task will
+preempt if the other has to start, and similarly a task can re-
+sume only when the executing task ﬁnishes, as depicted inthe architecture of ﬁgure 12. Priority P
+1enforces the static
+priority between t1,t3and priority P2ensures non preemp-
+tion of t1byt3. The maximum end to end delay recorded
+by the observer component in this example was 194 time
+units.
+etick
+t1
+finishtick get
+resume
+preempt start
+tickgetresumepreempt startfinisht3
+Systemgo
+t2tick get
+resume
+preempt finish
+start
+C0C2C3
+C8C7
+C6C5C4period
+C1
+Figure 12. Architecture of System with mu-
+tual exclusion.
+5.2. Synchronous Modulo-8 Counter
+We model a synchronous modulo-8 counter producing a
+3 bit count value. A bit is modeled as an atomic component
+representing a modulo-2 counter. The modulo-8 counter is
+obtained by composing three modulo-2 counters.
+The behavior of the atomic component
+Modulo 2Counter is depicted in ﬁgure 13. Zero’
+and One’ arestable states whereas Zero and One aresyn-
+chronization states respectively. The port flip corresponds
+to a complete interaction. The variable xis the input and y
+is the output.Zero’
+One’flip
+[x=1]
+y:=1syn
+flip
+[x=1]
+y:=0Zero
+Onesyn
+synflip
+synsyn
+Figure 13. The Modulo2Counter component.
+The compound component Counter consists of 3 in-
+stances of Modulo 2Counter namely b0,b1, andb2, where
+b0is the least signiﬁcant bit. The C0connector consists of
+all the syn ports requiring strong synchronization. All the
+flip interactions are complete.
+component Counter
+contains Modulo 2Counter b 0,b1,b2
+connector C0=b0.syn|b1.syn|b2.syn
+behavior
+onb0.syn|b1.syn|b2.syn
+dob0.x:=1, b 1.x:=b 0.y, b 2.x:=b 0.y∧b1.y
+end
+connector C1=b0.flip
+complete =b0.flip
+connector C2=b1.flip
+complete =b1.flip
+connector C3=b2.flip
+complete =b2.flip
+priority P0b0.syn|b1.syn|b2.syn < b 0.flip
+priority P1b0.syn|b1.syn|b2.syn < b 1.flip
+priority P2b0.syn|b1.syn|b2.syn < b 2.flip
+end
+The global data ﬂow is encoded in the behavior of the syn
+connector C0. The input ( x)o fb0representing the least sig-
+niﬁcant bit of the counter, is always set to 1, for b2,t h ei n -
+put is the conjunction of the outputs( y) of the previous two
+bits(b0,b1). The yvalues form the output of the Counter
+on execution generates the count sequence 000 to 111. Low
+priority of the syninteraction favours internal computations
+of the atomic components.
+6. Discussion
+The BIP framework shares features with existing ones
+for heterogeneous components, such as [5, 8, 6, 4]. A com-mon key idea is to encompass high-level structuring con-
+cepts and mechanisms. Ptolemy was the ﬁrst tool to sup-
+port this by distinguishing between behavior, channels, anddirectors. Similar distinctions are also adopted in Metropo-
+lis and BIP, which offer interaction-based and control-based
+mechanisms for component integration. The two types of
+
+--- Page 10 ---
+mechanisms correspond to cooperation and competition ,
+two complementary fundamental concepts for system orga-
+nization.
+There is evidence through numerous examples treated in
+BIP, that the combination of interaction and control mech-
+anism allows enhanced modularity and direct modeling of
+schedulers, quality controllers and quantity managers.
+BIP characterizes components as points in a three-
+dimensional space: Behavior ×Interaction ×Priority ,
+as represented in ﬁgure 14. Elements of the Interaction ×
+Priority space characterize the overall architecture . Each
+dimension, can be equipped with an adequate partial order,
+e.g., reﬁnement for behavior, inclusion of interactions, in-
+clusion of priorities. Some interesting features of this rep-
+resentation are the following:
+(+interaction)Systemarchitecture
+B  (+ refinement)P (+ restriction)
+I
+Figure 14. The Construction Space.
+Separation of concerns: Any combination of behavior, in-
+teraction and priority models meaningfully deﬁnes a
+component. This is not the case for other formalisms
+e.g., in Ptolemy [8], for a given model of computation,only particular types of channels can be used. Separa-
+tion of concerns is essential for deﬁning a component’s
+construction process as the superposition of elemen-tary transformations along each dimension.
+Uniﬁcation: Different subclasses of components
+e.g.,untimed/timed, asynchronous/synchronous,
+event-triggered/data-triggered, can be uniﬁed throughtransformations in the construction space. These
+often involve displacement along the three coordi-
+nates. They allow a deeper understanding of therelations between existing semantic frameworks in
+terms of elementary behavioral and architectural
+transformations.
+Correctness by construction: The component construc-
+tion space provides a basis for the study of architecture
+transformations allowing preservation of properties of
+the underlying behavior. The characterization of suchtransformations can provide (sufﬁcient) conditions for
+correctness by constructions such as compositionality
+andcomposability results for deadlock-freedom [11].Current work on BIP deals with both theoretical issues
+and applications. Theoretical work directions include the
+study of a notion of glue for components and its properties
+as well as a notion of expressiveness for component-baseddescription languages. Applications aim at “componentiz-
+ing” existing real-time software written in C++ including an
+MPEG encoder and an adaptive robotic application. Finally,we are developing a tool for translating a subset of the BIP
+language into THINK [9], from which implementations on
+bare machines can be generated.
+References
+[1] Workshop on distributed embedded systems, lorentz center,
+leiden, 2005. http://www.tik.ee.ethz.ch/ leiden05.
+[2] K. Altisen, G. G ¨oßler, and J. Sifakis. Scheduler modeling
+based on the controller synthesis paradigm. Real-Time Sys-
+tems, 23(1-2):55–84, 2002.
+[3] R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P.-H.
+Ho, X. Nicollin, A. Olivero, J. Sifakis, and S. Yovine. The
+algorithmic analysis of hybrid systems. Theoretical Com-
+puter Science , 138(1):3–34, 1995.
+[4] F. Arbab. Abstract behavior types: a foundation model for
+components and their composition. Sci. Comput. Program. ,
+55(1-3):3–52, 2005.
+[5] F. Balarin, Y . Watanabe, H. Hsieh, L. Lavagno,
+C. Passerone, and A. Sangiovanni-Vincentelli. Metropolis:
+An integrated electronic system design environment. IEEE
+Computer , 36(4):45–52, 2003.
+[6] K. Balasubramanian, A. Gokhale, G. Karsai, J. Sztipanovits,
+and S. Neema. Developing applications using model-driven
+design environments. IEEE Computer , 39(2):33–40, 2006.
+[7] M. Bozga, S. Graf, I. Ober, I. Ober, and J. Sifakis. The IF
+toolset. In SFM , pages 237–267, 2004.
+[8] J. Eker, J. Janneck, E. Lee, J. Liu, X. Liu, J. Ludvig,
+S. Neuendorffer, S. Sachs, and Y . Xiong. Taming hetero-geneity: The Ptolemy approach. Proceedings of the IEEE ,
+91(1):127–144, 2003.
+[9] J.-P. Fassino, J.-B. Stefani, J. Lawall, and G. Muller.
+THINK: A Software Framework for Component-based Op-
+erating System Kernels. In Proceedings of the Usenix An-
+nual Technical Conference , June 2002.
+[10] G. G ¨oßler. P
+ROMETHEUS — a compositional modeling
+tool for real-time systems. In P. Pettersson and S. Yovine,
+editors, Proc. Workshop RT-TOOLS 2001 . Technical report
+2001-014, Uppsala University, Department of InformationTechnology, 2001.
+[11] G. G ¨oßler and J. Sifakis. Composition for component-based
+modeling. Sci. Comput. Program. , 55(1-3):161–183, 2005.
+[12] T. Henzinger and J. Sifakis. The embedded systems design
+challenge. Proceedings FM 2006, LNCS , 2006.
+[13] J. Sifakis. A framework for component-based construction.
+InProceedings of the Third International Conference on
+Software Engineering and Formal Methods (SEFM) , pages
+293–300. IEEE Computer Society, 2005.

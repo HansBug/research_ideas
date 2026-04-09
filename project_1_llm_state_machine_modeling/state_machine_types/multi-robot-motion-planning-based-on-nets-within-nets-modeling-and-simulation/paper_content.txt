@@ -1,0 +1,1447 @@
+--- Page 1 ---
+Highlights
+Multi-robot Motion Planning based on Nets-within-Nets Modeling
+and Simulation
+Sofia Hustiua∗, Joaquín Ezpeletab, Cristian Mahuleaband Marius Kloetzera
+•Defining top-down formal definition of a novel framework based on the
+Nets-within-Nets paradigm.
+•Assessing the framework considering planning solutions for heteroge-
+neous and homogeneous multi-agent systems.
+•The planning strategy ensures a global high-level mission.
+•Introducing step-by-step implementation guideline of the framework in
+Renew.
+∗Corresponding author.E-mailaddress:sofia.hustiu@academic.tuiasi.roarXiv:2304.08772v4  [cs.RO]  29 Oct 2025
+
+--- Page 2 ---
+Multi-robot Motion Planning based on
+Nets-within-Nets Modeling and Simulation
+Sofia Hustiua∗, Joaquín Ezpeletab, Cristian Mahuleaband Marius Kloetzera
+Dept. of Automatic Control and Applied Informatics, ”Gheorghe Asachi” Technical
+University , Iasi, 700050, Romania
+Aragón Institute of Engineering Research (I3A), University of
+Zaragoza, Zaragoza, 50009, Spain
+Abstract
+This paper focuses on designing motion plans for a heterogeneous team of
+robots that must cooperate to fulfill a global mission. Robots move in an
+environment that contains some regions of interest, while the specification for
+the entire team can include avoidance, visits, or sequencing of these regions
+of interest. The mission is expressed in terms of a Petri net corresponding
+to an automaton, while each robot is also modeled by a state machine Petri
+net. The current work brings about the following contributions with respect
+to existing solutions for related problems. First, we propose a novel model,
+denotedHigh-Level robot team Petri Net(HLrtPN) system, to incorporate
+the specification and robot models into the Nets-within-Nets paradigm. A
+guard function, namedGlobal Enabling Function, is designed to synchronize
+the firing of transitions so that robot motions do not violate the specifica-
+tion. Then, the solution is found by simulating the HLrtPN system in a
+specific software tool that accommodates Nets-within-Nets. Illustrative ex-
+amples based on Linear Temporal Logic missions support the computational
+feasibility of the proposed framework.
+Keywords:
+Discrete event systems; Motion planning; Multi-robot system
+∗Corresponding author.E-mailaddress:sofia.hustiu@academic.tuiasi.ro
+
+--- Page 3 ---
+1. Introduction
+Planning motion in the robotics field requires collision-free navigation in
+an environment (known, partially, or fully unknown), ensuring imposed per-
+formances and/or fulfilling a desired mission. Suppose that simple scenarios
+express the mission as reaching a desired position [1]. In that case, complex
+scenarios include multi-robot systems with the mission expressed under spa-
+tial and/or temporal constraints, through various formal languages. Several
+examples include classes of Temporal Logic formulas [2, 3], Boolean expres-
+sions [5],µ-calculus specifications [6]. An example of a complex mission can
+begivenasthe pick-up region A should be visited simultaneously by two robots
+(also addressed as agents). Subsequently, region B should be visited and re-
+gion C should be reached immediately after B. Throughout the trajectory,
+region D is always avoided.Obviously, robots should work cooperatively,
+ensuring the sequencing of events based on the tasks that will be assigned
+to them. Another example [7] uses Temporal Logic to specify objectives to
+control linear systems.
+A modeling solution for the stated problem is based on formal methods
+including Discrete Event Systems (DES) [8], due to their well-documented
+properties to analyze, design, and control the behavior of a system. These
+representations are used in the literature for the dynamic of the robotic team
+in the workspace, e.g., transition systems (TS), alongside representations of
+the team’s assignment, e.g., Büchi automaton (BA) in the case of Linear
+Temporal Logic (LTL) [9, 10]. When combining the set of TS modeling the
+movement of each robot with the automaton of the mission, a synchronous
+product is computed in the search for a motion plan. The downside is rep-
+resented by the exponential growth of states of the resulting product when
+the number of agents on the team increases. In the case of homogeneous
+robotic teams, Petri net (PN) models proved to be efficient in representing
+theabstractionoftheteam, bymaintainingthesametopologyrepresentation
+regardless of the team size, since a token represents one robot [11].
+One challenge for the stated problem appears when the multi-robot sys-
+tem is composed of heterogeneous robots, as needed by daily applications,
+e.g., in the agriculture domain [12]. We propose a solution based on a hierar-
+chical approach of Petri net models, known as the Nets-within-Nets (NwN)
+paradigm [13]. The particularity of this family of high-level nets is charac-
+terized by the fact that each token can transfer information such as states of
+another process. In this sense, a token is visualized as a Petri net denoted as
+2
+
+--- Page 4 ---
+Object net. Moreover, the relation between these nets is captured inSystem
+net, which contains a global view of the entire system [14].
+This paper aims to introduce a framework called theHigh-Level robot
+team Petri Netsystem HLrtPN for trajectory planning (expressed as robotic
+trajectories) a heterogeneous multi-robot system ensuring a global mission.
+The behavior of the robots, alongside a model of the mission of the team, is
+represented by object nets, their interaction being coordinated by the sys-
+tem net through aGlobal Enabling Function (GEF)that has to be properly
+designed. A motion planning solution is obtained through simulations of the
+HLrtPN in a specific NwN software until the mission of the team is satisfied.
+The implementation of the proposed framework is accessible on our website
+[15], accompanied by representative examples with impact in real life, such
+as robot coordination within a hospital. Based on our knowledge, this is
+the first work to propose a step-by-step framework and motion plan solution
+based on the NwN paradigm.
+Thestructureofthepaperincludesthefollowing: ashortliteraturereview
+of the studies related to formal methods for a team of robots, focusing on
+Petri net models and the Nets-within-Nets paradigm, with an emphasis on
+the contributions of the current work (Section 2), an introduction of the
+problem formulation and the used notation (Section 4), a characterization
+of the proposed formalism under the Nets-within-Nets paradigm (Sections 5,
+6), and a presentation of the setup containing two case studies evaluating
+the performances of the proposed method in comparison with other DES
+approaches from literature (Section 7). The last section concludes the paper
+and provides a future perspective based on several improvements that can
+be further investigated for the foundation framework proposed in this paper.
+2. Related work
+Multiple planning solutions have been proposed in the state-of-the-art for
+amulti-robotsystem,asstatedin[16,17],includingclassicalapproaches,e.g.,
+sampling-based algorithms; bioinspired algorithms, e.g., Genetic Algorithms;
+mathematical programmings, e.g., optimization problems. These methods
+are versatile, computing paths for Unmanned Ground Vehicles (UGV) and
+Unmanned Aerial Vehicles (UAV) in 2D and 3D spaces. Typically, a high-
+level mission assigned to a team involves reaching a set of final positions
+within specified space and time constraints. Thus, the aforementioned plan-
+ning methods ensure a collision-free motion for the robots accomplishing the
+3
+
+--- Page 5 ---
+mission. In this paper, we extend the capabilities of robotic systems to ful-
+fill missions that require the completion of tasks in a specific order or with
+certain dependencies. One approach to represent these complex missions is
+by symbolic representation, e.g., LTL formulae.
+One advantage of LTL specifications is enhanced by its representation as
+an automaton that is easily composed with a set of TS allocated to each
+robot. This model facilitates the solution (robots’ paths) through the use
+of graph-based search algorithms, in known [18] or unknown [19] spaces.
+Other benefits of the tuple LTL and TS are encountered in various works,
+for optimally allocating tasks based on pruning the Büchi automaton of the
+LTL [20], for supervising the parallel composition of the entire model for the
+robotic system through a feedback controller [21], being further extended to
+a hybrid system (UAV and UGV) ensuring a set of behavioral policies in the
+agriculture field [12].
+TS-based approaches include one downside expressed by an aggressive
+growth in the size of the model with the increase of the number of robots in
+the team. Thus, the solution space becomes too large to be computation-
+ally tractable. This limitation of the state explosion problem can be solved
+through another DES representation, i.e., a PN model for a partitioned en-
+vironment, maintaining its size w.r.t. the number of robots in the team. By
+representing each robot as a token, this approach is generally suitable for ho-
+mogeneous teams [11], while the robotic paths are computed by optimization
+problems [23].
+Different works focused on investigating the relation between multiple PN
+in order to automatically translate the specification into a controller code,
+which can be further used for planning solutions. Specifically, in [24], a
+representation is proposed, denoted Robotic System Hierarchical Petri Net
+Meta-model, consisting of several layers of PN, specifically: robotic system
+layer, agent layer, subsystem layer, behavior layer, and action layer.
+One barrier is represented by the coordination of heterogeneous robots
+while preserving the advantages of PN models. One might suggest the use
+of different classes of PN, e.g., colored Petri nets [25]. Other works focus on
+providing a framework encoding robot capabilities, task specification, and
+cooperative task execution into one representation, considering a stochastic
+environment [26].
+Supervisorycontrolapproachhasalsobeenconsideredintheroboticfield,
+as detailed in [8] and extended in [7] for hybrid systems. The main idea
+here is to avoid deadlocks and ensure the safety constraints while fulfilling a
+4
+
+--- Page 6 ---
+given mission by building a new PN model that accentuates the transitions
+that are allowed to be fired. In [10] is mentioned that their PN supervised
+control model aims to return a new composition based on a deterministic
+Büchi automaton of the LTL mission, to check the admissibility. In other
+words, the authors ensure that the supervisor PN does not disable events
+that cannot be controlled. Although this approach is suitable for formal
+verification that guarantees the satisfaction of the mission, the state-space
+explosion represents a downside that has not been fully mitigated throughout
+research so far.
+Another perspective includes the coordination of multiple PNs in a struc-
+turedmanner, expressed, forexample, bytheNwNparadigm. Thishigh-level
+abstraction guarantees a hierarchical architecture of the models, suitable for
+modeling both the local (Object nets) and the global (System net) view of a
+system. The object nets are represented as tokens in the system net. The
+object-orientedmethodologysuitableforhigh-levelrepresentations[14]intro-
+duces different types of mobility among nets [27], which express synchronous
+and asynchronous actions.
+Several application examples of NwN paradigm include modeling web ser-
+vice coordination [28], smart houses [29], modeling the epigenetic regulation
+processatthecelllevel[30], andsimulatingantibioticresistanceatthemicro-
+biotalevel[31]. Otherworksfocusedonself-developmenttoolssuchasRenew
+[32] andModular Model Checker(MoMoC) [33], or encoding specifications
+inMaude language[34].
+When writing this paper, the total number of papers that involve the
+“Nets-within-Nets paradigm” is 64, using the Web of Science database. Out
+of this number, there are only a few papers that address the problem of pre-
+dicting trajectory for single or multiple robots [27]. Some papers use the
+object-oriented or hierarchical idea of PNs, without referring to it as the
+NwN paradigm [35]. Our work introduces a top-down framework with for-
+mal definitions under the NwN paradigm, suitable for heterogeneous robotic
+teams that ensure a global specification. In this account, the team’s mission
+is also modeled by an object net, interacting further with nets allocated to
+the robots through a synchronization function that secures spatial capacity
+constraints by design (the maximum number of robots in an environmental
+region). Based on our knowledge, our proposal represents a novelty in the
+field of robotic planning, with the followingcontributions:
+•ProposinganovelframeworkcalledtheHigh-Level robot team Petri Net
+5
+
+--- Page 7 ---
+(HLrtPN)systemformotionplanningofheterogeneousroboticsystems
+that ensures a global mission. For this purpose, a synchronization func-
+tion (Global Enabling Function) between the nets is designed, having
+the role of verifying and acting on a set of logical Boolean formulas to
+ensure that the specification requirements are met;
+•Describing the step-by-step implementation of the framework in Renew
+[32] and making it accessible on web [15]. The illustrative examples
+of this implementation showcasing the modeling of LTL formulas for
+heterogeneous robotic teams strengthen our framework’s substantial
+potential in robotic planning;
+•AssessingtheproposedsolutionthroughnumericalsimulationinRenew
+and comparing it with various DES representations, considering two
+case studies, one of which includes a real-life futuristic scenario for a
+robotic team evolving in a hospital.
+Currently, the framework HLrtPN facilitates an easier modeling approach
+in the robotic field, with the drawback that the planning strategy leading to
+a feasible solution requires the exploration of multiple transitions for com-
+plex systems, which can be time-consuming. Nevertheless, we consider that
+the potential of HLrtPN materializes further exploitation in search of viable
+trajectories of a heterogeneous robotic team ensuring a global mission.
+3. Background notions
+To establish a better understanding of the proposed framework, a set of
+fundamental concepts is being detailed in this section, e.g., Linear Tempo-
+ral Logic, Nets-within-Nets paradigm, to form the necessary background for
+most of the readers.
+3.1. Linear Temporal Logic
+As mentioned earlier, our goal is to provide planning solutions for multi-
+robot systems that must satisfy a global mission specified in Linear Temporal
+Logic (LTL). LTL is a formal language capable of expressing sequential and
+synchronous actions through a set oftemporal operators, such as: untilU,
+eventually♢, always□, and next⃝[36, 37]. These operators are recursively
+defined over a set of atomic propositionsB. In addition, LTL makes use of
+6
+
+--- Page 8 ---
+Boolean operators such asconjunction∧,implication⇒, andequivalence⇔,
+which can be derived from negation¬and disjunction∨.
+AlthoughthefullclassofLTLincludesthenextoperator⃝, thisoperator
+is not suitable in the context of discrete event systems that model continuous
+robotic dynamics [9, 36]. For this reason, the specifications considered in this
+paper are restricted to a relevant subclass of LTL formulas.
+LTL specifications can be represented as discrete event systems, most
+commonly through Streett or Rabin automata [38], or through Büchi au-
+tomata [50]. In this work, the global LTL mission is translated into a non-
+deterministic Büchi automaton.
+Definition 3.1.The Büchi automaton (BA) corresponding to an LTL for-
+mula over the setBhas the structureB= (S, S 0,ΣB,→B, F), where:Sis a
+finite set of states;S 0⊆Sis the (singleton) set of initial states;Σ Bis the
+finite set of inputs;→ B⊆S×Σ B×Sis the transition relation; andF⊆S
+is the set of accepting (final) states.■
+Letπ(s i, sj)denote the set of all inputs enabling a transition froms itosj,
+expressed as a Boolean formula overBin Disjunctive Normal Form (DNF).
+Aninfinite accepted runinBdrives the automaton from an initial state
+to an accepting state through (i) aprefix, and (ii) asuffix, which is a path
+returning to the same accepting state reached in the prefix. The accepted
+run can thus be expressed asprefix, suffix, suffix,. . .[40].
+In this paper, we focus on planning solutions for multi-robot systems
+underco-safeLTLformulas. UnlikegeneralLTLformulas, whichmayrequire
+infinite traces to be satisfied, co-safe LTL formulas can be satisfied by a finite
+execution.
+3.2. Nets-within-Nets Paradigm
+The planning solution proposed in this paper builds on the Nets-within-
+Nets paradigm [13, 14, 27]. The distinctive feature of this family of high-level
+Petri nets is that each token can encapsulate information, such as the state of
+another process. In this sense, a token is represented as a Petri net, referred
+to as anObject Net. The interactions among these nets are captured in a
+higher-levelSystem Net, which provides a global view of the overall system.
+This hierarchical modeling framework enables the representation of three
+types of behaviors, determined by transition labels. In this paper, we explic-
+itly detail the labeling concept and its role in capturing robot motion while
+7
+
+--- Page 9 ---
+ensuring satisfaction of the mission. The interactions between system and
+object nets are as follows [14]:
+-Transport: the movement of an object net within the system net, where
+only the system marking is updated, while the object net retains its marking.
+-Autonomous transition: an update occurs only in the marking of the
+object net, while the system net remains unchanged.
+-Interaction: a synchronous update of both the system and object nets,
+triggered by simultaneous firing of transitions in each net.
+To clarify these behaviors, examples from the manufacturing domain can
+be provided. Thetransportaction corresponds to updating the global system
+state, such as moving a robot from one location to another, while preserving
+its local state (e.g., gripper closed). Anautonomous transitionupdates only
+a local state (e.g., changing from gripper closed to gripper open) while the
+global state (e.g., robot position) remains unchanged. Finally, aninteraction
+simultaneously updates both global and local states, for example, when a
+robot moves through the environment while opening its gripper.
+Remark.Typically, there is a single system net that encodes the global
+state of the system. In contrast, each subsystem is represented by its own
+object net, which can differ in structure. For instance, two distinct robots
+may be modeled by two different object net representations.
+In this work, we consider two types of object nets. The first, denoted
+SpecOPN, models the LTL mission. Specifically, the LTL mission is first rep-
+resented as a Büchi automaton and then translated into a Petri net following
+our algorithm in [23]. The second type, denotedRobotOPN, captures the
+motion of each category of robot in the heterogeneous team. This model is
+related to the Quotient Robot Motion Petri Net introduced in [23], but here
+we extend it by adopting a labeled representation of transitions as in [42].
+For both object nets, we provide formal definitions along with illustrative
+examples to facilitate understanding.
+4. Problem formulation
+Problem:Thispaperaddressesthetaskallocationandplanningproblem
+for a heterogeneous multi-robot system evolving in a known environment in-
+cluding a set of regions of interest. The team should ensure a global mission
+given as a co-safe LTL specification, imposing spatial constraints of visit-
+ing/avoiding the regions, and temporal constraints requiring sequencing and
+synchronization.
+8
+
+--- Page 10 ---
+The solution space of the problem is subject to a proposed framework
+under the Nets-within-Nets formalism connecting Petri net representations
+under a hierarchical structure. A high-level Petri net denotedsystem net
+provides a global view of the multi-robot system with respect to a global
+given mission, both of them being represented by a low-level Petri net de-
+notedobject nets. Theplanningsolutionisdeterminedviaasimulation-based
+approach.
+An explanation of the proposed method consists of modeling the allowed
+movements of the heterogeneous team as a set of PNs (one assigned to each
+different type of robot, as sketched in Fig. 1-iii), also specifying the mission in
+the same formalism (as depicted through the PN in Fig. 1-i). These models
+will be implemented at the same hierarchical level asObject nets. The upper-
+level PN, denotedSystem net, considers object nets as tokens (Fig. 1-ii).
+Firing the transitions of the system net will impose synchronization between
+the object nets (of the robots and the mission). An intuitive explanation
+based on Fig. 1 containing the relation between the system and object nets
+for a multi-robot system is presented in Section 4.2.
+The prerequisites of the problem formulation include the following as-
+sumptions:
+•Among the high-level languages to specify a mission for the robotic
+team, we have focused on the Linear Temporal Logic formalism, due
+to a provided algorithm from our previous work in [23], which allows
+us to model the Büchi automaton for an LTL formula into a Petri net
+model. Additional details are provided in Section 5.1.
+•The high-level planning of mobile robots returned by the proposed
+method is composed of a sequencing of motion plans which a low-level
+controller of the robots can enforce. Thus, robots are not restricted to
+any particular category, encapsulating various dynamic characteristics.
+4.1. Notations
+Consider a two-dimensional workspaceEpartitioned into a finite number
+wof disjoint areas (denoted as cells). LetP={P 1, P2, . . . , P w}be the
+collection of cells whose union isE. Additionally, letY={y 1, y2, . . . , y q}be
+a set ofqlabels, also called regions of interest (ROI). The elements ofYare
+used to label the set of non-overlapping regions of the environment through a
+functionh:P →2Yunder the assumption that the labely q∈ Ycorresponds
+9
+
+--- Page 11 ---
+to the free space and can be assigned to only one cell inP. Moreover, ify qis
+assigned to regionP j, then no other label can be assigned toP j. Specifically,
+ifyq∈h(P j), thenh(P j) ={y q}.
+In the workspaceEexists a team of heterogeneous robots (agents)R=
+{r1, r2, . . . , r n}. Initially, allnrobots are placed in the free-space region (the
+one labeled withy q). At any moment, a robot should physically be placed
+in one cellP j∈ P. A pre-established set of spatial constraints specifies the
+regions in which the robot can or cannot move. This behavior is observed in
+real life; for example, in a manufacturing system, one robot is allowed only
+to move in restricted areas for pick-and-place operations without colliding
+with other robots, while another robot has more freedom in its motion for
+monitoring the entire workspace.
+LetB={b 1, b2, . . . , b q}beasetofatomicpropositions, whereeachlabely i
+corresponds to an atomic propositionb i. For any subsetA∈2Y, let us define
+the characteristic conjunction formula ofAasA ∧=V{bi∈ B |y i∈A}.
+For example, forA={y 1, y2, y3},A∧=b 1∧b2∧b3. Using the set of atomic
+propositionsB, the mission for the team of robots can be specified as an LTL
+formula [9].
+4.2. Intuitive support of the proposed approach
+One of the goals of this work is to provide a Nets-within-Nets (NwN)
+modelforaheterogeneousroboticteamtoachieveaplanningsolutionthrough
+simulation. The NwN model is called theHigh-Level Robot Team Petri Net
+(HLrtPN) system, and it comprises (i) a set of object nets modeling robots
+(Robotic Object Petri Nets(RobotOPNs)) and one object net modeling the
+mission (Specification Object Petri Net(SpecOPN)); and (ii) one system net
+where each token corresponds to an object net. Thesystem netgoverns the
+evolution of the system. When transitions of the RobotOPNs are fired, they
+must fire synchronously with a transition in the system net. Additionally,
+when transitions in the RobotOPN are fired, the robots move between re-
+gions, updating the values of setB. Consequently, the transition fired in
+the system net synchronizes with the firing of a transition in SpecOPN. The
+overall synchronization of the transitions in the system and object nets is
+ensured by the synchronization functionGEF.
+Let us consider the environment in Fig. 2 that can be partitioned into
+5 cellsP={P 1, . . . , P 5}whereP 1, P2, P3, P4, respectivelyP 5are associated
+with the free space (white region), green region minus the intersection with
+blue region; the blue region minus the intersection with the green region;
+10
+
+--- Page 12 ---
+Figure 1: Illustrative example supporting the intuitive explanation of the Nets-within-nets
+formalism, portraying the (ii) System net including 2 types of object nets: (i) Specification
+Object Petri net and (iii) Robotic Object Petri net
+the intersection of the blue and green region, and the purple region. The
+set of labels isy 1for purple region,y 2for blue region,y 3for green region,
+andy 4for free space (white). Therefore, the labeling functionhis defined
+as follows:h(P 1) ={y 4},h(P 2) ={y 3},h(P 3) ={y 2},h(P 4) ={y 2, y3}
+(h(P 4)∧=b 2∧b3) andh(P 5) ={y 1}.
+The HLrtPN is illustrated in Figs. 1. Fig. 1-ii displays the system
+net with two places:Rb, containing three tokens, each corresponding to
+a RobotOPN of a robot, andMs, with one token corresponding to the
+SpecOPN. In the system net, three transitions are included, related to the
+firing of a specific number of robots. Particularly, firing transitiont 1models
+the motion of one robot, any of the types of robots present in the robotic
+team. Similarly, firingt 2models the movement of any two robots from the
+roboticteam, whilet 3modelsthemovementoftheentireroboticteamformed
+out of three robots.
+Remark 1.Formally, to differentiate between the object nets, we have
+defined the following notations such as superscripts: “S” for SpecOPN, re-
+spectively “oi” for RobotOPN modeling the robotr i, for all the components
+as part of these nets’ definitions (Section 5).
+Fig.1-i shows the SpecOPN for the simple formulaφ=♢b 3. The mission
+is assumed to be accomplished whenpS
+2has a token. Notice that this is
+possible by firing the transitiontS
+1attached to the labeling function valueb 3.
+The function is evaluated atTruewhen a robot enters a region labeledy 3
+(regionsP 2orP 4).
+Figs. 1-iii shows one RobotOPN denoted aso1. The other two are identi-
+11
+
+--- Page 13 ---
+Figure 2: Example of a partitioned environment into 5 cells in setPincluding 4 ROIs
+(y1- purple,y 2- blue,y 3- green, and the free spacey 4- white) and 3 robots initially
+placed iny 4. The orange line represents the robotic trajectories for the missionφ=
+♢b1∧ ♢b 2∧ ♢b 3∧(¬b 1Ub3)(meaning to visity 1, y2, y3, withy 3beforey 1)
+cal if the other two robots are identical. In the RobotOPN of robotr j, each
+place models a cell fromP; specifically, for eachP i∈ P, a placepoj
+iis de-
+fined, whereojmodels the robotr j. Initially, all robots are in the free space,
+with the initial marking ofoj, j= 1,3, being a token inpoj
+1. Since the label
+ofP 1ish(P 1) ={y 4}(the region modeled bypoj
+1), the atomic proposition
+b4is evaluated asTruein this state. If robotr 1leavesP 1and entersP 2,
+transitionto1
+1should fire, and the atomic propositionb 3becomesTruesince
+h(P 2) ={y 3}. Notice that the transitions in RobotOPN are labeled with the
+atomic propositions evaluated asTrue. The movement of a robot from one
+cell to another updates the truth value of at least one atomic proposition.
+Adjacentcellshavedifferentlabelsbut ourmodelingmethodologycan handle
+more general cases.
+If we return to the firing ofto1
+1, assuming that the other robots are not
+moving, thent 1from the system net should fire synchronously withto1
+1. In
+the system net, transitiont 1, t2, respectivelyt 3models the movement of
+one, two, respectively three robot(s). Moreover, the definedGEFensures
+the synchronous firing of these two transitions with one transition from the
+SpecOPN, where both transitions are enabled and the logical functions as-
+signed to them are also true (tS
+3is labeled withTruewhiletS
+1is labeled
+withb 3, which will becomeTrueas the robot enters the green region). If
+transitiontS
+1fires,pS
+2will have a token and the mission will be fulfilled.
+12
+
+--- Page 14 ---
+Remark 2.The simulation results highlight the benefits of the cur-
+rent method when compared with other three DES approaches [18, 23, 47],
+which were considered in Section 7 during the analysis results procedure
+and explained in Section 7.3.2. The last two DES methods are restricted
+to homogeneous robotic teams, while the first one leads to an exponential
+state explosion. Thus, in our current work, we have explored the versatility
+of the Nets-within-Nets formalism towards the representation of heteroge-
+neous robotic teams. When a heterogeneous robot is added to the team, it
+is necessary to add a RobotOPN model only, allowing for easier handling
+of the entire framework in comparison with traditional approaches based on
+transition systems.
+Although similar problems are studied in the literature [11] (but mainly
+for identical agents), here we are concerned with designing a different formal-
+ism that allows us to combine the motion of robots with the given mission
+in the same model. The framework is validated through numerical experi-
+ments, based on simulations executed in dedicated software tools. Thus, the
+current method obtains a sub-optimal solution, rather than searching for an
+optimal solution by either exploring the reachability graph of various models
+or solving complex optimization problems. The proposed framework has the
+advantage of tailoring links between robots and specific tasks and has the
+potential to tackle complex scenarios with time analysis by including time
+analysis mission models specific to another formalism, as mentioned at the
+end of Section 7.
+5. Object Petri net systems
+The dynamic of the heterogeneous robotic team is modeled by a set of
+object netsRobotic Object Petri net(RobotOPN), one assigned to each type
+of robot based on their spatial capabilities (allowed ROIs to reach). Respec-
+tively, another object netSpecification Object Petri net(SpecOPN) models
+the requirements of the global mission, which the team should ensure. The
+following subsections formally define these nets.
+5.1. Specification Object Petri net
+Definition 5.1 (SpecOPN).ASpecification Object Petri netrepresented
+by a tupleSpec=⟨P, P f, T, F, λ⟩, where:PandTare the disjoint finite set of
+places and transitions,P f⊆Pis the set of final places,F⊆(P×T)∪(T×P)
+is the set of arcs. The transition labeling functionλ ∧(t)≡t ∧assigns to each
+13
+
+--- Page 15 ---
+transitiont∈Ta Boolean formula defined by using the atomic propositions
+Band their negations.■
+The current paper considers SpecOPN, the translated PN model obtained
+from the Büchi automaton (see Algorithm 1 from [23] for the formal defini-
+tion). The main idea is to associate each state with a place in the PN
+representation, while the transitions account for the transitions considered
+in the automaton. In particular, the proposed translation from the Büchi au-
+tomaton adapts any disjunctive Boolean formula from the automatonb i∨bj
+to a conjunctive Boolean formula, thus returning two transitions with their
+labeling functionsλ ∧(tx) =b iandλ ∧(tz) =b j. The translated PN is astate
+machinePN1, and at any time, only one place is marked.
+Note that the referred algorithm from [23] adds a set of virtual transitions
+for final states needed for the planning strategy, an approach that is not
+necessary in the current work. In addition, although the translation from a
+Büchi automaton into a Büchi Petri net accounts both co-safe and non-co-
+safe LTL, the current work considers only co-safe LTL missions since it can
+be ensured by a finite trace. Thus, the satisfaction of the formula is given
+by a final marking in the PN model, related to a final state of the automata.
+Since the non-co-safe LTL formulae might require an infinite trace to ensure
+the mission, continuous monitoring over the mission state was not considered
+for this work.
+A marking is a|P|-sized{0,1}-valued vector, while a SpecOPN system
+is a pair⟨Spec,m 0⟩wherem 0is the initial marking. The specification is
+fulfilled when SpecOPN reaches a marking with a token in a place from
+Pf, by firing a sequence of enabled transitions. A transitiont∈Tin the
+SpecOPN system is enabled at a markingmwhen two conditions are met:
+(i)m[•t] = 12and (ii) the Boolean formulat ∧isTrue. Informally, condition
+(i) is the enabling condition, while (ii) means that the movement of robots
+with respect to the set of regionsYimplies the firing of a transition in
+SpecOPN by changing the truth value oft ∧. In Fig. 1-i the final place is
+pS
+2, which will be marked only whentS
+1fires. This is possible when a robot
+enters a region labeled byy 3.
+1A state machine is a PN in which any transition has only one input and one output
+place.
+2•tandt•are the input and output places of the transitiont∈T- singletons since
+the SpecOPN is a state machine.
+14
+
+--- Page 16 ---
+5.2. Robotic Object Petri net
+In this paper, we assume that RobotOPN is a state machine PN which
+can be considered as anlabeled Petri net[42] by the addition of a labeling
+function over the set of transitions and places.
+Definition 5.2 (RobotOPN).Given aset of cellsPmodeling the workspace
+of the robotic team, let theRobotic Object Petri netbe the model of a robot,
+expressed by the tupleo=⟨P, T, F, h, λ, γ⟩:
+•Pis the finite set of places, bijective with setP. Each place is associated
+with an elementP i∈ Pin which the robot is allowed to enter;
+•Tis the finite set of transitions. A transitiont ij∈Tis added between
+two placesp i, pj∈Ponly if the robot can move from any position in
+cellP ito cellP jin the partitioned workspaceE;
+•F⊆(P×T)∪(T×P)is the set of arcs. Ift ijis the transition modeling
+the movement fromp itop j, then(p i, tij)∈Fand(t ij, pj)∈F;
+•h∧is the labeling function of placesp∈P, defined in the previous
+section and associating to each place a Boolean formula over the set of
+propositionsB;
+•λ∧is the Boolean labeling function of transitionst∈T, such that
+λ∧(ti) =h(t i•)∧;
+•γ:P→ Pis the associating function. If placep i∈Pis associated
+withP i∈ P, thenγ(p i) =P i.■
+The marking of the RobotOPN is a vectorm∈ {0,1}|P|. Initial marking
+isdenotedm 0suchthatm 0[pi] = 1iftherobotisinitiallyinp i, andm 0[pj] =
+0for the rest of the placesp j∈P\ {p i}. A RobotOPN system is a pair
+⟨o,m 0⟩.
+The association functionγconsiders a one-to-one mapping between the
+set of cellsPand the set of placesP, since the workspace where the robots
+evolve does not include regions that should be avoided by the entire multi-
+robot system.
+A heterogeneous robotic system incorporates the dynamics of several
+types of robots. We are interested in the differences concerning their space
+constraints (ROIs that can be reached). Each type of robot is modeled as a
+RobotOPN, including these differences in terms of topology and labels.
+15
+
+--- Page 17 ---
+6. High-Level robot team Petri net and GEF
+6.1. High-Level robot team Petri net
+This section introduces our proposed model denotedHigh-Level robot
+team Petri netwhich encapsulates the ability to provide a global view, by
+enabling synchronizations between the system net and the previously defined
+object nets.
+Definition 6.1.AHigh-Level robot team Petri net(HLrtPN) is a tuple
+N=⟨ ¯P,¯T,O,S, V ars, ¯F, W, µ cap⟩, where:
+•¯P={Rb, Ms}is the set of places, withRbandMsbeing the robot and
+mission places;
+•¯T={t 1, t2, . . . , t s}is the set of transitions;
+•O={⟨o1,m1
+0⟩,⟨o2,m2
+0⟩, . . . ,⟨on,mn
+0⟩}is a set ofnRobotOPN systems,
+one for each robot;
+•S=⟨Spec,mS
+0⟩is a SpecOPN system;
+•V ars={v, x 1, x2, . . . , x n}is a set ofvariables;
+•¯Fis the set of arcs: ¯F=S
+t∈¯T,p∈ ¯P{(p, t),(t, p)};
+•Wis the inscription function assigning to each arc a set of variables
+fromV arssuch that for everyt i∈¯T,W(Rb, t i) =W(t i, Rb) =
+(x1, x2, . . . , x i),W(Ms, t i) =W(t i, Ms) =v;
+•µcap∈Bag(P)is thecapacitymulti-set, withµ cap[Pi]>0,∀i∈ {1, . . . , w}
+andµ cap[Pj]≥n, ifh(P j) =y q.■
+The entire tupleN=⟨ ¯P,¯T,O,S, V ars, ¯F, W, µ cap⟩expresses the totality
+of elements as part of the proposed frameworkHLrtPN. In other words,
+this tuple includes the notions ofsystem net⟨ ¯P,¯T,¯F, V ars, W⟩(Fig. 1-ii.),
+thespecification netwith the initial markingS(Fig. 1-i.), and therobotic
+object Petri netswith the initial markingsO(Fig. 1-iii.). In addition, the
+connection between these nets, as well as introducing the capacity concept,
+is encapsulated through notationsW, µ cap.
+In case of the system net, the transitions are connected via bidirectional
+arcs, wheret isynchronizesirobots according to the specification, withi=
+16
+
+--- Page 18 ---
+1, s. The current work considers co-safe LTL missions, thuss≤n. The
+firing of a transition manipulates the object nets by using variables, e.g.,
+x1is bound to a RobotOPN,vfor the SpecOPN. Although the state of an
+object net is modified when a transition in the HLrtPN system is fired, by
+using the reference semantics as in [14], a token is a reference to an object
+net, the same variable being used for both directions: to/from places and
+transitions.
+Each cellP i∈ Phas a given number of space units, itscapacitydenoted
+with multi-set (also known asbag)µ cap[Pi]. Specifically, it represents the
+maximum number of robots that can exist simultaneously in cellP i. In this
+work, we assume that each robot has the same constant capacity of one unit.
+Therefore,∀P i∈ Phas a strictly positive capacity, considering that the free
+space modeled by a cellP j∈ Pwithh(P j) ={y q}can accommodate the
+whole team (last bullet of Def. 6.1).
+A HLrtPN system is a tuple⟨N, m, µ occ⟩whereNis a HLrtPN as Def.
+6.1,mis the marking associating a multi-set to each place in ¯P. Notice that
+themarkingisrepresentedasabagµassigninganon-negativeintegernumber
+(coefficient), as it is seen in the following. The set of all multi-sets overU
+is denoted byBag(U), as indicated in the algebra defined in [43], containing
+multiple operations such as addition and comparison, among others.
+The initial markingm 0is
+•m 0[Rb] = 1′⟨o1,m1
+0⟩+ 1′⟨o2,m2
+0⟩+. . .+ 1′⟨on,mn
+0⟩;
+•m 0[Ms] = 1′⟨Spec,mS
+0⟩.
+Finally,µ occ∈Bag(B)is theoccupancy multi-setrepresenting the actual
+position of the robots with respect toY. At a given time,µ occ[bi]is the
+actual number of robots in the regiony i. The initial occupancy bag isµ occ0=Pq−1
+i=10′bi+n′bjsince we assume that initially, allnrobots are in the free
+space.
+A transitiont∈ ¯Tof the HLrtPN isenabledat a given state⟨m, µ occ⟩iff
+•m[Ms]has a transitiontS∈TSenabled;
+•beingW(Rb, t) = (x 1, x2, . . . , x i),m[Rb]hasiRobotOPN net systems
+(⟨o1,m1⟩,⟨o2,m2⟩, . . . ,⟨oi,mi⟩)suchthateachofthesenetshasatran-
+sitiontojenabled,withj= 1, i,andalsoGEF(µ occ, µcap, tS,(to1, to2, . . . toi)) =
+True.
+17
+
+--- Page 19 ---
+An enabled transitiont∈ ¯Tmay fire yielding the system from⟨m, µ occ⟩
+to⟨m′, µ′
+occ⟩such that,
+•m′[Ms]has fired transitiontS;
+•atm′[Rb], eachoihas fired transitiontoi;
+•µ′
+occis updated based on the new position of the robots.
+6.2. The Global Enabling Function (GEF)
+Firing a transitiont∈ ¯Timplies synchronized coordination at the system
+level, considering both the RobotOPNs fromm[Rb]and the specification net
+from placem[Ms]. This synchronization procedure must adhere to a set of
+compatibility rules that reflect the current state of the system, as well asµ occ.
+To ensure compliance with these rules, theGlobal Enabling Function(GEF)
+serves as a guard, checking the compatibility between the state of the system
+with the transition conditions before allowing the synchronous transitions
+to occur. TheGEFis essential in ensuring that the HLrtPN transition
+t∈¯Tand the corresponding transitions in RobotOPNs(to1, to2, . . . , toi)and
+SpecOPNtS∈TSproceed without breaching any rules.
+The inputs considered forGlobal Enabling Functionwhich enables the fir-
+ingofatransitiont∈ ¯TarepartofBag(P)×Bag(B)×TS×Sn
+i=1Qi
+j=1Toi
+j
+.
+Thus, the output value returned byGEFis eitherTrue, eitherFalseasso-
+ciated with the enabling or disablingt∈ ¯T. The following variables are
+evaluated byGEF: the global information: occupancy bagµ occ, the capacity
+multi-setµ cap, a marking-enabled transitiontSin the SpecOPN,v, and a
+set ofimarking-enabled transitions(to1, to2, . . . toi)in(x 1, x2, . . . x i). When
+a number ofitransitions of RobotOPN are fired, the Boolean formula asso-
+ciated with the label oftSis satisfied, leading to an evaluation ofGEFas
+True. Contrary, the value is evaluated asFalse. Alg. 1 presents the main
+idea of theGEF.
+Comment 1:Enabling a transitiont∈ ¯Tis verified by simulating the
+firing of the correspondingitransitions in RobotOPN synchronized through
+transitiont iof the HLrtPN. This artificial process is carried out by the simu-
+lation of bagχwhich is computed (line 1). In order to compute it, transitions
+(to1, to2, . . . , toi)are fictitiously fired in the corresponding RobotOPNs (from
+o1tooi), while in the rest of RobotOPNs (fromoi+1toon) no transition is
+fired. Thus, the marked places of all RobotOPN are considered. By using
+18
+
+--- Page 20 ---
+Algorithm 1:The Global Enabling Function (GEF)
+Input:µ occ, µcap, tS, enabled in SpecOPN,(to1, to2, . . . toi), each
+enabled in its corresponding RobotOPN
+Output:Is the synchronized firing oftS, to1, to2, . . . , toifeasible?
+Data:(⟨o1,m1⟩,⟨o2,m2⟩, . . . ,⟨on,mn⟩),P
+1Letχbe the simulated occupancy multi-set w.r.t.Pafter firing
+(to1, to2, . . . toi);
+2forallP j∈ Pdo
+3if(χ[P j]> µ cap[Pj])/* See Comment 1 */
+4then
+5returnFalse
+6if
+tS
+∧==True
+/* See Comment 2 */
+7then
+8returnTrue
+9else
+10Letµ′
+occbe the simulated update ofµ occw.r.t.Bafter firing
+(to1, to2, . . . toi);
+11forall(b j∈ B)/* See Comment 3 */
+12do
+13if
+bj∈tS
+∧∧µ′
+occ[bj] == 0
+∨
+¬bj∈tS
+∧∧µ′
+occ[bj]≥1
+then
+14returnFalse
+15returnTrue
+the associating functionγkin each RobotOPN, bagχis obtained. Next,
+theGEFverifies that the firing of transitions satisfies the capacity of each
+Pj∈ P(line 2-5).
+Comment 2:If the capacity constraints are satisfied and the Boolean
+formula assigned totS(i.e.,tS
+∧) is evaluated toTrue, then the transitions
+⟨tS,(to1, to2, . . . , toi)⟩can fire synchronously without being necessary the eval-
+uation w.r.t. robots positions. As a result, theGEFreturnsTrue(line 8).
+Comment 3:Otherwise, a new simulation is performed andµ′
+occis up-
+dated. Notice thatχ, respectivelyµ′
+occrepresent the simulated occupancy
+multi-sets w.r.t.P, respectivelyB. In the case ofµ′
+occ, there are two addi-
+tional conditions that could prevent the considered transitions to fire. These
+19
+
+--- Page 21 ---
+conditions are checked in lines 11-14 and can be described as:
+•If an atomic propositionb j∈ Bis part of the formulatS
+∧, but in the sim-
+ulated occupancy state obtained by the firing of the transitions (µ′
+occ),
+no robot will be iny j. This movement of robots does not fulfill the
+Boolean function assigned to the transitiontS(first condition in line
+13).
+•If a negated atomic proposition¬b j(withb j∈ B) is part of thetS
+∧
+formula, but the simulated update of the occupancyµ′
+occafter the firing
+of the involved transitions is such thatµ′
+occ[bi]≥1, this means that at
+least one robot would be iny jand the formulatS
+∧would not be fulfilled
+(second condition in line 13).
+If at least one of the previous conditions is true, then the GEF will return
+False(line 14). Otherwise, it will returnTrue(line 15). The firing of a
+transitiont(lines 8 and 15) updates the marking of the system and the
+multi-setµ occ.
+Example 6.2.For an easier understanding of the GEF functionality, let
+us consider a small example, based on Fig. 1. Let us focus on transition
+t2∈¯T, which corresponds to the synchronized action of two robots, and check
+whether it is enabled in the initial state shown in the figure. We assume that
+the capacity of each cell is equal to 1, meaning that no more than one robot
+can occupy a place, i.e.,µ cap[Pi] = 1, i= 2,5, while3≤µ cap[P1]. Since
+the robots are initially located in the free space, the occupancy of the places
+is given byχ[P 1] = 3, χ[P i] = 0, i= 2,3,4,5. The current occupancy of
+the robotic team with respect to the atomic propositionBis expressed as
+µocc[b4] = 3, µ occ[bi] = 0, i= 1,2,3. At this state,tS
+1in the SpecOPN is
+enabled. Sinceb 3labelstS
+1, observationb 3must be ensured after its firing.
+Let us now consider several situations related to the firing oft 2in the
+HLrtPN net, using the SpecOPN and the RobotOPNs corresponding to the
+first two robots:
+•Case 1:tS
+1,(to1
+1, to2
+1)are all enabled. However, their synchronized firing
+is not feasible: in the resulting state there would be two robots inP 2
+(χ[P 2] = 2), which violates the capacity constraints (see comment 1 in
+the algorithm).
+20
+
+--- Page 22 ---
+•Case 2:tS
+1,(to1
+10, to2
+4)are also enabled. However, their synchronized fir-
+ing is prevented because the resulting state would yieldµ′
+occ[b3] = 0, that
+violates the constraint imposed to observations bytS
+1(see comment 3 in
+the algorithm).
+•Case 3:tS
+1,(to1
+10, to2
+1)are enabled. In this case, firing does not violate
+the capacity constraints, and the resulting marking satisfiesµ′
+occ[b3] = 1,
+which meets the condition imposed in the SpecOPN.
+As a final remark, it is important to note that the cost of any of the
+statements in the loops in Algorithm 1 is constant and then, executing the
+GEF function isO(max(|P|,|B|)).
+Remark 3.A planning solution for the proposed system HLrtPN is
+returned only if the capacity constraints of the robots over a set of cells
+Pmapped to the setYare considered such that the mission can be accom-
+plished. A counterexample for which the executability of our model produces
+a deadlock is represented by the LTL missionφ=♢y 1requiring the visit of
+the regiony 1for which no robot can enter due to its size. Throughout the
+simulations provided in the next section, we have considered feasible missions
+that could be satisfied by the robotic team. Thus, we have excluded scenarios
+that could lead to blocked or endless simulations, as previously stated.
+7. Simulations
+The proposed method is showcased by two examples, while the simula-
+tions are conducted on a computer with12thGen. Intel®Core i7-12700x20
+and Ubuntu 24.04LTS operating system, with 32Gb RAM. The Renew [32]
+version is 4.1.
+Case Study 1 (Section 7.2)is expressed as the simple scenario of imposing
+an LTL mission for a team of three robots while focusing on illustrating the
+concepts formally defined in the previous sections.
+Case Study 2 (Section 7.3)addresses the versatility of the method con-
+cerning the number, respectively the type (different spatial restrictions) of
+robots, while also investigating the computational scalability and comparing
+the results with other planning strategies. This experiment considers that
+a robotic team with up to 8 members is evolving in a pioneering upcoming
+context from a real environment such as a hospital.
+21
+
+--- Page 23 ---
+7.1. RENEW Implementation
+The chosen paradigm for motion planning of a heterogeneous team of
+robots provides a unique perspective that relies on theoretical formalism
+towards the development process in Renew software tool3[32]. This soft-
+ware is a Java-based high-level Petri net simulator suitable for modeling the
+Nets-within-Nets paradigm in a versatile approach. Thus, the Renew imple-
+mentation of our proposed formalism characterizes one of the contributions
+of this paper.
+Remark 4.It should be mentioned that we are interested in the fea-
+sibility of the LTL formulas concerning the number of robots in the team
+and their spatial constraints. For example, the conducted simulations for
+the second case study take on a mission that can be satisfied from two to
+eight robots. A SpecOPN model associated with an LTL formula can be
+generated automatically based on the defined steps documented on our web-
+site [15]. In addition, the website elaborates a more thorough explanation of
+the mentioned notations alongside illustrative examples, as part of our entire
+GitHub project.
+At different runs, the tool may return different solutions for the same
+scenario, since there may be multiple possibilities to verify the Boolean for-
+mulas from transitions of the SpecOPN. Therefore, for each experiment, a
+givennumberofsimulationsareperformedtoassessthequalityoftheresults.
+The metrics chosen for the analysis of numerical results are the following.
+•(a) Model size, as the sum of places and transitions, respectively,
+of all the representations assigned to the robotic team and the given
+specification.
+•Average(b)runtimetoreturnasolution, basedonallthesimulations
+as part of one experiment, such that a given LTL mission is ensured by
+the robotic team. This metric excludes the time needed to build the
+model.
+•Shortest(c) trajectory lengthfor the whole robotic team obtained
+over all simulations performed within the same experiment. The tra-
+jectory length is expressed as the total number of fired transitions in
+the RobotOPN models.
+3Renew software tool:http://www.renew.de/
+22
+
+--- Page 24 ---
+Notice that the current approach does not guarantee an optimal robotic
+planforthechosenmetrics,beinginfluencedbytherandomnessofperforming
+simulations in Renew.
+7.2. Case Study 1: Easy to follow
+The first example provides an altogether view of the defined formalism,
+considering the problem formulation from Sec. 4. We exemplify a planning
+strategy for a team of three robots evolving in a known workspace (Fig. 2)
+for which a global LTL specification is given. The missionφ=♢b 1∧ ♢b 2∧
+♢b3∧(¬b 1Ub 3)implies the visit of regions of interesty 1, y2, y3, but requires
+that regiony 3be visited beforey 1. The spatial constraints for agents impose
+an upper bound of two, i.e.,µ cap[P5] = 2, meaning that no more than two
+robots can be present at the same time in the cellP 5modeled bypo1
+5,po2
+5and
+po3
+5, all labeled byy 1.
+Fig. 3 illustrates the two types of object nets. The left side (Fig. 3-(a)),
+shows two different types of robots w.r.t. to their spatial capabilities:r 1and
+r2are identical and are allowed to move freely in the workspace. In contrast,
+r3is not allowed to enter the overlapped part of regions of interesty 2andy 3
+(illustrated by placepo1,2
+4).
+The right side (Fig. 3-(b)) shows the SpecOPN model of the LTL mission
+φ, resulting from algorithm [23]. As mentioned previously, the results in
+terms of robots’ trajectories are returned randomly by Renew. Thus, the
+mean execution time per simulation (out of 100) isµ= 14.25[ms].
+LetusexplaintheorangerunfromFig. 3-(b). Thisrunrequirestriggering
+atransitionlabeledb 1∧b2∧b3, whichrequiresthesimultaneousvisittoregions
+y1,y2, andy 3. The mission is accomplished when placepS
+6in SpecOPN
+contains a token, guaranteed by the synchronization function GEF based on
+the movements of the robots in RobotOPNs.
+Initially, the robots are in free space and cannot directly enter cellP 4
+(intersection of green and blue regions modeled bypo1
+4andpo2
+4). Note that
+r3cannot enter this cell. Therefore, the only way to reach all three regions
+is for each robot to synchronously enter these regions in one step. Conse-
+quently, three robots must move, and transitiont 3in the system net must
+fire synchronously withtS
+6.
+Furthermore, the three robots should move as follows:to1
+1fromo1labeled
+b3,to2
+4fromo2labeledb 2, andto3
+10fromo3labeledb 1. Therefore, transition
+t3in the system net, which models the movement of three robots, will fire
+23
+
+--- Page 25 ---
+Figure 3: The object nets of the HLrtPN: (a) RobotOPN modeling the robots evolving in
+the environment in Fig. 2: two of the robots (r 1andr 2) can move freely in the workspace,
+thus being represented by the entire Petri net with all 5 places; robotr 3is not allowed to
+enter the overlapped region betweeny 2andy 3(the Petri net representation is based only
+on 4 places, by removing the place, arcs and transitions with red border); (b) SpecOPN:
+the marked path (with dark orange) corresponds to the shortest solution for ensuring the
+robot mission) considering
+100 simulations according to the trajectory length of the robotic-team.
+24
+
+--- Page 26 ---
+synchronously withto1
+1,to2
+4, andto3
+10from the RobotOPNs, as well as withtS
+6.
+After these firings, a token will arrive in placepS
+6, fulfilling the LTL formula.
+Remark 5.The entire representation in Renew of the HLrtPN model
+including the system net and the object nets can be visualized on our website
+[15]. For an easier visualization in the Renew simulator, we have defined
+notations without subscripts, e.g., the formal notation of atomic propositions
+Bfor setY={y 1, y2, y3, y4}(Fig. 2) is replaced in the implementation by
+set{a, b, c, w}, in exactly this order, withwassigned to the free spacey 4.
+Moreover, the symbols¬or∧are replaced in Renew with the syntax “!“,
+respectively “,“. TheTruevalue returned by the associated Büchi automaton
+of the co-safe LTL formula, is expressed in the tool with “1“.
+7.3. Case study 2: Assessing the flexibility of the method
+Let us consider a hospital procedure, e.g., MRI (Magnetic Resonance
+Imaging), suitabletoscanimagesofthepatient’sbodywhicharefurtherused
+in diagnosing medical conditions or plan treatments. Due to the magnetic
+field generated by the machine, the computer used in the scanning process
+is in a different room. A radiographer usually operates the scanning process
+from another room. Depending on the body part that has to be monitored,
+the acquisition time varies, e.g., measuring the flow rates in vessels can take
+up to 30-40 minutes long [44]. Due to the time-consuming process of the
+scanning and monitoring, the researchers are inclined to automate it, e.g.,
+the authors of [45] aim to close the gap between the current manual approach
+of ultrasound acquisition by using a robotic system. Since the tendency is
+to reach fully automated systems assisting in the medical field, many works
+provide different solutions approaching this aspect. One example is in[46],
+where various methods for the ultrasound procedure are structured based on
+a defined autonomy level.
+The need to automate this medical process among others, allows us to
+introduceacomplexscenariosuitableformotionplanningofaroboticsystem
+with physical applicability in the real world. Let Fig. 4 illustrate the layout
+of a hospital with three floors. The hospital includes a total number of rooms
+of 12, denoted by the setY={y 1, y2, y3, y4, y5, y6, y7, y8, y9, y10, y11, y12}, with
+examination roomsy 7, y11, surgery roomsy 8, y12, therapy roomsy 9, y10, and
+MRI roomsy 1, y3, y4which can be monitored only from roomsy 2, y5, y6.
+Multiple rooms in the hospital are reached at one point in time, as stated
+in the co-safe LTL mission (1). Here, a correlation between the set of re-
+gions of interestYand the set of atomic propositionBis necessary, i.e.,b 1
+25
+
+--- Page 27 ---
+Figure 4: Environment layout for theCase-study 2considering a hospital scenario with
+three floors and 12 rooms (q= 12) for a multi-robot system with 8 robots (n= 8). The
+synchronous movements of the robots are highlighted by the same color of the rooms,
+considering the MRI procedure, i.e., yellow (y 3, y6), green (y 1, y2), blue (y 4, y6).
+associated withy 1. Firstly, the patients should be first examined in one of
+the examination rooms, through theTruevalue ofb 7orb 11. When an MRI
+procedure is required afterwards, the rooms for MRI should be reached syn-
+chronously, as the patient is monitored simultaneously by a scanning robot.
+In other words, pairs of atomic propositions suggesting a simultaneous reach
+for the MRI procedure by imposing to eventually♢visit roomsy 1, y2(ex-
+pressed byb 1, b2),y 3, y6(expressed byb 3, b6), andy 4, y5(expressed byb 4, b5).
+Moreover, the mission states to visit any of the therapy rooms and surgery
+rooms, modeling a scenario where the patient needs another procedure after
+the MRI. In this case, the robotic team should supply and clean these rooms
+through theTruevalue of any of the atomic propositionsb 8, b9, b10, b12.
+φ=♢(b 1∧b2)∧ ♢(b 3∧b6)∧ ♢(b 4∧b5)∧
+¬(b 1∨b3∨b4)U(b 7∨b11)∧ ♢(b 8∨b9∨b10∨b12)(1)
+7.3.1. Heterogeneous robotic team
+The robotic system includes different types of robots, based on their spa-
+tial capabilities:r pare robots carrying patients,r mhave scanning abilities
+only for the MRI procedure,r scare supplier and cleaning robots (supply
+with medicament and sterilize the rooms in which the patient should enter
+for medical operations) andr aare assistant robots having a wide range of
+actions, realizing the tasks ofr mandr sc. Table 1 illustrates the agents’ capa-
+bilities w.r.t. the spatial constraints. For example, agentsr pcan only enter
+roomsy 1, y3, y4, y7, y11for MRI or leading the patients for examination, while
+agentsr mhave access only in roomsy 2, y5, y6to scan the patient during the
+MRI procedure.
+26
+
+--- Page 28 ---
+The result analysis is executed for teams of two to eight robots, shown in
+Table 3. The first columns of the table present the cardinality of each type
+of robot for every scenario. It is observed that the(a) model sizedirectly
+influences the(b) run time. These simulations prove that the proposed
+framework satisfies the main objective in terms of a motion plan for a multi-
+agent system, considering offline planning. Thus, the(c) trajectory length
+could be shortened by introducing an optimality problem, the visualized
+result currently being computed through random solutions.
+Remark 6.Generally, the proposed framework ensures solutions in
+which a subset of the robotic team synchronizes. This subset is a user-defined
+agent group bounded by the team cardinality. Particularly, the second case
+study for heterogeneous robotic teams generates solutions determined by a
+subset equal to the entire set of the robotic team (Table 3).
+Table 1: Robots spatial capabilities w.r.t. the hospital’s rooms.
+Floor RoomsRobots
+rprmrscra
+I y1×
+II y2 × ×
+I y3×
+I y4×
+II y5 × ×
+II y6 × ×
+II y7×
+III y8 ××
+III y9 ××
+III y10 ××
+I y11 ×
+II y12 ××
+7.3.2. Homogeneous robotic team
+Letr fbe a full robot that is not restricted in movement and has access
+to all rooms. Explicitly, the robot can carry patients in the examination and
+MRI rooms, it has the necessary abilities to scan the patient for the MRI
+process, as well as being able to carry supplies and clean the therapy and
+surgery rooms. When the team includes only this type of robot, the team
+27
+
+--- Page 29 ---
+consists of identical agents. Thus, the current method is evaluated alongside
+other Discrete Event Systems approaches, suitable for motion planning of
+homogeneous teams ensuring a global LTL specification. The methods are
+briefly outlined below. The first two are mathematical programming based
+on PN approaches, while the third is based on graph-search algorithms.
+(i)WB [23]- this work (with Büchi (WB)) proposes a parallel approach
+between (1) a reduced Petri net model assigned to the motion of the
+robotic team in a partitioned workspace and (2) a Büchi automaton
+modeling the given mission under the LTL formalism, which is further
+translated into a Büchi Petri net model. The models are connected
+through an intermediate layer of places modeling the atomic propo-
+sitions, building a Composed Petri net model. Two MILPs (Mixed
+Integer Linear Programming) problems compute the motion plan: us-
+ing the Composed Petri net model, and projecting this solution into
+the full PN model of the discretized environment. This work guar-
+antees collision-free trajectories based on imposed constrained in the
+optimization problems, but it cannot guarantee the completeness of the
+algorithm due to the projection step.
+(ii)FB [47]- this method (following Büchi (WB)) aims for a sequential
+approach of computing trajectories of the robotic team by following
+a path from the initial state towards one final state (known also as
+an accepted run) in the Büchi automaton. First, the PN model is
+assigned to the team, based on the partitioned workspace. Secondly,
+an optimization MILP problem is solved in the search for a sequence
+of markings that can generate the necessary observations that fulfill
+the LTL mission based on a set of feasible runs computed in the Büchi
+automaton. The approach is iterative until the team can act under the
+accepted run in the automaton, producing a sub-optimal solution that
+cannot ensure collision-free trajectories.
+(iii)TS [18]- this approach (Transition Systems (TS)) is subject to repre-
+sent the motion of each robot as a Transition System model versus the
+previous approaches where one single model was assigned for the entire
+robotic team. Robots’ trajectories are computed by a graph-search-
+based algorithm for the composed model built from all the individual
+models of the robots together with the automata model of the LTL
+mission.
+28
+
+--- Page 30 ---
+Table 2: Comparison results for the homogeneous robotic team between the current and
+other DES methods from literature
+No. of rob Algorithm (a) Model size (b) Run time[s] (c) Trajectory length
+2HLrtPN (|P|,|T|) = (50,322) 0.8 33
+WB [23] (|P|,|T|) = (55,288) 0.86 14
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 0.97 14
+TS [18] |Nn|= 3042 1.51 14
+3HLrtPN (|P|,|T|) = (65,351) 0.5 28
+WB [23] (|P|,|T|) = (55,288) 1.1 13
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 0.9 13
+TS [18] |Nn|= 3.9∗1031940.33 13
+4HLrtPN (|P|,|T|) = (80,380) 4.5 19
+WB [23] (|P|,|T|) = (55,288) 0.71 12
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 0.76 12
+TS [18] |Nn|= 5.1∗104≈3days −
+5HLrtPN (|P|,|T|) = (95,409) 10.9 17
+WB [23] (|P|,|T|) = (55,288) 0.74 11
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 0.88 11
+TS [18] |Nn|= 6.6∗105− −
+6HLrtPN (|P|,|T|) = (110,438) 39.5 24
+WB [23] (|P|,|T|) = (55,288) 0.62 10
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 0.88 10
+TS [18] |Nn|= 8.6∗106− −
+7HLrtPN (|P|,|T|) = (125,467) 133.2 26
+WB [23] (|P|,|T|) = (55,288) 0.74 9
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 1.41 9
+TS [18] |Nn|= 1.1∗109− −
+8HLrtPN (|P|,|T|) = (140,496) 227.7 16
+WB [23] (|P|,|T|) = (55,288) 0.17 8
+FB [47] (|P|,|T|) = (13,26),(|N B|,|TB|) = (18,108) 1.43 8
+TS [18] |Nn|= 1.4∗1010− −
+Remark 7.To maintain the consistency of the comparison procedure, all
+thementionedmethods, includingthecurrentone, aresubjecttothesmallest
+discrete representation of the environment w.r.t. the number of partition
+elements, i.e., one element is associated with a single atomic proposition.
+Moreover, these methods are integrated into RMTool - MATLAB [48], thus
+making them accessible for any simulation according to the user’s needs.
+As previously stated, the team’s model size represents one metric taken
+into consideration for evaluation purposes. Thus, let us express the size of
+the models for each of the mentioned methods as follows:
+•WB [23]- the total number of places and transitions(|P|,|T|)of the
+defined Composed Petri net model given by the sum of the size of the
+Petri net model associated with the environment, the size of the Büchi
+Petri net model associated with the LTL formula, and the number of
+places for the intermediate layer.
+29
+
+--- Page 31 ---
+•FB [47]- the number of places and transitions of the Petri net model
+of the environment(|P|,|T|), as well as the size of the Büchi automa-
+ton(|N B|,|TB|)of the LTL formula, since both models are examined
+sequentially.
+•TS [18]- the total number of nodes in the product automata|N n|=
+|Nsr|n×|N B|consideringthe sizeof thetransition systemforeach robot
+and the size of the Büchi automaton.
+Notice that the first two methods have fixed sizes of models regardless of
+the number of robots in the team versus the last method which is strongly
+dependent on the size of the team, leading to a state-space explosion that is
+difficult to maintain for computational operations.
+Table 3: Comparison results for heterogeneous robotic team for the proposed approach
+No. of robTypes of robotsNo. of simulations(a) Model
+size(b) Run time
+[s](c) Trajectory
+length rprmrscra
+2 1 1 1000 (|P|,|T|) = (42,294) 0.39 27
+3 111 1000 (|P|,|T|) = (37,293) 0.24 29
+4 211 1000 (|P|,|T|) = (44,305) 1.1 25
+5 221 1000 (|P|,|T|) = (48,311) 1.89 15
+6 222 1000 (|P|,|T|) = (54,321) 10.4 14
+7 2221 250 (|P|,|T|) = (69,337) 107.15 20
+8 3221 245 (|P|,|T|) = (76,349) 228.91 16
+The notation HLrtPN will refer to the proposed method, for an easier vi-
+sualizationinthecomparisonTable2. Letusintroducethenotation(|P|,|T|)
+to capture the size of the entire model, where|P|and|T|are computed sim-
+ilarly, i.e.,|P|=Pn
+k=1|Pok|+|PS|+ 2. The result represents the sum of all
+RobotOPN models for each robotr k, the size of SpecOPN, and the size of
+the system net. As defined, the latter representation includes only two places
+Rb, Ms, and the number of transitions is equal to the number of robots in the
+team. For this scenario, the size of RobotOPN forr fis(15,28)(considering
+one free space place for each floor of the hospital) and(18,264)for the size
+of SpecOPN due to the automated generation from a Büchi automaton.
+Table 2 illustrates a comparative study between the current approach
+and the mentioned relevant Petri net approaches, which embody the defined
+performance metrics with numerical values. Note that the described meth-
+ods(i), (ii), (iii)do not require multiple simulations for one experiment.
+Therefore, the(b) run timeand(c) trajectory lengthare computed only
+once, without the need to compute an average metric for(b)or return the
+30
+
+--- Page 32 ---
+shortest trajectory for(c). The solver used for approaches(i), (ii), (iii)is
+CPLEX for MATLAB.
+The(b) run timefor our proposed work represents the mean time for
+each experiment4. As observed, the HLrtPN model tends to exhibit steeper
+increases in running time when more robots are added to the team, compared
+withWB [23], FB [47], on account of the number of branches explored
+by the Renew simulator. The last metric(c)portrays the comparison of
+the trajectory length for the entire robotic team, the smallest value being
+computed for methodsWB [23], FB [47]an account of the optimization
+problems. In the case of HLrtPN, we expect this metric to decrease for a
+higher number of simulations for one experiment.
+Remark 8.In the Table 3, it can be observed that the number of
+transitions increases with the number of robots in the team. Still, the model
+can be handled, and planning solutions can be computed for up to 8 robots
+in the team. Note that here, the increase considers only the type of robots,
+independently of the number of robots included in each category. In contrast,
+the approachTS [18]leads to a complex model, since a product needs to
+be built. This model becomes too large to be computationally tractable for
+teams of more than 4 robots.
+Although there are DES methods that are more cost-effective in terms
+of performance for metrics(b), (c)for homogeneous teams, our proposed
+method is shown to be efficient for heterogeneous teams, due to its flexibility
+by design, as noted in Table 3.
+8. Conclusions and Future Work
+In conclusion, the work addresses the problem of motion planning for a
+team of heterogeneous robots ensuring a global mission that includes visiting
+and/or avoiding regions of interest. Our proposed novel framework, denoted
+High-Level robot team Petri Net(HLrtPN) system, exploits the Nets-within-
+Nets paradigm to model the movement and mission of the robots through
+a nested Petri net structure. TheGlobal Enabling Functionensures syn-
+chronization between the different nets. The step-by-step implementation in
+Renew is available in [15]. The feasibility of HLrtPN is supported by simula-
+tion experiments considering a realistic hospital scenario, facilitating easier
+41000 simulations for the first three cases (2-5 robots), 250 simulations for 6 robots,
+85 simulations for 7 robots, and 300 simulations for 8 robots.
+31
+
+--- Page 33 ---
+modeling of robotic systems when compared with other discrete event system
+approaches.
+Limitations and future work.Besides the series of advantages that
+our proposed framework introduces, such as the novelty of the Nets-within-
+Netsparadigmusedforthefirsttime(basedonthecurrentstateoftheart)in
+planning solutions for multi-robot systems, the flexibility towards modeling
+heterogeneous robotic teams ensuring a global mission while having compa-
+rable simulation results when considering other approaches from literature
+[47, 23, 18], some limitation can be noted here. Four challenges are raised in
+terms of (i) computing the optimal solution, (ii) inferring the computational
+tractability scales when the number of robots increases, (iii) encapsulating
+time constraints under high-level Petri nets formalism, which would be suit-
+able in the motion planning field considering real-time applications, and (iv)
+preventing the occurrence of spurious firing of transitions. We believe future
+work can be directed towards these alleviated issues, enhancing its potential.
+9. CRediT authorship contribution statement
+Sofia Hustiu: Conceptualization, Methodology, Formal analysis, Inves-
+tigation, Writing - Original Draft;Joaquín Ezpeleta: Conceptualization,
+Investigation, Methodology, Software;Cristian Mahulea: Conceptualiza-
+tion,Methodology,Supervision,Writing-Review&Editing;MariusKloet-
+zer: Conceptualization, Methodology, Formal analysis, Writing - Review &
+Editing.
+10. Declaration of competing interest
+The authors declare that they have no known competing financial inter-
+ests or personal relationships that could have appeared to influence the work
+reported in this paper.
+11. Acknowledgment
+WeacknowledgethesupportfromprojectsPID2024-159284NB-I00,PID2023-
+148202OB-C22 and TED2021-130449B-I00 of the Spanish Ministry of Sci-
+ence, Innovation, and Universities, and from Grant N62909-24-1-2081 of the
+US Department of the Navy.
+We are grateful to Eva Robillard (University of Paris-Saclay) for her as-
+sistance with the implementation during the initial stages of this work. We
+32
+
+--- Page 34 ---
+also extend our sincere thanks to Octavian-Cezar Pastravanu for his insight-
+ful discussions, which were instrumental in shaping the depth of this study.
+Finally, we acknowledge with appreciation the constructive comments and
+suggestions of the Editors and Reviewers, which greatly enhanced the qual-
+ity of the manuscript.
+References
+[1] S. M. LaValle, Planning Algorithms, Cam-
+bridge University Press, United Kingdom, 2006.
+doi:http://dx.doi.org/10.1017/CBO9780511546877.
+[2] L. Lindemann, D. V. Dimarogonas, Robust motion planning employing
+Signal Temporal Logic, in: ACC 2017: American Control Conf., 2017,
+pp. 2950–2955. doi:10.23919/ACC.2017.7963399.
+[3] N. Mehdipour, C.-I. Vasile, C. Belta, Specifying user preferences using
+weighted signal temporal logic, IEEE Control Systems Letters 5 (6)
+(2020) 2006–2011. doi:10.1109/LCSYS.2020.3047362.
+[4] C. Mahulea, M. Kloetzer, J.-J. Lesage, Multi-robot path planning
+with boolean specifications and collision avoidance, IFAC-PapersOnLine
+53 (4) (2020) 101–108. doi:https://doi.org/10.1016/j.ifacol.2021.04.011.
+[5] X. Yu, X. Yin, S. Li, Z. Li, Security-preserving multi-agent coordina-
+tion for complex temporal logic tasks, Control Engineering Practice 123
+(2022) 105–130. doi:https://doi.org/10.1016/j.conengprac.2022.105130.
+[6] E. Plaku, S. Karaman, Motion planning with temporal-logic specifica-
+tions: Progress and challenges, AI communications 29 (1) (2016) 151–
+162. doi:10.3233/AIC-150682.
+[7] P. Tabuada, G. J. Pappas, Linear time logic control of discrete-time
+linear systems, IEEE Transactions on Automatic Control 51 (12) (2006)
+1862–1877. doi:10.1109/TAC.2006.886494.
+[8] C. G. Cassandras, S. Lafortune, Introduction to discrete event systems,
+Springer, 2008. doi:http://dx.doi.org/10.1007/978-0-387-68612-7.
+33
+
+--- Page 35 ---
+[9] C. Belta, A. Bicchi, M. Egerstedt, E. Frazzoli, E. Klavins, G. Pappas,
+Symbolic planning and control of robot motion, IEEE Robotics and Au-
+tomation Magazine 14 (1) (2007) 61–71. doi:10.1109/MRA.2007.339624.
+[10] B. Lacerda, P. U. Lima, Petri net based multi-robot task coordination
+from temporal logic specifications, Robotics and Autonomous Systems
+122 (2019) 103289. doi:https://doi.org/10.1016/j.robot.2019.103289.
+[11] C. Mahulea, M. Kloetzer, R. González, Path Planning of Cooperative
+Mobile Robots Using Discrete Event Models, John Wiley & Sons, 2020.
+[12] C. Ju, H. I. Son, A hybrid systems-based hierarchical control architec-
+ture for heterogeneous field robot teams, IEEE Transactions on Cyber-
+netics (2021). doi:10.1109/TCYB.2021.3133631.
+[13] K. Jensen, G. Rozenberg, High-level Petri nets: theory and application,
+Springer Science & Business Media, 2012.
+[14] R. Valk, Object Petri nets, in: Advanced Course on Petri Nets,
+Springer, 2003, pp. 819–848. doi:http://dx.doi.org/10.1007/978-3-540-
+27755-2_23.
+[15] Nets-within-Nets for Motion Planning with Renew,https://Sof16.
+github.io/, accessed: 15-02-2025 (2025).
+[16] Á. Madridano, A. Al-Kaff, D. Martín, A. De La Escalera, Tra-
+jectory planning for multi-robot systems: Methods and appli-
+cations, Expert Systems with Applications 173 (2021) 114660.
+doi:https://doi.org/10.1016/j.eswa.2021.114660.
+[17] L. Antonyshyn, J. Silveira, S. Givigi, J. Marshall, Multiple mobile robot
+task and motion planning: A survey, ACM Computing Surveys 55 (10)
+(2023) 1–35. doi:https://doi.org/10.1145/3564696.
+[18] X. C. Ding, M. Kloetzer, Y. Chen, C. Belta, Automatic deployment of
+robotic teams, IEEE Robotics & Automation Magazine 18 (3) (2011)
+75–86. doi:10.1109/MRA.2011.942117.
+[19] M. Kloetzer, C. Mahulea, LTL-based planning in environ-
+ments with probabilistic observations, IEEE Transactions on
+Automation Science and Engineering 12 (4) (2015) 1407–1420.
+doi:10.1109/TASE.2015.2454299.
+34
+
+--- Page 36 ---
+[20] X.Luo, M.M.Zavlanos, Temporallogictaskallocationinheterogeneous
+multirobot systems, IEEE Transactions on Robotics 38 (6) (2022) 3602–
+3621. doi:10.1109/TRO.2022.3181948.
+[21] C. Ju, H. I. Son, Modeling and control of heterogeneous agricultural
+field robots based on Ramadge–Wonham theory, IEEE Robotics and
+Automation Letters 5 (1) (2019) 48–55. doi:10.1109/LRA.2019.2941178.
+[22] I. Hustiu, M. Kloetzer, C. Mahulea, Extension of a decomposition
+method for a global LTL specification, in: ETFA 2023: Int. Conf. on
+Emerging Technologies and Factory Automation, IEEE, 2023, pp. 1–4.
+doi:10.1109/ETFA54631.2023.10275529.
+[23] S. Hustiu, C. Mahulea, M. Kloetzer, J.-J. Lesage, On multi-robot path
+planning based on Petri net models and LTL specifications, IEEE Trans-
+actions on Automatic Control (2024). doi:10.1109/TAC.2024.3386024.
+[24] M. Figat, C. Zieliński, Parameterised robotic system meta-model ex-
+pressed by Hierarchical Petri nets, Robotics and Autonomous Systems
+150 (2022) 103987. doi:https://doi.org/10.1016/j.robot.2021.103987.
+[25] M. Allison, M. Spradling, Modeling sub-team formations for heteroge-
+neous multi-robot systems using colored Petri-net semantics, in: 2022
+18th Int. Conf. on Distributed Computing in Sensor Systems (DCOSS),
+IEEE, 2022, pp. 237–243. doi:10.1109/DCOSS54816.2022.00048.
+[26] P. Schillinger, S. García, A. Makris, K. Roditakis, M. Logothetis,
+K. Alevizos, W. Ren, P. Tajvar, P. Pelliccione, A. Argyros, et al.,
+Adaptive heterogeneous multi-robot collaboration from formal task
+specifications, Robotics and Autonomous Systems 145 (2021) 103866.
+doi:https://doi.org/10.1016/j.robot.2021.103866.
+[27] M. Köhler, D. Moldt, H. Rölke, Modelling mobility and mobile agents
+using Mets within nets, in: ICATPN 2003: Applications and Theory of
+Petri Nets, Eindhoven, The Netherlands, June 23–27, Springer, 2003,
+pp. 121–139.
+[28] P. Alvarez, J. A. Banares, J. Ezpeleta, Approaching web service coor-
+dination and composition by means of Petri Nets. the case of the Nets-
+within-nets paradigm, in: Int. Conf. on Service-Oriented Computing,
+Springer, 2005, pp. 185–197.
+35
+
+--- Page 37 ---
+[29] Y. Kissoum, R. Maamri, Z. Sahnoun, Modeling smart home us-
+ing the paradigm of nets within nets, in: AIMSA 2012: Artifi-
+cial Intelligence: Methodology, Systems, and Applications, Varna,
+Bulgaria, September 12-15, 2012., Springer, 2012, pp. 286–295.
+doi:http://dx.doi.org/10.1007/978-3-642-33185-5_32.
+[30] R. Bardini, A. Benso, S. Di Carlo, G. Politano, A. Savino, Using Nets-
+within-nets for modeling differentiating cells in the epigenetic land-
+scape, in: IWBBIO 2016: Bioinformatics and Biomedical Engineering,
+Granada, Spain, April 20-22, 2016, Springer, 2016, pp. 315–321.
+[31] R. Bardini, G. Politano, A. Benso, S. Di Carlo, Using multi-level
+Petri nets models to simulate microbiota resistance to antibiotics, in:
+BIBM 2017: Int. Conf. on Bioinf. and Biomedicine, 2017, pp. 128–133.
+doi:10.1109/BIBM.2017.8217637.
+[32] O. Kummer, F. Wienberg, M. Duvigneau, M. Köhler, D. Moldt,
+H. Rölke, Renew–the reference net workshop, in: Tool Demonstrations,
+21st Int. Conf. on Application and Theory of Petri Nets, Aarhus, Den-
+mark, 2000, pp. 87–89.
+[33] S. Willrodt, D. Moldt, M. Simon, Modular model checking of reference
+nets: Momoc., in: PNSE@ Petri Nets, 2020, pp. 181–193.
+[34] L. Capra, M. Köhler-Bußmeier, Encoding Nets-Within-Nets in maude,
+in: Science and Information Conference, Springer, 2023, pp. 355–372.
+doi:http://dx.doi.org/10.1007/978-3-031-37963-5_25.
+[35] M. Figat, C. Zieliński, Methodology of designing multi-agent robot
+control systems utilising hierarchical Petri nets, in: ICRA 2019:
+Int. Conf. on Robotics and Automation, 2019, pp. 3363–3369.
+doi:10.1109/ICRA.2019.8794201.
+[36] C. Baier and J.-P. Katoen.Principles of Model Checking. MIT Press,
+2008.
+[37] E. M. Clarke, O. Grumberg, and D. Peled.Model Checking. MIT Press,
+1999.
+[38] J. Esparza, J. Křetínsk` y, and S. Sickert. One theorem to rule them all:
+A unified translation of LTL intoω-automata. InProceedings of the 33rd
+36
+
+--- Page 38 ---
+Annual ACM/IEEE Symposium on Logic in Computer Science (LICS),
+pages 384–393, 2018.
+[39] M. Kloetzer and C. Mahulea. Path planning for robotic teams based
+on LTL specifications and Petri net models.Discrete Event Dynamic
+Systems, 30(1):55–79, 2020. Springer.
+[40] P. Wolper, M. Vardi, A. Sistla, Reasoning about infinite computation
+paths, in: E. N. et al. (Ed.), Proceedings of the 24th IEEE Symposium
+on Foundations of Computer Science, Tucson, AZ, 1983, pp. 185–194.
+doi:10.1109/SFCS.1983.51.
+[41] O. Kupferman, M. Y. Vardi, Model checking of safety prop-
+erties, Formal methods in system design 19 (2001) 291–314.
+doi:http://dx.doi.org/10.1007/3-540-48683-6_17.
+[42] M. P. Cabasino, A. Giua, M. Pocci, C. Seatzu, Discrete event
+diagnosis using labeled Petri nets. an application to manufactur-
+ing systems, Control Engineering Practice 19 (9) (2011) 989–1001.
+doi:https://doi.org/10.1016/j.conengprac.2010.12.010.
+[43] K. Jensen, Coloured Petri nets: A high level language for system de-
+sign and analysis, in: High-level Petri Nets, Springer Berlin Heidelberg,
+Berlin, Heidelberg, 1991, pp. 44–119. doi:http://dx.doi.org/10.1007/3-
+540-53863-1_31.
+[44] K. G. Hollingsworth, Reducing acquisition time in clinical MRI by
+data undersampling and compressed sensing reconstruction, Physics
+in Medicine & Biology 60 (21) (2015) R297. doi:10.1088/0031-
+9155/60/21/R297.
+[45] C. Hennersperger, B. Fuerst, S. Virga, O. Zettinig, B. Frisch, T. Neff,
+N.Navab,Towardsmri-basedautonomousroboticusacquisitions: afirst
+feasibility study, IEEE transactions on medical imaging 36 (2) (2016)
+538–548. doi:10.1109/TMI.2016.2620723.
+[46] K. Li, Y. Xu, M. Q.-H. Meng, An overview of systems and
+techniques for autonomous robotic ultrasound acquisitions, IEEE
+Trans. on Medical Robotics and Bionics 3 (2) (2021) 510–524.
+doi:10.1109/TMRB.2021.3072190.
+37
+
+--- Page 39 ---
+[47] M. Kloetzer, C. Mahulea, Path planning for robotic teams based on LTL
+specifications and Petri net models, Discrete Event Dyn. Syst.: Theory
+Appl. 30 (1) (2020) 55–79. doi:http://dx.doi.org/10.1007/s10626-019-
+00300-1.
+[48] R. González, C. Mahulea, M. Kloetzer, A Matlab-based interactive sim-
+ulator for mobile robotics, in: IEEE CASE’2015: Int. Conf. on Autom.
+Science and Engineering, 2015. doi:10.1109/CoASE.2015.7294097.
+[49] I. I. Cplex, V12. 1: User’s manual for CPLEX, International Business
+Machines Corporation 46 (53) (2009) 157.
+[50] Paul Gastin and Denis Oddoux. Fast LTL to Büchi Automata Transla-
+tion. InProceedings of the 13th International Conference on Computer
+Aided Verification (CAV ’01), pages 53–65. Springer-Verlag, Berlin, Hei-
+delberg, 2001. ISBN 3540423451.
+38

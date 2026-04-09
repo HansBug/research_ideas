@@ -1,0 +1,2034 @@
+--- Page 1 ---
+A
+Pebble Weighted Automata and Weighted Logics
+BENEDIKT BOLLIG, PAUL GASTIN, BENJAMIN MONMEGE , LSV, ENS Cachan, CNRS, Inria
+MARC ZEITOUN , Universit e de Bordeaux, LaBRI, CNRS, Inria
+We introduce new classes of weighted automata on words. Equipped with pebbles, they go beyond the class of
+recognizable formal power series: they capture weighted rst-order logic enriched with a quantitative version
+of transitive closure. In contrast to previous work, this calculus allows for unrestricted use of existential and
+universal quantications over positions of the input word. We actually consider both two-way and one-way
+pebble weighted automata. The latter class constrains the head of the automaton to walk left-to-right,
+resetting it each time a pebble is dropped. Such automata have already been considered in the boolean
+setting, in the context of data words. Our main result states that two-way pebble weighted automata, one-
+way pebble weighted automata, and our weighted logic are expressively equivalent. We also give new logical
+characterizations of standard recognizable series.
+Categories and Subject Descriptors: F.3.1 [ Logics and Meanings of Programs ]: Specifying and Verifying
+and Reasoning about Programs; F.4.3 [ Mathematical Logic and Formal Languages ]: Formal Languages
+General Terms: Algorithms, Languages, Theory, Verication
+Additional Key Words and Phrases: Formal power series, Pebble automata, Quantitative properties,
+Weighted automata, Weighted logics
+1. INTRODUCTION
+Connections between logical and state-based formalisms have always been a fascinating
+research area in theoretical computer science, which produced some fundamental theorems.
+The line of classical results started with the equivalence of MSO logic and nite automata
+[B uchi 1960; Elgot 1961; Trakhtenbrot 1961] and gave rise to natural generalizations to trees
+in terms of logics for tree automata [Thatcher and Wright 1968; Rabin 1969; Comon et al.
+2008], tree-walking automata, and pebble tree automata [Boja nczyk et al. 2006; Samuelides
+and Segoun 2007; Boja nczyk 2008]. Such automata models recently attracted signicant
+interest, for instance in the context of manipulating XML documents and evaluating XPath
+queries [ten Cate and Segoun 2010].
+Other extensions of nite automata are of quantitative nature and include timed au-
+tomata, probabilistic systems, and transducers, which all come with more or less natural,
+specialized logical characterizations. A generic concept of adding weights to qualitative sys-
+tems is provided by the theory of weighted automata [Droste et al. 2009], rst introduced
+by Sch utzenberger [Sch utzenberger 1961]. The output of a weighted automaton running on
+This is an extended and enhanced version of results published in [Bollig et al. 2010]. This paper was written
+when the last author was visiting LSV as a full time Inria researcher.
+This work was partly supported by ANR 2010 BLAN 0202 01 FREC, ARCUS ^Ile-de-France{Inde, and LIA
+InForMel.
+Authors' addresses: B. Bollig, P. Gastin, and B. Monmege: LSV, ENS Cachan, CNRS & Inria, 61, Av.
+du Pr esident Wilson, 94235 Cachan Cedex, France. Email: fbollig,gastin,monmege g@lsv.ens-cachan.fr; M.
+Zeitoun: LaBRI, Universit e de Bordeaux, CNRS & Inria, 351 cours de la Lib eration, 33405 Talence Cedex,
+France. Email: mz@labri.fr.
+Permission to make digital or hard copies of part or all of this work for personal or classroom use is
+granted without fee provided that copies are not made or distributed for prot or commercial advantage
+and that copies show this notice on the rst page or initial screen of a display along with the full citation.
+Copyrights for components of this work owned by others than ACM must be honored. Abstracting with
+credit is permitted. To copy otherwise, to republish, to post on servers, to redistribute to lists, or to use any
+component of this work in other works requires prior specic permission and/or a fee. Permissions may be
+requested from Publications Dept., ACM, Inc., 2 Penn Plaza, Suite 701, New York, NY 10121-0701 USA,
+fax +1 (212) 869-0481, or permissions@acm.org.
+cYYYY ACM 1529-3785/YYYY/01-ARTA $15.00
+DOI:http://dx.doi.org/10.1145/0000000.0000000
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 2 ---
+A:2 Bollig, Gastin, Monmege, Zeitoun
+a word is no longer a boolean value discriminating between accepted and rejected behaviors.
+A word is rather mapped to a weight from a semiring, summing over the weights of all pos-
+sible runs, each calculated as the product of its transition outcomes. Indeed, probabilistic
+automata and word transducers appear as instances of that framework, which found its way
+into numerous application areas such as natural language processing and speech recognition
+or digital image compression (see [Droste et al. 2009, Part IV]).
+A logical characterization of weighted automata, however, was established only re-
+cently [Droste and Gastin 2009], in terms of a (restricted) weighted MSO logic capturing
+the recognizable formal power series (i.e., the behaviors of nite weighted automata). The
+key idea is to interpret existential and universal quantications as the operations sum and
+product from a semiring. The original work on a logical characterization of the recognizable
+series on words has been extended to more general structures such as ranked and unranked
+trees [Droste and Vogler 2006; Droste and Vogler 2011], nested words [Mathissen 2010],
+pictures [Fichtner 2011], and Mazurkiewicz traces [Meinecke 2006], to mention only a few.
+In all these cases, however, one has to restrict the universal rst-order quantication to stay
+within the class of recognizable series.
+In the present paper, we follow a dierent approach. Instead of restricting the logic, we
+dene an extended automaton model that naturally reects it. We will indeed show that
+universal quantication as interpreted in [Droste and Gastin 2009] is essentially captured
+by a pebble (two-way) mechanism in the automata-theoretic counterpart. Inspired by the
+theory of two-way and pebble automata on words and trees [Rabin and Scott 1959; Engel-
+friet and Hoogeboom 1999; Boja nczyk et al. 2006; Samuelides and Segoun 2007; Boja nczyk
+2008], we actually dene weighted generalizations that preserve their natural connections
+with logic. More precisely, we introduce pebble weighted automata on words and estab-
+lish expressive equivalence to weighted rst-order logic with a quantitative extension of the
+boolean transitive closure, extending the classical boolean case for words [Engelfriet and
+Hoogeboom 2007]. Our equivalence proof makes a detour via one-way pebble weighted au-
+tomata, which were already considered in the boolean context for innite alphabets [Neven
+et al. 2004] and restrict pebble weighted automata to left-to-right runs. Note that frag-
+ments of our logic also yield alternative characterizations of the (classical) recognizable
+formal power series.
+Related work. There has been a wide range of quantitative extensions of rst-order and
+temporal logic that are quite dierent from the logics studied in this paper. Most of them
+are specialized and cannot be instantiated by arbitrary semirings.
+The formalisms from [Immerman and Lander 1990; Etessami 1997; Libkin 2000; Hella
+et al. 2001] consider counting and aggregate quantiers for rst-order logic to talk about
+two-sorted structures. Roughly speaking, they allow us to specify how often a boolean
+formula shall be satised, or to sum up over all elements satisfying a property. However, a
+sentence still denes a language (of two-sorted structures) rather than a formal power series.
+Moreover, the focus in these works has been on (non-)denability and locality properties
+in the sense of Hanf and Gaifman. Connections with automata (not to mention weighted
+automata) were not studied, and there seems to be no immediate correspondence.
+When weighted monadic second-order logic is provided with a threshold operator, it
+embeds probabilistic CTL [Hansson and Jonsson 1994], as observed in [Bollig and Gastin
+2009]. In principle, this also applies to counting versions of the temporal logics CTL and
+LTL [Laroussinie et al. 2010a; Laroussinie et al. 2010b], which can reason about how often
+a formula is satised along a path. Again, a formula from these logics denes a language
+of words or trees rather than a series, which leads to classical (boolean) satisability and
+model checking questions. Contrary to this, we are aiming in this paper at a B uchi-like
+correspondence of logic and automata for formal power series , which associate a quantity
+with every word.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 3 ---
+Pebble Weighted Automata and Weighted Logics A:3
+Aquantitative semantics of structures is given in [Fischer et al. 2010] for an extension of
+the-calculus, though not in terms of a formal power series over a semiring. Disjunction
+and conjunction correspond to maximum and minimum, respectively, and temporal as well
+as xed-point operators are dened using supremum, inmum, and discount factors. As
+opposed to our setting, the structures themselves are branching and quantitative (like in
+probabilistic CTL).
+Outline. In Section 2, we recall the classical concept of recognizable formal power series
+and recall basics about logics. Weighted logics are introduced in Section 3. In Section 4,
+the class of recognizable series is revisited in the light of these weighted logics, which yields
+new logical characterizations. In Section 5, we go beyond recognizable series by introducing
+pebble weighted automata (two-way and one-way), and we show that both formalisms are
+expressively equivalent to weighted rst-order logic augmented with transitive closure. Fi-
+nally, Section 6 studies some algorithmic questions such as evaluation (the weighted version
+of the membership problem), and satisability. We conclude in Section 7.
+2. NOTATION AND BACKGROUND
+In this section we set up the notation and we recall some basic results on weighted automata
+and logics. We refer the reader to [Droste and Gastin 2009; Droste et al. 2009] for details.
+Throughout the paper, Adenotes a nite alphabet and A(respectively, A+) is the
+free monoid (respectively, semigroup) over A, i.e., the set of words (respectively, nonempty
+words). The length of u2Ais denoted byjuj. Ifjuj=n>1, we usually write u=u1un
+withui2Aand we let pos( u) =f1;:::;ng. For 1 6i6j6n, we denote by u[i::j] the
+factoruiui+1ujofu. Finally, we let A6k=S
+06i6kAi.
+2.1. Formal power series
+Asemiring is a structure ( S;+;;0;1) where ( S;+;0) is a commutative monoid, ( S;;1)
+is a monoid,distributes over +, and 0 is an absorbing element for . We say that Sis
+commutative if so is ( S;;1).
+Example 2.1.We shall refer in the examples to the usual boolean semiring
+(f0;1g;_;^;0;1), denoted by B, the semiring ( N;+;;0;1) of natural numbers, the semiring
+(Z;+;;0;1) of integers, the tropical semiring ( N[f1g;min;+;1;0), denoted by T, the
+arctic semiring ( N[f1g;max;+;1;0), denoted by A, and the probabilistic semiring
+(R+;+;;0;1), denoted by P.
+Aformal power series (orseries , for short) is a mapping f:A+!S. The set of formal
+power series is denoted by ShhA+ii. We denote again by + and the pointwise addition
+and multiplication (called the Hadamard product ) onShhA+ii, and by 0 and 1 the constant
+series with values 0 and 1, respectively.
+2.2. Weighted automata
+All automata we consider are nite. A (one-way) weighted automaton (1WA) over
+(S;+;;0;1) is a tupleA= (Q;A;I;F; ;weight ), whereQis the set of states, Ais a nite
+alphabet,IQis the set of initial states, FQis the set of nal states,  QAQ
+is the set of transitions, and weight : !Sassigns a weight to every transition. A runon
+a wordu=u1unis a sequence of transitions =q0u1!q1u2!un!qn. The weight
+of the runis
+weight ()def=nY
+i=1weight (qi1;ui;qi):
+Such a run is said to be accepting ifq02Iandqn2F. The weight JAK(u) ofuis the
+sum of the weights of all accepting runs on u.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 4 ---
+A:4 Bollig, Gastin, Monmege, Zeitoun
+1 2 3a,1
+b,1
+c,1
+a,1
+b,−1a,1
+b,1
+c,1
+d,1a,1
+b,1
+c,1
+d,1
+Fig. 1 . Automaton for Example 2.3
+One may also describe a weighted automaton by matrices: for all a2A, the transition
+matrix(a)2SQQis dened by (a)q;q0=weight (q;a;q0) for allq;q02Qif (q;a;q0)2,
+and 0 otherwise. Moreover, one denes matrices 2S1Qand2SQ1as characteristic
+matrices of the sets IandFrespectively, i.e., for every state q2Q,q= 1 ifq2I, 0
+otherwise, and q= 1 ifq2F, 0 otherwise. The mapping :A!SQQextends uniquely
+to a morphism :A+!SQQ(where SQQis endowed with the usual multiplication of
+matrices). One can then verify that JAK(u) =(u)(see, e.g., [Berstel and Reutenauer
+2010, Prop. 6.1] for more details).
+We call JAK2ShhA+iithebehavior , orsemantics ofA. A formal power series f2ShhA+ii
+is called recognizable if it is the behavior of some weighted automaton. We let SrechhA+iibe
+the collection of all recognizable formal power series.
+Example 2.2.In the semiring N, letAbe the automaton with a single state q, both
+initial and nal, and transitions ( q;a;q ) of weight 2 for all a2A. Then, JAK(u) = 2jujfor
+allu2A+.
+Example 2.3.LetA=fa;b;c;dg. Suppose we want to compute, for a word u2A+, the
+dierence between the number of a's and the number of b's before the rst occurrence of
+d. Over the semiring Z, the automatonArepresented in Figure 1 computes this dierence
+relying on the non-deterministic move from state 1 to state 2.
+It is well-known [Berstel and Reutenauer 2010] that SrechhA+iiis stable under addition
+and, if Sis commutative, also under Hadamard product.
+2.3. Monadic second-order logic
+Let us x innite supplies of rst-order variables Var = fx;y;z;t;x 1;x2;:::g, and of second-
+order variables VAR = fX;Y;X 1;X2;:::g. The set MSO( A) (or simply MSO) of monadic
+second-order formulas over Ais given by the grammar:
+'::=Pa(x)jx6yjx2Xj:'j'_'j9x'j9X'
+wherea2A,x;y2Var andX2VAR. As usual, the set FO( A) (or simply FO) of rst-order
+formulas over Ais the fragment of MSO( A) without second-order quantications 9X.
+For'2MSO(A), let Free(') denote the set of free variables of '. If Free(') =;, then'
+is called a sentence . For a nite setVVar[VAR and a word u2A+, a (V;u)-assignment
+is a function that maps rst-order variables in Vto elements of pos( u) and second-order
+variables inVto subsets of pos( u). Forx2Var andi2pos(u),[x7!i] denotes the
+(V[fxg;u)-assignment that maps xtoiand, otherwise, coincides with . ForX2VAR
+andIpos(u), the (V[fXg;u)-assignment [X7!I] is dened similarly.
+A pair (u;), whereis a (V;u)-assignment, can be encoded as a word over the extended
+alphabetAVdef=Af0;1gV. We write a word ( u1;1)(un;n)2A+
+Vas (u;) where
+u=u1unand=1n. We call (u;)valid if, for each rst-order variable x2V,
+thex-row ofcontains exactly one 1. If ( u;) is valid, then encodes the (V;u)-assignment
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 5 ---
+Pebble Weighted Automata and Weighted Logics A:5
+that maps a rst-order variable x2Vto the unique position carrying 1 in the x-row, and
+a second-order variable X2Vto the set of positions carrying 1 in the X-row.
+We x a nite set Vof variables such that Free( ')V. For every u2A+and every
+(V;u)-assignment , we dene u;j='by induction over the formula ', as shown in
+Table I. Note in particular that the semantics of 'only depends on the restriction of to
+free variables of 'inV.
+Table I. Semantics of MSO
+u;j=Pa(x) ifu(x)=a
+u;j=x6y if(x)6(y)
+u;j=x2X if(x)2(X)
+u;j=:' ifu;6j='
+u;j='1_'2ifu;j='1oru;j='2
+u;j=9x' if there exists i2pos(u) such that u;[x7!i]j='
+u;j=9X' if there exists Ipos(u) such that u;[X7!I]j='
+We use abbreviations for constants, modulo constraints and comparisons, like for example,
+x6y+ 2. We use rstand lastas abbreviations for the rst and last positions of a word.
+All of these shortcuts can be replaced by suitable FO-formulas, except modulo constraints
+such as \x`m" with 1 6m6`, which are MSO-denable.
+In the sequel, we let FO+mod be the fragment of MSO consisting of FO augmented
+with modulo constraints x`mfor constants 1 6m6`(since the positions of words
+start with 1, it is more convenient to compute modulo as a value between 1 and `). The
+semantics is given by
+Jx`mK(u;) =1 if(x)mmod`
+0 otherwise
+and it is MSO-denable by
+x`mdef=8X
+(x2X)^
+8y(y2X^y>` ) =)y`2X
+=)m2X
+:
+3. WEIGHTED LOGICS
+Our aim is to dene a denotational model to describe the behavior of weighted automata.
+This has already been done by Droste and Gastin [Droste and Gastin 2009]: they have intro-
+duced weighted logics with syntax close to monadic second-order logic, extending the seman-
+tics by using addition and product of a semiring to evaluate disjunctions/existential quan-
+tications, and conjunctions/universal quantications, respectively. At the price of strong
+restrictions on the shape of the formulas, they succeeded to prove an expressiveness result
+(in our formalism, this result is stated in Theorem 3.8).
+The syntax of [Droste and Gastin 2009] is purely quantitative, though boolean connectives
+can be expressed indirectly. As it may be somewhat confusing to interpret purely logical
+formulas in a weighted manner, we slightly modify the original syntax, by clearly separating
+the logical and the quantitative parts: our weighted logic consists of a boolean kernel, such
+as MSO or FO, augmented with quantitative operators (addition, multiplication, sum and
+product quantications, and possibly weighted transitive closure). Thus, our language will
+allow us to test explicitly for boolean monadic second-order properties, and to perform
+computations. We shall see that both formalisms are equivalent. However, in addition to
+being more intuitive, the new syntax allows exibility to study expressiveness. For instance,
+one can investigate how the underlying boolean logic inuences the computational power
+(see Lemma 3.3).
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 6 ---
+A:6 Bollig, Gastin, Monmege, Zeitoun
+3.1. General denitions
+Denition 3.1 ( Weighted logics ). Given a class Lof boolean formulas, we denote by
+wMSO(L) the class of weighted monadic second-order logic dened by
+ ::=sj'jj
+jL
+xjN
+xjL
+XjN
+X
+wheres2S,'2L,x2Var andX2VAR. Disabling the sum and product indexed by set
+variables, we dene the class wFO( L) ofweighted rst-order logic by
+ ::=sj'jj
+jL
+xjN
+x
+wheres2S,'2Landx2Var.
+We denote again by Free() the set of free variables of a formula  2wMSO(L). Let
+againVbe a nite set of variables such that Free() V. The semantics JKV2ShhA+
+Viiof
+ wrt.Vis dened as follows: if ( u;) is not valid, we set JKV(u;) = 0. Otherwise JKV
+is given in Table II. Hereby, if Sis not commutative, the products follow the natural order
+on pos(u) and the lexicographic order on the power set f0;1gpos(u).
+Table II. Semantics of wMSO(L)
+JsK(u;) =s J'K(u;) =
+1 ifu;j='
+0 otherwise
+J12K(u;) = J1K(u;) + J2K(u;) J1
+2K(u;) = J1K(u;)J2K(u;)
+JL
+xK(u;) =X
+i2pos(u)JK(u;[x7!i]) JN
+xK(u;) =Y
+i2pos(u)JK(u;[x7!i])
+JL
+XK(u;) =X
+Ipos(u)JK(u;[X7!I]) JN
+XK(u;) =Y
+Ipos(u)JK(u;[X7!I])
+Example 3.2.In the boolean semiring B, recognizable and wMSO(MSO)-denable series
+coincide. In contrast, for the natural semiring N, the denition yields JN
+xN
+y2K(u) = 2juj2,
+which is not recognizable [Droste and Gastin 2009]. Indeed, let A= (Q;A;I;F; ;weight ).
+Then, JAK(u) =O((MjQj)juj+1) forM= max( weight ()), since there are O(jQjjuj+1) runs
+onu, each of weight O(Mjuj). Also observe that the behavior of the automaton of Exam-
+ple 2.2 is JN
+y2K. Therefore, recognizable series are not stable under rst-order productN
+x.
+We denote by AP the class of atomic propositions, i.e., that contains only formulas Pa(x),
+x6y,x2Xand their negations. As explained at the beginning of the section, the logic
+wMSO( S) (respectively, wFO( S)) introduced in [Droste and Gastin 2009] is exactly the
+class of formulas wMSO(AP) (respectively, wFO(AP)). Transposed into our syntax, the
+transformation described in their Denition 4.3 and proved in Lemma 4.4, permits to state:
+Lemma 3.3.For all formulas '2MSO (respectively, '2FO), there exists a formula
+2wMSO(AP) (respectively, 2wFO(AP) ), with the same set of free variables, such
+that J'K=JK.
+Hence, we can always replace a boolean FO or MSO formula by its wFO(AP) or
+wMSO(AP) equivalent and we obtain:
+Corollary 3.4.LetSbe a (possibly non-commutative) semiring and f2ShhA+ii.
+Then,
+|fiswMSO(MSO) -denable if and only if fiswMSO(AP) -denable.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 7 ---
+Pebble Weighted Automata and Weighted Logics A:7
+|fiswFO(FO) -denable if and only if fiswFO(AP) -denable.
+For a boolean formula '2Land a formula 2wMSO(L), we dene the macro
+'!def=:'('
+)
+as a natural generalization of the boolean implication ( '!'0for';'02L): its semantics
+isJKif'holds, and 1 otherwise.
+Example 3.5.The series recognized by the weighted automaton in Example 2.3 can also
+be described by the following formula in wFO(FO):
+L
+y
+:9x(x6y^Pd(x))
+
+
+Pa(y)(Pb(y)
+(1))
+:
+Example 3.6.Consider now a machine with one counter that can take non-negative
+values, being either incremented, decremented or zero-tested on each step. We encode the
+behavior of such a machine by recording the string of instructions applied on the counter,
+letters Inc,DecandZTest stand for increment, decrement and zero-test respectively. We will
+show in Theorem 6.2 that satisability of a formula in the logic wFO(FO) over the semiring
+Zis undecidable, by reducing the problem of emptiness of a two-counter machine. In order
+to prepare this theorem, we design formulas that map a word u2fInc;Dec;ZTestg+to
+weight 0 when uencodes a non-valid behavior of a non-negative counter.
+First, we want to make sure that the counter always stays non-negative. For this, con-
+sidering a word u2fInc;Dec;ZTestg+, and assuming that the counter starts with value 0,
+the value1
+Y
+i2pos(u)jui=Dec
+ju[1::i1]jIncju[1::i1]jDec
+is 0 if and only if the counter becomes negative along the sequence of instructions encoded
+byu, since at the rst position iwhere it becomes negative, we have ju[1::i1]jInc=
+ju[1::i1]jDec. By using a simpler version of the formula described in Example 3.5, we can
+compute this value with the following formula of wFO(AP):
+N
+xh
+PDec(x)!L
+y
+y<x
+
+PInc(y)(PDec(y)
+(1))i
+:
+Next, assuming that the counter always stays non-negative, we want to check that a zero-
+test is used only when the counter is indeed 0. For a word u2fInc;Dec;ZTestg+, let us
+consider the valueY
+i2pos(u)jui=ZTestY
+16k<i
+ju[1::i1]jIncju[1::i1]jDeck
+:
+Note that, assuming that the counter is 0 initially and always stays non-negative, this value
+is 0 if and only if some zero-test occurs when the counter is not zero. Note that this series
+can be dened by the following formula in wFO(AP):
+N
+xh
+PZTest (x)!N
+zh
+z<x!L
+y
+(y6z
+(1))
+y<x
+
+PInc(y)(PDec(y)
+(1))ii
+3.2. Previous expressiveness result
+ForLMSO closed under _,^and:, anL-step formula is a formula obtained from the
+grammar
+ ::=sj'jj
+; withs2Sand'2L. (1)
+The following lemma shows in particular that an L-step formula assumes a nite number
+of values, each of which corresponds to an L-denable language.
+1Here, and in the following, jujastands for the number of occurrences of letter ain wordu.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 8 ---
+A:8 Bollig, Gastin, Monmege, Zeitoun
+Lemma 3.7.For everyL-step formula , one can construct an equivalent formula 	 =L
+i2I( i
+si)withInite, i2L andsi2S. More precisely, Free() = Free(	) and for
+everyVcontaining Free() ,JKV(u;) = J	KV(u;)for all (u;)2A+
+V.
+Proof. Call'1;:::;'ptheL-formulas occurring in the expression of  given by the
+grammar (1). For If1;:::;pg, let Ibe the formula obtained by replacing in  each 'i
+by 1 ifi2Iand by 0 otherwise, so that  Ihas no free variable and JIKis a constant
+sI2S. Let I=V
+i2I'i^V
+i=2I:'i, which is anL-formula, sinceLis closed under^
+and:. Let 	 =L
+I( I
+sI). Clearly, Free() = Free(	).
+LetV Free(). Fix a word uand a (V;u)-assignment . LetJ=fij(u;)j='ig, so
+that (u;)j= Jand (u;)6j= IforI6=J. Therefore, J	KV(u;) =sJ=JJKV(u;) =
+JKV(u;), where the last equality comes from the denition of J.
+From now on, we freely use Lemma 3.7, using the special form it provides for L-step formu-
+las. All MSO-step formulas are clearly recognizable. By [Droste and Gastin 2009],N
+x is
+recognizable for any MSO-step formula . A restricted fragment sREMSO of wMSO(AP)
+(called the syntactically restricted formulas), was dened in [Droste and Gastin 2009]. Es-
+sentially, sREMSO consists of wMSO(MSO) formulas of the formL
+X1L
+Xn where 
+is a wFO(MSO) formula such that if it contains 	 
+	0as a subformula then the values
+inSappearing in 	 and 	0commute element-wise, and such that the use of rst-order
+productN
+xis restricted to MSO-step formulas. Note that if the semiring is commutative,
+the requirement over the product 	 
+	0is trivially veried. A consequence of their work
+is the following statement.
+Theorem 3.8 ([Droste and Gastin 2009] ).A formal power series is recognizable if
+and only if it is denable in sREMSO .
+3.3. Weighted transitive closure
+We now dene other fragments of wMSO(MSO), which also carry enough expressiveness to
+generate all recognizable series. Contrary to sREMSO that allows second-order quantitative
+operators, and nally restricts them, we rather extend the fragment wFO(MSO), containing
+only rst-order quantitative operators, with a weighted equivalent of the boolean transitive
+closure.
+We rst dene a very general weighted transitive closure operator before presenting some
+restrictions over it that will be useful in the sequel.
+Weighted transitive closure. For a formula ( x;y) with at least two free variables xandy,
+we introduce a weighted transitive closure operator [TC x;y](x0;y0) having as free variables
+the fresh variables x0andy0, and all the free variables of  except xandy. Its semantics is
+dened by
+J[TCx;y](x0;y0)K(u;) =X
+(x0)=i0;i1;:::;im=(y0)Y
+06k6m1JK(u;[x7!ik;y7!ik+1]) (2)
+where the sum runs over all m> 0 and all sequences ( ik)06k6mof positions of the word u
+withi0=(x0) andim=(y0) such that either m= 1, orm > 1 and all positions of the
+sequence are pairwise distinct. This sum is nite as the word has nitely many positions.
+Notice that if (x0) =(y0) =i, then the semantics is JK(u;[x7!i;y7!i]).
+To ease notation, we now write J(x;y)K(u;i;j ) instead of J(x;y)K(u;[x7!i;y7!j]).
+Example 3.9.Let 	 = TC x;y1 over N. Then for a word uof lengthn, we have
+J	K(u;1;n) =Pn2
+m=0m!n2
+m
+, since the sum in (2) ranges over all sequences of pairwise
+distinct positions in f1;:::;ngstarting in 1 and ending in n.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 9 ---
+Pebble Weighted Automata and Weighted Logics A:9
+Ordered weighted transitive closure. Since later we consider one-way weighted automata,
+it is natural to restrict this operator to a left-to-right version. Hence, we introduce the
+operator TC<
+x;y whose semantics consists in restricting the sum of (2) to non-decreasing
+sequences ( ik)06k6mof positions in the word. Equivalently, we can dene it by
+TC<
+x;ydef= TCx;y(x6y
+):
+Intuitively, the TC<
+x;yoperator generalizes the forward transitive closure operator of the
+boolean case: a formula '(x;y) with two free variables denes a binary relation on positions
+of a wordu, namelyf(i;j)j(i6j)^u;i;jj='g. The relation dened by TC<
+x;y'is the
+transitive closure of this relation.
+Throughout this paper, we will mostly use ordered transitive closure. For this reason, we
+dene recursively the m-th power of a formula , with this ordered restriction
+1(x;y)def= (x6y)
+(x;y);
+m+1(x;y)def=L
+z
+(x<z<y )
+(x;z)
+m(z;y)
+, form>1.
+The left-to-right restriction of the transitive closure permits nally to give a third equivalent
+denition, a priori simpler to use:
+JTC<
+x;yK=X
+m>1Jm(x;y)K:
+This innite sum is well-dened: Jm(x;y)K(u;) = 0 ifm>juj, i.e., on each pair ( u;),
+only nitely many terms assume a nonzero value.
+Bounded weighted transitive closure. We also introduce a bounded weighted transitive
+closure operation TCN
+x;yfor each integer N > 0. Its semantics consists in restricting the
+sequences of (2) so that jik+1ikj6Nfor everyk2f0;:::;m1g. Equivalently,
+TCN
+x;ydef= TCx;y(jyxj6N
+):
+Bounded ordered weighted transitive closure. Finally, we can combine both restrictions
+and introduce a bounded ordered weighted transitive closure operation. For each integer
+N > 0, the TCN;<
+x;yoperator is given by
+TCN;<
+x;y = TCx;y
+(x6y6x+N)
+
+: (3)
+Denition 3.10.Given a classLof boolean formulas, we denote by wFOTC( L) the class
+of weighted formulas dened by
+ ::=sj'jj
+jL
+xjN
+xjTCx;y
+withs2S,'2L,x;y2Var. A series f2ShhA+iiis said to be wFOTC( L)-denable
+if there is a formula  2wFOTC(L) such that JK=f. We dene similar notions for
+the restricted operators TC<, TCNand TCN;<, denoting them wFOTC<(L), wFOTCb(L)
+and wFOTCb;<(L), respectively: in particular, for the bounded restrictions, we allow all
+constantsNin the transitive closure operators.
+Notice that if ( x) is a formula from wFOTC( L) with a free variable x, then, for a xed
+integerk, the formulaL
+y[(y=x+k)
+(y)] is again a formula of the same fragment,
+that we will denote ( x+k) in the following.
+Example 3.11.Let (x;y)def=N
+z2 over N. Letu=u1unwithn>2. We have
+JTC1;<
+x;yK(u;1;n) =Qn1
+i=1JK(u;i;i +1) due to the bounded and ordered weighted transitive
+closure. Now, JK(u;i;i + 1) = 2jujifi>1, so JTC1;<
+x;yK(u;1;n) = 2juj(juj1). Noticing that
+the seriesu7!2jujis recognizable by a weighted automaton, but not the series u7!2juj(juj1)
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 10 ---
+A:10 Bollig, Gastin, Monmege, Zeitoun
+(similarly to Example 3.2), this example shows in particular that the class of recognizable
+series is not closed under application of bounded ordered weighted transitive closures.
+Example 3.12.Consider the formula  = TC2;<
+x;y(2
+y=x+ 2) overAandN. Then
+JK(u;1;juj) =2nifjuj= 2n+ 1 withn>1
+0 otherwise.
+Notice that the support of JK(i.e., the language of all words mapped to nonzero values) is
+not FO-denable. Therefore, JKis not wFO(FO)-denable, since otherwise, we would have
+JK=J	Kfor a wFO(FO)-formula 	, and the FO formula obtained from 	 by changing all
+nonzero constants of Nto 1 and replacing ,
+,L
+xandN
+xby_,^,9xand8xrespectively
+would dene the support of JK(this holds because Nis a positive semiring).
+Example 3.13.The modulo predicate can easily be expressed in wFOTCb;<(FO). For
+16m6`, the predicate is expressed by
+x`mdef= (x=m)h
+TC`;<
+x0;y0(y0=x0+`)i
+(m;x)
+while the binary relation can be expressed with
+x`ydef= (y=x)h
+TC`;<
+x0;y0(y0=x0+`)i
+(x;y)h
+TC`;<
+x0;y0(y0=x0+`)i
+(y;x):
+4. EXPRESSIVENESS OF WEIGHTED LOGICS
+We now consider syntactical restrictions of wFOTC<(FO) and wFOTCb;<(FO), inspired by
+normal form formulas of [Neven and Schwentick 2000] where only one \external" weighted
+transitive closure operator is allowed.
+In the following, sentences like \ fis denable by a formula TC x;y	" means that for every
+wordu2A+, we have
+f(u) = JTCx;y	K(u;1;juj)
+The following result characterizes the expressive power of weighted automata.
+Theorem 4.1.LetSbe a (possibly non-commutative) semiring and f2ShhA+ii. The
+following assertions are equivalent over SandA.
+(1)fis recognizable.
+(2)fis denable by a formula TCN;<
+x;ywith  (FO+mod) -step.
+(3)fis denable by a formula TCN;<
+x;ywith  MSO -step.
+(4)fis denable by a formula TC<
+x;ywith  (FO+mod) -step.
+(5)fis denable by a formula TC<
+x;ywith  MSO -step.
+(6)fis denable by a formulaL
+XN
+x(x;X)with  FO -step.
+(7)fis denable by a formulaL
+XN
+x(x;X)with  MSO -step.
+Proof. The implications 2 )3, 4)5 and 6)7 are clear since FO+mod MSO, and
+7)1 follows from Theorem 3.8 because formulas described in 7 are included in sREMSO:
+indeed, because of Lemma 3.7, every product 	 
+	0in  is such that 	 2MSO and
+	0=s2S, henceforth the property on elementwise commutation is trivially veried. The
+implications 2)4 and 3)5 are also obvious since TCN;<can be dened with TC<. We
+prove 1)2, 1)6, and 5)7.
+For the rst two implications, let us x a weighted automaton A= (Q;A;I;F; ;weight )
+withQ=f1;:::;mg. Recall that denotes the morphism from A+toSQQas dened in
+Section 2.2. The general idea behind the constructions we will present is that the semantics
+JAK(u) can be computed by splitting the word uin small slices u1;:::;ukbyJAK(u) =
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 11 ---
+Pebble Weighted Automata and Weighted Logics A:11
+(u1)(uk). As it is a priori not possible to compute a matrix of weight
+in the logic without changing the semiring, we must moreover partition the accepting runs
+considering the sequence of states they encounter at every positions between slice uiand
+ui+1. Each state must then be encoded into the word so that a formula can nd it to check
+the validity of the run and its weight: to do so, we consider portions u1;:::;ukto be of size
+mroughly, and position q2Qofuiencodes that state qwere encountered before reading
+uiin the current run. It is then necessary to compute the weight of runs over a slice. For
+v2A+andp;q2Q, we use an FO-step formula v
+p;q(x) to compute the weight of a factor
+starting at position xp+ 1, labeled by the word v, whenAgoes fromptoq:
+v
+p;q(x)def=(v)p;q
+^
+16k6jvjPvk(xp+k):
+We easily see that for every word u, and every positions i;j2pos(u) withi6jand
+i+p16juj,
+Ju[i::j]
+p;q (x)K(u;i+p1) =(u[i::j])p;q: (4)
+Let us show 1)2. We construct an (FO+mod)-step formula  long(x;y), such that
+JAK(u) = JTC2m;<
+x;ylong K(u;1;juj) for every word usuciently long (recall that mis the
+number of states of A). As already mentioned, the idea, inspired by [Thomas 1982], consists
+in making the transitive closure operator pick positions z`=`m+q`, with 1 6q`6m, for
+successive values of `, to encode runs of Agoing through state q`just before reading the
+letter at position `m+ 1. Consider slices [ `m+ 1;(`+ 1)m] of positions in the word where
+we evaluate the formula (the last slice might be incomplete). Each position xis located in
+exactly one such slice, and the state pencoded by such a position is given by the FO+mod
+formulaxmp. Moreover, the rst position of the slice in which a position xis located can
+be computed by xp+1, ifxmp. Since the transitive closure starts from the rst position
+of the word, to make this still work for `= 0, let us assume without loss of generality that
+I=f1g.
+Our TCN;<-formula picks positions xandymarkedin Figure 2, and computes the
+weight of the factor of length mbetween positions xp+ 1 andxp+m(included),
+assuming states xmpandymqjust before and after these positions respectively.
+`m+ 1 (`+ 1)m (`+ 1)m+ 1 (`+ 2)m
+
+x
+yp q
+u[`m+1::(`+1)m]
+p;q (x)
+Fig. 2 . Positions picked by the TCN;<-formula
+The formula  longdistinguishes the cases where xis located far or near from the last
+position. More precisely, in the following expression of  long, the rst sum corresponds to
+the case where an entire slice is still available after the slice of x(as in Figure 2), while the
+second sum captures the case where xis located in the last complete slice.
+long(x;y) =L
+p;q2Q;v2Am
+xp+ 2m< last^xmp^yq=xp+m
+
+v
+p;q(x)
+L
+p2Q;qf2F
+m<d62m;v2Ad
+xp+d=last^xmp^y=last
+
+v
+p;qf(x):
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 12 ---
+A:12 Bollig, Gastin, Monmege, Zeitoun
+Using (4), this denition implies that, for every word uand all positions `m+p,`0m+qin
+u, withp;q2Q:
+Jlong K(u;`m +p;`0m+q) =8
+>><
+>>:(u[`m+ 1::`0m])p;q if`0=`+ 1^(`+ 2)m<juj;
+P
+qf2F(u[`m+ 1::juj])p;qfif`0=`+ 1^`0m+q=juj;
+0 otherwise :(5)
+Notice that in the second case, we have ( `+ 2)m=`0m+m>`0m+q=juj. This ensures
+that the rst two cases are disjoint. Now, by denition of the TC2m;<
+x;y operator,
+JTC2m;<
+x;ylong(x;y)K(u;1;juj) =X
+k>1Jk
+long(x;y)K(u;1;juj):
+Observe that  longsyntactically ensures the bounded and ordered condition of the transitive
+closure operator.
+Suppose now that juj>m+ 1. We show that there is at most one nonzero value in this
+sum: Jk
+long(x;y)K(u;1;juj) withk=juj1
+m
+. So letkbe the largest integer `such that
+`m<juj.
+Let 1 =i0< ::: < i h=jujbe a sequence of positions chosen in (2) such that
+Jlong(x;y)K(u;i`;i`+1)6= 0 for all `2f0;:::;h1g. For`6h1, we denote by q`2Q
+the state such that i`mq`. The rst case of (5) must apply for 0 6`6h2, and it yields
+by induction i`=`m+q`if 06`6h1. The second case of (5) applied with `=h1
+yieldsjuj6(h+ 1)m, whenceh=k=juj1
+m
+.
+In particular, ifjuj6m, then JTC2m;<
+x;ylong(x;y)K(u;1;juj) = 0. Ifjuj> m , we de-
+duce that JTC2m;<
+x;ylong(x;y)K(u;1;juj) = Jk
+long(x;y)K(u;1;juj) fork=juj1
+m
+>1.
+The assignment 1 = i0< i 1<< ik=jujis uniquely dened by the sequence
+q= (q1;:::;qk1)2Qk1(note that if k= 1, then qis empty). The possible choices
+of this tuple induce the sum in the following evaluation of Jk
+long(x;y)K(u;1;juj), where we
+omit the variable names ( x;y) in the right hand side. Recall that q0= 1 is the unique initial
+state giving a nonzero value.
+JTC2m;<
+x;ylong(x;y)K(u;1;juj) = Jk
+long K(u;1;juj)
+=X
+q2Qk1 hk1Y
+`=1Jlong K
+u;(`1)m+q`1;`m+q`i
+Jlong K(u;(k1)m+qk1;juj)!
+=X
+q2Qk1 hk1Y
+`=1
+u[(`1)m+ 1::`m]
+q`1;q`i
+X
+qf2F(u[(k1)m+ 1::juj])qk1;qf!
+=X
+qf2F(u)q0;qf=JAK(u):
+Finally, ifjuj6m, we can design an FO-step formula  small dealing with small words:
+smalldef= (x=rst^y=last)
+L
+16d6m
+v2Ad;qf2F(last=d)
+v
+q0;qf(rst):
+Only the term for v=uyields a nonzero value. Hence, TC2m;<
+x;y(smalllong) computes
+JAK, as required.
+Let us now outline the proof of 1 )6, which relies on a similar technique. We use the
+monadic second-order variable Xto partition the runs along the portions u=u1uk
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 13 ---
+Pebble Weighted Automata and Weighted Logics A:13
+considering the states in-between each portion. The set Xwill contain for all i:xi, the rst
+position ofuiandti, the position in uiused to encode the state of Qreached before reading
+ui. To distinguish xi's andti's, we consider portions of size 2 m+ 1, so that between xiand
+tithe distance is no more than m, whereas the distance between tiandxi+1is at leastm.
+More formally, we encode runs of Aby a formulaL
+XN
+x(x;X) with  an FO-step
+formula, enforcing Xto represent positions x0<t0<x 1<t1<::: withx`= (2m+1)`+1,
+where the distance t`x`encodes the state of Areached just before position x`. For instance,
+since we assume as above that the only initial state yielding a nonzero value is q0= 1, we
+enforcex0= 1 andt0= 2, so that t0x0= 1 encodes that state. We enforce 1 6t`x`6m
+(so thatt`x`2Q) but we make a gap between t`andx`+1, namelyx`+1t`>m.
+(2m+ 1)`+ 1 (2m+ 1)(`+ 1) + 1
+x` (x`+11)x`+1
+t` 
+t`+1p q
+u[x`::x`+11]
+p;q (x`)
+Fig. 3 . Positions represented by X, marked
+We use shortcuts like fz;tgX, orX\]z;t] =;, where ]z;t] =fz0jz<z06tg, which
+are easily FO-denable. Let us dene
+(x;X) = ( last>m^f1;2gX)
+(far(x;X)near(x;X))
+(last6m^X=;)
+
+x=rst!L
+16d6m
+v2Ad; qf2F(last=d
+v
+q0;qf(x))
+:
+with v
+p;q(x) a slightly modied version of v
+p;q(x):
+v
+p;q(x)def=(v)p;q
+^
+16k6jvjPvk(x+k1)
+verifying, for every word u, and every positions i;j2pos(u) withi6j,
+Ju[i::j]
+p;q (x)K(u;i) =(u[i::j])p;q: (6)
+The outermost sum in  distinguishes the cases of long or short words, while the sum
+far(x;X)near(x;X) discriminates between positions x2Xlocated far/near from the
+last position. For the case of short words, the product resulting from the quanticationN
+xhas value JAK(u) thanks to the premise x=rstof the implication !. Moreover, the sum
+resulting fromL
+Xhas a single nonzero value thanks to X=;. Therefore, the overall
+semantics is indeed JAK(u). We dene  faras
+far(x;X) = (x+ 3m+ 16last)
+
+(x2X^X\]x;x+m]6=;)!
+L
+p;q2Q
+v=v1v2m+1X\]x;x+ 3m+ 1] =fx+p;x+ 2m+ 1;x+ 2m+ 1 +qg
+v
+p;q(x)
+:
+Note thatpandqare uniquely dened by the set X. To produce a nonzero value, we must
+also havex+3m+16last, so that letting y=x+2m+1, we have y+m6last. Furthermore,
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 14 ---
+A:14 Bollig, Gastin, Monmege, Zeitoun
+y2X^X\]y;y+m]6=;, hence the pattern repeats. We dene  nearas
+near(x;X) = (x+ 3m+ 1>last)
+
+(x2X^X\]x;x+m]6=;)!
+L
+p2Q;qf2F
+m<d63m+1
+v=v1vd(X\]x;last] =fx+pg^x+d1 = last)
+v
+p;qf(x)
+:
+As FO-step formulas are closed by sum and product, the formula ( x;X) is an FO-step
+formula. Let us prove that JL
+XN
+x(x;X)K(u) = JAK(u). This equality has already been
+checked for words uof length at most m, so let us assume that juj> m. In the following,
+we denote by Pat( u) the set of all subsets fx0< t 0< ::: < x r< trgwitht0= 2,
+x`= (2m+1)`+1 and 1 6t`x`6mfor all`2f0;:::;rg, andxr+m6juj<xr+3m+1.
+Letq`=t`x`. We have already explained that if JN
+x(x;X)K(u;I)6= 0, then we must
+haveI2Pat(u). Then, for a word uof length greater than m, we get:
+JL
+XN
+x(x;X)K(u)
+=X
+I2Pat(u)Y
+16i6juj
+JfarK(u;i;I ) + Jnear K(u;i;I )
+=X
+I2Pat(u)Y
+16i6juj3m1JfarK(u;i;I )Y
+max(1;juj3m)6i6jujJnear K(u;i;I )
+=X
+I2Pat(u)Y
+06`6r1Ju[x`::x`+11]
+q`;q`+1(x)K(u;x`)X
+qf2F
+Ju[xr::juj]
+qr;qf(x)K(u;xr)
+:
+The last equality holds since Jnear K(u;xr;I) =P
+qf2F
+Ju[xr::juj]
+qr;qf(x)K(u;xr)
+and since
+Jnear K(u;i;I ) = 1 ifi2fmax(1;juj3m);:::;jujgnfxrg. Finally, by (6),
+JL
+XN
+x(x;X)K(u) =X
+q0;:::;qr2Q
+q0=1;qf2FY
+06`6r1(u[x`::x`+11]])q`;q`+1(u[xr::juj])qr;qf
+=X
+qf2F(u)q0;qf=JAK(u):
+As in [Thomas 1982], we could use a more compact formula by encoding states in binary.
+We nally prove 5 )7. Assume that  is of the form ( x;y) =L
+i2I'i(x;y)
+si. Again,
+we use the monadic second-order variable Xto encode the runs of the weighted transitive
+closure operator. Let u2A+be a word,j2pos(u) andJpos(u). Ifj <max(J) then we
+let next(j;J) = inff`2Jjj <`g. We dene the MSO-step formula
+0(x;X)def=L
+i2Isi
+9y(x<y^X\]x;y] =fyg^'i(x;y))
+and we can easily check that
+J0K(u;j;J ) =JK(u;j;next(j;J)) ifj <max(J)
+0 otherwise.
+The formula TC<
+x;y(rst;last) is then equivalent toL
+XN
+x(	small	), with
+	def=
+rst6=last^frst;lastgX
+
+
+(x2X^x<max(X))!0(x;X)
+	smalldef=
+X=;^rst=last
+
+
+(x=rst)!(x;x)
+:
+Note that MSO-step formulas are closed under sum and products so the formula above is
+indeed in the required fragment. Let u2A+. In case,juj= 1, we have JL
+XN
+x(	small
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 15 ---
+Pebble Weighted Automata and Weighted Logics A:15
+	)K(u) = JK(u;1;1) = JTC<
+x;yK(u;1;juj). Otherwise, with the conditions on Xin the
+formulas 	 small and 	 we have
+JL
+XN
+x(	small	)K(u) =X
+f1;jujgJf1;:::;jujgJN
+x	K(u;[X7!J]):
+For a choice of J=fj0;j1;:::;jkgwith 1 =j0<j1<<jk=juj, by denition of 	 we
+have JN
+x	K(u;[X7!J]) =Q
+06r<kJK(u;jr;jr+1). Finally, we obtain
+JL
+XN
+x(	small	)K(u) =X
+k>0X
+1=j0<j1<<jk=jujY
+06r<kJK(u;jr;jr+1)
+=JTC<
+x;yK(u;1;juj)
+where the last equality comes from the denition of the ordered weighted transitive closure
+operator.
+5. PEBBLE WEIGHTED AUTOMATA
+Example 3.2 shows that weighted automata lack closure properties to capture the logic
+wFOTCb;<(FO). We introduce a notion of two-way pebble weighted automata making up
+for this gap. In the Boolean setting, two-way automata over strings have been rst considered
+in [Rabin and Scott 1959], whereas pebble automata have been introduced in [Blum and
+Hewitt 1967].
+5.1. General denitions
+We now consider pebble 2-way weighted automata (P2WA). A P2WA has a read-only tape.
+At each step, it can move its head one position to the left or to the right (within the
+boundaries of the input tape), or drop a pebble at the current head position, or lift a
+pebble and resume the tape to its position. Applicable transitions and weights depend on
+the current letter and state, and on which pebbles are carried by the current position.
+Pebbles are numbered p;:::; 2;1, and are handled using a stack policy: if pebbles p;:::;`
+have already been dropped, the automaton can either lift pebble `(if`6p), drop pebble
+`1 (if`>1), or move.
+As these automata can go in either direction, we add two fresh symbols BandCto mark
+the beginning and the end of an input word. Let eA=A]fB;Cg. To compute the value of
+u=u1un2A+, a P2WA works on a tape holding BuC. For convenience, we number
+the letters of BuCfrom 0, setting u0=Bandun+1=C. We denote by gpos(u) the set
+f0;1;:::;n;n + 1g.
+Denition 5.1.Letp>0. A pebble two-way weighted automaton ( P2WA ) withppebbles
+overSis a tupleA= (Q;A;I;F; ;weight ) whereQis a nite set of states, Ais a nite
+alphabet,IQis the set of initial states, FQis the set of nal states,  QeA
+2f1;:::;pgDQis the set of transitions, with D=f!; ;drop;liftgand weight : !S
+is the weight function.
+Aconguration of a P2WAAwithppebbles on a word u2A+of lengthnis a triple
+(q;;i )2Qpos(u)6pgpos(u). In such a conguration, qdenotes the current state of
+A, whileiis the current head position, and =p`with 1 6`6p+ 1 encodes the
+locations of the p+ 1`currently dropped pebbles. More precisely, m2f1;:::;ngis the
+position of pebble m, while pebbles `1;:::; 1 are currently not on the tape. Given such a
+word of pebbles =p`, we denote by peb( ;i) the set of pebbles currently dropped
+on position i2gpos(u), i.e., peb(;i) =fjjp>j>`^j=ig.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 16 ---
+A:16 Bollig, Gastin, Monmege, Zeitoun
+There is a step of weightsfrom conguration ( q;;i ) to conguration ( q0;0;i0) if there
+existsd2Dsuch thatdef= (q;ui;peb(;i);d;q0)2 withs=weight (), and
+8
+>><
+>>:0=andi0=i+ 1 ifd=!
+0=andi0=i1 ifd= 
+0=iandi0= 0 ifd=drop andi2pos(u)
+0i0= ifd=lift:(7)
+Note that a drop simply records the current position in u, with a fresh pebble (such a pebble
+should be available) and returns to the beginning of the tape, and that a liftreturns on
+the last dropped pebble and pops it. This model corresponds to a weighted extension of
+the well-known weak pebble automata (as described, e.g., in [Boja nczyk et al. 2006]), as we
+can easily design drop transitions that do not reset the tape, and force lifttransitions to
+occur only at the position of the topmost pebble. Notice that if it exists, the direction dis
+determined by the two congurations.
+ArunofAonuis a sequence of congurations related by steps. We denote by weight ()
+the product of the weights of the steps of the run (from left to right, but we will mainly
+work with commutative semirings in this section). A run is said to be accepting if it leads
+from a conguration ( q;";0), withq2I, to a conguration ( q0;";n+1), withq02F(at the
+end, no pebble is left on the tape). The run issimple if whenever two congurations and
+appear in, we have6=. The series JAK2ShhA+iiis dened by JAK(u) =Pweight ()
+where the sum ranges over all simple accepting runs onu. Note that a P2WA with 0
+pebble is in fact a 2-way weighted automaton. It follows from Proposition 5.9 below that
+this class of automata has the same expressive power as 1WA.
+Example 5.2.Let us sketch a P2WA Awith 1 pebble recognizing the series u7!2juj2
+overN. The idea is that Adrops its pebble successively on every position of the input word.
+Transitions for reallocating the pebble have weight 1. When a pebble is dropped, Ascans
+the whole word from left to right where every transition has weight 2. As this scan happens
+jujtimes, we obtain JAK(u) = 2juj2.
+5.2. Pebble one-way weighted automata
+The notion of simplicity is semantical. Our goal in this section is to nd a syntactic re-
+striction of P2WA enforcing simplicity. Mainly, it will consist in restricting to 1-way runs,
+disabling left moves.
+Denition 5.3.Apebble one-way weighted automaton ( P1WA )overSis a P2WAA=
+(Q;A;I;F; ;weight ) which satises the following conditions:
+(1) There are no left transitions: ( q;a;P;d;q0)2 impliesd6= ;
+(2) Lift transitions may not be followed by drop transitions: ( q;a;P; lift;q0)2 and
+(q0;a0;P0;d0;q00)2 implyd06=drop;
+To justify (2), note that a lift transition followed by a drop transition would just result in
+resetting the current position to the beginning of the word, without dropping a new pebble.
+The P2WA described in Example 5.2 is in fact a P1WA by denition.
+As a fragment of P2WA, the semantics of a P1WA is well dened. However, the semantic
+restriction (considering only simple runs to dene the weight of a word) is now useless, since
+every run of a P1WA is ensured to be simple, as shown in the next lemma.
+Lemma 5.4.All runs of a P1WA are simple.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 17 ---
+Pebble Weighted Automata and Weighted Logics A:17
+Proof. Consider a P1WA A= (Q;A;I;F; ;weight ). Given a word u, we dene a total
+order on the set of congurations of Aoveru, so that runs ofAoveruform an increasing
+sequence of congurations.
+To do so, we consider the measure of a conguration ( q;;i ) to be the word over the
+alphabetgpos(u)]f?;>gdened by
+meas(q;;i ) =i? if9(q;a;P; drop;q0)2
+i> otherwise.
+We order the set gpos(u)]f?;>gby? 01jujjuj+ 1>. Henceforth, nite
+words over this set are ordered with the associated lexicographic (total) order, denoted .
+We now show that for every run = (qm;m;im)06m6hofAoveru, the sequence of mea-
+sures of the congurations is increasing, i.e., meas( qm;m;im)meas(qm+1;m+1;im+1)
+for all 0 6m<h . This ensures that the run is simple. Let 0 6m<h . The step from con-
+gurationm= (qm;m;im) to conguration m+1= (qm+1;m+1;im+1) is enabled with
+a transition of the form ( qm;uim;peb(m;im);d;qm+1) withddened as in (7) (specialized
+to the one-way case):
+| Ifd=!, thenm+1=mandim+1=im+ 1. Hence, for some ;2f?;>gwe have
+meas(m) =mimm(im+ 1)= meas(m+1):
+| Ifd=drop, thenm+1=mimandim+1= 0. Hence, for some 2f?;>gwe have
+meas(m) =mim?mim0= meas(m+1):
+| ifd=lift, thenm=m+1im+1. Hence, for some 2f?;>gwe have
+meas(m) =m+1im+1imm+1im+1>= meas(m+1):
+Notice that the>in meas(m+1) comes from the fact that lift transitions may not be
+followed by drop transitions, by denition of P1WA.
+In all cases, we have meas( m)meas(m+1), which concludes the proof.
+Example 5.5 ( Example 3.6 continued ). The value computed to check that the counter
+always stays non-negative can also be calculated with the P1WA with 1 pebble of Figure 4:
+this automaton drops a pebble on each letter Dec and then computes the dierence be-
+tween the number of Inc's and the number of Dec's before the pebble. This is done as in
+Example 2.3. In the transitions of Figure 4 (the highlighted zone will be explained below),
+stands for any letter. We x a word u, and denote by i1< i2<< imthe positions
+ofulabelled by Dec. Notice that each accepting run of the automaton drops the pebble on
+each position ik(for every 1 6k6m), and, after each such drop, must choose a position
+jkto follow the transition from state 2 to state 3: moreover, we have 1 6jk< ikand
+ujk2fInc;Decg. Denoting Jkthe set of such positions jkfor everyk, the set of accepting
+runs is therefore in bijection with the set J=J1Jm. The weight of the run dened
+by the tuple ( jk)16k6mis then given by
+mY
+k=1f(jk)
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 18 ---
+A:18 Bollig, Gastin, Monmege, Zeitoun
+Anon-neg1
+2 34⊲,∅,→,1
+Inc,∅,→,1
+ZTest,∅,→,1
+∗,∅,→,1 ∗,∅,→,1Dec,∅,drop,1
+Inc,∅,→,1
+Dec,∅,→,−1Dec,{1},lift,1Dec,∅,→,1
+Fig. 4 . Automaton checking that the counter is non-negative
+wheref(j) = 1 ifuj=Inc,1 ifuj=Dec, and 0 otherwise. Hence, the semantics of the
+automaton over the word uis given by
+X
+(jk)16k6m2JmY
+k=1f(jk) =X
+j12J1X
+j22J2X
+jm2JmmY
+k=1f(jk)
+=mY
+k=1X
+jk2Jkf(jk) (by distributivity of over +)2
+=mY
+k=1
+ju[1::ik1]jIncju[1::ik1]jDec
+Next, assuming that the counter always stays non-negative, the value checking that a
+zero-test is used only when the counter is indeed 0 can be computed with the P1WA with
+2 pebbles of Figure 5 (highlighted zone to be explained below). Intuitively, it drops pebble
+2 sequentially on every position performing action ZTest to compute the external product.
+When this pebble is dropped (over a position j), on every position kbefore the one holding
+the pebble (i.e., k6j1), it drops pebble 1 choosing non-deterministically either to
+compute
+ju[1::j1]jIncju[1::j1]jDec
+with the upper part, or kwith the lower part. The proof of correctness is done similarly
+to the argument for the previous automaton, and strongly relies again on the distributivity
+of the multiplication over the addition.
+5.3. One-way versus two-way
+We proceed with the most dicult result of this paper: the equivalence between P2WA and
+P1WA when the semiring is commutative.
+2Notice the transformation from the term on the left of the equality (a sum of products of weights) to
+this term (a product of sums of weights). The same transformation is actually behind the two alternative
+denitions of the semantics of a weighted automaton (see Section 2.2): whereas the denition based on runs
+is a sum of products, the one based on the morphism is a product of matrices. The idea yielding the
+second one from the rst is to gather together runs with respect to common congurations: the weight of a
+word split into two factors uvis the product of the weights over uandv, each produced by summing the
+weights of all sub-runs over uandv, respectively. In the setting of pebble automata, we cannot simply split
+the word since the automaton may navigate and drop pebbles. However, if every accepting run goes through
+a given conguration exactly once, we may consider the sub-runs that start and end in this conguration,
+and group the weights similarly. In the present computation, we consider msuch congurations, namely
+those where the pebble has just been dropped.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 19 ---
+Pebble Weighted Automata and Weighted Logics A:19
+Azero-test⊲,∅,→,1
+Inc,∅,→,1
+Dec,∅,→,1
+ZTest,∅,drop,1
+⊲,∅,→,1ZTest,{2},lift,1ZTest,∅,→,1
+∗,∅,drop,1
+⊲,∅,→,1∗,∗,→,1
+Inc,∗,→,1
+Dec,∗,→,−1∗,∗,→,1
+ZTest,{2},→,1∗,∗,lift,1∗,∅,→,1
+⊲,∅,→,1
+∗,∅,→,1∗,∅,→,−1
+∗,∅,→,1∗,{1},→,1∗,{1},→,−1
+Fig. 5 . Automaton checking the zero-tests
+Theorem 5.6.LetSbe a commutative semiring and f2ShhA+ii. Then,fis recogniz-
+able by a P2WA if and only if fis recognizable by a P1WA .
+One direction directly follows from the denitions of pebble weighted automata. The
+proof of the converse is by induction on the number of pebbles. We start with the base case
+of automata without pebbles. We simply write 2WA instead of \P2WA with 0 pebble".
+The next proposition is a generalization of the result, originally proved in [Rabin and
+Scott 1959], stating that two-way feature does not add expressive power to non-deterministic
+nite automata over nite strings. There are mainly two proof techniques for this result. The
+proof in [Shepherdson 1959] starts with a two-way automaton and constructs an equivalent
+one-way automaton by enriching the state with a relation table recording for every pair of
+states (q;q0), whether it is possible to reach q0fromqwith a loop on the current prex. The
+key argument is that there is a nite number of such tables and that it can be computed
+simultaneously to the main run.
+Observe that this method is not applicable in our weighted setting. Indeed, the relation
+table should now be enriched with the precomputed weights of the subruns, which cannot
+be recorded within a nite memory (as the weights may grow with the length of the prex
+read so far). Instead, we will use the crossing-sequence method which is closer to the proof
+technique in [Rabin and Scott 1959], and fully explained in [Hopcroft and Ullman 1979].
+For the sake of clarity, we provide a complete proof below in our weighted setting.
+Proposition 5.7.LetSbe a commutative semiring,f2ShhA+ii. Iffis recognizable
+by a 2WA , thenfis recognizable by a 1WA .
+Proof. LetA= (R;A;I;F; ;weight ) be a 2WA. We omit the (empty) set of pebbles
+in the transitions of the P2WA A, i.e., ReADR. We also assume that weight is
+fully dened on ReADRby setting weight () = 0 if =2.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 20 ---
+A:20 Bollig, Gastin, Monmege, Zeitoun
+⊲···a a′···⊳
+r0→r1→
+r2←r3←
+r4←
+r5→r6→
+Fig. 6 . Run of a 2WA and some crossing-sequences
+We construct an equivalent 1WA (actually a P1WA without pebble3)B=
+(Q0;A;I0;F0;0;weight0) such that JBK=JAK. Again, we omit the (empty) set of pebbles
+and the (!) direction in the transitions of the P1WA B, i.e., 0Q0eAQ0.
+Intuitively, the idea is to record in a state of Bthecrossing-sequence of states ofAwhich
+is observed in some accepting run while scanning the current position of the input word,
+see Figure 6. Since the semantics of a 2WA is computed as the sum over simple accepting
+runs, a crossing-sequence consists of pairwise distinct states and is therefore bounded by
+the number of states of A. Finally, the commutativity of the semiring allows us to compute
+the weight of an accepting run along a corresponding run of B.
+In order to ease the matching of consecutive crossing-sequences of A, we also record in a
+state ofBthe current input letter from eA=A[fB;Cgand the sequence of moves from
+f ;!gperformed by the 2WA. Therefore, we will dene Q0=Q0
+B[Q0
+A[Q0
+Cas a nite
+subset ofT=eA(Rf ;!g)(R[R!). We say that a word in TisR-simple if it does not
+contain two occurrences of some state in R.
+While scanning Bonly right moves are possible hence we let Q0
+Bbe the (nite) set of
+R-simple words in B(R!)+. Similarly, while scanning C, only left moves are possible until
+Anally halts on this position. Hence we let Q0
+Cbe the (nite) set of R-simple words in
+C(R )R. Finally, we let Q0
+Abe the (nite) set of R-simple words inA(Rf ;!g)R!. For
+instance, Figure 6 exhibits two crossing-sequences in Q0
+Awhich areq=ar0!r3 r4 r5!
+andq0=a0r1!r2 r6!.
+We describe now the set 0Q0eAQ0of transitions ofB. Two states aanda00in
+Q0can be matched in a transition ( a;a;a00)20ofBifa6=C,a06=Bandhas one
+more right moves than the number of left moves in 0:jj!= 1 +j0j .
+The weight of a transition ( q;a;q0)20is the product of the weights of the transitions
+ofAcontained in the pair ( q;q0), i.e., right transitions from qtoq0and left transitions from
+q0toq. On Figure 6, these transitions are on a gray background.
+Formally, a right transition ( r;a;!;r0) ofAiscontained in (q;q0) ifris the state just
+before thekth occurrence of!inqandr0the state just after the ( k1)th occurrence4of
+ inq0, for some 1 6k6jqj!. Similarly, a left transition ( r0;a0; ;r) ofAis contained
+in (q;q0) ifr0the state just before the kth occurrence of  inq0andris the state just
+after thekth occurrence of !inq, for some 1 6k6jq0j . For instance in Figure 6, the
+3Note that, formally, a P1WA without pebble is not a 1WA as dened in Section 2.2. This is mainly due to
+theBmarker. But it should be clear that the two models are equivalent.
+4In casek= 1, the state just after the 0th occurrence of  inq0is simply the rst state of q0.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 21 ---
+Pebble Weighted Automata and Weighted Logics A:21
+two right transitions from Acontained in the depicted pair of states are ( r0;a;!;r1) and
+(r5;a;!;r6), whereas the only left transition is ( r2;a0; ;r3).
+We let Trans (q;q0) be the set of (left or right) transitions of Acontained in ( q;q0). We
+then dene the weight of !moves ofBinduced by the matching states ( q;q0) as the product
+of the weights of the (left or right) transitions of Acontained in ( q;q0):
+weight0(q;a;q0) =Y
+2Trans (q;q0)weight ():
+For instance, transition from q=ar0!r3 r4 r5!toq0=a0r1!r2 r6!on Figure 6
+has weight
+weight0(q;a;q0) =weight (r0;a;!;r1)weight (r2;a0; ;r3)weight (r5;a;!;r6):
+Finally, the set I0of initial states of Bis the set of R-simple words in BI!(R!)and
+the setF0of nal states ofBis the set of R-simple words in C(R )F.
+Lemma 5.8 below proves that there is a weight preserving bijection between the simple
+accepting runs of Aand the accepting runs of B. We conclude that JBK=JAKsince for all
+u2A+,JAK(u) is the sum of the weights of the simple accepting runs of Aoveru, whereas
+JBK(u) is the sum of the weights of the accepting runs of Boveru.
+Lemma 5.8.For every word u2A+, there is a weight preserving bijection between the
+simple accepting runs of Aoveruand the accepting runs of Boveru.
+Proof. Fix a word u=u1un2A+of lengthn>1. We rst show how to map a
+simple accepting run =01mofAoveru(where each jis a conguration) to an
+accepting run ofBoveru.
+Fori2f0;:::;n + 1g, we construct the crossing-sequence qi=uii2Q0ofBassociated
+with position iinBuC, as illustrated in Figure 6. Recall that u0=Bandun+1=C.
+Formally, we dene ias the \projection" of the congurations visiting position i, where
+conguration ( r;i) is \projected" to r!(respectively, r orr) if it is followed by some
+(r0;i+ 1) (respectively, ( r0;i1) or is the last conguration). Note that the word iis
+R-simple. In particular, we have q02I0,qn+12F0, andqi2Q0
+Afor every 1 6i6n.
+Observe also that jij!= 1 +ji+1j for every 0 6i6n. Indeed,must reach position
+i+ 1 for a rst time, and then, each time the run goes to the left of position i+ 1, it
+will in the future come back to i+ 1 fromi. Therefore, ( qi;ui;qi+1)20for all 0 6n. We
+deduce that f() = (q0;0)(q1;1)(qn+1;n+ 1) is an accepting run of B.
+We now show that fpreserves the weights, i.e., weight () = weight0(f()) for all simple
+accepting run ofAoveru. Indeed, weight () is the product of the weights of (left or right)
+transitions appearing in . Withf() = (q0;0)(q1;1)(qn+1;n+ 1), every right transition
+ofstarting from position i(06i6n) is contained in the pair ( qi;qi+1), so that its weight
+is computed in the transition from itoi+ 1 inf(), whereas every left transition of 
+starting from position i(16i6n+ 1) is contained in the pair ( qi1;qi), so that its weight
+is computed in the transition from i1 toiinf(). From the denition of weight0and by
+commutativity of S, we obtain weight () =weight0(f()).
+We nally prove that fis a bijection by constructing its inverse function. Let
+(q0;0)(q1;1)(qn+1;n+1) be an accepting run of Boveru. Writeqi=uiifor 06i6n+1.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 22 ---
+A:22 Bollig, Gastin, Monmege, Zeitoun
+We recover a simple accepting run ofAoveruas the output of Run(0 ;0;1;:::;n+1)
+where the recursive function Run is dened by:
+Function Run(i;0;1;:::;n+1)
+matchiwith
+r!0
+i:
+output (r;i);
+Run(i+ 1;0;:::;0
+i;:::;n+1);
+r 0
+i:
+output (r;i);
+Run(i1;0;:::;0
+i;:::;n+1);
+r:(* necessarily i=n+ 1 *)
+output (r;n+ 1);
+We can show by induction that f(Run(0;0;1;:::;n+1)) = (q0;0)(q1;1)(qn+1;n+1),
+and that for every simple accepting run ofAwithf() = (u00;0)(un+1n+1;n+ 1),
+we have Run(0;0;:::;n+1) =. Therefore, fis a bijection.
+The proof of Proposition 5.7 may be easily adapted to various extensions of 2WA. For
+instance, instead of restricting to simple runs when computing the semantics of a 2WA A,
+we may allow k-simple runs (for some xed k) in which no conguration is visited more
+thanktimes. Even when k= 2, we do not know an easy way to construct a 2WA A0whose
+semantics over 1-simple runs coincide with the semantics of Aover 2-simple runs. But the
+proof of Proposition 5.7 allows to cope with this extension simply by allowing k-simple
+words when dening the set Q0of states ofB. Hence, we can construct a 1WA Bwhose
+semantics coincides with the semantics of Aoverk-simple runs, showing that this extension
+does not add expressive power.
+Instead of allowing more runs, one may also wish to restrict the semantics of Ato fewer
+runs, e.g., those visiting the initial position Bno more than 3 times. To do so, the natural
+approach is to add some information to the states of A, e.g., a counter recording how many
+times (limited to 3) the initial position has been visited. But simple runs of the result-
+ing 2WAA0do not necessarily correspond to simple runs of A. Indeed the congurations
+((p;1);8) and ((p;2);8) ofA0are distinct but if we project away the counter we get the
+same conguration ( p;8) ofA. To obtained the desired semantics, one may introduce an
+equivalence relation on the states ofA0(having the same state from A) and restrict the
+semantics ofA0to-simple runs, i.e., runs which do not visit two -equivalent congura-
+tions. Again, the proof of Proposition 5.7 allows to cope with the -simple semantics of a
+2WA, by restricting the set Q0of states ofBto-simple words.
+Finally, we introduce another extension which will be useful in the proof of Proposition 5.9
+below. We generalize the acceptance condition of a 2WA A= (R;A;I;F; ;weight ) by let-
+tingI;Fbe nite subsets of R+. A run is declared accepting if the sequence of states visiting
+the initial position Bis inIand similarly the sequence of states visiting the nal position C
+is inF. Notice that this is indeed a generalization as every 2WA A= (R;A;I;F; ;weight )
+can be encoded into this new formalism by replacing I(respectively, F) with the (nite)
+set of all simple sequences of states starting with a state of I(respectively, ending with a
+state ofF). Again, the proof of Proposition 5.7 allows to cope with this extension easily by
+changingI0to the sequences in Q0
+Bwhose projections on Rare inIR+, and similarly
+forF0.
+We extend now the translation of Proposition 5.7 to weighted automata with pebbles.
+The general idea is an induction on the number of pebbles, but it has to be done with great
+care so that all and only the simple runs of the P2WA are taken into account.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 23 ---
+Pebble Weighted Automata and Weighted Logics A:23
+⊲···a a′···⊳
+r0→r1→
+r2←r3
+drop
+liftr4←
+r5
+drop
+liftr6→r7→
+Fig. 7 . Run of a 2WA and some crossing-sequences
+Proposition 5.9.LetSbe a commutative semiring,f2ShhA+iiandp>0. Iffis
+recognizable by a P2WA withppebbles, then fis recognizable by a P1WA withppebbles.
+Proof. We start with a P2WA A= (R;A;I;F; ;weight ) withppebbles, and a gen-
+eralized acceptance condition: IandFare nite subsets of R+. A runofAis accepting
+if the sequence of states visiting the initial position Bwhile no pebbles are dropped is inI,
+and the sequence of states visiting the nal position Cwhile no pebbles are dropped is in
+F. This generalization will be useful in the inductive step of the construction. We assume
+without loss of generality that lifttransitions ofAonly occur at the end marker C.
+Ifp= 0, Proposition 5.7 permits to conclude. We now explain the construction for p>0.
+A crossing-sequence may now also include drop moves, see Figure 7. The parts of a run
+having at least one pebble dropped (dashed in Figure 7) will be deferred to the inductive
+step. Hence, a crossing-sequence consists only of the states visiting some position when no
+pebbles are dropped. If the run is simple, then this sequence of states is also simple.
+As in the proof of Proposition 5.7, we also include the current letter and the sequence
+of moves in a crossing-sequence. Hence, we let Q0
+Bbe the (nite) set of R-simple words in
+B(R!)+,Q0
+Cbe the (nite) set of R-simple words in C(R )R, andQ0
+Abe the (nite) set
+ofR-simple words inA(Rf ;!;dropg)R!. For instance, Figure 7 exhibits the crossing-
+sequenceq=ar0!r3dropr4 r5dropr6!2Q0
+Ain which the states r0;r3;r4;r5;r6must be
+pairwise distinct.
+For each state q=a2Q0
+A, we construct a P2WA Aq= (Rq;;Iq;Fq;q;weightq) with
+(p1) pebbles which computes the sum of the weights of the tuples of runs lling the
+drop-liftgaps in the crossing-sequence q, i.e., the dashed lines in Figure 7.
+The input alphabet of Aqis  =Af0;1gwhere the second component encodes the
+position of the dropped pebble. Here, we are only interested in words with a unique position
+carrying a 1 in this second component of Af0;1g: ifiis this unique position, we denote
+as (u;i) such a word. Recall that e = [fB;Cg.
+From a crossing-sequence q=a2Q0
+A, we rst extract the sequence () of
+pairs of states surrounding drop moves. For instance, (r0!r3dropr4 r5dropr6!) =
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 24 ---
+A:24 Bollig, Gastin, Monmege, Zeitoun
+Aqs′
+0s1⊲,∅,→
+s′
+1γ,∅,←
+s2⊲,∅,→ γ,∅,←
+s′
+2γ,∅,←
+s3⊲,∅,→s′
+3γ,∅,→
+⊳,∅,←
+Fig. 8 . The P2WAAqlling the drop-liftgaps of the crossing-sequence q
+(r3;r4)(r5;r6) and(r1dropr2dropr3!) = (r1;r2)(r2;r3). We assume below that () =
+(r1;r0
+1)(r2;r0
+2)(rN;r0
+N) withN > 0. Note that N6jRjsincer1;r2;:::;rNmust be
+pairwise distinct.
+We letRq=R]fs0
+0;s1;s0
+1;:::;sN;s0
+Ngbe the set of states of Aq. The automaton Aq
+should ll the drop-liftgaps between ( rj;r0
+j) for all 1 6j6N. To do so, it simulates A
+interpreting pebble pas thef0;1gcomponent of  (recall that pebble pis the rst which is
+dropped byA). Hence, for ( r;;P;d;r0)2qwithr;r02R,2e,Pf1;:::;p1gand
+d2Dwe let
+weightq(r;(c;1);P;d;r0) =weight (r;c;P[fpg;d;r0) if= (c;1)
+weightq(r;(c;0);P;d;r0) =weight (r;c;P;d;r0) if = (c;0)
+weightq(r;;P;d;r0) =weight (r;;P;d;r0) if 2fB;Cg(andP=;):
+The additional states in fs0
+0;s1;s0
+1;:::;sN;s0
+Ngand transitions will make sure that all gaps
+(rj;r0
+j) are lled, see Figure 8. States s0
+j1are used to reset the head to the initial position
+Bbetween two simulations, and we move from s0
+j1tosjat the beginning of the word:
+weightq(s0
+j1;;;; ;s0
+j1) = 1 for 1 <j6Nand2
+weightq(s0
+j1;B;;;!;sj) = 1 for 1 6j6N:
+Adrop transition ofAfrom staterjreading letter a(recallq=a) is simulated inAqby
+a transition from sjreading the rst letter of the word (note that when Aqis in state
+sjit must be on the rst position of the word due to the !transition from s0
+j1tosj). A
+lifttransition ofAreachingr0
+jis simulated inAqby a transition to s0
+j:
+weightq(sj;;;; ;r) =weight (rj;a;;;drop;r) for 1 6j6N; r2Rand2
+weightq(r0;C;;; ;s0
+j) =weight (r0;C;;;lift;r0
+j) for 1 6j6Nandr02R:
+Finally, whenAqreachess0
+N, it terminates with a !move:
+weightq(s0
+N;;;;!;s0
+N) = 1 for 2:
+To dene the acceptance condition of Aq, we letIqbe the (nite) set of simple sequences in
+s0
+0Rs0
+1Rs0
+N1RandFqbe the (nite) set of simple sequences in Rs0
+N. Considering
+this acceptance condition, an accepting run ^ ofAq| over a word of +with a unique
+position carrying a 1 in its second component | can be split into a sequence of runs
+^=0
+0^10
+1^N0
+Nwhere for each 1 6j6N
+| the run ^ jlls the drop-liftgap (rj;r0
+j). It goes from sjtos0
+jand simulates a run j
+ofAwhich starts with a drop transition ( rj;a;;;drop;r) and ends with a lifttransition
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 25 ---
+Pebble Weighted Automata and Weighted Logics A:25
+(r0;C;;;lift;r0
+j) without lifting pebble pin-between. Moreover, weightq(^j) =weight (j)
+for all 1 6j6N.
+| the run0
+0consists of a single transition from s0
+0tos1, the run0
+jfor 0<j <N loops
+on states0
+jto reset the head to the initial position Band then moves to state sj, and
+the run0
+Nconsists of a single transition looping on s0
+Nto reach the nal position C.
+Moreover, weightq(0
+j) = 1 for all 0 6j6N.
+Note that, the run ^ is simple if and only if the sequence of runs 1;:::;Nisglobally
+simple, i.e., a conguration may not occur twice in some jand it may not occur both in i
+andjwithi6=j. This is important since the runs 1;:::;Nll the drop-liftgaps of the
+crossing-sequence aand are therefore part of a single run of A. This explains why we have
+a single copy ofAinAq. If instead we used Ncopies ofAinsideAq, one for each drop-lift
+gap (rj;r0
+j) then the simplicity of ^ would not imply the global simplicity5of1;:::;N.
+Clearly, all accepting runs of Aqstart from state s0
+0and end in state s0
+N. But this basic
+initial and nal condition is not sucient to ensure that the drop-liftgaps are lled correctly.
+For instance,Aqcould go directly from s0
+0tos0
+Nwithout ever visiting s0
+1;:::;s0
+N1. It could
+also visit all the new states but not in the intended order, which would not correspond to a
+sequence of runs of Alling the gaps ( r1;r0
+1)(rN;r0
+N). This is why we use the generalized
+acceptance condition for Iq.
+Towards a uniform construction below, we also dene an automaton Aqwhen the crossing-
+sequenceqhas no drop ( N= 0). In this case, Aqhas a single state s0
+0with a loop moving
+right with weight 1 in order to simply scan the word from begin to end.
+By induction, for each q2Q0
+Awe can construct a P1WA Bqwith (p1) pebbles which is
+equivalent toAq, i.e., such that for each word u2+there is a weight preserving bijection
+between the simple accepting runs of Aqoveruand the accepting runs of Bqoveru. We let
+Bq= (Q0
+q;;I0
+q;F0
+q;0
+q;weight0
+q) and we assume without loss of generality that I0
+q=finitqg
+andF0
+q=fnalqgare singletons. Note that, if the crossing-sequence qhas no drop then we
+may chooseBq=Aq.
+We dene now the P1WA B= (Q0;A;I0;F0;0;weight0) withppebbles associated with
+A. Its set of states is
+Q0=Q0
+B]Q0
+C]Q0
+A]Q0
+A]]
+q2Q0
+AQ0
+q:
+The setI0of initial states of Bis the set of crossing-sequences in Q0
+Bwhose projections on
+Rare inIR+, and similarly, the set F0of nal states ofBis the set of crossing-sequences
+inQ0
+Cwhose projections on Rare inFR+.
+The automatonBcontains a copy of each Bqin order to simulate the parts of a run when
+the rst pebble is dropped (dashed lines in Figure 7). In this copy, the second component
+of the alphabet  = Af0;1gofBqis re-interpreted as the encoding of the rst pebble p:
+fors;s02Q0
+q,c2AandPf1;:::;p1gwe set
+weight0(initq;B;;;!;s0) =weight0
+q(initq;B;;;!;s0)
+weight0(s;c;P;!;s0) =weight0
+q(s;(c;0);P;!;s0)
+weight0(s;c;P[fpg;!;s0) =weight0
+q(s;(c;1);P;!;s0):
+From each state q=a2Q0
+A, we rst call (the copy of) the automaton Bqdropping the
+rst pebble and when the computation of Bqis done we lift the pebble returning to the copy
+5Alternatively, we could dene an equivalence relation on states ofAqand use a-simple semantics of
+runs, as originally done in [Bollig et al. 2010].
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 26 ---
+A:26 Bollig, Gastin, Monmege, Zeitoun
+Bq initq ﬁnalqq
+a,∅,drop¯q
+⊳,∅,liftq′a,∅,→
+Fig. 9 . Call to the P1WA Bqlling the drop-liftgaps of the crossing-sequence q
+q2Q0
+Aofq2Q0
+A, see Figure 9. Then, we perform a !move to the next crossing-sequence
+q02Q0
+A[Q0
+C. The drop and liftmoves are with weight 1:
+weight0(q;a;;;drop;initq) =weight0(nalq;C;;;lift;q) = 1:
+As in the proof of Proposition 5.7, two crossing-sequences q=a2Q0
+B[Q0
+Aand
+q0=a002Q0
+A[Q0
+Cmatch ifjj!= 1 +j0j . We assume Trans (q;q0) to be dened as in
+Proposition 5.7, so that we may dene the weight of !moves ofBinduced by the matching
+crossing-sequences ( q;q0) as the product of the weights of the (left or right) transitions of
+Acontained in ( q;q0):
+weight0(q;B;;;!;q0) =Y
+2Trans (q;q0)weight () if q2Q0
+B
+weight0(q;a;;;!;q0) =Y
+2Trans (q;q0)weight () if q=a2Q0
+A:
+Lemma 5.10 below proves that there is a weight preserving bijection between the simple
+accepting runs of Aand the accepting runs of B. We conclude that JBK=JAKsince for all
+u2A+,JAK(u) is the sum of the weights of the simple accepting runs of Aoveru, whereas
+JBK(u) is the sum of the weights of the accepting runs of Boveru.
+Lemma 5.10.For every word u2A+, there is a weight preserving bijection between the
+simple accepting runs of Aoveruand the accepting runs of Boveru.
+Proof. Fix a word u=u1un2A+of lengthn>1. We will decompose our bijection
+into several ones, all preserving the weights in an adequate manner.
+To extend the proof of Lemma 5.8, we rst associate with a simple accepting run 
+ofAoverua tuplef() = (q0;q1;g1;:::;qi;gi;:::;qn;gn;qn+1) whereqi=uiiis the
+crossing-sequence at position 0 6i6n+ 1 and for each position 1 6i6n, the tuple
+gi= (i
+1;:::;i
+Ni) consists of the sequence of subruns of with pebble pdropped on position
+i, together with the surrounding drop/lifttransitions.
+Formally, for 0 6i6n+ 1, to dene the crossing sequence qi=uii, we letibe the
+\projection" of the congurations visiting position iwith an empty stack of pebbles, where
+conguration ( r;";i ) is \projected" to r!(respectively, r ,rdrop orr) if it is followed by
+some (r0;";i+ 1) (respectively, ( r0;";i1), (r0;i;0) or is the last conguration).
+Moreover, for 1 6i6nwithNi=jqijdrop, we extract from the tuplegi= (i
+1;:::;i
+Ni)
+of subruns of the form ( rj;";i)(rj+1;j+1;0)(rk1;k1;n+ 1)(rk;";i) where`=i0
+`
+for allj <`<k , i.e., where the rst pebble is dropped on position i.
+We rst show that fis a bijection from simple accepting runs of Aoveruto the set,
+denoted Sequ, of sequences ( q0;q1;g1;:::;qi;gi;:::;qn;gn;qn+1) verifying:
+|q02I0,qn+12F0andqi2Q0
+Afor all 1 6i6n;
+| for all 0 6i6n, the pair (qi;qi+1) matches, i.e.,jqij!= 1 +jqi+1j ;
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 27 ---
+Pebble Weighted Automata and Weighted Logics A:27
+| for all 1 6i6n, denoting Ni=jqijdrop,giis a tuple ( i
+1;:::;i
+Ni) of subruns ofA,
+globally simple, each starting with the drop of pebble pon position i, ending with the
+rst time this pebble is lifted, and that matches with(qi) (i.e., the jth pair in(qi)
+contains exactly the pair of rst and last states of the run i
+j).
+It is not dicult to check that f()2Sequwheneveris a simple accepting run of Aoveru.
+Dening the weight of a sequence ( q0;q1;g1;:::;qn;gn;qn+1)2Sequas
+weight0(q0;B;;;!;q1)nY
+i=1
+weight (gi)weight0(qi;ui;;;!;qi+1)
+where weight (gi) =QNi
+j=1weight (i
+j) withgi= (i
+1;:::;i
+Ni), we can easily show that f
+preserves the weights.
+We nally prove that fis a bijection by constructing its inverse function. Let
+(q0;q1;g1;:::;qn;gn;qn+1)2Sequ. Writeqi=uiifor 06i6n+ 1. We recover a simple
+accepting run ofAoveruas the output of Run'(0 ;0;1;g1;:::;n;gn;n+1) where the
+recursive function Run' is dened by:
+Function Run'(i;0;1;g1;:::;n;gn;n+1)
+Data : A position iofuand a tuple ( 0;1;g1;:::;n;gn;n+1)
+Result : A runofA
+matchiwith
+r!0
+i:
+output (r;";i );
+Run'(i+ 1;0;:::;0
+i;gi;:::;n+1);
+r 0
+i:
+output (r;";i );
+Run'(i1;0;:::;0
+i;gi;:::;n+1);
+rdrop0
+i:
+matchgiwith
+(0;g0
+i) :
+output0;
+Run'(i;0;:::;0
+i;g0
+i;:::;n+1);
+r:(* necessarily i=n+ 1 *)
+output (r;";n + 1);
+We then consider each tuple giof runs ofAwith pebble pdropped. It has already been
+explained in the previous proof how to construct a weight preserving bijection between a
+tuplegi= (i
+1;:::;i
+N), which matches with a sequence of pairs (qi), and an accepting
+run ^i=0
+0^i
+10
+1^i
+N0
+NofAqiover (u;i) so thatgiis globally simple if and only if ^ i
+is simple: it consists of lling some gaps (with the runs 0
+j), and replacing alphabet Aby
+ =Af0;1g(going from runs i
+jto ^i
+j).
+Using the induction hypothesis, we know that there is a weight preserving bijection be-
+tween simple accepting runs ^ iofAqiover (u;i) and accepting runs iofBqiover (u;i).
+It remains to change back the alphabet to A, to build a weight preserving bijection
+between accepting runs iofBqiover (u;i) to runsgiofBoverustarting in state
+initqiin position 0 and nishing in state nalqiin position n+ 1. Finally, coming back
+to the sequences of Sequ, these intermediary bijections permit to build a weight preserv-
+ing bijection from sequences ( q0;q1;g1;:::;qi;gi;:::;qn;gn;qn+1)2Sequto accepting runs
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 28 ---
+A:28 Bollig, Gastin, Monmege, Zeitoun
+(q0;";0)(q1;";1)g1(q1;";1)(qn;";n)gn(qn;";n)(qn+1;";n + 1) ofBoveru, which con-
+cludes the proof of correctness.
+5.4. Pebble weighted automata and weighted logic
+The following theorem summarizes the main results of this section.
+Theorem 5.11.LetSbe a commutative semiring and f2ShhA+ii. The following as-
+sertions are equivalent over SandA:
+(1)fiswFOTCb(FO) -denable;
+(2)fiswFOTCb;<(FO) -denable;
+(3)fis recognizable by a P2WA ;
+(4)fis recognizable by a P1WA .
+Inclusions 2)1 and 4)3 follow from the denitions of weighted logics and pebble
+weighted automata. Proposition 5.13 will reveal that 1 )3. Proposition 5.9 will prove that
+3)4: notice that this is the only implication using the commutativity of the semiring. The
+theorem follows from Proposition 5.12, which nally proves implication 4 )2.
+Proposition 5.12.Every series recognizable by a P1WA iswFOTCb;<(FO) -denable.
+Proof. Starting from a P1WA Awithppebbles, we build a wFOTCb;<(FO)-formula
+by induction on p. Without loss of generality, we may assume that lifttransitions only take
+place at the end marker C. The casep= 0 follows from Theorem 4.1 since a P1WA with 0
+pebble can be translated easily into a weighted automaton by removing the rst transitions
+reading B, and modulo is denable in wFOTCb;<(FO) (see Example 3.13). Note that the
+tape contains BuCandgpos(u) =f0;:::;juj+ 1gbut we still have pos( u) =f1;:::;jujg,
+rst= 1 and last=juj.
+The induction step is shown like in the proof of the implication 1 )2 of Theorem 4.1.
+Notice that we no longer suppose that there exists only one initial state q0= 1. The main
+dierence is however in the denition of the formulas v
+q;q0(x), which now uses the induction
+hypothesis. When dropping the rst pebble on some position z, the head is reset to the
+initial position labeled B, then the automaton behaves as a P1WA with ( p1) pebbles,
+starting in some state q, reading the word with position z\marked", until it reaches the
+nal position labeled Cin some states q0, where it will have to lift the rst pebble. By
+induction, there is a wFOTCb;<(FO)-formula  q;q0(z) computing the sum of the weights of
+all these runs ofA.
+For`>1,v=v1v`2A+andq0;q`2Q, we dene
+v
+q0;q`(x)def=L
+q1;:::;q`12QN
+16k6`Pvk(xq0+k)
+qk;vk+1;qk+1(xq0+k)
+with
+q;a;q0(z)def=weight (q;a;;;!;q0)L
+r;r0;r002Q
+weight (q;a;;;drop;r)
+r;r0(z)
+weight (r0;C;;;lift;r00)
+weight (r00;a;;;!;q0)
+:
+We have to guess non-deterministically the states q1;:::;q`1that the automaton will
+visit between positions xandywhile pebble pis not dropped, because each of them is
+useful to compute the runs with pebble pdropped. We obtain for u2A+and positions
+i;i+`12pos(u)
+Ju[i::i+`1]
+q0;q`K(u;i+q01) =X
+q1;:::;q`12QY
+06k6`1Jqk1;ui+k;qk(z)K(u;i+k):
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 29 ---
+Pebble Weighted Automata and Weighted Logics A:29
+Then, we use almost the same weighted formulas as in Theorem 4.1. For small words u2A+
+withjuj62m, we use
+smalldef= (x=rst^y=last)
+L
+16d62m;v2Adh
+(last=d)^^
+16k6dPvk(k)i
+
+JAK(v)
+and we obtain Jsmall K(u) = JAK(u). Finally, we dene
+1(x;y) =L
+q02I;q;q02Q
+v2Am
+rst=x^2m< last^y=m+q0
+
+weight (q0;B;;;!;q)
+v
+q;q0(q)
+2(x;y) =L
+q;q02Q;v2Am
+rst<x^xq+ 2m< last^xmq^yq0=xq+m
+
+v
+q;q0(x)
+3(x;y) =L
+q2Q;q02F
+m<d62m;v2Ad
+rst<x^xq+d=last^xmq^y=last
+
+v
+q;q0(x)
+and we can show, as in the proof of Theorem 4.1, that [TC2m;<
+x;y(small12
+3)](rst;last) computes JAK, as required.
+We remark that this construction yields a wFOTCb;<(FO)-expression using p+ 2 nested
+TCN;<-operators: p+ 1 nested TCN;<-operators come from the induction in the proof of
+Theorem 4.1, and the last one comes from the denition of the modulo operation.
+Proposition 5.13.LetSbe a (non necessarily commutative) semiring and f2ShhA+ii.
+IffiswFOTCb(FO) -denable, then fis recognizable by a P2WA .
+Proof. By Lemma 3.3, we know that every series which is wFOTCb(FO)-denable is
+in fact wFOTCb(AP)-denable. Hence, for the unweighted part of wFOTCb(FO), we just
+have to prove that atomic formulas Pa(x);:Pa(x);x6y;:(x6y) are recognized by some
+P2WA with 0 pebble. For Pa(x) (respectively,:Pa(x)), the automaton simply scans the
+input word, searching for letter ( a;1) (respectively, ( b;1) withb6=a), as the free variable x
+is encoded in the alphabet Af0;1g. For the atomic formula :(x6y), the automaton
+scans the input word, looking for the encoding of ybefore that of x. One veries the formula
+x6yin the same way.
+It remains to prove that the class P2WA is closed under the weighted constructs of
+wFOTCb(FO). First, notice that the constant series s2Sis easily recognized with a P2WA
+with 0 pebble. Note that if a series is recognizable by a P2WA with ppebbles, it is also
+recognizable by a P2WA with p+ 1 pebbles. Therefore, given two P2WAs, one can assume
+that they use the same number of pebbles. Let A1;A2be two P2WAs with ppebbles over
+A. Closure underis obtained using the disjoint union of the automata A1andA2.
+The P2WA with ppebbles that recognizes the Hadamard product which maps every word
+u2A+toJA1K(u)JA2K(u) consists of three phases: rst, it simulates the automaton A1
+until it reaches the last position in a nal state of A1; then, it comes back to the beginning
+of the word with transitions of weight 1; nally, it simulates the automaton A2and exit in
+a nal state ofA2.
+For rst-order quantiers, we use an extra pebble. For a P2WA Awithppebbles over
+alphabetAf0;1gcomputing J(x)K, we construct two P2WA with ( p+ 1) pebbles over
+alphabetAcomputing respectively JL
+xKand JN
+xK.
+The automaton forL
+x nondeterministically chooses with transitions of weight 1 a
+position in the word, drops the extra pebble p+1, and simulates automaton A, interpreting
+pebblep+ 1 as the extra f0;1gcomponent encoding variable x. After this simulation, it
+lifts the pebble and terminates the computation, going to the endmarker Cwith weights 1.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 30 ---
+A:30 Bollig, Gastin, Monmege, Zeitoun
+ForN
+x, with transitions of weight 1, the new automaton drops successively the extra
+pebblep+ 1 on positions 1 ;:::;jujof the input word u2A+. Whenever it drops pebble
+p+ 1, it simulates Ainterpreting this pebble as the encoding of variable xuntil it reaches
+the end marker Cwhere it lifts pebble p+ 1.
+Finally, assume that we have a P2WA Awithppebbles over the alphabet Af0;1g2
+which evaluates some wFOTCb(FO) formula ( x;y). We construct a P2WA A0with (p+2)
+pebbles over Af0;1g2in order to evaluate [TCN
+x;y](x0;y0) (x0andy0are now the two free
+variables). With transitions of weight 1, A0moves to the position i0to which maps variable
+x0. Ify0also maps to i0, it simply simulates Ainterpreting x0=y0asx=y, resulting in the
+evaluation of ( i0;i0). Otherwise, it drops its new pebble p+ 2. WheneverA0drops pebble
+p+ 2 on some position i, it enters some special state qdropand with weights 1, it moves to
+some guessed position j6=isuch thatjjij6Nand drops pebble p+ 1. WheneverA0
+drops pebble p+1, it then simulates Ainterpreting positions iandjon which pebbles p+2
+andp+1 are dropped as xandy, resulting in the evaluation of ( i;j). When the simulation
+ofAis completed,A0lifts pebble p+ 1 with weight 1 in order to return to position j. Still
+with weights 1,A0moves to position iwhere pebble p+ 2 was dropped remembering ji
+and lifts pebble p+ 2. It then returns to position j. Ify0=jis the current position, the
+transitive closure is completed. With weights 1, we move to the end marker Cand accept.
+Otherwise,A0drops pebble p+ 2 again in order to continue the evaluation of the transitive
+closure.
+Note that, the simplicity requirement on runs implies that pebble p+2 cannot be dropped
+twice on the same position. Indeed, after dropping pebble p+ 2,A0always enters the same
+stateqdrop. Moreover, pebble p+ 2 is never dropped on position y0. On a successful run 
+ofA0, either pebble p+ 2 is never dropped, and then we have x0=i0=y0and we compute
+(i0;i0); otherwise, pebble p+2 is successively dropped on some positions x0=i0;i1;:::;i`1
+such that`>1 andx0=i0;i1;:::;i`1;i`=y0are pairwise distinct and jijij1j6N
+for 06j <` . The sum of the weights of the successful runs of A0visiting such a pairwise
+distinct sequence x0=i0;:::;i`=y0is precisely JK(u;i0;i1) JK(u;i`1;i`):We
+deduce thatA0computes the N-bounded transitive closure [TCN
+x;y](x0;y0).
+6. ALGORITHMIC ISSUES
+6.1. Evaluation
+An important problem is the evaluation of an automaton wrt. a given word. More precisely,
+given a word u=u1unand a P1WAA= (Q;A;I;F; ;weight ), we are interested in
+computing JAK(u). In the sequel, we assume as before that lifttransitions inAonly occur
+at the end marker C.
+We x the word u=u1un2A+and inductively compute (using dynamic pro-
+gramming) a matrix M(;i)2SQQfor 06i6n+ 1, and2pos(u)6p: coecient
+M(;i)q;q0is the sum of weights of runs that go from position 0 in state qto position
+iin stateq0with pebbles p;:::;pjj+ 1 permanently dropped on positions described
+by. Let(a;P;d )2SQQbe the matrix dened by (a;P;d )q;q0=weight (q;a;P;d;q0)
+if (q;a;P;d;q0)2, and(a;P;d )q;q0= 0 otherwise. We denote by Id2f0;1gQQthe
+identity matrix and we initially set M(;0)q;q0=Id. For 1 6i6n+ 1, we set
+M(;i) =8
+><
+>:M(;i1)(ui1;peb(;i1);!)
+Id+(ui;peb(;i);drop)M(i;n + 1)(C;;;lift)
+ifi6n^jj<p
+M(;i1)(ui1;peb(;i1);!) otherwise.
+Indeed, going from position 0 to position ican be decomposed as rst going from position
+0 to position i1, then performing a right move and nally optionally (we use the identity
+matrix to simplify the matrix computation in this formula) dropping a pebble. Then, we
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 31 ---
+Pebble Weighted Automata and Weighted Logics A:31
+obtain
+JAK(u) =M(";n+ 1)
+where2f0;1g1Qis the line vector coding the initial states ( q= 1 if and only if q2I)
+and2f0;1gQ1is the column vector coding the nal states ( q= 1 if and only if q2F).
+Using dynamic programming, this can be computed in time O(jQj3jujp+1). Here,O(jQj3)
+is due to matrix multiplication, and O(jujp+1) is the number of matrices M(;i) that have
+to be determined. We obtain:
+Theorem 6.1.Evaluation of a P1WA withppebbles and set of states Qwrt. a word
+u2A+isO(jQj3jujp+1).
+This evaluation procedure can be improved with some eorts as presented in [Gastin and
+Monmege 2012]. In particular, lifted to our framework, this permits to evaluate a P1WA
+withO(jQj3jujmax(p;1)) scalar operations (sum and product of elements of the semiring).
+6.2. Satisability/emptiness
+In the context of formal power series, one may call a closed expression  2wFOTCb;<(FO)
+satisable if there is a word w2A+such that JK(w)6= 0. Over commutative positive
+semirings (i.e., zero-sum free and without divisors of zero), satisability is decidable due
+to Theorem 5.11, which reduces the problem to non-emptiness of the support of a formal
+power series recognized by a P2WA. The latter problem, in turn, can be reduced to the
+decidable emptiness problem for classical pebble automata over the boolean semiring, as
+stated, e.g., in [Boja nczyk 2008].
+However, this problem turns undecidable over general (not necessarily positive) semiring.
+In fact, we prove undecidability of emptiness for P1WA with 2 pebbles.
+Theorem 6.2.Emptiness is undecidable over the semiring ZforP1WA with 2 pebbles,
+and formulas of wFO(AP) .
+Proof. A complete 2-counter machine Mis a tuple ( Loc;;init;F) with Loca nite set
+of locations,  = LocInstrLocthe set of transitions where Instr =fIncp;Decp;ZTestpj
+p2f1;2gg, init2Locthe initial location and FLocthe set of nal locations. If w=
+(`0;D1;`1)(`n1;Dn;`n)2andD2Instr , we setjwjD=jfk2[1;n]jDk=Dgj, and
+wj= (`0;D1;`1)(`j1;Dj;`j) for 1 6j6n. We dene the value of counter p2f1;2g
+after stepj2f1;:::;ngascp
+j(w) =jwjjIncpjwjjDecp, and we also set cp
+0= 0.
+Anaccepting run ofMis a wordw= (`0;D1;`1)(`n1;Dn;`n)2+such that:
+(1)`0= init and`n2F,
+(2)cp
+j(w)>0 for allj2f1;:::;ngandp2f1;2g,
+(3) ifDj=ZTestp, thencp
+j1(w) = 0 for all j2f1;:::;ngandp2f1;2g.
+The emptiness problem for 2-counter machines consists in deciding whether a given 2-
+counter machine has an accepting run. It is well known to be undecidable [Minsky 1967].
+This problem reduces to emptiness of 1-way pebble word automata with 2 pebbles over
+(Z;+;;0;1). From a 2-counter machine M, we build such an automaton Aassigning a
+nonzero weight to accepting runs of M, and weight 0 to all other words. Hence, Ahas a
+nonzero semantics if and only if Mhas an accepting run.
+A wordw2+is not an accepting run of Mif and only if it does not consists in
+consecutive transitions, or it violates either (1), (2) or (3). Let Dp=fj6jwjjDj=Decpg
+andZp=fj6jwjjDj=ZTestpg. Thenwviolates (2) if and only if for some p2f1;2g,
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 32 ---
+A:32 Bollig, Gastin, Monmege, Zeitoun
+there exists j2Dpsuch thatcp
+j1(w) = 0, i.e.,
+Y
+j2Dpcp
+j1(w) = 0: (8)
+We can compute this product with a P1WA with 1 pebble over Zas explained in Exam-
+ple 5.5. Next, if (2) holds, then wviolates (3) if and only if for some p2f1;2g, there exists
+j2Zpsuch thatcp
+j1(w)>0, that is, if and only if
+Y
+j2ZpY
+1<j(cp
+j1(w)k) = 0: (9)
+We have seen in Example 5.5 how to compute this value with a 2-pebble P1WA over Z.
+Henceforth, on every position j2D1[D2[Z1[Z2, automatonAdrops a pebble in
+order to compute the products (8) or (9) as explained in Example 5.5. More precisely,
+| on positions j2D1[D2, a drop transition leads to a copy of Anon-neg , highlighted in
+Figure 4.
+| on positions j2Z1[Z2, a drop transition leads to a copy of the automaton Azero-test
+highlighted in Figure 5.
+| a loop is used to do nothing on every position j =2D1[D2[Z1[Z2.
+| nally, transitions with weight 0 are used either on the loop- or the drop-transitions to
+check if (1) is violated or if two consecutive letters of  are not consecutive transitions
+inM.
+Using Example 3.6, it is easy to construct a formula of wFO(AP) equivalent to automaton
+A, showing that emptiness is also undecidable for wFO(AP).
+The problem is still open for automata with a single pebble.
+7. CONCLUSION
+In this paper, we introduced weighted automata with pebbles. We showed that these devices
+capture weighted rst order logic extended with a transitive closure operator. Contrary
+to previous work, we do not restrict the rst order logic but allow for arbitrary nesting
+of universal quantication. Moreover, we established several new characterizations of the
+classical recognizable formal power series in terms of logics with transitive closure.
+These results are not only of theoretical interest. They also lay the basis for quantitative
+extensions of database query languages, such as XPath, and provide tracks to evaluate
+quantitative aspects of XML documents. The framework of weighted automata is natural
+for answering questions such as \How many nodes are selected by a request?", or \How
+dicult is it to answer a query?". The navigational mechanism of pebble automata is also
+well-suited in this context. So, our work is a rst step before tackling similar questions
+on trees.
+A second, and maybe related, line of future research concerns quantitative model checking,
+aiming at a general framework of quantitative specication languages that cover existing
+ones like [Laroussinie et al. 2010a; Laroussinie et al. 2010b; Fischer et al. 2010]. Note that
+this would also involve branching structures rather than words, as they naturally represent
+unfoldings of Kripke structures.
+ACKNOWLEDGMENTS
+The authors would like to thank the anonymous referees for their valuable comments that permitted to
+simplify some proofs, and globally improve the quality of this paper.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 33 ---
+Pebble Weighted Automata and Weighted Logics A:33
+REFERENCES
+J. Berstel and Ch. Reutenauer. 2010. Noncommutative Rational Series With Applications . Cambridge Uni-
+versity Press, Cambridge.
+M. Blum and C. Hewitt. 1967. Automata On a 2-Dimensional Tape. In Proceedings of Switching and
+Automata Theory .
+M. Boja nczyk. 2008. Tree-Walking Automata, In LATA'08. Language and Automata Theory and Applica-
+tions: Second International Conference (LATA 2008) 5196 (2008), 1{17.
+M. Boja nczyk, M. Samuelides, T. Schwentick, and L. Segoun. 2006. Expressive power of pebble automata.
+InAutomata, Languages and Programming (LNCS) , Vol. 4051. Springer, 157{168.
+B. Bollig and P. Gastin. 2009. Weighted versus Probabilistic Logics. In Proceedings of the 13th International
+Conference on Developments in Language Theory (DLT'09) (LNCS) , Vol. 5583. Springer, 18{38.
+B. Bollig, P. Gastin, B. Monmege, and M. Zeitoun. 2010. Pebble Weighted Automata and Tran-
+sitive Closure Logics. In Proceedings of ICALP'10 (LNCS) , Vol. 6199. Springer, 587{598.
+DOI:http://dx.doi.org/10.1007/978-3-642-14162-1
+J. R. B uchi. 1960. Weak Second-Order Arithmetic and Finite Automata. Zeitschrift f ur mathematische
+Logik und Grundlagen der Mathematik 6 (1960).
+H. Comon, M. Dauchet, R. Gilleron, C. L oding, F. Jacquemard, D. Lugiez, S. Tison, and M. Tommasi.
+2008. Tree Automata Techniques and Applications. Available at http://tata.gforge.inria.fr/.
+M. Droste and P. Gastin. 2009. Weighted automata and weighted logics. See Droste et al. [2009], Chapter 5,
+175{211.
+M. Droste, W. Kuich, and H. Vogler. 2009. Handbook of Weighted Automata . Springer.
+M. Droste and H. Vogler. 2006. Weighted tree automata and weighted logics. Theoretical Computer Science
+366, 3 (2006), 228{247.
+M. Droste and H. Vogler. 2011. Weighted Logics for Unranked Tree Automata. Theory Comput. Syst. 48,
+1 (2011), 23{47.
+C. C. Elgot. 1961. Decision problems of nite automata design and related arithmetics. Trans. Amer. Math.
+Soc. 98 (1961), 21{52.
+J. Engelfriet and H. J. Hoogeboom. 1999. Tree-Walking Pebble Automata. In Jewels Are Forever, Contri-
+butions to Theoretical Computer Science in Honor of Arto Salomaa . Springer, 72{83.
+J. Engelfriet and H. J. Hoogeboom. 2007. Automata with nested pebbles capture rst-order logic with
+transitive closure. Logical Methods in Computer Science 3 (2007), 1{27.
+K. Etessami. 1997. Counting Quantiers, Successor Relations, and Logarithmic Space. J. Comput. Syst.
+Sci.54, 3 (1997), 400{411.
+I. Fichtner. 2011. Weighted Picture Automata and Weighted Logics. Theory of Computing Systems 48, 1
+(2011), 48{78.
+D. Fischer, E. Gr adel, and L. Kaiser. 2010. Model Checking Games for the Quantitative Mu-Calculus.
+Theory Comput. Syst. 47, 3 (2010), 696{719.
+P. Gastin and B. Monmege. 2012. Adding Pebbles to Weighted Automata. In Proceedings of
+CIAA'12 (LNCS) , Vol. 7381. Springer-Verlag, 28{51. Long version at http://hal.archives-ouvertes.fr/
+hal-00753513.
+H. Hansson and B. Jonsson. 1994. A Logic for Reasoning about Time and Reliability. Formal Aspects of
+Computing 6, 5 (1994), 512{535.
+L. Hella, L. Libkin, J. Nurmonen, and L. Wong. 2001. Logics with aggregate operators. J. ACM 48, 4
+(2001), 880{907.
+J. E. Hopcroft and J. D. Ullman. 1979. An Introduction to Automata Theory, Languages, and Computation .
+Addison-Wesley.
+N. Immerman and E. Lander. 1990. Describing Graphs: a First-Order Approach to Graph Canonization. In
+Complexity Theory Retrospective . Springer-Verlag.
+F. Laroussinie, A. Meyer, and E. Petonnet. 2010a. Counting CTL. In FOSSACS (Lecture Notes in Computer
+Science) , C.-H. Luke Ong (Ed.), Vol. 6014. Springer, 206{220.
+F. Laroussinie, A. Meyer, and E. Petonnet. 2010b. Counting LTL. In TIME , Nicolas Markey and Jef Wijsen
+(Eds.). IEEE Computer Society, 51{58.
+L. Libkin. 2000. Logics with counting and local properties. ACM Trans. Comput. Log. 1, 1 (2000), 33{59.
+C. Mathissen. 2010. Weighted Logics for Nested Words and Algebraic Formal Power Series. Logical Methods
+in Computer Science 6, 1 (2010).
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 34 ---
+A:34 Bollig, Gastin, Monmege, Zeitoun
+I. Meinecke. 2006. Weighted Logics for Traces. In CSR (Lecture Notes in Computer Science) , Vol. 3967.
+Springer, 235{246.
+M. L. Minsky. 1967. Computation: nite and innite machines . Prentice-Hall, Inc., Upper Saddle River,
+NJ, USA.
+F. Neven and T. Schwentick. 2000. On the Power of Tree-Walking Automata. In Proceedings of ICALP'00
+(LNCS) , Vol. 1853. Springer, 547{560.
+F. Neven, T. Schwentick, and V. Vianu. 2004. Finite State Machines for Strings over In-
+nite Alphabets. ACM Transactions on Computational Logic 5 (July 2004), 403{435. Issue 3.
+DOI:http://dx.doi.org/10.1145/1013560.1013562
+M. O. Rabin. 1969. Decidability of second-order theories and automata on innite trees. Trans. Amer.
+Math. Soc. 141 (1969), 1{35.
+M. O. Rabin and D. Scott. 1959. Finite Automata and Their Decision Problems. IBM Journal of Research
+and Development 3, 2 (1959), 114{125.
+M. Samuelides and L. Segoun. 2007. Complexity of Pebble Tree-Walking Automata. In Proceedings of
+FCT'07 . Springer-Verlag, 458{469.
+M. P. Sch utzenberger. 1961. On the denition of a family of automata. Information and Control 4 (1961),
+245{270.
+John C. Shepherdson. 1959. The Reduction of Two-Way Automata to One-Way Automata. IBM Journal
+of Research and Development 3, 2 (1959), 198{200.
+B. ten Cate and L. Segoun. 2010. Transitive Closure Logic, Nested Tree Walking Automata, and XPath.
+J. ACM 57, 3 (2010), 18:1{18:41.
+J. W. Thatcher and J. B. Wright. 1968. Generalized Finite Automata Theory with an Application to a
+Decision Problem of Second-Order Logic. Mathematical Systems Theory 2, 1 (1968), 57{81.
+W. Thomas. 1982. Classifying Regular Events in Symbolic Logic. J. Comput. System Sci. 25, 3 (1982),
+360{376.
+B. A. Trakhtenbrot. 1961. Finite automata and logic of monadic predicates. Doklady Akademii Nauk SSSR
+149 (1961), 326{329. In Russian.
+ACM Transactions on Computational Logic, Vol. V, No. N, Article A, Publication date: January YYYY.

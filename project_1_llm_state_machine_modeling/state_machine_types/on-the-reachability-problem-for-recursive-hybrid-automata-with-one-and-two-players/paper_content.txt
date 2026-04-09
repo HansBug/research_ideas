@@ -1,0 +1,2963 @@
+--- Page 1 ---
+arXiv:1406.7289v2  [cs.LO]  15 Aug 2014OnThe Reachability Problem for Recursive Hybrid
+Automata withOne andTwo Players
+ShankaraNarayananKrishna,LakshmiManasa,andAshutoshT rivedi
+IndianInstitute of Technology Bombay, India,
+krishnas,manasa,trivedi@cse.iitb.ac.in
+Abstract. Motivated by the success of bounded model checking framewor k for
+ﬁnite state machines, Ouaknine and Worrell proposed a time- bounded theory of
+real-time veriﬁcation by claiming that restriction to boun ded-time recovers de-
+cidability for several key decision problem related to real -time veriﬁcation. In
+support of this theory, the list of undecidable problems rec ently shown decid-
+able under time-bounded restriction is rather impressive: language inclusion for
+timed automata, emptiness problem for alternating timed au tomata, and empti-
+ness problem for rectangular hybrid automata. The objectiv e of our study was
+to recover decidability for general recursive timed automa ta—and perhaps for
+recursive hybrid automata—under time-bounded restrictio n in order to provide
+an appealing veriﬁcation framework for powerful modeling e nvironments such
+as Stateﬂow/Simulink. Unfortunately, however, we answer t his question in neg-
+ative by showing that time-bounded reachability problem st ays undecidable for
+recursivetimedautomatawithﬁveormoreclocks.Whiletheb adnewscontinues
+even when one considers well-behaved subclasses of recursi ve hybrid automata,
+we recover decidability by considering recursive hybrid au tomata with bounded
+context using a pass-by-reference mechanism, or by restric ting the number of
+variables totwo,withrates in {0,1}.
+1 Introduction
+Recursivestatemachines(RSMs),asintroducedbyAlur,Ete ssami,andYannakakis[ 6],
+are a variation on various visual notations to represent hie rarchical state machines,
+notably Harel’s statecharts [ 15] and Object Management Group supported UML dia-
+grams[19],thatpermitsrecursionwhiledisallowingconcurrency.R SMscloselycorre-
+spond[6]topushdownsystems[ 9],context-freegrammars,andBooleanprograms[ 7],
+andprovideanaturalspeciﬁcationandveriﬁcationframewo rktoreasonwithsequential
+programswithrecursiveprocedurecalls.Thetwofundament alveriﬁcationquestionsfor
+RSM,namelyreachabilityandB¨ uchiemptinesschecking,ar eknowntobedecidablein
+polynomialtime[ 6,13].
+Hybrid automata [ 4,3] extend ﬁnite state machines with continuous variables tha t
+permit a natural modeling of hybridsystems. In a hybridauto matonthe variablescon-
+tinuously ﬂow according to a given set of ordinary different ial equations within each
+discrete states, while they are allowed to have discontinuo us jumps during transitions
+between states that are guarded by constraints over variabl es. In this paper we study
+the reachability problem for recursive hybrid automata tha t generalize recursive state
+machineswith continuousvariables,orequivalentlyhybri dautomatawith recursion.
+
+--- Page 2 ---
+M1
+u1
+u2u3 b1:M2(x)x=1
+x<1x=0M2
+v1 v2b2:M2x=1
+x<1,{x}
+Fig.1.Anexampleofrecursivetimedautomatawithoneclockandtwo components
+In this paper we restrict our attention to so-called singular hybrid automata where
+thedynamicsofeveryvariableisrestrictedtostate-depen dentconstantrates.Avariable
+is often called a clockif its rate over all the states is 1, while it is called a stopwatch if
+its rate is either 0(clock is stopped) or 1(clock is ticking) in different states. A timed
+automaton [ 4] is a hybrid automaton where all the variables are clocks, wh ile a stop-
+watch automaton[ 16]is a hybridautomatonwhereall thevariablesarestopwatch es.It
+iswellknownthatthereachabilityproblemisdecidable(PS PACE-complete)fortimed
+automata[ 4] andundecidableforstopwatchautomatawith 3stopwatches[ 11].
+TrivediandWojtczak[ 20]introduced recursivetimedautomata (RTAs)asanexten-
+sion of timed automata with recursion to model real-time sof tware systems. Formally,
+an RTA is a ﬁnite collection of componentswhere each compone ntis a timed automa-
+ton that in addition to making transitions between various s tates, can have transitions
+to “boxes” that are mapped to other components modeling a pot entially recursive call
+to a subroutine. During such invocation a limited informati on can be passed through
+clock values from the “caller” component to the “called” com ponentvia two different
+mechanism:a) pass-by-value ,whereuponreturningfromthecalledcomponentaclock
+assumes the value priorto the invocation,and b) pass-by-reference ,where upon return
+clocksreﬂectanychangestothevalueinsidetheinvokedpro cedure.
+Example1. The visual presentation of a recursive timed automaton with two com-
+ponentsM1andM2, and one clock variable xis shown in Figure 1(example taken
+from [20]), where component M1calls component M2via boxb1and component M2
+recursively calls itself via box b2. Components are shown as thinly framed rectangles
+with their names written next to upper right corner. Various control states, or “nodes”,
+of the components are shown as circles with their labels writ ten inside them, e.g. see
+nodeu1. Entry nodes of a component appear on the left of the componen t (seeu1),
+while exit nodes appear on the right (see u3). Boxes are shown as thickly framed rect-
+angles inside componentslabeled b:M(C), wherebis the label of the box, Mis the
+componentitismappedto,and Cisthesetofclockspassedto Mbyvalueandtherest
+of the variablesare passed by reference.When the set Cis empty,we just write b:M
+forb:M(∅).Eachtransitionislabelledwithaguardandthesetofreset variables,(e.g.
+transition from node v1tov2can be taken only when variable x<1, and after taking
+thistransition,variable xisreset).To minimizeclutterweomitemptyresetsets.
+TrivediandWojtczak [ 20] showedthat the reachabilityand termination(reachabil-
+ity with empty calling context) problem is undecidable for R TAs with three or more
+clocks.Moreover,theyconsideredtheso-calledglitch-fr eerestrictionofRTAs—where
+at each invocation either all clocks are passed by value or al l clocks are passed by
+reference—andshowedthat the reachability(andterminati on)is EXPTIME-complete
+for RTAs with two or more clocks. In the model of [ 20] it is compulsory to pass all
+
+--- Page 3 ---
+Recursive TimedAutomata Recursive HybridAutomata
+TUB TB TUB TB
+Passbyreference D D U(≥3sw)[11]D(Bounded
+context)
+Passbyvalue D D U(≥3sw) U(≥14sw)
+Glitchfree D D U(≥3sw) U(≥14sw)
+D(≤2sw) D(≤2sw)
+Unrestricted U(≥3clocks) U(≥5clocks) U(≥2sw) U(≥5sw)
+Table 1. Summary of results related to RHA - single player game. Resul ts shown in
+bold are contributionsform this paper, while results shown in gray color are contribu-
+tionsfrom[ 20].HereTUBandTBstandfortime-unboundedandtime-bounded reach-
+ability problems, respectively. U stands for undecidable, D for decidable, and sw for
+stopwatches.
+Recursive Timed Automata Recursive Stopwatch Automata
+TUB TB TUB TB
+Glitchfree D D U(≥3sw) U(≥4sw)
+D(≤2sw) D(≤2sw)
+Unrestricted U (≥2clocks) U(≥3clocks) U(≥2sw) U(≥3sw)
+Table2.Summaryofresultsfortwo-playergames.Resultsshowninbo ldarecontribu-
+tionsformthispaper,whileresultsshowningraycoloraref rom[20].
+the clocks at every invocation with either mechanism. Abdul la, Atig, and Stenman [ 1]
+studiedarelatedmodelcalledtimedpushdownautomatawher etheydisallowedpassing
+clocks by value. On the other hand, they allowed clocks to be p assed either by refer-
+ence or not passed at all (in that case they are stored in the ca ll context and continue
+to tick with the uniform rate). It is shown in [ 1] that the reachability problem for this
+classremainsdecidable(EXPTIME-complete).Inthispaper werestrictourselvestothe
+recursivetimedautomatamodelasintroducedin[ 20].
+Contributions. In this paper we consider time-boundedreachability proble m for RTA
+and show that the problem stays undecidable for RTA with 5or more clocks. We also
+considertheextensionofRTAstorecursivehybridautomata (RHAs)andshowthatthe
+reachabilityproblemstaysundecidableevenforglitch-fr eeRHAswith 3ormorestop-
+watches (clocks that can be paused), while we show decidabil ity of glitch-free RHAs
+with2stopwatches. We also show that the reachabilityproblemis u ndecidablefor un-
+restrictedRHA withtwo ormorestopwatches.Forthe time-bo undedreachabilitycase,
+we show that the problemstays undecidableeven for glitch-f reevariant of RHAs with
+14or more stopwatches. On the positive side, we show decidabil ity of time-bounded
+reachability in glitch-free RHAs where with pass-by-refer ence only mechanism. Our
+resultsaresummarizedandcomparedwithknownresultsinTa ble1.
+WestudytheseproblemsfortwoplayergamesonRTAandRHAals o.Theundecid-
+ability saga continues even for games with lesser number of c locks than single-player
+case.Theresultsforgameshavebeensummarizedin Table 2.
+
+--- Page 4 ---
+Related work. For a survey of models related to recursive timed automata an d dense-
+time pushdown automata we refer the reader to [ 20]and [1]. Another closely related
+modelisintroducedbyBenerecetti,Minopoli,andPeron[ 8]wherepushdownautomata
+is extended with an additional stack used to store clock valu ations. The reachability
+problem is known to be undecidable for this model. We do not co nsider this model in
+the current paper, but we conjecture that time-bounded reac hability problem for this
+modelisalso undecidable.
+Two special kinds of RSMs with restricted recursion are hier archical RSMs and
+bounded stack RSMs [ 12]. [12] gives efﬁcient algorithms for the reachability analysis
+of hierarchical and boundedstack RSMs, and algorithmsfor t he latter might be useful
+in theanalysisofprogramswithoutinﬁnite recursion.Thel anguagetheoryofbounded
+context recursion has been studied recently [ 17]. Hierarchical hybrid systems studied
+byAluretal.[ 5]arearestrictionofrecursivehybridautomatawhererecur sionisdisal-
+lowedbutconcurrencyisallowed.Anumberofcase-studiesw iththetoolCHARON[ 5]
+demonstratethebeneﬁtofhierarchicalmodelingofhybrids ystems.
+Organization. In the next section, we begin by reviewing the deﬁnition of re cursive
+state machinesfollowedbya formaldeﬁnitionofrecursive( singular)hybridautomata.
+We also formally deﬁne the termination and the reachability problemsfor two players
+on this model, and present our main results. Finally, Sectio ns4and5details our main
+undecidabilityresultswhile Sections 6and7discussourdecidabilityresults.
+2 Preliminaries
+2.1 ReachabilityGameson LabelledTransition Systems.
+Alabeledtransitionsystem (LTS)isatuple L= (S,A,X)whereSisthesetof states,
+Ais the set of actions, andX:S×A→Sis thetransition function . We say that an
+LTSLisﬁnite(discrete) if bothSandAare ﬁnite (countable).We write A(s)for the
+set of actions available at s∈S, i.e.,A(s) ={a:X(s,a)/ne}a⊔ionslash=∅}. Agame arena Gis
+a tuple(L,SAch,STor), whereL= (S,A,X)is an LTS, SAch⊆Sis the set of states
+controlled by player Achilles, and STor⊆Sis the set of states controlled by Tortoise.
+Moreover, sets SAchandSTorform a partition of the set S. In areachability game on
+Grationalplayers—AchillesandTortoise—taketurnstomove a tokenalongthestates
+ofL. The decision to choose the successor state is made by the pla yer controlling the
+current state. The objective of Achilles is to eventually re ach certain states, while the
+objectiveofTortoiseistoavoidthemforever.
+We say that (s,a,s′)∈S×A×Sis a transition of Lifs′=X(s,a)and arunof
+Lis a sequence /an}bracke⊔le{⊔s0,a1,s1,.../an}bracke⊔ri}h⊔ ∈S×(A×S)∗such that (si,ai+1,si+1)is a transition
+ofLfor alli≥0. We write RunsL(FRunsL) for the sets of inﬁnite (ﬁnite) runs and
+RunsL(s)(FRunsL(s)) for the sets of inﬁnite (ﬁnite) runs starting from state s. For a
+setF⊆Sand a run r=/an}bracke⊔le{⊔s0,a1,.../an}bracke⊔ri}h⊔we deﬁne Stop(F)(r) = inf{i∈N:si∈F}.
+Givena state s∈Sanda set ofﬁnalstates F⊆Swesay thataﬁnal state isreachable
+froms0if there is a run r∈RunsL(s0)such that Stop(F)(r)<∞. A strategy of
+Achilles is a partial function α:FRunsL→Asuch that for a run r∈FRunsLwe
+have that α(r)is deﬁned if last(r)∈SAch, andα(r)∈A(last(r))for every such r. A
+
+--- Page 5 ---
+M1
+u1
+u2u4b1:M2
+b2:M3u3M2
+v1
+v2v3
+v4c1:M2
+c2:M3M3
+w1 w2d:M1
+Fig.2.Examplerecursivestate machinetakenfrom[ 2]
+strategy of Tortoise is deﬁned analogously. Let ΣL
+AchandΣL
+Torbe the set of strategies
+ofAchillesandTortoise,respectively.TheuniquerunRun (s,α,τ)fromastate swhen
+playersusestrategies α∈ΣL
+Achandτ∈ΣL
+Torisdeﬁnedin astraightforwardmanner.
+Foraninitialstate sandasetofﬁnalstates F,thelowervalueValL
+F(s)ofthereach-
+ability game is deﬁned as the upper bound on the number of tran sitions that Tortoise
+can ensure before the game visits a state in Firrespective of the strategy of Achilles,
+andis equalto supτ∈ΣL
+Torinfα∈ΣL
+AchStop(F)(Run(s,α,τ)). The conceptof uppervalue
+isValL
+F(s)is analogous and deﬁned as infα∈ΣL
+Achsupτ∈ΣL
+TorStop(F)(Run(s,α,τ)). If
+ValL
+F(s) =ValL
+F(s)then we say that the reachability game is determined, or the v alue
+ValL
+F(s)ofthereachabilitygameexistsanditissuchthatValL
+F(s) =ValL
+F(s) =ValL
+F(s).
+We say that Achilleswins the reachabilitygameif ValL
+F(s)<∞. Areachabilitygame
+problemistodecidewhetherinagivengamearena G,aninitialstate sandasetofﬁnal
+statesF, Achilleshasastrategytowinthereachabilitygame.
+2.2 ReachabilityGameson Recursivestatemachines
+Arecursivestatemachine [2]Misatuple (M1,M2,...,Mk)ofcomponents,where
+eachcomponent Mi= (Ni,ENi,EXi,Bi,Yi,Ai,Xi)foreach1≤i≤kissuchthat:
+–Niis a ﬁnite set of nodesincluding a distinguished set EN iofentry nodes and a
+set EX iofexit nodes suchthat EX iand EN iare disjointsets;
+–Biisaﬁnite set of boxes;
+–Yi:Bi→ {1,2,...,k}is a mapping that assigns every box to a component.We
+associate aset of callports Call(b)andreturnportsRet (b)toeachbox b∈Bi:
+Call(b) =/braceleftbig
+(b,en) :en∈ENYi(b)/bracerightbig
+and Ret(b) =/braceleftbig
+(b,ex) :ex∈EXYi(b)/bracerightbig
+.
+Let Call i=∪b∈BiCall(b)and Ret i=∪b∈BiRet(b)be the set of call and return
+portsofcomponent Mi.Wedeﬁnethesetoflocations Qiofcomponent Miasthe
+unionoftheset ofnodes,call portsandreturnports,i.e. Qi=Ni∪Calli∪Reti;
+–Aiisa ﬁniteset of actions;and
+–Xi:Qi×Ai→Qiis the transition function with a condition that call ports a nd
+exitnodesdonothaveanyoutgoingtransitions.
+Forthesakeofsimplicity,weassumethatthesetofboxes B1,...,B kandsetofnodes
+N1,N2,...,N kare mutually disjoint. We use symbols N,B,A,Q,X , etc. to denote
+theunionofthecorrespondingsymbolsoverall components.
+An example of a RSM is shown in Figure 2(taken from [ 20]). An execution of a
+RSM begins at the entry node of some component and depending u pon the sequence
+
+--- Page 6 ---
+of input actions the state evolves naturally like a labeled t ransition system. However,
+when the execution reaches an entry port of a box, this box is s tored on a stack of
+pendingcalls,andtheexecutioncontinuesnaturallyfromt hecorrespondingentrynode
+of the component mapped to that box. When an exit node of a comp onent is encoun-
+tered, and if the stack of pending calls is empty then the run t erminates; otherwise, it
+pops the box from the top of the stack and jumps to the exit port of the just popped
+box correspondingto the just reachedexit of the component. We formalize the seman-
+tics of a RSM using a discrete LTS, whose states are pairs cons isting of a sequence
+of boxes, called the context, mimicking the stack of pending calls and the current
+location. Let M= (M1,M2,...,Mk)be an RSM where the component Miis
+(Ni,Eni,Exi,Bi,Yi,Ai,Xi). The semantics of Mis the discrete labelled transition
+system[[M]] = (SM,AM,XM)where:
+–SM⊆B∗×Qisthe set ofstates;
+–AM=∪k
+i=1Aiistheset ofactions;
+–XM:SM×AM→SMisthetransitionfunctionsuchthatfor s= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q)∈SM
+anda∈AM,wehavethat s′=XM(s,a)ifandonlyifoneofthefollowingholds:
+1. the location qisacall port,i.e. q= (b,en)∈Call,and s′= (/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,en);
+2. the location qisan exitnode,i.e. q=ex∈EX ands′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,(b,ex))where
+(b,ex)∈Ret(b)andκ= (κ′,b);
+3. thelocation qisanyotherkindoflocation,and s′= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q′)andq′∈X(q,a).
+GivenMandasubset Q′⊆Qofitsnodeswedeﬁne [[Q′]]Mas{(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,v′) :κ∈B∗andv′∈Q′}.
+We deﬁne the terminal conﬁgurations TermMas the set {(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,ex) :ex∈EX}with
+the empty context /an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔. Given a recursive state machine M, an initial node v, and a set
+ofﬁnal locations F⊆Qthereachability problem onMis deﬁned as the reachability
+problem on the LTS [[M]]with the initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,v)and ﬁnal states [[F]]. We deﬁne
+terminationproblem as thereachabilityofoneofthe exitswith theemptycontext .The
+reachability and the termination problemfor recursivesta te machinescan be solved in
+polynomialtime[ 2].
+A partition (QAch,QTor)of locations Qof an RSM M(between Achilles and Tor-
+toise) gives rise to recursive game arena G= (M,QAch,QTor). Given an initial state,
+v,andaset ofﬁnalstates, F,thereachabilitygameon Misdeﬁnedasthereachability
+game on the game arena ([[M]],[[QAch]]M,[[QTor]]M)with the initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,v)and
+thesetofﬁnalstates [[F]]M.Also,theterminationgame Misdeﬁnedasthereachability
+game on the game arena ([[M]],[[QAch]]M,[[QTor]]M)with the initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,v)and
+thesetofﬁnalstates TermM.Itisawellknownresult(see,e.g.[ 21],[14])thatreachabil-
+ity games and termination gameson RSMs are determined and de cidable (EXPTIME-
+complete).
+3 Recursive HybridAutomata
+Recursivehybridautomata(RHAs)extendclassicalhybrida utomata(HAs)withrecur-
+sion in a similar way RSMs extend LTSs. We study a rather simpl er subclass of HA
+knownassingularhybridautomatawhereallvariablesgroww ithconstant-rates.
+
+--- Page 7 ---
+3.1 Syntax
+LetRbe the set of real numbers. Let Xbe a ﬁnite set of real-valued variables. A
+valuation onXis a function ν:X →R. We assume anarbitrarybut ﬁxedorderingon
+thevariablesandwrite xiforthevariablewithorder i.Thisallowsustotreatavaluation
+νas a point (ν(x1),ν(x2),...,ν(xn))∈R|X|. Abusing notations slightly, we use a
+valuation on Xand a point in R|X|interchangeably.For a subset of variables X⊆ X
+and a valuation ν′∈ X, we write ν[X:=ν′]for the valuation where ν[X:=ν′](x) =
+ν′(x)ifx∈X, andν[X:=ν′](x) =ν(x)otherwise. The valuation 0∈R|X|is a
+specialvaluationsuchthat 0(x) = 0forallx∈ X.
+We deﬁne a constraint over a set Xas a subset of R|X|. We say that a constraint
+isrectangular if it is deﬁned as the conjunction of a ﬁnite set of constraint s of the
+formx ⊲⊳ k,wherek∈Z,x∈ X, and⊲⊳∈ {<,≤,=,>,≥}. For a constraint G,
+we write [[G]]for the set of valuations in R|X|satisfying the constraint G. We write ⊤
+( resp.,⊥) for the special constraint that is true (resp., false) in al l the valuations, i.e.
+[[⊤]] =R|X|(resp.,[[⊥]] =∅). We write rect (X)for the set of rectangular constraints
+overXincluding ⊤and⊥.
+Deﬁnition1 (RecursiveHybridAutomata). Arecursivehybridautomaton H= (X,(H1,H2,...,Hk))
+isapairmadeofasetofvariables Xandacollectionofcomponents (H1,H2,...,Hk)
+where every component Hi= (Ni,ENi,EXi,Bi,Yi,Ai,Xi,Pi,Invi,Ei,Ji,Fi)is
+suchthat:
+–Niis a ﬁnite set of nodesincluding a distinguished set ENiofentry nodes and a
+setEXiofexitnodes suchthat EXiandENiaredisjointsets;
+–Biisaﬁniteset of boxes;
+–Yi:Bi→ {1,2,...,k}isamappingthatassignseveryboxtoacomponent.(Call
+ports Call (b)and return ports Ret (b)of a box b∈Bi, and call ports Call iand
+return ports Ret iof a component Hiare deﬁned as before. We set Qi=Ni∪
+Calli∪Retiandrefer tothisset astheset of locationsof Hi.)
+–Aiisaﬁniteset of actions.
+–Xi:Qi×Ai→Qiis the transition function with a condition that call ports a nd
+exit nodesdonothaveanyoutgoingtransitions.
+–Pi:Bi→2Xispass-by-valuemappingthatassignseveryboxthesetofva riables
+that are passed by value to the component mapped to the box; (T he rest of the
+variablesareassumedtobepassedbyreference.)
+–Invi:Qi→rect(X)istheinvariantcondition ;
+–Ei:Qi×Ai→rect(X)istheactionenablednessfunction ;
+–Ji:Ai→2Xisthevariablereset function ;and
+–Fi:Qi→N|X|is theﬂow function characterizing the rate of each variable in
+eachlocation.
+We assume that the sets of boxes, nodes, locations, etc. are m utually disjoint across
+componentsand we write ( N,B,Y,Q,P,X , etc.) to denote correspondingunion over
+allcomponents.
+We say that a recursive hybrid automaton is glitch-free if for every box either all vari-
+ables are passed by value or none is passed by value, i.e. for e achb∈Bwe have that
+
+--- Page 8 ---
+eitherP(b) =XorP(b) =∅. Any general recursivehybridautomaton with one vari-
+ableistriviallyglitch-free.WesaythataRHAis hierarchical ifthereexistsanordering
+over components such that a component never invokes another component of higher
+orderorsameorder.
+We say that a variable x∈ Xis aclock(resp., a stopwatch) if for every location
+q∈Qwehavethat F(q)(x) = 1(resp.,F(q)(x)∈ {0,1}).Arecursivetimedautoma-
+ton (RTA) is simply a recursivehybridautomatawhere all var iablesx∈ Xare clocks.
+Similarly, we deﬁne a recursive stopwatch automaton (RSA) a s a recursive hybrid au-
+tomaton where all variables x∈ Xare stopwatches. Since all of our results pertaining
+torecursivehybridautomataareshowninthecontextofrecu rsivestopwatchautomata,
+we oftenconfuseRHA withRSA.
+3.2 Semantics
+Aconﬁguration ofanRHA Hisatuple (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν),whereκ∈(B×R|X|)∗issequence
+ofpairsofboxesandvariablevaluations, q∈Qisalocationand ν∈R|X|isavariable
+valuation over Xsuch that ν∈Inv(q). The sequence /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔ ∈(B×R|X|)∗denotes the
+stack of pending recursive calls and the valuation of all the variables at the moment
+that call was made, and we refer to this sequence as the contex t of the conﬁguration.
+Technically,itsufﬁcestostorethevaluationofvariables passedbyvalue,becauseother
+variables retain their value after returning from a call to a box, but storing all of them
+simpliﬁes the notation.We denote the the empty context by /an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔. For any t∈R, we let
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)+tequalthe conﬁguration (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν+F(q)·t). Informally,the behaviourof
+anRHAisasfollows.Inconﬁguration (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)timepassesbeforeanavailableaction
+istriggered,afterwhichadiscretetransitionoccurs.Tim epassageisavailableonlyifthe
+invariantcondition Inv(q)issatisﬁedwhiletimeelapses,andanaction acanbechosen
+after time telapsesonly if it is enabledafter time elapse, i.e., if ν+F(q)·t∈E(q,a).
+Iftheaction aischosenthenthesuccessorstate is (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q′,ν′)whereq′∈X(q,a)and
+ν′= (ν+t)[J(a) :=0].Formally,thesemanticsofanRHAisgivenbyanLTSwhich
+hasbothanuncountablyinﬁnitenumberofstatesandtransit ions.
+Deﬁnition2 (RHA semantics). LetH= (X,(H1,H2,...,Hk))be an RHA where
+eachcomponentisoftheform Hi= (Ni,ENi,EXi,Bi,Yi,Ai,Xi,Pi,Invi,Ei,Ji,Fi).
+Thesemanticsof Hisalabelledtransitionsystem [[H]] = (SH,AH,XH)where:
+–SH⊆(B×R|X|)∗×Q×R|X|, theset ofstates, iss.t. (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)∈SHifν∈Inv(q).
+–AH=R⊕×Aisthesetof timedactions ,whereR⊕isthesetofnon-negativereals;
+–XH:SH×AH→SHis the transition function such that for (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)∈SH
+and(t,a)∈AH, we have (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,q′,ν′) =XH((/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν),(t,a))if and only if the
+followingconditionholds:
+1. if the location qis a call port, i.e. q= (b,en)∈Call then t= 0, the context
+/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ,(b,ν)/an}bracke⊔ri}h⊔,q′=en,andν′=ν.
+2. if thelocation qis anexit node,i.e. q=ex∈Ex,/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′′,(b,ν′′)/an}bracke⊔ri}h⊔, andlet
+(b,ex)∈Ret(b),thent= 0;/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′′/an}bracke⊔ri}h⊔;q′=(b,ex); andν′=ν[P(b):=ν′′].
+3. if location qisanyotherkindof location,then /an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q′∈X(q,a),and
+(a)ν+F(q)·t′∈Inv(q)forallt′∈[0,t];
+(b)ν+F(q)·t∈E(q,a);
+(c)ν′= (ν+F(q)·t)[J(a) :=0].
+
+--- Page 9 ---
+3.3 Reachabilityand Time-BoundedReachabilityGameProbl ems
+Forasubset Q′⊆QofstatesofRHA Hwedeﬁnetheset [[Q′]]Hastheset{(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)∈SH:q∈Q′}.
+Wedeﬁnetheterminalconﬁgurationsas TermH={(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,q,ν)∈SH:q∈EX}.Given
+a recursivehybridautomaton H, an initial node qand valuation ν∈R|X|, and a set of
+ﬁnallocations F⊆Q,thereachabilityproblem onHistodecidetheexistenceofarun
+in the LTS [[H]]staring from the initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,q,ν)to some state in [[F]]H. As with
+RSMs, we also deﬁne termination problem as reachability of one of the exits with the
+emptycontext.Hence,givenanRHA Handaninitialnode qandavaluation ν∈R|X|,
+the termination problem on His to decide the existence of a run in the LTS [[H]]from
+initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,q,ν)to aﬁnal state in TermH.
+Given a run r=/an}bracke⊔le{⊔s0,(t1,a1),s2,(t2,a2),...,(sn,tn)/an}bracke⊔ri}h⊔of an RHA, its time dura-
+tiontime(r)is deﬁned as/summationtextn
+i=1ti. Given a recursive hybrid automaton H, an initial
+nodeq, a bound T∈N, and valuation ν∈R|X|, and a set of ﬁnal locations F⊆Q,
+thetime-bounded reachability problem onHis to decide the existence of a run rin
+the LTS[[H]]staring from the initial state (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,q,ν)to some state in [[F]]Hsuch that
+time(r)≤T.Time-boundedterminationproblemisdeﬁnedin ananalogou smanner.
+Apartition (QAch,QTor)oflocations QofanRHA Hgivesrisetoarecursivehybrid
+game arena Γ= (H,QAch,QTor). Given an initial location q, a valuation ν∈Vand a
+set of ﬁnal states F, the reachability game on Γis deﬁned as the reachabilitygame on
+thegamearena ([[H]],[[QAch]]T,[[QTor]]T)withtheinitialstate (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(q,ν))andthesetof
+ﬁnal states [[F]]T. Also, termination game on Tis deﬁned as the reachability game on
+thegamearena ([[T]],[[QAch]]T,[[QTor]]T)withtheinitialstate (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(q,ν))andthesetof
+ﬁnalstates TermT.
+Weprovethefollowingkeytheoremaboutreachabilitygames onvarioussubclasses
+ofrecursivehybridautomatainSection 5.
+Theorem1. Thereachabilitygameproblemisundecidablefor:
+1. Unrestricted RSAwith 2stopwatches,
+2. GlitchfreeRSAwith 3stopwatches,
+3. Unrestricted RTAwith 3clocksunderboundedtime,and
+4. GlitchfreeRSAwith 4stopwatchesunderboundedtime.
+Moreover,allof theseresultsholdevenunderhierarchical restriction.
+Onapositiveside,weobservethatforglitch-freeRSAwitht wostopwatchesreach-
+abilitygamesaredecidablebyexploitingtheexistenceofﬁ nitebisimulationforhybrid
+automatawith 2stopwatches.Detailsaregivenin Appendix 7.1
+Theorem2. Thereachabilitygamesare decidableforglitch-freeRSAwi th atmosttwo
+stopwatches.
+We study the above mentioned problems when studied for a sing le player game.
+TheseproblemshavebeendetailedinSection 4.
+Theorem3. Thereachabilityproblemisundecidablefor
+1. Unrestricted RHAwith2 stopwatches,
+
+--- Page 10 ---
+2. GlitchfreeRHAwith 3stopwatches,
+3. Unrestricted RTAwith 5clocksunderboundedtime,and
+4. GlitchfreeRHAwith 14stopwatchesunderboundedtime.
+Moreover,allof theseresultsholdevenunderhierarchical restriction.
+Ona positiveside,we observethefollowingdecidabilityre sults.
+Theorem4. Thereachabilityandtheterminationproblemsaredecidabl efor
+1. Glitch-freeRHAwith atmosttwo stopwatches
+2. BoundedcontextRHAunderboundedtime,wherevariablesa realwayspassed-by-
+reference.
+The result for Glitch-free RHA with two stopwatches follows from the decidability of
+twostopwatchhybridautomata.
+4 Undecidability Results withoneplayer
+In this section, we providea proof sketch of our undecidabil ityresults by reducingthe
+haltingproblemfortwocountermachinestothereachabilit yprobleminanRHA/RTA.
+Atwo-counter machine Mis a tuple (L,C)whereL={ℓ0,ℓ1,...,ℓ n}is the set of
+instructionsincludinga distinguishedterminal instruct ionℓncalled HALT, and the set
+C={c1,c2}oftwocounters.Theinstructions Lareofthe type:
+1. (increment c)ℓi:c:=c+1; gotoℓk,
+2. (decrement c)ℓi:c:=c−1; gotoℓk,
+3. (zero-check c)ℓi: if(c >0)thengoto ℓkelse goto ℓm,
+wherec∈C,ℓi,ℓk,ℓm∈L. A conﬁguration of a two-counter machine is a tuple
+(l,c,d)wherel∈Lis an instruction, and c,d∈Nis the value of counters c1andc2,
+resp.A runofa two-countermachineisa (ﬁnite orinﬁnite)se quenceofconﬁgurations
+/an}bracke⊔le{⊔k0,k1,.../an}bracke⊔ri}h⊔wherek0= (ℓ0,0,0)and the relation between subsequent conﬁgurations
+is governed by transitions between respective instruction s. Thehalting problem for a
+two-countermachineasks whetheritsuniquerunendsat the t erminalinstruction ℓn. It
+iswellknown([ 18])thatthehaltingproblemfortwo-countermachinesisunde cidable.
+InordertoprovefourresultsofTheorem 3,weconstructarecursive(timed/hybrid)
+automaton whose main components simulate various instruct ions. In these construc-
+tions the reachability of the exit node of each component cor respondingto an instruc-
+tionislinkedtoafaithfulsimulationofvariousincrement ,decrementandzerocheckin-
+structionsofthemachinebychoosingappropriatedelaysto adjusttheclocks/variables,
+to reﬂectchangesincountervalues.We specifya maincompon entforeachinstruction
+of the two countermachine.The entry nodeand exit nodeof a ma in componentcorre-
+spondingto aninstruction ℓi:c:=c+1; gotoℓkarerespectively ℓiandℓk.Similarly,
+a main component corresponding to a zero check instruction li: if(c >0)then goto
+ℓkelse goto ℓm, has a unique entry node ℓi, and two exit nodes corresponding to ℓk
+andℓmrespectively.We getthecompleteRHA forthe two-counterma chineswhenwe
+connect these main components in the same sequence as the cor responding machine.
+
+--- Page 11 ---
+The halting problem of the two counter machine now reduces to the reachability (or
+termination)ofanexit(HALT)node ℓninsomecomponent.
+Forthecorrectnessproofs,werepresentrunsintheRSAusin gthreedifferentforms
+oftransitions sg,J−→
+ts′,s/squigglerights′ands∗−→
+M(V)s′deﬁnedinthefollowingway:
+1. The transitions of the form sg,J−→
+ts′, wheres= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),s′= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n′,ν′)
+are conﬁgurationsof the RHA, gis a constraint or guard on variablesthat enables
+the transition, Jis a set of variables, and tis a real number, holds if there is a
+transition in the RHA from vertex nton′with guard gand reset set J. Also,
+ν′=ν+rt[J:= 0],whereristherate vectorofstate s.
+2. The transitions of the form s/squigglerights′wheres= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),s′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,n′,ν′)
+correspondtothefollowingcases:
+–transitionsfroma callportto anentrynode.Thatis, n= (b,en)forsomebox
+b∈Bandκ′=/an}bracke⊔le{⊔κ,(b,ν)/an}bracke⊔ri}h⊔andn′=en∈EN while ν′=ν.
+–transitions from an exit node to a return port which restores values of the
+variables passed by value, that is, /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′′,(b,ν′′)/an}bracke⊔ri}h⊔,n=ex∈EX and
+n′= (b,ex)∈Ret(b)andκ′=κ′′,whileν′=ν[P(b) :=ν′′].
+3. Thetransitionsoftheform st−→
+M(V)s′,calledsummaryedges,where s= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),
+s′= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n′,ν′)are such that n= (b,en)andn′= (b,ex)are call and return
+ports, respectively,of a box bmappedto Mwhichpasses byvalue to M, the vari-
+ables inV.tis the time elapsed between the occurences of (b,en)and(b,ex). In
+otherwords, tisthetime elapsedin thecomponent M.
+A conﬁguration (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν)isalso writtenas (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,(ν(x),ν(y))).
+4.1 UnrestrictedRHA with2stopwatches
+Forallthefourundecidabilityresults,weconstructarecu rsiveautomaton(timed/hybrid)
+as per the case, whose main components are the modules for the instructions and the
+counters are encoded in the variables of the automaton. In th ese reductions, the reach-
+ability of the exit node of each component corresponding to a n instruction is linked
+to a faithful simulation of various increment, decrement an d zero check instructions
+of the machine by choosingappropriatedelays to adjust the c locks/variables,to reﬂect
+changes in counter values. We specify a main component for ea ch type instruction of
+thetwocountermachine,forexample Hincforincrement.Theentrynodeandexitnode
+of a main component Hinccorresponding to an instruction [ ℓi:c:=c+ 1; gotoℓk]
+are respectively ℓiandℓk. Similarly, a main componentcorrespondingto a zero check
+instruction[ li:if(c >0)thengoto ℓk]elsegoto ℓm,hasauniqueentrynode ℓi,andtwo
+exitnodescorrespondingto ℓkandℓmrespectively.Thevariousmaincomponentscor-
+responding to the various instructions, when connected app ropriately,gives the higher
+level component HMand this completes the RHA H. The entry node of HMis the
+entry node of the main component for the ﬁrst instruction of Mand the exit node is
+Halt. Suppose each main component for each type of instruction co rrectly simulates
+theinstructionbyaccuratelyupdatingthecountersencode dinthevariablesof H.Then,
+
+--- Page 12 ---
+DB
+en
+yex B1:CDB
+(x,y)y>0 {x}CDB
+en1 ex1 B2:M1
+(x)B3:M1
+(x)y=2M1
+en2 ex2
+x,yx=1
+HF
+en
+yex B4:CHF
+(x,y)y>0 {x}CHF
+en3 ex3 B5:M2
+(y)B6:M2
+(y)x=2M2
+en4 ex4
+x,yx=1
+zerocheck
+enex
+ex′B1:Po2
+(x,y)y=0y=0
+y=0Po2
+en5ex5
+ex′
+5B7:DB B8:DB′y=0 y<2y=2
+y>2x=2x>2
+x<2
+Fig.3.RHA : 2stopwatch:Decrement cisDB, increment cisHFandzerocheck d
+the unique run in Mcorrespondsto an unique run in HM. The halting problem of the
+twocountermachinenowboilsdownto thereachabilityofan e xitnodeHaltinHM.
+Lemma 1. Thereachabilityproblemisundecidableforrecursivehybr idautomatawith
+atleast two stopwatches.
+Proof.We prove that the reachability and termination problems are undecidable for
+2 stopwatch unrestricted RHA. In order to obtain the undecid ability result, we use a
+reduction from the halting problem for two counter machines . Our reduction uses a
+RHA withstopwatches x,y.
+We specify a main componentfor each instructionof the two co untermachine.On
+entry into a main component for increment/decrement/zeroc heck, we have x=1
+2c3d,
+y= 0orx= 0,y=1
+2c3d, wherec,dare the current values of the counters. Given
+a two counter machine, we build a 2 stopwatch RHA whose buildi ng blocks are the
+main components for the instructions. The purpose of the com ponents is to simulate
+faithfully the counter machine by choosing appropriate del ays to adjust the variables
+to reﬂect changes in counter values. On entering the entry no deenof a main compo-
+nentcorrespondingtoaninstruction li,wehavetheconﬁguration (/an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔,en,(1
+2c3d,0))or
+(/an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔,en,(0,1
+2c3d))ofthetwo stopwatchRHA.
+We shall now present the componentsfor increment/decremen tand zero check in-
+structions. In all the components, the ticking variables ar e written below respective
+locationsingrey,while thevariablespassedbyvaluearewr ittenbelowtheboxes.
+Simulatedecrementinstruction :Letsconsiderthedecrementinstruction ℓi:c=c−1;
+gotoℓk. Figure3gives the component DBwhich decrements counter c, by doubling
+1
+2c3d. Assume that x=1
+2c3dandy= 0onentering DB. Letsdenoteby xoldthe value
+1
+2c3d. A non-deterministic amount of time tis spent at the entry node enofDB. This
+makesx=xoldandy=t, at the call portof B1:CDB. Bothx,yare passed byvalue
+toCDB.
+
+--- Page 13 ---
+At the entry node of CDB, the rates of x,yare zero. At sometime, the call port of
+B2:M1isreachedwith x=xoldandy=t.M1iscalledbypassing xbyvalue.Atthe
+entrynodeof M1,atime1−xoldisspent,obtaining x= 1,y=t+1−xold.Wereturn
+fromtheexitnodeof M1tothereturnportof B2:M1,withx=xold,y= 1+t−xold.
+Theratesof x,yarebothzerohere.Aftersometime,weareatthecallportof B3:M1.
+Here again, M1iscalled by passing xbyvalue.Goingthrough M1againgivesus x=
+1,y= 2−2xold+t.Atthereturnportof B3,wethushave x=xold,y= 2−2xold+t.
+Again since the rates of x,yare both zero at the return port of B3, to get to the exit
+node ofCDB,ymust be exactly equal to 2. That is, 2xold=t. In that case, when we
+get back to the return port of B1:CDB, we have x=xold,y=t, with the guarantee
+thatt= 2xold.Theratesof x,yarebothzerohere,sowegettotheexitnode exofDB
+resettingx. Thus,whenwereach ex,we have x= 0,y=1
+2c−13d.
+Simulate increment instruction : The instruction [ ℓi:c=c+ 1; gotoℓk] is handled
+by the component HFin Figure 3. The main component HF, when entered with x=
+1
+2c3d,y= 0will halve the value of x, and return x= 0,y=1
+2c+13d. The working of
+thecomponent HFcanbeexplainedina similarwayasthat of DB.
+Zero check instruction : The component zerocheck simulating [ ℓi: if(d >0)then
+gotoℓkelse goto lm] can be foundin Figure 3. Assume we are at enwithx=1
+2c3d=
+xoldandy= 0. The rates of both x,yare zero, so we reach the callport of B1:Po2
+with the same values of x,y.Po2is called by passing both x,yby value. No time is
+spent at the entry node en5ofPo2, so with y= 0, we reach the call port of B7:DB.
+Recall that DBis the component that doubles the value of xand stores it in y;DB
+is called by passing both x,yby reference; when we return to the return port of B7,
+we havex= 0,y= 2xold. Ify= 2, then we go straightaway to the exit node ex5of
+Po2. Ifx <2, then we goto the callport of B8:DB′from the return port of B7. The
+component DB′is similar to DB, with the roles of x,yreversed as comparedto DB,
+and entry to DB′happenswith x= 0,y= 2xold. At the exit node of DB′, we obtain
+y= 0,x= 4xold. Now, if x= 2, then we goto the exit node ex5ofPo2. Ifx <2,
+thenwe gotothe callportof B7:DB. Inthis way,we alternatebetween DB,DB′until
+we have multiplied xoldby some number ksuch that k.xoldis exactly 2. If we obtain
+k.xold= 2at the returnport of B7, then we have y= 2andx= 0, while if we obtain
+k.xold= 2at the return port of B8, then we have x= 2andy= 0. If this happens,
+thend= 0. Ifd >0, then we will never obtain k.xoldas 2. In this case, we go to the
+exit node ex′
+5whenx(ory) exceeds2. If we reach the exit node ex5ofPo2, then we
+gototheexitnode exofthezerocheckcomponent,andifwereachtheexitnode ex′
+5of
+Po2,thenwegototheexitnode ex′ofthezerocheckcomponent.
+The following propositions show the correctness of the incr ement, decrement and
+zerocheckcomponents.Forthecorrectnessproofs,werepre sentrunsintheRHAusing
+three different forms of transitions sg,J−→
+ts′,s/squigglerights′ands∗−→
+M(V)s′deﬁned in the
+followingway:
+1. The transitions of the form sg,J−→
+ts′, wheres= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),s′= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n′,ν′)
+are conﬁgurationsof the RHA, gis a constraint or guard on variablesthat enables
+the transition, Jis a set of variables, and tis a real number, holds if there is a
+
+--- Page 14 ---
+transition in the RHA from vertex nton′with guard gand reset set J. Also,
+ν′=ν+rt[J:= 0],whereristherate vectorofstate s.
+2. The transitions of the form s/squigglerights′wheres= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),s′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,n′,ν′)
+correspondtothefollowingcases:
+–transitionsfroma callportto anentrynode.Thatis, n= (b,en)forsomebox
+b∈Bandκ′=/an}bracke⊔le{⊔κ,(b,ν)/an}bracke⊔ri}h⊔andn′=en∈EN while ν′=ν.
+–transitions from an exit node to a return port which restores values of the
+variables passed by value, that is, /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′′,(b,ν′′)/an}bracke⊔ri}h⊔,n=ex∈EX and
+n′= (b,ex)∈Ret(b)andκ′=κ′′,whileν′=ν[P(b) :=ν′′].
+3. Thetransitionsoftheform s∗−→
+M(V)s′,calledsummaryedges,where s= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν),
+s′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,n′,ν′)are such that n= (b,en)andn′= (b,ex)are call and return
+ports, respectively,of a box bmappedto Mwhichpasses byvalue to M, the vari-
+ablesinV.
+A conﬁguration (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,ν)isalso writtenas (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,n,(ν(x),ν(y))).
+Proposition1. For any context κ, any box b∈B, andx∈[0,1], we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),(x,0))∗−→
+DB(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex),(0,2x))
+Proof.Component DBusescomponents CDBandM1. Thefollowingis a uniquerun
+startingfrom (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),(x,0))terminatingin (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex),(2x,0)).
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),(x0,0))/squiggleright(/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,en,(x0,0))
+y>0,∅−→
+t(/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,(B1,en1),(x0,t))/squiggleright(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,en1,(x0,t))
+true,∅−→
+any(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,(B2,en2),(x0,t))/squiggleright(/an}bracke⊔le{⊔κ,b,(B1,(x0,t)),(B2,x0)/an}bracke⊔ri}h⊔,en2,(x0,t))
+x=1,∅−→
+1−x0(/an}bracke⊔le{⊔κ,b,(B1,(x0,t)),(B2,x0)/an}bracke⊔ri}h⊔,ex2,(1,1−x0+t))
+/squiggleright(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,(B2,ex2),(x0,1−x0+t))
+true,∅−→
+any(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,(B3,en2),(x0,1−x0+t))
+/squiggleright(/an}bracke⊔le{⊔κ,b,(B1,(x0,t)),(B3,x0)/an}bracke⊔ri}h⊔,en2,(x0,1−x0+t))
+x=1,∅−→
+1−x0(/an}bracke⊔le{⊔κ,b,(B1,(x0,t)),(B3,x0)/an}bracke⊔ri}h⊔,ex2,(1,2−2x0+t))
+/squiggleright(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,(B3,ex2),(x0,2−2x0+t))
+y=2,∅−→
+any(/an}bracke⊔le{⊔κ,b,(B1,(x0,t))/an}bracke⊔ri}h⊔,ex1,(x0,2))(2−2x0+t= 2↔t= 2x0)
+/squiggleright(/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,(B1,ex1),(x0,2x0))
+true,{x}−→
+any(/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,ex,(0,2x0))/squiggleright(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex),(0,2x0)).The transitions above easily
+followfromthedescriptionsgiveninthedecrementsection . ⊓ ⊔
+
+--- Page 15 ---
+Proposition 2provesthecorrectnessofthe component HF.
+Proposition2. For any context κ, any box b∈B, andx∈[0,1], we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),(x,0))∗−→
+HF(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex),(0,x
+2))
+Proof.Similar toProposition 1.
+Proposition 3provesthe correctnessof the component Po2that checksif xis a power
+of2:
+Proposition3. Foranycontext κ,anybox b∈B,andx∈[0,1],we havethatstarting
+from(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),(x,0)),zerocheck terminates at (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex),(x,0))iffx=1
+2i,
+i∈N. Otherwise, itterminatesin (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex′),(x,0)).
+Proof.The proof of this follows from the correctness of the compone ntDBshown
+above.Indeed,if DBdoublesthevariable,clearly,1
+2c3dwill become2eventuallyafter
+c+1invocationsof DBiffd= 0. ⊓ ⊔
+Notethatthecomponentsforincrementing,decrementingan dzerocheckforcounter
+dcanbe obtainedina mannersimilar to DB,HF . Theonlydifferenceisthatwe have
+tomultiplyanddivideby3;thesegadgetscanbeobtainedstr aightforwardlybyadapting
+DB,HF appropriately.
+We now show that the two counter machine halts iff a vertex Haltcorrespond-
+ing to the halting instruction is reached in the RHA. Clearly , all the main components
+discussed above ensure that all instructions are simulated correctly. Assume the two
+countermachinehalts.Thenclearly,aftergoingthroughal lthemaincomponentscorre-
+spondingtorelevantinstructions,wereachthecomponentt hatleadstotheHaltvertex.
+TheDB,HF,zerocheck subcomponentsagainensurethatsimulationisdonecorrect ly
+toreachthevertexHalt.Conversely,assumethatthetwocou ntermachinedoesnothalt.
+Then there are two possibilities: (1) the RHA proceedscompo nentby component,for-
+ever,simulatingallinstructionsfaithfully,or(2)theRH A isunabletotakea transition,
+due to an errorin the simulation of instructions.In either c ase, the vertexHalt is never
+reached.
+4.2 GlitchFreeRHAwith 3stopwatches
+Lemma 2. Thereachabilityproblemisundecidableforrecursivehybr idautomatawith
+atleast threestopwatches.
+Proof.The proofof thisLemmais a straightforwardadaptationofth e techniquesused
+inLemma 4.1.Themaindifferencehereisthat,atalltimes,wehavetopas sallvariables
+either by value, or by reference. This necessitates the need for an extra variable. In
+particular, we always pass all variables only by value. Thus , our result holds for the
+case of“passbyvalue”RHAs with3stopwatches.
+We specify a main componentfor each instructionof the two co untermachine.On
+entry into a main component for increment/decrement/zeroc heck, we have x=1
+2c3d,
+y=z= 0wherec,dare the current values of the counters. Given a two counter
+machine,webuilda3stopwatchRHAwhosebuildingblocksare themaincomponents
+
+--- Page 16 ---
+DB
+en1
+x,yl
+xA1:CDB
+(x,y,z)ex1x=1
+{x}x>0 {y}CDB
+en2
+y,zl1
+x,y,zl2
+y,zl3
+x,y,zex2y=1
+{y}z=1
+{z}y=1
+{y}z=1
+x=2
+HF
+en3
+x,ym
+xA2:CHF
+(x,y,z)ex3x=1
+{x}x>0 {y}CHF
+en4
+x,zm1
+x,y,zm2
+x,zm3
+x,y,zex4x=1
+{x}z=1
+{z}x=1
+{x}z=1
+y=1
+Po2
+en5ex5
+ex′
+5A3:DBy=0y=0∧x>2
+y=0∧x= 2
+y=0∧x<2Po3
+en6ex6
+ex′
+6A4:TRy=0y=0∧x>3
+y=0∧x= 3
+y=0∧x<3
+Fig.4.Glitch-freeRSA 3stopwatch: Decrement c,Increment candPo2,Po3
+fortheinstructions.Thepurposeofthecomponentsistosim ulatefaithfullythecounter
+machine by choosing appropriate delays to adjust the variab les to reﬂect changes in
+counter values. On entering the entry node enof a main component corresponding to
+aninstruction ℓi,wehavetheconﬁguration (/an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔,en,(1
+2c3d,0,0))ofthethreestopwatch
+RHA. We shall now present the components for increment/decr ement and zero check
+instructions. In all the components, the ticking variables are written below respective
+locationsingrey.
+Simulatedecrementinstruction :Letsconsiderthedecrementinstruction ℓi:c=c−1;
+gotoℓk. Figure5gives the component DBwhich decrements counter c, by doubling
+1
+2c3d. Assume that x=1
+2c3dandy=z= 0on entering DB. Lets denote by xold
+the value1
+2c3d. A time 1−xoldis spent at the entry node en1ofDB, resulting in
+x= 0,y= 1−xold,z= 0at location l.A non-deterministicamountoftime tis spent
+atl. This makes x=tandy= 1−xold,z= 0, at the call port of A1:CDB. All
+variables x,y,zarepassed byvalueto CDB.
+At the entry node en2ofCDB, the rates of y,zare one. A time xoldis spent at
+en2, obtaining y= 0,x=tandz=xoldatl1. Atl1, a time1−xoldis spent,
+obtaining x= 1 +t−xold,y= 1−xoldandz= 0atl2. A timexoldis spent at l2
+obtaining x= 1+t−xold,y= 0,z=xoldatl3.Atime1−xoldisspentat l3,obtaining
+z= 1,x= 2+t−2xoldandy= 1−xold.Tomoveoutof l3,xmustbe2;thatispossible
+ifft= 2xold. In this case, from the return port of A1:CDB(rates are all 0 here), we
+reach the exit node ex1ofDBresetting y, obtaining x=t= 2xold,y=z= 0,
+therebysuccessfullydecrementing c.
+Simulate increment instruction : The instruction ℓi:c=c+1; gotoℓkis handledby
+the component HFin Figure 5. A time 1−xoldis spent at entry node en3ofHF,
+reaching location mwithx= 0,y= 1−xoldandz= 0. A non-deterministic time
+
+--- Page 17 ---
+tis spent in m, reaching the entry node en4ofCHFwithx=t,y= 1−xoldand
+z= 0. The exit node ex4ofCHFcan be reached iff t=xold
+2. The working of these
+componentsaresimilar to DB,C DB.
+Zerocheckinstruction :Thecomponent zerocheck simulating ℓi:if(d >0)thengoto
+ℓkisthe sameas the zerocheck componentin Figure 3,wherethe subcomponent Po2
+iscalled,passingallvariablesbyvalue.Thesubcomponent Po2calledcanbefoundin
+Figure5.Attheentrynodeof Po2,notimeisspent,andweareatthecallportof DB.
+WehavedrawnDBherelikeaboxtoavoidclutter,butitisactu allyatransitionthat
+goes from en5ony= 0to a location called en1. Continue with the transitions drawn
+inside DB (treat them like normaltransitions),and we have t he sequenceof transitions
+fromen1toex1,whereCDBiscalledinbetween.Theedge x <2∧y= 0isatransition
+fromex1toen1.Intheﬁgure,toavoidclutter,wehavedrawnit fromtheretu rnportto
+the call portof DB. Thisloop from ex1toen1is invokedrepeatedly,until we obtain x
+exactlyequalto2.Ifthishappens,thenweknowthat d= 0in1
+2c3d=xold.Ifthisdoes
+not happen, then at some point of time, we will obtain xas more than 2. In this case,
+d/ne}a⊔ionslash= 0. In the former case, we go the exit node ex′ofPo2fromex1, and in the latter
+case, we go to the exit node exofPo2fromex1. Note that, whenevera box is called,
+we havealwayspassedall thevariablesonlybyvalue.
+The propositionsprovingcorrectnessof the main and sub com ponentsis similar to
+Lemma4.1. Also, it is clear that the node Haltis reached iff the two countermachine
+halts. ⊓ ⊔
+4.3 GlitchFreeRHAwith 2clocksand 1stopwatch
+Lemma 3. Thereachabilityproblemisundecidableforrecursivehybr idautomatawith
+atleast two clocksandonestopwatch.
+Proof.The proofof thisLemmais a straightforwardadaptationofth e techniquesused
+inLemma 4.1.Themaindifferencehereisthat,atalltimes,wehavetopas sallvariables
+eitherbyvalue,orbyreference.Thisnecessitatestheneed foranextravariable.Inpar-
+ticular,wepassallvariablesbyreferenceinallexceptthe zerocheckmodule.Notethat
+all the calls with pass by reference can be removed by expandi ng the sub-component
+(callee) in the main component(caller). Thus, our result ho lds for the case of “pass by
+value”RHAs with2clocksand1stopwatch.
+We specify a main component for each instruction of the two co unter machine.
+On entry into a main component for increment/decrement/zer o check, we have two
+clocksx=1
+2c3d,y= 0and one stopwatch s= 0. wherec,dare the current values
+of the counters. Given a two counter machine, we build a 3 stop watch RHA whose
+buildingblocksare the main componentsfor the instruction s.Thepurposeofthe com-
+ponents is to simulate faithfully the counter machine by cho osing appropriate delays
+to adjust the variables to reﬂect changes in counter values. On entering the entry node
+enof a main componentcorrespondingto an instruction ℓi, we have the conﬁguration
+(/an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔,en,(1
+2c3d,0,0))of the three stopwatch RHA. We shall now present the compo-
+nents for increment/decrementand zero check instructions . In all the components, the
+tickingvariablesarewrittenbelowrespectivelocationsi ngrey.
+
+--- Page 18 ---
+Instruction
+en1A1:Get lA2:Check ex1y=0 y=0
+{x}{y} y=0
+{s}
+Decrementi :Get
+en3
+x,ym
+xA2:CHF
+(x,y,z)ex3x=1
+{x}x>0 {y}CHF
+en4
+x,zm1
+x,y,zm2
+x,zm3
+x,y,zex4x=1
+{x}z=1
+{z}x=1
+{x}z=1
+y=1
+Po2
+en5ex5
+ex′
+5A3:DBy=0y=0∧x>2
+y=0∧x= 2
+y=0∧x<2
+Fig.5.Glitch-freeRSA 3stopwatch: Decrement c,Increment candPo2,Po3
+Simulatedecrementinstruction :Letsconsiderthedecrementinstruction ℓi:c=c−1;
+gotoℓk. Figure5gives the component DBwhich decrements counter c, by doubling
+1
+2c3d. Assume that x=1
+2c3dandy=z= 0on entering DB. Lets denote by xold
+the value1
+2c3d. A time 1−xoldis spent at the entry node en1ofDB, resulting in
+x= 0,y= 1−xold,z= 0at location l.A non-deterministicamountoftime tis spent
+atl. This makes x=tandy= 1−xold,z= 0, at the call port of A1:CDB. All
+variables x,y,zarepassed byvalueto CDB.
+At the entry node en2ofCDB, the rates of y,zare one. A time xoldis spent at
+en2, obtaining y= 0,x=tandz=xoldatl1. Atl1, a time1−xoldis spent,
+obtaining x= 1 +t−xold,y= 1−xoldandz= 0atl2. A timexoldis spent at l2
+obtaining x= 1+t−xold,y= 0,z=xoldatl3.Atime1−xoldisspentat l3,obtaining
+z= 1,x= 2+t−2xoldandy= 1−xold.Tomoveoutof l3,xmustbe2;thatispossible
+ifft= 2xold. In this case, from the return port of A1:CDB(rates are all 0 here), we
+reach the exit node ex1ofDBresetting y, obtaining x=t= 2xold,y=z= 0,
+therebysuccessfullydecrementing c.
+Simulate increment instruction : The instruction ℓi:c=c+1; gotoℓkis handledby
+the component HFin Figure 5. A time 1−xoldis spent at entry node en3ofHF,
+reaching location mwithx= 0,y= 1−xoldandz= 0. A non-deterministic time
+tis spent in m, reaching the entry node en4ofCHFwithx=t,y= 1−xoldand
+z= 0. The exit node ex4ofCHFcan be reached iff t=xold
+2. The working of these
+componentsaresimilar to DB,C DB.
+Zerocheckinstruction :Thecomponent zerocheck simulating ℓi:if(d >0)thengoto
+ℓkisthe sameas the zerocheck componentin Figure 3,wherethe subcomponent Po2
+iscalled,passingallvariablesbyvalue.Thesubcomponent Po2calledcanbefoundin
+Figure5.Attheentrynodeof Po2,notimeisspent,andweareatthecallportof DB.
+
+--- Page 19 ---
+WehavedrawnDBherelikeaboxtoavoidclutter,butitisactu allyatransitionthat
+goes from en5ony= 0to a location called en1. Continue with the transitions drawn
+inside DB (treat them like normaltransitions),and we have t he sequenceof transitions
+fromen1toex1,whereCDBiscalledinbetween.Theedge x <2∧y= 0isatransition
+fromex1toen1.Intheﬁgure,toavoidclutter,wehavedrawnit fromtheretu rnportto
+the call portof DB. Thisloop from ex1toen1is invokedrepeatedly,until we obtain x
+exactlyequalto2.Ifthishappens,thenweknowthat d= 0in1
+2c3d=xold.Ifthisdoes
+not happen, then at some point of time, we will obtain xas more than 2. In this case,
+d/ne}a⊔ionslash= 0. In the former case, we go the exit node ex′ofPo2fromex1, and in the latter
+case, we go to the exit node exofPo2fromex1. Note that, whenevera box is called,
+we havealwayspassedall thevariablesonlybyvalue.
+The propositionsprovingcorrectnessof the main and sub com ponentsis similar to
+Lemma4.1. Also, it is clear that the node Haltis reached iff the two countermachine
+halts. ⊓ ⊔
+4.4 UnrestrictedRTA overbounded time
+Lemma 4. The time bounded reachability problem is undecidable for re cursive timed
+automatawith at least5clocks.
+Proof.We prove that the problem of reaching a chosen vertex in an RTA within 18
+units of total elapsed time is undecidable. In order to get th e undecidability result, we
+useareductionfromthehaltingproblemfortwocountermach ines.Ourreductionuses
+anRTA with atleast 5clocks.
+We specifya main componentforeach instructionofthe two co untermachine.We
+maintain 3 sets of clocks. The ﬁrst set X={x}encodes correctly the current value
+of counter c; the second set Y={y}encodes correctly the current value of counter
+d; the third set Z={z1,z2}of 2 clocks helps in zero-check. An extra clock bis
+used to enforce urgency in some locations. bis zero at the entry nodes of all the main
+components.Let Xdenote the set of all 5 clocks. The tuple of variableswritten below
+eachboxdenotesvariablespassedbyvalue.
+Tobeprecise,onentryintoamaincomponentsimulatingthe (k+1)thinstruction,
+we have the values of z1,z2as1−1
+2k, the value of xas1−1
+2c+k, and the value of
+yas1−1
+2d+k, wherec,dare the current values of the counters after simulating the
+ﬁrstkinstructions.We will denotethisbysayingthatat thebegin ningofthe (k+1)th
+instruction, we have ν(Z) = 1−1
+2k,ν(x) = 1−1
+2c+kandν(y) = 1−1
+2d+k. If the
+(k+1)thinstruction ℓk+1isanincrementcounter cinstruction,thenafterthesimulation
+ofℓk+1, we need ν(Z) = 1−1
+2k+1,ν(x) = 1−1
+2c+k+2andν(y) = 1−1
+2d+k+1.
+Similarly, if ℓk+1is a decrement cinstruction, then after the simulation of ℓk+1, we
+needν(Z) = 1−1
+2k+1,ν(x) = 1−1
+2c+kandν(y) = 1−1
+2d+k+1. Likewise,if ℓk+1is
+a zero check instruction,then after the simulation of ℓk+1, we need ν(Z) = 1−1
+2k+1,
+ν(x) = 1−1
+2c+k+1andν(y) = 1−1
+2d+k+1.
+Simulate Increment Instruction : Let us discuss the case of simulating an increment
+instruction for counter c. Assume that this is the (k+ 1)th instruction. Figure 6gives
+the ﬁgure for incrementing counter c. At the entry node en1of the component Inc c,
+we haveν(x) = 1−1
+2c+k,ν(y) = 1−1
+2d+kandν(Z) = 1−1
+2k, andν(b) = 0.
+
+--- Page 20 ---
+The component Inc chas three subcomponentssequentially lined up one after the
+other:Let β=1
+2k,βc=1
+2c+k,andβd=1
+2d+k.
+1. Theﬁrstsubcomponentis Upy
+2.IfUpy
+2isenteredwith ν(y) = 1−βd,thenonexit,
+we haveν(y) = 1−βd
+2. The values of X,Zare unchanged. Also, the total time
+elapsedin Upy
+2is≤5β
+2.
+2. Thenextsubcomponentis Upx
+4.IfUpx
+4isenteredwith ν(x) = 1−βc,thenonexit,
+we haveν(x) = 1−βc
+4. The values of Z,Yare unchanged. Also, the total time
+elapsedin Upx
+4is≤11β
+4.
+3. The next subcomponent is UpZ
+2updates the value of Z. IfUpZ
+2is entered with
+ν(Z) = 1−β, then on exit, we have ν(Z) = 1−β
+2. The values of X,Yare
+unchanged.Also, thetotaltime elapsedin UpZ
+2is≤5β
+2.
+4. Thus, at the end of the Inc c, we obtain ν(Z) = 1−1
+2k+1,ν(x) = 1−1
+2c+k+2,
+ν(y) = 1−1
+2d+k+1.Also,thetotaltimeelapsedin Inccis≤[5
+2+11
+4+5
+2]β <8β.
+Oncalling Upa
+n,fora∈ {x,y},theclock aispassedbyreference;likewise,oncalling
+UpZ
+n, clocks in Zare passed by reference. Here, n∈ {2,4}. Next, we describe the
+structure of the components Upa
+nfora∈ {x,y}. At the entry node en2ofUpa
+n, we
+have the invariant b= 0. Thus, no time is elapsed in the entry node en1ofInc calso.
+Upa
+nis made up of subcomponents D,Ca=
+z2,DandChka
+nlined sequentially. Let us
+discussthedetailsof Upy
+2,theothershavesimilarfunctionality.
+1. On entry into the ﬁrst subcomponent F4:D, we have ν(Z) = 1−β,ν(b) = 0,
+ν(x) = 1−βc,ν(y) = 1−βd.Discalled,andclock z2ispassedbyreferenceand
+the rest by value. A non-deterministicamount of time t1elapses at the entry node
+en3ofD.Backat thereturnportof F4:D,we haveclock z2addedby t1.
+2. We are then at the entry node of the subcomponent F5:Cy=
+z2with values ν(z2) =
+1−β+t1, andν(z1) = 1−β,ν(x) = 1−βc,ν(y) = 1−βdandν(b) = 0.
+Cy=
+z2is calledby passingall clocksbyvalue.The subcomponent Cy=
+z2ensuresthat
+t1=β−βd.
+3. To ensure t1=β−βd, at the entry node en4ofCy=
+z2, a timeβdelapses. This
+makesy= 1. Ifz2must be 1, then we need 1−β+t1+βd= 1, or the time
+t1elapsed is β−βd. That is, Cy=
+z2ensures that z2has grown to be equal to yby
+callingF4:D. Back at the return port of F5:Cy=
+z2, we next enter the call port of
+F6:Dwithν(z2) =ν(y) = 1−βdandν(z1) = 1−β.Dis called by passing
+yby reference, and all others by value. A non-deterministic a mount of time t2is
+elapsed in D. At the return port of F6:D, we getν(z1) = 1−β,ν(z2) = 1−βd,
+andν(y) = 1−βd+t2.
+4. At the call port of F7:Chky
+2, we have the same values, since b= 0has to be
+satisﬁedattheexitnode ex7ofChky
+2.Thatis,atthecallportof F7:Chky
+2,wehave
+ν(z1) = 1−β,ν(z2) = 1−βd,andν(y) = 1−βd+t2.F7callsChky
+2,andpasses
+all clocksbyvalue. Chky
+2checksthat t2=βd
+2.
+5. At the entryport en7ofChky
+2, no time elapses. Chky
+2sequentiallycalls Mtwice,
+each time passing z2by reference, and all others by value. In the ﬁrst invocation
+ofM, we want yto reach 1; thus a time βd−t2is spent at en6. This makes z2=
+1−βd+βd−t2= 1−t2.Afterthesecondinvocation,weobtain z2= 1+βd−2t2
+
+--- Page 21 ---
+Incc
+en1
+[b=0]F1:Upy
+2
+yF2:Upx
+4
+xF3:UpZ
+2
+{z1,z2}ex1
+[b=0]D
+en3ex3Ca=
+z2
+en4ex4a=1
+z2=1
+Upa
+n:a∈ {x,y};n∈ {2,4}
+en2
+[b=0]F4:D
+({z2})F5:Ca=
+z2
+(X)F6:D
+({a})F7:Chka
+n
+(X)ex2
+[b=0]Chka
+2
+en7
+[b=0]F8:M
+({z2})F9:M
+({z2})ex7
+[b=0]z2=1
+M
+en6ex6a=1UpZ
+2:Z={z1,z2}
+en5
+[b=0]F10:D
+({z1})F11:Chkz1
+2
+(X)F12:D
+({z2})F13:Cz1=
+z2
+(X)ex5
+[b=0]
+Fig.6.TB Term in RTA: Increment c.Note that S=X −Sanda∈ {x,y}.Cz1=
+z2is
+obtained by instantiating a=z1inCa=
+z2. The component Chka
+4is similar to Chka
+2. It
+has4callsto Minsideiteachtimepassingonly z2byreference.ZeroCheckcomponent
+follows the same pattern as Inc ccallingUpa
+2, for alla∈ {x,y}, followed by UpZ
+2,
+and then calls ZCpassing all variables by value. ZCchecks if z1=x(with guard
+z1=1∧x= 1)to checkifcounter cis0andz1=ytocheckif dis0.
+atthereturnportof F9:M.Notimecanelapseatthereturnportof F9:M;forz2to
+be1,we need t2=βd
+2.
+6. No time elapses in the return port of F7:Chky
+2, and we are at the exit node ex2of
+Upy
+2.
+7. Thus, at the exit node of Upy
+2, we have ν(z1) = 1−β,ν(z2) = 1−βdand
+ν(y) = 1−βd+t2= 1−βd
+2.
+8. The time elapsed in Upy
+2is the sum of t1,t2and the times elapsed in Cy=
+z2and
+Chky
+2. Thatis,(β−βd)+βd
+2+βd+2(βd−t2)=β+3βd
+2≤5β
+2sinceβd≤β.
+At the returnport of F1:Upy
+2, we thushave ν(Z) = 1−β(ν(z)restored to 1−βas
+it was passed by value to Upy
+2),ν(x) = 1−βc, andν(y) = 1−βd
+2. No time elapses
+here,andweareatthecallportof F2:Upx
+4.Thecomponent Chkx
+4issimilarto Chky
+2.
+It has 4 calls to Minside it, each passing respectively, z2by reference to Mandx
+by value. An analysis similar to the above gives that the tota l time elapsed in Upx
+4is
+≤11β
+4, and at the return port of F2:Upx
+4, we getν(x) = 1−βc
+4,ν(y) = 1−βd
+2and
+ν(Z) = 1−β. Thisisfollowedby entering F3:UpZ
+2, with these values.At the return
+port ofF3:UpZ
+2, we obtain ν(x) = 1−βc
+4,ν(y) = 1−βd
+2andν(Z) = 1−β
+2, with
+thetotal timeelapsedin UpZ
+2being≤5β
+2.
+From the explanations above, the following propositions ca n be proved. The same
+argumentsgivenabovewill applytoprovethis.
+
+--- Page 22 ---
+Proposition4. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(Z) = 1−β, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(ν(x),ν(y),1−β,ν(b)))∗−→
+UpZ
+2(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),(ν(x),ν(y),1−β
+2,ν(b))).
+Proposition5. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(x) = 1−βc, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(1−βc,ν(y),ν(Z),ν(b)))∗−→
+Upx
+4(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),1−βc
+4,ν(y),ν(Z),ν(b))).
+Proposition6. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(y) = 1−βd, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(ν(x),1−βd,ν(Z),ν(b)))∗−→
+Upy
+2(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),(ν(x),1−βd
+2,ν(Z),ν(b))).
+SimulateDecrementInstruction :Assumethatthe (k+1)st instructionisdecrement-
+ing counter c. Then we constructthe main component Dec csimilar to the component
+Inc cabove.Themainchangeisthefollowing:
+–The main component Dec cwill have the subcomponents Upy
+2andUpZ
+2lined up
+sequentially. There is no need for any Upx
+nsubcomponenthere, since the value of
+xstays unchangedon decrementing c. Also, the subcomponents Upy
+2andUpZ
+2do
+not alter the valueof x: the functionality UpZ
+2andUpy
+2are the same asthe onein
+Inc c.Thetotaltime spentin Deccisalso, lessthan 8β.
+Zero Check Instruction : The main component for Zero Check follows the same pat-
+ternasIncc. Themainchangeisthe following:
+–Themaincomponent ZeroCheck willhavethesubcomponents Upy
+2andUpx
+2and
+UpZ
+2lined up sequentially. The functionality UpZ
+2,Upx
+2andUpy
+2are the same as
+theonein Incc.Afterthesethree,weinvokeasubcomponent ZC.ZCiscalledby
+passing all clocks by value. At the entry node enofZC, we have two transitions,
+oneonz1= 1∧x= 1leadingtoanexitnode ex,andanotheroneon z1= 1∧x/ne}a⊔ionslash= 1
+leadingto ex′.Recallthat z1=1
+2k.Thus,for z1toreach1,atimeelapseβ
+2=1
+2k+1
+is needed. If this also makes makes x= 1, then we know that xon entry was
+1−1
+2c+k+1= 1−1
+2k+1impyingthat c= 0.Likewise,if z1attains1,but xdoesnot,
+thenc/ne}a⊔ionslash= 0. Since all clocks are passed by value, at the return port of ZCwithin
+the main component ZeroCheck , we regain back the clock values obtained after
+going through UpZ
+2,Upx
+2andUpy
+2: that is,ν(Z) = 1−β
+2,ν(x) = 1−βc
+2and
+ν(y) = 1−βd
+2. The time elapsedin ZCisβ
+2. The times elapsed in UpZ
+2andUpx
+2
+andUpy
+2are same as calculated in the case of Increment c. Thus, the total time
+elapsedhereis <8β+β= 9β.
+We concludeby calculating the total time elapsed duringthe entire simulation.We
+have established so far that for the (k+ 1)th instruction, the time elapsed is no more
+than9β, forβ=1
+2k. For the ﬁrst instruction, the time elapsed is at most 9, for the
+secondinstructionit is9
+2, forthe thirdit is9
+22andso on.
+Totaltimeduration =
+
+9(1+1
+2+1
+4+1
+8+1
+16+···)
+= 9(1+( <1))
+<18(1)
+
+--- Page 23 ---
+Notethatthecomponentsforincrementing,decrementingan dzerocheckofcounter
+dcanbeobtainedina mannersimilartotheabove.
+The proof that we reach the vertex Haltof the RTA iff the two counter machine
+halts follows: Clearly, the exit node of each main component is reached iff the corre-
+spondinginstructionis simulated correctly.Thus, if the c ountermachinehalts, we will
+indeedreachtheexitnodeofthemaincomponentcorrespondi ngtothelastinstruction.
+However, if the machine does not halt, then we keep going betw een the various main
+componentssimulatingeachinstruction,andneverreach Halt. ⊓ ⊔
+4.5 GlitchfreeRHAwith 14stopwatches
+Lemma 5. Thetime boundedreachabilityproblemisundecidableforre cursivehybrid
+automatawith at least14stopwatches.
+Proof.We prove that the problem of reaching a chosen vertex in an RHA within 18
+units of total elapsed time is undecidable. In order to get th e undecidability result, we
+useareductionfromthehaltingproblemfortwocountermach ines.Ourreductionuses
+anRHA with atleast14stopwatches.
+We specify a main component for each instruction of the two co unter machine.
+Wemaintain3setsofstopwatches.Theﬁrstset X={x1,···x5}encodescorrectlythe
+currentvalueofcounter c;thesecondset Y={y1,···y5}encodescorrectlythecurrent
+valueofcounter d; andthirdset Z={z1,z2,z3}encodestheendof (k)th instruction.
+An extra stopwatch bis used to enforce urgency in some locations. bis zero at the
+entrynodesofall themaincomponents.Let Xdenotetheset ofall 14stopwatches.
+Tobeprecise,onentryintoamaincomponentsimulatingthe (k+1)thinstruction,
+wehavethevaluesof z1,z2,z3as1−1
+2k,thevaluesof x1,...,x 5as1−1
+2c+k,andthe
+valuesof y1,...,y 5as1−1
+2d+k, wherec,dare thecurrentvaluesofthecountersafter
+simulating the ﬁrst kinstructions. We will denote this by saying that at the begin ning
+of the(k+1)th instruction, we have ν(Z) = 1−1
+2k,ν(X) = 1−1
+2c+kandν(Y) =
+1−1
+2d+k. If the(k+1)th instruction ℓk+1is an increment counter cinstruction, then
+after the simulation of ℓk+1, we need ν(Z) = 1−1
+2k+1,ν(X) = 1−1
+2c+k+2and
+ν(Y) = 1−1
+2d+k+1. Similarly, if lk+1is a decrement cinstruction, then after the
+simulationof ℓk+1,weneed ν(Z) = 1−1
+2k+1,ν(X) = 1−1
+2c+kandν(Y) = 1−1
+2d+k+1.
+Likewise,if ℓk+1isazerocheckinstruction,thenafterthesimulationof ℓk+1,weneed
+ν(Z) = 1−1
+2k+1,ν(X) = 1−1
+2c+k+1andν(Y) = 1−1
+2d+k+1.
+Simulate Increment Instruction : Let us discuss the case of simulating an increment
+instruction for counter c. Assume that this is the (k+ 1)th instruction. Figure 7gives
+theﬁgureforincrementingcouner c.Attheentrynode en1ofthecomponent Incc,we
+haveν(X) = 1−1
+2c+k,ν(Y) = 1−1
+2d+kandν(Z) = 1−1
+2k,andν(b) = 0.
+The component Inc chas three subcomponentssequentially lined up one after the
+other:Let β=1
+2k,βc=1
+2c+k,andβd=1
+2d+k.
+1. The ﬁrst subcomponent UpZ
+2(component UPA
+nin the ﬁgure 7withAasZand
+n= 2)updatesthevalueof Z. IfUpZ
+2isenteredwith ν(Z) = 1−β, thenonexit,
+we haveν(Z) = 1−β
+2. The valuesof X,Yare unchangedas their rate of growth
+is 0 throughout the component UPZ
+2and they are always passed by value to the
+subcomponents.Also, thetotaltime elapsedin UpZ
+2is≤5β
+2.
+
+--- Page 24 ---
+Incc
+en1
+[b=0]F1:UpZ
+2F2:UpX
+4F3:UpY
+2ex1
+[b=0]Chk=
+en4
+a1,a2¬b
+ex4a1=1
+a2=1
+UpA
+n:A∈ {X,Y,Z};n∈ {2,4}
+en2
+[b=0]m1
+A−{a2}¬b
+F5:ChkA
+n
+(X)m2
+a2¬b
+F7:Chk=
+(X)ex2
+[b=0]
+ChkA
+2
+en7
+[b=0]n1
+a1,a2¬b
+n2
+a3,a2¬b
+ex7
+[b=0]a3=1a1=a2=1ZC:c= 0?
+en5
+z1,x1¬b ex5
+ex′
+5z1= 1∧x1= 1
+z1= 1∧x1/ne}ationslash= 1
+Fig.7.Time bounded reachability in 14 stopwatch RSA: Increment c. Note that the
+variables which tick in a location are indicated below it. bticks everywhere except in
+locationswhereit isspeciﬁedas ¬b.AlsoSdenotedstopwatches X −S.
+2. The next subcomponentis UpX
+4. IfUpX
+4is entered with ν(X) = 1−βc, then on
+exit, we have ν(X) = 1−βc
+4. The values of Z,Yare unchanged. Also, the total
+time elapsedin UpX
+4is≤11β
+4.
+3. The next subcomponent is UpY
+2. IfUpY
+2is entered with ν(Y) = 1−βd, then on
+exit, we have ν(Y) = 1−βd
+2. The values of X,Zare unchanged. Also, the total
+time elapsedin UpY
+2is≤5β
+2.
+4. Thus, at the end of the Inc c, we obtain ν(Z) = 1−1
+2k+1,ν(X) = 1−1
+2c+k+2,
+ν(Y) = 1−1
+2d+k+1.Also,thetotaltimeelapsedin Inccis≤[5
+2+11
+4+5
+2]β <8β.
+To avoid clutter, We have drawn UpZ
+2like a box inside Inc c; actually, think of it as
+the sequenceof transitionsfrom en2toex2, with 2 boxescalled in between.Thesame
+holdsfor“boxes” UpX
+4andUpY
+2.
+Next, we describe the structure of the components UpA
+n. At the entry node en2of
+UpA
+n, we have the invariant b= 0. Thus, no time is elapsed in the entry node en1of
+Inc calso.UpA
+nis made up of subcomponents ChkA
+nandChk=. Let us discuss the
+detailsof UpZ
+2, theothershavesimilar functionality.
+1. On entry intothe location m1, we have ν(Z) = 1−β,ν(b) = 0,ν(X) = 1−βc,
+ν(Y) = 1−βd. Inm1only stopwatches z1,z3are grow. A non-deterministic
+amountoftime t1elapseshere.Thuswhenleaving m1,wehavestopwatches z1,z3
+addedby t1.
+2. We are then at the entrynodeof the subcomponent F5:ChkZ
+2with values ν(z2) =
+1−β, andν(zi) = 1−β+t1fori= 1,3,ν(X) = 1−βc,ν(Y) = 1−βdand
+ν(b) = 0.ChkZ
+2is called by passingall stopwatchesby value.The subcompon ent
+ChkZ
+2ensuresthat t1=β
+2.
+
+--- Page 25 ---
+3. To ensure t1=β
+2, at the entry node en7ofChkZ
+2, no time can elapse. If t2and
+t3are times elapsed in n1andn2then, upon reaching exit node en7, we have
+z1= 1−β+t1+t2,z2= 1−β+t2+t3andz3= 1−β+t1+t3.Additionally,
+z1=z2=z3= 1impliest1+t2=β=t2+t3=t1+t3. Thus, we get
+t1=t2=t3=β
+2. Thus,thetotaltimespent in ChkZ
+2ist2+t3=β.
+4. At the return port of F5:ChkZ
+2, we restore all valuesto what they were, at the call
+portofF5:ChkZ
+2.Thatis,ν(z2) = 1−β,andν(zi) = 1−β+t1fori= 1,3,with
+theguaranteethat t1=β
+2.
+A timet4iselapsedinlocation m2affectingonly z2to become z2= 1−β+t4.
+5. Finally, we call the subcomponent Chk=withz1= 1−β
+2andz2= 1−β+t4.
+All stopwatches are passed by value. Chk=ensures that z1=z2; that is,t4=β
+2.
+A timet5=β
+2is spent at the entry node en4ofChk=to ensure this. Thus, at
+the return port of F7:Chk=, we have z1=z2=z3= 1−β
+2, and the rest of the
+stopwatches unchanged.No time can elapse at the exit node ex2ofUpZ
+2. Thus, at
+thereturnportof F1:UpZ
+2,we getν(Z) = 1−1
+2k+1.
+6. Thetotaltimeelapsedin F1:UpZ
+2ist1+t2+t3+t4+t5=β
+2+β+β
+2+β
+2=5β
+2.
+At the return port of F2:UpZ
+2, we thus have ν(Z) = 1−β
+2,ν(X) = 1−βc, and
+ν(Y) = 1−βd. No time elapses here, and we are at the call port of F2:UpX
+4. The
+component ChkX
+4issimilarto ChkZ
+2.Ithas4locations h1,h3,h4,h5insideit,each hi
+has stopwatches x2andxiticking.An analysis similar to the abovegivesthat the tota l
+timeelapsedin UpX
+4is11β
+4,andatthereturnportof F2:UpX
+4,wegetν(X) = 1−βc
+4,
+ν(Y) = 1−βdandν(Z) = 1−β
+2. Thisis followedbyentering F3:UpY
+2, with these
+values.At thereturnportof F3:UpY
+2,weobtain ν(X) = 1−βc
+4,ν(Y) = 1−βd
+2and
+ν(Z) = 1−β
+2,with thetotaltime elapsedin UpY
+2being5βd
+4.
+From the explanations above, the following propositions ca n be proved. The same
+argumentsgivenabovewill applytoprovethis.
+Proposition7. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(Z) = 1−β, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(ν(X),ν(Y),1−β,ν(b)))∗−→
+UpZ
+2(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),(ν(X),ν(Y),1−β
+2,ν(b))).
+Proposition8. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(X) = 1−βc, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(1−βc,ν(Y),ν(Z),ν(b)))∗−→
+UpX
+4(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),(1−βc
+4,ν(Y),ν(Z),ν(b))).
+Proposition9. For any box Band context /an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔, andν(Y) = 1−βd, we have that
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,en),(ν(X),1−βd,ν(Z),ν(b)))∗−→
+UpY
+2(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(B,ex),(ν(X),1−βd
+2,ν(Y),ν(b))).
+SimulateDecrementInstruction :Assumethatthe (k+1)st instructionisdecrement-
+ing counter c. Then we constructthe main component Dec csimilar to the component
+Inc cabove.Themainchangeisthefollowing:
+–The main component Dec cwill have the subcomponents UpZ
+2andUpY
+2lined up
+sequentially.Thefunctionality UpZ
+2andUpY
+2arethesameastheonein Incc.The
+total timespentin Dec cisalso, lessthan 8β.
+
+--- Page 26 ---
+Zero Check Instruction : The main component for Zero Check follows the same pat-
+ternasIncc. Themainchangeisthe following:
+–Themaincomponent ZeroCheck willhavethesubcomponents UpZ
+2andUpX
+2and
+UpY
+2lined upsequentially.The functionality UpZ
+2,UpX
+2andUpY
+2are the same as
+the one in Inc c. After these three, we invoke the subcomponent ZC:c= 0?
+shown in Figure 7.ZC:c= 0?is called by passing all stopwatches by value. At
+theentrynode en5ofZC,z1andx1areticking.At en5ifatime elapseβ
+2=1
+2k+1
+makesz1=x1= 1, then we know that x1on entry was 1−1
+2c+k+1= 1−
+1
+2k+1impying that c= 0. Likewise, if z1attains 1, but x1does not, then c/ne}a⊔ionslash= 0.
+Since all stopwatches are passed by value, at the return port ofZCwithin the
+main component ZeroCheck , we regainback the stopwatch valuesobtained after
+going through UpZ
+2,UpX
+2andUpY
+2: that is,ν(Z) = 1−β
+2,ν(X) = 1−βc
+2and
+ν(Y) = 1−βd
+2.Thetimeelapsedin ZCisβ
+2.Thetimeselapsedin UpZ
+2andUpX
+2
+andUpY
+2are same as calculated in the case of Increment c. Thus, the total time
+elapsedhereis <8β+β= 9β.
+We concludeby calculating the total time elapsed duringthe entire simulation.We
+have established so far that for the (k+ 1)th instruction, the time elapsed is no more
+than9β, forβ=1
+2k. For the ﬁrst instruction, the time elapsed is at most 9, for the
+secondinstructionit is9
+2, forthe thirdit is9
+22andso on.
+Totaltimeduration =
+
+9(1+1
+2+1
+4+1
+8+1
+16+···)
+9(1+(<1))
+<18t.u(2)
+The proof that we reach the vertex Haltof the RHA iff the two counter machine
+halts follows: Clearly, the exit node of each main component iff the correspondingin-
+structionissimulatedcorrectly.Thus,ifthecountermach inehalts,wewillindeedreach
+the exit nodeof the main componentcorrespondingto the last instruction. However,if
+the machine does not halt, then we keep going between the vari ous main components
+simulatingeachinstruction,andneverreach Halt.
+⊓ ⊔
+5 Undecidability Resuls withtwo players
+For the undecidabilityresultsfor reachabilitygames, we c onstructa recursiveautoma-
+ton(timed/hybrid)asperthe case, whosemaincomponentsar e themodulesforthe in-
+structionsandthecountersareencodedinthevariablesoft heautomaton.Inthesereduc-
+tions, the reachabilityof the exit node of each componentco rrespondingto an instruc-
+tionislinkedtoafaithfulsimulationofvariousincrement ,decrementandzerocheckin-
+structionsofthemachinebychoosingappropriatedelaysto adjusttheclocks/variables,
+toreﬂectchangesincountervalues.Wespecifyamaincompon entforeachtypeinstruc-
+tion of the two counter machine, for example Hincfor increment. The entry node and
+exit node of a main component Hinccorrespondingto an instruction [ ℓi:c:=c+1;
+gotoℓk] are respectively ℓiandℓk. Similarly, a main component corresponding to a
+
+--- Page 27 ---
+zero check instruction [ li: if(c >0)then goto ℓk] else goto ℓm, has a unique entry
+nodeℓi,andtwo exitnodescorrespondingto ℓkandℓmrespectively.The variousmain
+components corresponding to the various instructions, whe n connected appropriately,
+gives the higher level component HMand this completesthe RHA H. The entry node
+ofHMis the entry node of the main component for the ﬁrst instructi on ofMand the
+exit node is Halt. Achilles simulates the machine while Tortoise veriﬁes the simula-
+tion. Suppose in each main component for each type of instruc tion correctly Achilles
+simulates the instruction by accurately updating the count ers encoded in the variables
+ofH. Then, the unique run in Mcorresponds to an unique run in HM. The halting
+problemofthetwocountermachinenowboilsdowntoexistenc eofaAchillesstrategy
+toensurethereachabilityofanexitnode Halt(and¨⌣)inHM.
+5.1 Time Bounded Reachabilitygamesin UnrestrictedRTA wit h3 clocks
+Lemma 6. The time bounded reachability game problem is undecidable f or recursive
+timedautomatawithat least3 clocks.
+Proof.Weprovethatthereachabilityproblemisundecidableforun restrictedRTAwith
+3clocks.Inordertoobtaintheundecidabilityresult,weus eareductionfromthehalting
+problemfortwo countermachines.Ourreductionusesa RTA wi ththreeclocks x,y,z.
+We specify a main component for each instruction of the two co unter machine.
+On entry into a main component for increment/decrement/zer o check, we have x=
+1
+2k+c3k+d,y=1
+2kandz= 0, wherec,dare the currentvalues of the countersand kis
+the current instruction. Note that zis used only to enforce urgencyin several vertices.
+Given a two counter machine, we build a 3 clock RTA whose build ing blocks are the
+main components for the instructions. The purpose of the com ponents is to simulate
+faithfullythecountermachinebychoosingappropriatedel aystoadjustthevariablesto
+reﬂect changes in counter values. On entering the entry node enof a main component
+correspondingtoaninstruction li,wehavetheconﬁguration (/an}bracke⊔le{⊔ǫ/an}bracke⊔ri}h⊔,en,(1
+2k+c3k+d,1
+2k,0))
+ofthethreeclockRTA.
+We shall now present the componentsfor increment/decremen tand zero check in-
+structions. In all the components, the variables passed by v alue are written below the
+boxesandtheinvaraintsofthelocationsareindicatedbelo wthem.
+Simulateincrementinstruction :Letsconsidertheincrementinstruction ℓi:c=c+1;
+gotoℓk. The component for this instruction is component Inc cgiven in Figure 8.
+Assume that x=1
+2k+c3k+d,y=1
+2kandz= 0at the entrynode en1of the component
+Incc.Tocorrectlysimulatetheincrementofcounter c,theclockvaluesattheexitnode
+ex1shouldbe x=1
+2k+c+23k+d+1,y=1
+2k+1andz= 0.
+Letα=1
+2k+c3k+dandβ=1
+2k. We want x=α
+12andy=β
+2atex1. We utilise
+the component Div{a,n}(witha=x,n= 12anda=y,n= 2) to perform these
+divisions.Letswalkthroughtheworkingofthecomponent Incc.Asseenabove,atthe
+entrynode en1, wehave x=1
+2k+c3k+d,y=1
+2kandz= 0.
+1. Notimeisspentat en1duetotheinvariant z= 0.Div{y,2}iscalled,passing x,z
+byvalue.Atthecallportof A1:Div{y,2},wehavethesamevaluesof x,y,z.Let
+us examine the component Div{y,2}. We instantiate Div{a,n}witha=y,n=
+
+--- Page 28 ---
+2. Thus, the clock referred to as binDiv{a,n}isxafter the instantiation. At the
+entry node en2ofDiv{y,2},no time is spent due to the invariant z= 0; we have
+a=y=β,b=x=α,z= 0. Resetting b=x, we are at the call port of A3:D.
+A3is called, passing a,zby value. A nondeterministic time tis spent at the entry
+nodeen3ofD. Thus,atthe returnportof A3, wehave a=y=β,b=x=t,z=
+0. The return port of A3is a node belongining to Tortoise; for Achilles to reach
+¨⌣,tmust beβ
+2. Tortoise has two choices to make at the return port of A3: he can
+continuethesimulation,byresetting a=yandgoingtothecall portof A5:D, or
+hecanverifyif tisindeedβ
+2, bygoingto thecallportof A4.
+–Assume Tortoise goes to the call port of A4:Cx=
+y/2(recall, that by the in-
+stantiation, b=x,a=yandn= 2).zis passed by value. At the entry
+nodeen5ofCx=
+y/2, no time elapses due to the invariant z= 0. Thus, we have
+x=b=t,a=y=β,z= 0aten5. The component A7:Mxis invoked,
+passingx,zbyvalue.Attheentrynode en6ofMb,atime1−tisspent,giving
+a=y=β+1−t,b=x=tandz= 0atthereturnportof A7.Sincen= 2,
+one more invocation of A7:Mxis made, obtaining a=y=β+ 2(1−t),
+b=x=tandz= 0at the return port of A7after the second invocation. To
+reachtheexitnode ex5ofCx=
+y/2,amustbeexactly2,sincenotimecanbespent
+atthereturnportof A7;thisissosincetheinvariant z= 0attheexitnode ex5
+ofCx=
+y/2is satisﬁed only when no time is spent at the return port of A7. Ifais
+exactly 2, we have β= 2t. In this case, from the return port of A4,¨⌣can be
+reached.
+–Now consider the case that Tortoise moves ahead from the retu rn port of A3,
+resetting a=yto the call port of A5:D. The values are a=y= 0,b=
+x=t=β
+2andz= 0.A5:Dis invoked passing b=xandzby value. A
+non-deterministicamountoftime t′isspentattheentrynode en3ofD,giving
+a=y=t′,b=x=β
+2andz= 0at the return port of A5. Again, the return
+portofA5isanodebelongingtoTortoise.HereTortoise,thushastwoc hoices:
+he can continuewith the simulationgoingto ex2, or can verifythat t′=β
+2by
+going to the call port of A6:Cy=
+x.Cy=
+xis a component that checks if yhas
+“caughtup”with x;thatis,whether t′=t=β
+2.Attheentrynode en4ofCy=
+x,
+aandbcan simultaneeously reach 1 iff t=t′; that is,t′=β
+2. Then, from the
+returnportof A6, wecanreach ¨⌣.
+–Thus, we reach ex2withx=y=β
+2,z= 0. At the return port of A1:
+Div{y,2},wethushave x=α,y=β
+2,z= 0.
+2. Fromthereturnportof A1:Div{y,2},wereachthecallportof A2:Div{x,12}.
+y,zarepassedbyvalue.Thefunctioningof A2issimilartothatof A1:atthereturn
+portofA1, weobtain x=α
+12,y=β
+2andz= 0.
+Time taken : Now we discuss the total time to reach a ¨⌣node or the exit node ex1of
+thecomponent Inccwhilesimulatingtheincrementinstruction.Attheentryno deen1,
+clockvaluesare x=1
+2k+c3k+d,y=1
+2kandz= 0.Letα=1
+2k+c3k+dandβ=1
+2k. The
+invaraintz= 0attheentryandtheexitnodes en1andex1ensuresthatnotimeelapses
+in these nodes and also in the return ports of A1andA2. From the analysis above, it
+follows that at the return port of A1:Div{y,2},x=α,y=β
+2andz= 0. Similarly
+
+--- Page 29 ---
+Inc c
+en1
+[z=0]A1:Div{y,2}
+(x,z)A2:Div{x,12}
+(y,z)ex1
+[z=0]
+Div{a,n}:a,b∈ {x,y}
+en2
+[z=0]A3:D
+(a,z)
+A4:Cb=
+a/n
+(z)A5:D
+(b,z)
+A6:Ca=
+b
+(z)ex2
+[z=0]
+¨⌣
+[z=0]{b} {a}D
+en3 ex3
+Ca=
+b
+en4 ex4a=1
+b=1
+Cb=
+a/n:a,b∈ {x,y}
+en5
+[z=0]A7:Mb
+(b,z)n−1calls toMb
+(b,z)pass byvalueex5
+[z=0]a=nMb
+en6 ex6b=1
+Fig.8.GamesonRTA with3clocks: Increment c.
+at the return port of A2:Div{x,12},the clock values are x=α
+12,y=β
+2andz= 0.
+Thus, counter chas been incremented and the end of instruction khas been recorded
+inxandy. The time spent along the path from en1toex1is the sum of times spent in
+A1:Div{y,2}andA2:Div{x,12}.
+–Timespentin A1:Div{y,2}.Thetimespentin A3:D,aswell as A5:Disboth
+β
+2. Recall that Tortoise can verifythat the times t,t′spent inA3,A5are bothβ
+2. If
+Tortoiseenters A4toverifyt=β
+2,thenthetimetakenis 2(1−t). Inthiscase,the
+timetakentoreach ¨⌣fromthereturnportof A4ist+2(1−t) = 2−β
+2.Likewise,
+if Tortoise continuedfrom A3toA5, andgoesonto verifythat the time t′spentin
+A5is alsoβ
+2, then the total time spent before reaching the ¨⌣from the return port
+ofA6ist+t′+(1−t′) = 1+t= 1+β
+2. Thus,if we arebackat the returnport
+ofA1,thetime spentin A1ist+t′=β.
+–Time spent in A2:Div{x,12}.Here, the time spent in A3:Das well as A5:D
+isα
+12. In case Tortoiseveriﬁesthat thetime tspentinA3:Disindeedα
+12, then he
+invokesA4. Thetimeelapsedin Cy=
+x/12is12(1−t) = 12(1 −α
+12)<12.Likewise,
+if Tortoise continuedfrom A3toA5, andgoesonto verifythat the time t′spentin
+A5is alsoα
+12, then the total time spent beforereachingthe ¨⌣fromthe returnport
+ofA6ist+t′+(1−t′) = 1+t= 1+α
+12. Thus,ifwe arebackatthereturnport
+ofA2,thetime spentin A2ist+t′=2α
+12.
+–Ingeneral,thecomponent Div{a,n}dividesthevalueinclock abyn.Ifa=ζon
+enteringDiv{a,n}, thenuponexit,itsvalueis a=ζ
+n.Thetimetakentoreachthe
+
+--- Page 30 ---
+exitex2is2∗(ζ
+n). The time taken to reach the node ¨⌣inDiv{a,n}is< n(due
+toncallstoMbcomponent).
+–Total time spent in Inc c. Thus, if we come backto the returnportof A2, the total
+timespentis β+2α
+12<2β,onenteringwith y=β. Recallthat x=α=1
+2k+c3k+d
+andy=β=1
+2kandthusα≤βalways.
+Fromtheanalysisabove,thefollowingpropositionsareeas yto see.
+Proposition10. Foranycontext κ∈(B×V)∗,anybox b∈B,andx,y∈[0,1],there
+exists auniquestrategyof Achillessuchthat
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en2),(x,y=β,0))β−→
+Div{y,2}(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex2),(x,β
+2,0)),
+or(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en2),(x,y,0))2−β
+2−→
+Div{y,2}(/an}bracke⊔le{⊔κ,(b,(x,y,0))/an}bracke⊔ri}h⊔,¨⌣,(β
+2,y,0)),
+or(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en2),(x,y,0))1+β
+2−→
+Div{y,2}(/an}bracke⊔le{⊔κ,(b,(x,y,0))/an}bracke⊔ri}h⊔,¨⌣,(β
+2,β
+2,0)).(3)
+Proposition11. For any context κ∈(B×V)∗, any box b∈B, andx,y∈[0,1], we
+havethat
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en1),(x,y,0))<2β−→
+Inc c(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,ex1),(x
+12,y
+2,0)).
+The proof essentially relies on the argument given above. Us ing summary edges,
+we caneasilyobtainthe result.
+Simulate Zero check instruction: Let us now simulate the instruction li: if(d >0)
+thengoto ℓk,elsegoto ℓj.Figure9describesthis.Thecomponentforthisinstructionis
+component Zero Check :d= 0?. Starting with x=1
+2k+c3k+d=α,y=1
+2k=βand
+z= 0at the entry node en1, we want to reach the node correspondingto ℓkifd >0,
+withx=1
+2k+c+13k+d+1=α
+6,y=1
+2k+1=β
+2andz= 0, andto thenodecorresponding
+toℓjifd= 0,with thesame clockvalues.Thenodes d= 0andd >0arerespectively
+the exit nodes of the component Zero Check :d= 0?. In the following, we analyse
+thezerocheckcomponentindetail.
+1. The ﬁrst component invoked on entry is A:Div{y,2}that records the k+ 1th
+instruction by dividing yby 2. Clocks x,zare passed by value. This component
+is the same as seen in the Inc ccomponent. As seen there, at the return port of
+A:Div{y,2},weobtain x=α,y=β
+2,z= 0.Atimeof βisspentintheprocess.
+Similarly,atthe returnportof B:Div{x,6},we obtain x=α
+6,y=β
+2andz= 0.
+Atotaltimeof2α
+6iselapsedin B:Div{x,6}.Thus,thetotaltimespentoncoming
+to thereturnportof B:Div{x,6}isβ+2α
+6<2β.
+2. Atthereturnportof B,wegotothenode m,elapsingnotime.Thisisneededsince
+theexitnodesofthezerocheckcomponenthavetheinvariant z= 0.Atm,Achilles
+guesseswhether d= 0ornot,andgoestooneof m1,m2.Boththesenodesbelong
+to Tortoise. At both m1,m2, Tortoise has two choices: he can go to an exit node
+of the zero check component, or choose to verify the correctn ess of the guess of
+Achilles.The ¨⌣nodeisreachablefromtheuppercomponent B1:ZCd
+=0ifd= 0,
+while¨⌣node is reachable from the lower component B1:ZCd
+=0ifd >0. Lets
+nowlookat thecomponent ZCd
+=0.
+
+--- Page 31 ---
+3. Attheentrynode en2,wehave x=α
+6,y=β
+2andz= 0.Tocheckif d= 0,weﬁrst
+eliminate the kfromx,y, obtaining x= 6k+1.α
+6=1
+2c3dandy= 2k+1.1
+2k+1= 1.
+The component B3multiplies yby 2 once,and invokes B4, which multiplies xby
+6;thisisrepeateduntil ybecomes1. B3isinvokedpassing x,zbyvalue,while B4
+is invoked passing y,zby value. Lets examine the functioning of Mul{y,2}, the
+functioningof Mul{x,6}issimilar.
+4. At the entry node en3ofMul{a,n}, witha=y,n= 2andb=x, we have
+z= 0,x=α
+6,y=β
+2.Resetting b=x,wegotothecallportof B6:D.Discalled
+passingy,zby value. A non-deterministictime tis spent at the entry node en5of
+D; thus, at the return portof B6, we have b=x=t,a=y=β
+2,z= 0. The time
+tmustbeβ; Tortoisecan verifythis byinvoking B7:Cx=
+2∗y.Cx=
+2∗yinvokesMytwo
+times, passing y,zby value. Each time, in My, a time of 1−β
+2is spent. After the
+two invoctions, we obtain b=x=t+ 2(1−β
+2),a=y=β
+2andz= 0. This
+bmust be exactly 2 to reach the exit node ex4ofCx=
+2∗y; this is possible iff t=β.
+In this case, Tortoise will allow Achilles to goto the ¨⌣node from the return port
+ofB6:D. If Tortoise skips the veriﬁcation and goes directly to B8:D, then at
+the call port of B8:D, we have b=x=β,a=y= 0andz= 0.Dis called
+by passing b=x,zby value. A time t′is elapsed in D, obtaining b=x=β,
+a=y=t′andz= 0. Thist′must be exactly β; Tortoise can verify this by
+invokingB9:Cy=
+x, atthereturnportof B8.Cy=
+xchecksif yhas“caughtup”with
+x; that is, if yis alsoβ. Clearly, the exit node ex6is reached iff a=b; that is,
+t′=β.Atthereturnportof B8,wethushave a=b=β,z= 0.Backatthereturn
+portofB3,we thusobtain x=α
+6,y=β,z= 0.
+5. In a similar way, Mul{x,6}multiplies xby 6. This, at the return port of B4,yis
+mutiplied by 2 and xby 6, once. The process repeats until we obtain y= 1at the
+return port of B4. At this time, we know that the loop has happened k+ 1times,
+thatis,y= 1andx=1
+2c3d.
+6. Nowwecancheckif diszeroornot,bymultiplying xby2c+1times.Ifxbecomes
+exactly2atsometime,thenclearly diszero;otherwise, xwillneverbecomeexactly
+2. Then the only option is to goto the exit node d >0ofZCd
+=0. If Achilles had
+guessed corerctly that d= 0and gone to node m1, in the zero check component,
+thenZCd
+=0willreachtheupperexitnode d= 0;Fromthisreturnportof B1,¨⌣is
+reachable.Similaristhecase whenAchillesguessescorrec tlythatd >0atm.
+Time taken :
+–The total time taken to reach the return port of B:Div{x,6}isβ+α
+3<2β, on
+enteringen1withy=β,x=α,z= 0.
+–The total time taken to reach the return port of B3, having entered the call port of
+B3withy=β
+2is2β= 4β
+2. Likewise, the total time taken to reach the returnport
+ofB4, having entered the call port of B4withx=α
+6is2α= 12α
+6. Thus, the
+total time to reachthe returnportof B4afterone roundof multiplicationof x,yis
+4β
+2+ 12α
+6<4β+ 12β= 16β. The second time B3,B4loop is invoked is with
+y=β,x=α, the times taken respectivelywill be 4.βand12.α, and so on. Thus,
+the total time taken until ybecomes 1 is <16(β+ 2β+ 22β+···+ 1)<16.
+Recall that x=α=1
+2k+c3k+dandy=β=1
+2kandthusα≤βalways.
+
+--- Page 32 ---
+Zero Check :d= 0?
+en1
+[z=0]A:Div{y,2}
+(x,z)B:Div{x,6}
+(y,z)mm1B1:ZCd
+=0
+(z)
+m2B2:ZCd
+=0
+(z)d=0
+[z=0]
+¨⌣
+[z=0]
+d>0
+[z=0]
+ZCd
+=0
+en2
+[z=0]B3:Mul{y,2}
+(x,z)B4:Mul{x,6}
+(y,z)B5:Mul{x,2}
+(y,z)d=0
+[z=0]
+d>0
+[z=0]y<1
+y=1x<2
+x=2
+x>2
+Mul{a,n}:a,b∈ {x,y}
+en3
+[z=0]B6:D
+(a,z)
+B7:Cb=
+n∗a
+(z)B8:D
+(b,z)
+B9:Ca=
+b
+(z)ex3
+[z=0]
+¨⌣
+[z=0]{b} {a}
+Cb=
+n∗a:a,b∈ {x,y}
+en4
+[z=0]A7:Ma
+(a,z)n−1callstoMa
+(a,z)pass byvalueex4
+[z=0]b=nD
+en5 ex5
+Ca=
+b
+en6 ex6a=1
+b=1
+Ma
+en7 ex7a=1
+Fig.9.GamesonRTA with3clocks: Zerocheck c= 0?.
+
+--- Page 33 ---
+–Onceybecomes1, the B5:Mul{x,2}loop is taken until xreaches2 or beyond.
+B5is entered with x=1
+2c3d=γ, andB5is invoked c+ 1times. The ﬁrst time
+Mul{x,2}isinvokedwith x=γ,thetimeelapsedis 2γ;thenexttime Mul{x,2}
+is invoked with x= 2γ, the time elapsed is 4γand so on. Thus, the total time
+elapsed in B5loop is2γ+22γ+···+2c+1γ <2, where2c+1γ=1
+3d. Ifd= 0,
+then after c+1steps, the exit node d= 0ofZCd
+=0is reached; if d >0, then the
+loop is taken d+ 2more times; in this case also, the total time elapsed to reach
+the exit node d >0is<2. Thusthe total time taken in ZCd
+=0componentis <16
+fromtheB3−B4loopand<2fromB5loop.Thustimetoreacheitherexitofthis
+componentis <18.
+–Ingeneral,thecomponent Mul{a,n}multipliesthevalueinclock abyn.Ifa=ζ
+on entering Mul{a,n}, then upon exit, its value is a=n∗ζ. The functioning of
+this component is very similar to that of Div{a,n}described earlier. The time
+taken to reach the exit ex3is2∗(n∗ζ). The time taken to reach the node ¨⌣in
+Mul{a,n}is< n(duetoncallstoMacomponentin Cb=
+n∗a).
+–Total time taken in Zero Check :d= 0?. Time taken to come to the return port
+ofBis<2β. No time is spent at the return port of B, at node m,m1,m2. No
+time is thus spent on reaching the exit nodes d= 0ord >0from the return port
+ofB. Thus, total time taken to reach an exit node of Zero Check :d= 0?is
+<2β, on enteringwith y=β. The time takento reach ¨⌣node in this component
+is<18+2βwhere<18t.uisthetime elapsedincomponent ZCd
+=0.
+Otherinstructions :Themaincomponenttosimulateotherinstructionsareasfo llows.
+–Decrement c: In main component Inc cof Figure 11, the second call Div{x,12}
+is replaced by Div{x,3}thus updating xfrom1
+2k+c3k+dto1
+2k+c3k+d+1to record
+endofkinstruction.
+–Increment d:Div{x,12}isreplacedby Div{x,18}to update xto1
+2k+c+13k+d+2.
+–Decrement d:Div{x,2}is used to update xto1
+2k+c+13k+drecording end of k
+instruction.
+–Zero check c= 0?: CallB5:Mul{x,2}is replaced by B5:Mul{x,3}and the
+time takento reachtheexitsremainsthesame.
+Inallthese cases,thetimetakentoreach ¨⌣wouldbe <18timeunits(in Div{x,18}).
+Also, on entering any of the main components with y=β, an exit node is reached in
+<2βunitsoftime.
+Complete RTA : We obtain the full RTA simulating the two counter machine by con-
+necting the entry and exit of main components of instruction s according to the ma-
+chine’s sequence of instructions. If the machine halts, the n the RTA has an exit node
+corresponding to HALT. Anytime Tortoise embarks on a check, a ¨⌣is reachable if
+Achilles has simulated the instruction correctly. As obser ved above, on entering any
+component corresponding to an instruction with y=β, the exit node of that compo-
+nent can be reached in time <2β, and a¨⌣node can be reached in time <18. Now
+the time to reach the exit node HALTis the time taken for the entire simulation of
+the machine. As Tortoise can enter any of the check component s,Achilles is boundto
+choosethecorrectdelaystoupdatethecountersaccurately .Weconcludebycalculating
+the total time elapsed during the entire simulation. We have established so far that for
+
+--- Page 34 ---
+the(k)th instruction, the time elapsed is no more than 2β, forβ=1
+2k. For the ﬁrst
+instruction,thetime elapsedis atmost 2,forthesecondinstructionit is2
+2,forthethird
+it is2
+22andsoon.
+Totaltimeduration =
+
+2(1+1
+2+1
+4+1
+8+1
+16+···)
+= 2(1+( <1))
+<4(4)
+WenowshowthatthetwocountermachinehaltsiffAchillesha sastrategytoreach
+HALTor¨⌣. Suppose the machine halts. Then the strategy for Achilles i s to choose
+theappropriatedelaystoupdatethecountersineachmainco mponent.Nowif Tortoise
+does not verify (by entering check components) in any of the m ain components, then
+the exitex1of the main component is reached. If Tortoise decides to veri fy then the
+node¨⌣(follows from Proposition 10and11) is reached. Thus, if Achilles simulates
+themachinecorrectlytheneitherthe HALTexitor¨⌣isreachedifthe machinehalts.
+Conversely, assume that the two counter machine does not hal t. Then we show
+that Achilles has no strategy to reach either HALTor¨⌣. Consider a strategy of
+Achilles which correctly simulates all the instructions. T hen¨⌣is reached only if Tor-
+toise chooses to verify. But if Tortoise does not choose to ve rify then ¨⌣can not be
+reached. The simulation continues and as the machine does no t halt, the exit node
+HALTis never reached. Now, consider any other strategy of Achill es which does an
+error in simulation (in a hope to reach HALT). Tortoise could verify this, and in this
+case, thenode ¨⌣will notbereachedasthedelaysare incorrect.ThusAchille scannot
+ensurereaching HALTor¨⌣witha simulationerror.
+5.2 Time boundedreachabilitygamesin RSA
+Lemma 7. The time boundedreachability game problem is undecidablef or glitchfree
+recursive stopwatchautomatawith at least4stopwatches.
+Proof.We outline quickly the changes as compared to Lemma 6. The proof proceeds
+by the simulation of a two counter machine. Figure 10gives the component for incre-
+menting counter c. There are 4 stopwatches x,y,z,u. The encodingof the countersin
+thevariablesissimilartoLemma 6:attheentrynodeofeachmaincomponentsimulat-
+ingthekth instruction,wehave x=1
+2c+k3d+k=α,y=1
+2k=βandz= 0,wherec,d
+arethecurrentvaluesofthecounters.Weusetheextrastopw atchuforroughworkand
+hencewe donotensurethat u= 0whena componentisentered.
+Simulate incrementinstruction :Aswasthe case inLemma 6, simulationofthe (k+
+1)th instruction, incrementing camounts to dividing yby 2 and xby 12. In Lemma
+6, it was possible to pass some clocks by value, and some by refe rence, but here, all
+variablesmust beeitherpassedbyvalueorbyreference.
+TheDiv{a,n}modulehereissimilartothatinLemma 6:theboxA3:DinFigure
+8isreplacedbythenode l1,whereonly uticksandaccumulatesatime t.(Recallthat u
+is the stopwatch used for rough work and has no bearing on the e ncoding.)In node l2,
+onlyzticks.l2is a node belonging to Tortoise. The time tspent atl1must be exactly
+t=β
+2,whereβ=1
+2kisthevalueof a=yonentering Div{y,2}.Inthiscase,Tortoise,
+evenif heentersthecheckmodule Cu=
+y/2,will reach ¨⌣.
+
+--- Page 35 ---
+Again,notethatthemodule Cu=
+y/2issimilartotheoneinFigure 8.Weuseb=xfor
+rough work in this component. Due to this the earlier value of xis lost. However, this
+does not affect the machine simulation as only ¨⌣ofDiv{y,2}is reached and not the
+exit node and the simulation does not continue. At en5(ofMu), we have b=x= 0,
+u=tanda=y=β.a,b,utick aten5. A time 1−tis spent at en5, obtaining
+b= 1−t,u= 0,a=β+(1−t)atl. Atl, onlyb,utick obtaining b= 0,u=t,a=
+β+(1−t)atex5. Asecondinvocationof Cu=
+y/2givesb= 0,u=t,a=β+2(1−t).
+Fora= 2,toreach ex3,wethusneed t=β
+2.Thetimeelapsedinoneinvocationof Mu
+is 1 time unit; thus a total of 2+t time units is elapsed before reaching ¨⌣(via module
+Cu=
+y/2inDiv{a,n}).
+If Tortoise skips the check at l2and proceeds to l3resettinga=y, we have at l3,
+z= 0,u=t=β
+2anda= 0.Onlyaticksatl3,aissupposedto“catchup”with uatl3,
+by elapsing t=β
+2inl3. Again, at l4, onlyzticks. Tortoise can verifywhethere a=u
+by going to Ca=
+u. The component Ca=
+uis exactly same as that in Figure 8. A time of
+1−tiselapsedin Ca=
+u.Thus,thetimetakentoreach ¨⌣fromCa=
+uist+t+1−t= 1+t.
+Thus,ex2isreachedintime 2t= 2β
+2=β.AswasthecaseinLemma 6,thetimetaken
+to reach the exit node of Inc c, starting with y=β,x=α,z= 0isβ+ 2α
+12<2β.
+Also,the timetakenby Div{a,n}onenteringwith a=ζis2ζ
+n.
+Tosummarize,thetimetakentoreachtheexitnodeofthe Incccomponentis <2β,
+onenteringwith y=β.Also,thecomponent Div{a,n}dividesthevalueinclock aby
+n. Ifa=ζon entering Div{a,n}, then upon exit, its value is a=ζ
+n. The time taken
+to reach the exit ex2is2∗(ζ
+n). The time taken to reach the node ¨⌣inDiv{a,n}is
+< n+1(duetoncallstoMucomponent).
+Simulate Zero check instruction: Here again, we illustrate the changes as compared
+to the zero check done in Lemma 6. Figure11describes the zero check module.As in
+the case of Figure 9, on entering en1withx=α,y=β,z= 0, we divide yby 2 and
+xby6,torecordthe (k+1)thinstructionin x,y.Thesemodulesarealreadydiscussed
+in the increment instruction above.We only discuss the modu leMul{a,n}here. This
+is similar to the Div{a,n}module seen above. If we enter Mul{a,n}witha=ζ, at
+locationl1, a timet=ζ.nshould be spent. This makes u=ζ.n, the values of a,z
+are unchanged. Tortoise can verify that t=ζ.nusingCu=
+n∗a. It can be seen that the
+Mul{a,n}modulehereis similartothe Mul{a,n}modulein Figure 9.
+Complete RSA: As in the case of Lemma 6, the completeRSA is constructedbycon-
+necting components according to the machine instructions. The time elapses in the
+components are exactly the same as those in Lemma 6. Thus the total time duration
+for machine simulation is <4. Along the same lines, we can also prove that Achilles
+hasa strategyto reachHALT or ¨⌣iffthe machinehalts.
+Lemma 8. Thetimeboundedreachabilitygameproblemisundecidablef orunrestricted
+recursive stopwatchautomatawith at least3stopwatches.
+ThisfollowsfromLemma 6.
+5.3 Reachabilitygameson RSA
+Reachability problem in recursive stopwatch automata with a single player is studied
+inSection 4.Theproblemisundecidableforunrestrictedrecursivesto pwatchautomata
+
+--- Page 36 ---
+Inc c
+en1
+[z=0]z
+A1:Div{y,2}z
+A2:Div{x,12}z
+ex1
+[z=0]
+Div{a,n}:a∈ {x,y}
+en2
+[z=0]z
+l1u
+l2z
+A3:Cu=
+a/nzl3a
+l4z
+A4:Ca=
+uzex2
+[z=0]
+¨⌣
+[z=0]z{u} {a}
+Ca=
+u
+en4a,u
+ex4a=1
+u=1
+Cu=
+a/n:a,b∈ {x,y}
+en3
+[z=0]z
+A5:Muz
+n−1calls toMuex3
+[z=0]{b} a=nMu:a,b∈ {x,y}
+en5a,b,u
+lb,u
+ex5u=1
+{u}b=1
+{b}
+Fig.10.Games on Glitchfree-RSA with 4 stopwatches : Increment c. Note that the
+variablesthattickinalocationareindicatedaboveit.Due tosemanticsofRHA,notime
+elapsesin thecall portsandexit nodesandhencenovariable stickingisnotmentioned
+fortheselocations.
+
+--- Page 37 ---
+Zero Check :d= 0?
+en1
+[z=0]z
+A:Div{y,2}z
+B:Div{x,6}z
+mzm1z
+B1:ZCd
+=0z
+m2z
+B2:ZCd
+=0d=0
+[z=0]
+¨⌣
+[z=0]z
+d>0
+[z=0]
+ZCd
+=0
+en2
+[z=0]z
+B3:Mul{y,2}z
+B4:Mul{x,6}z
+B5:Mul{x,2}zd=0
+[z=0]
+d>0
+[z=0]y<1
+y=1x<2
+x=2
+x>2
+Mul{a,n}:a∈ {x,y}
+en3
+[z=0]z
+l1u
+l2z
+B6:Cu=
+n∗azl3a
+l4z
+B7:Ca=
+uzex3
+[z=0]
+¨⌣
+[z=0]z{u} {a}
+Cu=
+n∗a:a,b∈ {x,y}
+en4
+[z=0]z
+B8:Maz
+n−1callstoMaex4
+[z=0]{b} u=nCa=
+u
+en5a,u
+ex5a=1
+u=1
+Ma
+en6a,b,u
+la,b
+ex6a=1
+{a}b=1
+{b}
+Fig.11.Games on Glitchfree-RSA with 4 stopwatches : Zero check c= 0?. Note that
+thevariablesthat tickin alocationareindicatedaboveit. zis tickingin all returnports
+of boxes B1:ZCd
+=0andB2:ZCd
+=0but not indicated above all of them, to avoid
+clutter. Due to semantics of RHA, no time elapses in the call p orts and exit nodes and
+hencenovariablestickingisnotmentionedfortheselocati ons.
+
+--- Page 38 ---
+with atleast two stopwatches. Further, it is undecidable fo r the glitchfree variant with
+atleast 3 stopwatches. The details of these results in Secti ons4.1and2. Due to these,
+followingresultsintwo playergamesonRSA areeasytosee.
+Lemma 9. Thereachabilitygameproblemisundecidableforglitchfre erecursivestop-
+watchautomatawith atleast 3stopwatches.
+Lemma 10. The reachability game problem is undecidable for unrestric ted recursive
+stopwatchautomatawithat least2 stopwatches.
+6 Decidability withone player:Bounded ContextRHA using on ly
+pass-by-reference
+We mainlydiscussthe resultsofTheorem 4here;
+6.1 Hybridautomata: Timebounded reachability[ 10]
+Time bounded reachability was shown to be decidable for hybr id automata with no
+negative rates and no diagonal constraints [ 10]. The main idea here is that if there is
+a runρbetween two conﬁgurations (q1,ν1)and(q2,ν2)in a hybrid automata Hsuch
+thatduration(ρ)≤T(calledT−timeboundedrun),then thereexistsa contracted run
+ρ′betweenthesameconﬁgurations,suchthat duration(ρ′)≤T,lengthof ρ′is atmost
+C, a constant exponential in Hand linear in T, and is dependent on rmax(maximal
+rate inH) andcmax(largest constant in the constraints of H). The construction of ρ′
+fromρrelies on a contraction operator. This operator identiﬁes positions i < jinρ,
+suchthatalllocationsbetween iandjarevisitedbefore iinρandlocations li=ljand
+ei+1=ej+1the outgoing edges from liandljrespectively.The operator then deletes
+all the locations i+ 1,...,jand adds their time to the other occurrences before i. It
+then connects liej+1→lj+1with sum of time delays accompanying ei+1andej+1. This
+operator is used as many times as required until a ﬁxpoint is r eached. Care should be
+taken to ensure that the contracted run is a valid run : it should satisfy the constraints.
+Toensurethis,therun ρisﬁrstcarefullypartitionedintoexponentiallymanypiec es,so
+thatcontractingthepiecesandconcatenatingthemyieldsa validrun.
+Firstly, to help track whether the valuationsresulting fro m contraction satisfy con-
+straints,theregioninformationisstoredinthelocations toformanotherhybridautoma-
+tonR(H). Givencmax, the set of regions is {(a−1,a),[a,a]|a∈ {1,···cmax}}∪
+{0=,0+,(cmax,+∞)}. It differsfrom the classical regionnotion due to lack of fr ac-
+tionalpartordering(nodiagonalconstraints)andspecial treatmentofvaluationswhich
+are 0.R(H)checks whether a variable xnever changes from 0 before the next transi-
+tion, or if it becomes >0before the next transition. This helps bound the number of
+sub-runsthat are constructedlater,andpreventsthe contr actionoperatorfrommerging
+locationswherexremains0withthosewherexbecomes >0.Theconstructionensures
+thatHadmits a run between two states of duration T iff R(H)admits a run between
+thesame statesandforthesame time T.
+Asthe rest of the automatonis untouched,the equivalentof r unρinR(H)is a run
+same asρ, but having region information along with locations. Let us continue to call
+
+--- Page 39 ---
+the run in R(H)asρ.ρis called a type-0 run .ρis choppedinto fragmentsof duration
+≤1
+rmax,eachofwhichiscalleda type-1run.Therewillbeatmost T.rmax+1type-1
+runs. Additionally, as rmaxis the maximal rate of growth of any variable, a variable
+changesitsregionatmost3timessuchthat,whenstartingin (b,b+1)region,growing
+through[b+ 1,b+ 1],(b+ 1,b+ 2), gets reset and stays in [0,1). Each type-1 run
+is further split into type-2 runs based on region changes whi ch is atmost 3 times per
+variable.Thuseachtype-1runissplit intoatmost 3.|X|type-2runs.Respectingregion
+changes ensures that constraints continue to be satisﬁed po st contraction. Type-2 runs
+are again split into type-3 runs based on the ﬁrst and last res et of a variable. This is to
+enableconcatenationofconsecutivecontractedfragments byensuringthevaluationsin
+thestartconﬁgurationandendconﬁgurationofeachfragmen tarecompatiblewiththeir
+neighbors.Eachtype-2runissplitintoatmost 2.|X|+1type-3runs.Thecontractionis
+applied to type-3 runs, removingsecond occurrencesof loop s. Hence, each contracted
+type-3runwill be atmost |Loc′|2+1long(Lemma7 of[ 10]), where Loc′is the set of
+locationsof R(H).Notethat |Loc′|=|Loc|.(2.cmax+1)|X|whereLocisthesetoflo-
+cationsof H.Afterconcatenatingthesecontractedtype-3runs,wegetc ontractedtype-2
+runswith the same start and end states. These contractedtyp e-2runsare then concate-
+nated to obtain a run ρ′of that has the same start and end states as ρ,duration(ρ′) =
+duration(ρ)and|ρ′| ≤C= 24.(T.rmax+ 1).|X|2.|Loc|2.(2.cmax+ 1)2.|X|. To
+solvetime-boundedreachability,we nondeterministicall yguessa runoflengthatmost
+C, and solve an LP to check if there are time delays and valuatio ns for each step to
+maketherunfeasible.
+6.2 Bounded-Context RHA with pass-by-reference only mecha nism : Time
+bounded reachability
+Along the lines of contractionoperator,we deﬁne a context-sensitive contractionoper-
+atorcntfor a run in the boundedcontext RHA. As seen in Section 6.1, we convertthe
+boundedcontextRHA HintoR(H), wherewe remembertherespectiveregionsalong
+withthe verticesof H.Inthe restofthisdiscussion,whenwesay H,we mean R(H).
+The contraction operator in [ 10] matches locations in the run while we match the
+(context,location)pairsof the conﬁgurationsin the run. T hecontextmatchingensures
+that we do not alter the sequence of recursive calls made in th e contracted run, thus
+maintainingvalidityw.r.t recursion.The secondoccurenc eis then deletedandthe time
+delaysareaddedtotheﬁrstoccurenceoftheloop.Letusdeno tethe(context,location)
+pair to be used for matching as cl= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q). Ignoring the valuations, we denote a
+context as κ∈B∗since all the variables are passed by reference and hence nee d not
+be stored in the context. Henceforth, we shall denote a run as ρ= (/an}bracke⊔le{⊔κ0/an}bracke⊔ri}h⊔,q0,ν0)t1,e1→
+(/an}bracke⊔le{⊔κ1/an}bracke⊔ri}h⊔,q1,ν1)t2,e2→ ···(/an}bracke⊔le{⊔κn−1/an}bracke⊔ri}h⊔,qn−1,νn−1)tn,en→(/an}bracke⊔le{⊔κn/an}bracke⊔ri}h⊔,qn,νn)whereeiis the dis-
+cretetransitionenabledafterthe timedelay tiinthevertex qi−1.
+Deﬁnition3 (Context-sensitivecontraction cnt).Considerarun ρ= (/an}bracke⊔le{⊔κ0/an}bracke⊔ri}h⊔,q0,ν0)t1,e1→
+(/an}bracke⊔le{⊔κ1/an}bracke⊔ri}h⊔,q1,ν1)t2,e2→ ···(/an}bracke⊔le{⊔κn−1/an}bracke⊔ri}h⊔,qn−1,νn−1)tn,en→(/an}bracke⊔le{⊔κn/an}bracke⊔ri}h⊔,qn,νn). Assume thereare two
+positions 0≤i < j < n andafunction h:{i+1,···,j} → {0,···,i−1}suchthat
+(i)(/an}bracke⊔le{⊔κi/an}bracke⊔ri}h⊔,qi) = (/an}bracke⊔le{⊔κj/an}bracke⊔ri}h⊔,qj)and(ii)forall i < p < j : (/an}bracke⊔le{⊔κp/an}bracke⊔ri}h⊔,qp) = (/an}bracke⊔le{⊔κh(p)/an}bracke⊔ri}h⊔,qh(p)).
+
+--- Page 40 ---
+Thencnt(ρ) = (/an}bracke⊔le{⊔κ′
+0/an}bracke⊔ri}h⊔,q′
+0,ν′
+0)t′
+1,e′
+1→(/an}bracke⊔le{⊔κ′
+1/an}bracke⊔ri}h⊔,q′
+1,ν′
+1)t′
+2,e′
+2→ ···(/an}bracke⊔le{⊔κ′
+m−1/an}bracke⊔ri}h⊔,q′
+m−1,ν′
+m−1)t′
+m,e′
+m→
+(/an}bracke⊔le{⊔κ′
+m/an}bracke⊔ri}h⊔,q′
+m,ν′
+m)where
+1.m=n−(j−i)
+2. forall 0≤p < i,(/an}bracke⊔le{⊔κ′
+p/an}bracke⊔ri}h⊔,q′
+p) = (/an}bracke⊔le{⊔κp/an}bracke⊔ri}h⊔,qp)
+3. forall 1≤p < i,e′
+p=epandt′
+p=tp+Σk∈h−1(p−1)tk+1
+4.e′
+i+1=ej+1andt′
+i+1=ti+1+tj+1
+5. forall i+1< p≤m,(/an}bracke⊔le{⊔κ′
+p/an}bracke⊔ri}h⊔,q′
+p) = (/an}bracke⊔le{⊔κp+j−i/an}bracke⊔ri}h⊔,qp+j−i)
+Given a run ρ,cnt0(ρ) =ρ,cnt1(ρ) =cnt(ρ),cnti(ρ) =cnt(cnti−1(ρ)). The
+ﬁxpointcnt∗(ρ) =cntn(ρ)such that cntn(ρ) =cntn−1(ρ). We shall prove in the
+followinglemmasthatthelengthof cnt∗(ρ)is independentof ρ.
+Lemma 11. Givenatype-3run ρintheboundedcontextRHA H,|cnt∗(ρ)| ≤(α.|Q|.(2.cmax+
+1)|X|)2+1,whereα=K/summationtext
+i=1ni,Kistheboundonthecontextlength,and nisthenumber
+ofboxesin H.
+Proof.Contraction of [ 10], matches the locations in a type-3 run. Thus the size of a
+contractedtype-3runis |Loc|2+1(Lemma7of[ 10])whereLocisthesetoflocationsin
+theregionhybridautomata.However,wematch(context,loc ation)pairsinourcontext-
+sensitivecontraction.
+Supposeρisatype-3run.Let ρ′=cnt∗(ρ)haveMunique(context,location)pairs.
+Highlightingthe ﬁrst occurrencesofthese Muniquepairsandignoringthevaluations,
+wehavein ρ′,(/an}bracke⊔le{⊔κ1/an}bracke⊔ri}h⊔,q1)w1(/an}bracke⊔le{⊔κ2/an}bracke⊔ri}h⊔,q2)w2...(/an}bracke⊔le{⊔κM−1/an}bracke⊔ri}h⊔,qM−1)wM−1(/an}bracke⊔le{⊔κM/an}bracke⊔ri}h⊔,qM)wMwhere
+wiarestringsover(context,location)pairs,whichdoesnoth aveanyﬁrstoccurrenceof
+a (context,location) pair. Clearly, there are Mﬁrst occurences of (context, location)
+pairs((/an}bracke⊔le{⊔κi/an}bracke⊔ri}h⊔,qi)for1≤i≤M. Let aportionbe a part of ρ′between two such ﬁrst
+occurences (/an}bracke⊔le{⊔κi−1/an}bracke⊔ri}h⊔,qi−1)and(/an}bracke⊔le{⊔κi/an}bracke⊔ri}h⊔,qi),2≤i≤M+ 1. In a portion, contraction
+cannot be applied anymore. If it could be, then cnt∗(ρ)is not a ﬁxpoint. There could
+beaclpairsuchthatitsﬁrst occurrenceisatindex i,andsecondoccurrenceisat index
+j,i < j; that is,cli= (/an}bracke⊔le{⊔κi/an}bracke⊔ri}h⊔,qi) = (/an}bracke⊔le{⊔κj/an}bracke⊔ri}h⊔,qj) =clj, and the index jis part of a later
+portion (cliis thus underlined, but cljis not). We cannot contract the pairs at indices
+i,j, sinceall pairsbetweencliandcljwouldnot occur priorto cli(if theyoccur,then
+ρ′/ne}a⊔ionslash=cnt∗(ρ)). Thusthe numberof uniquepairsin a portioncould be more tha n 1 and
+canbeatmost M.Thusthemaximumlengthof ρ′≤M2+1.
+Thereareatmost α=K/summationtext
+i=1nidifferentcontextsofsize atmost Kwithanysequence
+of thenboxes including a box being called more than once. We know tha tMis the
+numberofunique(context,location)pairs.Clearly, M≤α.|Q|.(2.cmax+1)|X|,where
+Q=/uniontextn
+i=1Qiistheunionofthesetofvertices QiofallthencomponentsoftheRHA,
+|Q|.(2.cmax+1)|X|isthe numberofverticesintheregionRHA and Kis thecontext
+bound.Thus,thelengthofatype-3contractedrunis ≤(α.|Q|.(2.cmax+1)|X|)2+1.
+Thusproved.
+Let us illustrate with an example why a contracted type-3 run |cnt∗(ρ)|could be
+of length > α.|Q|.(2.cmax+ 1)|X|. LetCLbe a set of unique (context, location)
+
+--- Page 41 ---
+pairs (|CL| ≤α.|Q|.(2.cmax+1)|X|). Assume CL={a,b,c,d,e,f }. Let us abuse
+notationof a run for a short while and depict it to be only a seq uenceof pairs ignoring
+thevaluations.Nowlet cnt∗(ρ) =ρ′=a→b→c→d→a→e→b→f.Herethe
+portionsare ǫ(between aandb,between bandc, andbetween candd) anda(between
+dande)andb(between eandf).Notethateachoftheseportionsthemselvescannotbe
+contracted any further. Additionally although there are tw o occurences of a(position
+0 and 4) itself, the pairs between the ﬁrst and second occuren ce ofa(these pairs are
+b,c,d) do not appear prior to aat position 0. Thus contraction can not be applied to
+ρ′. Thus|cnt∗(ρ)|could be > α.|Q|.(2.cmax+ 1)|X|. However, each portion itself
+could be atmost α.|Q|.(2.cmax+ 1)|X|(number of unique pairs). Thus |cnt∗(ρ)| ≤
+(α.|Q|.(2.cmax+1)|X|)2+1.
+Lemma 12. Givenarun ρintheboundedcontextRHA H,|cnt∗(ρ)| ≤24(T.rmax+
+1)|X|2(α|Q|)2.(2.cmax+1)2|X|.
+Proof.Recall the splitting of a given run prior to contraction deta iled in Section 6.1.
+The given run ρ(type-0) yields (T.rmax+ 1)type-1 runs each of which is further
+split into (3.|X|)type-2runs.Eachtype-2runis split into 2.|X|+1type-3runs.Each
+contractedtype-3runisatmost (α.|Q|.(2.cmax+1)|X|)2+1long(Lemma 11above).
+Thuslengthofeachcontractedtype-2runis
+≤[2.|X|+1].[(α.|Q|.(2.cmax+1)|X|)2+1]
+≤2.(|X|+1).((α.|Q|.(2.cmax+1)|X|)2+1)
+≤2.(2.|X|).(2.(α.|Q|.(2.cmax+1)|X|)2) = 8.|X|.(α.|Q|.(2.cmax+1)|X|)2
+SThus the length of cnt∗(ρ)≤[(T.rmax+ 1).(3.|X|)].[8.|X|.(α.|Q|.(2.cmax+
+1)|X|)2]
+l= 24(T.rmax+1).|X|2.(α.|Q|)2.(2.cmax+1)2.|X|.
+Lemma 13. Givenarun ρintheboundedcontextRHA H,cnt∗(ρ)isavalidrunin H.
+Proof.To prove that the contracted run ρ′=cnt∗(ρ)is valid in the given bounded
+contextRHA H,we needto ensuretwo conditions:
+–theconstraintsappearingalongthetransitionsof ρ′arestill satisﬁed and
+–thesequenceofboxes(andmappingofcall,return,entry,ex itvertices)isvalidw.r.t
+recursive calls in the given RHA. This means call port and app ropriateentry node
+shouldbeconsecutiveinthecontractedrun,exitnode-retu rnportsarematchedand
+the contexts in conﬁgurations of ρ′should be valid successors of the preceeding
+contexts.
+The ﬁrst condition is satisﬁed as we consider a variant of RHA where all the vari-
+ables are always passed by reference. Thus the context has no valuations but only a
+sequence of boxes. The constraints are guaranteedto be sati sﬁed as the run is same as
+ahybridautomatarunifthecontextisignored.Thustheprec autions(incarefullysplit-
+ting from type-0 to type-3 runs) taken in [ 10] for hybrid automata sufﬁce with regards
+toconstraints.
+The second condition is satisﬁed due to context-sensitive c ontraction where in the
+contextisalsomatchedintheloopdetection.Duetothis,ac ontextinthecontractedrun
+willbeavalidsuccessorofthepreceedingcontext.Weshall provebycontradictionthat
+
+--- Page 42 ---
+thereexistsnoinvalidpairofconsecutiveconﬁgurationsi nthecontractedrun ρ′.There
+areseveralwaysin whicha pairofconﬁgurationscanbeinval idpredecessor/successor
+w.r.trecursion:
+–the call port and entry node are mismatched (either of them is missing or matched
+to anotherbox’sentrynode)
+–thereturnnodeandexitportaremismatched
+–the consecutive contexts are incorrect/invalid (the seque nces of boxes in the two
+contexts are such that it is not possible in the RHA semantics to get one sequence
+fromanotherviaa validRHA move.)
+LetρdenotearunintheRHA,andlet ρ′beitscontraction.Foreaseofexplanation,
+letscallthesuccessorofaconﬁguration cinρassucc(c)anditspredecessoras pred(c).
+Suppose there exists a pair of consecutive conﬁgurations in ρ′which are invalid w.r.t
+recursivecall. Abusing notation,we henceforthconsidert he contextas κ∈B∗, ignor-
+ing valuations, as all variables are always passed by refere nce and hence need not be
+storedinthecontext.
+Let us assume that the contracted run ρ′has a pair of consecutive conﬁgurations
+c′t,e→d′which are invalid as the call port conﬁguration c′is not succeeded by the
+appropriate entry node conﬁguration in the contracted run i .e;c′= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),ν′)
+andd′/ne}a⊔ionslash= (/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,en,ν′)(t= 0by RHA semantics). Consider conﬁgurations c=
+(/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en),ν)andsucc(c) = (/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,en,ν)in the given run ρsuch that c′corre-
+sponds to c. Asd′/ne}a⊔ionslash= (/an}bracke⊔le{⊔κ,b/an}bracke⊔ri}h⊔,en,ν′), the conﬁguration succ(c)was deleted during
+contraction. Thus it must be the case that in ρ,cwas at position iwhile the repeated
+(context,location)pairs were from position i+1tojandd(correspondingto d′inρ′)
+wasatposition j+1.But,theconﬁgurationat i+1issucc(c)andthiswasmatchedwith
+a conﬁguration, say eoccuring prior to cinρ: recall the contraction operator deletes
+repeatingoccurrencesof(location,context)pairs;todel etesucc(c)atposition i+1,we
+havetomatchthe(location,context)pairof succ(c)atposition i+1withthatofsome
+e, occurring at a position m < i. Due to the semantics of RHA, pred(e)has (context,
+location) pair (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,(b,en))which is the same as c. Thus even cwould be matched to
+pred(e)and deleted. This contradictsour assumption that c′(equivalentof c) exists in
+ρ′.
+In essence, the call port-entry node conﬁgurations always a ppear consecutive to
+each otherin a givenrun ρ. Thus, matchinga call-portconﬁgurationto a conﬁguration
+cwillinvariablymatchthecorrespondingentry-nodeconﬁgu rationtothe succ(c)which
+will also bethe same entry-nodeconﬁguration.Similarly,e xit-nodeandcorresponding
+return-portconﬁgurationsalwaysappearconsecutiveto ea chother.
+Now, lets consider another pair of invalid consecutive conﬁ gurations c′
+1t,e→c′
+2in
+ρ′such that c′
+1= (/an}bracke⊔le{⊔b1/an}bracke⊔ri}h⊔,q1,ν′
+1)andc′
+2= (/an}bracke⊔le{⊔b1b2b3/an}bracke⊔ri}h⊔,q2,ν′
+2). Clearly, such a sequence
+is invalid underthe RHA semantics (evenif q1is a call port).During context-sensitive
+contraction, we match the (context,location) pairs and do n ot alter the contexts. Now
+consider two conﬁgurations c1andc2inρwhich correspondto c′
+1andc′
+2respectively.
+Hencec1= (/an}bracke⊔le{⊔b1/an}bracke⊔ri}h⊔,q1,ν1)andc2= (/an}bracke⊔le{⊔b1b2b3/an}bracke⊔ri}h⊔,q2,ν2)(valuations would differ in the
+twopathsduetocontraction).Obviously c2isnotsuccessorof c1inρ,asρisthegiven
+run (hence valid) and hence cant have such a pair of consecuti ve conﬁgurations. For
+
+--- Page 43 ---
+c′
+1t,e→c′
+2inρ′, it must be the case that in ρ,c1is theith conﬁgurationand the repeated
+(context,location)pairsarefrom i+1tojandc2isthej+1conﬁguration.Let pred(c2)
+bethepredecessorof c2inρ,i.e;theconﬁgurationappearingatposition j.Contraction
+deletestheconﬁgurationsfrom i+1toj,aftermatchingthe(location,context)pairsof
+positions i,j, and hence c′
+2ends up as successor of c′
+1. By deﬁnition 3of contraction,
+since we verify (li,context i) = (lj,context j), we know that the (context, location)
+pair ofc1is the same as that of pred(c2)(recallc2occurs at position j+ 1, hence
+pred(c2)is at position j). But then the context of pred(c2)is/an}bracke⊔le{⊔b1/an}bracke⊔ri}h⊔which can not be
+followedby /an}bracke⊔le{⊔b1b2b3/an}bracke⊔ri}h⊔ofc2inρ. Thiscontradictsourassumptionthat c′
+2succeeds c′
+1in
+ρ′.
+Similar proof by contradiction can be given for any pair of co nﬁgurations invalid
+w.r.trecursion.
+Theorem5. Time bounded reachability is decidable for bounded context RHA using
+onlypass-by-referencemechanism.
+Proof.Contractionofagivenrun ρyieldsasmallerrun ρ′whoselengthisindependent
+ofρ.FromLemma 12,weknowthat |ρ′| ≤C= 24(T.rmax+1)|X|2(α|Q|)2(2.cmax+
+1)2|X|.Additionally,fromLemma 13,ρ′isavalidrunintheRHA.Thusanon-deterministic
+algorithm(asin thecase of Hybridautomata[ 10]) canbe usedto guessa runoflength
+atmostCandthensolveanLPtocheckiftherearetimevaluesandvalua tionsforeach
+step thatmakesucharunfeasible.
+6.3 Unbounded contextRHAwith pass-by-referenceonlymech anism
+We show that our adaptation of contraction does not work on RH As with unbounded
+context, as in ﬁgure 12. We can not apply context-sensitive contraction as the cont ext
+mightgrowunboundedlyandmatchingpairsmaynotbefoundwi thinatype-3run.
+B1
+en1 a1:B2ex1x<1B2
+en2 a2:B1ex2x<1
+x=1
+Fig.12.RHA withunboundedcontext
+Considertherun ρ= (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,en1,0)0.1→(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(a1,en2),0.1)0→(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,en2,0.1)0.1→
+(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,(a2,en1),0.2)0→(/an}bracke⊔le{⊔a1a2/an}bracke⊔ri}h⊔,en1,0.2)0.1→(/an}bracke⊔le{⊔a1a2/an}bracke⊔ri}h⊔,(a1,en2),0.3)0→
+(/an}bracke⊔le{⊔a1a2a1/an}bracke⊔ri}h⊔,en2,0.3)0.1→(/an}bracke⊔le{⊔a1a2a1/an}bracke⊔ri}h⊔,(a2,en1),0.4)0→(/an}bracke⊔le{⊔a1a2a1a2/an}bracke⊔ri}h⊔,en1,0.4)0.1→
+(/an}bracke⊔le{⊔a1a2a1a2/an}bracke⊔ri}h⊔,(a1,en2),0.5)0→(/an}bracke⊔le{⊔a1a2a1a2a1/an}bracke⊔ri}h⊔,en2,0.5)0.5→(/an}bracke⊔le{⊔a1a2a1a2a1/an}bracke⊔ri}h⊔,ex2,1)0→
+(/an}bracke⊔le{⊔a1a2a1a2/an}bracke⊔ri}h⊔,(a1,ex2),1)0→(/an}bracke⊔le{⊔a1a2a1a2/an}bracke⊔ri}h⊔,ex1,1)0→(/an}bracke⊔le{⊔a1a2a1/an}bracke⊔ri}h⊔,(a2,ex1),1)0→
+
+--- Page 44 ---
+(/an}bracke⊔le{⊔a1a2a1/an}bracke⊔ri}h⊔,ex2,1)0→(/an}bracke⊔le{⊔a1a2/an}bracke⊔ri}h⊔,(a1,ex2),1)0→(/an}bracke⊔le{⊔a1a2/an}bracke⊔ri}h⊔,ex1,1)0→(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,(a2,ex1),1)0→
+(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,ex2,1)0→(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(a1,ex2),1)0→(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,ex1,1).duration(ρ) = 1.
+Nowconsideranotherrun
+ρ′= (/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,en1,0)0.1→(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(a1,en2),0.1)0→(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,en2,0.1)0.9→(/an}bracke⊔le{⊔a1/an}bracke⊔ri}h⊔,ex2,1)0→
+(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,(a1,en2),1)0→(/an}bracke⊔le{⊔ε/an}bracke⊔ri}h⊔,ex1,1).
+Notethatthe startandendconﬁgurationsofboththerunsare thesameand
+duration(ρ′) = 1.However,wecannotapplycontext-sensitivecontractioni nthiscase.
+Therecanbeseveralotherrunslike ρwhichcanhaveunboundedcontextsbuthavethe
+sameeffectas ρ′.Tobeabletoobtain ρ′fromρ,wewouldneedtoapplycontractionto
+the contexts too and shorten them in a sensible manner. Our co ntext-sensitivecontrac-
+tionstudiedearlierdoesnotalterthe contextsandhencedo esnotreadilyextendtothis
+class of RHA. We conjecture this to be decidable with a double layered contraction -
+onealteringthecontextsandtheotheralteringthevaluati ons(asseenin[ 10]).
+7 Decidability with one player : Glitch-free RHA with 2
+stopwatches
+7.1 RegionAbstractionofHybridAutomatawith2 StopwatchV ariables
+Weﬁrstshowthatthereachabilityproblemisdecidablefors topwatchautomata(hybrid
+automatawith onlystopwatches)with 2stopwatchvariables .
+Deﬁnition4 (Singular Hybrid Automata). A Singular Hybrid automaton is a tuple
+H= (Q,Q0,Σ,X,∆,I,F )where
+–Qis a ﬁnite set of control modesincluding a distinguished initial set of control
+modesQ0⊆Q,
+–Σis aﬁniteset of actions,
+–Visan(ordered)set of variables,
+–∆⊆Q×rect(V)×Σ×2X×Qisthetransitionrelation ,
+–I:Q→rect(V)is themode-invariantfunction,and
+–F:Q→Q|V|isthemode-dependent ﬂowfunction characterizingtherateofeach
+variableineachmode.
+Recollectthat,rect (V)istheset ofrectangularconstraintsover V.
+LetHbe a singular hybrid automata with two stopwatch variables V={x,y}
+and as both variables are stopwatches, F:Q→ {0,1}2. Letcmaxbe the maximum
+constant used in any of the guards of H. For simplicity, we assume that the hybrid
+automatadoesnothavelocationinvariants.
+Regions and Region Automaton We consider a ﬁnite partitioning RofR2. For each
+valuation ν= (ν(x),ν(y))∈R2, the unique element of Rthat contains νis called a
+region, denoted [ν]. We deﬁne the successors of a region R,Succ(rx,ry)(R)⊆ R, in
+thefollowingnaturalway:For rx,ry∈ {0,1},
+R′∈Succ(rx,ry)(R)if∃ν∈R,∃t∈Rsuchthat [ν+(rx,ry)t] =R′
+
+--- Page 45 ---
+Denoteby ν+(rx,ry)t,thevaluation (ν(x)+rxt,ν(y)+ryt).Wesaythatsuchaﬁnite
+partitionisa set ofregions wheneverthefollowingconditionholds:
+R′∈Succ(rx,ry)(R)iff∀ν∈R,∃t∈Rsuchthat [ν+(rx,ry)t] =R′
+The only kind of updates we consider are those where we reset v ariables to 0. A
+resetresmaps a region Rto the region res(R)obtained from Rby assigning value 0
+to all variables which were reset to 0. The set of regions Ris compatible with resets
+resif whenevera valuation ν′∈R′is reachable from a valuation ν∈Rafter a reset,
+thenR′is reachablefromany ν∈Rbythesame reset.Formally,we have
+R′∈res(R)→ ∀ν∈R,∃ν′∈R′suchthat ν′∈res(ν)
+Theguards ϕconsideredin Harebooleancombinationsof x ⊲⊳ cwherex∈Vand
+c∈Nand⊲⊳∈ {<,>,≤,≥,=}.A region Ris compatiblewith ϕiff forall valuations
+ν∈R,eitherν|=ϕorν|=¬ϕ.
+Weﬁrstconstructasetofregionsfor2stopwatchautomatath atarecompatiblewith
+resetsandguards.For z∈ {x,y},we deﬁnetheset ofintervals
+Iz={[c]|0≤c≤cmax}∪{(c,c+1)|0≤c < cmax}∪{(cmax,∞)}
+Deﬁneα= ((Ix,Iy),≺), where≺is a total preorder on V0={x∈V|Ixis an
+interval of the form (c,c+1)}. The regionassociated with αdenotedRαis the set of
+valuations
+{ν∈R2|ν(x)∈Ix,ν(y)∈Iyand[(x,y∈V0,x≺y)↔(frac(ν(x))≤frac(ν(y))]}
+Theﬁniteset Rofall suchregions Rαformsapartitionof R2.
+Lemma 14. Rasdeﬁnedabove,is aset ofregions.
+Proof.In the sequel, we show that Ris a set of regions. Consider α= ((Ix,Iy),≺).
+IfIx= ((cmax,∞),(cmax,∞)), then for all ν∈Rα, for allt∈R,ν+ (rx,ry)t∈
+Rαforrx,ry∈ {0,1}. HenceSucc(rx,ry)(Rα) =Rα. IfSucc(rx,ry)(Rα)/ne}a⊔ionslash=Rα,
+then there is atleast one another region in Succ(rx,ry)(Rα)different from Rα. LetCα
+denote the region that is closest to region to Rα. Such a closest region is such that
+Cα∈Succ(rx,ry)(Rα), and for all ν∈Rα, for allt∈R, ifν+ (rx,ry)t /∈Rα,
+then∃t′≤tsuch that ν+ (rx,ry)t′∈Cα. Such a region Cα= ((I′
+x,I′
+y),≺′)is
+characterizedasfollows:Let Z={z∈V|Izisoftheform [c]}.
+1. IfZ/ne}a⊔ionslash=∅andrx=ry= 1.Then
+–
+I′
+z=
+
+Iz ifz /∈Z,
+(c,c+1)ifz∈Zand0≤c < cmax
+(cmax,∞)ifz∈ZandIz= [cmax]
+–x≺′yifIx= [c]with0≤c < cmaxandI′
+yisoftheform (d,d+1).
+2. IfZ/ne}a⊔ionslash=∅andatleast oneof rx,ryis0.Then
+
+--- Page 46 ---
+–
+I′
+z=
+
+Iz ifrz= 0,
+[c+1] ifz /∈Zandrz= 1
+(c,c+1)ifz∈Z,rz= 1and0≤c < cmax
+(cmax,∞)ifz∈Z,rz= 1andIx= [cmax]
+–x≺′yifrx= 1andx∈Z,y /∈Z. If (rx= 0andx∈Z) or (rx= 1and
+x /∈Z)orifx,y∈Z,thenV′
+0=∅.
+3. IfZ=∅andrx=ry= 1. LetMdenote the set of variables with the maximum
+fractionalpart,whoseintervalisoftheform (c,c+1)for0≤c < cmax. Then
+–
+I′
+z=/braceleftbiggIzifz /∈M,
+[c+1]ifz∈MandIz= (c,c+1)with0≤c < cmax
+–One variable moves to an integer value, or both variables are in(cmax,∞).
+HenceV′
+0=∅.
+4. IfZ=∅andatleast oneof rx,ryis0.Then
+–
+I′
+z=
+
+Izifrz= 0,
+[c+1]ifz∈M,rz= 1andIz= (c,c+1)with0≤c < cmax
+[c+1]ifz /∈Mandrz= 1andIz= (c,c+1)with0≤c < cmax
+–x≺′yis same as x≺ywhenrx=ry= 0. Otherwise, one of the variables
+getsanintegervalue,andhence V′
+0=∅.
+We nowclaimthat
+∀ν∈α,∃t∈Rsuchthat ν+t∈Cα
+Letνbe a valuationin α. Thenlet frac(ν(x))denotethefractionalpartof ν(x). Sim-
+ilarlyfor ν(y).
+1. IfZ/ne}a⊔ionslash=∅andrx=ry= 1. Letτ=min{1−frac(ν(z))|Izis of the form
+(c,c+1)}.Thenν+(1,1)τ
+2isin theregion Cα.
+2. IfZ/ne}a⊔ionslash=∅andatleast oneof rx,ryis0.
+–Ifx∈Z,y /∈Zandrx= 1,thenpick τ=frac(ν(y)). Thenν+(1,0)τ
+2isin
+the region Cα.
+–Ifrx= 0andx∈Z,thenpick τ= 1−frac(ν(y)). Thenν+(0,1)τisinthe
+regionCα.
+–Ifrx= 1andx /∈Z, then pick τ= 1−frac(ν(x)).ν+ (1,0)τis in the
+regionCα.
+–Ifx,y∈Z, andrx= 1, then pick τ= 0.5. Thenν+(1,0)τis in the region
+Cα.
+3. IfZ=∅andrx=ry= 1.
+–Pick the variable z∈M. Letτ= 1−frac(ν(z)). Thenν+(1,1)τis in the
+regionCα.
+4. IfZ=∅andatleast oneof rx,ryis0.
+–Ifrx= 1andry= 0. Pickτ= 1−frac(ν(x)). Thenν+ (1,0)τis in the
+regionCα.
+
+--- Page 47 ---
+Thus we obtain that Cα∈Succ(rx,ry)(Rα)is the closest successor of Rα. Inducting
+onCα,we get theclosest successorof Cα, whichisthe successorof Rα, 2stepsaway,
+and so on. We write Rα→nRn
+αifRn
+αis thenth closest successor of Rαwith respect
+to some choice of rates (rx,ry). This clearly meansthat there is a sequenceof regions
+R0
+α,R1
+α,R2
+α,...,Rn
+αsuch that R0
+α=Rα, andRi+1
+αis the closest successor of Ri
+αfor
+all1≤i < n.
+In this way, we can ﬁnd all successors R′
+αofRαsuch that R′
+α∈Succ(rx,ry)(Rα)
+iff for all ν∈Rαthere exists some t∈Rsuch that ν+(rx,ry)t∈R′
+α. Hence,Ris
+indeeda set ofregionspartitioning R2. ⊓ ⊔
+Given two valuations ν1,ν2∈Rαfor some region Rα, we say that ν1andν2are
+equivalentiftheylie in thesameregion,i.e, [ν1] = [ν2].
+Lemma 15. Riscompatiblewith theguards ϕandwith theresets res.
+Proof.1. LetR′∈res(R). Consider ν1,ν2∈R, i.e,[ν1] = [ν2]. Clearly, ν1(x)and
+ν2(x)lieinthesameinterval;samewith ν1(y)andν2(y).Iftheoperation resresets
+x, thenres(ν1) = (0,ν1(y))andres(ν2) = (0,ν2(y)). Sinceν1(y)andν2(y)are
+in the same interval, we have [res(ν1)] = [res(ν2)]. Similar results are obtained
+whenyisreset, orwhenboth x,yarereset.
+2. Let[ν1] = [ν2]be valuations in the same region R. Letϕbe a guard. The result
+can be proved by structural induction on |ϕ|. Ifϕis atomic of the form x∼c,
+clearly,ν1|=ϕiffν2|=ϕ, sinceν1andν2are equivalent. Assume for guards of
+size≤n−1.Itcanbeseenthattheinductivehypothesiscanbeeasily ex tendedto
+guardsofsize n.
+Thus,Ris a ﬁnite set of regions compatible with guards and resets, p artitioning
+R2. ⊓ ⊔
+Hence, we can use the region abstraction for the above set of r egions to obtain a
+region automaton HRcapturing the untimed language of H. The set of states of such
+a region automaton is the set Q× R, whereQis the set of modes of H. The initial
+location of HRis(q0,(0,0))whereq0is the initial mode of H. The transitionsof HR
+aredeﬁnedas (q,R)→a(q′,R′)iffthereisaregion ˆRandatransitionfrom qtoq′on
+(ϕ,a,res)inHsuchthat
+–ˆR∈Succ(rx,ry)(R). Hererx,ryaretheratesofvariables x,yat thestate qofH,
+–Forallν∈ˆR,ν|=ϕ, and
+–res(ˆR) =R′
+The ﬁnal states of the regionautomatonare the states (f,R)such that fis a ﬁnal state
+ofH. It can be seen that the language accepted by this region auto matonis indeed the
+untimedcounterpartof L(H).We thushave,thefollowingresult.
+Theorem6. The reachability problem for hybrid automata with two stopw atch vari-
+ablesisdecidable.
+Thedecidabilityresult aboveextendswhenwe considerhybr idautomatawithlocation
+invariantsaswell.
+
+--- Page 48 ---
+7.2 RegionAbstractionforGlitchfreeRHAwith twostopwatc hvariables
+Given an RHAHwith two stopwatch variables x,y, we deﬁne the regional equiva-
+lencerelation ΥR⊆SH×SHinthe followingway:Forconﬁgurations s= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)
+ands′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,q′,ν′), we have (s,s′)∈ΥR, or equivalently, [s] = [s′]ifq=
+q′,[ν] = [ν′]and[κ] = [κ′]such that κ= (b1,ν1)(b2,ν2)...(bn,νn)andκ′=
+(b′
+1,ν′
+1)(b′
+2,ν′
+2)...(b′
+n,ν′
+n)aresuchthat b=b′
+iand[νi] = [ν′
+i].
+A relation B⊆SH×SHdeﬁned over the set of conﬁgurations of a recursive
+stopwatch automaton is called a time abstract bisimulation if for every pair of con-
+ﬁgurations s1,s2∈SHsuch that (s1,s2)∈B, for every timed action (t,a)∈AH
+such that XH(s1,(t,a)) =s′
+1, there exists a timed action (t′,a)∈AHsuch that
+XH(s2,(t′,a)) =s′
+2,and(s′
+1,s′
+2)∈B.
+Lemma 16. Regional equivalence relation for 2 stopwatch glitch-free recursive au-
+tomatais atime abstractbisimulation.
+Proof.Let us ﬁx two conﬁgurations s= (/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔,q,ν)ands′= (/an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔,q′,ν′)such that
+[s] = [s′]andatimedaction (t,a)∈AHsuchthatXH(s,(t,a)) =sa= (/an}bracke⊔le{⊔κa/an}bracke⊔ri}h⊔,qa,νa).
+We have to ﬁnd a (t′,a)such that XH(s′,(t′,a)) =s′
+a= ((/an}bracke⊔le{⊔κ′
+a/an}bracke⊔ri}h⊔,q′
+a,ν′
+a)such that
+[sa] = [s′
+a]. Therearethreecases:
+1. Thestate qisacallport.Thatis, q= (b,en)∈Call.Inthiscase, t= 0,thecontext
+/an}bracke⊔le{⊔κa/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ,(b,ν)/an}bracke⊔ri}h⊔,qa=enandνa=ν. Since[s] = [s′], we know q′= (b,en)
+is also a call port. For t′= 0, and/an}bracke⊔le{⊔κ′
+a/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′,(b,ν′)/an}bracke⊔ri}h⊔,q′
+a=enandν′
+a=νa. It is
+clearthat [sa] = [s′
+a].
+2. The state qis an exit node. That is, q=ex∈EX. Let/an}bracke⊔le{⊔κ/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ∗,(b,ν∗)/an}bracke⊔ri}h⊔and let
+(b,ex)∈Ret. In this case, t= 0, the context /an}bracke⊔le{⊔κa/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ∗/an}bracke⊔ri}h⊔andqa= (b,ex)and
+νa=ν[P(b) :=ν∗]. Now let /an}bracke⊔le{⊔κ′/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′
+∗,(b,ν′
+∗)/an}bracke⊔ri}h⊔. Again,since [s] = [s′], we have
+q=q′=ex,[κ∗] = [κ′
+∗]andhence t′= 0,/an}bracke⊔le{⊔κ′
+a/an}bracke⊔ri}h⊔=/an}bracke⊔le{⊔κ′
+∗/an}bracke⊔ri}h⊔andν′
+a=ν′[P(b) :=ν′
+∗].
+We havetoshowthat [νa] = [ν′
+a].
+–P(b) =V.Inthuscase, νa=ν∗andν′
+a=ν′
+∗.Sinceweknowthat [ν∗] = [ν′
+∗],
+we obtain [νa] = [ν′
+a].
+–P(b) =∅. In this case, νa=νandν′
+a=ν′and since [ν] = [ν′], we obtain
+[νa] = [ν′
+a].
+3. Ifstate qisofanyotherkind,thentheresultfollowsbytheregionequ ivalenceof2
+stopwatchautomata(Theorem 6).
+Theproofis nowcomplete. ⊓ ⊔
+Lemma16allows us to extendthe concept of regionsabstraction to two stopwatch
+glitchfreerecursiveautomata.
+Region Abstraction for 2 StopWatch Glitchfree RHA LetH= (V,(H1,...,H1))
+beaglitch-freetwostopwatchRHA,whereeach Hiisatuple(Ni,ENi,EXi,Bi,Yi,Ai,Xi,Pi,Invi,Ei,Ji,Fi).
+Theregionabstractionof HisaﬁniteRSM HRG= (HRG
+1,HRG
+2,...,HRG
+k)wherefor
+each1≤i≤k, component HRG
+i= (NRG
+i,ENRG
+i,EXRG
+i,BRG
+i,YRG
+i,ARG
+i,XRG
+i)
+consistsof:
+
+--- Page 49 ---
+–aﬁnitesetof NRG
+i⊆(Ni×R)ofnodessuchthat (n,R)∈NRG
+iifR|=Inv(n).
+Moreover, NRG
+iincludestheset ofentrynodesENRG
+i⊆ENi×Randexitnodes
+EXRG
+i⊆EXi×R;
+–a ﬁniteset BRG
+i=Bi×Rofboxes;
+–boxes-to-componentsmapping YRG
+i:BRG
+i→ {1,2,...,k}issuchthat YRG
+i(b,R) =
+Yi(b). To each (b,R)∈BRG
+i, we associate a set of call ports CallRG(b,R)and a
+set ofreturnportsRetRG(b,R):
+•CallRG(b,R) ={(((b,R),en),R′)|R′∈ Randen∈ENYi(b)},and
+•RetRG(b,R) ={(((b,R),ex),R′)|R′∈ Randex∈EXYi(b)}
+Let CallRG
+iand RetRG
+ibe the set of call and return ports of component HRG
+i. We
+writeQRG
+i=NRG
+i∪CallRG
+i∪RetRG
+ifortheverticesofthecomponent HRG
+i.
+–ARG
+i⊆N×Aiis the set of actions such that if (h,a)∈ARG
+i, (his the number
+of region hops before taking a), thenh≤4cmax, wherecmaxis the maximum
+constantappearingintheguards;
+–a transition function XRG
+i:QRG
+i×ARG
+i→QRG
+iwith the natural conditionthat
+call ports and exit nodes do not have any outgoing transition s. Also, for q,q′∈
+QRG
+i,(h,a)∈ARG
+i, we have that q′=XRG
+i(q,(h,a))if one of the following is
+true:
+•q= (n,R)∈NRG
+i, thereisa region Rasuch that R→hRa,Ra|=Ei(n,a),
+and
+∗Ifq′= (n′,R′), thenR′=Ra[Ji(a) := 0]andXi(n,a) =n′.
+∗Ifq′= (((b,R′),en),R′′), thenR=R′=R′′=Ra[Ji(a) := 0]and
+Xi(n,a) = (b,en)
+•q= (((b,Rold),ex),Rnow)is a returnportof HRG
+i. LetR=RoldifPi(b) =
+VandR=Rnowotherwise.Thereexistsaregion Rasuchthat R→hRaand
+Ra|=Ei((b,ex),a)and
+∗Ifq′= (n′,R′), thenR′=Ra[Ji(a) := 0]andXi(n,a) =n′
+∗Ifq′= (((b,R′),en),R′′),thenR′=R′′=Ra[Ji(a) := 0]andXi(n,a) =
+(b,en).
+The following lemma is a direct consequenceof Lemma 16and the region abstraction
+for2stopwatchglitchfreeRHAs.
+Lemma 17. Reachability (termination) problems and games on glitch-f ree two stop-
+watch RHA can be reduced to solving reachability (terminati on) problems and games,
+respectively,onthecorrespondingregionabstraction HRG.
+7.3 ComputationalComplexity
+Thecomplexityfor2stopwatchglitchfreeRHAsisthesameas thoseof2clockglitch
+freeRTAs.
+8 Conclusion
+The main result of this paper is that time-bounded reachabil ity problem for recursive
+timed automata is undecidablefor automata with ﬁve or more c locks. We also showed
+
+--- Page 50 ---
+that for recursive hybridautomata the reachabilityproble m turns undecidableeven for
+glitch-free variant with three stopwatches, and the corres ponding time-bounded prob-
+lem is undecidable for automata with 14stopwatches. Using the similar proof tech-
+niques we have also studied reachability games on recursive hybrid automata, and
+showedthattime-boundedreachabilitygamesareundecidab leoverrecursivetimedau-
+tomatawiththreeclocks.Similarly,forglitch-freerecur sivehybridautomatawiththree
+stopwatchestime-boundedreachabilitygamesareundecida ble.
+References
+1. Parosh Aziz Abdulla, Mohamed Faouzi Atig, and Jari Stenma n. Dense-timed pushdown
+automata. In LICS,pages 35–44, 2012.
+2. R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, a nd M. Yannakakis. Analysis
+of recursive state machines. ACM Transactions on Programming Languages and Systems ,
+27:786–818, July 2005.
+3. R. Alur, C. Courcoubetis, T. A. Henzinger, and P.-H.Ho. Hy brid automata: An algorithmic
+approachtothespeciﬁcationandveriﬁcationofhybridsyst ems. InHybridSystemsI ,volume
+736 ofLecture Notes inComputer Science , pages 209–229. Springer-Verlag,1993.
+4. R. Alur andD. Dill. Automata for modeling real-time syste ms. InProc.ICALP’90 ,volume
+443 ofLNCS.Springer,1990.
+5. Rajeev Alur, Thao Dang, Joel Esposito, Rafael Fierro, Yer ang Hur, F Ivanˇ ci´ c, VijayKumar,
+Insup Lee, Pradyumna Mishra, George Pappas, and Oleg Sokols ky. Hierarchical hybrid
+modeling of embedded systems. In Embedded Software , pages 14–31. Springer, 2001.
+6. Rajeev Alur, Kousha Etessami, and Mihalis Yannakakis. An alysis of recursive state ma-
+chines. In ComputerAidedVeriﬁcation ,volume2102of LectureNotesinComputerScience ,
+pages 207–220. Springer BerlinHeidelberg, 2001.
+7. Thomas Ball and Sriram K. Rajamani. Bebop: A symbolic mode l checker for boolean pro-
+grams. In SPIN,pages 113–130. Springer-Verlag,2000.
+8. M. Benerecetti, S. Minopoli, and A. Peron. Analysis of tim ed recursive state machines. In
+Temporal Representation andReasoning (TIME) ,pages 61–68, Sept2010.
+9. Ahmed Bouajjani, Javier Esparza, and Oded Maler. Reachab ility analysis of pushdown au-
+tomata: Applicationtomodel-checking. In CONCUR’97 ,pages 135–150, 1997.
+10. Thomas Brihaye, Laurent Doyen, Gilles Geeraerts, Jo¨ el Ouaknine, Jean-Franc ¸ois Raskin,
+andJames Worrell. Time-bounded reachabilityfor monotoni c hybridautomata: Complexity
+and ﬁxedpoints. In ATVA,pages 55–70, 2013.
+11. K.Cerans. AlgorithmicProblemsinAnalysisofReal-timeSystemSpeci ﬁcations. PhDthesis,
+Universityof Latvia,1992.
+12. S. Chaudhari. Subcubic algorithms for recursive state m achines. In POPL,pages 159–169,
+2008.
+13. Javier Esparza, David Hansel, Peter Rossmanith, and Ste fan Schwoon. Efﬁcient algorithms
+for model checking pushdown systems. In Computer Aided Veriﬁcation , volume 1855 of
+Lecture Notes inComputer Science , pages 232–247. Springer BerlinHeidelberg, 2000.
+14. Kousha Etessami. Analysis of recursive game graphs usin g data ﬂow equations. In VM-
+CAI’04,pages 282–296, 2004.
+15. David Harel. Statecharts: A visual formalism for comple x systems. Science of Computer
+Programming , 8(3):231–274, 1987.
+16. T. A. Henzinger, P. W. Kopke, A. Puri, and P. Varaiya. What ’s decidable about hybrid au-
+tomata?Journal ofComputer and System Sciences , 57(1):94 –124, 1998.
+
+--- Page 51 ---
+17. SalvatoreLaTorre,P.Madhusudan,andG.Parlato.Thela nguagetheoryofboundedcontext-
+switching. LATIN,pages 96–107, 2010.
+18. Marvin L.Minsky. Computation: ﬁnite and inﬁnite machines . Prentice-Hall,Inc.,1967.
+19. JamesRumbaugh,IvarJacobson,andGradyBooch,editors .TheUniﬁedModelingLanguage
+Reference Manual . Addison-WesleyLongman Ltd.,Essex, UK,UK,1999.
+20. AshutoshTrivediandDominikWojtczak. Recursivetimed automata. In AutomatedTechnol-
+ogyforVeriﬁcationandAnalysis ,volume6252of LectureNotesinComputerScience ,pages
+306–324. Springer BerlinHeidelberg, 2010.
+21. Igor Walukiewicz. Pushdown processes: Games andmodel c hecking. In International Con-
+ference onComputer AidedVeriﬁcation, CAV1996 , pages 62–74, 1996.

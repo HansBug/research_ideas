@@ -1,0 +1,541 @@
+--- Page 1 ---
+Variable AutomataoverInﬁnite Alphabets
+OrnaGrumberg1,OrnaKupferman2, andSarai Sheinvald2
+1Department of Computer Science, The Technion, Haifa 32000, Israel
+2School of Computer Science and Engineering, Hebrew Univers ity, Jerusalem 91904, Israel
+Abstract. Automatedreasoningaboutsystemswithinﬁnitedomainsreq uiresan
+extension of regular automata to inﬁnite alphabets . Existing formalisms of such
+automata cope withthe inﬁniteness of the alphabet byadding tothe automaton a
+set of registers or pebbles, or by attributingthe alphabet b y labels from an auxil-
+iary ﬁnite alphabet that is read by an intermediate transduc er. These formalisms
+involve a complicated mechanism on top of the transition fun ction of automata
+over ﬁnite alphabets andare therefore difﬁcult toundersta nd and toworkwith.
+We introduce and study variable ﬁnite automata over inﬁnite alphabets (VFA).
+VFA forma natural andsimpleextension of regular(and ω-regular)automata, in
+which the alphabet consists of letters as well as variables t hat range over the
+inﬁnite alphabet domain. Thus, VFAs have the same structure as regular au-
+tomata, only that some of the transitions are labeled by vari ables. We compare
+VFA with existing formalisms, and study their closure prope rties and classical
+decision problems. We consider the settings of both ﬁnite an d inﬁnite words. In
+addition, weidentifyandstudythedeterministicfragment ofVFA.Weshow that
+while this fragment is sufﬁciently strong to express many in teresting properties,
+itisclosedunderunion,intersection,andcomplementatio n,anditsnonemptiness
+and containment problems are decidable. Finally, we descri be a determinization
+process for a determinizable subset of VFA.
+1 Introduction
+Automata-basedformalmethodsaresuccessfullyappliedin automatedreasoningabout
+systems. When the systems are ﬁnite-state, their behaviors and speciﬁcations can be
+modeled by ﬁnite automata. When the systems are inﬁnite-sta te, reasoningis undecid-
+able, and research is focused on identifying decidable spec ial cases (e.g., pushdown
+systems) and on developing heuristics (e.g., abstraction) for coping with the general
+case.
+One type of inﬁnite-state systems, motivating this work, ar e systems in which the
+control is ﬁnite and the source of inﬁnity is data. This inclu des, for example, software
+withintegerparameters[3],datalogsystemswithinﬁnited atadomain[15,4],andXML
+documents, whose leaves are typically associated with data values from some inﬁnite
+domain [7,5]. Lifting automata-based methods to the settin g of such systems requires
+theintroductionofautomatawith inﬁnitealphabets .3
+Thetransitionfunctionofanondeterministicautomatonov erﬁnitealphabets(NFA)
+mapsa state qand a letter σto a set of states the automatonmay moveto when it is in
+3Different approaches for automatically reasoning about su ch systems are based on extensions
+of ﬁrst-orderlogic [2]and linear temporal logics [8].
+
+--- Page 2 ---
+2 O. Grumberg, O.Kupferman, andS.Sheinvald
+stateqand the letter in the input is σ. When the alphabet of the automaton is inﬁnite,
+specifyingall transitionsis impossible, and a new formali smis neededin order to rep-
+resent them in a ﬁnite manner.Existingformalismsof automa tawith inﬁnite alphabets
+fulﬁll this task by augmenting the automaton by registersorpebbles, or by attributing
+the alphabet by labels from an auxilary ﬁnite alphabet that i s read by an intermediate
+transducer.We elaborateoftheexistingformalismsbelow.
+A register automaton [13] has a ﬁnite set of registers, each o f which may contain
+a letter from the inﬁnite alphabet. The transitions of a regi ster automaton compare the
+letter in the input with the content of the registers, and may also store the input letter
+inaregister.Severalvariantsofthismodelhavebeenstudi ed.Forexample,[10]forces
+the content of the registers to be different, [12] adds alter nation and two-wayness, and
+[9]allowstheregisterstochangetheircontentnondetermi nisticallyduringtherun.
+A pebble automaton [12] places pebbles on the input word in a s tack-like manner.
+Thetransitionsof a pebbleautomatoncomparethe letter int he inputwith thelettersin
+positionsmarkedby the pebbles.Several variantsof this mo del havebeen studied. For
+example, [12] studies alternating and two-way pebble autom ata, and [14] introduces
+top-viewweakpebbleautomata.
+The newest formalism is data automata [2,1]. For an inﬁnite alphabet Σ, a data
+automatonruns on data words , which are words over the alphabet Σ×F, whereFis
+a ﬁnite auxilary alphabet. Intuitively, the ﬁnite alphabet is accessed directly, while the
+inﬁnitealphabetcanonlybetestedforequality,andisused forinducinganequivalence
+relation on the set of positions. Technically, a data automa ton consists of two compo-
+nents. The ﬁrst is a letter-to-letter transducer that runs o n the projection of the input
+word onFand generates words over yet another alphabet Γ. The second is a regular
+automaton that runs on subwords (determined by the equivale nce classes) of the word
+generatedbythetransducer.
+Thequalityofaformalismismeasuredbyitssimplicity,exp ressivepower,compo-
+sitionality, and computability. In simplicity , we refer to the effort required in order to
+understanda givenautomaton,workwith it, andimplementit . Incompositionality ,we
+refertoclosureunderthebasicoperationsofunion,inters ection,andcomplementation.
+Incomputability ,werefertothedecidabilityandcomplexityofclassical pr oblemslike
+nonemptiness,membership,universality,andcontainment .
+The formalisms of register, pebble, and data automata all fa il hard the simplicity
+criterion. Augmenting NFAs with registers or pebbles requires a substa ntial modiﬁca-
+tion of the transition function. The need to maintain the reg isters and pebbles makes
+the automatahardto understandand workwith. Unfortunatel y,most researchersin the
+formal-methodcommunityare not familiar with register and pebble automata. Indeed,
+even the deﬁnitionof the basic notionof a run of such automat acannot simply rely on
+the familiar deﬁnition of a run of an NFA, and involves the not ions of conﬁgurations,
+successiveconﬁgurations,andso on,with nopossibleshort cuts.
+Data automatado not come to the rescue. The need to accept sev eral subwordsper
+inputwordandtogothroughanintermediatealphabetandtra nsducermakesthemvery
+complex. Even trivial languages such as a∗require extra letters and checks in order
+to be recognized.Simplicity is less crucial in the process o f automatic algorithms, and
+indeed, data automata have been succesfully used for the dec idability of two-variable
+
+--- Page 3 ---
+VariableAutomata over Inﬁnite Alphabets 3
+ﬁrst orderlogiconwordswithdata- a formalismthatisveryu sefulin XMLreasoning
+[2,1]. For the purpose of speciﬁcation and design, and for de velopingnew algorithms
+andapplications,simplicityiscrucial.A simpler,friend lierformalismisneeded.
+Data and register automata and most of their variants fail th e compositionalityand
+computability criteria too. Data automata and register aut omata are not closed under
+complementation,apartfromspeciﬁcfragmentsofregister automatathatlimitthenum-
+ber of registers[8].Their universalityand containmentpr oblemsare undecidable[12].
+Pebble automata and most of their variants fail the computab ility criterion, as apart
+from weaker models [14], their nonemptiness, universality ,and containment problems
+are undecidable. Nonemptiness of data and register automat a is decidable, but is far
+morecomplexthantheeasyreachability-basednonemptines salgorithmforNFAs.
+We introduce and study a new formalism for recognizing langu ages over inﬁnite
+alphabets. Our formalism, variable ﬁnite automata (VFA), forms a natural and simple
+extensionof NFAs. We also identifyand study a fragmentof VF A that fulﬁllsthe sim-
+plicity, compositionality, and computability criteria, a nd is still sufﬁciently expressive
+to specify many interesting properties. Intuitively, a VFA is an NFA some of whose
+lettersare variablesrangingoverthe inﬁnitealphabet.Th etight connectionwith NFAs
+enablesusto applymuchoftheconstructionsandalgorithms knownforthem.
+More formally, a VFA is a pair A=/a\}bracketle{tΣ,A/a\}bracketri}ht, whereΣis an inﬁnite alphabet and
+Ais an NFA, referred to as the pattern automaton ofA. The alphabet of Aconsists
+ofconstant letters – a ﬁnite subset of Σ, a set of bounded variables , and a single free
+variable. The language of Aconsists of words in Σ∗that are formed by assigning
+lettersinΣtotheoccurrencesofvariablesinwordsinthelanguageof A.Eachbounded
+variable is assigned a different letter (also different fro m the constant letters), thus all
+occurrences of a particular bounded variable must be assign ed the same letter. This
+allows describingwordsin Σ∗in which some letter is repeated.The free variable may
+be assigneddifferentlettersin everyoccurrence,differe ntfromthe constantlettersand
+from letters assigned to the bounded variables. This allows describing words in which
+every letter may appear. For example, consider a VFA A=/a\}bracketle{tN,A/a\}bracketri}ht, whereAhas a
+boundedvariable xanditsfreevariableis y.ifthelanguageof Ais(x+y)∗·x·(x+
+y)∗·x·(x+y)∗,thenthelanguageof Aconsistsofallwordsover Ninwhichat least
+someletteroccursat leasttwice.
+We prove that VFAs are closed under union and intersection. T he constructions
+we present use the union and product constructions for NFAs i n their basis, but some
+pirouettes are needed in order to solve conﬂicts between dif ferent assignments to the
+variables of the underlying automata. Such pirouettes are h elpless for the problem of
+complementation,and we prove that VFAs are not closed under complementation.We
+studytheclassicaldecisionproblemsforVFAs.Weshowthat aVFAisnonemptyiffits
+pattern automaton is nonempty.Thus, the nonemptinessprob lem is NL-complete, and
+isnotmorecomplexthantheoneforNFAs.Wealsoshowthatthe membershipproblem
+is NP-complete.Thus,while the problemis more complexthan the one for NFAs, it is
+still decidable.Theuniversalityandcontainmentproblem s,however,areundecidable.
+We then deﬁne and study deterministic VFA (DVFA), a fragment of VFA in which
+there exists exactly one run on every word. Unlike the case of DFAs, determinism is
+not a syntactic property.Indeed,since the variablesare no t pre-assigned,there may be
+
+--- Page 4 ---
+4 O. Grumberg, O.Kupferman, andS.Sheinvald
+several runs on a word even when the pattern automaton is dete rministic. However, a
+syntacticdeﬁnitiondoesexistanddecidingwhetheragiven VFAisdeterministicisNL-
+complete. We introduce an unwinding operator for VFAs. In an unwinded VFA, each
+state is labeled by the variables that have been read, and the refore assigned, in paths
+leadingto thestate. Usingthe unwindingoperator,we can de ﬁneDVFAsforthe union
+and intersection of DVFAs. Moreover, the closure under comp lementation of DVFAs
+is immediate, and it enables us to solve the universality and containment problemsfor
+DVFAs.Thus,DVFAssuggestanexpressiveformalismthatful ﬁllsthethreecriteria.
+We study further properties of DVFA. As bad news, we show that the problem of
+determinizinga givenVFA(orconcludingthatnoequivalent DVFAexists)isundecid-
+able. As good news, we show that all VFAs with no free variable have an equivalent
+DVFA,andpresenta determinizationprocessforVFAsofthis kind.Theadvantagesof
+DVFA make us optimistic about the extensions of algorithms t hat involve DFAs, like
+symbolicformalveriﬁcationandsynthesis,tothesettingo finﬁnitealphabets.
+We demonstrate the robustness of our formalism by showing th at its extension to
+the setting of ω-regularwordsis straightforward.In Section 5, we introdu ce and study
+variable B ¨uchi automata (VBAs), whose pattern automata are nondeterministic B¨ uch i
+automata on inﬁnite words [6]. VBAs are useful for specifyin g languages of inﬁnite
+wordsoverinﬁnitealphabets,andinparticular,speciﬁcat ionsofsystemswithvariables
+ranging over inﬁnite domains. We show that the known relatio n between NFAs and
+nondeterministicB¨ uchi automata extendsto a relation bet ween VFAs and VBAs. This
+enablesustoeasilyliftthepropertiesanddecisionproced ureswepresentedforVFAto
+thesettingofVBAs.
+2 VariableAutomata overInﬁnite Alphabets
+A nondeterministic ﬁnite automaton (NFA) is a tuple A=/a\}bracketle{tΓ,Q,Q 0,δ,F/a\}bracketri}ht, where
+Γis a ﬁnite alphabet, Qis a ﬁnite set of states,Q0⊆Qis a set of initial states ,
+δ:Q×Γ→2Qisatransitionfunction ,andF⊆Qisasetof acceptingstates .Ifthere
+existsq′suchthat q′∈δ(q,a), we saythat aexitsq. Arunof Aonw=σ1σ2...σnin
+Γ∗isasequenceofstates r=r0,r1,...,r nsuchthat r0∈Q0andforevery 1≤i≤n
+it holds that ri∈δ(ri−1,σi). Ifrn∈Fthenrisaccepting . Note that a run may not
+exist. If a run does exist, we say that wisread along A. The language of A, denoted
+L(A), istheset ofwordsonwhichthereexistsanacceptingrunof A.
+Before deﬁning variable automata with inﬁnite alphabets, l et us explain the idea
+behindthem.ConsidertheNFA A1overtheﬁnitealphabet {x,y}appearinginFigure1.
+It is easy to see that L(A1) =x·y∗·x. Consider the language L′={i1·i2···ik:
+k≥2,i1=ik,andij/\e}atio\slash=i1forall1< j < k}overthealphabet N; thatis,L′contains
+exactlyall wordsin whichthe ﬁrst letter is equalto the last letter,and isdifferentfrom
+all other letters. Since Nis inﬁnite, an NFW for it needs inﬁnitely many states and
+transitions. The idea behindvariableautomata is to label t he transitionsof the NFA by
+both letters from the inﬁnite alphabet and variables that ca n take values from it. For
+example, if we refer to xas a bounded variable whose value is ﬁxed once assigned,
+and refer to yas a free variable, which can take changing values, differen t from the
+value assigned to x, then the NFA A1, when viewed as a variable automaton over N,
+
+--- Page 5 ---
+VariableAutomata over Inﬁnite Alphabets 5
+recognizesthe language L′. Also, if we want to removethe restrictionaboutthe letters
+in the middle being different from the ﬁrst letter, thus cons iderL′′={i1·i2···ik:
+k≥2andi1=ik},we canlabeltheself loopin A1bybothxandy.
+xx xxxxx
+xy y,y,y, y 111
+1 1 1
+A A A 1 2 3
+Fig.1.Thepattern automata A1,A2,andA3forthe VFAs A1,A2, andA3
+We now deﬁne variable ﬁnite automata (VFAs) formally. A VFA is a pair A=
+/a\}bracketle{tΣ,A/a\}bracketri}ht, whereΣis an inﬁnite alphabet and Ais an NFA, to which we refer as the
+pattern automaton of A. The (ﬁnite) alphabet of AisΓA=ΣA∪X∪ {y}, where
+ΣA⊂Σis a ﬁnite set of constant letters ,Xis a ﬁnite set of boundedvariables andy
+isafree variable .Thevariablesin X∪{y}rangeover Σ\ΣA.
+Consider a word v=v1v2...vn∈Γ∗
+Aread along A, and another word w=
+w1w2...wn∈Σ∗.We saythat wisalegalinstanceof vinAif
+–vi=wiforevery vi∈ΣA,
+–Forvi,vj∈X,it holdsthat wi=wjiffvi=vj,andwi,wj/∈ΣAand
+–Forvi=yandvj/\e}atio\slash=y,it holdsthat wi/\e}atio\slash=wj.
+Intuitively, a legal instance of vleaves all occurrences of vi∈ΣAunchanged, asso-
+ciateseveryoccurrenceof vj∈Xwiththesameuniqueletter,notin ΣA,andassociates
+every occurrenceof yfreely with letters from Σ\ΣA, different from these associated
+withXvariables.
+We say that a word v∈Γ∗
+Ais awitnessing pattern for a word w∈Σ∗ifwis a
+legalinstanceof v.Notethat vmaybethewitnessingpatternforinﬁnitelymanywords
+inΣ∗, and that a word in Σ∗may have several witnessing patterns (or have none).
+Given a word w∈Σ∗, arun ofAonwis a run of Aon a witnessing pattern for w.
+The language of A, denoted L(A), is the set of words in Σ∗for which there exists a
+witnessingpatternin L(A).
+Example1. LetA2=/a\}bracketle{tΣ,A2/a\}bracketri}htwhereA2istheautomatonappearinginFigure1.Then,
+L(A2)is the language of all words in Σ∗in which some letter appears at least twice.
+By deletingthe x1labelsfromtheselfloopsin A2,weget thelanguageofall wordsin
+whichsomeletterappearsexactlytwice.
+Example2. LetA3=/a\}bracketle{tΣ,A3/a\}bracketri}htwhereA3is the NFA appearing in Figure 1. Then
+L(A3)is the language of all words in Σ∗in which the last letter is different from all
+theotherletters.
+Comparisonwith OtherFormalisms Intermsofexpressivepower,VFAsareincompa-
+rable with FMAs – the register automata of [10], but can be sim ulated by NFMA [9],
+whichextendFMAswithnondeterministicupdatesoftheregi sters.Intuitively,thevari-
+ables of a VFA are analogous to registers, but while a registe r can change its content
+
+--- Page 6 ---
+6 O. Grumberg, O.Kupferman, andS.Sheinvald
+duringtherun,aboundedvariablecannotchangethevalueas signedtoit.VFAsarealso
+incomparable with data automata [2], yet a VFA with no consta nt letters can be simu-
+lated by a data automaton. Intuitively, the transducers of d ata automata can be used in
+ordertocheckthattherestrictionsimposedbythepatterna utomatonapply.
+In the full version,we elaborate more on the relation with th e existing formalisms.
+As detailed there, the examples showing the expressiveness superiority of the existing
+formalisms are tightly related to their complexity, and we d o not ﬁnd them appealing
+in practice. For example, it is not surprising that a formali sm for which the emptiness
+problem can be checked in NL (in Theorem 3 we show that emptine ss of a VFA can
+be reduced to emptiness of its pattern automaton) cannot rec ognize the language of
+all words in which all letters are different. Data automata c an recognize this language
+since their notion of acceptance involves several runs, on d ifferent subwords of the
+word.Ofcourse,forsomeapplicationssuchanabilityisimp ortant.VFAs,however,are
+sufﬁciently strong to specify many natural properties, and for many applications, we
+rather give up the expressiveness superiority of the other f ormalisms for a simple and
+computationallyeasy formalism.
+3 Properties ofVFAs
+This section studies closure properties of VFAs and the deci dability and complexity
+of basic problems. We show that VFAs are closed under union an d intersection, but
+are not closed under complementation.In the computability front, we show that while
+the emptiness problem for VFAs is not harder than the one for N FAs, the membership
+problem is harder, yet decidable, whereas the universality and containment problems
+areundecidable.
+Theorem1. VFAsareclosedunderunionandintersection.
+Consider two VFAs A1=/a\}bracketle{tΣ,A1/a\}bracketri}htandA2=/a\}bracketle{tΣ,A2/a\}bracketri}htwithA1=/a\}bracketle{tΣ1∪X1∪
+{y1},Q1,Q1
+0,δ1,F1/a\}bracketri}htandA2=/a\}bracketle{tΣ2∪X2∪{y2},Q2,Q2
+0,δ2,F2/a\}bracketri}ht.
+We start with the union construction. The standard construc tion for NFAs, which
+guesses whether to follow A1orA2, does not work for VFAs. To see why, note that
+the range of the variables in a standard union construction w ould beΣ\(Σ1∪Σ2).
+Accordingly, words in L(A1)in which variables are assigned values in Σ2may be
+missed, and dually for L(A2). We solve this problemby deﬁning the union of A1and
+A2as a union of several copies of the underlying VFAs. In each co py, a subset of the
+variables is taken care of, and transitions labeled by varia bles from the set are labeled
+byconstantsofthe otherVFA.
+We proceed to an intersection construction. Recall that in t he product construction
+for NFAs A1andA2, the state space is Q1×Q2, and/a\}bracketle{tq′
+1,q′
+2/a\}bracketri}ht ∈δ(/a\}bracketle{tq1,q2/a\}bracketri}ht,a)iff
+q′
+1∈δ1(q1,a)andq′
+2∈δ2(q2,a). SinceA1andA2are pattern automata of VFAs, the
+letteramaybeavariable.Accordingly,therearecasesinwhichitsh ouldbepossibleto
+intersect two differently labeled transitions: intersect ing two transitions with different
+boundedvariables,meaningtheygetthesameassignmentin A1andinA2;intersecting
+a variable with a letter σ, meaning the variable is assigned σ; and intersecting the free
+variableywith a boundedvariable xorwith a letter σ, meaningthe assignmentto yin
+
+--- Page 7 ---
+VariableAutomata over Inﬁnite Alphabets 7
+thistransitionagreeswiththeassignmentof xorwithσ.Accordingly,wewouldliketo
+deﬁneδsuchthatfor z∈Σ1∪Σ2∪X∪{y},wehavethat /a\}bracketle{tq′
+1,q′
+2/a\}bracketri}ht ∈δ(/a\}bracketle{tq1,q2/a\}bracketri}ht,z)iff
+thereexist z1∈Σ1∪X1∪{y1}andz2∈Σ2∪X2∪{y2}suchthat q′
+1∈δ1(q1,z1)and
+q′
+2∈δ2(q2,z2)andsuchthat z1andz2canbematchedaccordingtothecasesdescribed
+above. Formally, we do this by taking several copies of the pr oduct construction of
+the pattern automata, each associated with a relation Hthat matches the variables and
+constantlettersof A1with thevariablesandconstantlettersof A2.
+Theorem2. VFAsarenotclosedundercomplementation.
+Proof:Consider the VFA A2of Example 1. Recall that L(A2)contains exactly all
+words in Σ∗in which some letter appearsat least twice. The complement ˜LofL(A2)
+then contains exactly all words all of whose letters are diff erent. It can be shown that
+a VFA that recognizes ˜Lneeds an unboundednumberof variables, and therefore does
+notexist. /square
+Wenowturntostudythedecidabilityandcomplexityoftheem ptiness,membership
+and universality problems for VFAs. Checking nonemptiness of existing formalisms
+is complex and even undecidable. The fact that a bounded vari able keeps its value
+along the run makes the nonemptiness checking of VFAs very si mple. In fact, a VFA
+is nonempty iff its pattern automaton is nonempty. Beyond th e straightforward algo-
+rithm this induces, it shows that the VFA formalism is indeed very close to the simple
+formalismofNFAs.
+Theorem3. ThenonemptinessproblemforVFA isNL-complete.
+Theorem4. ThemembershipproblemforVFA isNP-complete.
+Thealgorithmsfortheuniversalityandcontainmentproble msfortheﬁnite-alphabet
+case rely on the closure of NFAs under complementation, whic h does not hold for
+VFAs. Similarly to [12], for register automata, the undecid ability of the universality
+problemforVFAisprovedbyareductionfromPost’sCorrespo ndenceProblem.Since
+we can easily deﬁne a universal VFA, undecidability of the co ntainment problem fol-
+lowstoo.
+Theorem5. TheuniversalityandcontainmentproblemsforVFAsareunde cidable.
+4 Deterministic VFA
+In this section we deﬁne deterministic VFA and study their pr operties. We show that
+deterministicVFA aresimple,expressive,andareclosedun derall Booleanoperations.
+Inaddition,thenonemptiness,membership,universality, andcontainmentproblemsare
+all decidableforthem.
+Recall that an NFA is deterministic if |Q0|= 1and for all q∈Qandσ∈Σ, we
+have|δ(q,σ)| ≤1.Indeed,these syntacticconditionsguaranteethat theaut omatonhas
+at most one run on each input word. To see that such a syntactic characterization does
+not exist for VFA, consider the VFA Aappearingin Figure 2. Its pattern automaton is
+deterministic, but the word ahas two different runs in A: one in which x1is assigned
+a,andoneinwhich x2isassigned a.Thus,thereisaneedtodeﬁnedeterministicVFAs
+ina non-syntacticmanner.
+
+--- Page 8 ---
+8 O. Grumberg, O.Kupferman, andS.Sheinvald
+x1
+x2x1y
+x1y,x1
+D A
+Fig.2.A nondeterministic VFA whose pattern automaton is determin istic, and a DVFA that ac-
+cepts all words inwhichthe ﬁrstletteris repeated atleast t wice
+Deﬁnition1. A VFAA=/a\}bracketle{tΣ,A/a\}bracketri}htisdeterministic (DVFA, for short), if for every word
+w∈Σ∗,there existsexactlyonerunof Aonw.
+Example3. ConsidertheVFA D=/a\}bracketle{tΣ,D/a\}bracketri}ht,whereDistheDFAappearinginFigure2.
+The language of Dis the set of all words over Σin which the ﬁrst letter is repeated at
+least twice. To see that it is deterministic, consider a word w=w1w2...wninΣ∗.
+A witnessing pattern for wis overx1andy. Since only x1exits the initial state, then
+x1must be assigned w1, and all other occurrencesof other letters must be assigned to
+y. Therefore, every word that has a witnessing pattern has a si ngle witnessing pattern.
+SinceDis deterministic, every witnessing pattern has a single run inD. It is easy to
+see thateverywordin Σ∗canbereadalong D. It followsthat Disdeterministic.
+Although for VFA, unlike NFA, the deﬁnition of determinizat ion is semantic, an
+equivalentsyntacticdeﬁnitiondoesexist,aswe showbelow .
+Theorem6. DecidingwhetherVFA isdeterministicisNL-complete.
+Proof:We start with the upper bound. Consider a VFA A=/a\}bracketle{tΣ,A/a\}bracketri}htwith variables
+X∪ {y}and an initial state qin. We claim that Ais not deterministic iff one of the
+followingholds.
+–Aisnondeterministic,or
+–thereexistsareachablestate ssuchthatthereexisttwoboundedvariables xandx′
+thatexits,andapathfrom qinthatreaches sanddoesnotcontain xandx′, or
+–thereexistsaboundedvariable xsuchthatboth xandyexits,andapathfrom qin
+thatreaches sbutdoesnotcontain x, or
+–there exists a reachablestate ssuch that there exists a constant letter that does not
+exits, oravariablethat appearsalonga pathfrom qintosthatdoesnotexit s.
+Intuitively, the ﬁrst three conditions check that each word w∈Σ∗has at most
+one run in A. Then, the last condition checks that whas at least one run. In order to
+implement the above check in NL, we guess the condition that i s violated, and check
+thatit isindeedviolated.SinceNLisclosedundercompleme ntation,wearedone.The
+lowerboundcanbeshownbya reductionfromthereachability problem. /square
+Note that Theorem 6 refers to the problem of deciding whether a given VFA is
+deterministicandnotwhetherithasanequivalentDVFA.Asw eshowinthesequel,the
+latterproblemismuchharder.
+We now turn to study the closure properties of DVFAs. Note tha t closure under
+unionandintersectiondoesnotfollowfromTheorem1,asher ewewanttoendupwith
+a DVFA and not with a VFA. In order to study the closure propert ies, we introduce
+
+--- Page 9 ---
+VariableAutomata over Inﬁnite Alphabets 9
+anunwinding operator for VFAs. Given a VFA over Σwith a pattern automaton A=
+/a\}bracketle{tΣA∪X∪{y},Q,Q0,δ,F/a\}bracketri}ht, theunwinding ofAis the VFA U=/a\}bracketle{tΣ,U/a\}bracketri}ht, withU=
+/a\}bracketle{tΣA∪X∪ {y},Q×2X,/a\}bracketle{tQ0,∅/a\}bracketri}ht,ρ,F×2X/a\}bracketri}ht, whereρis deﬁned, for every /a\}bracketle{tq,θ/a\}bracketri}ht ∈
+Q×2Xandz∈ΣA∪X∪{y}asfollows.
+ρ(/a\}bracketle{tq,θ/a\}bracketri}ht,z) =/braceleftBigg
+δ(q,z)×{θ∪{z}}z∈X
+δ(q,z)×{θ} z∈ΣA∪{y}(1)
+Intuitively,thestates in Ukeeptrackoftheset ofboundedvariablesthathavebeen
+assigned alongthe pathsfromthe initial state. A runof Acorrespondsto a runof Uin
+whicheverystateisaugmentedwiththesetofboundedvariab lesthathaveappearedear-
+lier intherun.Also,a runof Ucorrespondstoa runof Aalongwhichtheassignments
+havebeenaccumulated.Therefore,we havethata VFA isequiv alentto itsunwinding.
+We start with union and intersection. The constructions hav e the construction for
+DFAsintheirbasis, appliedtothe unwindingofthe DVFA.
+Theorem7. DVFAareclosedunderunionandintersection.
+Proof:Theconstructionsforunionandintersectionbothrelyonth eunwindingofthe
+DVFAs. Since there is a one-to-one correspondence between r uns of a VFA and its
+unwinding,a VFA is deterministic iff its unwindingis deter ministic. Let U1andU2be
+theunwindingsoftwo DVFAswith patternautomata U1andU2, respectively.
+Considertwostates q1andq2inU1andU2,respectively.Theintersectionconstruc-
+tion is based on the product construction of U1andU2. Each state in the unwinding
+introduces at most one new bounded variable (Theorem 6). If n ew bounded variables
+x1andx2exitq1andq2respectively, the construction matches x1andx2together to
+forma newboundedvariable.Similarlyfora y1transitionanda newboundedvariable
+x2. Transitions labeled by y1andy2are matched together to form a ytransition. The
+statesoftheintersectionconstructionkeeptrackofthema tchingsofboundedvariables.
+Theunionof U1andU2is constructedontopof theintersectionconstruction.Int u-
+itively,arunontheunionconstructioncontinuesalongbot hDVFAsaslongaspossible.
+Once it cannotcontinuealong U1(w.l.o.g.),it continuesalonga copy of U2. As in the
+proofofTheorem1,severalsuchcopiesaretaken,inwhichco nstantsof U1areassigned
+tovariablesof U2. /square
+The fact that a DVFA has exactly one run on each input word make s its comple-
+mentationeasy: oneonlyhastocomplementthepatternautom aton.Formally,we have
+thefollowing.
+Theorem8. Given a DVFA A=/a\}bracketle{tΣ,A/a\}bracketri}htwith a set of states Qand a set of accepting
+statesF,let˜Abethepatternautomatonobtainedfrom Abydeﬁningitssetofaccepting
+statestobe Q\F, andlet ˜A=/a\}bracketle{tΣ,˜A/a\}bracketri}ht. Then,L(˜A) =Σ∗\L(A).
+WenowstudythecomputabilityoftheDVFAmodel.Weﬁrststud ytheproblemsof
+nonemptinessand membership. As arguedin the proof of Theor em3, a VFA is empty
+iffitspatternautomatonisempty.Sincethenonemptinessp robleminNL-completealso
+forDFAs,theNL-completecomplexitythereappliesalsofor DVFAs.Forthemember-
+shipproblem,determinismmakesthe problemeasier.
+
+--- Page 10 ---
+10 O. Grumberg, O.Kupferman, andS.Sheinvald
+Theorem9. ThemembershipproblemforDVFAisin PTIME.
+Wenotethatthequestionofwhetherthemembershipproblemi sPTIME-hard,orin
+NL is still open, and we suspect that it is very difﬁcult, as it has the same ﬂavor of the
+long-standing open problem of the complexity of one-path LT L model checking [11].
+Wenowturntostudytheuniversalityandcontainmentproble msandshowthattheyare
+decidable.
+Theorem10. The universalityproblemforDVFAisNL-complete.
+This result followsfrom the NL-completenessof the emptine ss problem,and from
+the fact that complementation only involves a dualization o f the acceptance condi-
+tion.SinceDVFAareclosedundercomplementationandinste rsection,thecontainment
+problemisalsodecidable.Infact,wehavethefollowing.
+Theorem11. The containmentproblemforDVFAisin co-NP.
+4.1 Determinization
+InthissectionweshowthatnotallVFAshaveanequivalentDV FA,andtheproblemof
+determinizinga givenVFA(orconcludingthatnoequivalent DVFAexists)isundecid-
+able.Asgoodnews,wepointtoa fragmentofVFAsthatcanalwa ysbedeterminized.
+One evidence that not all VFAs have an equivalent DVFA is the f act that while
+DVFA are closed under complementation, VFA are not. As a spec iﬁc example, which
+also demonstrates the weakness of DVFA, consider the VFA A2of Example 1. In the
+proofofTheorem2, we showed that thereis no VFA forthe compl ementof A2. Since
+DVFAsareclosedundercomplementation,itfollowsthatthe reisalsonoDVFAequiv-
+alenttoA2.
+Theorem12. TheproblemofdeterminizingagivenVFA(orconcludingthat noequiv-
+alentDVFAexists) isundecidable.
+Proof:Assume by way of contradictionthat there is a Turing Machine Mthat, given
+a VFA, returnsan equivalentDVFA or returnsthat nosuch DVFA exists. We construct
+fromMa Turing machine M′that decides the universality problem for VFA, which,
+accordingtoTheorem5,isundecidable.
+Themachine M′proceedsasfollows.GivenaVFA A,itrunsMonA.IfMreturns
+thatAdoes not have an equivalent DVFA, then M′returns that Ais not universal.
+Otherwise, M′returnsaDVFA A′equivalentto A.ByTheorem10, M′canthencheck
+A′foruniversality. /square
+However,it turnsoutthatVFA haveanexpressivedeterminiz ablefragment.
+Deﬁnition2. A VFAissyntacticallydeterminizable if it hasno ytransitions.
+For example, consider the syntactically determinizable VF AA=/a\}bracketle{t{a,...,z}∗,A/a\}bracketri}ht,
+appearinginFigure3.TheVFA Aacceptsallwordsoftheform
+
+--- Page 11 ---
+VariableAutomata over Inﬁnite Alphabets 11
+url=www. x1.com;email= z@x1.comor
+url=www. x2.t.com;email= z@x2.t.com,
+wherex1,x2,t,andzarewordsoverthealphabet {a,...,z}.Thus,Amakessurethat
+thedomainoftheurlagreeswiththatoftheemail,anditnond eterministicallybranches
+toallow bothdomainoftheform x.comandoftheform x.t.com.
+url=www. .com;email= @ .com x x z
+x
+.t.com;email= @xz1
+2
+t1
+2..com
+Fig.3.A syntacticallydeterminizable VFA
+Theorem13. A syntacticallydeterminizableVFAhasanequivalentDVFA.
+The full details of the construction are given in the full pap er. Here, we show the
+result of applying the algorithm on the VFA described in Figu re 3. For clarity, we do
+notincludeinthe ﬁgurethetransitiontotherejectingsink s.
+url=www. .com;email= @ .com x x z
+.
+t.com;email= @xz t..com
+Fig.4.The DVFAequivalent tothe VFA from Figure3
+5 VariableB ¨uchi Automata
+In[6],B¨ uchiextendedNFAstonondeterministicB¨ uchiaut omata,whichrunoninﬁnite
+words.ThesimilaritybetweenVFAsandNFAsenablesustoext endVFAstonondeter-
+ministic variable B¨ uchi automata (VBA, for short). Formal ly, a VBA is A=/a\}bracketle{tΣ,A/a\}bracketri}ht,
+whereAis a nondeterministicB¨ uchi automaton (NBA). Thus, a run of the pattern au-
+tomatonAis accepting iff it visits the set of accepting states inﬁnit ely often. Similar
+straightforward extensions can be described for additiona l acceptance conditions for
+inﬁnite words. As we specify below, the properties and decis ion procedures for VFAs
+generalize to VBA in the expected way, demonstrating the rob ustness of the VFA for-
+malism.
+We start with closure properties. The union construction fo r VBA is identical to
+the union construction for VFA. The intersection construct ion for NBAs involves two
+copies of the product automaton. Recall that the intersecti on construction for VFAs
+involvesseveralcopiesoftheproductautomaton.Combinin gthetwoconstructions,we
+construct the intersection of two VBAs by taking two copies o f these several copies.
+Therefore,wehavethefollowing.
+
+--- Page 12 ---
+12 O. Grumberg, O.Kupferman, andS.Sheinvald
+Theorem14. VBAandDVBAareclosedunderunionandintersection.
+As with VFAs, VBAs are not closed under complementation. Rec all that a DVFA
+can be complemented by complementing its pattern automaton . Since deterministic
+B¨ uchiautomataarenotclosedundercomplementation,soar eDVBA.Likedeterminis-
+tic B¨ uchi automata,a DVFA can be complementedto a VBA, bytr anslatingits pattern
+automatonto acomplementingNBA.
+Theorem15. VBAs and DVBAs are not closed under complementation. A DVBA c an
+becomplementedto aVBA.
+As for the various decision problems, the complexitiesand r eductionsof VFAs all
+apply,withminormodiﬁcations.
+Theorem16. – ThenonemptinessproblemforVBAandDVBAisNL-complete.
+–ThemembershipproblemforVBAis NP-completeandforDVBAis in PTIME.
+–ThecontainmentproblemforVBAisundecidableandforDVBAi sinco-NP.
+–DecidingwhetheragivenVBAisa DVBAisNL-complete.
+References
+1. Boja´ nczyk, M.,Muscholl,A.,Schwentick,T.,Segouﬁn,L .: Two-variablelogicondatatrees
+and xmlreasoning. J.ACM 56(3) (2009) 1–48
+2. Bojanczyk, M., Muscholl, A., Schwentick, T., Segouﬁn, L. , David, C.: Two-variable logic
+onwords withdata. In: LICS,IEEEComputer Society(2006) 7– 16
+3. Bouajjani, A.,Habermehl, P.,Mayr, R.: Automaticveriﬁc ationof recursive procedures with
+one integer parameter. Theoretical Computer Science 295(2003) 85–106
+4. Bouajjani, A., Habermehl, P., Jurski, Y., Sighireanu, M. : Rewriting systems with data. In
+Csuhaj-Varj´ u, E., ´Esik, Z.,eds.: FCT.Volume 4639 of LNCS.,Springer (2007) 1– 22
+5. Brambilla, M.,Ceri, S.,Comai, S.,Fraternali,P.,Manol escu, I.: Speciﬁcation and design of
+workﬂow-driven hypertexts. J.WebEng. 1(2) (2003) 163–182
+6. B¨ uchi, J.: On a decision method in restricted second orde r arithmetic. In: Int. Congress on
+Logic, Method, and Philosophy of Science,StanfordUnivers ityPress (1962) 1–12
+7. Ceri, S., Fraternali, P., Bongio, A., Brambilla, M., Coma i, S., Matera, M.: Designing Data-
+Intensive Web Applications. Morgan Kaufmann Publishers In c., San Francisco, CA, USA
+(2002)
+8. Demri, S., Lazic, R., Nowak, D.: On the freeze quantiﬁer in constraint ltl: Decidability and
+complexity. Informationand Computation 07(2007) 2–24
+9. Kaminski, M., Zeitlin, D.: Extending ﬁnite-memory autom ata with non-deterministic reas-
+signment. InCsuhaj-Varj´ u, E., ´Ezik,Z.,eds.: AFL, Ineds.: (2008) 195–207
+10. Kaminski,M.,Francez,N.: Finite-memoryautomata. The oreticalComputer Science 134(2)
+(1994) 329–363
+11. Markey, N., Schnoebelen, P.: Model checking a path. In Am adio, R.M., Lugiez, D., eds.:
+CONCUR.Volume 2761 ofLNCS.,Springer (2003) 248–262
+12. Neven, F.,Schwentick, T.,Vianu, V.: Towards regular la nguages over inﬁnite alphabets. In:
+MFCS’01, London, UK,Springer-Verlag(2001) 560–572
+13. Shemesh, Y., Francez, N.: Finite-state uniﬁcation auto mata and relational languages. Infor-
+mationand Computation 114(1994) 192–213
+14. Tan,T.: PebbleAutomataforDataLanguages:Separation ,Decidability,andUndecidability.
+PhDthesis, Technion -Computer Science Department (2009)
+15. Vianu, V.: Automatic veriﬁcationof database-driven sy stems: a new frontier. In: ICDT ’09,
+ACM(2009) 1–13

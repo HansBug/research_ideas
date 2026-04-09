@@ -1,0 +1,769 @@
+--- Page 1 ---
+Adriano Peron and Carla Piazza (Eds.):
+Proceedings of the Fifth International Symposium on
+Games, Automata, Logics and Formal Veriﬁcation (GandALF 2014)
+EPTCS 161, 2014, pp. 260–274, doi:10.4204/EPTCS.161.22Visibly Pushdown Modular Games
+Ilaria De Crescenzo
+Universit `a degli Studi di Salerno
+Dipartimento di InformaticaSalvatore La Torre
+Universit `a degli Studi di Salerno
+Dipartimento di InformaticaYaron Velner
+Tel Aviv University
+The Blavatnik School of Computer Science
+Games on recursive game graphs can be used to reason about the control ﬂow of sequen-
+tial programs with recursion. In games over recursive game graphs, the most natural
+notion of strategy is the modular strategy, i.e., a strategy that is local to a module and
+is oblivious to previous module invocations, and thus does not depend on the context of
+invocation. In this work, we study for the ﬁrst time modular strategies with respect to
+winning conditions that can be expressed by a pushdown automaton. We show that such
+games are undecidable in general, and become decidable for visibly pushdown automata
+speciﬁcations. Our solution relies on a reduction to modular games with ﬁnite-state au-
+tomata winning conditions, which are known in the literature. We carefully characterize
+the computational complexity of the considered decision problem. In particular, we show
+that modular games with a universal B ¨uchi or co-B ¨uchi visibly pushdown winning con-
+dition are E XPTIME -complete, and when the winning condition is given by a C ARET
+or N WTL temporal logic formula the problem is 2E XPTIME -complete, and it remains
+2EXPTIME -hard even for simple fragments of these logics. As a further contribution,
+we present a different solution for modular games with ﬁnite-state automata winning
+condition that runs faster than known solutions for large speciﬁcations and many exits.
+1 Introduction
+Recursive state machines (RSMs) carefully model the control ﬂow of systems with potentially recursive
+procedure calls [2]. A recursive state machine is composed of a set of modules, whose vertices can
+be standard vertices or can correspond to invocations of other modules. A large number of hardware
+and software systems ﬁts into this class, such as procedural and object-oriented programs, distributed
+systems, communication protocols and web services.
+In the open systems setting, i.e., systems where an execution depends on the interaction of the system
+with the environment, the natural counterpart of recursive state machines is two-player recursive game
+graphs. A recursive game graph (RGG) is essentially a recursive state machine where vertices are split
+into two sets each controlled by one of the players, and thus corresponds to pushdown games with an
+emphasis on the modules composing the system.
+In this paper we focus on solving pushdown games on RGG in which the ﬁrst player is restricted to
+modular strategies [7]. A strategy is a mapping that speciﬁes, for each play ending into a controlled state,
+the next move. Modular strategies are formed of a set of strategies, one for each RGG module, that are
+local to a module and oblivious of the history of previous module activations, i.e., the next move in such
+strategies is determined by looking only at the local memory of the current module activation (by mak-
+ing the local memory persistent across module activations, deciding these games becomes undecidable
+already with reachability speciﬁcations [7]).
+This work was partially funded by the MIUR grants FARB 2011-2012-2013, Universit `a degli Studi di Salerno (Italy).
+
+--- Page 2 ---
+I. De Crescenzo, S. La Torre & Y. Velner 261
+The main motivation for considering modular strategies is related to the synthesis of controllers
+[18, 20]: given a description of the system where some of the choices depend upon the input and some
+represent uncontrollable internal non-determinism, the goal is to design a controller that supplies inputs
+to the system such that it satisﬁes the correctness speciﬁcation. Synthesizing a controller thus corre-
+sponds to computing winning strategies in two-player games, and a modular strategy would correspond
+to a modular controller.
+The notion of modular strategy is also of independent interest and has recently found application
+in other contexts, such as, the automatic transformation of programs for ensuring security policies in
+privilege-aware operating systems [11], and a general formulation of the synthesis problem from libraries
+of open components [10].
+The problem of deciding the existence of a modular strategy in a recursive game graph has been
+already studied with respect to w-regular speciﬁcations. The problem is known to be NP-complete for
+reachability speciﬁcations [7], E XPTIME -complete for speciﬁcations given as deterministic and universal
+B¨uchi or Co-B ¨uchi automata, and 2E XPTIME -complete for L TLspeciﬁcations [5].
+In this paper, we study this problem with respect to several classes of speciﬁcations that can be
+expressed as a pushdown automaton. We show that in the general case the problem is undecidable. We
+thus focus on visibly pushdown automata (VPA) [8] speciﬁcations with B ¨uchi or co-B ¨uchi acceptance.
+In the following, we refer to this problem as the MVPG problem and omit the acceptance condition of
+the VPA by meaning either one of them.
+Our main contributions are:
+We show a polynomial time reduction from the MVPG problem with deterministic or universal
+VPA speciﬁcations to recursive modular games over w-regular speciﬁcations. By [5], we get that
+this problem is E XPTIME -complete. We then use this result to show the membership to 2E XPTIME
+for the MVPG problem with nondeterministic VPA speciﬁcations.
+We show that when the winning condition is expressed as a formula of the temporal logics C ARET
+[3] and N WTL [1] the MVPG problem is 2E XPTIME -complete, and hardness can be shown also
+for very simple fragments of the logics. In particular, we show a 2E XPTIME lower bound for the
+fragment containing only conjunctions of disjunctions of bounded-size path formulas (i.e., formu-
+las expressing either the requirement that a given ﬁnite sequence is a subsequence of a word or its
+negation), that is in contrast with the situation in ﬁnite game graphs where P SPACE -completeness
+holds for larger signiﬁcant fragments (see [4, 6]). On the positive side, we are able to show an
+exponential-time algorithm to decide the MVPG problem for speciﬁcations given as conjunctions
+of temporal logic formulas that can be translated into a polynomial-size VPA (such formulas in-
+clude the path formulas).
+We also give a different solution for recursive games with ﬁnite-state automata speciﬁcations. Our
+approach yields an upper bound of jGj2O(d2(k+logd)+b)for the MVPG problem, where dis the
+number of P(the VPA) states, kis the number of G(the RGG) exits, and bis the number of call
+edges ofG, i.e., the number of module pairs (m;m0)such that there is a call from mtom0. The
+known solution [5] yields an jGj2O(kd2log(kd))upper bound. Thus, our solution is faster when k
+anddare large, and matches the known E XPTIME lower bound [5]. In addition we use one-way
+nondeterministic/universal tree automata instead of two-way alternating tree automata, thus we
+explicitly handle aspects that are hidden in the construction from [5].
+Related work. Besides the already mentioned work that has dealt with modular games, but only for
+w-regular speciﬁcations [5] or reachability [7], other research on pushdown games have focused on the
+
+--- Page 3 ---
+262 Visibly Pushdown Modular Games
+standard notion of winning strategy. We recall that determining the existence of a standard winning strat-
+egy (i.e., non-modular) in pushdown games with reachability speciﬁcations is known to be E XPTIME -
+complete [21]. Deciding such games is 2E XPTIME -complete for nondeterministic visibly pushdown
+speciﬁcations and 3E XPTIME -complete for L TLand C ARETspeciﬁcations [13].
+The synthesis from recursive-component libraries deﬁnes a pushdown game which is orthogonal
+to the MVPG problem: there the modules are already synthesized and the game is on the function
+calls. Deciding such games for N WTL is 2E XPTIME -complete [15]. The synthesis from open recursive-
+component libraries combines both this synthesis problem and the MVPG synthesis. Deciding the related
+game problem with reachability speciﬁcations is E XPTIME -complete [10]. Other synthesis problems
+dealing with compositions of component libraries are [14, 9], and for modules expressed as terms of the
+lY-calculus, [19].
+2 Preliminaries
+Given two positive integers iand j,ij, we denote with [i;j]the set of integers kwith ikj, and
+with[j]the set [1;j].
+We ﬁx a set of atomic propositions APand a ﬁnite alphabet S. Aw-word overSis a mapping that
+assigns to each position i2Na symbol si2S, and is denoted as fsigi2Nor equivalently s1s2:::.
+Recursive game graph. A recursive game graph (RGG) is composed of game modules that are essen-
+tially two-player graphs (i.e., graphs whose vertices are partitioned into two sets depending on the player
+who controls the outgoing moves) with entry andexitnodes and two different kind of vertices: the nodes
+and the boxes. A node is a standard graph vertex and a boxcorresponds to invocations of other game
+modules in a potentially recursive manner (in particular, entering into a box corresponds to a module call
+and exiting from a box corresponds to a return from a module).
+Min
+M1einb:M1u1pc
+u2pd
+e1u3
+pa
+u4pbex1
+Figure 1: A sample RGG.As an example consider the RGG in Fig. 1, where the vertices of player
+0 (pl0) are denoted with rounds, those of player 1 ( pl1) with squares and the
+rectangles denote the vertices where there are no moves that can be taken
+by any of the players and correspond to calls and exits. Atomic propositions
+pa,pb,pcandpdlabel the vertices. Each RGG has a distinct game module
+which is called the main module (module Minin the ﬁgure). In analogy to
+many programming languages, we require that the main module cannot be
+invoked by any other module. A typical play starts in vertex ein. From this
+node, there is only one possible move to take and thus the play continues
+at the call to M1on box b, which then takes the play to the entry e1inM1.
+This is a vertex of the adversary, who gets to pick the transition and thus can decide to visit either u3
+(generating pa) oru4(generating pb). In any of the cases, the play will evolve reaching the exit and then
+the control will return to module M1at the return vertex on box b. Here pl0gets to choose if generating pc
+orpdand so on back to the call to M1. Essentially, along any play alternatively pl1chooses one between
+paandpb, and pl0chooses one between pcandpd. Formally, we have the following deﬁnitions.
+Deﬁnition 1. (RECURSIVE GAME GRAPH ) Arecursive game graph G over AP is a triple (M;min;
+fSmgm2M)where M is a ﬁnite set of module names, m in2M denotes the main module and for each
+m2M, S mis a game module. A game module Smis(Nm;Bm;Ym;Enm;Exm;dm;hm;P0
+m;P1
+m)where:
+Nmis a ﬁnite set of nodes and B mis a ﬁnite set of boxes;
+Ym:Bm!(Mnfming)maps every box to a module;
+
+--- Page 4 ---
+I. De Crescenzo, S. La Torre & Y. Velner 263
+EnmNmis a non-empty set of entry nodes;
+ExmNmis a (possibly empty) set of exit nodes;
+dm:Nm[Retns m!2Nm[Calls mis a transition function where Calls m=f(b;e)jb2Bm;e2EnYm(b)g
+is the set of calls and Retns m=f(b;e)jb2Bm;e2ExYm(b)gis the set of returns;
+hm:Vm!2APlabels in 2APeach vertex from V m=Nm[Calls m[Retns m;
+P0
+mand P1
+mform a partition of (Nm[Retns m)nExm; P0
+mis the set of the positions of pl0and P1
+mis
+the set of the positions of pl1.
+In the rest of the paper, we denote with: Gan RGG as in the above deﬁnition; V=S
+mVm(set of
+vertices); B=S
+mBm(set of boxes); Calls =S
+mCalls m(set of calls); Retns =S
+mRetns m(set of returns);
+Ex=S
+mExm(set of exits); P`=S
+mP`
+mfor`2[0;1](set of all positions of pl`); and h:V!2APsuch
+thath(v) =hm(v)where v2Vm.
+To ease the presentation we make the following assumptions (with m2M):
+there is only one entry point to every module Smand we refer to it as em;
+there are no transitions to an entry, i.e., em62dm(u)for every u;
+there are no transitions from an exit, i.e., dm(x)is empty for every x2Exm;
+a module is not called immediately after a return from another module, i.e., dm(v)Nmfor every
+v2Retns m.
+A (global) state of an RGG is composed of a call stack and a vertex, that is, each state of Gis of the
+form (a;u)2BVwhere a=b1:::bh,b12Bmin,bi+12BY(bi)fori2[h1]andu2VY(bh).
+Aplay ofGis a (possibly ﬁnite) sequence of states s0s1s2:::such that s0= (e;ein)and for i2N,
+denoting si= (ai;ui), one of the following holds:
+Internal move: ui2(Nm[Retns m)nExm,ui+12dm(ui)andai=ai+1;
+Call to a module: ui2Calls m,ui= (b;em0),ui+1=em0andai+1=ai:b;
+Return from a call: ui2Exm,ai=ai+1:b, and ui+1= (b;ui).
+Fix an inﬁnite play p=s0s1:::ofGwhere si= (ai;ui)for each i2N.
+With pkwe denote s0:::sk, i.e., the preﬁx of pup to sk. For a ﬁnite play p0:s, with ctr(p0:s)we
+denote the module mwhere the control is at s, i.e., such that u2Vmwhere s= (a;u). We deﬁne mpsuch
+thatmp(i;j)holds iff for some m2M,ui2Calls mandjis the smallest index s.t. i<j,uj2Retns mand
+ai=aj(mpcaptures the matching pairs of calls and returns in p).
+Modular strategies. Fix`2[0;1]. A strategy ofpl`is a function fthat associates a legal move to
+every play ending in a node controlled by pl`.
+A modular strategy constrains the notion of strategy by allowing only to deﬁne the legal moves
+depending on the “local memory”of a module activation (every time a module is re-entered the local
+memory is reset).
+Formally, a modular strategy f ofpl`is a set of functions ffmgm2M, one for each module m2M,
+where fm:V
+m:P`
+m!Vmis such that fm(p:u)2dm(u)for every p2V
+m;u2P`
+m.
+The local successor of a position in pis: the successor according to the matching relation mpat
+matched calls, undeﬁned at an exit or an unmatched call, and the next position otherwise. Formally, the
+local successor ofj, denoted succ p(j), is: hifmp(j;h)holds; otherwise, is undeﬁned if either uj2Ex
+oruj2Calls andmp(j;h)does not hold for every h>j; and j+1 in all the remaining cases.
+
+--- Page 5 ---
+264 Visibly Pushdown Modular Games
+For each ijpj, the local memory ofpi, denoted l(pi), is the maximal sequence uj1:::ujksuch that
+ujk=uiand jh+1=succ p(jh)for each h2[k1]. (Note that since the sequence is maximal, uj1=em
+where m=ctr(pi).)
+A play pconforms to a modular strategy f=ffmgm2Mofpl`if for every i<jpj, denoting ctr(pi) =
+m,ui2P`
+mimplies that ui+1=fm(l(pi)).
+Consider again the example from Fig. 1. A strategy of pl0that chooses alternatively to generate pc
+andpdis modular, in fact it requires as memory just to store the last move from the return of b, and thus
+is local to the current (sole) activation of module Min. Instead, a strategy that attempts to match each pa
+with pcand each pbwith pdis clearly non modular.
+We remark that modular strategies are oblivious to the previous activations of a module. In the RGG
+of Fig. 1, a modular strategy for pl1would only allow either one of the behaviors: “ pl1always picks
+pa”or “ pl1always picks pb”.
+Winning conditions and modular games. A modular game on RGG is a pair hG;Liwhere Gis an
+RGG and Lis a winning condition. A winning condition is a set Lofwwords over a ﬁnite alphabet
+S=2AP, where APis a set of propositions. Given an RGG G, for a play p=s0s1:::ofG, with si=
+(ai;ui), we deﬁne the word wp=h(u0)h(u1):::, which is the mapping that assigns to each position
+the corrispondent symbol from S. A (modular) strategy fis winning if wp2Lfor every play pofG
+that conforms to f. The modular game problem asks to determine the existence of a winning (modular)
+strategy of pl0in a given modular game. In the following sections, we consider Lgiven by pushdown,
+visibly pushdown automata and by L TL, CARETor N WTL formulas.
+3 Pushdown speciﬁcation
+Pushdown modular games. Apushdown modular game is a pairhG;Piwhere Gis an RGG and P
+is a pushdown automaton, whose accepted language deﬁnes the winning condition in G. Apushdown
+automaton Pis a tuple (Q;q0;S;G;d;g?;F)where Qis a ﬁnite set of states, q02Qis the initial state,
+Sis a ﬁnite alphabet, Gis a ﬁnite stack alphabet, g?is the bottom-of-stack symbol, FQdeﬁnes an
+acceptance condition, and d:QfS[egG!2QGis the transition function. A pushdown automaton
+isdeterministic if it satisﬁes the following two conditions: - d(q;a;g)has at most one element for any
+q2Q,g2Ganda2S(ora=e); - if d(q;e;g)6=/ 0 for any q2Qandg2Gthend(q;a;g) =/ 0 for any
+a2S.
+Undecidability of pushdown speciﬁcation. The modular game problem becomes undecidable if we
+consider winning conditions expressed as standard (deterministic) pushdown automata. This is mainly
+due to the fact that the stack in the speciﬁcation pushdown automaton is not synchronized with the call-
+return structure of the recursive game graph.
+We prove the undecidability of our problem with pushdown speciﬁcation by presenting a reduction
+from the problem of checking the emptiness of the intersection of two deterministic context-free lan-
+guages.
+Consider two context-free languages L1andL2on an alphabet S=fs1;s2;:::;sng, which are ac-
+cepted by two pushdown automata, P1andP2, respectively. We want to construct an instance hG;Pi
+of a deterministic pushdown modular game problem such that exists a winning modular strategy for pl0
+inhG;Piif and only if the intersection of L1andL2is not empty.
+The basic idea of the reduction is to construct a game where pl1challenges pl0to generate a word
+from either L1orL2, and pl0must match the choice of pl1without knowing it in order to win. We
+construct an RGG Gwith two modules, minandm(see the Fig. 2).
+
+--- Page 6 ---
+I. De Crescenzo, S. La Torre & Y. Velner 265
+The module minis the main module and is composed of an entry ein, two internal nodes u1andu2,
+and one box blabeled with m. The entry einbelongs to pl1and has two transitions, one to each internal
+node. From u1andu2there is only one possible move, which leads to b. The labeling function associates
+the symbol a1tou1and the symbol a2tou2with a1;a2=2S. The node einand the call (b;em)are both
+labeled with ] =2S[fa1;a2g. Observe that since the only choice of pl1is at ein, for any strategy fofpl0
+there are only two plays conforming to it: one going through u1and the other through u2.
+min
+ein♯
+u2a2u1a1
+b:m♯
+m
+em♯
+s♯v1σ1
+viσi
+vn
+σn
+Figure 2: The module minandmThe module mis essentially a deterministic generator of
+any word inf]g:S:f]g. The module mhas one entry em,jSj
+internal nodes v1;v2;:::;vnand a sink node s(i.e., a node with
+only ingoing edges). All the vertices of mbelong to pl0. There
+are only outgoing edges from em, which take to each of the
+other vertices of m. Moreover, there is a transition from vitovj
+for any i;j2[n], and from any node there is a move to s. Each
+node viis labeled with si. for i2[n]. The symbol ]labels em
+ands.
+As winning condition, we construct a deterministic push-
+down automaton P. In the inital state Preads]and moves
+into state q0. Fix i2[2]. From q0and on input ai,Penters
+state qi. From qi,Preads two occurrences of ]and enters the
+initial state of Pi. From any Pistate,Pbehaves as Piand
+in addition, from each ﬁnal state of Pi, it has a move on input
+]that takes to the only ﬁnal state qf.
+Since the strategy must be modular, in the module mthe player pl0has no information about the
+choice of pl1inmin. Also, the local strategy in module mgenerates one speciﬁc word (there are no
+moves of pl1allowed in m) and thus this is the same independently of the moves of pl1in module min.
+Thus, the local strategy in mis winning if and only if it generates a word in the intersection of L1andL2,
+and therefore, the following theorem holds.
+Theorem 1. The (deterministic) pushdown modular game problem is undecidable.
+4 Solving modular games with VPA speciﬁcations
+Visibly pushdown automata. Consider the ﬁnite alphabet S, and let call,ret, and intbe new symbols.
+We denote with Scall=Sfcallg,Sret=SfretgandSint=Sfintgand with bS=Scall[Sret[Sint.
+Avisibly pushdown automaton (VPA) Pis a tuple (Q;Q0;bS;G[fg?g;d;F)where Qis a ﬁnite
+set of states, Q0Qis a set of initial states, bSis a ﬁnite alphabet, Gis a ﬁnite stack alphabet, g?is
+the bottom-of-stack symbol, FQdeﬁnes an acceptance condition, and d=dint[dpush[dpopwhere
+dintQSintQ,dpushQScallGQ, and dpopQSret(G[fg?g)Q.
+Aconﬁguration (or global state) of Pis a pair (a;q)where a2G:fg?gandq2Q. Moreover, (a;q)
+isinitial ifq2Q0anda=g?. We omit the semantics of the transitions of Pbeing quite standard. It can
+be obtained similarly to that of RGG with the addition of the inputs. Here we just observe that we allow
+pop transitions on empty stack (a stack containing only the symbol g?). In particular, a pop transition do
+not change the stack when g?is at the top, and by the deﬁnition of dpush,g?cannot be pushed onto the
+stack. A runrofPover the input s0s1:::is an inﬁnite sequence C0s0!C1s1!:::where C0is the initial
+conﬁguration and such that, for each i2N,Ci+1is obtained from Ciby applying a transition on input si.
+
+--- Page 7 ---
+266 Visibly Pushdown Modular Games
+Acceptance of an inﬁnite run depends on the control states that are visited inﬁnitely often. Fix a run
+r= (g?;q0)s0!(a1;q1)s1!(a2;q2):::. With a B¨uchi acceptance condition ,ris accepting if qi2Ffor
+inﬁnitely many i2N(B¨uchi VPA). With a co-B ¨uchi acceptance condition ,ris accepting if there is a
+j2Nsuch that qi62Ffor all i>j(co-B ¨uchi VPA).
+A VPA Pisdeterministic if: (1)jQ0j=1, (2) for each q2Qands2Scall[Sintthere is at most one
+transition of dfrom qon input s, and (3) for each q12Q,s2Sret,g2G[fg?gthere is at most one
+transition from qon input sand stack symbol g. Note that a deterministic VPA is such that for each
+word wthere is at most a run over it.
+For a word w, adeterministic/nondeterministic (resp. universal ) VPA accepts wif there exists an accept-
+ing run over w(resp. all runs over ware accepting).
+Visibly pushdown games. Avisibly pushdown game on RGG (VPRG) is a pairhG;Piwhere Gis an
+RGG and Pis a visibly pushdown automaton (see [8]). Consider a VPRG hG;Piwhere Gis an RGG and
+Pis a VPA. For a play p=s0s1:::ofG, with si= (ai;ui), we deﬁne the word wpass0s1:::such that for
+i2N,si= (hm(si);ti)where ctr(pi) =mandtiiscallifui2Calls ,retifui2Retns , and intotherwise.
+Thevisibly pushdown (modular )game problem asks to determine the existence of a (winning) modular
+strategy of pl0in a given VPRG such that wpis accepted by Pfor every play pthat conforms to f. We
+denote the visibly pushdown modular game problem as MVPG problem.
+When the VPA is a ﬁnite state automaton B= (Q;q0;S;d;F)we denote with w-MGP the w-modular
+game problem that asks to determine the existence of a winning modular strategy of pl0in a givenhG;Bi
+game ( w-MG).
+Solving games with VPA speciﬁcations We consider games with winning conditions that are given
+by a VPA with different acceptance conditions. We present a reduction from recursive games with VPA
+speciﬁcations to recursive games with speciﬁcations that are given as ﬁnite state automata. The reduction
+is almost independent of the acceptance condition, and it works for reachability and safety conditions as
+well as for B ¨uchi and co-B ¨uchi acceptance conditions.
+dm
+ein
+vγg
+γgvγ1γ1uγ1γ1
+uγ1γ1
+uγgγg
+uγgγgex1
+exj b:mb:m
+Figure 3: The module dm. All the ver-
+tices of dmare controlled by pl1The reduction transforms a recursive game graph with a
+visibly pushdown automaton speciﬁcation (with some accep-
+tance condition) to a slightly different recursive game graph
+with a ﬁnite-state automaton speciﬁcation (with the same type
+of acceptance condition). The key idea is to embed the top
+stack symbol of a VPA Pin the states of a ﬁnite-state automaton
+A. In addition, the states of Awill simulate the corresponding
+states of Pand thus we will get that the winning conditions are
+equivalent. Clearly, a ﬁnite-state automaton cannot simulate an
+unbounded stack. While it is easy to keep track of the top sym-
+bol after a push operation, extracting the top symbol after a pop
+operation requires inﬁnite memory. For this purpose we exploit
+the fact that the stacks of the VPA Pand the game graph Gare synchronized and we introduce a new
+dummy module dmfor every module in G. Recall that the invocation of a module minGcorrespond to
+apush operation in P. We replace every invocation of mby a call to dm. Indm(see Figure 3) pl1ﬁrst
+has to declare the value of the top symbol in Pbefore the push operation by going to the corresponding
+vg1;:::; vggstate in dm, and Acan verify that pl1is honest since it keeps track of the current top-symbol
+(if the player is not honest then Agoes to a sink accepting state and pl1loses). After the declaration, the
+
+--- Page 8 ---
+I. De Crescenzo, S. La Torre & Y. Velner 267
+module invokes the actual module mand when mterminates, then pl1must declare again the top-symbol
+giofP, visiting the vertex ugi, and Achanges his simulated top symbol accordingly.
+Denoting with kthe number of exits of the starting RGG, with gthe number of stack symbols, and d
+the number of states of the speciﬁcation, we get that the resulting RGG Ghas 2 kexits and the resulting
+automaton AhasO(dg)states. Thus combining this with the solution from [5], we get an upper bound
+linear injGjand exponential in 2 k(d g)2log(2k d g). We have:
+Theorem 2. The MVPG problem with winning conditions expressed as either a deterministic B ¨uchi VPA
+or a deterministic co-B ¨uchi VPA is EXPTIME -complete.
+The proposed reduction can be extend for universal VPA speciﬁcation. W.l.o.g we assume that in the
+non-deterministic VPA for every state, stack letter and labeling there are exactly two possible transitions.
+In this case we add a dummy module e, that is composed only by pl1nodes and has one exit. Each
+transition from a node vto a node uis splitted in two transitions, v!eande!u. In the module e,pl1
+resolves the nondeterminism, selecting one of the two possible transitions for the VPA speciﬁcation. The
+choices of pl1ineare oblivious to pl0. Hence, the universal VPA accepts if and only if pl0has a strategy
+that wins against all pl1choices in e, and we get the next theorem.
+Theorem 3. The MVPG problem with winning conditions expressed as a universal B ¨uchi (resp. co-
+B¨uchi) VPA is EXPTIME -complete.
+We can handle nondeterministic VPAs in the following way: Let Pbe a nondeterministic B ¨uchi VPA
+P. By [8], we can construct a nondeterministic B ¨uchi VPA P0that accepts a word wiffPdoes not accept
+it, and such that the size of P0is exponential in the size of P. Complete P0with transitions that take to a
+rejecting state such that for each word there is at least a run of P0over it. Let P00be the dual automaton of
+P0, i.e., Phas the same components of P0except that acceptance is now universal and the set of accepting
+states is now interpreted as a co-B ¨uchi condition. Clearly, P00accepts exactly the same words as Pand
+has size exponential in jPj. Similarly, we can repeat the above reasoning starting from a co-B ¨uchi VPA
+P. Therefore, we have:
+Theorem 4. The MVPG problem with winning conditions expressed as a nondeterministic B ¨uchi (resp.
+co-B ¨uchi) VPA is in 2EXPTIME .
+5 Temporal logic winning conditions
+By [3], we know that given a C ARETformula jit is possible to construct a nondeterministic B ¨uchi VPA
+of size exponential in jjjthat accepts exactly all the words that satisfy j. From [1], we know that the
+same holds for the temporal logic N WTL. Thus, given a formula jin any of the two logics, we construct
+a B¨uchi VPA Pfor its negation:j. By dualizing as in the case of nondeterministic VPA speciﬁcations,
+we get a co-B ¨uchi VPA that accepts all the models of jand which size is exponential in jjj. Since both
+CARETand N WTL subsume L TL[17], and L TLgames are known to be 2E XPTIME -hard [18] already on
+standard ﬁnite game graphs, we get:
+Theorem 5. The MVPG problem with winning conditions expressed as CARETandNWTL formulas is
+2EXPTIME -complete.
+The complexity of the temporal logic MVPG problem remains 2E XPTIME -hard even if we consider
+simple fragments.
+Apath formula is a formula expressing either the requirement that a given sequence appears as a
+subsequence in an w-word or its logical negation. Path formulas are captured by L TLformulas of the
+
+--- Page 9 ---
+268 Visibly Pushdown Modular Games
+form3(p1^3(p2^:::3(pn1^3pn):::))and by their logical negation, where each piis state predi-
+cate,3y(eventually y) denotes that yholds at some future position, and ^is the Boolean conjunction.
+We denote such a fragment of L TLas PATH-L TL.
+We present a reduction from exponential-space alternating Turing machines. We only give here the
+general idea.We use a standard encoding of computations, where cell contents are preceded by the cell
+number written in binary (2 Natomic propositions sufﬁce to encode 2Ncell numbers) and conﬁgurations
+are sequences of cells encodings ended with a marker (the tape head and the current control state are
+encoded as cell contents).
+Denote with QandSrespectively the control states and the input alphabet, and let 2Nbe the number
+of cells used in each conﬁguration. A conﬁguration encoding is a sequence of the form h0is0:::h2Nis2N
+where there is a is.t.si2QSi(this denotes the current state, the symbol of cell iand that the tape head
+is on cell i),sj2Sfor all j6=i(symbol in cell j), andhhiis the binary encoding of h(cell number) over
+new symbols d>
+randd?
+rforr2[N](d>
+ris equivalent to 1 and d?
+rto 0 in the binary encoding). A path
+of a computation (computations of alternating TM can be seen as trees of conﬁgurations) is encoded as
+a sequence C0d0$:::Cidi$:::where each Ciis a conﬁguration ( C0is initial) and diis the transition taken
+from CitoCi+1.
+We construct an RGG Gwith two modules MinandM1. InMin, initially, pl0generates an encoding
+of an initial conﬁguration, then, a transition is selected by pl0, if the initial state is existential, or by
+pl1, otherwise. In both cases, an end-of-conﬁguration marker $ is generated and then pl0is in charge to
+generate again a conﬁguration encoding, and so on. A call to M1is placed before generating the ﬁrst cell
+encoding of each conﬁguration and after generating each cell encoding. In M1,pl1selects one among a
+series of actions that can either state that everything is ﬁne ( ok) or that some check is required (by raising
+one over nine objections). M1has only one exit.
+The goal of pl0is to build an encoding of an accepting run of a TM Aon a given input word, while
+the goal of pl1is to point out errors in such encoding by raising objections to delimit the cell encodings
+where the check has to take place. There are two possible mistakes that can occur: the ithcells of two
+consecutive conﬁgurations do not conform the transition relation of Aand the number of a cell is not the
+successor of the number of the preceding cell in the conﬁguration. We use separate groups of objections
+to point out each of these mistakes. These speciﬁcations can be captured with a formula jdeﬁned as
+f:3obj_[(ywr1_yD)^(ywr2_y])]g^(3obj_3F)where: (1) objdenotes that an objection has been
+raised; (2) Fdenotes a state predicate that is true on symbols of the encoding that correspond to ﬁnal
+states of A; (3) ywr1andywr2capture all the illegal uses of respectively the ﬁrst and the second type
+of objections; (4) yDchecks the transition relation between two consecutive conﬁgurations on the cells
+selected by the raised objections of type 1; and (5) y]checks the correct encoding of the cell numbers
+of two consecutive cells selected by the raised objections of type 2. All the above formulas can be
+written with disjunctions of path formulas except for y]that is a conjunction of disjunctions of path
+formulas. Using De Morgan laws, the total formula can be transformed into an equivalent formula of
+size polynomial in jjj, which is a disjunction of conjunctions of path formulas. Also note that all the
+used path formulas are of bounded size (the most complex one uses eleven occurrences of 3). Moreover,
+in a modular strategy pl0cannot use the fact that pl1has raised an objection to decide the next move since
+the objections are raised in a different module (which has just one exit). Therefore, in order to win, pl0
+must correctly generate the computations of the TM. We get the following:
+Lemma 6. The MVPG problem with winning conditions expressed as a conjunction of disjunctions of
+bounded-size PATH -LTLformulas is 2EXPTIME -hard.
+It is known that each formula jfrom PATH-L TLadmits a deterministic B ¨uchi word automaton
+accepting all the models of jand which is linear in its size [4]. The same can be shown with B ¨uchi
+
+--- Page 10 ---
+I. De Crescenzo, S. La Torre & Y. Velner 269
+VPA, by extending PATH-L TLallowing the versions of the 3operator of C ARETand N WTL. By the
+closure properties of universal visibly pushdown automata we can easily extend Theorem 3 to winning
+conditions given as intersection of deterministic VPAs and thus:
+Theorem 7. The MVPG problem with winning conditions expressed as a conjunction of CARETand
+NWTL formulas that admit a deterministic B ¨uchi or co-B ¨uchi VPA generator of polynomial size is
+EXPTIME -complete.
+Now consider the larger fragment of formulasWh
+i=1V
+j=1kji;jwhere for each ji;jwe can construct
+either a deterministic B ¨uchi or a deterministic co-B ¨uchi VPA Pi;jof polynomial size that generates all the
+models of ji;j. We are only able to show an E XPTIME lower bound using a construction similar to that
+used in the reduction of Lemma 6 However, we observe that a matching upper bound cannot be shown
+using automata constructions, since we would need to manage the union of Nspeciﬁcations without an
+exponential blow-up, and since intersection is easy, this would contradict Lemma 6.
+6 Improving the tree automata construction to solve w-MGP with B ¨uchi
+condition
+We assume the standard deﬁnitions of trees and nondeterministic/universal tree automata with B ¨uchi and
+co-B ¨uchi acceptance (universality refers to the fact that all runs must be accepting in order to accept. See
+[5] for deﬁnitions).
+General structure of the construction. Fix a w-MGhG;BiwhereB= (Q;q0;S;d;F)is a determin-
+istic B ¨uchi automaton and Gis as in Section 2. We construct a B ¨uchi tree automaton AG;Bthat accepts
+a tree if and only if pl0has a winning modular strategy in the game hG;Bi.
+The trees accepted by AG;Bmust encode Gand a modular strategy on it ( strategy trees ). Each such
+tree essentially has a subtree rooted at a child of the root for each module of Gand each such subtree is
+the unwinding of the corresponding module along with a labeling encoding the strategy.
+The general idea is to check on each subtree of the root some properties of the corresponding local
+function of the encoded modular strategy, by assuming some other properties on the local functions of
+the other modules (as in an assume-guarantee reasoning). These assumptions concern: a call structure
+CG(B¨uchi call graph ), to handle acceptance on plays involving inﬁnitely many unreturned calls; a set E
+for each module, each giving a superset of the exits that can be visited during the plays; a set of extended
+pre-post conditions C, that for each module m, each exit xand each possible state qofB, carries the
+requirement that if mis entered with qand the play exits at x, then this must happen with state q0such
+that(m;q;x;q0)2Cand after visiting an accepting state if this is required by C. To ensure correctness
+all modules must share the same assumptions, thus AG;Bguesses the assumptions at the root and then
+passes them onto the children of the root.
+The tasks of AG;Bthus are: recognizing the strategy trees; ensuring the correctness of the extended
+pre-post conditions; ensuring that all the plays according to the modular strategy conform the B ¨uchi call
+graph and do not exit a module from an exit different from those listed in E; checking the acceptance
+condition of Bon all the plays encoded in the strategy tree, using the pre-post condition, the acceptance
+condition of Band the B ¨uchi call graph.
+The above tasks are split among the B ¨uchi tree automata AG,AE
+CGandAB;C;CG. The automata
+AGandAE
+CGare nondeterministic and check the fulﬁllment of the properties related to the game graph.
+AGis in charge of verifying that the input tree is a valid strategy tree. AE
+CGis parameterized over the
+set of exits Eand a B ¨uchi call graph CG. The automaton AB;C;CG, which is a universal B ¨uchi tree
+
+--- Page 11 ---
+270 Visibly Pushdown Modular Games
+automaton, checks the extended pre-post condition C, simulates Band checks the fulﬁllment of its
+winning conditions.
+AG;Bcaptures the intersection of AGand the automaton that, at the root, nondeterministically
+guesses E;CG;C, and then at the children of the root, captures the intersection of AB;C;CGandAE
+CG.
+The automaton AG.Letkbe the maximum over the number of exits of Gmodules and the out-degree
+ofGvertices. Denote with WGthe setfdummy ;rootg[(VnP0)[(P0[k])(recall Vdenotes the set of
+vertices of G).AGaccepts strategy trees, i.e., WG-labeled k-trees that encode modular strategies of pl0.
+root
+(ein,1) (e1)
+(b,e1)dummy (u3,1)(u4)
+(ex1)dummy ((b,ex1),2)dummy
+(u1)(u2,1)
+(b,e1)dummy
+((b,ex1),1)dummy
+(u1)(u2,1)dummy dummy
+Figure 4: A fragment of a strategy
+tree.Intuitively, in a strategy tree, the label root is associated with
+the root of the tree. The children of the root are labeled with the en-
+tries of each module in G. A subtree rooted in one of these vertices
+corresponds to the unrolling of a module. If a vertex is labeled with
+a node that belongs to pl0, the move according to the encoded strat-
+egy is annotated with the index of the selected successor. If a node
+is associated to a call, then its children are labeled with the match-
+ing returns. The dummy nodes are used to complete the k-tree. A
+similar formal deﬁnition is given [5].
+In Fig. 4 we depict the top fragment of a strategy tree for pl0of
+the RGG from Fig. 1
+Given a tree T, the automaton AGaccepts T iff it is a strategy tree for G. A construction for AGcan be
+easily obtained from G, and thus we omit it (see [5] for a similar construction).
+Proposition 8. There exists an effectively constructible B ¨uchi tree automaton of size O (jGj)that accepts
+aWG-labeled k-tree if and only if it is a strategy tree.
+Directly from the deﬁnitions, the following holds:
+Proposition 9. For a w-MG and ﬁxed a player pl, there exists a one-to-one mapping between the modular
+strategies of pl and the strategy trees.
+The automaton AE
+CG.Fix a modular strategy fofpl0inG. Acall graph (ofG) according to fis a
+directed graph (V;!),VM, such that for each play pwhich conforms to f, if a module m2Mis
+reachable on pthen m2Vand if a call from m0tom00is done on pthen m0!m00holds.
+AB¨uchi call graphs CG ofGaccording to fandBis(V;!;!F)where VMQ,!F! and:
+(1) denoting with x((m;q)) = m, the graph deﬁned by all the edges x(v)!0x(v0)s. t. v!v0is a call
+graph of Gaccording to f(denoted x(CG)in the following), and (2) for each cycle v1!v2!:::!
+vh!vh+1(with v1=vh+1), there exists at least a j2[1;h]such that (vj!Fvj+1)(in order to fulﬁll a
+B¨uchi condition, in a cycle of calls there must exist at least a module mijamong mi1;:::; mihin which an
+Fstate ofBis visited inﬁnitely often).
+In a strategy tree, a node is enabled if it is the root or the corresponding vertex of Gis reachable in
+the encoded strategy. For a given B ¨uchi call graph CGand a selection of exits E, by assuming that the
+input tree is a strategy tree, the automaton AE
+CGchecks that indeed the input tree conforms to CGandE.
+Lemma 10. There exists an effectively constructible B ¨uchi tree automaton AE
+CGsuch that if T is a
+strategy tree of G and f is the corresponding modular strategy, then AE
+CGaccepts T unless either (1) an
+exit not in Eis enabled, or (2) x(CG)is not a call graph of G according to f (i.e., there exists an enabled
+call from m to m0but no edge from m to m0inx(CG)). The size of AE
+CGis linear injGj.
+
+--- Page 12 ---
+I. De Crescenzo, S. La Torre & Y. Velner 271
+The automaton AB;C;CG.The automaton AB;C;CGis parameterized over the B ¨uchi automaton B, an
+extended pre-post condition C(which essentially summarizes the effects of Bexecutions in each module
+ofG) and a B ¨uchi call-graph CG. It is quite complex and its tasks are:
+1. to simulate Bon a strategy tree (and in this, it uses Cs.t. when simulating Bin a module it is not
+needed to follow the calls to other modules and the simulation can continue at a matching return);
+2. to check the correctness of the pre-post condition C;
+3. to check that the accepting states of Bare entered consistently with CGon the cycles of calls;
+4. to check the fulﬁllment of Bacceptance conditions.
+We ﬁrst construct an automaton AC
+Bwhich ensures task 1, then on the top of AC
+Bwe construct three
+different automata AB;C,AB;CGandABwin, one for each of the remaining three tasks. We then get
+AB;C;CGby taking the usual cross product for the intersection of these automata (note that an efﬁcient
+construction can be obtained by discarding all the states that do not agree on the AC
+Bpart, thus avoiding
+a cubic blow-up in the size of AC
+B). Under the assumption that the input tree is a strategy tree and
+x(CG)is consistent with it, we get that AB;C;CGaccepts only winning strategy trees (i.e., strategy trees
+that correspond to winning modular strategies) that conform to CGandC. The details on all the above
+automata are given in the rest of this section. Thus, we get:
+Lemma 11. LethG;Bibe aw-MG and Bbe a B ¨uchi automaton. Given a B ¨uchi call graph CG and a
+pre-post condition C, there exists an effectively constructible universal B ¨uchi tree automaton AB;C;CG
+s.t.: if T is a strategy tree of G, f is the corresponding modular strategy and x(CG)is a call graph of G
+according to f , then AB;C;CGaccepts T iff T is winning in hG;Biand consistent with CG and C. The
+size ofAB;C;CGis quadratic in the number of Bstates.
+Winning strategy trees. For a strategy tree TofG, aplay of T is an w-sequence of T-nodes x1x2:::
+such that x1is the child of the root corresponding to min,a1=e(call-stack ) and for i2N,xiis an
+enabled node and: (1) if xiis labeled with a call to m, then xi+1is the child of the Troot corresponding
+to module m(and thus is labeled with the entry em), and ai+1=ai:xi; (2) if xiis labeled with an exit ex,
+thenai=ai+1:y,yis a node labeled with a call (b;em)andxi+1is the child of ylabeled with the return
+(b;ex); (3) otherwise, xi+1is an enabled child of xiandai+1=ai.
+Note that any play of a strategy tree Tcorresponds to a play of G(conforming to the modular strategy
+deﬁned by T). A winning strategy tree T w.r.t.Bis such that for all the plays nofT,wnis accepted by
+B. From Proposition 9, we get:
+Lemma 12. Given a w-MGhG;Bi, a modular strategy is winning iff the corresponding strategy tree is
+winning.
+Pre-post conditions. Apre-post condition on the graph Gis a pairhCpre;CpostiwhereCpreMQ
+(set of pre-conditions ),CpostMQExQ(set of pre-post conditions ), and such that for each
+(m;q;exj;q0)2Cpost, also (m;q)2Cpre(i.e., tuples of Cpostadd a post-condition to some of the pre-
+conditions of Cpre).
+Intuitively, a pre-post condition is meant to summarize all the Blocations that can be reached on
+entering each module of Galong any play of T, and for each reachable exit ex, all the pairs of Blocations
+(q;q0)s.t. there exists a play of Talong with Benters a module at qand exits it from exatq0.
+Fix a pre-post condition hCpre;Cposti.
+hCpre;Cpostiisconsistent with a strategy tree Tif for each play n=x1x2:::ofTand for each xiwhich
+is labeled with a call to module m2M, denoting with qthe location at which the only run of Bover wni
+
+--- Page 13 ---
+272 Visibly Pushdown Modular Games
+ends: (1) (m;q)belongs to Cpreand (2) if nreaches the matching return at xj+1,xjis labeled with exit
+exand the location at which the run of Bover wnj1isq0(i.e., the location when reading the symbol of ex
+atxj), then (m;q;ex;q0)belongs to Cpost.
+hCpre;Cpostiisconsistent with a set of exits hEmim2Miff: (1)8m2M,8ex2Em, if there is a
+(m;q)2Cprethen there is at least a tuple of the form (m;q;ex;q0)2Cpost; (2)8(m;q;ex;q0)2Cpost, then
+ex2Emholds.
+We extend pre-post conditions with a function Fin:Cpost!ftrue;f alseg. An extended pre-post
+condition C=hCpre;Cpost;Finiisconsistent with a strategy tree TifhCpre;Cpostiis consistent with T
+and for each play n=x1x2:::ofTs.t.xiis labeled with a call to module m2M,xj+1is labeled with
+its matching return, and the portion of run of Bfrom itojstarts at location qand ends at location q0:
+whenever Fin(m;q;ex;q0) =true then a location in Fmust be visited on this portion of run (acceptance-
+condition).
+Construction of AC
+B.Fix an extended pre-post condition C=hCpre;Cpost;Fini. Let mibe the module
+mapped to the ithchild of the root of a strategy tree.
+We construct AC
+Bsuch that the automaton simulates Bon an input strategy tree Tby using C. In
+particular, starting from the ithchild, the automaton AC
+Bruns in parallel a copy of Bfrom each control
+state qsuch that (mi;q)2Cpre. When reading a node labeled with a call, AC
+Bstarts at each matching
+return a copy of Baccording to the applicable tuples in Cand performs updates according to Fin. On
+all the other enabled nodes, the control state of Bis updated for each copy according to Btransitions.
+The states of AC
+Bare: an initial state q0, an accepting state qa, a rejecting state qr, and states of the
+form(q;d;f;qmi;C)where q;qmi2Q,qis the control state which is updated in the simulation of B,qmi
+is the current pre-condition, and d;f2f0;1gare related to the winning conditions. Namely, dis used to
+check the acceptance-conditions along all the plays that conform to the strategy, and fis used to expose
+that a ﬁnal state of Bwas seen between a call and its matching return. A task of AC
+Bis to handle the
+correct update of these bits, but they will be used to determine the acceptance by ABwin. The states qa
+andqrare sinks, i.e., once reached, the automaton cycles forever on them.
+Construction of AB;C,AB;CGandABwin.The automaton AB;Cis in charge of checking that the input
+tree is consistent with the extended pre-post condition C. We construct it from AC
+Bby modifying the
+transitions from a state sof the form (q;d;f;qmi;C)at a tree-node labeled with an exit. In particular, in
+this case, we let AB;Center qaif there exists a tuple (mi;qmi;exh;q)2Cpost, and qrotherwise.
+The purpose of AB;CGis to check that the B ¨uchi call graph CGis indeed consistent with the input
+strategy tree. We construct AB;CGfromAC
+Bby modifying the transitions from calls. Namely, when on
+a node ulabeled with a call to a module mjin the subtree of the ithchild of the root, at a state of the form
+(q0;d;f;q;C)and suppose there is a transition (q0;hmi(u);q00)2d: if(mi;q)!F(mj;q00)holds in the
+B¨uchi call graph CGandd=0, thenAB;CGenters the rejecting state qr. In all the other cases it behaves
+asAC
+B.
+The purpose of ABwinis to check that the winning conditions of Bare satisﬁed along all plays of the
+input strategy tree. Again, we can modify AC
+Bto ensure this. In particular, when the automaton reaches
+a tree-node labeled with exit exof module min a state (q0;d;f;q;C), then it enters the accepting state
+qa, whenever (m;q;ex;q0)2CpostandFin(m;q;ex;q0) =true implies b=1, and qrotherwise. Moreover
+the accepting states of ABwinareqaand all the states of the form (q;d;f;q0;C)such that either q2For
+f=1.
+Reducing to emptiness of B ¨uchi tree automata. AB;C;CGcan be translated into an equivalent non-
+deterministic B ¨uchi tree automaton with 2O(jQj2logjQj)states [16]. Denoting with kthe number of Gexits
+
+--- Page 14 ---
+I. De Crescenzo, S. La Torre & Y. Velner 273
+andbthe number of call edges ofG(i.e., the number of module pairs (m;m0)such that there is a call
+from mtom0), the number of different choices for an extended pre-post condition is 2O(kjQj2), for a B ¨uchi
+call graph is 22b, and for a set of exits Eis 2k. SinceAGandAE
+CGare both of size O(jGj), the automaton
+AG;B(obtained as described earlier in this section) is of size jGj22O(jQj2(k+logjQj)+b). We can reduce the
+factorjGj2tojGj, by combining AGandAE
+CGinto the same automaton (they are essentially based on
+Gtransitions). Therefore, we can get an efﬁcient construction of AB;CGof sizejGj2O(jQj2(k+logjQj)+b).
+Thus, by Propositions 8 and 9, and Lemmas 10 and 11
+Theorem 13. For an RGG G and a deterministic B ¨uchi automaton Bpl0has a winning modular strategy
+inhG;Biiff the nondeterministic B ¨uchi tree automaton AG;Baccepts a non-empty language. Moreover,
+AG;Bis of sizejGj2O(jQj2(k+logjQj)+b), where k is the number of G exits.
+7 Discussion
+In this paper, we have considered modular games with winning condition expressed by pushdown, visibly
+pushdown and temporal logic speciﬁcations. We have proved that the modular game problem with
+respect to standard pushdown speciﬁcations is undecidable. Then we have presented a number of results
+that give a quite accurate picture of the computational complexity of the MVPG problem with visibly
+pushdown winning conditions. With some surprise, we have found that MVPG with temporal logic
+winning conditions becomes immediately hard. In fact, while the complexity for L TLspeciﬁcations
+is 2E XPTIME -complete both for MVPG and games on ﬁnite graphs, for the fragment consisting of all
+the Boolean combinations of PATH-L TLformulas, solving the corresponding games on ﬁnite graphs
+is P SPACE -complete while the MVPG problem is already 2E XPTIME -complete. As a consequence, the
+computational complexity of many interesting fragments of L TL, that have a better complexity than
+full L TLon ﬁnite game graphs, collapses at the top of the complexities (see [4, 6]).This also differs
+with the scenario of the complexities of model-checking RSMs in L TLfragments (see [12]). As a ﬁnal
+remark, we observe that the tree automaton construction proposed in Section 6 can be easily adapted to
+handle visibly pushdown winning conditions to get a direct solution of the MVPG problem. We only
+need to modify the transition rules to synchronize the calls and returns of the RGG with the pushes
+and pops of the speciﬁcation automaton, and this would be possible since they share the same visibly
+alphabet. The change does not affect the overall complexity, however it will slightly improve on the
+approach presented in Section 4 that causes doubling the number of exits and gives a complexity with an
+exponential dependency in the number of stack symbols.
+References
+[1] Rajeev Alur, Marcelo Arenas, Pablo Barcel ´o, Kousha Etessami, Neil Immerman & Leonid Libkin
+(2008): First-Order and Temporal Logics for Nested Words .Logical Methods in Computer Science 4(4),
+doi:10.2168/LMCS-4(4:11)2008.
+[2] Rajeev Alur, Michael Benedikt, Kousha Etessami, Patrice Godefroid, Thomas W. Reps & Mihalis Yan-
+nakakis (2005): Analysis of recursive state machines .ACM Trans. Program. Lang. Syst. 27(4), pp. 786–818,
+doi:10.1145/1075382.1075387.
+[3] Rajeev Alur, Kousha Etessami & P. Madhusudan (2004): A Temporal Logic of Nested Calls and Returns . In
+Kurt Jensen & Andreas Podelski, editors: TACAS ,Lecture Notes in Computer Science 2988, Springer, pp.
+467–481, doi:10.1007/978-3-540-24730-2 35.
+
+--- Page 15 ---
+274 Visibly Pushdown Modular Games
+[4] Rajeev Alur & Salvatore La Torre (2004): Deterministic generators and games for Ltl fragments .ACM
+Trans. Comput. Log. 5(1), pp. 1–25, doi:10.1145/963927.963928.
+[5] Rajeev Alur, Salvatore La Torre & P. Madhusudan (2003): Modular Strategies for Inﬁnite Games on Recur-
+sive Graphs . In Warren A. Hunt Jr. & Fabio Somenzi, editors: CA V ,Lecture Notes in Computer Science
+2725, Springer, pp. 67–79, doi:10.1007/978-3-540-45069-6 6.
+[6] Rajeev Alur, Salvatore La Torre & P. Madhusudan (2003): Playing Games with Boxes and Diamonds . In
+Roberto M. Amadio & Denis Lugiez, editors: CONCUR ,Lecture Notes in Computer Science 2761, Springer,
+pp. 127–141, doi:10.1007/978-3-540-45187-7 8.
+[7] Rajeev Alur, Salvatore La Torre & P. Madhusudan (2006): Modular strategies for recursive game graphs .
+Theor. Comput. Sci. 354(2), pp. 230–249, doi:10.1016/j.tcs.2005.11.017.
+[8] Rajeev Alur & P. Madhusudan (2009): Adding nesting structure to words . J. ACM 56(3),
+doi:10.1145/1516512.1516518.
+[9] Benjamin Aminof, Fabio Mogavero & Aniello Murano (2014): Synthesis of hierarchical systems .Sci. Com-
+put. Program. 83, pp. 56–79, doi:10.1016/j.scico.2013.07.001.
+[10] Ilaria De Crescenzo & Salvatore La Torre (2013): Modular Synthesis with Open Components . In Parosh Aziz
+Abdulla & Igor Potapov, editors: RP,Lecture Notes in Computer Science 8169, Springer, pp. 96–108,
+doi:10.1007/978-3-642-41036-9 10.
+[11] William R. Harris, Somesh Jha & Thomas W. Reps (2012): Secure Programming via Visibly Pushdown
+Safety Games . In P. Madhusudan & Sanjit A. Seshia, editors: CA V ,Lecture Notes in Computer Science
+7358, Springer, pp. 581–598, doi:10.1007/978-3-642-31424-7 41.
+[12] Salvatore La Torre & Gennaro Parlato (2007): On the Complexity of LtlModel-Checking of Recursive State
+Machines . In Lars Arge, Christian Cachin, Tomasz Jurdzinski & Andrzej Tarlecki, editors: ICALP ,Lecture
+Notes in Computer Science 4596, Springer, pp. 937–948, doi:10.1007/978-3-540-73420-8 80.
+[13] Christof L ¨oding, P. Madhusudan & Olivier Serre (2004): Visibly Pushdown Games . In Kamal Lodaya
+& Meena Mahajan, editors: FSTTCS ,Lecture Notes in Computer Science 3328, Springer, pp. 408–420,
+doi:10.1007/978-3-540-30538-5 34.
+[14] Yoad Lustig & Moshe Y . Vardi (2009): Synthesis from Component Libraries . In Luca de Alfaro, editor:
+FOSSACS ,Lecture Notes in Computer Science 5504, Springer, pp. 395–409, doi:10.1007/978-3-642-00596-
+128.
+[15] Yoad Lustig & Moshe Y . Vardi (2011): Synthesis from Recursive-Components Libraries . In Giovanna
+D’Agostino & Salvatore La Torre, editors: GandALF ,EPTCS 54, pp. 1–16, doi:10.4204/EPTCS.54.1.
+[16] David E. Muller & Paul E. Schupp (1995): Simulating Alternating Tree Automata by Nondeterministic Au-
+tomata: New Results and New Proofs of the Theorems of Rabin, McNaughton and Safra .Theor. Comput.
+Sci.141(1&2), pp. 69–107, doi:10.1016/0304-3975(94)00214-4.
+[17] Amir Pnueli (1977): The Temporal Logic of Programs . In: FOCS , IEEE Computer Society, pp. 46–57,
+doi:10.1109/SFCS.1977.32.
+[18] Amir Pnueli & Roni Rosner (1989): On the Synthesis of a Reactive Module . In: POPL , ACM Press, pp.
+179–190, doi:10.1145/75277.75293. Available at http://dl.acm.org/citation.cfm?id=75277 .
+[19] Sylvain Salvati & Igor Walukiewicz (2013): Evaluation is MSOL-compatible . In Anil Seth & Nisheeth K.
+Vishnoi, editors: FSTTCS ,LIPIcs 24, Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik, pp. 103–114,
+doi:10.4230/LIPIcs.FSTTCS.2013.103. Available at http://drops.dagstuhl.de/portals/extern/
+index.php?semnr=13018 .
+[20] Wolfgang Thomas (2002): Inﬁnite Games and Veriﬁcation (Extended Abstract of a Tutorial) . In Ed Brinksma
+& Kim Guldstrand Larsen, editors: CA V ,Lecture Notes in Computer Science 2404, Springer, pp. 58–64,
+doi:10.1007/3-540-45657-0 5.
+[21] Igor Walukiewicz (2001): Pushdown Processes: Games and Model-Checking .Inf. Comput. 164(2), pp.
+234–263, doi:10.1006/inco.2000.2894.

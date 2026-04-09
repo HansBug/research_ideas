@@ -1,0 +1,813 @@
+--- Page 1 ---
+SCHEDULING OF MULTI-PRODUCT BATCH PLANTS USING
+REACHABILITY ANALYSIS OF TIMED AUTOMATA MODELS
+SubanatarajanSubbiah, SebastianPanek,SebastianEngell
+Process ControlLaboratory (BCI-AST),University of Dortmund, 442 21 Dortmund, Germany
+Olaf Stursberg
+Industrial Automation Systems (EI-LSR),Technical University of Muenchen, Muenchen, Germany
+Keywords: Scheduling, timed automata, reachability analysis, multi-product batch plant.
+Abstract: Standard scheduling approaches in process industries are often based on algebraic problem formulations
+solved as MI(N)LP optimization problems to derive production schedules. To handle such problems tech-
+niques based on timed automata have emerged recently. This contribution reports on a successful application
+of a new modeling scheme to formulate scheduling problems in process industries as timed automata (TA)
+models and describes the solution technique to obtain schedules using symbolic reachability analysis. First,
+the jobs, resources and additional constraints are modeled as sets of synchronized timed automata. Then, the
+individual automata are composed by parallel composition to form a global automaton which has an initial
+location where no jobs have been started and at least one target location where all jobs have been ﬁnished. A
+costoptimalsymbolicreachabilityanalysisisperformedonthecomposedautomatontoderiveschedules. The
+main advantage of this approach over other MILP techniques is the intuitive graphical and modular modeling
+and the ability to compute better solutions within reasonable computation time. This is illustrated by a case
+study.
+1 INTRODUCTION
+Scheduling has applications in many ﬁelds and one
+among them are the chemical industries employed
+with multi-product batch plants. Multi-product batch
+plants in contrast to continuous plants offer the ad-
+vantage of an increased ﬂexibility with respect to the
+variation of the products, the volume of production,
+and the range of recipes that can be processed by
+the equipment. This ﬂexibility makes the scheduling
+task challenging. The scheduler has to take a large
+number of decisions to answer questions of what,
+when, where and how to produce the products in or-
+der to satisfy the market demand. The scheduling
+task is particularly challenging due to numerous con-
+straints arising from process topology, the interlinks
+between pieces of equipment, inventory policies, ma-
+terial transfers, batch sizes, batch processing times,
+demand patterns, changeover procedures, resource
+and time constraints, cost functions and degrees of
+uncertainty. Many scientists in the process logistics
+communityhavecontributedapproachestomodelandsolvesuchproblems(Kallrath,2002). Inmostpromi-
+nent approaches the problem is speciﬁed using the
+frameworks of State Task Networks (STN) or Re-
+source Task Networks (RTN) (Pantelides, 1994), fur-
+thertransformedtoanoptimizationproblemmodeled
+as a mixed integer program (MILP or MINLP) and
+solved using state-of-the art solvers such as CPLEX,
+XPRESS-MP, etc. The modeling of mathematical
+optimization problems is generally cumbersome, te-
+dious and requires not only experience in algebraic
+modelingbutalsoadeepknowledgeofthesolverand
+its internal algorithms.
+Recently, techniques based on reachability analy-
+sis for timed automata to solve scheduling problems
+havegainedattention. TheframeworkofTAhasbeen
+originallyproposedby(AlurandDill,1994)tomodel
+timed systems with discrete dynamics. Many power-
+ful tools for the modeling and analysis of real-time
+systems such as UPPAAL, IF, KRONOS and TAOPT
+haveemerged. Theauthorsof(AbdeddaimandMaler,
+2001) have proposed to use TA to solve job-shop
+scheduling problems based on the symbolic reacha-
+141
+Subbiah S., Panek S., Engell S. and Stursberg O. (2007).
+SCHEDULING OF MULTI-PRODUCT BATCH PLANTS USING REACHABILITY ANAL YSIS OF TIMED AUTOMATA MODELS.
+InProceedings of the Fourth International Conference on Informatics in Control, Automation and Robotics , pages 141-148
+DOI: 10.5220/0001627501410148
+Copyright cSciTePress
+
+--- Page 2 ---
+bility analysis of TA. Promising results on challeng-
+ing benchmark instances in job-shops were reported
+in (Panek et al., 2006). The particular appeal of this
+approach comes from the modular and partly graph-
+ical modeling which enables inexperienced users to
+build models. Another advantage is the availability
+ofpowerfulsearchalgorithmsthatcaneasilybemod-
+iﬁed and extended for special purposes. Similar to
+other approaches the reachability analysis of TA also
+suffers from the drastic increase in the computational
+cost with an increase in the problem size. The prob-
+lem of state-space explosion in TA models can be re-
+duced to some extent by state-space reduction tech-
+niques (Panek et al., 2007), but arises again when the
+problem instance is scaled. An advantage of the TA-
+based approach is that good, though not provable op-
+timal solutions areoftenfound relatively quickly.
+The structure of the rest of this paper is as fol-
+lows: In Section 2, Resource Task Networks (RTN)
+areintroducedasthebasicmodelforspecifyingbatch
+scheduling problems. Section 3 explains how the
+RTN model can be translated into TA, and how the
+corresponding scheduling problem can be solved by
+symbolic reachability analysis. In section 4, differ-
+ent greedy strategies to reduce the solution space are
+explained. The description of the case study and the
+resultsoftheexperimentsfortheexampleconsidered
+are provided in section 5. The paper closes with con-
+clusions and an outlook.
+2 MODELINGWITHRTN
+In the context of mathematical programming, STN
+and RTN serve as starting points for formulating in-
+tegrated mathematical models that can be solved to
+obtain production schedules. A short description of
+the RTN representation is given in this section based
+upon a small example: a two stage process with 3
+tasks and 3 resources. The resources R1,R2andR3
+handle batch sizes of b1,b2andb3units. In the ﬁrst
+stage, the single raw material S1is processed by task
+T1in resource R1to produce the intermediate mate-
+rialS2. In the second stage, the intermediate mate-
+rialS2is processed by tasks T2inR2andT3inR3to
+produce the end products S3andS4. The tasks T1,T2
+andT3requiresd1,d2andd3time units, respectively.
+There exists a timing constraint between tasks T1and
+T3suchthat T3mustbestartedwithin Ytimeunitsaf-
+terT1has ﬁnished, as the intermediate product S2is
+unstableandbecomesunusableafter Ytimeunits. We
+assume in the example that dedicated storage tanks
+are available for each of the products that have the
+same names as the products. The RTN model con-   
+  
+   
+ T1T2
+T3S1
+P1S2S3
+S4
+[0,Y] R1 R2
+ R3b1, d1b2, d2
+b3, d3 
+  
+Figure1: RTNdescriptionof the example process.
+sists of four basic elements; (i) state nodes , to rep-
+resent the feeds, intermediate materials and the final
+products, (ii) task nodes to represent the process op-
+erations that transforms one or more input states to
+one or more output states, (iii) resource nodes to rep-
+resent the production units/equipments, and (iv) arcs
+withfractionalvaluestoindicatetheflowandtheper-
+centage of material transported to the successor state.
+The default values for the ﬂow are 1. The RTN de-
+scriptionoftheexampleprocessisshowninFigure1.
+The feed, intermediate materials and products ( S1,···
+S4)arerepresentedascircleswithdiagonallines. The
+tasksT1,T2andT3are represented as rectangles and
+connected to the corresponding resources R1,R2and
+R3, respectively bydashed lines.
+The standard RTN framework offers only limited
+possibilities to describe timing constraints between
+tasks. The timing constraint between task T1andT3
+is modeled by a new type of node called placede-
+noted by P1. The notion of places is motivated by
+Timed and Hybrid Petri Nets (Barthomieu and Diaz,
+1991). Places can be connected to tasks in the same
+fashion as states, however unlike states they repre-
+sent no physical products. They contain either one
+or notoken. When one of the predecessor operations
+is ﬁnished, a token is assigned in the place and it is
+consumedwhenoneofthesuccessoroperationstarts.
+The place in the RTN is marked by the time interval
+[0,Y],signifyingthatatokencanstayintheplacefor
+at least0, and forat most Ytimeunits.
+2.1 TimedAutomata
+Timedautomata(TA)areextensionsofﬁnite-stateau-
+tomatawithclocksandareusedtomodelandanalyze
+systems with discrete dynamics and timed behaviour.
+Time in TA is modeled using a set of clocks. A short
+andinformaldeﬁnitionofTAisgivenbelow,forade-
+tailed deﬁnition for TA please refer to (Alur and Dill,
+1994).
+2.1.1 Syntax
+A timed automata is defined by a tuple, TA = ( L,lo,
+F,C,E,inv), in which Lrepresents the finite set ofICINCO 2007 - International Conference on Informatics in Control, Automation and Robotics
+142
+
+
+--- Page 3 ---
+locations, l0represents the initial location and Frep-
+resents the set of final locations. Crepresents the set
+ofclocksassignedtotheTA.Theset E⊂L×Φ(C)×
+Act×P(C)×Lrepresents the transitions. Φ(C)are
+guards specified as conjunctions of constraints of the
+formci⊗norci-cj⊗n,whereci,cj∈C,⊗ ∈ { <,
+≤, ==,/ne}ationslash=,>,≥ }andn∈N.Actdenotes a set of ac-
+tions(e.g. invokinganeweventorchangingthevalue
+of a variable).P(C)represent the power set over el-
+ements of C.invrepresents a set of invariants which
+assign conditions for staying in locations. An invari-
+ant must evaluate to true when the corresponding lo-
+cation is active. The automaton is forced to leave the
+location when theinvariant evaluates tofalse.
+(l,g,a,r,l′)denotesatransitionbetweenasource
+locationlandtargetlocation l′withaguard g∈Φ(C),
+performing an action a∈Actand resetting the clocks
+r∈P(C). Such a transition can occur only when the
+transitionguard g∈Φ(C)issatisfied.
+Figure 2 shows a simple TA with three locations
+l1,l2andl3connected by transitions. The clock c
+is reset in the ﬁrst transition. The invariant c≤3 in
+locationl2refers to the clock cand enforces the fol-
+lowing transition which is enabled by the guard c≥
+2. The transitions are labeled with actions αandφ,
+respectively. In the context of scheduling we use the
+transitions αfor allocating a resource to a task and φ
+forreleasing aresource of the taskaftercompletion.
+TA models are created in a modular fashion as
+sets of interacting automata. The interaction between
+TA is established by synchronized transitions. Two
+transitionsaresynchronizedwhentheyhavethesame
+synchronization labels from Act. The corresponding
+automata change their locations simultaneously. The
+parallel composition of a pair of TA is performed by
+combining a set of TA into one composed global TA
+usingthe synchronization labels.
+The parallel composition of two individual au-
+tomataA1=(L1,l1,0,F1,C1,E1,inv1)andA2=
+(L2,l2,0,F2,C2,E2,inv2)is given by Acomp=A1||A2
+=(L1×L2,(l1,0,l2,0),F1×F2,C1∪C2,E,inv), withl
+=(l1,l2)andE=E1(l1)∧E2(l2). A transition in
+the composed automaton Acomp(l,g,a,r,l′)∈Eex-
+ist iff there exist transitions (l1,g1,a1,r1,l′
+1)∈E1in
+A1and(l2,g2,a2,r2,l′
+2)∈E2inA2, with guard g =
+g1∧g2satisﬁed, r=r1∪r2anda∈((Act1∪ {0})
+×(Act2∪{0})). Thesymbol0heredenotesanempty
+actioninwhichnostatetransitionoccurs. Similarly n
+individualTAcanbecomposedstepbysteptoobtain
+thecomposed automaton Acomp:=A1||A2||···||An.
+An extension of TA with the notion of costs are
+pricedTA (PTA) (Behrmann et al., 2001). A priced
+TA is equipped with an additional function P:L∪E
+→R≥0which assigns a cost to transitions and costl1 l2 l3
+C:= 0C     3
+C     2α ϕ
+Figure2: Asimpletimed automata.
+ratestolocations. Thecostofstayinginalocationfor
+dtimeunitsis given by d·P(L).
+2.1.2 Semantics
+The semantics of a composed PTA Ais deﬁned in
+terms of a labeled transition system (Q,(l0,u0,0),Δ),
+with a state space Q⊆L×R|C|×R≥0, the initial state
+givenby (l0,u0,0)∈Qwithcost0and Δrepresenting
+the inﬁnite transition relation. The state is a tuple ( l,
+u,p), whereldenotes the location, udenotes a vec-
+tor of clock valuations and prepresents the cost. Δ
+contains thefollowing transitions:
+1. Time transitions: (l,u,p)τ→(l,u+1τ,p+
+P(L)·τ)iffforevery θ∈[0,τ]theinvariant inv(l)eval-
+uates to true. The vector 1is composed of ones and
+has the dimension equal to the number of clocks in
+theset C.
+2. Discretetransitions: (l,u,p)a→(l′,u′,p+P(e))
+where there exists a transition e= (l,g,a,r,l′)inE
+andθ≥0 such that g(u+1θ)is satisﬁed and u′=
+(u′
+1,u′
+2,···,u′
+|C|)Twithu′
+i=0forevery ci∈randu′
+i=
+ui+θotherwise.
+A sequence of states and state transitions from Δ
+constitutes a trace ρof the composed priced automa-
+tonAgivenby ρ= (l0,u0,0)δ1→(l1,u1,p1)δ2→ ···with
+δi∈Δ. The state transitions in the trace are alter-
+nating time transitions and discrete transitions. Each
+trace corresponds to runs of the individual automata
+therebycharacterizingapossibleevolutionofthesys-
+tem. An optimal trace ρ∗is a path from the initial
+state (l0,u0, 0) to a target state ( ln,un,pn) with mini-
+malpn. Thesetoftracesisinﬁniteduetothefactthat
+time delays τare elements of time intervals deﬁned
+by invariant and guard constraints. This then makes
+computing the optimal run from all possible runs a
+challenging task.
+Asolutiontothisproblemisprovidedbythe zone
+abstraction technique. A zone Zis an inﬁnite set of
+possible clock valuations in a location l, which is ex-
+pressed as a conjunction of ﬁnitely many inequalities
+such asci-cj≤norci≤nwithci,cj∈Candn
+∈R≥0. A symbolic state is formed by the combina-
+tion of a location and the zone for the corresponding
+location ( l,z). All symbolic states qsconstitute the
+symbolic state space Qs. The symbolic semantics is
+deﬁned in terms of a symbolic transition system in SCHEDULING OF MULTI-PRODUCT BATCH PLANTS USING REACHABILITY ANALYSIS OF TIMED 
+AUTOMATA MODELS 
+143
+
+
+--- Page 4 ---
+which zones Zreplace single clock valuations u. A
+symbolic trace ρsis a sequence of symbolic states in
+which the zones are computed by applying intersec-
+tions,delay and reset operations deﬁned forzones.
+Themainadvantageofthezoneabstractionisthat
+the symbolic state space Qsis enumerable and forms
+adirected symbolic reachability graph with nodes
+fromQsand arcs from Δs. The aim of the cost op-
+timalreachabilityanalysisistoﬁndthecheapestpath
+from the initial state to a target symbolic state us-
+ing weighted shortest path algorithms. The result-
+ing shortest path obtained corresponds to the optimal
+symbolic trace ρs∗. The shortest trace ρ∗can then be
+derived by picking the minimal clock valuations u∗
+i
+from the zones Z∗
+iof the symbolic states along the
+path.
+3 SCHEDULINGBASEDON TA
+After the global composed timed automaton is
+constructed through parallel composition , a (cost-
+optimal) reachability analysis is performed to derive
+the schedules. This enumerative technique explores
+the symbolic state space step-by-step by evaluating
+the symbolic successor relation on-the-ﬂy. The ba-
+sicreachabilityalgorithmfrom(Paneketal.,2007)is
+given below:
+Algorithm 1 Acost-optimal reachability algorithm
+1cost∗=∞
+2W:={q0};P:=∅
+3WhileW/ne}ationslash=∅
+4 q= selectRemove (W)
+5 Ifq/∈P
+6P:=P∪ {q}
+7 Ifcost (q)<cost∗
+8 Ifﬁnal (q)
+9 cost∗:=cost(q)
+10 Else
+11 S:=succ (q)
+12 S′:= reduce (S)
+13 W:=W∪S′
+14 End
+15 End
+16 End
+17End
+The algorithm operates on the nodes of the graph
+which contains the information on the location, clock
+valuations, accumulated cost and some additional
+data. The list of nodes that are to be explored is rep-
+resented by the setWcalled the waiting list . The
+waiting listWinitially contains only the initial node
+q0which in our case corresponds to the state whereno jobs have been started. The set Prepresents the
+passed list , a list of already explored nodes, which is
+normally empty at the start of the search algorithm.
+cost∗holds the cost of the best path found so far
+andqcorresponds to the node that is currently ex-
+plored.Sis the set of immediate successors that can
+bereachedbyasingletransitionfrom q. Thefunction
+selectRemove (W)selects and removes a node from
+Wwhich is minimal according to the ordering ≤sel
+deﬁned by the tree search strategy. In order to avoid
+visiting and exploring the same node repeatedly, the
+testq/∈Pis performed. final(q)checks whether q
+is a target node. The function succ(q)computes the
+immediate successor nodes of qand stores them tem-
+porarily inS. The function reduce(S) is used to re-
+move those nodes that cannot contribute to a better
+path or to the optimal run. The test cost(q)<cost∗
+compares the cost value of the current node with the
+best cost value found, thereby avoiding exploration
+of non-optimal runs if the comparison fails. The de-
+cision criteria for the function reduceare based on
+timed transitions to successor nodes and will be dis-
+cussed indetail inthefollowing sections.
+4 REDUCTIONTECHNIQUES
+This section discusses three methods to make the
+search forthe optimal schedule more efﬁcient.
+4.1 ImmediateSchedules
+In (Abdeddaim and Maler, 2001), it has been shown
+that for job-shop problems with the makespan min-
+imization as objective, the trace corresponding to
+an optimal schedule is always immediate . A non-
+immediate trace contains a transition sequence ··· →
+(l,u)τ→(l,u+τ)α→(l′,u′)→ ···where the αtransi-
+tiontakenat (u+τ)isalreadyenabledat (u+τ′)with
+τ′<τ. Such traces exhibit periods of useless waiting
+in the schedule. Waiting is useless if, e.g., no tasks
+are started while the required resource is available
+(see Figure 3). Non-immediate traces can be trans-
+formed to immediate traces by reducing such waiting
+periods to zero. A reduction by τ−τ′leads to the
+partial trace (l,u)τ′
+→(l,u+τ′)α→(l′,u′)and can re-
+ducetheoveralllengthofthecorrespondingschedule.
+This infers that it is sufﬁcient to search for immedi-
+ate traces in the symbolic state space. The effect of
+the reductions of the waiting times is that the zones
+in the symbolic states collapse to single clock valua-
+tions and the symbolic reachability graph is reduced
+to nodes representing symbolic states (l,u). The arcsICINCO 2007 - International Conference on Informatics in Control, Automation and Robotics
+144
+
+
+--- Page 5 ---
+(l ,u)(l’’ ,u’’)
+(l’ ,u’)(l’’’ ,u’’’)d < tLaziness = ti
+kR1
+R2
+(l ,u) (l’’ ,u’’)
+(l’ ,u’) (l’’’ ,u’’’)Non-immediatei R1
+R2k
+time timek kt
+Figure3: Non-immediate andLazy schedule.
+ofthesymbolicreachabilitygraphbecometimedtran-
+sitions: pairs of discrete and time transitions τain
+whichτis the smallest possible delay needed to sat-
+isfytheguardofthediscretetransitionwiththeaction
+a. ZonesZin the symbolic states can be replaced by
+vectors of clock valuations usuch that (l,u)is a state
+of animmediate trace.
+4.2 OrdinaryandStrictNon-Laziness
+In (Abdeddaim and Maler, 2001) also a concept to
+avoid unnecessary waiting known as non-laziness
+was introduced. Consider a case in which a current
+node(l,u)with two discrete transitions as succes-
+sors namely αR1
+iandαR2
+kthat allocate resources R1
+andR2to jobsiandk, exists. The releasing tran-
+sitions are represented as φR1
+iandφR2
+k. The transi-
+tionαR2
+kwas already enabled at the same time when
+the transition αR1
+iwas enabled. In the partial trace
+(l,u)0αR1
+i→(l′,u′)tφR1
+i→(l′′,u′′)0αR2
+k→(l′′′,u′′′)theenabled
+transition αR2
+kis taken at a later stage by waiting to
+ﬁnish job ithereby introducing laziness. In order to
+remove laziness in a trace, waiting in a node for tor
+more than tunits is forbidden when all the following
+conditions are satisﬁed:
+(a) there exists a successor of (l,u)in which an
+operation of duration dcan be started by an enabled
+discretetransitionthat allocates aresource toajob.
+(b)The duration dofthisoperation satisﬁes d≤t
+(c) if the allocating transition is permanently en-
+abled and the resource allocated by that transition is
+available for more than d−tunits (provided d>t).
+The term ordinary laziness is used since a short wait-
+ing time according to conditions (b) and (c) is per-
+mitted. A stricter condition with respect to waiting is
+thestrictnon-laziness ,whichisobtainedbyremoving
+conditions (b) and (c). Thus, whenever there exists
+at least one timed transition to start a new task wait-
+ing is forbidden in a state. In comparison to ordinary
+non-laziness this scheme prunes more time succes-
+sors. However the strict condition might also prunei
+k
+time(l,u)
+(l’,u’)   (l’’,u’’)i
+k
+time(l,u)(l’,u’)
+(l’’,u’’)k
+time
+(l,u)(l’,u’)
+(l’’,u’’)i
+τ0α (k)   0α (i)   
+τα (k)   τϕ (i)
+τϕ (k)τϕ (i)
+Allocate - Allocate Finish - Allocate Finish- Finishτ0α(i)  0α (k)   
+0α (k)   0α (k)   τϕ (i)
+0ϕ (i) 0α (k)   τα (k)   τϕ (k) τϕ (i)
+0ϕ (i) 0ϕ (k)
+Figure4: Sleep setconﬁgurations.
+the optimal trace as in some problems the optimal
+schedules may have ashort waiting period.
+4.3 Sleep-SetMethod
+The sleep-set method was originally introduced in
+(Godefroid, 1991) to reduce possible partial orders
+and to avoid exploring obsolete runs in the reacha-
+bility graph. The application of the method to job-
+shopproblemswasﬁrstimplementedin(Paneketal.,
+2006). In the symbolic reachability graph different
+symbolic traces which correspond to the same sched-
+ule may exist. This is due to the interleaving seman-
+ticsof the TA model. Such traces includes transitions
+that are taken at the same absolute time but can be
+traversed in different logical orders. In general, such
+transitionsshareacommonsymbolicstateatthestart
+and at the end of the transition with the same cost.
+Three common and possible conﬁgurations that can
+be identiﬁed in the reachability graph are shown in
+Figure 4. The left part of the ﬁgure shows a pair
+ofαtransitions that can be traversed in two differ-
+ent ways from a common start node (l,u). The possi-
+blelogicalorderofthetransitionpairare {α(i),α(k)}
+and{α(k),α(i)}. Both allocating transitions share
+the same end state, cost and corresponds to the same
+schedule shown. Such traces form so called diamond
+structures in the reachability graph. Similar kind of
+structures arising due to pairs of αandφtransitions
+andthecorrespondingscheduleareshowninthesame
+ﬁgure. Thus,itisevidentthatonlyoneofthetracesin
+the diamond structure has to be explored and the rest
+can be pruned.
+The idea of the sleep-set method to remove obso-
+letetracesistocomparepairsofimmediatesuccessor
+transitions from a node and mark some of them as
+candidates to be pruned. However pruning of marked
+candidates can only take place when both transitions
+are independent. Pairs of timed transitions are said
+to be independent if the corresponding operations do
+not require the same resource and taking one transi-
+tion does not block the other. It should be noted that SCHEDULING OF MULTI-PRODUCT BATCH PLANTS USING REACHABILITY ANALYSIS OF TIMED 
+AUTOMATA MODELS 
+145
+
+
+--- Page 6 ---
+pairs ofφand mixed pairs of αandφtransitions are
+independentasasingleresourcecannotﬁnishtwoop-
+erations at the same time. Not all pairs of αtransi-
+tions are always independent as they might compete
+for the same resource. An outgoing transition τδis
+said to be time persistent in a given symbolic state
+(l,u,p)attimet,ifthediscretetransition δistakenat
+t+τfor every partial run starting from (l,u,p)with
+τ≥0. Given a symbolic state with outgoing transi-
+tionsτδiandτδj,τδjis marked as a candidate for re-
+ductionif τδiistimepersistentandviceversa. Ifboth
+are time persistent, then the transition with a higher
+resource index is removed. This reduction however
+does not work when comparing two αtransitions as
+they are not time persistent. An allocated task must
+alwaysbeﬁnished. Thisshowsthatalloutgoingtran-
+sitions that release a resource are time-persistent and
+appear infuturepartsofthetrace. Since αtransitions
+are not time persistent, in general they cannot be re-
+moved. However it is possible to identify eagerα
+transitionswhichbecomeimplicitlytimepersistentin
+a non-lazy run. A transition ταiwhich is an imme-
+diate successorSof a state is called eager if for all
+τjφj∈Seither (a) τ+dur(αi)≤minj{τj|τjφj∈S}
+or (b)τ≥maxj{τj|τjφj}or (c)τ≥0 if noφtransi-
+tions exist inS. A strict approach is to use the same
+strategy to remove transitions if they are independent
+andnottocheckwhetherthetransitionistimepersis-
+tent. Thisstrictpruningstrategycausesaconsiderable
+reduction of the reachability graph to a considerable
+amount. However,itmayremovetheoptimaltraceas
+apruned transitioncan be part ofthe optimal trace.
+5 EXAMPLEPROCESS
+In order to depict the applicability and the effective-
+ness of the approach discussed here, the case study
+presented by (Bauer et al., 2000) is considered. The
+case study is a multi-product chemical batch plant
+with 3 stages in which two end-products, XandY,
+are produced from three raw materials, A,BandC.
+The production process considered is: one batch of
+materialAandCeach reacts to produce one batch of
+productX; similarly one batch of BandCreacts to
+produce one batch of product Y. The plant executing
+theproduction process isshown inFigure 5.
+The ﬁrst stage consists of three buffer tanks B11,
+B12 and B13 that store the raw materials A, Cand
+B. The second stage consists of three reactors R1, R2
+and R3. Each reactor may be ﬁlled from each raw
+material buffer tank in the ﬁrst stage; implying that it
+is possible to produce either product XorYin each
+reactor. After processing the materials a reactor mayB11
+R1 R3 R2M M MB13
+B31 B32P1
+P3
+LIS LIS
+LIS LIS LISLIS
+13 11
+21 22 2312B12P2
+Level□2
+Reactants
+Reaction□(Reactors)
+Level□3
+ProductsLevel□1
+Raw□material
+(Buffer□tanks)
+P5
+P4A C B
+X Y
+Figure 5: Thestructureof theexample process.
+contain one batch of the product (resulting from two
+batches of raw material). The third stage consists of
+twobuffertanksB31andB32whichareusedtostore
+the end-products XandY. Each of the tanks has a
+maximum capacity to store three batches of the prod-
+uct. The proposed scheduling problem is to derive
+productionschedulestoproduce2batchesoftheend-
+productswithaminimummakespan. Afterbeingpro-
+cessed by the reactors the materials must be drained
+intothebuffer tanks inthethirdstage immediately.
+RTN description of the problem considered is
+shown in Figure 6. Materials A, CandBare rep-
+resented as S1,S2andS3. The tasks T1,T2andT3
+represents the task of pumping materials A, CandB
+intobuffertanksB11,B12andB13,respectively. The
+tasksT4,T6andT8represent the step of draining one
+batchofAfromB11intothereactorsR1,R2andR3.
+Similarly, tasks T11,T13andT15represent draining of
+materialBfrom B13 into the reactors. The tasks T5,
+T7andT9represent mixing one batch of Cfrom B12
+withonebatchof A,alreadypresentinR1,R2andR3
+in order to produce X. The tasks T10,T12andT14rep-
+resent similar actions for producing one batch of Y.
+The tasks T16,T17andT18represent the step of drain-
+ing one batch of Xfrom R1, R2 and R3, respectively,
+into the buffer tank B31. Tasks T19,T20andT21rep-
+resent draining one batch of Yfrom R1, R2 and R3
+into tank B32. The tasks T22andT23represent drain-
+ing of two batches of Xfrom B31 and two batches
+ofYfrom B32 to the product storage, respectively.
+Theconstraintonthewaitingtimeisexpressedbythe
+places P 2,P4,P6,P8,P10andP12. Theplaces P 1,P3,
+P5,P7,P9andP11areestablishedtoensurethatmate-
+rialCis drained into the reactors only after either A
+orBhas been drained.ICINCO 2007 - International Conference on Informatics in Control, Automation and Robotics
+146
+
+
+--- Page 7 ---
+R1S1
+0.5T1
+[0,0]     
+     
+     
+                       
+ 
+          
+                                
+   
+   
+   [0,0][0,0]
+[0,0][0,0]
+[0,0][0,0]
+[0,0][0,0]
+[0,0][0,0]
+[0,0]S4S2
+S5S3
+S6
+S12 S11S10S9S8S7
+S13
+S15S16S14T4 T5T6
+T16 T17
+T22T18T7T8T9T10T11T12T13T15T14T2 T3
+T19T20
+T23T21     
+    
+           
+0.50.5 0.50.5 0.50.5 0.5 0.5 0.5 0.5 0.5R4 R5R2
+R6 R4R3
+R5 R6
+R7
+R9R8
+R10P1
+P2P3
+P4P5
+P6P7
+P8P9
+P10P11
+P12
+Figure6: TheRTNof the example process.
+5.1 TAModel
+The TA model consists of 10 resource automata to
+model the individual resources. The places are mod-
+eledasseparateautomata. Theresourceautomataand
+theplaceautomatahaveoneclockeachtomeasurethe
+task durations and time interval for storage. An addi-
+tional global clock which is never reset is included in
+themodeltomeasurethemakespan. Theresourceau-
+tomaton for resource R4and the place automaton P2
+areshowninFigure7. Theautomaton R4hasoneidle
+location and four busy locations indicating the exe-
+cution of either of the tasks T4orT5orT10orT11.
+TasksT4andT11processonebatchofmaterial S4and
+S6with task duration of 15 and 11 units. The tim-
+ing constraint between task T5and task T16is mod-
+eledbytheplaceautomaton P2ontherightside. Task
+T5after ﬁnishing its process in R4produces a token
+in the place P1by taking the synchronized transitions
+inR5andP2with the label φ5. The clock C12is re-
+set and forces P2to leave the location ﬁlledwithout
+waiting. Thishappensbystartingtask T16andbytak-
+ing the synchronized transitions with label α16inR7
+andP2. AnautomatictranslationfromtheRTNtothe
+TA model was performed by the tool TAOPT (Panek
+et al.,2005).
+5.2 ComputationalExperiments
+The scheduling problem presented in the example
+process was solved by a Xeon machine with a CPU
+speedof3.06GHz,2.0GBofmemoryandalinuxop-
+eratingsystem. Forthecostoptimalsymbolicreacha-
+bilityanalysis,thesoftwaretoolTAOPT(Paneketal.,
+2005) which supports different state space reduction
+techniques as discussed above: immediate traces,
+Figure7: Structureof the resourceand place automaton.
+(strict)non-lazy runs andsleep-set method was used.
+Acombinationofthedepth-ﬁrstandbest-ﬁrststrategy
+was used for exploring the graph. Among the nodes
+in the waiting list, the node with the maximum depth
+is given a higher priority, among the nodes with the
+same depth, priority is given to the node with a mini-
+mum cost. If two or more nodes have the same depth
+and cost, one of them ischosen randomly.
+The Table 1 shows the results obtained by re-
+stricting the search to only immediate traces repre-
+sented as Noneand with other state space reduction
+techniques: ordinarynon-lazyruns( NLordinary ),strict
+non-lazy runs and strict sleep-set method ( SSMstrict).
+For all tests the complete reachability graph was ex-
+plored. The second column that represents the total
+timeneededtocomputethereachabilitygraphandthe
+totalnumberofnodesexploredinthethethirdcolumn
+revealthatthestrictsleep-setmethodreducesthestate
+space and computational effort considerably. On the
+otherhanditprunestheoptimalsolutions. Thefourth
+column represents the time taken in CPU seconds to SCHEDULING OF MULTI-PRODUCT BATCH PLANTS USING REACHABILITY ANALYSIS OF TIMED 
+AUTOMATA MODELS 
+147
+
+
+--- Page 8 ---
+Table 1: Computational results.
+Firstsolution Best solution
+Reduction technique Total time Total nodes timenodesCmax Cmax
+None 58.832 493167 0.0321875100 98
+NLordinary 2.104 37483 0.0482157 98 98
+SSMstrict 0.476 13374 0.1206492131 128
+SSM+NLordinary 1.084 28583 0.040 681102 98
+compute the ﬁrst feasible solution when different re-
+duction techniques were used. The test with nor-
+mal sleep set method which compares and removes
+only time persistent pairs of transitions in combina-
+tionwithordinarynon-lazyrunswasperformed. This
+is represented as SSM+NLordinaryin the table 1. The
+combination of SSM+NLordinaryfound the optimal
+solution. This is due to the fact that only time per-
+sistent transitions were pruned. No solutions could
+be found for the strict non-laziness setting when ap-
+plied alone or in combination with the strict sleep-set
+method and the normal sleep-set method. It should
+be noted that the reduction techniques ordinary non-
+lazy runs and the normal sleep-set method are the
+only combinations which theoretically guaranty that
+theoptimalsolutionisnotpruned. Thestrictsleepset
+method ingeneral should only be usedas aheuristic.
+6 CONCLUSION
+A new and a straightforward approach to model
+scheduling problems in multi-product batch plants
+andtoderiveproductionschedulesbasedonsymbolic
+reachability analysis of TA has been introduced. The
+experimental results show that the method can solve
+scheduling problems in process industries efﬁciently
+within a limited computation time. The main aspect
+to be considered is the time required by the TA ap-
+proach to specify and formulate the scheduling prob-
+lem. It is relatively easy when compared to formulat-
+ing it as MILP which are usually cumbersome. The
+efﬁciency oftheapproachtoderivesolutionswithre-
+duced computational effort have been achieved with
+different search space reduction techniques.
+Future work on the TA based approach will focus
+on online scheduling problems in which the arrival
+time of jobs is not known in advance and subject to
+random perturbations.
+ACKNOWLEDGEMENTS
+Theauthorsgratefullyacknowledgetheﬁnancialsup-
+port by the Graduate School of Production Engineer-ingand Logistics at the University ofDortmund.
+REFERENCES
+Abdeddaim, Y. and Maler, O. (2001). Job-shop scheduling
+using timed automata. Computer Aided Veriﬁcation
+(CAV),Springer ,pages 478–492.
+Alur, R. and Dill, D. (1994). A theory of timed automata.
+Theor.Comp.Science , 126(2):183–235.
+Barthomieu, B. and Diaz, M. (1991). Modeling and
+veriﬁcation of time dependent systems using timed
+petri nets. IEEE Transactions Software Engineering ,
+126(2):259–273.
+Bauer, N., Kowalewski, S., Sand, G., and Loehl, T. (2000).
+A case study: Multi product batch plant for the
+demonstration of scheduling and control problems.
+InADPM2000 Conference Proceedings-Hybrid Dy-
+namic Systems ,pages 383–388. Shaker.
+Behrmann, G., Fehnker, A., Hune, T., Peterson, P., Larsen,
+K., and Romjin, K. (2001). Efﬁcient guiding to-
+wards cost-optimality in UPPAAL . InProceedings
+TACAS’01 ,pages 174–188.
+Godefroid, P. (1991). Using partial orders to improve auto-
+maticveriﬁcationmethods. InProc.2ndWorkshopon
+Computer AidedVeriﬁcation , 531of LNCS:176–185.
+Kallrath, J. (2002). Planning and scheduling in the process
+industry. OR Spectrum , 24:219–250.
+Panek, S., Engell, S., and Lessner, C. (2005). Scheduling
+of a pipeless multi-product batch plant using mixed-
+integerprogrammingcombinedwithheuristics.In Eu-
+ropeanSymposiumonComputerAidedProcessEngi-
+neering,ESCAPE15 ,pages 1033–1038.
+Panek, S., Engell, S., and Stursberg, O. (2006). Efﬁcient
+synthesis of production schedules by optimization of
+timed automata. Control Engineering Practice , pages
+149–156.
+Panek,S.,Engell,S.,Subbiah,S.,andStursberg,O.(2007).
+Scheduling of multi-product batch plants based upon
+timed automata models. Submitted to Comp. Chem.
+Eng.
+Pantelides, C. (1994). Uniﬁed frameworks for optimal pro-
+cess planning and scheduling. In Proceedings 2nd
+conference Foundations of Computer Aided Process
+Operations ,pages 253–274.ICINCO 2007 - International Conference on Informatics in Control, Automation and Robotics
+148
+

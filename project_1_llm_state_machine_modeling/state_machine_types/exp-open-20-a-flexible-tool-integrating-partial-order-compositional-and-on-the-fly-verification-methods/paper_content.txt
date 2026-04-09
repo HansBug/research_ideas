@@ -1,0 +1,917 @@
+--- Page 1 ---
+HAL Id: inria-00070339
+https://inria.hal.science/inria-00070339v1
+Submitted on 19 May 2006
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Exp.Open 2.0: A Flexible Tool Integrating Partial Order,
+Compositional, and On-the-fly Verification Methods
+Frédéric Lang
+To cite this version:
+Frédéric Lang. Exp.Open 2.0: A Flexible Tool Integrating Partial Order, Compositional, and On-the-fly Veri-
+fication Methods. RR-5673, INRIA. 2005, pp.21. ⟨inria-00070339⟩
+
+--- Page 2 ---
+ISSN 0249-6399        ISRN INRIA/RR--5672--FR+ENGapport 
+de rechercheTh`eme COMINSTITUT NATION ALDERECHERCHE ENINFORMA TIQUEETENAUTOMA TIQUE
+Exp.Open 2.0: AFlexible ToolIntegrating Partial
+Order ,Compositional, andOn-the-ﬂy Veriﬁcation
+Methods
+Fr´ed´ericLang
+N°5673
+Septembre 2005
+
+--- Page 4 ---
+Unit´ederecherche INRIA Rhˆone-Alpes
+655, avenue del’Europe, 38334 Montbonnot Saint Ismier (France)
+T´el´ephone :+33476615200—T´el´ecopie +33476615252Exp.Op en2.0:AFlexible ToolIntegrating Partial
+Order, Comp ositional, andOn-the-y Verication
+Metho ds
+FredericLang
+ThemeCOM |Systemescomm unican ts
+ProjetVASY
+Rapportderecherchen
+5673|Septem bre2005|21pages
+Abstract: Itisdesirable tointegrate formal verication techniques applicable todieren t
+languages. Wepresen tExp.Open 2.0,anewtooloftheCadp verication toolboxwhich
+combines severalfeatures. First,Exp.Open 2.0allowstodescrib econcurren tsystems asa
+composition ofnitestatemachines, using either synchronization vectors, orparallel compo-
+sition, hiding, renaming, andcutoperators fromseveralprocessalgebras (Ccs,Csp,Lotos ,
+E-Lotos ,Crl).Second, together withother toolsofCadp ,Exp.Open 2.0allowsstate
+space generation andon-the-y exploration. Third, Exp.Open 2.0implemen tson-the-y
+partial order reductions toavoidthegeneration ofirrelev antinterleavings ofindependen t
+transitions. Fourth, Exp.Open 2.0allowstoexportmodelstowardsother toolsusing inter-
+change formats suchasautomata networksandPetrinets.Finally ,weshowsomepractical
+applications andmeasure theeciency ofExp.Open 2.0onseveralbenchmarks.
+Key-w ords: Concurren tsystem, compositional verication, enumerativ everication,
+explicit stateverication, labelledtransition system, modelchecking,on-the-y verication,
+parallel composition, partial order reduction, processalgebra, synchronization vector
+Ashort version ofthisreportisavailable as\Exp.Op en2.0:AFlexible ToolIntegratingPartial Order,
+Compositional, andOn-the-y VericationMethods",inJ.vandePol,J.Romijn, andG.Smith, editors,
+Proceedings ofthe5thInternational Conference onIntegrated Formal Metho dsIFM'2005 (Eindho ven,The
+Netherlands), November29-Decem ber2,2005.
+Frederic.Lang@inria.fr
+
+--- Page 5 ---
+Exp.Op en2.0:unoutilexible integrantreductions
+d'ordres partiels, verication compositionnelle et
+verication alavolee
+Resume:Ilestsouhaitable d'integrer lestechniques deverication formelle appli-
+cables adierentslangages. Nous presentonsExp.Open 2.0,unnouveloutildelabo^tea
+outils Cadp ,quicombineplusieurs fonctionnalit es.Premi eremen t,Exp.Open 2.0per-
+metdedecrire dessystemes concurren tscomme descompositions demachines aetats
+nis, enutilisan tdesvecteurs desynchronisation etdesoperateurs decomposition pa-
+rallele,demasquage, derenommage etdecoupure tiresdeplusieurs algebres deproces-
+sus(Ccs,Csp,Lotos ,E-Lotos ,Crl).Deuxi ememen t,avecd'autres outils deCadp ,
+Exp.Open 2.0permet degenereretd'explorer alavoleelesespaces d'etatsdessystemes
+decrits. Troisiememen t,Exp.Open 2.0metenuvre desreductions d'ordre partiel ala
+voleeand'eviter lageneration d'entrelacemen tsinutiles detransitions independan tes.Qua-
+triememen t,Exp.Open 2.0permet d'exporterlesmodelesversd'autres outils parlebiais
+deformats d'echange, telsquedesreseaux d'automates etdesreseaux dePetri. Fina-
+lemen t,nouspresentonsquelques applications pratiques etnousmesurons l'ecacit ede
+Exp.Open 2.0surplusieurs casd'etude.
+Mots-cl es: algebredeprocessus, composition parallele,modelchecking, reduction
+d'ordre partiel, systemeconcurren t,systemedetransitions etiquet ees,vecteur desyn-
+chronisation, verication alavolee,verication compositionnelle, verication demodele,
+verication enumerativ e
+
+--- Page 6 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 3
+1Introduction
+Enumer ative (orexplicit state)verication isametho dtochecktheproperbehaviour of
+safety-critical nite-state systems. Itconsists ingenerating thestate space systematically
+(ifpossible, exhaustiv ely),andinverifying properties bymodelchecking,visual checking,
+orequivalenc echecking.Forsystems involving asynchronous concurrency ,thestatespace is
+often represen tedasaLabelledTransition System (Ltsforshort) [47].
+Awell-kno wnproblem withenumerativ everication isthecombinatorial state explosion,
+whichoftenoccursasthenumberofconcurren tprocesses increases. Toghtstateexplosion,
+severaleectiv etechniques havebeenproposed:Partial orderreductions (e.g., [26,58,50,32,53,30,48])trytoavoidthegeneration
+ofirrelev antinterleavings ofindependen ttransitions.On-the-y verication (e.g.,[16,15,38,33,46,45])consists inperforming Ltsgener-
+ation andverication atthesame time. Thisavoidstogenerate theentireLtswhen
+theverication onlyrequires apartofit.Compositional verication (e.g., [14,44,56,28,57,61,63,10,27,42,55,25,18])
+consists ingenerating theLtsofeachconcurren tprocessrst(possibly restricted using
+constrain tsderivedfromitsenvironmen t[28,10,63,27,42,25,18]),thensimplifying
+theseLtssusing abstraction criteria (forinstance, labelhiding andreductions modulo
+bisimulations) thatpreserv etheproperties under verication, andnally recomp osing
+thereduced Ltsstogenerate theLtscorresp onding tothewhole system.
+Inpractice, manysoftwaretoolshavebeendevelopedtoimplemen ttheseideas. Nevertheless,
+these toolsoften suer fromseverallimitations:Most toolsareoften dedicated toonespecic input formalism, e.g.,Petrinets,com-
+municating automata, oraparticular processalgebra. Ontheopposite, aunied tool
+accepting severalinput formalisms wouldbemoreexible bycombining theexpressiv e-
+nessofdieren tinput languages andbyhavingitsverication algorithms accessible
+byawider comm unityofusers.Although there existtoolscombining twoamong thethree aforemen tioned verication
+techniques, suchasSpin[37](partial order andon-the-y verication) andAra[60]
+(partial order andcompositional verication), toourknowledge, combining thethree
+techniques hasneverbeendone.
+Inthisreport,wepresen tExp.Open 2.0,anewtoolthat addresses these issues.
+Exp.Open 2.0ispartofCadp [19](Construction andAnalysis ofDistribute dProcesses)1,
+atoolboxforprotocolengineering thatoers functionalities ranging frommereinteractiv e
+simulation uptothemost recentverication techniques. Exp.Open 2.0builds uponthe
+existing softwarecomponentsofCadp ,especially forhandling Ltss.
+Earlier versions ofCadp contained atoolnamed Exp.Open 1.0,developedin1995by
+L.Mounier (UniversiteJoseph Fourier, Grenoble, France), thatcombined on-the-y veri-
+cation andcompositional verication forLotos [39].TodevelopExp.Open 2.0,wedeeply
+revisited theprinciples ofExp.Open 1.0andrewrote thetoolentirely fromscratc htoextend
+itsinput language, toprovidenewfunctionalities, andtosupportpartial order reductions.
+1http://www.inrialpes.fr/ vasy/cadp
+RRn
+5673
+
+--- Page 7 ---
+4 F.Lang
+Thisreportisorganized asfollows.Section 2describ esinputs ofExp.Open 2.0.Section 3
+presen tsitsfunctionalities. Section 4presen tspractical applications andgivesexperimen tal
+results forseveralapplications. Section 5nally concludes thereport.
+2TheExp.Op en2.0language
+2.1LabelledTransition Systems andcomposition expressions
+Thebasicconcept usedbyExp.Open 2.0isthestandard Ltsmodel[47],whichconsists of
+asetofstates,aninitial state,andasetoftransitions betweenstates, eachtransition being
+labelledbyaneventofthesystem. Aparticular labelwritten represen tsaninvisible (or
+internal) event.Thecontentsofstates arenotobserv able.
+Inpractice, alabelisrepresen tedbyacharacter string. Exp.Open 2.0doesnotimposea
+particular syntaxandthusaccepts labelsfromdieren tsource languages, suchasCcs[47],
+Csp[55],Lotos [39],E-Lotos [40],andCrl[31].
+Asregards theseman ticstructure oflabels,most languages assume thatalabelconsists
+ofagate(i.e.,aportname, achannel name) anda(possibly empty)listoftypedvalues,
+herecalled oers.Forinstance, ifGisagate,bothlabels\G!1!2"(Lotos notation) and
+\G(1;2)"(Crlnotation) areaccepted byExp.Open 2.0.Labelsobtained fromCcsmay
+alsostartwithaco-action symbol,generally written'.
+Ltssarestored incomputer les,using oneofthefourformats available inCadp :Bcg
+(Binary CodedGraph),Aldebaran (textual), sequen tialFc2,andSeqfortransition se-
+quences [20].Other leformats canbeconverted intoBcgusing theBcgIotoolofCadp .
+Theinput language ofExp.Open 2.0allowstodene compositions ofLtss,named com-
+position expressions .Figure 1presen tsanextended Bnfdescribing theabstract syntax
+ofcomposition expressions. Theconcrete syntaxcanbefound in[43].Thesymbolsin
+italic arethenon-terminal andgeneric terminal symbols.Subscripts areusedforthesake
+ofreadabilit y,e.g.,B0;B1;:::areoccurrences ofthesame non-terminal B.Thesymbols
+\::=", \j",\[",\]",\(",\)",and\:::"aremeta-sym bols:\::=" introduces thedenition
+ofanon-terminal symbol,\j"separates alternativ eclauses, \[]"delimit optional clauses,
+\()"areusedforbracketingasusual, andtheinx\:::"meta-sym boldenotes repetition,
+e.g.,\L1,...,Ln"denotes therepetition ofn0symbolsseparated bycommas and\B1
+||...||Bn"denotes therepetition ofn0symbolsseparated by||.Allremaining symbols
+aretheterminal symbols,i.e.,thekeywords(written inboldfont,suchasgate,all)and
+keysymbols(written inteletypefont,suchas\{",\ ").Inparticular, \[",\]",and\|"
+areterminal symbolsdistinct fromthemeta-sym bols\[",\]",and\j".
+Thegeneric terminal symbolsL;L0;L0;L1;:::represen tarbitrary character strings,
+n;n1;n2;:::represen tarbitrary natural numbers,S;S0;S1;:::represen tLtss,and
+P;P0;P1;:::represen tpatterns (whichwillbedened below).Thenon-terminal symbols
+B;B0;B1;:::represen tcomposition expressions, oprepresen tsbinary inxparallel compo-
+sition operators, andV;V0;V1;:::represen tsynchronization vectors.
+Theseman ticsofacomposition expression isitselfanLtsthatwedene inthefollowing
+sections.
+INRIA
+
+--- Page 8 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 5
+B::=S0 (1)
+j[gate jtotal jsingle jmultiple ]rename
+(L1
+L0
+1,...,Ln
+L0
+njusing P0)inB0endrename (2)
+j[gate jtotal jpartial ]hide
+([allbut]L1,...,Lnjusing P0)inB0endhide (3)
+j[gate jtotal jpartial ]cut
+([allbut]L1,...,Lnjusing P0)inB0endcut (4)
+j[gate jlabel]par(alljL1[#n1],...,Lm[#nm])in
+[L1
+1,...,Lp1
+1
+]B1||...||[L1
+n,...,Lpnn
+]Bnendpar (5)
+j[gate jlabel]parV1,...,VminB1||...||Bnendpar (6)
+jB1opB2 (7)
+jB0/{L1,...,Ln} (8)
+jB0[L1/L0
+1,...,Ln/L0
+n] (9)
+jB0[[L1
+L0
+1,...,Ln
+L0
+n]] (10)
+op::=|j||j|||j|[L1,...,Ln]|
+j[|L1,...,Ln|]j[L1,...,Ln||L0
+1,...,L0
+n]
+V::= (L1j)*...*(Lnj)L0
+Figure 1:Abstract syntaxoftheExp.Open 2.0input language.
+2.2Renaming, hiding, andcutoperators
+Renaming (replacing occurrences ofavisible label),hiding (renaming avisible labelinto),
+andcut2(eliminating alltransitions withaparticular visible label,possibly attheexpense
+ofcreating unreac hable states), areclassical notions inprocessalgebras.
+Forconvenience, Exp.Open 2.0supportstheusual notations forthese operators found in
+CcsandCsp(Rules 8,9,and10).Rule8represen tseither Ccsrestriction orCsphiding,
+whichhavesame syntaxbutdieren tseman tics.Rules 9and10represen tCcsandCsp
+renaming, respectively.Inthese three rules, L1;L0
+1;:::;Ln;L0
+naresimple gates.
+Exp.Open 2.0alsosupportsmore expressiv eoperators forrenaming, hiding, andcut
+(Rules 2,3,and4),whichgeneralize classical operators inseveralways:Thelabelstorename, hide,orcutcanbespecied either asalist(L1,...,Ln),oras
+apattern (\using P0"),whichconsists ofareusable listoflabelsorrenaming rules,
+stored inaseparate leforconvenience. Thelatter allowstofactor rulesusedseveral
+times, ortoisolate complex rules.Forhiding andcut,the\allbutL1,...,Ln"construct allowstodene asetcon-
+taining alllabelsbutL1,...,Ln.L1,...,Lncanbestrings, orregular expressions (followingthesyntaxofthePosix
+\regexp "library) thatlabelsmaymatchusing three dieren tseman tics:gatemeans
+thatalabelmatchesonlyifitsgatematchesaregular expression; total means that
+2Cutisalsocalled restriction inCcsandencapsulation inCrl.
+RRn
+5673
+
+--- Page 9 ---
+6 F.Lang
+alabelmatchesifitmatchesaregular expression entirely; andpartial means thata
+labelmatchesifitcontainsasubstring thatmatchesaregular expression. Asregards
+renaming, partial matchingisrened intotwosub-cases: single means thatonly
+therstoccurrence ofasubstring matchingaregular expression isreplaced, whereas
+multiple means thatallsuchoccurrences arereplaced. Thegate matchingisthe
+default, asitcorresp ondstotheseman ticsfound inclassical processalgebras.
+Example 1Theexpression \hideGinB0endhide"hides inB0every labelwhose
+gateisG,suchas\G!1!2"or\G(1;2)".Theexpression \single rename"\(.*\)
+!\(.*\) !\(.*\)" "\1!\3!\2"inB0endrename "permutes twooers inlabels,
+e.g.,\G!A!B!C"isrename dinto\G!B!A!C"3.
+2.3Parallel composition operators
+Exp.Open 2.0containsvarious parallel composition operators, whichcanbemixed inthe
+same expression:Rule7represen tstheusual binary parallel composition operators ofCcs(\|"),Csp
+(\[|L1,...,Ln|]"and\[L1,...,Ln||L0
+1,...L0
+n]"),Crl4(\||"),andLotos
+(\||",\|||",and\|[L1,...,Ln]|").Rule5represen tsthen-ary\graphical" parallel composition operator ofE-Lotos [40,
+23].Toourknowledge, theExp.Open 2.0toolprovides therstimplemen tation of
+thisoperator inasoftwaretool.Rule6represen tsparallel composition using synchronization vectors, inspired from
+Mec[2]andFc2networks[8].
+Wedonotrecall indetails theseman ticsofthese operators, whicharegivenelsewhere.
+However,wepresen tanoverview oftheseman ticsoftheoperators ofRules 5and6,which
+arethemostgeneral andleastknownoftheExp.Open 2.0parallel composition operators.
+Fortheseparoperators, unlikerenaming, hiding, andcut,theLi'sandLj
+i'scannot bereg-
+ularexpressions. Nevertheless, Exp.Open 2.0alsoextends these operators withamatching
+mode,asfollows:gatemeans thattheLi'sdenote gates andthatalabelAmatchesLiif
+andonlyifLiisthegateofA;labelmeans thattheLi'sdenote fulllabelsandthatalabel
+Amatches LiifandonlyifAequals Li(bothgateandoers). Thegatematchingisthe
+default, asitcorresp ondstotheseman ticsfound inclassical processalgebras.
+Aglobalstate(i.e.,astateoftheresulting Lts)isatuple(s1;:::;sn),where si(i21::n)isa
+localstateofthecorresp onding Bi.Aglobal transition isobtained either bysynchronization
+ofseverallocaltransitions fsiAi!tiji2I1::ng,orbyasynchronous execution ofasingle
+localtransition siAi!ti,where i21::n.Thedestination state oftheglobal transition is
+obtained byreplacing everysiinvolvedinalocaltransition bythecorresp onding ti,whereas
+theother localstates arenotmodied.
+3Thesymbols\\("and\\)"areusedtodelimit sub-expressions. Intheright-hand side,thesymbol\\n",
+where nisanumber(\1,\2,...),issubstituted bythestring matchedbythenthdelimited sub-expression
+oftheleft-hand side.
+4Crlparallel composition dependsonuser-giv ensynchronization rules, whose scopeisthewhole com-
+position expression. Forsimplicit y,wedonotreproduceherethesyntaxofthese rules.
+INRIA
+
+--- Page 10 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 7
+Asregards Rule5,webriey recall themainfeatures ofthe\graphical" parallel composition
+operator (see[23]foraformal description andexamples):Thesimplest form, \parL1,:::,LminB1||:::||Bnendpar",isageneralization to
+noperators oftheclassical binary parallel composition operators ofCspandLotos
+withforced synchronization onL1,:::,Lm.Either onesingle componentevolves
+asynchronously byexecuting atransition whose labelAdoesnotmatchanyLi(insuch
+acase,theother componentsremain intheircurren tstate), orallcomponentsevolve
+synchronously byexecuting transitions whose labelA(thesame forallcomponents)
+matchessomeLi.Inbothcases, theresulting global transition isalsolabelledA.The
+allkeyworddenotes thesetofallgates orlabels(depending onthematchingmode)
+buttheinvisible label.IfsomeLiisfollowedby\#ni"(2nin),thenonlyni(instead ofn)ofthecompo-
+nentshavetosynchronize onLi.Thisimplemen tsarelaxed formofsynchronization
+named \mamong n"synchronization, whichisuseful toexpress comm unication be-
+tweenasubgroup ofcomponents,aswillbeillustrated later.Ifsome Biispreceded byalist,asin\L1
+i,...,Lpi
+i
+Bi",thenBimustsynchronize
+onlabelsmatchingoneoftheLj
+i'swithallother componentsalsopreceded byalist
+containing Lj
+i.Thisisanother formofrelaxed synchronization.
+Example 2In\parinG13;G12
+B1||G12;G23
+B2||G23;G13
+B3endpar",
+components BiandBj(1i<j3)communic ateongateGij.In\parG0#2inB1||
+B2||B3endpar",components communic atepairwise ongateG0.
+Rule6implemen tsparallel composition using synchronization vectors oftheform\(L1j
+)*...*(Lnj) L0",whose elemen tsatpositions 1::nmaybeeither anLi(i.e.,agate
+oralabel,depending onthematchingmode)orthesymbol\".Wedene theapplication
+ofasynchronization vector tothecurren tglobal stateasfollows:AllcomponentsBisuch
+thattheithelemen tinthevectorisanLimustexecute synchronously transitions, suchthat
+thelabelofeachtransition matchesthecorresp onding Li(thelabelsofalltransitions must
+alsohavethesame oers ingatematching); thelabeloftheresulting global transition is
+L0(followedbytheoers ofthesynchronizing transitions ingatematching). -transitions
+execute asynchronously .
+Example 3Intheexpression \gateparSndRcv CominB1||B2endpar",transi-
+tionsofB1whose gateisSndsynchr onizewithtransitions ofB2whose gateisRcv,provided
+thosetransitions havethesameoers. Thelabeloftheresulting transition consists ofthe
+Comgatefollowedbytheseoers. Inlabelmatching insteadofgate,transitions ofB1
+whose labelisSnd(gatewithout oers) would synchr onize withtransitions ofB2whose
+labelisRcv.Thelabeloftheresulting transition would beCom,without oers.
+Inprinciple, Exp.Open 2.0allowstofreely combineoperators originating fromdieren t
+languages, except incaseofoverloaded symbolsthatmayhavedieren tseman tics,suchas
+\/"(Ccsrestriction orCsphiding) and\||"(Lotos orCrlparallel composition). In
+suchcases, acommand-line option (\-ccs",\-csp",etc.) oraspecic keywordisneeded
+toindicate toExp.Open 2.0whichlanguage isconsidered. Command-line options also
+allowtochange syntactic conventions, suchastheconcrete notation oftheinvisible label
+RRn
+5673
+
+--- Page 11 ---
+8 F.Lang
+(e.g.,tau,i,t)orcase-sensitivit y(whether ornotlabelsinloweranduppercasesaretobe
+considered equal).
+Thestatic seman ticsofExp.Open 2.0ensure thatsynchronization vectors haveappro-
+priate length. They alsoforbid synchronizing, renaming, andcutting -transitions, which
+ensures thatbisimulation equivalences (strong, observ ational, branching, tau*.a, etc.) are
+congruences forallExp.Open 2.0operators [52].Thus,arbitrary composition expressions
+ofExp.Open 2.0canbeveried compositionally ,forinstance byreducing componentLtss
+separately .
+3State space exploration using Exp.Op en2.0
+3.1Translation intoaatnetworkmodel
+Toallowanhomogeneous treatmen tofcomposition expressions, Exp.Open 2.0rsttrans-
+latesthemintoageneral model,whichwecallatnetwork ofLtss(orsimply ,atnetwork).
+Flatnetworksaresimilar totheparoperator withsynchronization vectors presen tedin
+Rule6ofFigure 1.Aatnetworkisacouple ((S1;:::;Sn);Sync)consisting ofavector
+(S1;:::;Sn)ofLtss,andasetSync ofsynchronization vectors whose left-hand side(the
+parttotheleftofthearrow)havesizen.Thedierences betweenatnetworksandthepar
+operator arethatsynchronization vectors contain\full" labels(instead ofgates), including
+,andthatatnetworkshavenonested subterms except Ltss.
+Ouratnetworkmodelismore general thanthemodelusedinExp.Open 1.0,inwhich
+synchronization wasrepresen tedonlybyvectors ofgates (instead oflabels),andaglobal
+predicate indicating whether agivengatewasvisible orhidden. Thisformer modelallowed
+tomodelcomposition expressions inwhichagatewaseither visible everywhere orhidden
+everywhere, butnotpartially visible andpartially hidden atthesame time, suchasin\B
+||(hideGinB)"(Bcontaining anoccurrence ofG),whichislegalLotos code.This
+problem imposedthathide operators occuratthetop-lev elofexpressions only.Onthe
+opposite, thewhole Exp.Open 2.0input language canbetranslated intoatnetworks
+without limitations.
+Acomposition expression Bistranslated intoaatnetwork(s(B);v(B)),where s(B)
+isthevector ofallLtssusedinB,intheorder oftheiroccurrence (thusLtssoccurring
+severaltimes inthecomposition expression alsooccurseveraltimeinthevector), andv(B)
+isdened recursiv elyasfollows:ForanLtsS(Rule 1ofFigure 1),v(S)=fA!AjA2labels(S)g.Forrename ,hide,andcut(Rules 2,3,4,8,9,10),v(B0)iscomputed rst. Then,
+v(B)isobtained bytransforming eachsynchronization vector whose right-hand side
+matchesarenaming, hiding, orcutrule,asfollows:Forrenaming (respectivelyhiding),
+theright-hand sideoftheruleisrenamed (respectivelyhidden) accordingly .Forcut,
+theruleisremoved.Forparallel composition ofnsub-expressions B1;:::;Bn(Rules 5,6,7),thesets
+v(B1);:::;v(Bn)aregenerated rst.Their rulesarethenjoined (i.e.,theirleft-hand
+sidesareconcatenated and/or extended withanappropriate numberof\"symbols)
+whenev ertheirrespectiveright-hand sidesaresynchronizing labels.
+INRIA
+
+--- Page 12 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 9
+Notethatthecomplexit yforcomputing v(B)dependsonthenumberoflabelsineachofthe
+Ltssins(B),butnotontheirnumberofstates andtransitions. Therefore, thetranslation
+fromcomposition expressions intoatnetworksisnotsubjecttostateexplosion.
+Example 4FortheLotos composition expression \B=(S1|||S2)|[G]|S3",where
+S1,S2,andS3areLtssandGalistofgates, s(B)=(S1;S2;S3)and
+v(B)=fA** !AjA2labels(S1);gate(A)=2Gg [
+f*A* !AjA2labels(S2);gate(A)=2Gg [
+f**A!AjA2labels(S3);gate(A)=2Gg [
+fA**A!AjA2labels(S1)\labels(S3);gate(A)2Gg[
+f*A*A!AjA2labels(S2)\labels(S3);gate(A)2Gg
+Exp.Open 2.0allowstoexportatnetworksintomodelssuitable forvarious verication
+tools:Petrinetsinthe\low-level"Pepformat, whichcanbeveried using thePeptool[6]
+andexported toother Petrinetformats.Networksofcomm unicating automata intheFc2format, whichcanbeveried using
+Fc2Tools [8]andJack[1].
+3.2Integration within theOPEN/CAESAR environmen t
+Cadp devotesagreatimportance tomodular programming, using well-though tintermediate
+formats andprogramming interfaces. Exp.Open 2.0isconnected toOpen/Csar [17],a
+modular environmen tfordeveloping on-the-y exploration algorithms onLtss.
+TheOpen/Csar architecture (seeFigure 2)isbased onacentrallanguage-indep enden t
+Api(Applic ationProgramming Interfac e),whichallowstoexplore thestates andtransitions
+ofanLtson-the-y .Itdescrib estypesthatrepresen tlabelsandstates, afunction that
+computes theinitial stateofthesystem, andanIterateState()function thatenumerates
+thesuccessor transitions ofagivenstate.
+Thisarchitecture allowsanorthogonal separation betweenthelanguage-dep enden tcompil-
+ers(front-ends )thattranslate aparticular formalism intoaCprogram implemen tingthe
+Open/Csar Api,andthelanguage-indep enden tverication tools(back-ends )thatoper-
+ateontherepresen tation ofanLtsusing theApi.Eachfromt-end canbecombined with
+anyback-end.
+Cadp includes fourfront-ends, namely Exp.Open 2.0,BcgOpen forLtssintheBcg
+(Binary CodedGraphs)format, Csar [22]forLotos [39],andSeq.Open fortraces [20].
+Italsoincludes severalback-ends thatprovidevarious functionalities, suchasLtsgeneration,
+possibly distributed tousetheCpuandmemory ofasetofcomputers [21],on-the-y model-
+checkingofregular alternation-free -calculus [46],interactiv esimulation withX-windo w
+interface, generation ofconformance testsuites based onverication technology [41],on-the-
+ybehavioural comparison ofsystems modulovarious equivalence andpreorder relations [5],
+random execution, deadlo ckdetection, reachabilit yanalysis, sequence searching,abstraction
+ofanLtsw.r.t. aninterface [42],etc.
+Exp.Open 2.0rsttranslates thecomposition expression givenasinput intoaatnetwork,
+andthengenerates aCprogram implemen tingtheOpen/Csar Api,whichcomputes the
+RRn
+5673
+
+--- Page 13 ---
+10 F.Lang
+Interactive simulationExecution
+...
+Back−endsFront−ends
+libraries
+...Test generationOn−the−fly verificationRandom simulationNetworks of
+Distributed LtsgenerationLtsgenerationOpen/Csar ApiSeq.Opentraces
+CadpOpen/CsarLtss
+Exp.OpenLts
+BcgOpenLotos
+CsarSdl
+If.Open UmlautUml/R t
+Figure 2:Architecture ofOpen/Csar .
+reachable states andtransitions ofthecomposition expression. Thetranslation performs
+careful analysis toreduce thenumberofbitsallocated torepresen tstates, andtooptimize
+speedforthetransition function.
+3.3Partial order reductions
+Partial order reductions aimatavoiding transition interleavings thatareirrelev antfora
+givenclassofproperties. Exp.Open 2.0implemen tsthree partial order reductions, pre-
+serving respectivelytheexistence orabsence ofdeadlo cks,branchingbisimulation [62],and
+stochastic branchingbisimulation [36].
+Partial order reduction preserving stochastic branchingbisimulation operates onLtsscon-
+taining specialtransitions, called stochastic ,oftheform\rate",where isapositivereal.
+Thestochastic transitions express aninternal delayinthesource state, while theother tran-
+sitions areimmediate iftheirenvironmen tallowstheirexecution. Exp.Open 2.0implemen ts
+thetechnique proposedbyH.Hermanns [35],whichconsists ineliminating thestochastic
+transitions inchoice with-transitions, thelatter beingalwaysexecutable without delay.
+Topresen tdeadlo ckandbranchingpreserving partial order reductions, wedene thefol-
+lowingstandard notions derivedfromthetheory ofpersistent sets[26](ofwhichstubborn
+sets[58]andample sets[50]arevariations, see[51]forasurveyonpersisten tsetbased
+partial order reductions), andapplied toourcontext:Asynchronization vector Visenabledinastate sifshasasuccessor obtained by
+application ofV.Itisdeterministic insifshasexactly onesuchsuccessor.
+INRIA
+
+--- Page 14 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 11Twosynchronization vectors V1andV2enabled inastate sarecommutative ifthe
+setofstates reachable byapplying rstV1thenV2isthesame asthatobtained by
+applying rstV2thenV1.Twosynchronization vectors V1andV2areindependent inagivenstatesif1)V1and
+V2arecomm utativ eiftheyarebothenabled insand2)V1(respectivelyV2)isenabled
+inasuccessor state ofsobtained byapplying V2(respectivelyV1)ifandonlyifV1
+(respectivelyV2)isenabled ins.AsetSyncofsynchronization vectors enabled inastatesispersistent insif,inevery
+state reachable fromsbyapplying onlysynchronization vectors thatdonotbelong
+toSync,everysynchronization vector thatisenabled anddoesnotbelong toSyncis
+independen tofthesynchronization vectors thatbelong toSync.
+Persisten tsetcomputation isdonebyacareful analysis ofthesynchronization vectors, which
+wedonotdetail inthispaper.Partial order reduction preserving thepresence orabsence of
+deadlo cksisdoneineachreachable stateofthesystem, byapplying onlythesynchronization
+vectors thatbelong tothepersisten tsetcomputed inthecurren tstate.
+Forbranchingbisimulation, theresults of[59,49,24]statethat,applied toourcontext,the
+persisten tsetspreserving branchingbisimulation arethose consisting ofasingle, determin-
+isticsynchronization vector, whose right-hand sideisthelabel.Inthealgorithm below,
+wewillonlyconsider persisten tsetsthathavethisparticular form. Unfortunately ,nding
+suchapersisten tsetisnotenough topreserv ebranchingbisimulation |andevenweaker
+relations suchastraceequivalence |because onemayenteracircuit thatpreventsenabled
+synchronization vectors fromeverbeingexecuted. Thisproblem isknownastheignoring
+problem [51].
+Mosttoolsimplemen tingpartial order reductions (e.g.,Spin[37],Ara[60],etc.)solvetheig-
+noring problem bydetecting circuits intheback-end. Adistinctiv efeature ofExp.Open 2.0
+istosolvetheignoring problem inthefront-end, thusavoiding anymodication ofverica-
+tionback-ends, whichcanthusbenet frompartial order reduction forfree,independen tly
+ofthestrategy thattheyusetoexplore theLts.
+More precisely ,theignoring problem isdealt withintheIterateState()function of
+theOpen/Csar Api.When theIterateState()function iscalled toenumerate the
+successors ofastate s,apersisten tset(whichcontainsasingle synchronization vector) is
+searchedfor.Ifitexists, thissynchronization vector isexecuted, leading toanewstate
+s0.Thealgorithm isthenrepeated, starting ins0instead ofs,untilreachingastate s00
+thateither doesnothaveapersisten tsetorwasalready visited. Intheformer case,asingle
+-transition fromstos00isgenerated. Inthelatter case,theexplored circuit of-transitions
+starting ins00isjustdiscarded (indeed, allstates inacircuit of-transitions arebranching
+equivalent)andthealgorithm iscontinuedbysearchinganother persisten tsetins00.
+Notethattheintermediate states reachable fromsfollowingpersisten tsetsareonlystored
+inmemory temporarily bythefront-end andnevervisible bytheback-end. They arere-
+movedonceIterateState()returns, tooptimize memory consumption. These states may
+possibly berevisited during subsequen tcallstoIterateState(),butsuchrevisits arenot
+penalizing inpractice, mostly duetothefactthatpersisten tsetcomputation isfastin
+thecaseofbranchingbisimulation. Thisconrms knownresults [4]aboutthenetuning
+betweenstoring orrevisiting states, whichweremade onthebasisofvarious storage heuris-
+ticsleading totheconclusion thatbetterverication performance canoften beobtained by
+storing onlyalittleamoun tofstates.
+RRn
+5673
+
+--- Page 15 ---
+12 F.Lang
+There existalternativ epartial order metho dspreserving branchingbisimulation, whichare
+based on-conuence reduction [32,7,48].Persisten tsetmetho dsoperate alessgeneral
+formof-conuence reduction thanthealgorithms presen tedin[32,7,48],butarecheaperin
+timeandmemory .In[48],persisten tsetmetho dsand-conuence reduction arecombined
+toreduce Ltsscompositionally modulobranchingbisimulation, usingExp.Open 2.0.
+3.4Rened interface constrain tsgeneration
+Apotentiallimitation ofcompositional verication isthat, givenasystem ofconcurren t
+processes, generating theLtsofeachprocessseparately mayleadtostateexplosion, even
+though theLtsofthewhole system hasatractable size. Indeed, generating theLtsof
+aprocessoutofitscontext(i.e.,separately fromtheneighbourprocesses withwhichit
+synchronizes) mayleadtoexplore states thatwouldbeunreac hable intheglobal system.
+Toaddress thisproblem, rened compositional verication approac heshavebeenpro-
+posed[28,10,63,11,12,27,42,9,25],whichallowtogenerate theLtsofaprocessbytaking
+intoaccoun tinterfac econstraints (alsoknownasenvironment constraints orcontext con-
+straints).These constrain tsexpress thebehavioural restrictions imposedoneachprocessby
+thesynchronization withitsneighbourprocesses, thusavoiding globally unreac hable states
+andtransitions. Asregards thechoice ofappropriate interface constrain ts,twoapproac hes
+arepossible.
+Intherstapproac h,thearticles [28,42]proposethatinterface constrain tsmaybeprovided
+bytheuser(personal insigh tofthecontext). Theriskisthatthese constrain tsarewrong
+andthuseliminate states andtransitions thatwouldbereachable intheglobal system.
+Exp.Open 2.0(together withProjector 2.0)supportsthisapproac h.Itchecksautomat-
+ically during therecomp osition oftheconstrained Ltswithitsenvironmen twhether the
+eliminated states andtransitions areindeed unreac hable. Otherwise, itreportsanerrorso
+thattheuserrelaxes itsconstrain ts.
+Thesecond approac h[10,42]consists inbuilding constrain tsautomatically fromthecom-
+position expression, forinstance byconsidering aparticular Ltsintheenvironmen tand
+computing itsinteractions withtheprocesstorestrict. Exp.Open 2.0alsoimplemen tsthis
+approac h.Givenaatnetwork,inwhichareidentied anLtsSwhose labelsarethose of
+aprocessPtorestrict andasetofLtssS1;:::;Sncorresp onding toprocesses intheenvi-
+ronmen tofP,Exp.Open 2.0computes rened interface constrain tsconsisting ofbothan
+LtsS0andasetoflabelsLrepresen tingthepotentialinteractions betweenS1;:::;Snand
+P.S0andLarethenusedtorestrict theLtscorresp onding toPusing theProjector 2.0
+toolofCadp .
+Theprecise algorithm usedbyExp.Open 2.0togenerate interface constrain tsautomatically
+willbedetailed inanother paper.However,wecanbriey indicate theadvantages ofthe
+proposedapproac h:Byoperating onatnetworksobtained aftertranslation ofcomposition expressions,
+itcanbeapplied toanyofthelanguages supported byExp.Open 2.0.Byconstrast,
+other metho dsarespecic toonesingle language (e.g.,Lotos [42]orCsp[10]).Itmakespossible tobuild interface constrain tsobtained fromseveralprocesses inthe
+environmen tofS,evenifthese processes aredistan tinthecomposition expression,
+because attening reduces thedistance betweenalgebraic terms. Other metho dsallow
+tobuild interface constrain tsonlyobtained fromonesingle process.
+INRIA
+
+--- Page 16 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 13Intheparticular (butfrequen t)caseofnondeterministic synchronization (whichisa
+characteristic ofclient-servercomm unications), itproduces more accurate interface
+constrain ts,leading tobetterstatespace reductions. Forinstance, intheLotos ex-
+pression \(B1|||B2)|[G]|B3",aG-transition ofB3cansynchronize either witha
+G-transition ofB1orwithaG-transition ofB2.Thesamealsoapplies formorecom-
+plexsituations, suchasnon-deterministic multiwaysynchronization involving more
+thantwoprocesses, and\mamong n"synchronization. Other techniques either for-
+bidsuchsituations using aninput language thatdoesnotallownondeterministic syn-
+chronization [10]orunder-appro ximate theinteractions betweenB1andB3,andB2
+andB3,byignoring thepossible synchronizations onG[42].Instead, Exp.Open 2.0
+generates interfaces inwhicheveryG-transition isduplicated bya-transition with
+same source andtarget states, whichmodelsnondeterministic synchronization.
+4Practical applications andexperimen talresults
+AspartofCadp ,Exp.Open 2.0iswidely disseminated andhasalready beenusedfor
+signican tapplications. Wecanmentionforinstance afewones:AtEindho venUniversityofTechnology ,J.Romijn andS.Vorsten bochusedittoverify
+theNetUpdateProtocolofthedraftstandard IeeeP1394.1. Bycombining thecom-
+positional techniques ofExp.Open 2.0andthedistributed state space construction
+toolofCadp [21],theymanaged togenerate modelsoftractable size(upto28million
+states and487million transitions).AtSaarland University,H.Hermanns andS.JohrusedtheExp.Open 2.0toolto
+analyze theperformance ofadistributed mutual exclusion algorithm. Bycombining
+Exp.Open 2.0withthedistributed statespace construction toolofCadp ,theygen-
+erated astochastic modelwith224million states and1;300million transitions, which
+wasunfortunately toobigtotonastandard 32-bit lesystem. Using thepartial
+order reduction thatpreserv esstochastic branchingreduction, thestatespace wasre-
+duced to44million states and80million transitions andcould bestored inaleona
+single machine.AtInria Sophia-An tipolis,E.Madelaine, T.Barros, andL.Henrio usedExp.Open 2.0
+tocompute large synchronization products corresp onding tocompositions ofhierar-
+chicalobjectcomponents[3].Their workcoversdynamic componentupdates, suchas
+thedynamic replacemen tofasub-comp onent.
+Atleastfouradditional examples ofExp.Open 2.0areavailable aspartofCadp :Adistributed summation algorithm5inspired from[29]:Theuseof\mamong
+n"synchronization allowsanicemodeling oftheinterpro cesscomm unications, based
+ontopological constrain tsencodedusing datastructures.TheODPtrader6inspired from[23]:Theuseof\mamong n"synchronization allows
+tomodelcomm unications betweenarbitrary service providers andservice users, which
+obtain theirrespectiveaddresses using aseparate process,called trader.
+5http://www.inrialpes.fr/ vasy/cadp/demos/demo35
+6http://www.inrialpes.fr/ vasy/cadp/demos/demo37
+RRn
+5673
+
+--- Page 17 ---
+14 F.LangTheclassical distributed Erathostenes sieve7:Itconsists ofapipelineofunits,
+eachunitblockingeveryinput numberthatisamultiple ofagivennumber.Table3
+showsexperimen taldataforLtsgeneration usingExp.Open 2.0from1to20units,
+andconrms theeectiv eness ofpartial order reductions.TheHAVileader election protocolforhome audio-video networks8[54]:
+Exp.Open 2.0isusedtogenerate interface constrain tsautomatically .Compared
+to[54],theLtscorresp onding tothelargest processwasreduced from400;000states
+and3million transitions downto700states and2;000transitions; thememory needed
+forthewhole verication wasreduced from56MBdownto8.5MB;theverication
+timewasdivided by10(from 100sdownto10s).
+units without partial order reduction withpartial order reduction
+states trans. time(s)mem. (MB) states trans. time(s)mem. (MB)
+1 43 59 3.7 2.4 10 9 4.0 2.4
+2 159 291 5.1 2.5 10 9 4.9 2.5
+3 542 1233 6.1 2.6 10 9 6.7 2.6
+4 1151 2909 7.6 2.7 10 9 7.5 2.7
+5 3368 9831 10.1 2.9 10 9 8.9 2.8
+6 12451 42423 16.0 3.4 10 9 10.8 3.1
+10 166743 685951 249.0 11.5 10 9 20.0 5.3
+15 | | >2h >113.0 10 9 46.5 17.3
+20 | | | | 10 9 99.5 45.8
+Figure 3:Generation ofcongurations oftheErathostenes sievewithandwithout partial
+order reduction.
+Atlast,Figure 4showsthatExp.Open 2.0runsfrom2to10times faster anduses2times
+lessmemory thanExp.Open 1.0onabenchmark consisting ofthecasestudies available in
+theCadp verication toolbox9.
+Figure 4:Performance comparisons betweenExp.Open 1.0andExp.Open 2.0
+7http://www.inrialpes.fr/ vasy/cadp/demos/demo36
+8http://www.inrialpes.fr/ vasy/cadp/demos/demo27
+9http://www.inrialpes.fr/ vasy/cadp/demos
+INRIA
+
+--- Page 18 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 15
+5Conclusion
+Inthisreport,wepresen tedthenewExp.Open 2.0tool,whichhasbeenavailable inCadp
+sinceAugust 2004.
+While other toolsallowingtocompute synchronization products areeither specic toone
+language (e.g.,Ara-Lotos [60]orExp.Open 1.0)orimplemen tasingle low-levelparallel
+composition operator (e.g.,Mec synchronization vectors [2],Fc2networks[8],Tvt[34],
+modular Petrinets[13]),Exp.Open 2.0combines bothsynchronization vectors [2,8]and
+operators takenfromseverallanguages, namely Ccs[47],Csp[55],Lotos [39],Crl[31],
+andE-Lotos [40].Toourknowledge, Exp.Open 2.0provides therstimplemen tation of
+the\graphical" parallel composition operator [23]ofE-Lotos ,whichsupports\mamong
+n"synchronization inparticular.
+Exp.Open 2.0combines severalverication techniques inorder toghtcombinatorial state
+explosion eectiv ely.Together withother toolsofCadp ,Exp.Open 2.0allowstogenerate
+(possibly using thememory andCpuofseveralcomputers) andexplore on-the-y (for
+interactiv esimulation, verication oftemporallogics, behavioural equivalence checking,etc.)
+theLtsofacomposition expression. Generation andexploration canbecombined with
+severalpartial order reductions preserving deadlo cks,branchingbisimulation, orstochastic
+branchingbisimulation. Inaddition, Exp.Open 2.0implemen tsanalgorithm togenerate
+interface constrain tsforcompositional verication automatically .
+Exp.Open 2.0hasbeenusedforvarious applications withLotos andCadp ,whichal-
+lowedtoshowitseectiv eness. Asregards future work,Exp.Open 2.0could becombined
+withother languages andtools.Experimen tswiththeCrltoolsetareunder wayinthe
+framew orkoftheSenvacollab oration betweenInria andCwi.
+Acknowledgemen ts
+Theauthor thanks J.vandePolforhisconstructiv efeedbac kabouttheExp.Open 2.0
+tool,forthetimehetooktoproofreadthemanualpage[43],andforhelping ustocorrect
+minor errors aboutthehandling ofCrllabels.Theauthor isalsograteful toH.Garavel
+formanyadvices during thedevelopmen tofExp.Open 2.0andforhisconstructiv eremarks
+onthisreport.
+References
+[1]Abird's eyeviewofJACK(Just Another Concurrency Kit). Available online at
+http://fmt.isti.c nr.it/jack/OLDJACKPAGES/JACK/struc ture.html.
+[2]AndreArnold. MEC: ASystem forConstructing andAnalysing Transition Systems.
+InJoseph Sifakis, editor, Proceedingsofthe1stWorkshop onAutomatic Verication
+MethodsforFinite StateSystems (Grenoble, France),volume 407ofLectureNotes in
+Computer Scienc e,pages 117{132. Springer Verlag, June1989.
+[3]T.Barros, L.Henrio, andE.Madelaine. Behavioural ModelsforHierarc hicalComp o-
+nents,2005. Submitted tothe12thInternational SPIN Workshop onModelChecking
+ofSoftware.
+RRn
+5673
+
+--- Page 19 ---
+16 F.Lang
+[4]G.Behrmann, K.G.Larsen, andR.Pelanek. ToStore orNottoStore. InProceedingsof
+the15thInternational Confer enceonComputer AidedVericationCAV'2003 (Boulder,
+Colorado,USA),volume 2275ofLectureNotes inComputer Scienc e,2003.
+[5]Damien Bergamini, Nicolas Descoub es,Christophe Joubert,andRadu Mateescu.
+BISIMULA TOR: AModular ToolforOn-the-Fly Equiv alence Checking. InNicolas
+HalbwachsandLenore Zuck,editors, Proceedingsofthe11thInternational Confer ence
+onToolsandAlgorithms fortheConstruction andAnalysis ofSystems TACAS'2005
+(Edinbur gh,Scotland, UK),volume 3440ofLectureNotes inComputer Scienc e,pages
+581{585. Springer Verlag, April 2005.
+[6]E.Best, J.Esparza, B.Grahlmann, S.Melzer, S.Romer, andF.Wallner. ThePEP
+verication system. InProceedingsofFEmSys'97 ,1997.
+[7]Stefan Blom andJacovandePol.State Space Reduction byProvingConuence. In
+Computer AidedVerication2002,volume 2404ofLectureNotes inComputer Scienc e,
+2002.
+[8]Amar Bouali, Annie Ressouc he,ValerieRoy,andRobertdeSimone. TheFc2Toolsset:
+aToolsetfortheVerication ofConcurren tSystems. InRajeevAlurandThomas A.
+Henzinger, editors, Proceedingsofthe8thConfer enceonComputer-A idedVerication
+(NewBrunswick, NewJersey, USA),volume 1102ofLectureNotes inComputer Sci-
+ence.Springer Verlag, August 1996.
+[9]K.H.Cheung. Compositional Analysis ofComplex Distribute dSystems .PhDthesis,
+Departmen tofComputer Science, Hong Kong UniversityofScience andTechnology ,
+Hong Kong, 1998.
+[10]S.C.Cheung andJ.Kramer. Enhancing Comp ositional Reachabilit yAnalysis with
+ContextConstrain ts.InProceedings ofthe1stACMSIGSOFT International Sym-
+posium ontheFoundations ofSoftwar eEngine ering(LosAngeles, CA,USA),pages
+115{125. ACMPress, Decem ber1993.
+[11]S.C.Cheung andJ.Kramer. Comp ositional Reachabilit yAnalysis ofFinite-State Dis-
+tributed Systems withUser-Sp ecied Constrain ts.InProceedingsofthe3rdACMSIG-
+SOFT International Symposium ontheFoundations ofSoftwar eEngine ering(Wash-
+ington, DC,USA),pages 140{150. ACMPress, Octob er1995.
+[12]S.C.Cheung andJ.Kramer. ContextConstrain tsforComp ositional Reachabilit y.
+ACMTransactions onSoftwar eEngine eringMethodologyTOSEM ,5(4):334{377, Oc-
+tober1996.
+[13]S.Christensen andL.Petrucci. Modular State Space Analysis ofColoured PetriNets. In
+G.de.MichelisandM.Diaz, editors, Proceedingsofthe16thInternational Confer ence
+onApplic ationandTheoryofPetriNets,volume 935ofLectureNotes inComputer
+Scienc e,1995.
+[14]Jean-Claude Fernandez. ALDEBARAN :unsystemedevericationparreduction de
+processus communic ants.ThesedeDoctorat, UniversiteJoseph Fourier (Grenoble),
+May1988.
+[15]Jean-CLaude Fernandez, Claude Jard, Thierry Jeron, andLauren tMounier. \Onthe
+Fly"Verication ofFinite Transition Systems. Formal MethodsinSystem Design ,1992.
+INRIA
+
+--- Page 20 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 17
+[16]Jean-Claude Fernandez andLauren tMounier. Verifying Bisimulations \OntheFly". In
+JuanQuemada, JoseManas, andEnrique Vazquez, editors, Proceedingsofthe3rdIn-
+ternational Confer enceonFormal Description Techniques FORTE'90 (Madrid, Spain).
+North-Holland, November1990.
+[17]HubertGaravel.OPEN/CSAR: AnOpenSoftwareArchitecture forVerication,
+Simulation, andTesting. InBernhard Steen, editor, ProceedingsoftheFirstInter-
+national Confer enceonToolsandAlgorithms fortheConstruction andAnalysis of
+Systems TACAS'98 (Lisbon,Portugal) ,volume 1384ofLectureNotes inComputer Sci-
+ence,pages 68{84, Berlin, March1998. Springer Verlag. Fullversion available asINRIA
+Researc hReportRR-3352.
+[18]HubertGaravelandFredericLang. SVL: aScripting Language forComp ositional
+Verication. InMyungc hulKim, Byoungmo onChin, Sungw onKang, andDanhyung
+Lee,editors, Proceedingsofthe21stIFIPWG6.1International Confer enceonFormal
+Techniques forNetworke dandDistribute dSystems FORTE'2001 (Cheju Island, Korea),
+pages 377{392. IFIP,KluwerAcademic Publishers, August 2001. Fullversion available
+asINRIA Researc hReportRR-4223.
+[19]HubertGaravel,FredericLang, andRadu Mateescu. AnOverview ofCADP 2001.
+EuropeanAssociation forSoftwar eScienc eandTechnolo gy(EASST) Newsletter ,4:13{
+24,August 2002. Alsoavailable asINRIA Technical ReportRT-0254 (Decem ber2001).
+[20]HubertGaravelandRadu Mateescu. SEQ.OPEN: AToolforEcien tTrace-Based
+Verication. InSusanne GrafandLauren tMounier, editors, Proceedings ofthe11th
+International SPIN Workshop onModelCheckingofSoftwar eSPIN'2004 (Barcelona,
+Spain),volume 2989ofLectureNotes inComputer Scienc e,pages 150{155. Springer
+Verlag, April 2004.
+[21]HubertGaravel,Radu Mateescu, andIrinaSmarandac he.Parallel State Space Con-
+struction forModel-Chec king. InMatthew B.Dwyer,editor, Proceedings ofthe8th
+International SPIN Workshop onModelChecking ofSoftwar eSPIN'2001 (Toronto,
+Canada) ,volume 2057ofLectureNotes inComputer Scienc e,pages 217{234, Berlin,
+May2001. Springer Verlag. Revised version available asINRIA Researc hReportRR-
+4341(Decem ber2001).
+[22]HubertGaravelandJoseph Sifakis. Compilation andVerication ofLOTOS Speci-
+cations. InL.Logripp o,R.L.Probert,andH.Ural, editors, Proceedingsofthe10th
+International Symposium onProtocolSpecication, Testing andVerication(Ottawa,
+Canada) ,pages 379{394. IFIP,North-Holland, June1990.
+[23]HubertGaravelandMihaela Sighirean u.AGraphical Parallel Comp osition Operator
+forProcessAlgebras. InJianping Wu,Qiang Gao,andSamuelT.Chanson, editors, Pro-
+ceedingsoftheJointInternational Confer enceonFormal Description Techniques for
+Distribute dSystems andCommunic ation Protocols,andProtocolSpecication, Test-
+ing,andVericationFORTE/PSTV'99 (Beijing, China) ,pages 185{202. IFIP,Kluwer
+Academic Publishers, Octob er1999.
+[24]R.Gerth, R.Kuiper,W.Penczek, andD.Peled.APartial Order Approac htoBranc hing
+Time Logic ModelChecking.Information andComputation ,150(2):132{152, 1999. A
+short version ofthispaperwaspreviously published attheThird Israel Symposium on
+Theory ofComputing andSystems ISTCS 1995.
+RRn
+5673
+
+--- Page 21 ---
+18 F.Lang
+[25]D.Giannak opoulou. ModelCheckingforConcurr entSoftwar eArchitectures.PhDthe-
+sis,ImperialCollege ofScience, Technology andMedicine |UniversityofLondon |
+Departmen tofComputer Science, January1999.
+[26]Patrice Godefroid. Using Partial Orders toImpro veAutomatic Verication Metho ds.
+InR.P.Kurshan andE.M.Clarke,editors, Proceedings ofthe2ndWorkshop on
+Computer-A idedVerication(Rutgers, NewJersey, USA),volume 3ofDIMA CSSeries
+inDiscreteMathematics andTheoreticalComputer Scienc e,pages 321{340. AMS-A CM,
+June1990.
+[27]S.Graf, B.Steen, andG.Luttgen. Comp ositional Minimisation ofFinite State Systems
+using Interface Specications. Formal AspectsofComputation ,8(5):607{616, Septem ber
+1996.
+[28]Susanne GrafandBernhard Steen. Comp ositional Minimization ofFinite State Sys-
+tems. InR.P.Kurshan andE.M.Clarke,editors, Proceedingsofthe2ndWorkshop
+onComputer-A idedVerication(Rutgers, NewJersey, USA),volume 531ofLecture
+Notes inComputer Scienc e,pages 186{196. Springer Verlag, June1990.
+[29]J.F.Groote,F.Monin, andJ.Springin tveld.AComputer CheckedAlgebraic Veri-
+cation ofaDistributed Summation Algorithm. Computer Science Report97/14, De-
+partmen tofMathematics andComputer Science, Eindho venUniversityofTechnology ,
+1997.
+[30]J.F.GrooteandJ.vandePol.State Space Reduction using Partial -Conuence. InMo-
+gensNielsen andBranisla vRovan,editors, Proceedingsofthe25thInternational Sym-
+posium onMathematic alFoundations ofComputer Scienc eMFCS'2000 (Bratislava,
+Slovakia) ,volume 1893ofLectureNotes inComputer Scienc e,pages 383{393, Berlin,
+August 2000. Springer Verlag. Alsoavailable asCWI Technical ReportSEN-R0008,
+Amsterdam, March2000.
+[31]J.F.GrooteandA.Ponse. Syntaxandseman ticsof-CRL. InA.Ponse, C.Verhoef,
+andS.F.M. vanVlijmen, editors, AlgebraofCommunic atingProcesses, Workshops in
+Computing ,pages 26{62, 1995.
+[32]J.F.GrooteandM.P.A.Sellink. Conuence forprocessverication. TheoreticalCom-
+puterScienc e,170(1{2):47{81, Decem ber1996.
+[33]H.Hansen, W.Penczek, andA.Valmari. Stuttering-Insensitiv eAutomata forOn-the-
+yDetection ofLivelockProperties. In7thInternational ERCIMWorkshop inFormal
+MethodsforIndustrial CriticalSystems ,volume 66ofElectronicNotes inTheoretical
+Computer Scienc e,2002.
+[34]Henri Hansen, Heikki Virtanen, andAnttiValmari. Merging State-Based andAction-
+Based Verication. InProceedingsoftheThirdInternational Confer enceonApplic ation
+ofConcurr encytoSystem Design .IEEE Computer Society,2003.
+[35]Holger Hermanns. Interactive Markov Chains andtheQuest forQuantie dQuality ,
+volume 2428ofLNCS .Springer Verlag, 2002.
+[36]Holger Hermanns andMarkus Siegle. Bisimulation Algorithms forStochastic Process
+Algebras andtheirBDD-based Implemen tation. InJoost-Pieter Katoen,editor, Pro-
+ceedings ofthe5thInternational AMAST Workshop ARTS'99 (Bamb erg,Germany) ,
+volume 1601ofLectureNotes inComputer Scienc e,pages 244{265. Springer Verlag,
+May1999.
+INRIA
+
+--- Page 22 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 19
+[37]G.Holzmann. TheModelCheckerSPIN. IEEE Transactions onSoftwar eEngine ering,
+23(5):279{295, May1997.
+[38]G.J.Holzmann. On-The-Fly ModelChecking.ACMComputing Surveys ,28(4), 1996.
+[39]ISO/IEC. LOTOS |AFormal Description Technique Based ontheTemporalOrdering
+ofObserv ational Behaviour. International Standard 8807, International Organization
+forStandardization |Information Processing Systems |OpenSystems Interconnec-
+tion,Geneve,Septem ber1989.
+[40]ISO/IEC. Enhancemen tstoLOTOS (E-LOTOS). International Standard 15437:2001,
+International Organization forStandardization |Information Technology ,Geneve,
+Septem ber2001.
+[41]T.JeronandP.Morel. Testgeneration derivedfrommodel-checking. InN.Halbwachs
+andD.Peled,editors, ProceedingsoftheConfer enceonComputer-A idedVerication
+CAV'99(Trento, Italy),volume 1633ofLectureNotes inComputer Scienc e,pages
+108{122. Springer Verlag, July1999.
+[42]Jean-Pierre Krimm andLauren tMounier. Comp ositional State Space Generation from
+LOTOS Programs. InEdBrinksma, editor, ProceedingsofTACAS'97 ToolsandAlgo-
+rithms fortheConstruction andAnalysis ofSystems (University ofTwente, Ensche de,
+TheNetherlands) ,volume 1217ofLectureNotes inComputer Scienc e,Berlin, April
+1997. Springer Verlag. Extended version withproofsavailable asResearc hReport
+VERIMA GRR97-01.
+[43]FredericLang. TheExp.Open 2.0manualpage, 2004. Available online at
+http://www.inrial pes.fr/vasy/cadp/man/exp.open.html.
+[44]J.Malhotra, S.A.Smolk a,A.Giacalone, andR.Shapiro. AToolforHierarc hicalDesign
+andSimulation ofConcurren tSystems. InProceedingsoftheBCS-F ACSWorkshop on
+SpecicationandVericationofConcurr entSystems (Stirling, Scotland) ,pages 140{
+152,Swinton,UK,July1988. British Computer Society.
+[45]Radu Mateescu. AGeneric On-the-Fly SolverforAlternation-F reeBoolean Equation
+Systems. InHubertGaravelandJohn Hatcli, editors, Proceedings ofthe9thIn-
+ternational Confer enceonToolsandAlgorithms fortheConstruction andAnalysis of
+Systems TACAS'2003 (Warsaw, Poland) ,volume 2619ofLectureNotes inComputer
+Scienc e,pages 81{96. Springer Verlag, April 2003. Fullversion available asINRIA
+Researc hReportRR-4711.
+[46]Radu Mateescu andMihaela Sighirean u.Ecien tOn-the-Fly Model-Chec kingforReg-
+ularAlternation-F reeMu-Calculus. Scienc eofComputer Programming ,46(3):255{281,
+March2003.
+[47]Robin Milner. Communic ationandConcurr ency.Prentice-Hall, 1989.
+[48]Gordon Pace,FredericLang, andRadu Mateescu. Calculating -Conuence Comp osi-
+tionally .InJrWarren A.HuntandFabioSomenzi, editors, Proceedingsofthe15thIn-
+ternational Confer enceonComputer AidedVericationCAV'2003 (Boulder, Colorado,
+USA),volume 2725ofLectureNotes inComputer Scienc e,pages 446{459. Springer
+Verlag, July2003. Fullversion available asINRIA Researc hReportRR-4918.
+RRn
+5673
+
+--- Page 23 ---
+20 F.Lang
+[49]D.Peled.Partial Order Reduction: Linear andBranc hingTemporalLogics andProcess
+Algebras. InPeledetal.[51].
+[50]D.A. Peled. Combining partial order reduction withon-the-y model-checking. In
+Computer AidedVerication1994,volume 818ofLectureNotes inComputer Scienc e.
+Springer-V erlag, 1994.
+[51]D.A.Peled,V.R.Pratt, andG.J.Holzmann, editors. ProceedingsoftheWorkshop on
+Partial OrderMethodsinVerication,volume 29ofDimacs Series inDiscreteMathe-
+matics ,1997.
+[52]JacovandePol.Proofusing thePVStheorem proverthatbisimulations arecongruences
+forsynchronization vectors thatdonotrename, cut,norsynchronize -transitions, 2003.
+Personal comm unication.
+[53]Y.S.Ramakrishna andS.A.Smolk a.Partial-Order Reduction intheWeakModalMu-
+Calculus. InA.Mazurkiewicz andJ.Winkowski, editors, Proceedings ofthe8thIn-
+ternational Confer enceonConcurr encyTheoryCONCUR'97 ,volume 1243ofLecture
+Notes inComputer Scienc e,pages 5{24. Springer Verlag, 1997.
+[54]JudiRomijn. ModelCheckingtheHAViLeader Election Proto col.Technical Report
+SEN-R9915, CWI, Amsterdam, TheNetherlands, June 1999. submitted toFormal
+Metho dsinSystem Design.
+[55]A.W. Rosco e.TheTheoryandPracticeofConcurr ency.PrenticeHall,1998.
+[56]K.K.Sabnani, A.M.Lapone,andM.U.Uyar.AnAlgorithmic Procedure forChecking
+SafetyProperties ofProto cols.IEEE Transactions onCommunic ations ,37(9):940{948,
+Septem ber1989.
+[57]K.C.TaiandV.Koppol.Hierarc hy-Based Incremen talReachabilit yAnalysis ofCom-
+munication Proto cols.InProceedingsoftheIEEE International Confer enceonNetwork
+Protocols(SanFrancisco,CA),pages 318{325, Piscata way,NJ,Octob er1993. IEEE
+Press.
+[58]A.Valmari. AStubb ornAttackonState Explosion. InR.P.Kurshan andE.M.Clarke,
+editors, Proceedings ofthe2ndWorkshop onComputer-A idedVerication (Rutgers,
+NewJersey, USA),volume 3ofDIMA CSSeries inDiscreteMathematics andTheoret-
+icalComputer Scienc e,pages 25{42. AMS-A CM,June1990.
+[59]A.Valmari. Stubb ornSetMetho dsforProcessAlgebras. InPeledetal.[51].
+[60]A.Valmari, J.Kemppainen, M.Clegg, andM.Levanto.Putting Advanced Reachabilit y
+Analysis Techniques Together: the\ARA" Tool.InProceedingsoftheFirstInterna-
+tional Symposium ofFormal MethodsEuropeFME'93,volume 670ofLectureNotes in
+Computer Scienc e,pages 597{616. Springer-V erlag, 1993.
+[61]AnttiValmari. Comp ositional State Space Generation. InProceedingsofAdvancesin
+PetriNets,volume 674ofLectureNotes inComputer Scienc e,pages 427{457. Springer
+Verlag, 1993.
+[62]R.J.vanGlabb eekandW.P.Weijland. Branc hing-Time andAbstraction inBisimula-
+tionSeman tics(extended abstract). CSR8911, CentrumvoorWiskunde enInformatica,
+Amsterdam, 1989. Alsoinproc.IFIP11thWorldComputer Congress, SanFrancisco,
+1989.
+INRIA
+
+--- Page 24 ---
+Exp.Op en2.0:AFlexible ToolIntegratingVericationMethods 21
+[63]W.J.Yeh.ControllingStateExplosion inReachability Analysis .PhDthesis, Software
+Engineering Researc hCenter(SERC)Laboratory ,Purdue University,Decem ber1993.
+Technical ReportSERC-TR-147-P .
+RRn
+5673
+
+--- Page 25 ---
+Unit´ederecherche INRIA Rhˆone-Alpes
+655, avenue del’Europe -38334 Montbonnot Saint-Ismier (France)
+Unit´ederecherche INRIA Futurs :ParcClub Orsay Universit´e-ZACdesVignes
+4,rueJacques Monod -91893 ORSA YCede x(France)
+Unit´ederecherche INRIA Lorraine :LORIA, Technop ˆoledeNanc y-Brabois -Campus scientiﬁque
+615, rueduJardin Botanique -BP101-54602 Villers-l `es-Nanc yCede x(France)
+Unit´ederecherche INRIA Rennes :IRISA, Campus universitaire deBeaulieu -35042 Rennes Cede x(France)
+Unit´ederecherche INRIA Rocquencourt :Domaine deVoluceau -Rocquencourt -BP105-78153 LeChesnay Cede x(France)
+Unit´ederecherche INRIA Sophia Antipolis :2004, route desLucioles -BP93-06902 Sophia Antipolis Cede x(France)
+´Editeur
+INRIA -Domaine deVoluceau -Rocquencourt, BP105-78153 LeChesnay Cede x(France)
+http://www.inria.fr
+ISSN 0249-6399

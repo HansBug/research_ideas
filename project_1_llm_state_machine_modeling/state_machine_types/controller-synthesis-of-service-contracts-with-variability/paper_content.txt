@@ -1,0 +1,1882 @@
+--- Page 1 ---
+Controller synthesis of service contracts with variability
+Davide Basilea,c,∗, Maurice H. ter Beeka, Pierpaolo Deganob, Axel Legayd,
+Gian-Luigi Ferrarib, Stefania Gnesia, Felicita Di Giandomenicoa
+aISTI–CNR, Pisa, Italy
+bUniversità di Pisa, Italy
+cUniversità di Firenze, Italy
+dUniversité Catholique de Louvain, Belgium
+Abstract
+Service contracts characterise the desired behavioural compliance of a com-
+position of services. Compliance is typically deﬁned by the fulﬁlment of all
+service requests through service oﬀers, as dictated by a given Service-Level
+Agreement (SLA). Contract automata are a recently introduced formalism
+for specifying and composing service contracts. Based on the notion of syn-
+thesis of the most permissive controller from Supervisory Control Theory,
+a safe orchestration of contract automata can be computed that reﬁnes a
+composition into a compliant one.
+To model more ﬁne-grained SLA and more adaptive service orchestra-
+tions, in this paper we endow contract automata with two orthogonal layers
+of variability: (i) at the structural level, constraints over service requests and
+oﬀers deﬁne diﬀerent conﬁgurations of a contract automaton, depending on
+whichrequestsandoﬀersareselectedordiscarded, and(ii)atthebehavioural
+level, service requests of diﬀerent levels of criticality can be declared, which
+induces the novel notion of semi-controllability. The synthesis of orchestra-
+tions is thus extended to respect both the structural and the behavioural
+variability constraints. Finally, we show how to eﬃciently compute the or-
+chestration of all conﬁgurations from only a subset of these conﬁgurations.
+A prototypical tool supports the developed theory.
+Keywords: service computing, supervisory control theory, contract
+automata, service orchestrations, variability, behavioural variability
+∗Corresponding author.
+Preprint submitted to Science of Computer Programming October 31, 2019
+
+--- Page 2 ---
+1. Introduction
+Service computing is a well-known paradigm for the creation, publication,
+discovery and orchestration of services, which are autonomous, platform-
+independent and reusable pieces of software that are loosely coupled into
+networks of collaborating end-user applications [1, 2]. Services are usually
+programmed with little or no knowledge about clients and other services.
+They are created and published by possibly mutually distrusted organisa-
+tions, and may have conﬂicting goals. Services have to cooperate to achieve
+overall goals and at the same time compete to perform speciﬁc tasks of their
+organisation. Ensuring reliability of a composite service is important, e.g.
+to avoid economic loss. Therefore, understanding and fulﬁlling a minimal
+number of behavioural obligations of services is crucial to determine whether
+the interactive behaviour is consistent with the requirements. Such obliga-
+tions are usually dictated by a Service-Level Agreement (SLA). Recently, the
+Service Computing Manifesto [3] considers service design as one of the four
+emerging research challenges in service computing for the next 10years, and
+calls for formal models supporting it:
+“Service systems have so far been built without an adequate rig-
+orous foundation that would enable reasoning about them. [...]
+The design of service systems should build upon a formal model
+of services.”
+Service contracts oﬀer means to formalise the externally observable be-
+haviour of services in terms of oﬀersof the service and requestsby the service
+to be matched. The notion of agreement characterises compliance of (a com-
+position of) contracts and it is based on the fulﬁlment of all service requests
+throughcorrespondingserviceoﬀers. Behaviourinagreementisimplemented
+by anorchestration of services. Orchestrations must dynamically adapt to
+the discovery of new services, to service updates and to services that are no
+longer available. Moreover, a precise semantics of service contracts allows
+us to mechanically verify that an orchestration enjoys certain properties and
+to assess whether it satisﬁes a given SLA. We refer the reader to [4, 5] for
+surveys on formal models of service contracts .
+Contract automata [6] are one such formal model for service contracts.
+A contract automaton represents either a single service (in which case it is
+called aprincipal ) or a multi-party composition of services. Each principal’s
+goal is to reach an accepting state by matching its request actions (of the
+2
+
+--- Page 3 ---
+◦a//} ◦
+a $$b//◦a//} ◦
+(a,a) $$(•,b)//◦
+(a,a) $$ ...  X
+Figure 1: Two automata (left and middle) and a possible composition of them (right)
+forma,b, ...) withcorrespondingoﬀeractions(oftheform a,b, ...) ofother
+principals. Service interactions are implicitly controlled by an orchestrator
+synthesised from the principals, which directs them in such a way that only
+ﬁnite executions in agreement actually occur, i.e. such that each request
+actionais fulﬁlled by an oﬀer action a. Technically, such an orchestration is
+synthesised as the most permissive controller (mpc) known from Supervisory
+Control Theory (SCT) [7, 8]. The goal of this paper is to present a richer
+framework of contract automata, which allows the user to model more ﬁne-
+grained SLA and more adaptive service orchestrations.
+Considertwoautomatainteractingonaserviceaction a, depictedinFig.1
+(left and middle parts), and a composition of these automata in Fig. 1 (right
+part) that models two possibilities of fulﬁlling service request afrom the
+leftmost automaton by matching it with a service oﬀer aof the middle one
+(i.e.(a,a)). Assume that amust be matched with ato obtain an agreement,
+and that for some reason state is to be avoided in favour of state X. In most
+automata-based formalisms, including the contract automata of [6, 9], this is
+typicallynotallowedbythedeﬁnitionofcompositionandtheresultingmpcis
+empty. Indeed, we would like to be able to express that amust eventually be
+matched, rather than always. In this paper, we introduce a type of contract
+automata in which it is possible to orchestrate the composition of the two
+automata on the left in such a way that the result is the automaton on the
+rightwithout state, i.e.ais only matched with aafterthe occurrence of an
+unmatched service oﬀer bof the middle automaton (i.e. (•,b)).
+Technically, we extend contract automata with action modalities to dis-
+tinguish necessary frompermitted service requests (borrowed from [9]) and
+with two novel orthogonal variability mechanisms. Necessary and permit-
+ted request actions diﬀer in that the ﬁrst mustbe fulﬁlled, while the second
+mayalso be omitted. The notions of necessary and permitted modalities
+stem from modal and deontic logic, which trace back to seminal work by Von
+Wright [10, 11]. As in [9], we assume oﬀer actions to always be permitted
+because a service contract may alwayswithdraw its oﬀers not needed to reach
+an agreement.
+3
+
+--- Page 4 ---
+The ﬁrst variability mechanism is deﬁned inside service contracts, i.e. at
+thebehavioural level, to declare necessary request actions to be either urgent
+orlazy. These modalities drive the orchestrator to fulﬁll all the occurrences
+ofanurgentaction, whileitisrequiredtofulﬁll at least one occurrence oflazy
+actions. The simple example above has no urgent action; the only necessary
+one is the lazy request a. Intuitively, the matching of a lazy request may be
+delayed whereas this is not the case for urgent requests.
+The second variability mechanism concerns constraints that operate on
+the entire service contract and that are deﬁned at the structural level. They
+are used to deﬁne diﬀerent conﬁgurations, which is important because ser-
+vices are typically reused in conﬁgurations that vary over time and to adapt
+them to changing environments [3]. Conﬁgurations are characterised by
+which service actions are mandatory and which forbidden . Thevalidcon-
+ﬁgurations are those respecting all the structural constraints. We follow the
+well-established paradigm of Software Product Line Engineering (SPLE),
+which aims at eﬃciently managing a family of highly (re)conﬁgurable sys-
+tems to allow for mass customisation [12, 13]. To compactly represent a
+product line , i.e. the set of validproduct conﬁgurations, we use a so-called
+feature constraint , apropositionalformula ϕwhoseatomsarefeatures[14–16]
+and we identify features as service actions (oﬀers as well as requests).
+To eﬀectively use these two variability mechanisms, we reﬁne the classical
+synthesis algorithm from SCT. We compute orchestrations, in the form of an
+mpc, of a single validconﬁguration, i.e. such that it includes all mandatory
+actions and none of the forbidden, besides fulﬁlling all necessary requests and
+the maximal number of permitted requests. Here maximal is to be under-
+stood in the sense that if the orchestration were to fulﬁll another permitted
+request, then this would cause one of the other requirements to no longer be
+fulﬁlled. An important technical result of this paper is that we can compute
+the orchestration of a product line withoutcomputing the mpc for each of its
+valid product conﬁgurations; it suﬃces to compute a small selected subset of
+valid conﬁgurations. This guarantees eﬃciency and scalability of our novel
+framework of contract automata.
+Summarising, the main contributions of this paper are as follows:
+1. A novel formalism for service contracts, called Featured Modal Contract
+Automata (FMCA),whichoﬀerssupportforstructuralandbehavioural
+variability not available in the literature.
+2. The new notion of semi-controllability (related to lazy actions), which
+4
+
+--- Page 5 ---
+reﬁnesboththoseofcontrollability(relatedtopermittedactions)andof
+uncontrollability (related to urgent actions) used in classical synthesis
+algorithms from SCT. This notion is fundamental to handle diﬀerent
+service requests in the orchestration synthesis for FMCA.
+3. A revised algorithm for synthesising an orchestration of services for a
+single valid product.
+4. An algorithm for computing the orchestration of an entire product line
+byjoiningtheorchestrationsofasmallselectedsubsetofvalidproducts.
+It is worth noting that the number of valid products is exponential
+in the number of features [17], thus only using few of them greatly
+improves performance.
+5. Theopen-sourceprototypicaltoolFMCATimplementingourproposal.1
+Outline. In Section 2, we introduce our running example, a Hotel service
+product line, and brieﬂy survey and evaluate our tool FMCAT. We formally
+deﬁne FMCA in Section 3, including composition, projection and control-
+lability. In Section 4, we deﬁne the synthesis algorithms for FMCA. Two
+notions needed to eﬃciently compute the orchestration of an entire product
+line follow in Section 5, introducing so-called automata reﬁnement, and Sec-
+tion 6, providing a means to (partially) order the products of a product line.
+InSection7, wediscussrelatedwork, followedbyourconclusionsinSection8.
+All proofs of the results presented in this paper are in Appendix A.
+2. Motivating Example: Hotel Reservation Systems Product Line
+A (software) product line is a set of (software-intensive) products in a
+portfolio of a manufacturer (or software house) that share common features
+and that are, ideally, built from a set of reusable (software) components by
+means of well documented variability [12, 13]. A featurerepresents an ab-
+stract description of functionality and a feature model typically provides a
+description of products in terms of features: each productis thus uniquely
+characterised by a set of features. It is well known that a product can be
+represented by a Boolean assignment to the features (i.e. selected = true
+and discarded = false) and a feature model can thus be represented by what
+1Available(withashortvideotutorial) at https://github.com/davidebasile/FMCAT/
+5
+
+--- Page 6 ---
+we call a feature constraint in this paper (i.e. a Boolean formula over the
+features). As a matter of fact, checking if a product respects the constraints
+expressed by a feature model, i.e. if it is valid, reduces to a Boolean satisﬁa-
+bility problem that has eﬃcient solutions [14–16].
+2.1. The Hotel Reservation Systems Product Line and its Feature Constraint
+We illustrate our approach with a product line of a basic franchise of hotel
+reservation systems. We consider three types of service contracts: a Hotel
+and two clients, called BusinessClient andEconomyClient , each with diﬀerent
+service requests and oﬀers, and with its own feature constraint. A system is a
+composition of these contracts, e.g. BusinessClient⊗Hotel⊗EconomyClient ,
+and the feature constraint of the Hotel service product line is the conjunction
+of the feature constraints of the individual contracts. The 10 features concern
+requesting/oﬀering a singleRoom orsharedRoom ,privateBathroom orshared-
+Bathroom , payment by cardorcash, its conﬁrmation by invoiceorreceipt, and
+the possibility of freeCancellation ornoFreeCancellation . Furthermore, card
+and cashare alternative features and there are two additional constraints:
+invoiceis selected in case cashis selected and sharedBathroom in case shared-
+Roomis. The resulting feature constraint ϕof the Hotel service product line
+is as follows, where ⊕denotesexclusive or andFthe set of features:
+ϕ= ( card⊕cash)∧(/logicalordisplay
+f∈F,f/negationslash∈{card,cash}f)∧
+(cash→invoice )∧(sharedRoom→sharedBathroom )
+2.2. The Valid Products of the Hotel Reservation Systems Product Line
+As already said, a product passigns a Boolean value to each feature, and
+the atoms of a feature constraint ϕmapped by pto true (false, resp.) are
+calledmandatory (forbidden , resp.).
+Usually, in Software Product Line Engineering (SPLE), each feature is
+either selected or discarded to conﬁgure a product. In other words, all varia-
+bility is resolved and the interpretation of the atoms of ϕistotal. Here,
+instead, we consider as valid products also so-called sub-families (in SPLE
+terms), which are deﬁned by a partialassignment satisfying ϕ(see the com-
+ment after the 4 products below). This enables us to synthesise the orches-
+tration of an entire product line by considering a few valid products only,
+rather than computing allvalid ones. This is one of the main results of our
+paper, presented in Section 6.
+6
+
+--- Page 7 ---
+To give an idea of the impact of our improvement, it suﬃces to note that
+when no variability is left, the feature constraint ϕcharacterises 288product
+conﬁgurations, each representing a diﬀerent instantiation of all its features.
+When the assignment is instead partial, as in our case, there are 4860 valid
+products, but we will show below that only 4 of them suﬃce to characterise
+theorchestrationoftheentireHotelserviceproductline. Itiseasytoimagine
+that for real-world feature models of up to millions of conﬁgurations the gain
+is considerable, conﬁrming the scalability of our approach.
+We partially order valid products by stipulating p1/precedesequalp2if and only if the
+sets of mandatory and forbidden features of p2are included in those of p1.
+Accordingly, the maximal products are the valid products maximal in /precedesequal(cf.
+Deﬁnition 17 in Section 6). The 4 maximal products of ϕ(out of 4860) have
+the following sets of mandatory ( R) and forbidden ( F) features.
+R: [cash,invoice,sharedBathroom ];F: [card] (product P4854)
+R: [cash,invoice ];F: [card,sharedRoom ] (product P4857)
+R: [card,sharedBathroom ];F: [cash] (product P4858)
+R: [card];F: [cash,sharedRoom ] (product P4859)
+A partial assignment that interprets the elements of Ras true, those of F
+as false and all the others as “don’t care” satisﬁes ϕ(cf. Deﬁnition 11 in
+Section 4). Indeed, whichever Boolean value replaces “don’t care” leaves the
+formula satisﬁed.
+2.3. FMCA: Behavioural Representations of the Hotel Reservation Systems
+As mentioned above, a feature constraint ϕdescribes all the valid prod-
+ucts of a product line. However, it has no immediate operational interpreta-
+tion, in terms of the actions that the principals involved in a contract have to
+perform in order to achieve their goals. We address this operational aspect
+by using the aforementioned formalism of FMCA, which extend the model
+in [9]. The composition of two FMCA is itself an FMCA (see below) and it
+represents the composition of two service contracts.
+Each FMCAAis a pair made of a special ﬁnite state automaton and a
+feature constraint ϕ, which is related to the automaton in the following way.
+The labels on the arcs of the automaton identify the actions for requests
+and oﬀers, a subset of which corresponds to all features in ϕ. We say that
+Arespectsa productpwhenever all features declared mandatory (forbidden ,
+7
+
+--- Page 8 ---
+Table 1: Classiﬁcation of basic actions of FMCA distinguishing among
+oﬀers/requests (||), permitted/necessary ( ) andlazy/urgent (|)
+oﬀers requests
+permittednecessary
+lazy urgent
+a a3 a2/lscript a2u
+resp.)bypcorrespondtoactionsthatarereachable(unreachable, resp.) from
+the initial state of A(cf. Deﬁnition 18 in Section 6).
+Moreover, each automaton describes a contract where the actions corre-
+sponding to oﬀers are overlined and those to requests are not. Oﬀers are
+all considered permitted , while requests are either permitted or necessary at
+diﬀerent degrees, namely urgentorlazy(cf. Table 1 and Deﬁnition 2 in Sec-
+tion 3). In this way, besides expressing that a request has to be matched (by
+an oﬀer), one can also specify to what extent this must occur, i.e. whether
+the request must always(anurgentrequest) or eventually (alazyrequest)
+be matched in a contract. The behaviour of Ais the language it accepts.
+We now specify the automata of the three service contracts introduced in
+thebeginningofthissection. Actually, wewillillustratediﬀerentbehavioural
+descriptions. Notationally, permittedactionslabeldottedarcs, suﬃxedby 3,
+while urgent and lazy requests label (red and green in the pdf) full arcs and
+are suﬃxed by 2uand2/lscript, respectively (cf. Table 1 and Figure 2).
+Theautomatonin Figure 2providesthebehaviouraldescriptionof service
+contract BusinessClient , in which a business client classiﬁes the request for a
+room as urgent and the request for the invoice as lazy; all other actions have
+an obvious meaning and are permitted.
+The automaton in Figure 3 describes the Hotelbehaviour. It has several
+points of non-determinism to comply with the requests of a BusinessClient as
+well as those of an EconomyClient . It also has cyclic behaviour enabling it
+to start new interactions with diﬀerent clients. Finally, the hotel oﬀers free
+breakfast (action freebrk 3) or requires to ﬁll a captcha (action captcha 3) to
+clients that pay by card and request an invoice (for the sake of example),
+although not all of these actions have corresponding features.
+TheEconomyClient contract, depictedinFigure4, issimilartoitsbusiness
+counterpart, but the single room request is lazy. Optionally a shared room
+is requested instead of a single room, and a shared bathroom is requested.
+Composition of two FMCA is similar to standard automata composition,
+except that one’s request actions have to be matched by the other’s corre-
+8
+
+--- Page 9 ---
+qB0 qB6 qB9 qB1 qB2 qB3singleRoom 2u noFreeCancellation 3 privateBathroom 3 card3invoice 2/lscript
+receipt3
+Figure 2: The automaton for BusinessClient
+qH0qH6
+qH8qH5 qH1qH2
+qH4qH7qH9
+qH3
+singleRoom3
+sharedRoom
+3noFreeCancellation
+3freeCancellation
+3
+noFreeCancellation3sharedBathroom 3
+privateBathroom 3card3
+cash3freebrk3
+receipt3
+invoice
+3
+receipt3captcha3invoice
+3
+sharedRoom 3singleRoom 3
+Figure 3: The automaton for Hotel
+qE0qE7
+qE8qE5 qE1 qE2 qE3singleRoom2/lscript noFreeCancellation
+3
+sharedRoom
+3 noFreeCancellation3sharedBathroom 3 card3invoice 2/lscript
+receipt3
+Figure 4: The automaton for EconomyClient
+sponding oﬀers, if available. Inspecting the composition, we can determine
+whether services are compliant, in the sense that all requests are fulﬁlled
+(i.e., matched by oﬀers). Additionally, we can further reﬁne the composition
+so that only compliant behaviours are possible, as illustrated in Section 2.4.
+2.4. Orchestrations of the Hotel Reservation Systems Product Line
+We intuitively show how to synthesise the orchestrations of the products
+of a product line, again in the form of an FMCA. The orchestration of a
+productpis deﬁned as the largest sub-portion of Ainagreement , i.e. all
+requests are matched by corresponding oﬀers, and respecting p. Below, we
+discuss some examples of structural and behavioural variability.
+Considering mandatory and forbidden feature constraints. We ﬁrst illustrate
+structural variability. We start by computing the orchestration of the com-
+positionA=BusinessClient⊗Hotel⊗EconomyClient for product P4858, i.e.
+the mandatory features cardandsharedBathroom are selected whilst the for-
+bidden feature cashis discarded. The orchestration is in Figure 5, where
+all requests are matched by corresponding oﬀers. No interleaving of actions
+9
+
+--- Page 10 ---
+qB0
+qH0
+qE0qB6
+qH6
+qE0qB9
+qH5
+qE0qB1
+qH1
+qE0qB2
+qH2
+qE0
+qB2
+qH9
+qE0
+qB3
+qH3
+qE0
+qB3
+qH8
+qE8qB3
+qH6
+qE7
+qB3
+qH5
+qE5qB3
+qH1
+qE1qB3
+qH2
+qE2qB3
+qH9
+qE2qB3
+qH3
+qE3(singleRoom ,
+singleRoom ,•)2u(noFreeCancellation ,
+noFreeCancellation ,•)3(privateBathroom ,
+privateBathroom ,•)3 (card,card,•)3(receipt,receipt,•)3(•,freebrk
+,•)3
+(invoice,invoice,•)2/lscript
+(•,singleRoom
+,singleRoom
+)2/lscript
+(•,sharedRoom,
+sharedRoom)3(•,noFreeCancellation,
+noFreeCancellation)3
+(•,noFreeCancellation
+,noFreeCancellation
+)3(•,sharedBathroom ,
+sharedBathroom )3(•,card,card)3(•,receipt,receipt )3
+(•,freebrk
+,•)3(•,invoice,
+invoice)2/lscript
+Figure 5: Orchestration of composition BusinessClient⊗Hotel⊗EconomyClient of the
+three automata in Figures 2, 3 and 4 for the product P4858
+from either component can occur (except for freebrk), because as soon as a
+request is enabled, there is a matching oﬀer available.
+The orchestration of Afor product P4859is the same as in Figure 5, but
+with state/angbracketleftqB3,qH8,qE8/angbracketrightand its incident transitions removed. Indeed, in this
+product the feature sharedRoom is discarded, and hence so is the transition
+labelled by action sharedRoom leading to/angbracketleftqB3,qH8,qE8/angbracketright.
+The Hotel service product line has only two maximal products in /precedesequalthat
+have non-empty orchestrations, namely P4858andP4859. Instead, products
+P4854and P4857have empty orchestrations. Indeed, no cash payment is
+ever performed by either client (recall that for both cashand invoiceare
+mandatory, while cardis forbidden). In addition, invoiceis unreachable (in
+the clients’ contracts), because cardis forbidden.
+Notethatmandatoryandforbiddenfeatureconstraintsaremoredemand-
+ing than imposing a request action to be necessary: the feature constraints
+of a product are global to a whole FMCA, while necessary requests are local
+to its transitions. More in detail, if an action corresponding to a manda-
+tory feature is unreachable, then agreement is violated (see above). Instead,
+unreachable necessary requests do not spoil contract agreement.
+The orchestration of a product line is the union (in automata theory
+terms) of the orchestrations of its products. A main result of this paper is
+based on the notion of canonical product, requiring it to have non-empty
+orchestration and to satisfy a further mild condition of its forbidden actions
+(cf. Deﬁnition 19 in Section 6). We can compute the orchestration Oof a
+10
+
+--- Page 11 ---
+product line as the union of those of its canonical products, only, because
+all the orchestrations of the non-canonical products are sub-automata of O.
+In our example, the orchestration Oof the Hotel service product line is the
+union of the orchestrations of the two canonical products P4858andP4859.
+Considering necessary action requests. We now continue by illustrating be-
+havioural variability. We ﬁrst discuss why oﬀers are always permitted. If free
+breakfast were a necessary oﬀer in Hotel, then we would have the unrealistic
+scenario in which the hotel contract rejects all clients’ contracts. Indeed, no
+agreement would be reached because in the clients’ contracts there is no free
+breakfast request to match the oﬀer.
+Next we consider a composition of the Hotelservice with both types of
+clients and we show how urgent requests can be used for enforcing priorities
+among service requests. To the best of our knowledge, this is not present in
+any automata-based formalisms.
+Inthefollowing,orchestrationsalwaysrefertoproduct P4858.IfEconomy-
+Clientis served before BusinessClient , i.e. (EconomyClient⊗Hotel )⊗Business-
+Client(we will see later that ⊗is non-associative), then both lazy matches
+ta= (/vector qE0,H0,B0,(singleRoom ,singleRoom ,•)2/lscript,/vector qE7,H6,B0)
+tb= (/vector qE0,H0,B0,(sharedRoom ,sharedRoom ,•)2/lscript,/vector qE8,H8,B0)
+are present in the composition, so preventing the urgent match
+tc= (/vector qE0,H0,B0,(•,singleRoom ,singleRoom )2u,/vector qE0,H6,B6)
+The absence of the urgent match causes the resulting orchestration to be
+empty. Intuitively, it should be the converse: the business client should be
+served before the economy client (i.e. tcinstead oftaortb). In that case,
+i.e.(BusinessClient⊗Hotel )⊗EconomyClient , there does exist a non-empty
+orchestration respecting a business client’s priority (cf. Figure 5).
+2.5. Modelling and Analysing with the FMCAT Tool
+We implemented in Java a prototypical tool called FMCA Tool (FM-
+CAT) that supports the deﬁnition of FMCA and that synthesises its or-
+chestration in terms of its mpc. It is open source, and available at https:
+//github.com/davidebasile/FMCAT , including the models used in this pa-
+per. FMCAT builds on CAT [18], a tool for contract automata, and it oﬀers
+the functionalities described below. Our tool exploits FeatureIDE [19], an
+11
+
+--- Page 12 ---
+open-source framework for feature-oriented software development based on
+Eclipse, oﬀering diﬀerent feature model editing and management tools.
+Modelling with FMCA decouples tasks of software engineers from tasks
+of experts in formal methods. Indeed, the syntactic description of a product
+line as a feature model (interpreted as feature constraint) and the descrip-
+tion of its semantics as an automaton are separate concerns. By separating
+them, asoftwareengineercanfocusondesigningafeaturemodelanditsvalid
+products, leaving the task of specifying the operational semantics to an ex-
+pert in formal modelling. Subsequently, these two aspects can be seamlessly
+integrated in the same FMCA, making it possible to detect inconsistencies
+between the syntactic and semantic levels of the same formalism. In general,
+a software designer would like to minimise the number of product conﬁgura-
+tions that do not admit safe behaviour (i.e. empty orchestrations). Indeed,
+valid products with empty orchestrations are such that the syntactic con-
+straints provided by the feature model are not fulﬁlled by their behavioural
+descriptions. By inspecting the orchestration of the product line, one can de-
+tect all products with no safe behaviour (in the form of compliant services).
+If there are any, one either amends the feature model or their behavioural
+description so as to obtain non-empty orchestrations.
+Consider once more the above example. The feature constraint ϕof
+the Hotel service product line forces an invoice to be emitted in case of
+cash payments, and identiﬁes cash and card payments as two alternative
+features. When the cashfeature is selected, it requires also the invoicefeature
+to be implemented while at the same time the cardfeature must not be
+implemented. However, in the behavioural description of the Hotelservice
+in Figure 3, an invoice is emitted only for credit card payments, whereas a
+mere receipt is provided in case of cash payments. As a result, the maximal
+products P4854andP4857are not canonical because they require the cash
+feature to be implemented. One can ﬁx this inconsistency between ϕand
+the behavioural description by either removing the constraint cash→invoice
+fromϕor by swapping receiptwithinvoicein the Hotelautomaton.
+Note that for detecting possible inconsistencies of this kind it suﬃces
+to only inspect the maximal products (here only 4), instead of all product
+conﬁgurations (here 288) with a total Boolean assignment.
+2.6. Evaluation
+To further corroborate our proposal, we provide an evaluation of the two
+main innovations proposed by FMCA: behavioural and structural variability.
+12
+
+--- Page 13 ---
+Set-up of the Evaluation. We brieﬂy evaluate FMCA using FMCAT (build
+June 2019). The evaluation was carried out on a machine with Processor
+Intel(R)Core(TM)i7-8700CPUat3.20GHz, 3192Mhz, 6Core(s), 12Logical
+Processor(s)with16GBofRAM,running64-bitWindowsVersion10.0.17134
+build 17134.
+Evaluating Behavioural Variability. Firstweevaluatebehaviouralvariability,
+and in particular the gain in expressiveness due to the novel notion of semi-
+controllability. We will informally sketch an encoding of an FMCA into one
+without lazy transitions and estimate the diﬀerences in the state spaces of
+the two models.
+As stated in Section 1, while permitted and urgent actions are related to
+the notions of controllability and uncontrollability of SCT [7, 8], respectively,
+lazy actions are related to a novel notion called semi-controllability . We
+recall that a lazy request must eventually be matched, rather than always,
+as is the case for urgent requests. Indeed, a lazy request allows to model a
+frequent scenario in contracts where the satisfaction of a necessary request
+can be delayed, as in case of the room request of EconomyClient . While
+the synthesis algorithm cannot prune “bad” urgent transitions, it can prune
+“bad” lazy transitions as long as there exists another lazy transition where
+the same request is matched (cf. Section 4). Note that in general it is not
+possible to know a priori whether a transition is bad or not, because this
+depends on the given requirements to enforce (e.g. agreement, forbidden and
+required actions).
+Hence, the encoding A/primeof an FMCAAcontaining nlazy transitions is
+the union of 2nautomata that are obtained by all possible combinations of
+pruningasubsetofthe nlazytransitionsof Aandturningtheremaininglazy
+transitionsintourgent. Oneofsuchcombinationswillpruneexactlythesame
+transitions pruned by the synthesis and thus the resulting orchestration of
+A/primewill contain the orchestration of the original automaton A, among others
+that are not maximally permissive. In the worst-case scenario, the number
+of states of the encoding A/primewill be the number of states of the original
+automatonAmultiplied by 2n, plus an additional new initial state.
+FMCAT has been equipped with a functionality that estimates the worst-
+case number of states of the encoding discussed above. Table 2 reports the
+results of the tool for the compositions discussed in this section. For each
+automaton we display the number of states, the number of lazy transitions
+and an estimation of the number of states of the encoding. As expected,
+13
+
+--- Page 14 ---
+Num.
+statesNum.lazy
+transitionsNum.states
+of encoding
+BusinessClient⊗Hotel⊗EconomyClient 343 143 343×(2143)+1
+BusinessClient⊗Hotel 54 9 54×(29) + 1
+EconomyClient⊗Hotel 47 10 47×(210) + 1
+(BusinessClient⊗Hotel )⊗EconomyClient 340 144 340×(2144)+1
+(EconomyClient⊗Hotel )⊗BusinessClient 278 106 278×(2106)+1
+Table 2: Results about the expressiveness of lazy transitions
+the results show that in the worst case there is an exponential growth in the
+number of states of the automata, which quickly makes their analysis and
+usage non-tractable.
+Concluding, the possibility oﬀered by FMCA of primitively expressing
+necessary requests that must eventually be satisﬁed allows to reduce the
+number of states by an exponential factor with respect to other formalisms
+that only support controllable and uncontrollable actions.
+Evaluating Structural Variability. We now evaluate the structural variability
+of FMCA, and in particular the introduction of a partial order of products to
+reduce the number of conﬁgurations used to compute the orchestration (i.e.
+the most permissive controller) of the family. While the literature contains
+other attempts at synthesising the most permissive controller of a product
+line [20, 21] (cf. Section 7), these require to compute the most permissive con-
+troller for each product (in which all variability has been resolved) without
+ordering the products. On the other hand, FMCA only considers canoni-
+cal products. As shown in the remaining part of this section, ordering the
+products allows to improve the performance and reduce the state space. To
+evaluate the beneﬁts introduced by FMCA, FMCAT was equipped with a
+functionality for computing the most permissive controller of a family with
+or without taking advantage of such partial order of products.
+TheresultsaredisplayedinTable3. Thetablereportsforeachautomaton
+the number of states and the time needed by FMCAT to compute it. It also
+reports the number of conﬁgurations for which an orchestration has been
+synthesised and the conﬁgurations for which the orchestration is non-empty.
+These last two columns are relevant when computing the orchestration of
+the family. The ﬁrst six rows report the various compositions used in this
+14
+
+--- Page 15 ---
+section. The next four rows report the orchestration of these compositions
+for a speciﬁc product (denoted as KAp, whereAis the composition and pis
+the product). These are the orchestrations discussed in Section 2.4. The next
+threerowsreporttheorchestrationofthefamilyforthevariouscompositions,
+byexploitingthepartialorderofproducts. Inthiscase, thecomputationonly
+requires to analyse the four canonical products. As previously discussed,
+products P4858andP4859are the only two canonical products used in the
+orchestration of the family. Finally, the remaining three rows display once
+again the orchestration of the whole family, but this time without exploiting
+the partial order. In this last case, computing the orchestration requires to
+analyse the 288 products originally generated by FeatureIDE, where those
+with non-empty orchestrations are:
+R:F\F;F: [cash,receipt,sharedRoom ,freeCancellation ](product P86)
+R:F\F;F: [cash,receipt,freeCancellation ] (product P94)
+R:F\F;F: [cash,sharedRoom ,freeCancellation ] (product P182)
+R:F\F;F: [cash,freeCancellation ] (product P190)
+These four products are indeed those generating the orchestration of the fam-
+ily without exploiting the partial order. In particular, the orchestrations for
+products P182andP190are identical to those of products P4858andP4859.
+However, the orchestration of the family also includes two non-relevant prod-
+ucts, namely P86andP94. Indeed, the orchestrations of products P86and
+P94are included in those of products P182andP190, and thus are not sig-
+niﬁcant for characterising the orchestration of the family.
+Concluding, the experiments empirically show that FMCA, and in par-
+ticular their partial order of products, reduces both the state space of the
+orchestration of the family and the time needed to compute its orchestration.
+3. Featured Modal Contract Automata
+We now formally deﬁne Featured Modal Contract Automata (FMCA),
+borrowing the following notation from [6, 22]. In our framework, we distin-
+guish basic actions belonging to the sets of requests R={a,b,c,...}and
+oﬀers O={a,b,c,...}where R∩O=∅. The alphabet of basic actions is
+deﬁned as Σ = R∪O∪{•}where•/negationslash∈ R∪Ois a distinguished element
+representing the idlemove. We deﬁne the involution co: Σ→Σsuch that
+(abusing notation) co(R) =O,co(O) =Randco(•) =•.
+15
+
+--- Page 16 ---
+Num.
+statesTime
+(ms)Num.
+conﬁgu-
+rationsUsed con-
+ﬁgurations
+BusinessClient⊗Hotel⊗EconomyClient 343 71 - -
+BusinessClient⊗Hotel 54 9 - -
+EconomyClient⊗Hotel 47 6 - -
+(BusinessClient⊗Hotel )⊗EconomyClient 340 55 - -
+(EconomyClient⊗Hotel )⊗BusinessClient 278 22 - -
+KBusinessClient⊗Hotel⊗EconomyClientP485814 875 1 P4858
+KBusinessClient⊗Hotel⊗EconomyClientP485913 580 1 P4859
+K(EconomyClient⊗Hotel )⊗BusinessClient P48580 337 1 P4858
+K(BusinessClient⊗Hotel )⊗EconomyClientP485814 598 1 P4858
+OBusinessClient⊗Hotel⊗EconomyClient 28 3220 4 P4858,P4859
+O(EconomyClient⊗Hotel )⊗BusinessClient 0 950 4 -
+O(BusinessClient⊗Hotel )⊗EconomyClient 28 2796 4 P4858,P4859
+OBusinessClient⊗Hotel⊗EconomyClient
+without PO55 129600 288 P86,P94,
+P182,P190
+O(EconomyClient⊗Hotel )⊗BusinessClient
+without PO0 60186 288 -
+O(BusinessClient⊗Hotel )⊗EconomyClient
+without PO55 130994 288 P86,P94,
+P182,P190
+Table 3: Results of the evaluation performed with FMCAT
+16
+
+--- Page 17 ---
+Let/vector v= (e1,...,e n)be a vector of rankrv=n≥1, and let/vector v(i)denote
+theith element with 1≤i≤rv. By/vector v1/vector v2···/vector vmwe denote the concatenation
+ofmvectors/vector vi. From now onwards, we stipulate that in an action vector /vector a
+there is either a single oﬀer or a single request, or a single pair of request-
+oﬀer that match, i.e. there exists exactly i,jsuch that/vector a(i)is an oﬀer and /vector a(j)
+is the complementary request; all the other elements of the vector contain
+the symbol•, meaning that the corresponding principals remain idle. In the
+following, let•mdenote a vector of rank m, all elements of which are •.
+Deﬁnition 1 (Actions).Given a vector /vector a∈Σn, if
+-/vector a=•n1α•n2,n1,n2≥0n1+n2+ 1 =n, then/vector ais arequest (action)
+onαifα∈R, whereas/vector ais anoﬀer (action) on αifα∈O
+-/vector a=•n1α•n2co(α)•n3,n1,n2,n3≥0,n1+n2+n3+ 2 =n, then/vector ais a
+match (action) on α, whereα∈R∪O
+Actions/vector aand/vectorbarecomplementary , denoted by /vector a1/vectorb, iﬀ the following holds:
+(i)∃α∈R∪Os.t./vector ais either a request or an oﬀer on α; (ii)/vector ais an oﬀer
+(request, resp.) on αimplies that /vectorbis a request (oﬀer, resp.) on co(α).
+The actions and states of contract automata are vectors of basic actions
+and states of principals, respectively. The alphabet of an FMCA consists
+of vectors, each element of which intuitively records the execution of basic
+actions of principals in the contract.
+An FMCA declares a product line of service contracts through (i) per-
+mittedandnecessary transitions; and (ii) a feature constraint ϕidentifying
+all valid products (cf. Section 4). Modalities (i.e. permitted and necessary)
+classify requests and matches, while all oﬀers are permitted. Oﬀers and per-
+mitted requests reﬂect optional behaviour and can thus be discarded in the
+orchestration.
+We further partition the set of necessary requests into urgentandlazyre-
+quests. Since these requests mustbe matched to reach an agreement among
+contracts, they express another layer of variability that speciﬁes if a nec-
+essary request must alwaysoreventually be matched in a contract. This
+extension leads to an increasing degree of controllability, as formally shown
+inSection3.2. Table1inSection2depictsthediﬀerenttypesofbasicactions.
+The deﬁnition of an FMCA follows, which is essentially a ﬁnite state
+automaton with an alphabet of basic actions appropriately partitioned, plus
+a propositional logic formula used to characterise the product line.
+17
+
+--- Page 18 ---
+Deﬁnition 2 (Featured modal contract automata) .Assume as given a ﬁnite
+set of states Q={q1,q2,...}. Then a featured modal contract automaton
+Aof rankn≥1is a tuple/angbracketleftQ,/vector q 0,A3,A2u,A2/lscript,Ao,T,ϕ,F/angbracketright, where
+-Q=Q1×···×Qn⊆Qn
+-/vector q0∈Qis the initial state
+-A3,A2u,A2/lscript⊆Rare (pairwise disjoint) ﬁnite sets of permitted, urgent
+and lazy requests, resp.; we denote the set of requests by Ar=A3∪
+A2u∪A2/lscript
+-Ao⊆Ois the ﬁnite set of oﬀers
+-T⊆Q×A×Q, whereA= (Ar∪Ao∪{•} )n, is the set of transitions
+partitioned into permitted transitionsT3andnecessary transitionsT2,
+constrained as follows. Given t= (/vector q,/vector a,/vector q/prime)∈T,
+*/vector ais either a request or an oﬀer or a match
+*∀i∈1...n, /vector a (i)=•implies/vector q(i)=/vector q/prime
+(i)
+*t∈T3iﬀ/vector ais either a request or a match on a∈A3or an oﬀer
+ona∈Ao; otherwise t∈T2
+-ϕis a propositional logic formula, whose atoms belong to R∪O
+-F⊆Qis the set of ﬁnal states
+Aprincipal FMCA (or just principal ) has rank 1 and Ar∩co(Ao) =∅.
+For brevity, unless stated diﬀerently, we assume a ﬁxed FMCA A=
+/angbracketleftQA, /vector q0A,A3
+A,A2u
+A,A2/lscript
+A,Ao
+A,TA,ϕA,FA/angbracketrightof rankn. SubscriptAmay be omit-
+ted when no confusion can arise. Moreover, if not stated otherwise, each
+operationfon one of the elements of the tuple (e.g. union f(Ar)) is in-
+tended to homomorphically act on its elements (e.g. f(A3),f(A2u), and
+f(A2/lscript)). Also, let T3∪2be a shorthand for T3∪T2and likewise for other
+transition sets. Finally, we call a transition trequest,oﬀerormatchif its
+label is such. An FMCA recognises a language over (annotated) actions.
+Deﬁnition 3. Let#∈{3,2u,2/lscript}. A step (w,/vector q)/vector a#−→(w/prime,/vector q/prime)occurs iﬀw=
+/vector a#w/prime,w/prime∈(A∪{#})∗and(/vector q,/vector a,/vector q/prime)∈T#. We write /vector q/vector a#−→whenw,w/primeand
+/vector q/primeare immaterial and (w,/vector q)→(w/prime,/vector q/prime)when/vector a#is immaterial. Let →∗be
+the reﬂexive and transitive closure of transition relation →. The language of
+AisL(A) ={w|(w,/vector q 0)w− →∗(ε,/vector q), /vector q∈F}.
+18
+
+--- Page 19 ---
+By an abuse of notation, the modalities can be attached to either basic
+actions or to their action vector (thus, e.g., (a2/lscript,a)≡(a,a)2/lscript).
+3.1. Composing FMCA
+The FMCA operators of composition are crucial for generating (at bind-
+ing time) an ensemble of services. By adding new services to an existing
+composition, it is possible to dynamically update the product line (i.e. both
+its feature model and its behaviour) and to synthesise, if possible, a compo-
+sition satisfying all requests deﬁned by the service contracts (cf. Section 4).
+AsetofFMCAis composable ifandonlyiftheconjunctionoftheirfeature
+constraints leads to no contradiction.
+Deﬁnition 4 (Composable) .A set Set ={Ai|i∈1...n}of FMCA is
+composable iﬀ(/logicalandtext
+Ai∈SetϕAi)/negationslash|=false.
+We now formally deﬁne our ﬁrst (non-associative) composition operation,
+intuitively presented in Section 2. Its operands Ai,i∈1...nare either
+principals or composite services. Intuitively, product composition ⊗partially
+interleaves the actions of all operands, with one restriction: if two operands
+AiandAjare ready to execute two complementary actions (i.e. /vector ai1/vector aj) then
+only their match is allowed and their interleavings are prevented. Moreover,
+the generated match will inherit the modality of the request. This was shown
+in Section 2 and is further illustrated in Example 1 following the deﬁnition.
+In detail, the transitions of the composite service are generated as follows.
+Case (1) in Deﬁnition 5 generates match transitions starting from two
+transitions with complementary actions (i.e. /vector ai1/vector aj), coming from two
+operandsAiandAj. If, e.g., (/vector qj,/vector aj,/vector q/prime
+j)∈T2, then the resulting match
+transition is marked as necessary (i.e. (/vector q,/vector c,/vector q/prime)∈T2). If both complemen-
+tary actions are permitted, then their resulting match transition tis marked
+as permitted. All other principals not involved in tremain idle.
+Case (2) in Deﬁnition 5 generates all interleaved transitions if and only if
+no complementary actions can be executed from the composed source state /vector q.
+An operandAiexecutes its transition t= (/vector qi,/vector ai,/vector q/prime
+i)while all others remain
+idle. The composed transition is marked as necessary (permitted) only if t
+is necessary (permitted, resp.). Note that condition /vector ai1/vector ajexcludes pre-
+existing match transitions of the operands being involved in new matches.
+Recall that we implicitly assume the set of labels of an FMCA of rank mto
+beA⊆(Ar∪Ao∪{•} )m.
+19
+
+--- Page 20 ---
+Deﬁnition 5 (Composition) .LetAibe a composable FMCA of rank ri,
+i∈1,...,n, and let#∈{3,2}. Theproduct composition/circlemultiplytext
+i∈1...nAiis the
+FMCAAof rankm=/summationtext
+i∈1...nri, where
+-Q=Q1×···×Qn,with/vector q0=/vector q01···/vector q0n
+-Ar=/uniontext
+i∈1...nAr
+i,Ao=/uniontext
+i∈1...nAo
+i,
+-T#⊆Q×A×Qs.t.(/vector q,/vector c,/vector q/prime)∈T#iﬀ, when/vector q=/vector q1···/vector qn∈Q,
+1. either∃1≤i < j≤ns.t.(/vector qi,/vector ai,/vector q/prime
+i)∈T#
+i,(/vector qj,/vector aj,/vector q/prime
+j)∈T#∪3
+j,
+/vector ai1/vector ajand
+
+/vector c=•u/vector ai•v/vector aj•z,withu=r1+···+ri−1,
+v=ri+1+···+rj−1, z=rj+1+···+rn,|/vector c|=m
+and/vector q/prime=/vector q1···/vector qi−1/vector q/prime
+i/vector qi+1···/vector qj−1/vector q/prime
+j/vector qj+1···/vector qn
+2. or∃1≤i≤ns.t.(/vector qi,/vector ai,/vector q/prime
+i)∈T#
+iand
+
+/vector c=•u/vector ai•v,withu=r1+···+ri−1,
+v=ri+1+···+rn,|/vector c|=m,
+/vector q/prime=/vector q1···/vector qi−1/vector q/prime
+i/vector qi+1···/vector qnand∀j/negationslash=i,1≤j≤n
+s.t.(/vector qj,/vector aj,/vector q/prime
+j)∈T#∪3
+j, /vector ai1/vector ajdoes not hold
+-ϕ=/logicalandtext
+i∈1...nϕi
+-F={/vector q1···/vector qn∈Q|/vector qi∈Fi, i∈1...n}
+Example 1. In Figures 2 and 3, two principals discussed in Section 2 are
+depicted. A sub-portion of their composition BusinessClient⊗Hotel, which is
+their non-empty orchestration, is shown in Figure 6. The outgoing transition
+/vector qB0,H0(singleRoom ,singleRoom )2u−−−−−−−−−−−−−−−−→ is an example of an urgent match between the
+urgent request singleRoom 2uof the ﬁrst principal and the permitted oﬀer
+singleRoom 3of the second. Recall that a match excludes any interleavings
+of principals in the composition. For example, in this composition neither
+of the transitions /vector qB0,H0(singleRoom 2u,•)−−−−−−−−−−→ and/vector qB0,H0(•,singleRoom 3)−−−−−−−−−→ are allowed
+because of (singleRoom 2u,•)1(•,singleRoom 3).
+qB0
+qH0qB6
+qH6qB9
+qH5qB1
+qH1qB2
+qH2qB2
+qH9
+qB3
+qH3(singleRoom ,
+singleRoom )2u(noFreeCancellation ,
+noFreeCancellation )3(privateBathroom ,
+privateBathroom )3 (card,card)3 (receipt,receipt )3(•,freebrk)3(invoice
+,invoice
+)2/lscript
+Figure 6: Orchestration of composition BusinessClient⊗Hotelof the two automata in
+Figures 2 and 3 for the canonical product P4859
+20
+
+--- Page 21 ---
+In the following, we assume every FMCA Aof rankrA>1to be
+composedbyFMCAwiththecompositionoperatorsdescribedinthissection.
+We now deﬁne the projection operator/producttexti(A), which retrieves the principal
+Aiinvolved inAand identiﬁes its original transitions and feature constraint.
+This operator is now formally deﬁned (recall from Deﬁnition 2 that the set
+Aris the union of all requests, permitted and necessary, while T3andT2
+partition the set T). Note that ϕ=/logicalandtext
+i∈1...nϕias dictated by Deﬁnition 5.
+Deﬁnition 6 (Projection) .LetAbe of rank n. Theprojection/producttexti(A) =
+/angbracketleft/producttexti(Q),/vector q0(i),/producttexti(A3),/producttexti(A2u),/producttexti(A2/lscript),/producttexti(Ao),/producttexti(T),/producttexti(ϕ),/producttexti(F)/angbracketright
+on theith principal, i∈1...n, is s.t.
+-/producttexti(Q) ={/vector q(i)|/vector q∈Q}
+-/producttexti(Ar) ={a|a∈Ar,(q,a,q/prime)∈/producttexti(T)}
+-/producttexti(Ao) ={a|a∈Ao,(q,a,q/prime)∈/producttexti(T)}
+-/producttexti(T3) ={(/vector q(i),/vector a(i),/vector q/prime
+(i))|((/vector q,/vector a,/vector q/prime)∈T3∧/vector a(i)/negationslash∈•)∨
+((/vector q,/vector a,/vector q/prime)∈T2∧/vector a(i)∈O)}
+-/producttexti(T2) ={(/vector q(i),/vector a(i),/vector q/prime
+(i))|((/vector q,/vector a,/vector q/prime)∈T2∧/vector a(i)∈R)}
+-/producttexti(/logicalandtext
+i∈1...nϕi) =ϕi
+-/producttexti(F) ={/vector q(i)|/vector q∈F}
+The associative composition operator 4is deﬁned below on top of the
+operators⊗and/producttext. First, the corresponding principals of the operands are
+extracted by/producttextand then they are recomposed all together in a single step
+by⊗. This causes all pre-existing matches to be rearranged.
+Deﬁnition 7 (A-composition) .LetA1,A2be two composable FMCA of rank
+mandn, resp., and let I={/producttexti(A1)|0<i≤m}∪{/producttextj(A2)|0<j≤n}.
+Then the a-product composition ofA1andA2isA14A2=/circlemultiplytext
+Ai∈IAi.
+Note that4models a dynamic composition policy: new services joining
+composite services can intercept already matched actions.
+Hence, by changing operators of composition or the order of composition
+diﬀerent composite FMCA can be obtained, as exempliﬁed below.
+21
+
+--- Page 22 ---
+Example 2. Consider again the example from Section 2 and compositions
+(EconomyClient⊗Hotel)4BusinessClient and EconomyClient⊗(Hotel⊗
+BusinessClient) . In both, the transition /vector qE0,H0,B0(•,singleroom ,singleroom 2u)−−−−−−−−−−−−−−−−→ is
+allowed, whereas it is not in the composition (EconomyClient⊗Hotel)⊗
+BusinessClient , which has an empty orchestration.
+3.2. Controllability
+We base our algorithm for orchestration synthesis on that used to obtain
+the most permissive controller (mpc) in Supervisory Control Theory (SCT).
+The purpose of SCT is to synthesise the mpc that enforces only “good”
+computations in ﬁnite state automata in which forbidden states are never
+traversed while marked(i.e. ﬁnal) states represent the successful termination
+of a task. To this aim, SCT distinguishes controllable actions (those that
+the controller can disable) and uncontrollable actions (those that are always
+enabled), besides partitioning actions into observable andunobservable (obvi-
+ously uncontrollable). If all actions are observable, then an mpc exists which
+never blocks a good computation, if any. Ideally, the actions that ruin an
+orchestration of service contracts should be removed by the synthesis algo-
+rithm. However, this can only be done for actions that are controllable in
+the orchestration.
+Besides the classical controllable and uncontrollable actions, we intro-
+duce the new semi-controllable ones. Moreover, we call a transition control-
+lable/uncontrollable if its action label is such.
+All permitted actions are fully controllable. Urgent actions (i.e. requests
+and matches) are uncontrollable. Note that in these cases controllability and
+uncontrollability can be checked locallyon a single transition.
+Lazy actions (i.e. requests and matches) are semi-controllable . Semi-
+controllable transitions may lead to either controllable or uncontrollable
+transitions, depending on a globalcondition to be checked on the whole
+automaton resulting from a composition. If this condition is satisﬁed, then
+the semi-controllable transition is also controllable, otherwise it is uncontrol-
+lable. This condition states that the request (labelling the semi-controllable
+transition) must be matched in at least one transition in the automaton.
+Note that this is not the case for urgent actions that are uncontrollable in
+everytransition in which they appear. The synthesis algorithm can therefore
+safely discard those lazy transitions leading to bad states (because they are
+controllable), provided that in the resulting automaton that speciﬁc request
+has been matched somewhere else. The following auxiliary deﬁnition will
+22
+
+--- Page 23 ---
+help in deﬁning semi-controllability. It introduces dangling states, i.e. those
+unreachable or from which no ﬁnal state can be reached.
+Deﬁnition 8 (Dangling state) .The state/vector q∈Dangling (A)isdangling iﬀ
+@ws.t./vector q0w− →∗/vector qor/vector qw− →∗/vector qf∈F.
+The next deﬁnition classiﬁes the transitions in an FMCA A. Diﬀerently
+than what happens in standard SCT, all the transitions of FMCA are ob-
+servable, because contracts declare the executions of a principal in terms of
+their requests and oﬀers. Then we deﬁne the transitions that are controllable
+or not. We state the conditions that make a semi-controllable transition t
+controllable or not. Intuitively, tis controllable if in a given portion of A
+there exists a lazy match transition t/prime, with source and target not dangling,
+and in both tandt/primethesameprincipal, in the samelocal state, does the
+samerequest. Otherwise, tis uncontrollable.
+In what follows, we call A/primesub-automaton of A(in symbolsA/prime⊆A)
+wheneverϕA/prime=ϕAand the other components of A/primeare included in the
+corresponding ones of A.
+Deﬁnition 9 (Classifying transitions) .Lett= (/vector q1,/vector a1,/vector q1/prime)be an (observable)
+transition inA. Then
+- If/vector a1is an action on a∈A3, thentiscontrollable (inA);
+- If/vector a1is a request or a match on a∈A2u, thentisuncontrollable (inA);
+- If/vector a1is a request or a match on a∈A2/lscript, thentissemi-controllable (inA).
+Moreover, givenA/prime⊆A, iftis semi-controllable and ∃t/prime=(/vector q2,/vector a2,/vector q2/prime)∈T2
+A/prime
+s.t./vector a2is a match, /vector q2,/vector q2/prime/negationslash∈Dangling (A/prime),/vector q1(i)=/vector q2(i)and/vector a1(i)=/vector a2(i)=a,
+thentiscontrollable inA/prime(viat/prime); otherwise, tisuncontrollable inA/prime.
+Example 3. ConsiderA=BusinessClient⊗Hotel⊗EconomyClient from
+Section 2, its orchestration KAP4858in Figure 5 and the trace
+/vector qB0,H0,E0(singleRoom ,singleRoom ,•)2u−−−−−−−−−−−−−−−−−→ /vector qB6,H6,E0− →∗/vector qB3,H3,E0(•,singleRoom ,singleRoom )2/lscript −−−−−−−−−−−−−−−−−→
+The semi-controllable transition t=/vector qB0,H0,E0(•,singleRoom ,singleRoom )2/lscript −−−−−−−−−−−−−−−−−→ inTA
+is controllable inKAP4858viat/prime=/vector qB3,H3,E0(•,singleRoom ,singleRoom )2/lscript −−−−−−−−−−−−−−−−−→∈ TKAP4858.
+Thus,tis safely removed in KAP4858because the corresponding request appears
+in another transition in a match (in this example t/prime).
+23
+
+--- Page 24 ---
+qB0
+qH0qB6
+qH6qB9
+qH5qB1
+qH1qB2
+qH2qB3
+qH3(singleRoom ,
+singleRoom )2u(noFreeCancellation ,
+noFreeCancellation )3(privateBathroom ,
+privateBathroom )3 (card,card)3 (receipt,receipt )3
+Figure 7: A spurious composition Kill
+Example 4. ConsiderA=BusinessClient⊗Hotelfrom Example 1 and its
+orchestrationKAP4858displayed in Figure 6. The semi-controllable transition
+t= (/vector qB2,H2,(invoice,invoice )2/lscript,/vector qB3,H7)inTAis controllable in KAP4858via
+t/prime= (/vector qB2,H9,(invoice,invoice )2/lscript,/vector qB3,H3).
+Conversely, consider the ill-formed orchestration Killin Figure 7, obtained
+fromKAP4858by removing states /vector qB2,H9and/vector qB3,H7and its incident transitions
+(includingt/prime). Now no other matches for invoice 2/lscriptare reachable. Hence, in
+this case,tis uncontrollable in Kill. Indeed,Killcannot be synthesised starting
+fromAbecausetcannot be removed without violating the constraints in A.
+4. Controller Synthesis for FMCA
+We now extend the standard synthesis algorithm of SCT for computing
+the mpc to also deal with the newly introduced semi-controllable actions.
+Of course, with only urgent and permitted actions, the standard synthesis
+of SCT is immediately applicable. Moreover, we want to synthesise an or-
+chestration of services that satisﬁes the feature constraint. To this aim, the
+synthesis algorithm computes the mpcof avalid product of the product line.
+Weﬁrstrecallfrom[9]thepropertiesof (modal) agreement andof(modal)
+safetyof FMCA. Intuitively, a trace is in agreement if it is made of matches
+and oﬀer actions only. An FMCA is safe when all traces of its language are
+in agreement, and it admits agreement when at least one of its traces is such.
+Deﬁnition 10 (Modal agreement, modal safety) .Let#∈{3,2u,2/lscript}. A
+trace accepted by an FMCA is in agreement if it belongs to the set
+A={w∈(Σn#)∗|∀is.t.w(i)=/vector a#, /vector ais a match or an oﬀer , n> 1}
+An FMCAAissafeiﬀL(A)⊆A; otherwise it is unsafe. Finally, if
+L(A)∩A/negationslash=∅, thenAadmits agreement .
+Example 5. The FMCA in Figure 6 admits agreement because the following
+trace belongs to its language and to the set A
+(singleRoom ,singleRoom )2u(noFreeCancellation ,noFreeCancellation )3
+(privateBathroom ,privateBathroom )3(card,card)3(receipt,receipt )3
+24
+
+--- Page 25 ---
+A few auxiliary deﬁnitions follow, which help to present our algorithm for
+synthesising an orchestration of an FMCA, viz. its maximal safe sub-portion.
+Whilst generally products are total interpretations of a feature constraint,
+in a product we allow some atoms to have a “don’t care” value by letting
+the interpretation function to be partial. We now deﬁne when a product is
+valid under a given, possibly partial, interpretation, and which are the basic
+actions that are mandatory and forbidden in the contract.
+Deﬁnition 11 (Valid products) .Letϕbe a formula over R∪Oand let
+P/ownerp:R∪O⇒{true,false}be a (partial) interpretation function.
+Then JϕK={p∈P|ϕ|=ptrue}is the set of all valid products ofϕ.
+Furthermore, let Mandatory (p∈P) ={a∈R∪O|p(a) =true}and let
+Forbidden (p∈P) ={a∈R∪O|p(a) =false}.
+Now, we formally deﬁne when a state is “bad”, i.e. a transition outgoing
+from it cannot be blocked by the orchestrator, be it forbidden or a request
+that is not matched. This is because such transitions violate the constraint
+put by the predicate ϕor they violate the agreement property. We also deﬁne
+when a transition of an FMCA is forced by its controller.
+Deﬁnition 12 (Uncontrollable disagreement) .LetAbe an FMCA,K⊆A,
+and letp∈JϕAK. A transition t=/vector q/vector a− →∈TAisforcedinAbyKiﬀ (i)tis
+uncontrollable inKor (ii) there exist no t/prime∈TK,t/prime/negationslash=twith source /vector q/negationslash∈FK.
+A state/vector q/negationslash∈Dangling (K)is inuncontrollable disagreement w.r.t. pbyK
+iﬀ there exists a trace /vector qAw− →∗/vector q1Amade by forced transitions only, and either
+1. an action occurring in wbelongs to Forbidden (p)orw/negationslash∈A; or
+2. for all traces /vector q1w/prime−→∗/vector qf∈FA, condition (1) above holds for w/prime.
+Example 6. State/vector qB2,H2ofA=BusinessClient⊗Hotelfrom Example 1 is in
+uncontrollable disagreement w.r.t. P4859byKill(cf. Figures 6 and 7) because
+the transition (/vector qB2,H2,(invoice,invoice )2/lscript,/vector qB3,H7)∈TAis uncontrollable and
+forced inKill(cf. Example 4), and from state /vector qB3,H7the ﬁnal state /vector qB3,H3can
+only be reached by executing the request action (•,captcha 3)(/negationslash∈A).
+Before giving the algorithm that synthesises an orchestration for a con-
+tract, we introduce the notion of mpc for an FMCA. Intuitively, given Aand
+one of its valid products p, the mpcKofpis an FMCA that allows all traces
+ofAin agreement with no states in uncontrollable disagreement w.r.t. pby
+25
+
+--- Page 26 ---
+K, and blocks all the others. Moreover, all actions that are mandatory in p
+must occur inKwhilst none of the forbidden ones. It turns out that Kis
+unique up to language equivalence.
+Deﬁnition 13 (mpc of product) .LetA,Kbe FMCA and let p∈JϕAK.
+ThenKis acontroller ofpiﬀ the following hold
+1.Kis safe
+2. Dangling (K) =∅
+3. either L(K) =∅or∀a∈Mandatory (p)∃w∈L(K)s.t.aoccurs inw
+4.@w∈L(K)s.t.wcontains actions Forbidden (p)or/vector q0Kw− →∗/vector qK,/vector q0Aw− →∗/vector qA
+and/vector qKis in uncontrollable disagreement w.r.t. pbyK.
+A controllerKof valid product pofAis themost permissive (modal) con-
+troller (mpc) iﬀ for all controllers K/primeofp,L(K/prime)⊆L(K)holds.
+Example 7. All orchestrations discussed in Section 2 are the mpc of their
+corresponding service composition for either products P4858orP4859.
+The rest of this section presents an iterative algorithm that, given an
+FMCAA, computes the mpc of one of its products p. Intuitively, the al-
+gorithm iteratively builds the set of bad states, i.e. those in uncontrollable
+disagreement, and it detects the bad transitions, i.e. those leading to such
+states. Recall that the bad states are those that cannot prevent a necessary
+request or a forbidden action to be eventually executed. Checking whether
+a transition is bad requires to inspect the whole automaton Ato be able to
+decide whether a given transition is controllable or uncontrollable (cf. Deﬁ-
+nition 9). Apart from discarding the transitions forbidden by the product p,
+this is the main diﬀerence between our synthesis algorithm and the standard
+synthesis algorithm of [7], while—as expected—our algorithm still removes
+all requests that are not matched.
+More precisely, we ﬁrst let the initial mpc K0be the wholeA, from which
+we remove its bad controllable transitions. The auxiliary set of bad states
+R0is also initialised with the source states of the bad uncontrollable transi-
+tions and with the dangling states of K0. At each iteration i, the algorithm
+prunes the controllable transitions with bad target and the uncontrollable
+transitions with bad source from Ki. Moreover, Riis updated by adding to
+26
+
+--- Page 27 ---
+Ri−1(i) the newly generated dangling states; (ii) the sources of uncontrol-
+lable transitions with bad target; and (iii) the sources of those transitions
+(ofA) not belonging to Kithat become uncontrollable (and bad) because
+of the pruning above, i.e. the sources of those transitions that turned from
+semi-controllable to uncontrollable because of pruning (cf. Deﬁnition 9). The
+algorithm terminates when no new updates are available, and the synthesised
+automaton, sayKn, is the mpc of p. Of course, if the initial state is bad (in
+Rn) or some action mandatory in valid product pis unavailable inKn, then
+the mpc is empty.
+Deﬁnition 14 (Synthesis) .LetAbe an FMCA and let p∈JϕAK. The
+functionf:FMCA×2Q→FMCA×2Qis iteratively deﬁned as follows.
+LetK0=/angbracketleftQ,/vector q 0,A3,A2u,A2/lscript,Ao,T\{tcontrollable inA |trequest∨
+a∈Forbidden (p)},ϕA,F/angbracketright, letR0=Dangling (K0)∪{/vector q|(/vector q− →) =t∈T2
+A
+onauncontrollable inK0and(trequest∨a∈Forbidden (p))}.
+Thenf(Ki−1,Ri−1) = (Ki,Ri), where
+-Ki=/angbracketleftQ,/vector q 0,A3,A2u,A2/lscript,Ao,TKi,ϕA,F/angbracketright, with
+TKi=TKi−1\({(/vector q− →/vector q/prime)=t∈TKi−1|tcontrollable inKi−1, /vector q/prime∈Ri−1}
+∪{(/vector q− →) =t∈TKi−1|tuncontrollable inKi−1, /vector q∈Ri−1})
+-Ri=Ri−1∪{/vector q|(/vector q− →/vector q/prime)∈T2
+Kiuncontrollable inKi, /vector q/∈Ri−1, /vector q/prime∈Ri−1}
+∪{/vector q|(/vector q− →)∈T2
+Alazy uncontrollable in Ki}∪Dangling (Ki)
+The following property is immediate.
+Proposition 1. Given two FMCA A,A/primeand two sets of states R,R/prime, let
+(A,R)≤(A/prime,R/prime)ifTA⊇TA/primeandR⊆R/prime.
+The function fof Deﬁnition 14 is monotone w.r.t. ≤and, stipulating
+thatK0is as in Deﬁnition 14, its unique ﬁxed point is:
+(Kn,Rn) =sup({fn(K0,R0)|n∈N})
+The deﬁnition of the mpc for a valid product pis now straightforward.
+Deﬁnition 15 (Computing mpc) .Let(Kn,Rn)=sup({fn(K0,R0)|n∈N})
+as in Proposition 1 and let T/prime={t=/vector q− →∈K n|tcontrollableinKn, /vector q∈Rn}.
+Then the mpcKApfor the valid product pofAis:
+KAp=
+
+/angbracketleft/angbracketrightif/vector q0∈Rnor∃a∈Mandatory (p)s.t.∀t∈TKn:
+tis not a transition on a
+/angbracketleftQ\Rn,/vector q0,A3,A2u,A2/lscript,Ao,TKn\T/prime,F\Rn/angbracketrightotherwise
+27
+
+--- Page 28 ---
+We now prove the main result of this section.
+Theorem 1 (mpc for product) .LetAbe an FMCA and let p∈JϕAKbe a
+valid product. The FMCA KApcomputed through Deﬁnition 15 is the mpc
+for the valid product pofA.
+Once obtained the mpc, one can construct the controlled system through
+a standard synchronous composition of AandKAp(and not through the
+operators in Deﬁnition 5). As a matter of fact, it is unnecessary to specify
+the controlled system, because in our framework the mpc isthe orchestration
+itself, andtheneededinteractionsbetweentheorchestratorandtheprincipals
+are left implicit (for a longer discussion, cf. [22]).
+5. Reﬁning FMCA
+Based on the notion of controllability of Deﬁnition 9, we now deﬁne a
+reﬁnement relation between FMCA in the classical sense such that a reﬁned
+automaton (i.e. with less states and/or transitions) still preserves certain
+properties of interest of the original automaton. We will then use this notion
+to eﬃciently compute the orchestration of a given product line.
+Asforthestandardmodalreﬁnement[23], westipulatethatanFMCA Ar
+reﬁnes an FMCA AwhenTAr⊆TA. More precisely, all the uncontrollable
+transitions ofAare also present in Ar, and a subset of the controllable ones
+ofAalso belong toAr. In addition, we require that a semi-controllable
+transition that is controllable in Amust be present in Ar, if it turns out
+to be uncontrollable there (this means that all the transitions making it
+controllable inAare not present in Ar, as dictated by Deﬁnition 9).
+Deﬁnition 16 (Reﬁnement of FMCA) .LetAandArbe two FMCA. Then
+Aris apre-reﬁnement ofAiﬀ
+-Ar⊆A
+-t∈TAis uncontrollable implies t∈TAr
+-t∈TAis semi-controllable and @t/prime∈TArs.t.tis controllable via t/prime(in
+Ar) impliest∈TAr
+Finally,Aris areﬁnement ofA, in symbolsAr/subsetsqequalA, if it is obtained from
+a pre-reﬁnement of Aby removing all the dangling nodes and the transitions
+they share.
+28
+
+--- Page 29 ---
+Example 8. ConsiderKAP4859in Figure 6 and the automaton K/primeobtained
+by adding toKAP4859transitiont= (/vector qB2,H2,(invoice,invoice )2/lscript,/vector qB3,H7), state
+/vector qB3,H7and transition (/vector qB3,H7,(freebrk 3,•),/vector qB3,H3).
+Then the reﬁnement KAP4859/subsetsqequalK/primeholds because t∈TK/primeis semi-controllable
+inKAP4859and controllable via (/vector qB2,H9,(invoice,invoice )2/lscript,/vector qB3,H3).
+Finally, consider again Killfrom Example 4 in Figure 7; in this case it
+holds thatKill/negationslash/subsetsqequalK/primebecauset∈TK/prime,t/negationslash∈K illbuttis uncontrollable in Kill.
+The next theorem states that the mpc of valid product pofAproduces
+the largest reﬁnement of the principals in Aguaranteeing that there exists an
+agreement among the parties. Intuitively, if a permitted action does not spoil
+the overall agreement, then it will be available in the composition of services.
+Theorem 2 (Largest reﬁnement) .LetA=/circlemultiplytext
+i∈IAibe a composition of
+principalsAi, letpbe a valid product of A, letKAp/negationslash=/angbracketleft/angbracketrightbe its mpc computed
+through Deﬁnition 14 and let ∀i∈I: Πi(KAp) =Aribe its principals. Then:
+∀i∈I:Ari/subsetsqequalA i (1)
+K/prime/negationslash=/angbracketleft/angbracketrightcontroller of pofAimplies∀i∈I: Πi(K/prime)/subsetsqequalA ri(2)
+Example9. LetKbe the orchestration of BusinessClient⊗Hotelin Figure 6.
+Then (/producttext1(K) =Client p)/subsetsqequalBusinessClient .
+6. Feature Constraints and Products
+In Section 4, we presented the algorithm for synthesising an orchestration
+of service contracts for a speciﬁcproduct of a product line. The number of
+valid products of a product line is in general exponential in the number of
+features [17]; here we construct the orchestration of the entireproduct line
+only using a small selected subset of valid products.
+All valid products JϕKof a product line can be partially ordered by
+(component-wise) set inclusion, providing us with the basis for computing
+the orchestration of a product line.
+Deﬁnition 17 (Partially ordering JϕK).Let JϕKbe the set of valid products.
+Then (JϕK,/precedesequal)is a partially ordered set, where p/precedesequalp/prime(in other words pis a
+sub-product ofp/primeorp/primeis asuper-product ofp) iﬀ component-wise
+(Mandatory (p/prime),Forbidden (p/prime))⊆(Mandatory (p),Forbidden (p))
+Morever, the maximal products are the maximal elements of /precedesequal.
+29
+
+--- Page 30 ---
+Example 10. The feature constraint ϕin Section 2 has 4860 valid products
+(recall that we also consider partially interpreted products). Three exem-
+plary products are the maximal product P4858(cf. Section 2) with manda-
+tory features{card,sharedBathroom}and forbidden feature {cash}, product
+P4829with mandatory features {card,sharedBathroom}and forbidden fea-
+tures{cash,freeCancellation}and, lastly, product P4832with mandatory fea-
+tures{card,sharedBathroom ,privateBathroom}and forbidden feature {cash}.
+Thus follows P4829/precedesequalP4858andP4832/precedesequalP4858.
+6.1. FMCA respecting valid products
+The validity of a product pis deﬁned in logical terms, but it is convenient
+to see how it is reﬂected in the behaviour of an FMCA A. Intuitively, all
+the mandatory actions in pcorrespond to executable transitions in Aand no
+actions forbidden in phave executable counterparts in A.
+Deﬁnition 18 (Respecting validity) .An FMCAArespectsp∈JϕAKiﬀ
+1.∀a∈Mandatory (p)∃(/vector q,/vector a,/vector q/prime)∈TAs.t./vector ais an action on aand/vector q,/vector q/prime/negationslash∈
+Dangling (A), and
+2.∀b∈Forbidden (p)@(/vector q,/vectorb,/vector q/prime)∈TAs.t./vectorbis an action on band/vector q,/vector q/prime/negationslash∈
+Dangling (A).
+We now prove that the partial order on valid products is such that if A
+respects one of them, then it respects all its super-products.
+Theorem 3 (Respecting validity is preserved by /precedesequal).LetAbe an FMCA
+and letp,p/prime∈JϕAK. Then:
+(Arespectspandp/precedesequalp/prime)impliesArespectsp/prime
+Example 11. While P4858andP4859from Section 2 are maximal products
+featuring payments made by credit card, the maximal products P4854and
+P4857correspond to the Hotel product requiring payments by cash (and hence
+forbidding payments by credit card). Both products P4858and P4859are
+respected by BusinessClient⊗Hotel⊗EconomyClient (cf. Figure 5), whereas
+P4854andP4857are not. Consider again product P4829from Example 10.
+Since P4829/precedesequalP4858andBusinessClient⊗Hotel⊗EconomyClient respects
+P4829, it also respects P4858. Moreover, every sub-product of P4854orP4857
+is not respected by all the given orchestrations (clients never pay cash).
+30
+
+--- Page 31 ---
+The theorem above suggests an eﬃcient procedure for singling out valid
+products respected by A: visit the partially ordered set (JϕK,/precedesequal)in top-down
+fashion, starting from the maximal ones, and discard the subsets of products
+rooted inpifAdoes not respect p.
+Thefollowinglemmarelates(i)theexistenceofanmpcforavalidproduct
+pofAto (ii) the notion of respecting validity. While (i) implies (ii), the two
+notions imply each other whenever the set of actions mandatory in pis non-
+empty. Finally, Lemma 1(5) complements Theorem 3 and says that if a valid
+productphas a non-empty mpc, then there exists a p/primesuch thatp/prime/precedesequalpand
+p/primehas a non-empty mpc.
+Lemma 1. LetKApbe the mpc of a product pofA. Then:
+L(KAp)/negationslash=∅impliesKAprespectsp (3)
+(KAprespectspand Mandatory (p)/negationslash=∅)implies L(KAp)/negationslash=∅(4)
+(L(KAp)/negationslash=∅andI={p/prime/negationslash=p|p/prime/precedesequalp}/negationslash=∅)implies∃p/prime∈I:L(KAp/prime)/negationslash=∅(5)
+Example 12. Consider BusinessClient⊗Hotel⊗EconomyClient from Sec-
+tion 2. The orchestrations of products P4858andP4859are non-empty, and
+by Lemma 1(3) it follows that both products are respected in their orches-
+tration. Conversely, since both products have a non-empty mandatory set
+of actions and are respected by their corresponding mpc, by Lemma 1(4) it
+follows that their orchestrations are non-empty. Finally, consider products
+P4832and P4829, which are both sub-products of P4858(cf. Example 10).
+By Lemma 1(5) it follows that there exists a sub-product of P4858with non-
+empty orchestration. Actually, both products P4832andP4829are such.
+Note that in general the converse of Lemma 1(3) does not hold, because
+respectingvalidityignoresagreement, whichisenforcedbythempc. Atrivial
+counterexample is an Anot admitting agreement and with products with no
+mandatory features.
+The following lemma shows that the mpc KApfor a valid product pofA
+is a reﬁnement of the mpc KAp/primeof a super-product p/prime. In other words, the
+partial order on valid products induces a reﬁnement of controllers.
+Lemma 2. LetAbe an FMCA and let p,p/prime∈JϕAK. Then:
+p/precedesequalp/primeandL(KAp)/negationslash=∅impliesKAp/subsetsqequalKAp/prime
+31
+
+--- Page 32 ---
+Example 13. Consider againA=BusinessClient⊗Hotel⊗EconomyClient
+from Section 2, the maximal product P4858, and its sub-product P4844with
+mandatory features {card, sharedBathroom }and forbidden features {cash,
+sharedRoom}. Since the orchestration KAP4844is non-empty, by Lemma 2 it is
+a reﬁnement of the orchestration KAP4858ofAfor product 4858(depicted in
+Figure 5). Indeed, KAP4844is obtained fromKAP4858by removing state /vector qB3,H8,E8
+and its incident transitions.
+An important consequence of Lemma 2 is that we can compute the or-
+chestrationOAof a product lineAwithout generating the mpc for each of its
+valid products. Indeed, OAis the union of some controllers of certain valid
+products deﬁned below, where we introduce the relation /equivasymptoticthat is clearly an
+equivalence relation. Note that in the following we refer to the set of valid
+products ofAwith non-empty controllers, partially ordered in the usual way.
+Deﬁnition 19 (Canonical products) .LetAbe an FMCA, let p,p/prime∈JϕAK,
+let ME (A)be the set of maximal elements of ({p|L(KAp)/negationslash=∅},/precedesequal), let
+p/equivasymptoticp/primeiﬀ Forbidden (p) =Forbidden (p/prime)
+and let the canonical products pc∈CP(A)be the representatives of the
+equivalence classes of ME (A)//equivasymptotic.
+Intuitively, a canonical product represents all the maximal elements in /precedesequal
+that have the same set of forbidden actions. Note that the information about
+mandatory actions is ignored by the equivalence relation /equivasymptoticbecause we are
+only considering non-empty controllers.
+Example 14. ForA=BusinessClient⊗Hotel⊗EconomyClient from
+Section 2, as before, we obtain ME (A) ={P4858,P4859}. Furthermore,
+the product P4844of Example 13 has the same set of forbidden features as
+maximal product P4857, and P4844/equivasymptoticP4857. Finally, P4858andP4859are
+the canonical elements of their (singleton) equivalence class in ME (A)//equivasymptotic.
+The orchestration of the product line is now deﬁned as the union of the
+orchestrations of the canonical products, where union is the standard oper-
+ation on automata.
+Deﬁnition 20 (Orchestration of product line) .The orchestration of an
+FMCAAis deﬁned as:
+OA=/uniondisplay
+p∈CP(A)KAp
+32
+
+--- Page 33 ---
+The canonical products fully characterise the mpc of each valid product
+inAas reﬁnement of the orchestration of the product line, as guaranteed by
+the following theorem.
+Theorem 4 (Reﬁnement of product line) .Given the product line orchestra-
+tionOAfrom Deﬁnition 20, it holds that:
+∀p∈JϕAK:L(KAp)/negationslash=∅impliesKAp/subsetsqequalOA
+Example 15. Consider againA=BusinessClient⊗Hotel⊗EconomyClient
+from Section 2. Its orchestration of the product line is OA=KAP4858∪KAP4859.
+Moreover L(KAP4844)/negationslash=∅(cf. Example 13) and, by Theorem 4, KAP4844/subsetsqequalOA.
+We now sketch an algorithm that incrementally computes the synthesis
+of the mpc for a valid product pofA(starting from the canonical products).
+First compute the mpc of the immediate super-products of p, then intersect
+all the resulting automata (with the standard intersection operation on au-
+tomata) and, ﬁnally, apply to it the procedure deﬁned in Deﬁnition 15 to
+obtainKAp. This algorithm is based on Theorem 4 and its correctness is
+guaranteed by the following theorem.
+Theorem 5 (Eﬃcient mpc synthesis) .Letp∈Depth (A,n), where
+Depth (A,n) ={p|p∈JϕAK,|Mandatory (p)|+|Forbidden (p)|=n}
+Then:
+KAp/negationslash=/angbracketleft/angbracketrightand Depth (A,n-1)/negationslash=∅impliesKAp/subsetsqequal/intersectiondisplay
+p/precedesequalp/prime∈Depth (A,n-1)KAp/prime
+Example 16. LetAbe as in Example 13, and recall that it has a non-empty
+orchestration of product P4844. We obtain Depth (A,3) ={P4858,P4859},
+P4844∈Depth (A,4),P4844/precedesequalP4858, and P4844/precedesequalP4859. Theorem 5
+guarantees thatKAP4844/subsetsqequalKAP4858∩KAP4859and thusKAP4844=KAP4858∩KAP4859.
+The algorithm sketched above is more eﬃcient than the standard ones
+(cf., e.g., [20]) that compute the controllers for allthe valid products of a
+given product line, without taking advantage of the fact that they share some
+parts, as expressed by the relation /subsetsqequal.
+33
+
+--- Page 34 ---
+7. Related Work
+Many formalisms exist for modelling and analysing service contracts. In
+this section, we ﬁrst discuss some main diﬀerences between the most repre-
+sentative ones and FMCA, after which we discuss the basic diﬀerences with
+automata-based formalisms from Component-Based Software Engineering.
+In [24–26], behavioural contracts of web services are described by CCS-
+like process algebrae, which model service features through input and output
+actions that synchronise. They have diﬀerent, generally weaker notions of
+contract compliance than ours, e.g. only involving two parties. Choreogra-
+phies were studied in [26] by seeing them as compound services, similar to
+our composed services, except that service competition was not considered.
+Sessions andsession types [27–31] were introduced to reason over the be-
+haviour of orchestrations and choreographies in terms of service interactions.
+Diﬀerently than in our proposal, none of the above papers consider diﬀerent
+levels of criticality of service interactions (cf. [32] for a survey).
+As anticipated, FMCA builds upon contract automata [6] that were used
+to study several issues arising in a composition of service contracts. In partic-
+ular, the problem of circular dependencies among contracts was investigated
+by deﬁning weak agreement . Roughly, this property considers acceptable
+traces where requests are recorded as debits that in the future are satisﬁed
+by the corresponding oﬀers. It was studied for so-called competitive and
+collaborative contracts, with the results that generally safety is preserved
+in collaborative contracts and not in competitive ones. Weak agreement is
+suitably checked by algorithms for network ﬂow optimisation. Contract au-
+tomata were also related to two intuitionistic logics introduced for modelling
+circular dependencies among contracts. Orchestration and choreography of
+contract automata was investigated in [22], by identifying the conditions for
+dismissing the central orchestrator for both synchronous and asynchronous
+choreographies, thus avoiding the overhead due to the interactions between
+services and the orchestrator. Controller synthesis of contracts was recently
+extended to a real-time setting [33, 34], where it is rendered as a winning
+strategy for timed contract games.
+The deﬁnition of FMCA also borrows from two automata-based for-
+malisms, namely Modal Transition Systems (MTSs) [35, 36] and Featured
+Transition Systems (FTSs) [37]. Our distinction into permitted and neces-
+sary transitions, borrowed from [9], was inspired by MTSs, while the explicit
+incorporation of feature constraints comes from FTSs. Compared to FMCA,
+34
+
+--- Page 35 ---
+neither of these two formalisms can explicitly handle dynamic composition
+and orchestration, by means of which new services that join composite ser-
+vices can intercept already matched actions. Such a compositionality is a
+basic characteristic that FMCA inherited from contract automata.
+The accidentally homonym contract automata of [38] model generic legal
+contracts betweentwoparties,expressedinnaturallanguage. Theirstatesare
+tagged with deontic modalities in the form of obligations and permissions.
+These modalities are similar to our necessary and permitted requests, but
+they have no degree of criticality. FMCA target a diﬀerent domain, viz.
+multi-party service contracts. Moreover, [38] studies techniques for solving
+contract violation, while the focus of our compositional approach is on the
+synthesis of an orchestration of services.
+Within the area of Component-Based Software Engineering, there are
+many formalisms for describing and composing components, similar to be-
+havioural contracts. We brieﬂy survey some of them. I/O automata [39]
+are input-enabled, i.e. in any state they are ready to receive any possible
+input from the environment, and composition is restricted to automata that
+do not share external actions. Therefore, they cannot model contracts that
+compete on oﬀering or requesting the same service, a key feature of FMCA.
+Interface automata [40] are not input-enabled, rather they broadcast oﬀers to
+every request. Their compatibility between interfaces requires that all oﬀers
+are matched, dual to our agreement. Neither interface nor I/O automata
+have actions with diﬀerent levels of criticality (other than concrete real-time
+constraints in their timed version). Modal I/O automata [41] combine the
+characteristics of interface and I/O automata with may and must modalities
+of MTSs. Some actions can thus be declared more critical than others, but
+still they diﬀer from FMCA in the aspects mentioned above.
+Supervisory Control Theory (SCT) was ﬁrst applied to behavioural prod-
+uct line models in [20], where the CIF 3toolset was used to synthesise all
+the valid products starting from components and requirements rendered as
+automata. However, all the actions are controllable, unlike our approach; the
+controller of the product line requires computing those of all the valid prod-
+ucts, and ﬁnally orchestration is not considered. Another work along this
+line is [21], where the standard synthesis algorithm was adapted to obtain a
+speciﬁc controller for each consistent product of the product line. Diﬀerently
+than in our proposal, the behaviour is speciﬁed by modal sequence diagrams
+and their actions are only controllable or uncontrollable. More recently, the
+interplay between SCT and product lines modelled as Priced Featured Au-
+35
+
+--- Page 36 ---
+tomata was studied [42], where three-valued logic and partial-order reduction
+were used to greatly reduce the number of controllers required.
+8. Conclusions and Future Work
+We have proposed FMCA, an automata-based formalism for service con-
+tracts borrowing some aspects of Software Product Lines. According to this
+approach, services come in diﬀerent conﬁgurations, or products. Two dis-
+tinguished orthogonal ingredients of FMCA deal with the arising variability,
+whichpermit(i)diﬀerentlevelsofcriticalityforservicerequests, deﬁninghow
+certain requests must be matched in a contract, and (ii) feature constraints
+over the product line, deﬁning the valid products. With these ingredients,
+one can model service contracts with more adaptive service orchestrations
+and more ﬁne-grained Service Level Agreement.
+We have deﬁned automata composition and their orchestration, i.e. a way
+to guarantee that both types of variability constraints are satisﬁed, besides
+fulﬁlling client’s requests. The orchestration has the form of the most per-
+missive controller of Supervisory Control Theory, and it has been obtained
+by extending the classical synthesis algorithm. Our novel notion of semi-
+controllability turned out to be crucial in handling diﬀerent service requests.
+We have deﬁned a partial order on the valid products of a product line,
+throughwhichitsorchestrationcanbeeﬃcientlycomputed. Indeed, oneonly
+constructs the orchestration of the few maximal products in the partial order.
+Technically, this required to introduce a reﬁnement relation on automata and
+to consider partially interpreted products. Typically, the maximal products
+of a product line are much less than its valid products that are exponentially
+many. Our proposal thus improves over the methods available in the litera-
+ture, e.g. that in [20]. Also, one can only inspect these maximal products to
+ﬁnd possible inconsistencies in the contract speciﬁcations.
+We have implemented an open-source prototypical tool to support speci-
+ﬁcation of a product line through the associated FMCA, and to compute the
+orchestrations of its valid products.
+Future work includes a study of circular dependencies among services,
+by extending the results of [6]. It would also be interesting to investigate
+a choreographed coordination approach for FMCA, as was recently under-
+taken for a related contract automata formalism with diﬀerent notions of
+semi-controllability [43]. Moreover, we plan to establish a correspondence
+36
+
+--- Page 37 ---
+between FMCA and Featured Transition Systems [37], in order to transfer
+some techniques of [44] for proving correctness properties.
+Further work is needed to apply our theory to provide a formal framework
+for modelling and synthesising dynamic service product lines [45–53], i.e.
+services in which diﬀerent conﬁgurations are reused to adapt to environments
+that change over time (including so-called late variability at runtime).
+Finally, another research direction is enhancing service requests and oﬀers
+with quantitative information. Reaching an agreement would then amount
+to ﬁnding the optimal trade-oﬀ among FMCA, each with a positive pay-oﬀ.
+This might lead to a formalisation of Quality of Service, allowing us to assess
+non-functional properties of services, like reliability or performance.
+References
+[1] D. Georgakopoulos, M. P. Papazoglou (Eds.), Service-oriented Comput-
+ing, MIT Press, Cambridge, MA, USA, 2008.
+[2] Q. Yi, X. Liu, A. Bouguettaya, B. Medjahed, Deploying and managing
+Web services: issues, solutions, and directions, VLDB J. 17 (3) (2008)
+735–572. doi:10.1007/s00778-006-0020-3 .
+[3] A. Bouguettaya, M. Singh, M. Huhns, Q. Z. Sheng, H. Dong, Q. Yu,
+A. G. Neiat, S. Mistry, B. Benatallah, B. Medjahed, M. Ouzzani,
+F. Casati, X. Liu, H. Wang, D. Georgakopoulos, L. Chen, S. Nepal,
+Z. Malik, A. Erradi, Y. Wang, B. Blake, S. Dustdar, F. Leymann,
+M. Papazoglou, A Service Computing Manifesto: The Next 10 Years,
+Commun. ACM 60 (4) (2017) 64–72. doi:10.1145/2983528 .
+[4] M. H. ter Beek, A. Bucchiarone, S. Gnesi, Web Service Composition Ap-
+proaches: From Industrial Standards to Formal Methods, in: Proceed-
+ings 2nd International Conference on Internet and Web Applications
+and Services (ICIW’07), IEEE, 2007. doi:10.1109/ICIW.2007.71 .
+[5] M. Bartoletti, T. Cimoli, R. Zunino, Compliance in Behavioural Con-
+tracts: A Brief Survey, in: C. Bodei, G. L. Ferrari, C. Priami (Eds.),
+Programming Languages with Applications to Biology and Security,
+Vol. 9465 of LNCS, Springer, 2015, pp. 103–121. doi:10.1007/
+978-3-319-25527-9_9 .
+37
+
+--- Page 38 ---
+[6] D. Basile, P. Degano, G. L. Ferrari, Automata for specifying and or-
+chestrating service contracts, Log. Meth. Comput. Sci. 12 (4). doi:
+10.2168/LMCS-12(4:6)2016 .
+[7] P.J.Ramadge, W.M.Wonham, Supervisorycontrolofaclassofdiscrete
+event processes, SIAM J. Control Optim. 25 (1) (1987) 206–230. doi:
+10.1137/0325013 .
+[8] C.G.Cassandras, S.Lafortune, IntroductiontoDiscreteEventSystems,
+Springer, New York, NY, USA, 2006.
+[9] D.Basile, F.DiGiandomenico, S.Gnesi, P.Degano, G.L.Ferrari, Speci-
+fyingVariabilityinServiceContracts,in: Proceedings11thInternational
+Workshop on Variability Modelling of Software-intensive Systems (Va-
+MoS’17), ACM, 2017, pp. 20–27. doi:10.1145/3023956.3023965 .
+[10] G. H. von Wright, An Essay in Modal Logic, Studies in Logic and the
+Foundations of Mathematics, North-Holland, Amsterdam, The Nether-
+lands, 1951.
+[11] G. H. von Wright, Deontic Logic, Mind 60 (237) (1951) 1–15. doi:
+10.1093/mind/LX.237.1 .
+[12] K. Pohl, G. Böckle, F. J. van der Linden, Software Product Line En-
+gineering: Foundations, Principles, and Techniques, Springer, Berlin,
+Germany, 2005. doi:10.1007/3-540-28901-1 .
+[13] S. Apel, D. S. Batory, C. Kästner, G. Saake, Feature-Oriented Soft-
+ware Product Lines: Concepts and Implementation, Springer, Berlin,
+Germany, 2013. doi:10.1007/978-3-642-37521-7 .
+[14] M. Mannion, Using First-Order Logic for Product Line Model Valida-
+tion, in: G. J. Chastek (Ed.), Proceedings 2nd International Software
+Product Lines Conference (SPLC’02), Vol. 2379 of LNCS, Springer,
+2002, pp. 176–187. doi:10.1007/3-540-45652-X_11 .
+[15] D. S. Batory, Feature Models, Grammars, and Propositional Formulas,
+in: J. H. Obbink, K. Pohl (Eds.), Proceedings 9th International Soft-
+wareProductLinesConference(SPLC’05), Vol.3714ofLNCS,Springer,
+2005, pp. 7–20. doi:10.1007/11554844_3 .
+38
+
+--- Page 39 ---
+[16] K. Czarnecki, A. Wąsowski, Feature Diagrams and Logics: There and
+Back Again, in: Proceedings 11th International Conference on Soft-
+ware Product Lines (SPLC’07), IEEE, 2007, pp. 23–34. doi:10.1109/
+SPLINE.2007.24 .
+[17] D.Benavides, S.Segura, A.Ruiz-Cortés, AutomatedAnalysisofFeature
+Models 20 Years Later: a Literature Review, Inf. Syst. 35 (6) (2010)
+615–636. doi:10.1016/j.is.2010.01.001 .
+[18] D. Basile, P. Degano, G. L. Ferrari, E. Tuosto, Playing with Our
+CATand Communication-Centric Applications, in: E. Albert, I. Lanese
+(Eds.), Proceedings 36th International Conference on Formal Tech-
+niques for Distributed Objects, Components, and Systems (FORTE’16),
+Vol. 9688 of LNCS, Springer, 2016, pp. 62–73. doi:10.1007/
+978-3-319-39570-8_5 .
+[19] J. Meinicke, T. Thüm, R. Schröter, F. Benduhn, T. Leich, G. Saake,
+Mastering Software Variability with FeatureIDE, Springer, Cham,
+Switzerland, 2017. doi:10.1007/978-3-319-61443-4 .
+[20] M. H. ter Beek, M. Reniers, E. de Vink, Supervisory Controller Syn-
+thesis for Product Lines Using CIF 3, in: T. Margaria, B. Steﬀen
+(Eds.), Proceedings 7th International Symposium on Leveraging Ap-
+plications of Formal Methods, Veriﬁcation and Validation (ISoLA’16),
+Vol. 9952 of LNCS, Springer, 2016, pp. 856–873. doi:10.1007/
+978-3-319-47166-2_59 .
+[21] M. Cordy, J.-M. Davril, J. Greenyer, E. Gressi, P. Heymans, All-
+At-Once-Synthesis of Controllers from Scenario-Based Product Line
+Speciﬁcations, in: Proceedings 19th International Conference on Soft-
+ware Product Line (SPLC’15), ACM, 2015, pp. 26–35. doi:10.1145/
+2791060.2791111 .
+[22] D. Basile, P. Degano, G. L. Ferrari, E. Tuosto, Relating two automata-
+based models of orchestration and choreography, J. Log. Algebr. Meth.
+Program. 85 (3) (2016) 425–446. doi:10.1016/j.jlamp.2015.09.011 .
+[23] M. H. ter Beek, A. Fantechi, S. Gnesi, F. Mazzanti, Modelling and
+analysing variability in product families: Model checking of modal tran-
+sition systems with variability constraints, J. Log. Algebr. Meth. Pro-
+gram. 85 (2) (2016) 287–315. doi:10.1016/j.jlamp.2015.11.006 .
+39
+
+--- Page 40 ---
+[24] G. Castagna, N. Gesbert, L. Padovani, A Theory of Contracts for Web
+Services, ACM Trans. Program. Lang. Syst. 31 (5) (2009) 19:1–19:61.
+doi:10.1145/1538917.1538920 .
+[25] L. Acciai, M. Boreale, G. Zavattaro, Behavioural contracts with request-
+responseoperations, Sci.Comput.Program.78(2)(2013)248–267. doi:
+10.1016/j.scico.2011.10.007 .
+[26] C. Laneve, L. Padovani, An algebraic theory for web service con-
+tracts, Form. Asp. Comp. 27 (4) (2015) 613–640. doi:10.1007/
+s00165-015-0334-2 .
+[27] R. Bruni, I. Lanese, H. Melgratti, E. Tuosto, Multiparty Sessions
+in SOC, in: D. Lea, G. Zavattaro (Eds.), Proceedings 10th Interna-
+tional Conference on Coordination Models and Languages (COORDI-
+NATION’08), Vol. 5052 of LNCS, Springer, 2008, pp. 67–82. doi:
+10.1007/978-3-540-68265-3_5 .
+[28] K. Honda, N. Yoshida, M. Carbone, Multiparty Asynchronous Ses-
+sion Types, in: Proceedings 35th Symposium on Principles of Pro-
+gramming Languages (POPL’08), ACM, 2008, pp. 273–284. doi:
+10.1145/1328438.1328472 .
+[29] M. Dezani-Ciancaglini, U. de’Liguoro, Sessions and Session Types:
+An Overview, in: C. Laneve, J. Su (Eds.), Proceedings 6th In-
+ternational Conference on Web Services and Formal Methods (WS-
+FM’09), Vol. 6194 of LNCS, Springer, 2010, pp. 1–28. doi:10.1007/
+978-3-642-14458-5_1 .
+[30] G. Castagna, M. Dezani-Ciancaglini, L. Padovani, On Global Types and
+Multi-Party Sessions, Log. Meth. Comput. Sci. 8 (1:24) (2012) 1–45.
+doi:10.2168/LMCS-8(1:24)2012 .
+[31] J. Michaux, E. Najm, A. Fantechi, Session types for safe Web service
+orchestration, J. Log. Algebr. Program. 82 (8) (2013) 282–310. doi:
+10.1016/j.jlap.2013.05.004 .
+[32] H.Hüttel, I.Lanese, V.Vasconcelos, L.Caires, M.Carbone, P.Deniélou,
+D. Mostrous, L. Padovani, A. Ravara, E. Tuosto, H. T. Vieira, G. Za-
+vattaro, Foundations of Session Types and Behavioural Contracts, ACM
+Comput. Surv. 49 (1) (2016) 3:1–3:36. doi:10.1145/2873052 .
+40
+
+--- Page 41 ---
+[33] D. Basile, M. H. ter Beek, A. Legay, L. Traonouez, Orchestration Syn-
+thesis for Real-Time Service Contracts, in: M. F. Atig, S. Bensalem,
+S. Bliudze, B. Monsuez (Eds.), Proceedings 12th International Confer-
+ence on Veriﬁcation and Evaluation of Computer and Communication
+Systems (VECoS’18), Vol. 11181 of LNCS, Springer, 2018, pp. 31–47.
+doi:10.1007/978-3-030-00359-3_3 .
+[34] D. Basile, M. H. ter Beek, A. Legay, Timed service contract automata,
+Innovations Syst. Softw. Eng. doi:10.1007/s11334-019-00353-3 .
+[35] A. Antonik, M. Huth, K. G. Larsen, U. Nyman, A. Wąsowski, 20 Years
+of Modal and Mixed Speciﬁcations, B. EATCS 95 (2008) 94–129.
+[36] J. Křetínský, 30 Years of Modal Transition Systems: Survey of Ex-
+tensions and Analysis, in: L. Aceto, G. Bacci, G. Bacci, A. Ingólfs-
+dóttir, A. Legay, R. Mardare (Eds.), Models, Algorithms, Logics and
+Tools, Vol. 10460 of LNCS, Springer, 2017, pp. 36–74. doi:10.1007/
+978-3-319-63121-9_3 .
+[37] A. Classen, M. Cordy, P.-Y. Schobbens, P. Heymans, A. Legay, J.-
+F. Raskin, Featured Transition Systems: Foundations for Verifying
+Variability-Intensive Systems and Their Application to LTL Model
+Checking, IEEE Trans. Softw. Eng. 39 (8) (2013) 1069–1089. doi:
+10.1109/TSE.2012.86 .
+[38] S. Azzopardi, G. Pace, F. Schapachnik, G. Schneider, Contract au-
+tomata, Artif. Intell. Law 24 (3) (2016) 203–243. doi:10.1007/
+s10506-016-9185-2 .
+[39] N. Lynch, M. Tuttle, An Introduction to Input/Output Automata, CWI
+Quarterly 2 (3) (1989) 219–246.
+[40] L. de Alfaro, T. Henzinger, Interface Automata, in: Proceedings 8th
+European Software Engineering Conference and 9th International Sym-
+posium on Foundations of Software Engineering (ESEC/FSE’01), ACM,
+2001, pp. 109–120. doi:10.1145/503209.503226 .
+[41] K. G. Larsen, U. Nyman, A. Wąsowski, Modal I/O Automata for Inter-
+faceandProductLineTheories,in: R.DeNicola(Ed.),Proceedings16th
+European Symposium on Programming (ESOP’07), Vol. 4421 of LNCS,
+Springer, 2007, pp. 64–79. doi:10.1007/978-3-540-71316-6_6 .
+41
+
+--- Page 42 ---
+[42] D. Basile, Applying supervisory control synthesis to priced featured au-
+tomata and energy problems, Int. J. Softw. Tools Technol. Transf. doi:
+10.1007/s10009-019-00533-3 .
+[43] D.Basile, M.H.terBeek, R.Pugliese, BridgingtheGapBetweenSuper-
+visoryControlandCoordinationofServices: SynthesisofOrchestrations
+and Choreographies, in: H. R. Nielson, E. Tuosto (Eds.), Proceedings
+21st International Conference on Coordination Models and Languages
+(COORDINATION’19), Vol. 11533 of LNCS, Springer, 2019, pp. 129–
+147. doi:10.1007/978-3-030-22397-7_8 .
+[44] M. Cordy, A. Classen, G. Perrouin, P.-Y. Schobbens, P. Heymans,
+A. Legay, Simulation-based abstractions for software product-line model
+checking, in: Proceedings 34th International Conference on Software
+Engineering (ICSE’12), IEEE, 2012, pp. 672–682. doi:10.1109/ICSE.
+2012.6227150 .
+[45] M. Acher, P. Collet, P. Lahire, J. Montagnat, Imaging Services on
+the Grid as a Product Line: Requirements and Architecture, in:
+R. Krut, S. Cohen (Eds.), Proceedings 2nd Workshop on Service-
+Oriented Architectures and Software Product Lines: Putting Both To-
+gether (SOAPL’08), University of Limerick, Ireland, 2008, pp. 137–142.
+[46] S. Hallsteinsen, S. Jiang, R. Sanders, Dynamic Service Product Lines in
+Service Oriented Computing, in: Proceedings 13th International Soft-
+wareProductLineConference(SPLC’09), Vol.2, ACM,2009, pp.28–34.
+[47] P.Istoan,G.Nain,G.Perrouin, J.-M.Jézéquel, DynamicSoftwareProd-
+uct Lines for Service-Based Systems, in: Proceedings 9th International
+Conference on Computer and Information Technology (CIT’09), Vol. 2,
+IEEE, 2009, pp. 193–198. doi:10.1109/CIT.2009.54 .
+[48] J. Lee, G. Kotonya, Combining Service-Orientation with Product Line
+Engineering, IEEE Softw. 27 (2010) 35–41. doi:10.1109/MS.2010.30 .
+[49] J. Lee, D. Muthig, M. Naab, A feature-oriented approach for developing
+reusable product line assets of service-based systems, J. Syst. Softw.
+83 (7) (2010) 1123–1136. doi:10.1016/j.jss.2010.01.048 .
+[50] M. H. ter Beek, S. Gnesi, M. N. Njima, Product Lines for Service Ori-
+ented Applications - PL for SOA, in: L. Kovács, R. Pugliese, F. Tiezzi
+42
+
+--- Page 43 ---
+(Eds.), Proceedings 7th International Workshop on Automated Speciﬁ-
+cation and Veriﬁcation of Web Systems (WWV’11), Vol. 61 of EPTCS,
+2011, pp. 34–48. doi:10.4204/EPTCS.61.3 .
+[51] H. Gomaa, K. Hashimoto, Dynamic Software Adaptation for Service-
+oriented Product Lines, in: Proceedings 15th International Software
+Product Line Conference (SPLC’11), Vol. 2, ACM, 2011, pp. 35:1–35:8.
+doi:10.1145/2019136.2019176 .
+[52] L. Baresi, S. Guinea, L. Pasquale, Service-Oriented Dynamic Software
+Product Lines, IEEE Computer 45 (10) (2012) 42–48. doi:10.1109/
+MC.2012.289 .
+[53] J. Lee, G. Kotonya, D. Robinson, Engineering Service-Based Dynamic
+Software Product Lines, IEEE Computer 45 (10) (2012) 49–55. doi:
+10.1109/MC.2012.284 .
+43
+
+--- Page 44 ---
+Appendix A. Proofs
+We provide here all the proofs and some auxiliary results.
+Proposition 1. Given two FMCA A,A/primeand two sets of states R,R/prime, let
+(A,R)≤(A/prime,R/prime)ifTA⊇TA/primeandR⊆R/prime.
+The function fof Deﬁnition 14 is monotone w.r.t. ≤and, stipulating
+thatK0is as in Deﬁnition 14, its unique ﬁxed point is:
+(Kn,Rn) =sup({fn(K0,R0)|n∈N})
+Proof.By Deﬁnition 14, at each iteration the set of states Rican only in-
+crease while the set of transitions Tican only decrease, thus fis monotone
+on the partial order ({(A,R)|A∈FMCA,R⊆Q},≤). Moreover, this
+partial order is complete since the sets of transitions TAand states Rare
+ﬁnite, hence by the Knaster-Tarski theorem the least ﬁxed point of fexists,
+is unique and can be computed in a ﬁnite number of iterations.
+To prove that the automaton computed through Deﬁnition 15 is indeed the
+mpc for the valid product pofA, we use the following auxiliary lemma.
+Lemma 3. LetAbe an FMCA, let p∈JϕAKbe a valid product, let Knbe the
+FMCA (ofp) and letRnbe the set of states computed through Proposition 1.
+Then:
+∀/vector q∈Rn:/vector qis unreachable in Knor/vector q0∈Rn (A.1)
+letUpAKn={/vector q|/vector qin uncontrollable disagreement w.r.t. pbyKn}
+thenUpAKn∪Dangling (Kn) =Rn(A.2)
+(∃wnot containing basic actions a∈Forbidden (p)s.t.
+Sw={/vector qKn|(/vector q0Knw1−→∗/vector qKnw2−→∗/vector qfKn)∧(w=w1w2∈L(A)∩A)}/negationslash=∅
+andSw∩UpAKn=∅)impliesSw∩Rn=∅(A.3)
+Proof.We ﬁrst prove (A.1). By contradiction, assume /vector q0/negationslash∈Rnand there
+exists a sequence of states (traversed by a trace) ρ=/vector q0···/vector q/prime/vector q/prime/prime···/vector q/prime/prime/primes.t.
+/vector q/prime/prime,...,/vector q/prime/prime/prime∈Rnand/vector q/prime/negationslash∈Rn. Letibe an iteration of the algorithm in
+Deﬁnition 14 s.t. /vector q/prime/prime∈Ri−1,/vector q/prime/negationslash∈Ri−1, and lett=/vector q/prime− →/vector q/prime/primebe the transition
+traversed in ρ. Iftis controllable, then by Deﬁnition 14 it is removed in Kn,
+44
+
+--- Page 45 ---
+a contradiction. Otherwise, if tis uncontrollable, then /vector q/primeis added to Riby
+Deﬁnition 14, and /vector q/prime∈Rn, a contradiction.
+Next we prove (A.2). We start by proving UpAKn∪Dangling (Kn)⊆Rn.
+By contradiction, assume ∃/vector q∈UpAKn∪Dangling (Kn)s.t./vector q/negationslash∈Rn. By
+Deﬁnition 14, Dangling (Kn)⊆Rn. Hence,/vector q/negationslash∈Dangling (Kn)and/vector q∈
+UpAKn. Thus, by Deﬁnition 12, there exists a trace ws.t./vector qw− →∗/vector q1is only
+executing forced transitions, and either (i) w/negationslash∈Aorwcontains a basic
+actiona∈Forbidden (p)or (ii)∀/vector q1w/prime−→∗/vector qf∈FAandw/primesatisﬁes condition (i).
+We ﬁrst assume case (i) holds and let w1/vector abe a preﬁx of wsuch that
+/vector qw1−→∗/vector q/prime/vector a− →and either /vector ais a request or it is forbidden in p. We ﬁrst prove
+that/vector q/prime∈R0. If/vector q/prime/vector a− →is controllable, then by Deﬁnition 12 it is the only
+outgoing transition from /vector q/prime, which is removed in K0by Deﬁnition 14, and
+hence/vector q/prime∈Dangling (K0)⊆R0. Similarly, if /vector q/prime/vector a− →is uncontrollable in K0,
+then/vector q/prime∈R0by Deﬁnition 14. Thus we have proved that /vector q/prime∈R0is reachable
+by only executing forced transitions from /vector qinA.
+We now proceed by induction on the length of the trace /vector qw1−→∗/vector q/prime. For
+the base case, we have a transition t=/vector q− →/vector q/prime. Similarly to the previous
+reasoning, if tis controllable in K1then by Deﬁnition 14, it is removed in
+K1and, by Deﬁnition 12, tis the only outgoing transition from state /vector q(i.e.
+it is forced) and hence /vector q∈Dangling (K1)and/vector q∈R1⊆Rn, a contradiction.
+Otherwise, if tis uncontrollable in K1, then by Deﬁnition 14, /vector q∈R1⊆Rn, a
+contradiction. For the inductive step, we have /vector q− →/vector q/prime/prime− →∗/vector q/primes.t./vector q/prime/prime∈Ri−1
+and/vector q/negationslash∈Ri−1. By applying the same reasoning as for the base case we can
+conclude that /vector q∈Ri⊆Rn, a contradiction.
+For case (ii), a ﬁnal state /vector qfcannot be reached from /vector q1without executing
+either a request or a forbidden action, hence by hypothesis /vector q1cannot avoid
+to reach a ﬁnal state without traversing a state /vector q/prime∈R0(otherwise a trace
+without requests and forbidden actions would exist). By Deﬁnition 14, there
+will be an iteration is.t./vector q1∈Ri, and/vector q∈Rnby proceeding as for case (i).
+We now prove Rn⊆UpAKn∪Dangling (Kn). The proof is by induction on
+Ri. The base case is R0. From Deﬁnition 14, it follows that Dangling (K0)⊆
+R0. Thelastcaseis{/vector q|(/vector q− →) =t∈T2
+Aonauncontrollable in K0,(trequest
+∨a∈Forbidden (p))}, i.e. by Deﬁnition 12, in UpAKn. Note that if a tran-
+sitiontis uncontrollable in Kifor somei, then for all j,i≤j≤n,tis
+uncontrollable in Kj.
+For the inductive step, by the inductive hypothesis we know Ri−1⊆
+UpAKn∪Dangling (Ki−1)and we prove Ri⊆UpAKn∪Dangling (Ki). We
+proceed again by the cases of Deﬁnition 14. The ﬁrst case is S={/vector q|
+45
+
+--- Page 46 ---
+(/vector q− →/vector q/prime)∈T2
+Kiuncontrollable in Ki, /vector q /∈Ri−1, /vector q/prime∈Ri−1}∪{/vector q|/vector q− →∈T2
+A
+lazy uncontrollable in Ki}. By Deﬁnition 12, the transitions used in Sare
+forced inAbecause they are uncontrollable in Ki(hence inKn) and, by
+the inductive hypothesis, their target state is in UpAKn∪Dangling (Ki−1). It
+follows that S⊆UpAKn∪Dangling (Ki). The last case is Dangling (Ki)that
+holds trivially.
+Finally, we prove (A.3). By hypothesis, Sw∩Dangling (Kn) =∅and the
+thesis follows by (A.2).
+Theorem 1 (mpc for product) .LetAbe an FMCA and let p∈JϕAKbe a
+valid product. The FMCA KApcomputed through Deﬁnition 15 is the mpc
+for the valid product pofA.
+Proof.We will prove that the algorithm always terminates, that KApis a
+controller of product pofAand, in particular, that it is the mpc of product
+pofA. Termination of the algorithm is ensured by Proposition 1.
+Next we prove that KApis a controller of pofA, i.e.:p∈JϕAK(triv-
+ial); (1)Kis safe, (2) Dangling (K) =∅(trivial), (3) L(K) =∅or∀a∈
+Mandatory (p)∃w∈L(K)s.t. basic action aoccurs inw, and (4) @w∈
+L(K)s.t.wcontains actions a∈Forbidden (p)or/vector q0Kw− →∗/vector qK,/vector q0Aw− →∗/vector qAand
+/vector qKis in uncontrollable disagreement w.r.t. pbyK.
+We ﬁrst prove (1). Since KApis derived fromAby pruning transitions,
+trivially L(KAp)⊆L(A). To prove L(KAp)⊆A, we have to show that
+no tracew/primerecognised by L(KAp)contains a request /vector a. Note that the algo-
+rithm only prunes and never adds transitions and since in K0all controllable
+requests are pruned, /vector acannot be a controllable request. By contradiction,
+assume/vector ais an uncontrollable request, executed by a transition /vector q/vector a2−→, andw/prime
+is recognised byKAp. Then/vector q∈R0and thus/vector q∈Rnby Deﬁnition 14. By
+Lemma 3(A.1), we have /vector q0∈Rnand we reach the contradiction KAp=/angbracketleft/angbracketright.
+We now prove (3). From the fact that none of the states of KApis dan-
+gling, (3) trivially holds by Deﬁnition 14.
+We conclude by proving (4). Assume /vector q0Kw/prime−→∗/vector q/prime
+K/vector a− →,w/prime/vector apreﬁx ofw, with/vector a
+on actiona∈Forbidden (p)holds. By Deﬁnition 14, /vector q/prime
+K/vector a− →is not controllable
+(otherwise it would have been removed) and hence /vector q/prime
+K∈R0⊆Rn. Then/vector q/prime
+K
+is not a state ofKAp, a contradiction. Assume that (w,/vector q 0K)w− →∗(ε,/vector qK)and
+(w, /vector q 0A)w− →∗(ε, /vector qA), with/vector qin uncontrollable disagreement holds. Since KApis
+derived fromA, we have/vector q0K=/vector q0Aand/vector qK=/vector qA. By Lemma 3(A.2), /vector qA∈Rn
+and since it is reachable from /vector q0A, by Lemma 3(A.1), it must be the case that
+/vector q0A∈Rnand we reach the contradiction KAp=/angbracketleft/angbracketright.
+46
+
+--- Page 47 ---
+Finally,itremainstoprovethat KApisthempc. Bycontradiction,assume
+K/primeto be a controller of product pofAsuch that L(KAp)⊂L(K/prime). Hence
+there must be a trace w1∈L(K/prime)s.t.w1/negationslash∈L(KAp). LetSw1be the set of
+states traversed by K/primeto recognise w1. SinceK/primeis a controller, Sw1∩UpAK/prime=
+∅. By Lemma 3(A.3), Sw1∩Rn=∅. Then, by Deﬁnition 14, all states in Sw1
+are inKAp. Moreover, all transitions used for recognising w1are not requests
+nor forbidden because K/primeis a controller, and since Sw1∩Rn=∅no state in
+Sw1is in any of R0,...,R n. By Deﬁnition 14, these are all possible cases for
+which a transition is removed. Hence, all transitions used for recognising w
+are also inKAp, and it follows that w1∈L(KAp), a contradiction.
+Theproofofthenexttheoremmakesuseofthefollowingauxiliarylemma.
+Lemma 4. LetAbe an FMCA, let p∈JϕAKand letKAp/negationslash=/angbracketleft/angbracketrightbe its mpc
+computed through Deﬁnition 15. Then KAp/subsetsqequalA.
+Proof.From Theorem 1 and Deﬁnition 14, we have KAp⊆A(component-
+wise inclusion with exception of ϕ) and, moreover, QK∩Dangling (KAp) =∅.
+It remains to prove that (1) all uncontrollable transitions of Aand (2) all
+semi-controllable transitions tofAthat are uncontrollable in KAp(i.e.@t∈
+TKAps.t.tis controllable via t/primeinKAp), in both cases (1–2) with source
+/vector q∈QK, are available in KAp. For (1), by contradiction, let /vector q∈QKand let
+t= (/vector q,/vector a,/vector q/prime)be s.t.tis uncontrollable in Aandt/negationslash∈T2
+K. By Deﬁnition 14,
+t/negationslash∈T2
+Konly if/vector q∈Rnand, by Lemma 3(A.2), /vector q∈UpAKn. If/vector q∈UpAKn, then
+by Lemma3(A.1) KAp=/angbracketleft/angbracketright, a contradiction.
+For (2), by contradiction, let /vector q∈QKand lett= (/vector q,/vector a,/vector q/prime)be s.t.tis con-
+trollable inA, uncontrollable in KApandt/negationslash∈T2
+K. Hencetmust be uncontrol-
+lable lazy inKAp, and/vector q∈Rnby Deﬁnition 14. Finally, by Lemma 3(A.2),
+/vector q∈UpAKnand, by Lemma 3(A.1), KAp=/angbracketleft/angbracketright, a contradiction.
+Theorem 2 (Largest reﬁnement) .LetA=/circlemultiplytext
+i∈IAibe a composition of
+principalsAi, letpbe a valid product of A, letKAp/negationslash=/angbracketleft/angbracketrightbe its mpc computed
+through Deﬁnition 14 and let ∀i∈I: Πi(KAp) =Aribe its principals. Then:
+∀i∈I:Ari/subsetsqequalA i (1)
+K/prime/negationslash=/angbracketleft/angbracketrightcontroller of pofAimplies∀i∈I: Πi(K/prime)/subsetsqequalA ri(2)
+Proof.Lemma 4 and Deﬁnition 6 suﬃce to prove (1).
+To prove (2), assume by contradiction that for some iwe have/producttext
+i(K/prime) =
+Ar/prime
+i/negationslash/subsetsqequalA ri. Then by (1) and Lemma 4, there must exist t∈T3
+K/prime\T3
+KAp. By
+Theorem 1, L(K/prime)⊆L(KAp), a contradiction.
+47
+
+--- Page 48 ---
+Theorem 3 (Respecting validity is preserved by /precedesequal).LetAbe an FMCA
+and letp,p/prime∈JϕAK. Then:
+(Arespectspandp/precedesequalp/prime)impliesArespectsp/prime
+Proof.Intuitively, pimposes more restrictions on respecting validity than p/prime.
+Bycontradiction, assumethat pisrespectedbyAandthatp/primeisnotrespected
+byA. By Deﬁnition 18, either one of the following cases must hold:
+(1)∃a∈Mandatory (p/prime)s.t.∀(/vector q,/vector a,/vector q/prime)∈TA:/vector ais an action on b/negationslash=aor
+/vector q,/vector q/prime∈Dangling (A). In this case, pis not respected by Abecause, by
+Deﬁnition 17, Mandatory (p/prime)⊆Mandatory (p), a contradiction.
+(2)∃b∈Forbidden (p/prime)s.t.(/vector q,/vectorb,/vector q/prime)∈TA,/vectorbis an action on band/vector q,/vector q/prime/negationslash∈
+Dangling (A). In this case, pis not respected by Abecause by Deﬁni-
+tion 17,Forbidden (p/prime)⊆Forbidden (p), a contradiction.
+Lemma 1. LetKApbe the mpc of a product pofA. Then:
+L(KAp)/negationslash=∅impliesKAprespectsp (3)
+(KAprespectspand Mandatory (p)/negationslash=∅)implies L(KAp)/negationslash=∅(4)
+(L(KAp)/negationslash=∅andI={p/prime/negationslash=p|p/prime/precedesequalp}/negationslash=∅)implies∃p/prime∈I:L(KAp/prime)/negationslash=∅(5)
+Proof.For (3) assume by contradiction that pis not respected by KAp. Then,
+by Deﬁnition 18, either one of the following two cases must hold:
+(1)∃a∈Mandatory (p)s.t.∀(/vector q,/vector a,/vector q/prime)∈TKAp:/vector ais an action on b/negationslash=aor
+/vector q,/vector q/prime∈Dangling (KAp). In this case, @w∈L(KAp)s.t.wcontains
+a basic action aand thus, by Deﬁnition 13, KApis not an mpc, a
+contradiction.
+(2)∃b∈Forbidden (p)s.t.(/vector q,/vectorb,/vector q/prime)∈TKAp,/vectorbis an action on band/vector q,/vector q/prime/negationslash∈
+Dangling (KAp). In this case,∃w1/vectorbw2∈L(KAp)for somew1,w2and,
+by Deﬁnition 13,KApis not an mpc, a contradiction.
+For (4), by hypothesis ∃a∈Mandatory (p)such that (/vector q,/vector a,/vector q/prime)∈TKAp
+onaand/vector q,/vector q/prime/negationslash∈Dangling (KAp), andL(KAp)/negationslash=∅by Deﬁnition 8.
+For (5), it suﬃces to note that a sub-product p/primecan be obtained by adding
+an actiona/negationslash∈Mandatory (p)∪Forbidden (p)to either (i) Mandatory (p/prime)or
+48
+
+--- Page 49 ---
+(ii)Forbidden (p/prime)(theexistenceofsuchaction aisguaranteedbyhypothesis).
+Actionais either present or not in KAp. If action ais present, then the
+sub-product p/primeobtained through case (i) (i.e. a∈Mandatory (p/prime)) is s.t.
+L(KAp/prime)/negationslash=∅by hypothesis (we are requiring an action that is present). If
+actionais not present, then the sub-product obtained through case (ii) (i.e.
+a∈Forbidden (p/prime)) is s.t. L(KAp/prime)/negationslash=∅by hypothesis (we are forbidding an
+action that is not present).
+Lemma 2. LetAbe an FMCA and let p,p/prime∈JϕAK. Then:
+p/precedesequalp/primeandL(KAp)/negationslash=∅impliesKAp/subsetsqequalKAp/prime
+Theorem 4 (Reﬁnement of product line) .Given the product line orchestra-
+tionOAfrom Deﬁnition 20, it holds that:
+∀p∈JϕAK:L(KAp)/negationslash=∅impliesKAp/subsetsqequalOA
+Proof.The statement follows immediately from Deﬁnition 20, Lemma 2,
+Lemma 1 and the hypothesis.
+Theorem 5 (Eﬃcient mpc synthesis) .Letp∈Depth (A,n), where
+Depth (A,n) ={p|p∈JϕAK,|Mandatory (p)|+|Forbidden (p)|=n}
+Then:
+KAp/negationslash=/angbracketleft/angbracketrightand Depth (A,n-1)/negationslash=∅impliesKAp/subsetsqequal/intersectiondisplay
+p/precedesequalp/prime∈Depth (A,n-1)KAp/prime
+Proof.Straightforward from Lemma 2.
+49

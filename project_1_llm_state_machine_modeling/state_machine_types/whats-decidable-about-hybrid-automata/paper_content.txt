@@ -1,0 +1,2867 @@
+--- Page 1 ---
+Journal of Computer and System Sciences 57, 94124 (1998)
+What’s Decidable about Hybrid Automata?1
+Thomas A. Henzinger*,2, Peter W. Kopke-, Anuj Puri*, and Pravin Varaiya*
+*Department of Electrical Engineering and Computer Sciences ,University of California ,Berkeley ,California 94720;
+-Computer Science Department ,Cornell University ,Ithaca ,New York 14853
+Received January 1998
+Hybrid automata model systems with both digital and analog com-
+ponents, such as embedded control programs. Many verification tasks
+for such programs can be expressed as reachability problems for hybridautomata. By improving on previous decidability and undecidability
+results, we identify a boundary between decidability and undecidability
+for the reachability problem of hybrid automata. On the positive side,
+we give an (optimal) PSPACE reachability algorithm for the case of
+initialized rectangular automata, where all analog variables follow inde-pendent trajectories within piecewise-linear envelopes and are reini-
+tialized whenever the envelope changes. Our algorithm is based on the
+construction of a timed automaton that contains all reachability infor-
+mation about a given initialized rectangular automaton. The translation
+has practical significance for verification, because it guarantees thetermination of symbolic procedures for the reachability analysis of
+initialized rectangular automata. The translation also preserves the
+|-languages of initialized rectangular automata with bounded non-
+determinism. On the negative side, we show that several slight
+generalizations of initialized rectangular automata lead to anundecidable reachability problem. In particular, we prove that the
+reachability problem is undecidable for timed automata augmented
+with a single stopwatch.
+]1998 Academic Press
+1. INTRODUCTION
+A hybrid automaton [ACHH93, NOSY93] combines the
+discrete dynamics of a finite automaton with the continuous
+dynamics of a dynamical system. Hybrid automata thus
+provide a mathematical model for digital computer systems
+that interact with an analog environment in real time. Case
+studies indicate that the model of hybrid automata is useful
+for the analysis of embedded software and hardware, including
+distributed processes with drifting clocks, real-time schedulers,
+and protocols for the control of manufacturing plants, vehicles,and robots (see, for example, [HRP94, ACH+95, HHWT95,
+HW95, NS95, AHH96, Cor96, HWT96, SMF97]). Two
+problems that are central to the analysis of hybrid auto-
+mata are the reachability problem and the more general
+|-language emptiness problem. The solution of the reacha-
+bility problem for a given hybrid automaton allows us to
+check if the trajectories of the automaton meet a given safety
+requirement; the solution of the |-language emptiness
+problem allows us to check if the trajectories of the automaton
+meet a liveness requirement [VW86]. While a scattering
+of previous results show that both problems are decidable
+in certain special cases and undecidable in certain general
+cases, this paper attempts a systematic characterization of
+the boundary between decidability and undecidability.
+Hybrid automata generalize timed automata. Timed
+automata [AD94] equip finite automata with clocks which
+are real-valued variables that follow continuous trajectories
+with constant slope 1. Hybrid automata equip finite auto-mata with real-valued variables whose trajectories follow
+more general dynamical laws. For each class of dynamical
+laws, we obtain a class of hybrid automata. A particularly
+interesting class of dynamical laws confines the set of
+possible trajectories to piecewise-linear envelopes. Suppose,
+for example, that the variable xrepresents the water level in
+a tank. Depending on the position of a control valve (i.e.,
+the state of a finite control automaton), the water level
+either falls nondeterministically at any rate between 2 and
+4c m s
+&1, or rises at any rate between 1 and 3 cm s&1.
+We model these two situations by the dynamical laws
+x*# [&4, &2] and x*# [1, 3]so-called rectangular flow
+constraints [PV94]which enforce piecewise-linear envelopes
+on the water-level trajectories. Rectangular-flow automata
+are interesting from a practical point of view, as they permit
+the modeling of clocks with bounded drift and the conser-
+vative approximation of arbitrary trajectory sets [OSY94,
+PBV96, HHWT98], and from a theoretical point of view, as
+they lie at the boundary of decidability.
+Our results are threefold. First, we give an (optimal)
+PSPACE algorithm for the reachability problem of rectan-
+gular-flow automata with two restrictions: (1) the values of
+two variables with different flow constraints are neverArticle No. SS981581
+94 0022-0000 9825.00
+Copyright 1998 by Academic Press
+All rights of reproduction in any form reserved.1A preliminary version of this paper appeared in the Proceedings of the
+27th Annual ACM Symposium on Theory of Computing (STOC 1995),
+pp. 373382. This research was supported in part by the Office of Naval
+Research Young Investigator Award N00014-95-1-0520, by the National
+Science Foundation CAREER award CCR-9501708, by the National
+Science Foundation Grant CCR-9504469, by the Air Force Office ofScientific Research Contract F49620-93-1-0056, by the Army Research
+Office MURI Grant DAAH-04-96-1-0341, by the Army Research Office
+Contract DAAH-04-94-G-0026, by the Defense Advanced Research Pro-
+jects Agency Grant NAG2-892, and by the California PATH program.
+2Corresponding author.
+
+--- Page 2 ---
+compared; (2) whenever the flow constraint of a variable
+changes, the value of the variable is reinitialized. Second,
+under the additional assumption of bounded nondeterminism
+(which requires that the successor of a bounded region be
+bounded), we obtain a PSPACE algorithm for checking
+|-language emptiness of rectangular-flow automata. Third,
+we prove that the reachability problem becomes undecidable
+if either one of the restrictions (1) and (2) is relaxed, or if
+more general, triangular flow constraints are admitted.
+The first two results are proven by translating rectangular-
+flow automata of dimension ninto timed automata of dimen-
+sion 2 n+1, where the dimension is the number of real-valued
+variables. The translation preserves finitary languages, and in
+the case of bounded nondeterminism, also |-languages. In
+addition, the translation implies that, when applied to
+rectangular-flow automata that meet restrictions (1) and (2),
+existing semidecision procedures for the reachability problem
+of hybrid automata terminate. Such procedures have been
+implemented in the HyTech verification tool [AHH96,
+HHWT97].
+The third result is proven by reduction from the halting
+problem for two-counter machines. In an attempt to charac-
+terize the undecidability frontier, we sharpen the reduction
+as much as possible. First, we prove that any relaxation of
+restriction (1) leads to the undecidability of the reachability
+problem for timed automata augmented with a single
+constant-slope variable whose slope is different from 1.
+Second, we prove that any relaxation of restriction (2) leads
+to the undecidability of the reachability problem for timed
+automata augmented with a single uninitialized two-slope
+variable, such as a stopwatch, which is a variable whose
+slope is always either 0 or 1.
+Previous work . Over the past few years, there have been
+many decidability and undecidability results about hybrid
+systems; we list only those that led to the present work. The
+first decidability result for hybrid automata was obtained
+for timed automata, whose reachability and |-language
+emptiness problems are PSPACE-complete [AD94]. Underrestrictions (1) and (2), that result was later generalized to
+automata with variables that run at any constant positive
+slopes [ACH
++95], and to the reachability problem for
+automata with nonstrict rectangular flow constraints [PV94].
+In [BES93, KPSY93, BER94, MV94, BR95, ACH97], it
+was shown that, under various strong side conditions,
+reachability is decidable for timed automata with one stop-
+watch, but the general problem of one-stopwatch automata
+was left open.
+As far as undecidability results are concerned, in [Cer92]
+it was shown that reachability is undecidable for timed
+automata with three stopwatches, as well as for timed
+automata with one memory cell (a variable of constant
+slope 0) and assignments between variables. It was also
+known that reachability is undecidable for timed automatawith six memory cells and no assignments [AHV93], for
+timed automata with two three-slope variables and restriction
+(1) [KPSY93], for timed automata with two nonclock con-
+stant-slope variables [ACH+95], and for timed automata
+with additive clock constraints [AD94].
+2. RECTANGULAR AUTOMATA
+A hybrid automaton of dimension nis an infinite-state
+machine whose state has a discrete part which ranges over
+the vertices of a graph and a continuous part which ranges
+over the n-dimensional euclidean space Rn[ACH+95].
+A run of a hybrid automaton is a sequence of edge steps and
+time steps. During an edge step (also called jump ) the discrete
+and continuous states are updated according to a guarded
+command. During a time step (also called flow) the discrete
+state remains unchanged, and the continuous state changes
+according to a dynamical law, say, a differential equation. In
+this paper, we are concerned with decidability questions
+about hybrid automata and, therefore, consider restricted
+classes of guarded commands and dynamical laws. This leads
+us to the definition of rectangular automata.
+Notation . We use the symbol R0to denote the set
+[x#R|x0]of the nonnegative reals. We use the boldface
+characters x,y, and zfor vectors in Rn, and subscripts on italic
+characters such as xi,yj, and zkfor components of vectors.
+Rectangular Regions
+Given a positive integer n>0, a subset of Rnis called a
+region . A closed and bounded region is compact . A region
+R/Rnisrectangular if it is a cartesian product of (possibly
+unbounded) intervals, all of whose finite endpoints are
+rational. We write Rifor the projection of Ron the ith coor-
+dinate, so that R=>n
+i=1Ri. The set of all rectangular regions
+inRnis denoted Rn.
+Definition of Rectangular Automata
+Ann-dimensional rectangular automaton A consists of a
+finite directed multigraph ( V,E), a finite observation alphabet
+7, three vertex labeling functions init:VRn,inv:VRn,
+and flow:VRn, and four edge labeling functions pre:
+ERn,post:ERn,jump :E2[1, ..., n], and obs:E7.A n
+n-dimensional rectangular automaton with = moves differs in
+that the function obsmaps Einto 7=, where 7==7_[=]
+augments the observation alphabet with the null observation
+=7. When we discuss more than one automaton, we use
+the subscript Ato identify the components of A. For example,
+the vertex set of Amay be denoted VA.
+The initial function init specifies a set of initial automaton
+states. When the discrete state begins at vertex v, the
+continuous state must begin in the initial region init(v).
+The preguard function pre , the postguard function post , and
+thejump function jump constrain the behavior of the auto-
+maton state during edge steps. The edge e=(v,w) may be95 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 3 ---
+traversed only if the discrete state resides at vertex vand the
+continuous state lies in the preguard region pre(e). For each
+iin the jump set jump (e), the ith coordinate of the conti-
+nuous state is nondeterministically assigned a new value in
+the postguard interval post(e)i. For each ijump (e), the ith
+coordinate of the continuous state is not changed and must
+lie in post(e)i. The observation function obs identifies every
+edge traversal with an observation from 7or7=. The
+invariant function inv and the flow function flow constrain
+the behavior of the automaton state during time steps.
+While the discrete state resides at vertex v, the continuous
+state nondeterministically follows a smooth ( C) trajectory
+within the invariant region inv(v), whose first time derivative
+remains within the flow region flow(v). A rectangular auto-
+maton with =moves may traverse =edges during time steps.
+Note that if we replace rectangular regions with arbitrary
+linear regions in the definition of rectangular automata,
+we obtain the linear hybrid automata of [AHH96]. Thus,
+rectangular automata are the subclass of linear hybrid
+automata in which all defining regions are rectangular.
+Initialization and Bounded Nondeterminism
+The rectangular automaton Aisinitialized if for every
+edge e=(v,w)o fA, and every coordinate i#[1, ..., n]with
+flow(v)i{flow(w)i, we have i#jump (e). It follows that
+whenever the ith continuous coordinate of an initialized
+automaton changes its dynamics, as given by the flow
+function, then its value is nondeterministically reinitialized
+according to the postguard function.
+The rectangular automaton Ahasbounded nondeterminism
+if (1) for every vertex v#V, the regions init(v) and flow(v) are
+bounded, and (2) for every edge e#Eand every coordinate
+i#[1, ..., n]with i#jump (e), the interval post(e)iis bounded.
+Note that bounded nondeterminism does not imply finite
+branching. It ensures that the edge and time successors of a
+bounded region are bounded.
+The Labeled Transition System of a Rectangular Automaton
+The rectangular automaton A, possibly with =moves,
+defines a labeled transition system with an infinite state
+space Q, the infinite set 7_R0of labels, and the binary
+transition relations w{onQ, one for each label {#7_R0.
+Each transition with label _#7corresponds to an edge step
+whose observation is _. Each transition with label t#R0
+corresponds to a time step of duration t. The states and the
+transitions of Aare defined formally as follows.
+States .A state (v,x)o fAconsists of a discrete part v#V
+and a continuous part x#Rnsuch that x#inv(v). The state
+space Q /V_RnofAis the set of all states of A. A subset
+ofQis called a zone ofA. Each zone Z/Qcan be uniquely
+decomposed into a collection v#V[v]_[Z]vof regions
+[Z]v/Rn, one for each vertex v#V. The zone Zisrectangular
+(resp. bounded ;compact ) if each region [ Z]vis rectangular(resp. bounded; compact). The state ( v,x)i sa n initial state
+ofAifx#init(v). The initial zone ofA, denoted Init, is the
+set of all initial states of A. Notice that both the state space
+Qand the initial zone Initare rectangular.
+Jump transitions . For each edge e=(v,w)o f A,w e
+define the binary relation we/Q2by (v,x)we(w,y) iff
+x#pre(e), and y#post(e), and for every coordinate
+i#[1, ..., n]with ijump (e), we have xi=yi. Hence xand
+ydiffer only at coordinates in the jump set jump (e). For each
+observation _#7=, we define the edge-step relation w_/Q2
+byqw_riffqwerfor some edge e#Ewith obs(e)=_.
+Flow transitions . For each nonnegative real t#R0,w e
+define the binary relation w[t]/Q2by (v,x)w[t](w,y) iff
+(1)v=wand (2) either t=0 and x=y,o r t>0 and
+(y&x)t#flow(v). Notice that due to the convexity of
+rectangular regions, ( v,x)w[t](v,y) iff there is a smooth
+function f:[ 0 , t]inv(v), with first derivative f$, such that
+f(0)= x, and f(t)=y, and for all reals s#( 0 , t), we have
+f$(s)#flow(v). Hence the continuous state may evolve from
+xtoyvia any smooth trajectory satisfying the constraints
+imposed by inv(v) and flow(v). IfAdoes not have =moves,
+then we define the time-step relation wtto be w[t].I fAhas
+=moves, then the time-step relation wt/Q2is defined by
+qwtriff there exists an integer m1, nonnegative reals
+t1, ...,tm, and states q1, ...,q2m&2such that qw[t1]q1w=q2
+w[t2]q3w=}}}w=q2m&2ww[tm]rand t=m
+i=1ti.
+We write 6=7=_R0_E_[R0] for the set of labels
+that arise in connection with the automaton A, where
+[R0]=[[t]|t#R0]. Let Zbe a zone of A, and let ?be
+a label from 6. We define Post?(Z)=[q#Q|_r#Z.rw?q]
+to be the zone of states that are reachable in one ?step from Z,
+and we define Post (Z)=?#7_R0Post?(Z) to be the zone
+of states that are reachable in one edge or time step from Z.
+Similarly, we define Pre?(Z)=[q#Q|_r#Z.qw?r]to be
+the zone of states from which Zis reachable in one ?step,
+and we define Pre(Z)=?#7_R0Pre?(Z) to be the zone
+of states from which Zis reachable in one edge or time step.
+Notice that Post (Z)#Zand Pre(Z)#Zbecause of time
+steps of the form w0.
+The Reverse Automaton
+For an n-dimensional rectangular automaton A, the reverse
+automaton &Ais an n-dimensional rectangular automaton
+that defines the same state space as A, but with the transition
+relations reversed. The vertex set, observation alphabet, initial
+and invariant functions of & Aare the same as for A. For each
+vertex v, the flow region of & Ais defined by flow&A(v)=
+[x#Rn|&x#flowA(v)]. For each edge e=(v,w)o f A,
+the reverse automaton & Ahas the edge & e=(w,v) with
+pre&A(&e)=postA(e), jump&A(&e)=jumpA(e), and96 HENZINGER ET AL.
+
+--- Page 4 ---
+post&A(&e)=preA(e). From these definitions, Proposition 2.1
+follows immediately.
+Proposition 2.1.For all states q and r of a rectangular
+automaton A ,and every label ? #6,we have q w?
+Ar iff
+rw?
+&Aq.
+It follows that for every zone ZofA, and every label
+?#6,Post?
+A(Z)=Pre?
+&A(Z) and Pre?
+A(Z)=Post?
+&A(Z).
+Multirectangular Zones
+A zone Zismultirectangular ifZis a finite union of
+rectangular zones. Multirectangularity is preserved by edge
+and time steps.
+Proposition 2.2.For every multirectangular zone Z of a
+rectangular automaton A ,and every label ? #7=_[R0],
+the zones Post?(Z)and Pre?(Z)are multirectangular .
+Proof . We give the proof for Post ; the result for Prethen
+follows from Proposition 2.1. Since each relation w_with
+_#7=is a finite union of relations wewith e#E, it suffices
+to prove the proposition for ?#E_[R0]. Call a zone
+elementary if it is of the form [v]_R, where Ris a rec-
+tangular region. Then a zone is multirectangular iff it is a
+finite union of elementary zones. We show that for every
+elementary zone Z=[v]_R, the successor zone Post?(Z)
+is elementary. If ?=(v,w) is an edge of A, then Post?(Z)=
+[w]_S, where
+Ri&pre(?)i&post(?)i&inv(w)i,
+ifijump (?)i,
+Si={post(?)i&inv(w)i,
+ifi#jump (?)iand Ri&pre(?)i{<,
+<,i f Ri&pre(?)i=<.
+If?=[0], then Post?(Z)=Z.I f?#[R0] and ?>0, then
+Post?(Z)=[v]_S, where
+Si=inv(v)i&[1inf(Ri)+?} inf( flow(v)i),)
+&(&, sup( Ri)+?} sup( flow(v)i)]2.
+Here, [1stands for [ if Riand flow(v)iare left-closed,
+[1stands for ( if Riorflow(v)iare left-open, ]2stands for ]
+ifRiand flow(v)iare right-closed, and ]2stands for ) if Ri
+orflow(v)iare right-open. K
+Given a zone Zof the rectangular automaton Aand a
+finite sequence ?0?1}}}?m#6* of labels, we define Post?0?1(Z)
+=Post?1(Post?0(Z)), and we define Post?0?1}}}?m(Z) induc-
+tively in the usual way. Also, we define Post *(Z)=
+i#NPosti(Z) to be the zone of states that are reachable
+from Zin a finite number of edge and time steps (here Posti
+denotes iapplications of the function Post ). Analogousdefinitions are made for Pre. A state qis areachable state of
+Aifq#Post *(Init). The reachable zone ofA, denoted
+Reach (A), is the set Post *(Init) of all reachable states of A.
+The reachable zone Reach (A) is an infinite union of
+rectangular zones and may not be multirectangular.
+The |-Language of a Rectangular Automaton
+LetAbe a rectangular automaton, possibly with =moves.
+Atimed word forAis a finite or infinite sequence {=
+{0{1{2} } } of letters from 7_R0; that is, each {iis either
+an observation of A, or a nonnegative real that denotes a
+duration of time between observations. The timed word {is
+divergent if{is infinite and [ {i|i#Nand{i#R0]=.
+Arun \ ofAis a finite or infinite sequence of the form q0w{0
+q1w{1q2w{2} } } , where q0#Init, and for all i0, we have
+qi#Qand {i#7_R0. The run \ accepts the timed word
+{={0{1{2} } } , and \is called divergent if{is divergent. The
+|-language ofA, denoted Lang (A), is the set of all divergent
+timed words that are accepted by runs of A.
+Example
+It is often convenient to refer to each coordinate of the
+continuous state as a variable . We use letters from the begin-
+ning of the alphabet, such as a,b,c,d, for variables. If
+the variable acorresponds to the ith coordinate of the
+continuous state, we write flow(v)(a) for flow(v)i, etc.
+In pictorial descriptions of rectangular automata, we
+annotate each vertex with its flow region, and sometimes
+with its invariant region. For example, if flow(v)(a)=[3, 5],
+flow(v)(b)=[ 4 ,4 ] , inv(v)(a) = (1, 7], and inv(v)(b)=
+(&, 0], we write ‘‘ a*# [3, 5],’’ ‘‘ b4=4,’’ ‘‘1< a7,’’ and
+‘‘b0’’ inside vertex v. Often, however, we give the invariant
+function in the text and omit it from the figure. Edges are
+annotated with observations and guarded commands. A
+guarded command ,defines two regions pre(,) and post(,),
+and a jump set jump (,), in a natural manner. For example,
+if,is the (nondeterministic) guarded command
+a57b=4  b:= 7; c:# [0, 5]
+then pre(,)(a)=(& ,5 ] , pre(,)(b)=[4, 4], pre(,)(c)=
+(,),jump (,)=[b,c],post(,)(a)=( ,),post(,)(b)
+=[7, 7], and post(,)(c)=[0, 5]. As usual, when writing
+guarded commands, the guard true is omitted, and so is the
+empty list of assignments.
+Consider, for instance, the 2D rectangular automaton A
+of Fig. 1. The observation alphabet of Ais[_1,_2,_3,_4],
+and the invariant function of Ais the constant function
+*v.[&20, 20]2(not shown in the figure). The automaton A
+is initialized, as the values of the two variables cand dare
+reinitialized whenever their flow regions change. Figure 2
+shows a sample trajectory of Afrom the initial zone InitA=
+[(v1,( 0 ,1 ) ) ]. Each arc is labeled with a vertex giving the
+discrete state, while the continuous state follows the arc.97 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 5 ---
+FIG. 1. The initialized rectangular automaton A.
+The discontinuity between the arcs labeled v2and v3
+correspond to the jump of variable dfrom &5 to &4 upon
+traversal of the edge from v2tov3. The divergent timed
+word (4 _11_21_31_4)|is an example of a timed word that
+is accepted by A. This timed word is accepted by a run with
+the state sequence
+((v1,( 0 ,1 ) ) ( v1, (5, &10))( v2, (4, &10))( v2, (0, &12.5))
+(v3, (0, &4))( v3,( & 3 ,& 2 ) ) ( v4,( & 1 ,& 2 ) ) ( v4,( 0 ,0 ) ) )|.
+CNF Edge Families
+We sometimes annotate edges of rectangular automata
+with positive boolean combinations of guarded commands.
+Consider the two guarded commands ,1and ,2. First, the
+edge annotation ,17,2stands for a guarded command ,3
+with pre(,3)=pre(,1)&pre(,2),post(,3)=post(,1)&post(,2),
+and jump (,3)=jump (,1)_jump (,2). Second, an edge with
+the annotation ,16,2stands for two edges that share
+source vertex, target vertex, and observation, one annotated
+with ,1and the other with ,2. These conventions generalize
+to DNF expressions of guarded commands. An edge annotated
+with a CNF expression of guarded commands is interpreted
+by first converting the expression into DNF. A CNF edge
+family ((v,w),_,), then, consists of a pair ( v,w) of vertices,
+an observation _, and a CNF expression of guarded
+FIG. 2. A sample trajectory of A.commands. Consider, for example, the CNF edge family
+with the vertex pair ( v,w), the observation _, and the CNF
+expression
+((a<2a:= 2 ) 6(2 a5))
+7((b>7b:= 7 ) 6(4 b7)).
+This edge family corresponds to four edges from vtow, each
+annotated with the observation _and one of the following
+guarded commands:
+1.a<27b>7  a:= 2; b:= 7,
+2.a<274b7  a:= 2,
+3. 2 a57b>7  b:= 7,
+4. 2 a574b7.
+In this way, an n-dimensional rectangular automaton may
+be specified by a set of vertices, an observation alphabet,
+initial, invariant, and flow functions, and a set of CNF
+edge families. If Zis a zone of the rectangular automaton A,
+and 9is a CNF edge family, we define Post9(Z)t ob e
+ePoste(Z), where the union is taken over all edges eofA
+that correspond to the edge family 9.
+Two Problems Concerning Rectangular Automata
+We study the following two problems about rectangular
+automata.
+Reachability. Given a rectangular automaton A, and
+a rectangular zone ZfofA,i sReach (A)&Zfnonempty?
+That is, does Zfcontain a reachable state of A? If so, we say
+that the zone Zfisreachable forA. A solution to this
+problem permits the verification of safety requirements for
+systems that are modeled as rectangular automata. If we
+equip rectangular automata with rectangular final zones,
+then the reachability problem is equivalent to the finitary
+language emptiness problem.
+|-Language Emptiness. Given a rectangular auto-
+maton A,i sLang (A) nonempty? That is, does Ahave a
+divergent run? This problem is more general than the
+reachability problem, and a solution permits the verification
+of safety and liveness requirements for systems that are
+modeled as rectangular automata.
+For initialized rectangular automata, we provide a
+PSPACE decision procedure for the reachability problem.
+For initialized rectangular automata with bounded non-
+determinism, we give a PSPACE decision procedure for the
+|-language emptiness problem. We then show that the
+reachability problem (and therefore |-language emptiness)
+is undecidable for very restricted classes of uninitialized
+rectangular automata and, also, for initialized automata98 HENZINGER ET AL.
+
+--- Page 6 ---
+with slightly generalized invariant, flow, preguard, postguard,
+or jump functions.
+3. DECIDABILITY
+We translate a given initialized rectangular automaton A
+into a timed automaton [AD94] that contains all reacha-
+bility information about A. The translation proceeds in two
+steps: from initialized rectangular automata to initialized
+singular automata (Section 3.2), and from initialized singular
+automata to timed automata (Section 3.1). For the subclass
+of automata with bounded nondeterminism, the translation
+also preserves |-languages (Section 3.3), and therefore
+reduces the |-language emptiness problem for these auto-
+mata to the corresponding problem for timed automata. In
+Section 3.4, we explain our translations in terms of simula-
+tions and bisimulations of the underlying labeled transition
+systems. In Section 3.5, we supply a practical implication ofour translations, showing that symbolic execution [ACH
++95]
+terminates on initialized rectangular automata after a
+linear-time preprocessing step.
+3.1. From Initialized Singular Automata to
+Timed Automata
+We begin by defining several special cases of rectangular
+automata for which, using known results about timed auto-
+mata, the reachability and |-language emptiness problems
+can be solved easily.
+Finite-slope Variables
+Consider a rectangular automaton A. The variable cis a
+one-slope variable ofAif there exists a rational number k
+such that for each vertex vofA, we have flow(v)(c)=[ k,k].
+A one-slope variable with slope k=0 is called a memory
+cell. A one-slope variable with slope k=1 is called a clock .
+A one-slope variable with any other slope is called a skewed
+clock . Notice that, if every variable of Ais a one-slope
+variable, then Ais initialized. The variable cis atwo-slope
+variable ofAif there exist two rational numbers k1and k2,
+with k1{k2, such that for each vertex vofA, either
+flow(v)(c)=[ k1,k1]o r flow(v)(c)=[ k2,k2]. A stopwatch
+is a two-slope variable with k1=1 and k2=0. The variable
+cis afinite-slope variable ofAif for each vertex vofA, the
+interval flow(v)(c) is a singleton.
+Ann-dimensional rectangular automaton Ahas deter-
+ministic jumps if (1) for every vertex vofA, the region init(v)
+is either empty or a singleton, and (2) for every edge eof
+Aand every coordinate i#[1, ..., n]with i#jump (e), the
+interval post(e)iis a singleton. The first requirement ensures
+that the number of initial states is finite. The second require-
+ment says that along each edge step, each variable either
+remains unchanged or is deterministically assigned a newvalue. Notice that, if Ahas deterministic jumps and every
+variable of Ais a finite-slope variable, then Ahas bounded
+nondeterminism.
+Timed Automata
+Atimed automaton D is a rectangular automaton with
+deterministic jumps such that every variable of Dis a clock.
+Theorem 3.1 [AD94]. The reachability and |-language
+emptiness problems for timed a automata (with or without =
+moves )are complete for PSPACE .
+More precisely, the |-language emptiness problem for
+ann-dimensional timed automaton Dwith =moves can
+be solved in space O(log(| V|}n!}Kn))=O(log | V|+n}
+(log n+log K)), where the integer constant Kis determined
+by the rational numbers that are used in the definition of D,
+as finite endpoints of initial, invariant, preguard, and post-
+guard intervals. If the definition of Duses only nonnegative
+integer constants, then Kis the largest of these constants. If
+the definition of Duses only nonnegative rational constants,
+letKbe the set of these constants, and let lbe their least
+common denominator. Then K=max [k}l|k#K]. If the
+definition of Duses negative rational constants, then sub-
+tract the constant with the least value from all constants,
+and compute Kfrom the resulting set of nonnegative
+numbers as in the nonnegative case. We assume that, in the
+definition of D, all constants are written in binary notation.
+It follows that the value of Kis at most singly exponential
+in the size of the definition of D, and hence, the above space
+requirement is polynomial. The reachability problem for
+a timed automaton Dand a rectangular zone Zfcan be
+solved in the same amount of space, only that the constant
+Kmust take into account also the finite endpoints of all
+intervals in the definition of Zf.
+We consider generalizations of timed automata. There-
+fore, all of our PSPACE hardness results follow from the
+corresponding hardness results for timed automata.
+Stopwatch Automata
+Astopwatch automaton C is a rectangular automaton
+with deterministic jumps such that every variable of Cis a
+stopwatch. Unlike timed automata, not every stopwatch
+automaton is initialized. We will see that for nonintialized
+stopwatch automata, the reachability problem is undecidable
+(Section 4.1). Initializedstopwatch automata, however, can be
+polynomially encoded by timed automata.
+Let Cbe an n-dimensional initialized stopwatch auto-
+maton with =moves, let KCbe the set of rational constants
+used in the definition of C, and let K==KC_[=].W e
+define an n-dimensional timed automaton DCwith the set
+VDC=VC_K[1, ..., n]
+= of vertices. Thus, each vertex ( v,f)o f
+DCconsists of a vertex vfrom Cand a function ffrom
+[1, ..., n]toK=. Each state q=((v,f),x)o fDCis intended99 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 7 ---
+to represent the state :(q)=(v,y)o f C, where yi=xiif
+f(i)==, and yi=f(i)i f f(i){=. Intuitively, if the ith
+stopwatch of Cis running (slope 1), then its value is tracked
+by the value of the ith clock of DC; if the ith stopwatch is
+halted (slope 0), at value k#KC, then this value is remem-
+bered by the vertices of DC. Note that ::QDCQCis an
+onto function from the states of DCto the states of C.I ti s
+extended to zones Z/QDCin the natural way, by :(Z)=
+q#Z:(q).
+It is useful to define also an ‘‘inverse’’ of the function :.W e
+define & ::QCQDCso that & :(v,y)=(( v,f),y), where
+for every coordinate i#[1, ..., n],i fflowC(v)i=[1, 1] then
+f(i)==, and if flowC(v)i=[0, 0] then f(i)=yi. The func-
+tion & :is a one-to-one function from the states of Cto
+the states of DC, so that for each state rofC, we have
+:(&:(r))=r. The map & :is extended to zones Z/QCin
+the natural way. Then, for each zone ZofC, we have
+:(&:(Z))=Z.
+The remaining components of the timed automaton DC
+are defined as follows. The observation alphabet of DCis the
+same as for C. The initial zone of DCis & :(Init C). For each
+vertex ( v,f)o f DC,invDC(v,f)=invC(v). For each edge
+e=(v,w)o f C, the timed automaton DChas all edges of
+the form e$=(( v,f), (w,g)), where for every coordinate
+i#[1, ..., n], either flowC(w)i=[1, 1] and g(i)==,o r
+flowC(v)i=[1, 1] and flowC(w)i=[0, 0] and g(i)=postC(e)i,
+(recall that Chas deterministic jumps), or flowC(v)i=
+[0, 0] and flowC(w)i=[0, 0] and g(i)=f(i). Furthermore,
+eand e$ have the same preguard and postguard regions,
+jump sets, and observations. From these definitions,
+Lemma 3.2 follows immediately.
+Lemma 3.2.Let C be an initialized stopwatch automaton
+with = moves .First ,Init C=:(Init DC).Second ,for all states q
+a n dro fDC,and every label { #7=_[R0],if qw{
+DCr,
+then : (q)w{
+C:(r).Third ,for all states q of D C,all states r $
+of C ,and every label { #7=_[R0],if :(q)w{
+Cr$,then
+there is a state r of DCsuch that q w{
+DCr and : (r)=r$;
+similarly ,if r$w{
+C:(q),then there is a state r of DCsuch that
+rw{
+DCq and : (r)=r$.
+From the second and third claims of Lemma 3.2, it follows
+that for every zone ZofDC, and every label {#7_R0,
+Post{
+C(:(Z))=:(Post{
+DC(Z)) and Pre{
+C(:(Z))=:(Pre{
+DC(Z)).
+These relationships are illustrated in the commuting diagram
+FIG. 3. Commuting diagram for zones Zof an initialized stopwatch automaton C.of Fig. 3. From the first claim of Lemma 3.2 and the fact
+that Post commutes with :, we conclude that Reach (C)=
+:(Reach (DC)). From Lemma 3.2 it also follows that Lang (C)
+=Lang (DC).
+Theorem 3.3.The reachability and |-language empti-
+ness problems for initialized stopwatch automata (with or
+without = moves )are complete for PSPACE .
+Proof . It suffices to show containment in PSPACE.
+Define the constant KCas for timed automata. Notice that
+|VDC||VC|}(KC+1)n, and that the definition of DCuses
+the same constants as the definition of C. It follows that the
+space requirement O(log | VDC|+n} (log n+log KDC))=
+O(log | VC|+n} (log n+log KC)) is polynomial in the size
+ofC.K
+Singular Automata
+Asingular automaton B is a rectangular automaton with
+deterministic jumps such that every variable of Bis a finite-
+slope variable. Initialized singular automata can be rescaled
+to initialized stopwatch automata.
+LetBbe an n-dimensional initialized singular automaton
+with =moves. We define an n-dimensional initialized stop-
+watch automaton CBwith the same vertex set, edge set, and
+observation alphabet as B. Each state q=(v,x)o f CBis
+intended to represent the state ;(q)=(v,;v(x)) of B, for the
+following definition of the bijections ;v:RnRn. For each
+vertex vofB,i fflowB(v)=>n
+i=1[ki,ki], then ;v(x1, ...,xn)=
+(l1}x1, ...,ln}xn), where li=kiifki{0, and li=1 if ki=0.
+Note that ;:QCBQBis a bijection between the states of
+CBand the states of B, and can be viewed as a rescaling of
+the state space. Similar rescaling techniques for hybrid state
+spaces can be found in [ACH+95]. The maps ;vare
+extended to regions in the natural way, and the map ;is
+extended to zones in the natural way.
+The remaining components of the initialized stopwatch
+automaton CBare defined as follows. For each vertex v
+ofCB,init CB(v)=;&1
+v(init B(v)),invCB(v)=;&1
+v(invB(v)), and
+for every coordinate i#[1, ..., n],flowCB(v)i=[0, 0] if
+flowB(v)i=[0, 0], and flowCB(v)i=[1, 1] if flowB(v)i{
+[0, 0]. For each edge e=(v,w)o fCB,preCB(e)=;&1
+v(preB(e)),
+postCB(e)=;&1
+w(postB(e)), jumpCB(e)=jumpB(e), and
+obsCB(e)=obsB(e). From these definitions, Lemma 3.4
+follows immediately.100 HENZINGER ET AL.
+
+--- Page 8 ---
+Lemma 3.4.Let B be an initialized singular automaton
+with = moves .First ,InitB=;(InitCB).Second ,for all states q
+and r of CB,and every label { #7=_[R0],we have
+qw{
+CBr iff ; (q)w{
+B;(r).
+From the second claim of Lemma 3.4, it follows that for
+every zone ZofCBand every label {#7_R0,Post{
+B(;(Z))
+=;(Post{
+CB(Z)) and Pre{
+B(;(Z))=;(Pre{
+CB(Z)). These rela-
+tionships are illustrated in the commuting diagram of Fig. 4.
+From the first claim of Lemma 3.4 and the fact that Post com-
+mutes with ;, we conclude that Reach (B)=;(Reach (CB)).
+From Lemma 3.4 it also follows that Lang (B)=Lang (CB).
+Theorem 3.5.The reachability and |-language emptiness
+problems for initialized singular automata (with or without =
+moves )are complete for PSPACE .
+Proof . It suffices to show containment in PSPACE.
+Consider the case that the definition of Buses only non-
+negative integer constants; the general case is similar to the
+analysis of timed automata with rational and negative
+constants. As for timed automata, define KBto be the maxi-
+mum over all finite endpoints of initial, invariant, preguard,
+and postguard intervals. Define LBto be the product of KB
+and the least common multiple of all finite endpoints of flow
+intervals. Then the value of LBis at most singly exponential
+in the size of the definition of B, and KCBLB. It follows that
+the space requirement O(log | VCB|+n} (log n+log KCB))=
+O(log | VB|+n} (log n+log LB)) is polynomial in the size
+ofB.K
+3.2. From Initialized Rectangular Automata to
+Initialized Singular Automata
+LetAbe an n-dimensional initialized rectangular auto-
+maton. We translate Ainto a (2 n+1)-dimensional initialized
+singular automaton BAwith =moves so that BAcontains all
+reachability information about A. (While we assume, for
+simplicity, that the given automaton Ahas no =moves, the
+translation and its results apply also to initialized rectan-
+gular automata with =moves.) The translation is similar to
+the subset construction for determinizing finite automata.
+We first give a simplified construction for the compact case,
+and then proceed to the general case. All of the main ideas
+of the construction are already present in the compact case,
+but the general case requires additional bookkeeping.
+FIG. 4. Commuting diagram for zones Zof an initialized singular automaton B.Preliminary assumptions . Without loss of generality, we
+assume that for each vertex vofA,initA(v)/invA(v), and for
+each edge e=(v,w)o fA,preA(e)/invA(v),postA(e)/invA(w),
+and for every coordinate ijumpA(e),preA(e)i=postA(e)i.I f
+this is not the case, then first we replace each initial and
+guard region by its intersection with the appropriate
+invariant region, and second we replace each guard interval
+preA(e)iand postA(e)iwith ijumpA(e) by their intersection
+preA(e)i&postA(e)i. These replacements do not change the
+labeled transition system of A.
+The Compact Case
+We first restrict our attention to the case where invAis
+the trivial invariant function *v.Rn, and all initial, flow,
+preguard, and postguard regions of Aare compact. In this
+case, we say that the automaton Aiscompact .
+In the compact case, we translate Ainto a 2 n-dimensional
+initialized singular automaton denoted Bc
+A. The idea is to
+replace each variable cofAby two finite-slope variables cland
+cusuch that when flowA(v)(c)=[ kl,ku], then flowBc
+A(v)(cl)
+=[kl,kl] and flow Bc
+A(v)(cu)=[ ku,ku]. Intuitively, the
+variable cltracks the least possible value of c, and cutracks
+the greatest possible value of c. Consider Fig. 5. With each
+time step, the flow interval of ccreates an envelope, whose
+boundaries are tracked by cland cu. With each edge step,
+the values of cland cuare updated so that the interval
+[cl,cu] remains precisely the range of possible values of c.
+In Fig. 5, at time ta jump transition is taken along an edge
+ewith preA(e)(c)=[ p,) and cjumpA(e). Since the value
+ofclis below pat time t, the variable clis updated to the
+new value p.
+In the following formal definition of the automaton Bc
+A,
+we use [ai|1  in]for the variables of A, and [bi|1 
+i2n]for the variables of Bc
+A. The l(i)th coordinate bl(i)of
+Bc
+Arepresents the lower bound on the ith coordinate aiofA,
+and the u(i)th coordinate bu(i)ofBc
+Arepresents the upper
+bound on ai. For concreteness, put l(i)=2 i&1 and u(i)=2 i.
+The 2 n-dimensional automaton Bc
+Ahas the same vertex
+set and observation alphabet as A. The initial function initBc
+Ais given by initBc
+A(v)l(i)=min( initA(v)i) and initBc
+A(v)u(i)=
+max( initA(v)i). The invariant function invBc
+Ais the trivial
+invariant function. The flow function flowBc
+Ais defined as101 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 9 ---
+FIG. 5. Envelope created by the flow interval flow(v)(c)=[ kl,ku].
+outlined above: if flowA(v)i=[kl,ku], then flowBc
+A(v)l(i)=
+[kl,kl] and flowBc
+A(v)u(i)=[ku,ku]. We are left with defin-
+ing a set of CNF edge families for Bc
+A. For each edge
+e=(v,w)o fA, the automaton Bc
+Ahas the CNF edge family
+9e=(v,w,obsA(e),e), which shares the observation of e.
+The CNF expression eis a conjunction n
+i=1i
+eofnCNF
+expressions i
+e. Suppose that preA(e)i=[pl,pu] and
+postA(e)i=[p$l,p$u]. If i#jumpA(e), then the CNF expres-
+sion i
+eis the guarded command
+bl(i)pu7bu(i)pl bl(i):=p$l;bu(i):=p$u.
+The values of bl(i)and bu(i)satisfy the guard iff [ bl(i),bu(i)]
+intersects preA(e)i. Since i#jumpA(e), the range of values of
+aiafter traversing eis exactly postA(e)i, and hence bl(i)is set
+to the minimum of this interval, and bu(i)is set to the maximum.
+IfijumpA(e), then by assumption [ pl,pu]=[ p$l,p$u], and
+the CNF expression i
+eis
+((bl(i)<plbl(i):=pl)6(plbl(i)pu))
+7((bu(i)>pubu(i):=pu)6(plbu(i)pu)).
+The idea is that when the edge eis traversed in A, new infor-
+mation becomes available about the value of ai, namely,
+that it lies within the interval [ pl,pu]. Therefore, if bl(i)<pl,
+it must be updated to pl, and if bu(i)>pu, it must be updated
+topu, in order to keep [ bl(i),bu(i)] the range of possible values
+ofai.
+This completes the definition of the automaton Bc
+A. The
+automaton Bc
+Ais an initialized singular automaton. Figure 6
+shows the initialized singular automaton Bc
+Athat corre-
+sponds to the initialized rectangular automaton Afrom Fig. 1.
+Figure 7 shows the initialized stopwatch automaton CBc
+A
+that corresponds to A. Notice that CBc
+Ais a timed automaton.
+The relationship between AandBc
+Ais formalized through
+the function #c:QBc
+A2QA, which maps each state of Bc
+Ato
+a zone of A: define #c(v,x)=[v]_>n
+i=1[xl(i),xu(i)]. The
+map #cis extended to zones Z/QBc
+Aby#c(Z)=q#Z#c(q).
+Not all states of Bc
+Aare of interest. The state ( v,x)#QBc
+Aisanupper-half state ofBc
+Aif for every coordinate i#[1, ..., n],
+we have xl(i)xu(i). Notice that qis an upper-half state of
+Bc
+Aiff#c(q){<. The upper-half space ofBc
+A, denoted UBc
+A,
+is the set of all upper-half states of Bc
+A. Lemma 3.6 shows
+that, for reachability purposes, each upper-half state qofBc
+A
+represents the set #c(q)/QAof states of A.
+It is useful to define also an ‘‘inverse’’ of the function #c.
+For a compact rectangular region R/Rn, define the vector
+&#c(R)#R2nby & #c(R)l(i)=min( Ri) and & #c(R)u(i)=
+max( Ri); that is, & #c(R) is the vector of all boundary points
+of the intervals Ri. For a compact rectangular zone ZofA,
+define & #c(Z) to be the zone v#VA[(v,&#c([Z]v))]
+ofBc
+A. Notice that & #(Z)/UBc
+A, and that InitBc
+A=& #c(InitA).
+Lemma 3.6.Let A be a compact initialized rectangular
+automaton .First ,for every compact rectangular zone Z of A ,
+we have #c(&#c(Z))=Z;in particular ,Init A=#c(Init Bc
+A).
+Second ,for every upper-half state q of Bc
+A,and every label
+{#7_R0,Post{
+A(#c(q))=#c(Post{
+Bc
+A(q)).
+We delay a detailed proof of these claims to the general
+case. From the second claim of Lemma 3.6, it follows that
+for every upper-half zone Z/UBc
+Aand every label {#7_R0,
+Post{
+A(#c(Z))=#c(Post{
+BcA(Z)) and, by Proposition 2.1,
+Pre{
+A(#c(Z))=#c(Pre{
+&Bc
+&A(Z)). These relationships are
+illustrated in the commuting diagram of Fig. 8. From the
+first claim of Lemma 3.6 and the fact that Post commutes
+with #c, we conclude that Reach (A)=#c(Reach (Bc
+A)).
+Theorem 3.7.The reachability problem for compact
+initialized rectangular automata is complete for PSPACE .
+Indeed, since InitA=#c(InitBc
+A) and Post commutes with #c,
+we also have the following. For every run of Awe can, starting
+from the beginning of the run, inductively construct a run of
+Bc
+Athat accepts the same timed word. Therefore Lang (A)/
+Lang (Bc
+A). Furthermore, for every finite run of Bc
+Awe can,
+starting from the end of the run, inductively construct a run
+ofAthat accepts the same timed word. Therefore AandBc
+A
+accept the same finite timed words.
+The General Case
+The extension from the compact to the general case is
+mostly a matter of bookkeeping. In particular, for each
+lower-bound variable bl(i)and upper-bound variable bu(i)
+one bit is used to distinguish a weak from a strict bound,
+and a second bit is used to distinguish a finite from an
+infinite bound. The reader who is uninterested in the details
+can skip ahead to Theorem 3.18 without loss of continuity
+(in this case, the reader should know that BAis the generali-
+zation of Bc
+A, and #is the generalization #c).
+We encounter the following difficulties when the rectan-
+gular automaton Ahas noncompact components and a
+nontrivial invariant function. (1) The lower-bound and102 HENZINGER ET AL.
+
+--- Page 10 ---
+FIG. 6. The initialized singular automaton Bc
+A.
+upper-bound variables bl(i)andbu(i)may violate the invariant
+region of a vertex, and the function #must be changed to
+account for this. (2) The lower and upper bounds represented
+bybl(i)andbu(i)may be weak (inclusive) or strict (exclusive).
+To solve this problem, we introduce a bit called the weakstrict
+bitfor each variable of BA. (3) Lower and upper bounds may
+be finite or infinite. For this, we introduce a bit called the
+finiteinfinite bit for each variable of BA. (4) Unbounded
+flow regions cause discontinuous jumps in lower and upper
+bounds. For example, suppose that the variable aiis
+assigned the value 3 by traversal of the edge e=(v,w),
+where flow(w)i=[1, ). Then in BA, both bl(i)andbu(i)are
+assigned the value 3 by traversal of e. But after any positive
+amount of time passes, the upper bound on aishould be .
+For this, we introduce an =edge, which is taken before any
+positive time step. The =edge sets the finite infinite bit for
+FIG. 7. The initialized stopwatch automaton (and timed automaton) CBc
+A.bu(i)to infinite. Since the result of the =edge presupposes
+that some positive amount of time has passed, all edge stepsinherited from Aare disabled in B
+Auntil time passes.
+Implementing this restriction requires a new clock called the
+synchronization clock and a bit called the time-passage bit .
+(5) Strict flow regions may cause a weak bound to change
+to strict after any positive amount of time passes. For example,
+suppose in the above case that flow(w)i=[1, 5). Then after
+the edge eis traversed, the upper bound on aiis a weak
+bound of 3. But after t>0 time units pains, the upper bound
+is a strict bound of 3+5 t. Once again, we use the =edge to
+solve this problem. When the =edge is traversed, the weak 
+strict bit for bu(i)is set to strict.
+We now proceed formally to define the (2 n+1)-dimen-
+sional initialized singular automaton BAwith =moves. The
+observation alphabet of BAis the same as for A. We define103 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 11 ---
+first the continuous state (variables) and discrete state
+(vertices) of BAand then the flow and invariant functions.
+Next we define the map #, which relates states of BAto zones
+ofA. Then come the edges of BA, which are classified into
+=edges and edges inherited from A. Last, we define the
+initial function. We provide lemmas about BAas soon as
+enough definitions have been made to give the proofs.
+Variables and vertices of B A. For each variable aiofA,
+the automaton BAhas two variables, bl(i)andbu(i). We add
+a zeroth coordinate b0toBAwhich represents the synchro-
+nization clock. Hence the dimension of BAis 2n+1. The
+finite infinite and weak strict bitvectors and the time-
+passage bit are encoded in the vertex set of BA. Therefore,
+VBA=VA_([0, 1]2n)2_[0, 1]. A state (( v,+,&,tp),x)o f
+BAthen consists of a vertex vofA, a vector +of 2nfinite 
+infinite bits ( fin=0, inf=1), a vector &of 2nweak strict
+bits ( wk=0, str=1), a time-passage bit tp, and a vector
+x#R2n+1of values for the 2 n+1 variables of BA.
+Notation . For the remainder of Section 3.2, iranges
+over [1, ..., n], the symbol vranges over VA, the vectors +
+and &range over [0, 1]2n, and tpranges over [0, 1].S o
+when we implicitly or explicitly quantify these variables, as
+in ‘‘for all v,+,&,tp,i,’’ the quantification is over the
+domains just specified. Recall that for a zone ZofA,w e
+have the canonical decomposition Z=v[Z]v. We lift
+the functions [ } ]vto the zones Z$o f BAby defining
+[Z$]v=[x#R2n+1|_+,&,tp.((v,+,&,tp),x)#Z$]. We say
+that the vector x#R2n+1satisfies a predicate .over the
+variables b0,b1, ...,b2niff.evaluates to true when each
+variable biis replaced by the ith component of x. Finally,
+consider an interval I/Rof the real line. We define the
+lower strictness ofIbystrict a(I)=wkif inf( I)#I, and
+strict a(I)=strif inf( I)I. Similarly, we define the upper
+strictness ofIbystrict A(I)=wkif sup( I)#Iand strict A(I)
+=strif sup( I)I.
+Flow regions of BA. The flow function flowBAis defined
+by
+[inf(flowA(v)i)],
+flowBA(v,+,&,tp)l(i)={if inf( flowA(v)i){& ,
+[0], otherwise;
+[sup( flowA(v)i)],
+flowBA(v,+,&,tp)u(i)={if sup( flowA(v)i){,
+[0], otherwise.
+The slope of bl(i)(resp. bu(i))i n BAis the infimum (resp.
+supremum) of the allowable slopes for aiinA, unless that
+infimum (resp. supremum) is infinite. The zeroth coordinate
+b0is a clock: define flowBA(v,+,&,tp)0=[1].Invariant regions of BA. The lower-bound components
+of the invariant function invBAare defined by
+invBA(v,+,&,tp)l(i)
+={(&,),
+(&, sup( invA(v)i)],
+(&, sup( invA(v)i)),if+l(i)=inf,
+if+l(i)=fin and &l(i)=
+strict A(invA(v)i)=wk,
+otherwise.
+If the finite infinite bit +l(i)is infinite, then the value of the
+lower-bound variable bl(i)is irrelevant, so we do not
+constrain it. If the finite infinite bit is finite, then the interval
+of allowable values for bl(i)is right-open unless both the
+weak strict bit &l(i)is weak and the invariant interval
+invA(v)iis right-closed. The motivation for this is that if I
+and Jare intervals, and inf( I)=sup( J), then I&J{<iff
+strict a(I)=strict A(J)=wk. Here Iis meant to represent
+the range of possible values for aiinA, as determined by the
+state of BA, and Jis meant to represent the invariant interval
+invA(v)i. The corresponding definition for the upper-bound
+components of invBAis given by
+invBA(v,+,&,tp)u(i)
+={(&,),
+[inf( invA(v)i),),
+(inf( invA(v)i),),if+u(i)=inf,
+if+u(i)=fin and &u(i)=
+strict a(invA(v)i)=wk,
+otherwise.
+The invariant intervals for the synchronization clock b0let
+time pass iff the time-passage bit tpis 1: define invBA(v,+,&,0 )0
+=[0, 0] and invBA(v,+,&,1 )0=[0, ).
+Relating the state spaces of BAand A . The function
+#$:QBA2VA_Rnspecifies how each state of BAindicates a
+range of possible values for each variable of A. Consider a
+state q=((v,+,&,tp),x)o fBA. We define #$(q)=[v]_#$2(q),
+where the function #$2:QBA2Rnmaps qto a rectangular
+region in Rn. For every coordinate i#[1, ..., n], the interval
+#$2(q)iis completely specified by its infimum, supremum, and
+which, if any, of the two it contains:
+vIf+l(i)=inf, then inf( #$2(q)i)=& ;i f+l(i)=fin, then
+inf(#$2(q)i)=xl(i).
+vIf+u(i)=inf, then sup( #$2(q)i)=;i f+u(i)=fin, then
+sup(#$2(q)i)=xu(i).
+vIf+l(i)=fin, then inf( #$2(q)i)##$2(q)iiff&l(i)=wk.
+vIf+u(i)=fin, then sup( #$2(q)i)##$2(q)iiff&u(i)=wk.
+Since we have not taken into account the invariant func-
+tion of A, we may have #$(q)/3QAfor some states qofBA.
+We remedy this deficiency by defining #:QBA2QAby
+#(q)=#$(q)&QAiftp=0 or x0>0, and #(q)=<iftp=1
+and x0=0. The latter adjustment is necessary because the104 HENZINGER ET AL.
+
+--- Page 12 ---
+states of BAin which the time-passage bit is 1 and the
+synchronization clock is 0 are visited only transiently
+between an =edge and a positive time step, and they do not
+correspond to any states of A. The function #2:QBA2Rn
+strips off the vertex; it is defined by the equation #(q)=
+[v]_#2(q). The functions #,#$,#2, and #$2are extended to
+zones Z/QBc
+Aby#(Z)=q#Z#(q), etc. The state qis an
+upper-half state ofBAif#(q){<. The upper-half space UBA
+is the set of all upper-half states of BA. The truncation of #$
+to#is justified by the following fact, which follows from the
+assumption that the preguard region of each edge of Ais
+contained in the invariant region of the source vertex.
+Fact 3.8. For every edge eof an initialized rectangular
+automaton A, and every upper-half state qofBA, we have
+#$2(q)&preA(e){<iff#2(q)&preA(e){<.
+Edges of BA. As in the compact case, the automaton BA
+has an edge family for each edge of A. We say that the edges
+defined by these edge families are inherited from A .I n
+addition, BAhas a set of =edges. The =edges provide
+changes to the finite infinite and weak strict bitvectors that
+are caused by the passage of any positive amount of time,however small. Such changes can be carried out only
+through edge steps.
+Epsilon edges . We first define the =edges of B
+A. For all
+v,+,&, there is an edge efrom ( v,+,&,0 )t o( v,+$,&$, 1) with
+observation =. The target vertex components +$ and &$ will
+be defined presently. The preguard and postguard regions of
+eare both [0, 0]_ R2n, so this edge can be traversed only
+when both the time-passage bit and the synchronization
+clock have the value 0. The update set of eis empty. The
+finite infinite bitvector must be changed to account for finite
+bounds that become infinite due to an unbounded flow
+interval:
++$l(i)={inf,
++l(i),if inf( flowA(v)i)=& ,
+otherwise;
++$u(i)={inf,
++u(i),if sup( flowA(v)i)=,
+otherwise.
+The weak strict bitvector must be changed to account for
+weak bounds that become strict due to a strict flow interval:
+&$l(i)={str,
+&l(i),ifstrict a(flowA(v)i)=str,
+otherwise;
+&$u(i)={str,
+&u(i),ifstrict A(flowA(v)i)=str,
+otherwise.
+The =edges, just defined, play the following role in BA.
+Suppose that an edge inherited from Ais traversed. Then
+tp=0 and b0=0, and before any time may pass (since notime may pass when tp=0), an =edge must be traversed,
+setting tpto 1, and performing whatever bookkeeping is
+required for the finite infinite and weak strict bitvectors.
+The changes made by the =edge reflect the situation after
+some infinitesimal positive amount of time has passed.
+Therefore no edge inherited from Ais allowed after an =
+edge but before a positive time step: as long as tp=1 and
+b0=0, no inherited edges are enabled. After the next
+positive time step, tp=1 and b0>0, and another inherited
+edge may be traversed, resetting both tpand b0to 0. Then
+the situation repeats.
+Inherited edges . We now define the edges of BAthat are
+inherited from A. For this purpose, it is convenient to
+extend the definition of CNF edge families to allow multiple
+target vertices. For example, in a guarded command, we
+may write +l(i):=infto change the l(i)th component of the
+finite infinite bitvector +toinf. In this way, a disjunction of
+guarded commands can refer to several target vertices. An
+extended CNF edge family for BAis completely specified by
+a source vertex, an observation, the first component of the
+target vertex (an element of VA), the time-passage bit of
+the target vertex, and a CNF expression that includes
+assignments to the bitvectors +and &. The translation of
+such an extended CNF edge family into a set of edges for
+BAis a straightforward extension of the translation for
+standard CNF edge families and will not be detailed.
+For each edge e=(v,w)o f A, all bitvectors +and &,
+and each bit tp, the automaton BAhas the extended CNF
+edge family 9e,+,&,tp=((v,+,&,tp),obsA(e),w,0 ,e,+,&,tp).
+Every edge derived from the family 9e,+,&,tpshares the
+observation label of e(which, by assumption, is different
+from =), and leads to a target vertex of the form ( w,+$,&$, 0).
+The CNF expression e,+,&,tpis a conjunction ,tp7
+n
+i=1i
+e,+,&ofn+1 CNF expressions. The guarded command
+,0isb0=0, and the guarded command ,1isb0>0b0:= 0.
+Hence an inherited edge from a state with the time-passage bit
+tp=1 can be taken only if the synchronization clock has a
+positive value. Upon traversal of the edge, both the time-passage bit and the synchronization clock are reset to 0.
+It remains to define the CNF expressions 
+i
+e,+,&.W e
+define their guards so that an edge of BAderived from the
+edge family 9e,+,&,tpcan be taken from an upper-half state
+qofBAiff the range of possible values for each variable ai
+intersects the interval preA(e)i, that is, iff #2(q)&preA(e){<.
+Recall that by Fact 3.8, we have #2(q)&preA(e){<iff
+#$2(q)&preA(e){<. If all values are finite and all bounds
+are weak, then this intersection is nonempty iff both bl(i)
+max( preA(e)i) and bu(i)min( preA(e)i). These were the
+lower-bound and upper-bound guards given in the construc-
+tion of Bc
+Afor compact A. Taking strictness and infinite
+bounds into account, we obtain the more complicated guards
+lguard (i,preA(e)i) and uguard (i,preA(e)i), defined as follows.
+For an interval I/R, and i#[1, ..., n], define105 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 13 ---
+lguard (i,I)={true,
+bl(i)sup( I),
+bl(i)<sup( I),if+l(i)=inf,
+if+l(i)=finand &l(i)=
+strict A(I)=wk,
+otherwise;
+uguard (i,I)={true,
+bu(i)inf( I),
+bu(i)>inf( I),if+u(i)=inf,
+if+u(i)=finand &u(i)=
+strict a(I)=wk,
+otherwise.
+These expressions are guarded commands with no assignments.
+To understand the definition, consider the conditions under
+which an interval Jintersects the interval I.
+Fact 3.9. Let Iand Jbe two nonempty intervals of the
+real line, and let .land .ube defined as in Table I. Then
+I&J{<iff.land .uare both true.
+The guard lguard (i,I) on the lower-bound variable bl(i)
+corresponds to the condition .l, and the guard uguard (i,I)
+on the upper-bound variable bu(i)corresponds to .u. Notice
+that .lis always true if inf( J)=& . Hence, the first line of
+the definition of lguard (i,I). Ifstrict a(J)=strict A(I)=wk,
+then .lis inf( J)sup( I). Hence, the second line of the
+definition of lguard (i,I). Finally, if either strict a(J)=stror
+strict A(I)=str, then .lis inf( J)<sup( I). Hence, the third
+line of the definition of lguard (i,I). Symmetrical remarks
+apply to uguard (i,I) and .u. Taking I=preA(e)iand
+J=#$2(q)i, Lemma 3.10 follows.
+Lemma 3.10.Let e =(v,w)be an edge of the n-dimensional
+initialized rectangular automaton A ,and let  ebe the predicate
+n
+i=1(lguard (i,preA(e)i)7uguard (i,preA(e)i)).For every
+upper-half state q =((v,+,&,tp),x)of BA,Poste
+A(#(q)){< iff
+the vector x#R2n+1satisfies the predicate e.
+The reader may recall from the compact case that the
+construction for coordinates i#jumpA(e) differs from the
+TABLE I
+I&J{<iff.l7.u
+strict a(J) strict A(I) .l
+wk wk inf(J)sup( I)
+wk str inf(J)<sup( I)
+str wk inf(J)<sup( I)
+str str inf(J)<sup( I)
+strict A(J) strict a(I) .u
+wk wk sup(J)inf( I)
+wk str sup(J)>inf( I)
+str wk sup(J)>inf( I)
+str str sup(J)>inf( I)construction for coordinates ijumpA(e). We first consider
+the general construction for the case i#jumpA(e). In this
+case, the lower-bound and upper-bound variables bl(i)and
+bu(i)are assigned to the infimum and supremum, respec-
+tively, of the interval postA(e)i, and the finite infinite and
+weak strict bitvectors are updated appropriately. This is
+done by the lists lassign (i,postA(e)i) and uassign (i,postA(e)i)
+of assignments, defined as follows. For an interval I/R,
+and i#[1, ..., n], define
+lassign (i,I)
+={bl(i):=inf( I);+l(i):=fin;&l(i):=strict a(postA(e)i)
+if inf( I){& ,
+bl(i):= 0; +l(i):=inf;&l(i):=str
+otherwise;
+uassign (i,I)
+={bu(i):=sup( I);+u(i):=fin;&u(i):=strict A(postA(e)i)
+if sup( I){,
+bu(i):= 0; +u(i):=inf;&u(i):=str
+otherwise.
+These expressions are guarded commands with the guards
+true. The assignments to 0 are required for BAto be
+initialized. After such an assignment, the value of the
+variable is ignored due to the finite infinite bit being inf.
+Now, for i#jumpA(e), the extended CNF expression i
+e,+,&
+is defined by
+lguard (i,preA(e)i)7uguard (i,preA(e)i)
+7lassign (i,postA(e)i)7uassign (i,postA(e)i).
+From these definitions and Lemma 3.10, we obtain
+Lemma 3.11.
+Lemma 3.11.Let e =(v,w)be an edge of the initialized
+rectangular automaton A .For every upper-half state q =
+((v,+,&,tp),x)of BA,and every coordinate i #jumpA(e),
+we have [Poste
+A(#(q))]w
+i=[#(Post9e,+,&,tp
+BA(q))]w
+i.
+The case ijump (e) is more complicated, because the
+lower-bound (resp. upper-bound) variable is reset only if its
+value is too small (resp. too large). Strictness considerations
+also contribute some complications. Our definitions follow
+once again from Fact 3.9. The necessary adjustments to bl(i)
+and bu(i), and to the finite infinite and weak strict bit-
+vectors, are given by the extended CNF expressions
+ladjust (i,preA(e)i) and uadjust (i,preA(e)i), defined as
+follows. For an interval I/R, and i#[1, ..., n], define106 HENZINGER ET AL.
+
+--- Page 14 ---
+ladjust (i,I)
+true, if inf( I)=& ,
+(+l(i)=inf+l(i):=fin;bl(i):=inf( I);
+&l(i):=strict a(I))
+6(+l(i)=fin7bl(i)<inf( I)bl(i):=inf( I);
+= &l(i):=strict a(I))
+6(+l(i)=fin7bl(i)=inf( I)7&l(i)=wk
+&l(i):=strict a(I))
+6(+l(i)=fin7bl(i)=inf( I)7&l(i)=str)
+6(+l(i)=fin7bl(i)>inf( I)), otherwise;
+uadjust (i,I)
+true, if sup( I)=,
+(+u(i)=inf+u(i):=fin;bu(i):=sup( I);
+&u(i):=strict A(I))
+6(+u(i)=fin7bu(i)>sup( I)bu(i):=sup( I);
+= &u(i):=strict A(I))
+6(+u(i)=fin7bu(i)=sup( I)7&u(i)=wk
+&u(i):=strict A(I))
+6(+u(i)=fin7bu(i)=sup( I)7&u(i)=str)
+6(+u(i)=fin7bu(i)<sup( I)), otherwise.
+Then, for ijumpA(e)i, the extended CNF expression i
+e,+,&
+is defined by
+lguard (i,preA(e)i)7uguard (i,preA(e)i)
+7ladjust (i,preA(e)i)7uadjust (i,preA(e)i).
+Let us examine the definition of ladjust (i,preA(e)i). When
+the edge eis traversed in A, then new information about the
+value of aiis obtained, namely, that it lies within the interval
+pre A(e)i(which, by assumption, is equal to post A(e)i). Let
+p=inf( preA(e)i). If p=& , then there is no new lower-
+bound information, and so ladjust (i,preA(e)i)=true;
+hence, the first case of the definition. If p{& , then we
+distinguish several cases. If +l(i)=inf, then the present lower
+bound is infinite, and so +l(i)must be set to fin, and bl(i)
+must be reassigned to p, and the weak strict bit &l(i)must be
+assigned to the lower strictness of preA(e)i(disjunct one of
+case two). Now suppose that +l(i)=fin.I fbl(i)<p, then
+again bl(i)and &l(i)must be reset to pand its strictness
+(disjunct two). If bl(i)=pand &l(i)=wk, then information
+is gained if the lower strictness of preA(e)iisstr. So in this
+case (disjunct three) we perform the assignment &l(i):=
+strict a(preA(e)i). But if bl(i)=pand &l(i)=str, then no
+information is gained, and so no assignment is performed
+(disjunct four). Finally, if bl(i)>p, then there is no new
+lower-bound information, and so there is no assignment
+(disjunct five). The definition of uadjust (i,preA(e)i) is sym-
+metric. Using Lemma 3.10, we conclude Lemma 3.12.
+Lemma 3.12.Let e =(v,w)be an edge of the initialized
+rectangular automaton A .For every upper-half state q =((v,+,&,tp),x)of BA,and every coordinate i jumpA(e),we
+have [Poste
+A(#(q))]w
+i=[#(Post9e,+,&,tpBA(q))]w
+i.
+Putting together Lemmas 3.11 and 3.12, we obtain the
+following.
+Lemma 3.13.Let A be an initialized rectangular auto-
+maton .For every upper-half state q =((v,+,&,tp),x)of BA,
+and every edge e of A ,Poste
+A(#(q))=#(Post9e,+,&,tp
+BA(q)).
+Moreover ,the zone Post9e,+,&,tp
+BA(q)of BAis either empty or a
+singleton .
+Proof . To see that | Post9e,+,&,tp
+BA(q)|1, notice that
+all assignments made by the guarded commands com-
+prising 9e,+,&,tpare deterministic, and the disjuncts of
+ladjust (i,preA(e)i) are mutually exclusive, as are the
+disjuncts of uadjust (i,preA(e)i). So from each state of BA,a t
+most one of the disjuncts of each of these CNF expressions
+can be executed. K
+Initial regions of BA. For a rectangular region R/Rn,
+we define the bitvectors +R,&R#[0, 1]2nand the vector
+xR#R2n+1as follows. If inf( Ri)=& , then +R
+l(i)=inf, and
+&R
+l(i)=str, and xR
+l(i)=0. If inf( Ri){& , then +R
+l(i)=fin,
+and &R
+l(i)=strict a(Ri), and xR
+l(i)=inf( Ri). Similarly, if
+sup(Ri)=, then +R
+u(i)=inf, and &R
+u(i)=str, and xR
+u(i)=0. If
+sup(Ri){, then +R
+u(i)=fin, and &R
+u(i)=strict A(Ri), and
+xR
+u(i)=sup( Ri). Finally, let xR
+0=0. For a rectangular zone Z
+ofA, define & #(Z) to be the zone v#VA[((v,+[Z]v,&[Z]v,0 ) ,
+x[Z]v)]ofBA. Notice that & #(Z)/UBAand that & #(Z)
+contains at most one state for each vertex of BA.
+We put Init BA=& #(Init A). It is a straightforward matter
+to give the actual initial function of BAfrom this.
+Lemma 3.14 follows immediately from the definitions.
+Lemma 3.14.Let A be an initialized rectangular automaton .
+For every rectangular zone Z of A ,we have # (&#(Z))=Z.In
+particular ,InitA=#(InitBA).
+This completes the definition of the automaton BA.
+Notice that BAis initialized and singular. The automaton
+BAhas exponentially more vertices and edges than A.
+However, as in the translation from initialized stopwatch
+automata to timed automata, this exponential blowup does
+not adversely affect the space complexity of reachability
+analysis. Before we establish this, we first prove the analog
+of Lemma 3.13 for time steps.
+Analysis of time steps . Lemma 3.13 relates the edge steps
+ofAto edge steps of BA. We must develop a similar corre-
+spondence for time steps. For this purpose, the following
+two facts about the reachable states of BAare useful.
+Fact 3.15 says that every reachable state of BAthat is the
+target of a time step has its finite infinite and weak strict bits
+set correctly. This is because reachability ensures that every107 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 15 ---
+sequence of consecutive time steps must have been preceded
+by an =step.
+Fact 3.15. Let (( v,+,&,tp),x) be a reachable state of
+BAwith tp=1 and x0>0, and let i#[1, ..., n]. First, if
+inf(flowA(v)i)=& , then +l(i)=inf, and if sup( flowA(v)i)
+=, then +u(i)=inf. Second, if strict a(flow A(v)i)=str, then
+&l(i)=str, and if strict A(flowA(v)i)=str, then &u(i)=str.
+We say that a state qofBAsatisfies the invariant ofAif
+#(q)/QA. Fact 3.16 says that every reachable state of BA
+that does not satisfy the invariant of Acannot move, by =
+and time steps alone, to a state that does satisfy the
+invariant. This is because all initial states of BAand all
+target states of inherited edge steps satisfy the invariant of
+A, and because the direction of a flow of BAcan change only
+after an inherited edge step. The latter follows from BA
+being initialized. The former follows from the assumption
+that the initial region of each vertex of Ais contained in the
+invariant region, and postguard region of each edge is
+contained in the invariant region of the target vertex.
+Fact 3.16. Let (( v,+,&,tp),x) be a reachable state of BA,
+and let i#[1, ..., n].I fxl(i)invA(v)i, then inf( flowA(v)i)<0,
+and if xu(i)invA(v)i, then sup( flowA(v)i)>0.
+Lemma 3.17 relates the time steps of Ato time steps
+ofBA.
+Lemma 3.17.Let A be an initialized rectangular auto-
+maton .For every reachable upper-half state q of BA,and every
+duration t #R0,Postt
+A(#(q))=#(Postt
+BA(q)).Moreover ,the
+zone Postt
+BA(q)&UBAof BAis either empty or a singleton .
+Proof . Consider a reachable state q=((v,+,&,tp),x)
+ofBA, not necessarily upper-half. From the construction of
+BAwe observe the following. If tp=0, then there is a unique
+state rsuch that qw=
+BAr; furthermore, #(r)=<, and the
+time-passage bit of ris 1. If tp=1, then there is no state r
+such that qw=
+BAr.I ftp=0, then there is no state rsuch that
+qw[t]
+BAr, for any t>0. If tp=1, since BAis a singular
+automaton, for each t>0, there is a at most one state rsuch
+that qw[t]
+BAr; furthermore, the time-passage bit of ris
+still 1. This shows the second claim of the lemma, that
+|Postt
+BA(q)&UBA|1. Moreover, since Ahas no =moves,
+the first claim of the lemma is reduced to the following proof
+obligation: for every reachable upper-half state qofBA, and
+every positive duration t>0, show that Post[t]
+A(#(q))=
+#(Post?
+BA(q)), where ?==}[t] if the time-passage bit of q
+is 0, and ?=[t] if the time passage bit of qis 1.
+So suppose that q=((v,+,&,tp),x) is a reachable upper-
+half state of BA, and consider a duration t>0. Then #(q) has
+the form [v]_R, for a rectangular region R/Rn. Recall
+from the proof of Proposition 2.2 that Post[t]
+A(#(q)) has the
+form [v]_S, whereinf(Si)=max [inf(invA(v)i), inf( Ri)+t} inf( flowA(v)i)],
+(1)
+sup(Si)=min [sup( invA(v)i), sup( Ri)+t} sup( flowA(v)i)].
+(2)
+The strictness of the infimum of Siis given as follows. Put
+Inv=invA(v)i,Flow =flowA(v)i, and Try=inf( Ri)+t}
+inf(Flow ). If inf ( Inv)>Try, then strict a(Si)=strict a(Inv).
+If inf( Inv)=Try, then strict a(Si)=wkiffstrict a(Inv)=
+strict a(Ri)=strict a(Flow )=wk. If inf( Inv)<Try, then
+strict a(Si)=wkiffstrict a(Ri)=strict a(Flow )=wk. The
+strictness of the supremum of Siis given symmetrically. We
+show that #(Post?
+BA(q))=[v]_S, for ?==}[t]i f tp=0,
+and ?=[t]i ftp=1.
+Case Post?
+BA(q){<. In this case, Post?
+BA(q) has the form
+[r]for a reachable upper-half state r=((v,+$,&$, 1), y)o fBA
+with y0>0. Hence, Fact 3.15 applies to r. The set #(r) has the
+form [v]_T, for a rectangular region T/Rn. We show that
+T=S. For this purpose, we show that for each coordinate i,
+the right endpoints of the intervals Tiand Sicoincide in
+value and in strictness. The argument for the left endpoints
+is symmetric. In the following, put Isup=sup( Inv),IA=
+strict A(Inv),Fsup =sup( Flow ), and FA=strict A(Flow ).
+Subcase + $u(i)=fin. By Fact 3.15, the flow interval
+flow(v)iis bounded from above. So the upper-bound
+variable bu(i)moves at the supremum of the allowable
+slopes for ai. Hence, yu(i)=xu(i)+t}Fsup and sup( Ti)=
+min[yu(i),Isup] =min [xu(i)+t}Fsup ,Isup] . From the
+subcase assumption and qw?
+BAr, we know that +u(i)=fin,
+and therefore sup( Ri)=min [xu(i),Isup] . By Fact 3.16, if
+xu(i)>Isup, then Fsup >0. Thus Eq. (2) implies sup( Si)=
+min[Isup ,xu(i)+t}Fsup] , which is the same as sup( Ti). The
+question of strictness remains. If yu(i)>Isup, then strict A(Ti)
+=IA=strict A(Si). If yu(i)Isup and &$u(i)=str, then from
+qw?
+BArwe know that either FA=stror&u(i)=str, and in
+both cases strict A(Ti)=str=strict A(Si). Ifyu(i)Isup and
+&$u(i)=wk, then from qw?
+BArwe know that &u(i)=wk,
+and Fact 3.15 implies FA=wk. Therefore, strict A(Ti)=wk
+iff either yu(i)<Isup orIA=wk, and the same is true for
+strict A(Si).
+Subcase + $u(i)=inf. Then sup( Ti)=Isup and strict A(Ti)
+=IA. From the subcase assumption and qw?
+BAr, we know
+that either Fsup =,o r+u(i)=infand therefore sup( Ri)=
+Isup and strict A(Ri)=IA. Either way, Eq. (2) implies
+sup(Si)=Isup and strict A(Si)=IA.
+Case Post?
+BA(q)=<. This means that for some coor-
+dinate i, the lower-bound variable bl(i)rises above the
+upper boundary of Invwithin time t, or the upper-bound108 HENZINGER ET AL.
+
+--- Page 16 ---
+variable bu(i)drops below the lower boundary of Inv. In the
+first case, either xl(i)+t} inf( Flow )>sup( Inv), or these two
+expressions are equal and one of &l(i)orstrict a(Flow )o r
+strict A(Inv)i sstr. The second case is symmetric and will not
+be detailed. If xl(i)+t} inf( Flow )>sup( Inv), then Eqs. (1)
+and (2) together imply inf( Si)>sup( Si). If xl(i)+t}
+inf(Flow )=sup( Inv) and one of &l(i)orstrict a(Flow )o r
+strict A(Inv)i s str, then inf( Si)sup( Si) and either
+strict A(Si)=strorstrict a(Si)=str. In all cases, Si=<and
+therefore [v]_S=<. But from the assumption Post?
+BA(q)
+=<it follows that also #(Post?
+BA(q))=<, which concludes
+the proof. K
+From Lemmas 3.13 and 3.17 it follows that for every
+upper-half zone Z/UBA, and every label {#7_R0,
+Post{
+A(#(Z))=#(Post{
+BA(Z)) and, by Proposition 2.1,
+Pre{
+A(#(Z))=#(Pre{
+&B&A(Z)). Hence we again have the
+commuting diagram of Fig. 8, with all superscripts cand the
+restriction that Zbe compact removed. From Lemma 3.14
+and the fact that Post commutes with #, we conclude, as in
+the compact case, that Reach (A)=#(Reach (BA)), that
+Lang (A)/Lang (BA), and that Aand BAaccept the same
+finite timed words.
+Theorem 3.18.The reachability problem for initialized
+rectangular automata is complete for PSPACE .
+Proof . For containment in PSPACE, notice that
+|VBA|=|VA|}24n+1, and that the definition of BAuses
+the same constants as the definition of A. The space
+requirement O(log | VBA|+(2 n+1) } (log(2 n+1)+log LBA))
+=O(log | VA|+n} (log n+log LA)), where LAis defined as
+for singular automata (see proof of Theorem 3.5), is polyno-mial in the size of A.K
+3.3. |-Language Emptiness
+While the initialized rectangular automaton Aand the
+initialized singular automaton B
+Aaccept the same finite
+timed words, the automaton BAmay accept infinite timed
+words that are not accepted by A. To see this, consider the
+1D initialized rectangular automaton Afrom Fig. 9. The
+only coordinate of Ais a clock, the only vertex of Aisv, and
+the invariant region of visR. Note that Ais not a timed
+automaton, because the initial region initA(v)=(& ,0 ]i s
+FIG. 8. Commuting diagram for compact rectangular zones Zof a compact initialized rectangular automaton A.unbounded from below. While every finite timed word of
+the form (1 _1)mis accepted by A, the divergent timed word
+(1_1)|is not accepted by A. This is because, no matter what
+the initial value of the clock c, in a divergent run it will even-
+tually be positive. However, in BAthe finite infinite bit for
+the lower bound on cis initially inf, and remains infduring
+time steps and _1steps. Therefore (1 _1)|is accepted by BA.
+A similar phenomenon is exhibited with unbounded post-
+guard intervals. The definition of bounded nondeterminism
+(Section 2) precludes both.
+Closure under Divergent Limits
+A set Lof infinite timed words is limit-closed if for all
+infinite timed words {, if every finite prefix of {is a prefix of
+some word in L, then {itself is in L. Since we are interested
+only in infinite timed words that diverge, we relax the
+requirement of limit closure as follows [HNSY94]. The set
+Lisclosed under divergent limits if for all divergent timed
+words {, if every finite prefix of {is a prefix of some word
+inL, then {itself is in L. A set of divergent timed words
+that is closed under divergent limits is completely deter-
+mined by its finite prefixes. So if we have two rectangular
+automata A1and A2such that (1) every finite timed word
+accepted by A1is accepted also by A2, and (2) the
+|-language Lang (A2) is closed under divergent limits, then
+Lang (A1)/Lang (A2). Specifically, if Ais an initialized
+rectangular automaton whose |-language Lang (A)i s
+closed under divergent limits, then Lang (A)=Lang (BA).
+As we have seen, the |-language of the initialized
+rectangular automaton Ais not closed under divergent
+limits. The unbounded initial region of Ais to blame. We
+will prove that for every initialized rectangular automaton
+Awith bounded nondeterminism, the |-language Lang (A)
+is closed under divergent limits. Consequently, for initial-
+ized rectangular automata Awith bounded nondeterminism,
+the translation from AtoBAcan be used to solve not only
+reachability but also |-language emptiness.
+For a rectangular automaton A, the |-language Langc(A)
+with convergent words is the set of all infinite timed words,
+divergent or not, that are accepted by runs of A. One way
+of showing that Lang (A) is closed under divergent limits is
+to prove that Langc(A) is limit-closed. While it is not true
+for all initialized rectangular automata Awith bounded
+nondeterminism that Langc(A) is limit-closed, this is true in109 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 17 ---
+FIG. 9. The initialized rectangular automaton Awith Lang (A)#3
+Lang (BA).
+the special case that Ahas compact nondeterminism. So we
+first consider the special case of compact nondeterminism,
+and then proceed to the more general case of bounded
+nondeterminism.
+Preliminary definitions . Let Abe an n-dimensional
+rectangular automaton (without =moves). In this section, it
+is convenient to consider timed words over the alphabet
+E_R0, where the edge set replaces the observation alphabet.
+Formally, a timed edge word forAis a finite or infinite sequence
+?=?0?1?2} } } of letters from E_R0.A n edge run ofAthat
+accepts ?is a sequence of the form q0w?0q1w?1q2w?2} } } with
+q0#Init, and qi#Qfor all i0. Divergence for timed edge
+words and edge runs is defined as for timed words and runs.
+The edge |-language ofA(with convergent words ), denoted
+LangE(A) (resp. Langc
+E(A)), is the set of all divergent (resp.
+all infinite) timed edge words that are accepted by runs of A.
+Limit closure and closure under divergent limits for edge
+|-languages is defined as for |-languages. The following
+observation is due to the fact that the edge set of Ais finite.
+Proposition 3.19.Let A be a rectangular automaton .
+First ,if the edge |-language LangE(A)is closed under
+divergent limits ,then so is the |-language Lang (A).Second ,
+if the edge |-language Langc
+E(A)with convergent words is
+limit-closed ,then so is Langc(A).
+Proof . We say that a timed edge word ?0?1?2}}}
+matches the timed word {0{1{2} } } if for all i0, if ?i#E
+then {i=obs(?i), and if ?i#R0then {i=?i. Assume that
+Langc
+E(A) is limit-closed, and consider all finite prefixes of
+an infinite timed word {#Langc(A). The finite timed edge
+words that match these prefixes and are accepted by Aform
+the nodes of a finitely branching tree: the root of the tree is
+the empty timed edge word, and the successors of a node w
+are the (matching and accepted) timed edge words of the
+form w}?, for ?#E_R0.B yK o  nig’s lemma, the tree has
+an infinite rooted path, and the nodes along this path are
+the finite prefixes of an infinite timed edge word ?. Since
+Langc
+E(A) is limit-closed, ?#Langc
+E(A). Since ?matches {,
+we conclude that {#Langc(A). This proves the second claim
+of the lemma. The first claim follows from the fact that if {
+is divergent, then ?is also divergent. KNotice that for every singular automaton A, the edge
+|-language Langc
+E(A) with convergent words (and there-
+fore also Langc(A)) is limit-closed. This is because a singular
+automaton Ahas a finite number of initial states, and all
+edge steps as well as time steps are deterministic; that is, for
+all states qofA, and every label ?#E_R0, the zone
+Post?(q) is either empty or a singleton. Next, we consider
+a class of nonsingular, and therefore nondeterministic,
+automata whose |-languages with convergent words are
+limit-closed.
+The Case of Compact Nondeterminism
+The rectangular automaton Ahascompact nondeterminism
+if it has bounded nondeterminism, and all rectangular regions
+that appear in the definition of Aare closed. More precisely,
+Ahascompact nondeterminism if (1) for every vertex vofA,
+the regions init(v) and flow(v) are compact, and inv(v)i s
+closed, and (2) for every edge eofA, the regions pre(e) and
+post(e) are closed, and for every coordinate i#[1, ..., n]
+with i#jump (e), the interval post(e)iis bounded. We show
+that if Ahas compact nondeterminism, then the |-language
+Langc(A) with convergent words is limit-closed. This result
+is a consequence of the following basic property of compact
+zones, which is inherited from Rn.
+Proposition 3.20.Let A be a rectangular automaton ,
+and let (Zi)i#Nbe an infinite decreasing sequence of non-
+empty compact zones of A ;that is ,Zi#Zi+1for all i 0.
+Then the intersection i#NZiis nonempty .
+Proof . This follows from the corresponding statement
+for regions (subsets of Rn), and the fact that the vertex set
+ofAis finite. K
+The next fact points out the compactness of all zones that
+will appear in the proof of the main theorem. It follows
+immediately from the proof of Proposition 2.2.
+Fact 3.21. Let Abe a rectangular automaton with
+compact nondeterminism, and let ZandZ$ be two compact
+rectangular zones of A. For every label ?#E_R0, the zones
+Post?(Z) and Pre?(Z$)&Zare compact and rectangular.
+Note the asymmetry in Fact 3.21; the intersection of
+Pre?(Z$) with the compact zone Zis required for compact-
+ness, because the preguard regions of automata with
+compact nondeterminism are not necessarily bounded. The
+next lemma gives the heart of the limit-closure argument,showing that if all finite prefixes of an infinite timed edge
+word can be generated from a given zone Z, then there is a
+single state in Zfrom which each prefix can be generated.
+Lemma 3.22.Let A be a rectangular automaton with
+compact nondeterminism ,and let Z be a compact rectangular
+zone of A .Suppose that ? #(E_R
+0)|is a timed edge word110 HENZINGER ET AL.
+
+--- Page 18 ---
+such that for every m #N,Post?0?1}}}?m(Z){<.Then there is
+a state q #Z such that for every m #N,Post?0?1}}}?m(q){<.
+Proof . For each m#N, define Zm=[q#Z|
+Post?0?1}}}?m(q){<]. Since each Post?0?1}}}?m(Z) is non-
+empty, each Zmis nonempty. Also, Zm#Zm+1for all
+m0. We show that each zone Zmis compact; then the
+lemma follows from Proposition 3.20. By Fact 3.21 for each
+m#N, the zone Post?0?1}}}?m(Z) is compact and rectangular.
+Therefore, again by Fact 3.21, the zone Zm=Z&Pre?0?1}}}?m
+(Post?0?1}}}?m(Z)) is compact as well. K
+Now we are ready to prove the main theorem.Theorem 3.23.If A is a rectangular automaton with
+compact nondeterminism ,then the |-language Lang
+c(A)with
+convergent words is limit-closed .
+Proof . Let Abe a rectangular automaton with compact
+nondeterminism. By Proposition 3.19, it suffices to show
+that the edge |-language Langc
+E(A) with convergent words
+is limit-closed. Suppose that ?#(E_R0)|is an infinite
+timed edge word such that for every m#N, the prefix
+?0?1}}}?mis a finite prefix of a timed edge word in
+Langc
+E(A); that is, for each m0, Post?0?1}}}?m(Init){<.
+We need to show that ?#Langc
+E(A).
+We define an infinite sequence of zones ( Zi)i#NofA. Let
+Z0=Init. Since Z0is compact and rectangular, by
+Lemma 3.22, there is a state q0#Z0such that for each
+m0, Post?0?1}}}?m(q0){<. Let Z1=Post?0(q0). Then Z1
+is compact and rectangular, and for each m1,
+Post?1?2}}}?m(Z1){<. So by Lemma 3.22, there is a state
+q1#Z1such that for each m1, Post?1?2}}}?m(q1){<.
+Proceed inductively in this manner, with Zi+1=Post?i(qi)
+compact and rectangular, and qi+1#Zi+1 given by
+Lemma 3.22 such that for each mi+1,
+Post?i+1?i+2}}}?m(qi+1){<. Then q0w?0q1w?1q2w?2}}}
+is an edge run of Athat accepts ?.K
+Corollary 3.24.The |-language emptiness problem
+for initialized rectangular automata with compact nondeter-
+minism is complete for PSPACE .
+The Case of Bounded Nondeterminism
+For rectangular automata Awith bounded, noncompact
+nondeterminism, the |-language Langc(A) with convergent
+words may not be limit-closed. To see this, consider the 1D
+initialized rectangular automaton Afrom Fig. 10 (with the
+trivial invariant function *v.R). While every finite prefix of
+the infinite timed word {=1
+2_11
+4_11
+8_1} } } is accepted by A,
+the convergent word {is not in Langc(A). However, we
+show that the |-language Lang (A) is still closed under
+divergent limits for all rectangular automata Athat have
+bounded nondeterminism and are initialized, like the
+sample automaton A. Bounded regions have no analogue to
+Proposition 3.20, and this greatly complicates the proof,
+which now relies on a detailed case analysis of the flowFIG. 10. The initialized rectangular automaton Afor which Langc(A)
+is not limit-closed.
+function. The following fact points out the boundedness of
+all zones that will appear in the proof of the main theorem.
+Fact 3.25. Let Abe a rectangular automaton with
+bounded nondeterminism, and let Zbe a bounded rectangular
+zone of A. For every label ?#E_R0, the zone Post?(Z)i s
+bounded and rectangular.
+The next lemma gives the heart of the argument. It shows
+that for 1D rectangular automata Awith constant, bounded
+flow functions, Lang (A) is closed under those divergent
+limits that are accepted by runs without discontinuous
+jumps in the continuous state.
+Lemma 3.26.LetIbe a finite set of intervals ,and let
+flow be a bounded interval .Let(ti)i#Nbe an infinite sequence
+of positive reals with 
+i=0ti=,and let (Ii)i#Nbe an
+infinite sequence of intervals such that I0is bounded and each
+Iiis the intersection of one or more members of I.Suppose
+that for each m #N,there is a finite sequence x0,x1, ...,xmof
+reals such that for all i #[0, ..., m],we have xi#Ii,and for all
+i#[0, ..., m&1],we have (xi+1&xi)ti#flow.Then there is
+an infinite sequence (xi)i#Nof reals such that for all i 0, we
+have xi#Iiand(xi+1&xi)ti#flow.
+Proof . We call a finite sequence x0,x1, ...,xmm-admissible
+if for all i#[0, ..., m], we have xi#Ii, and for all i#
+[0, ..., m&1], we have ( xi+1&xi)ti#flow. We call an
+infinite sequence ( xi)i#Nadmissible if for all i0, we have
+xi#Iiand ( xi+1&xi)ti#flow. Think of these sequences as
+values of a variable a, with a*#flow, in a run with time steps
+of durations tiand without discontinuous jumps. Let Jbe
+the set [J/R|J=Iifor infinitely many i]of intervals.
+Case 0closure( flow). Suppose that flow/($,) for
+some $>0. The case of flow/(& ,$) is handled sym-
+metrically. Let k#Rbe larger than all of the finite endpoints
+of the intervals in I. The point here is that the slope of ais
+bounded from below by $, so that once ( k&inf( I0))$time
+units have passed, no matter what the initial value of a, the
+value of awill be greater than all of the finite endpoints
+of intervals from I(note that inf( I0) is finite, because I0
+is bounded). Let jbe large enough so that j&1
+i=0ti>
+(k&inf( I0))$; such a jexists because the sum 
+i=0ti111 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 19 ---
+diverges. Then, for every m-admissible sequence x0,x1, ...,
+xm, we have xi>kfor all i#[j+1, ..., m]. Since each Iiis an
+intersection of intervals from I, it follows that for every
+i>j, we have Ii#(k,). Consider a j-admissible sequence
+x0,x1, ...,xjand choose $$#flow. Then x0,x1, ...,xj,xj+
+$$}tj,xj+$$}(tj+tj+1) } } } , is an admissible sequence.
+Case 0=inf( flow)or0=sup( flow). We suppose that
+0=inf( flow); the case 0=sup( flow) is handled symmetri-
+cally. Among the intervals Iiare only finitely many distinct
+intervals. Therefore, J{<, because flow &(&,0 ) = <,
+soacan never descend from an interval Iito an interval Ijall
+of whose elements are less than those of Ii. Let j1be large
+enough so that (1) for every i#N, we have Ij1+i#J, and (2)
+for every J#J, there is an i<j1with Ii=J; that is, j1is large
+enough so that all elements of Jhave been met in the past, and
+only elements of Jwill be met in the future. Let j2>j1be large
+enough so that all elements of Jare represented among
+Ij1+1, ...,Ij2&1. Let x0,x1, ...,xj2be a j2-admissible sequence.
+Then xj1#J, because acannot decrease, each interval in J
+contains at least one xiwith i<j1, and each interval in J
+contains at least one xiwith j1<i<j2.I f0 # flow, then
+x0,x1, ...,x|
+j1is an admissible sequence. If 0 flow, then xj1
+<sup( J). Let $=sup( J)&xj1. For each i>j1,
+choose $iso that 0< $i<$(2i}ti). Then x0,x1, ...,xj1,xj1+
+$j1+1}tj1+1,xj1+$j1+1}tj1+1+$j1+2}tj1+2, ... is admissible.
+Case 0 # interior( flow)andJ{<. Since 0 is in the
+interior of flow, every m-admissible sequence can be slowed
+down to give another m-admissible sequence. Let j1be as
+in the previous case. Since 0 # flow, whenever a ( j1+i)-
+admissible sequence, i0, terminates in J, then it can be
+extended to an admissible sequence by repeating the lastvalue ad infinitum. Such a ( j
+1+i)-admissible sequence
+terminating in Jexists, because there exist two intervals
+J1,J2#Jsuch that inf( J1)=inf( J) with identical
+strictness, and sup( J2)=sup( J) with identical strictness.
+Letj2be large enough so that both J1and J2each appear
+twice in Ij1+1, ...,Ij2&1. Let x0,x1, ...,xj2be a j2-admissible
+sequence. There must be two positions i1and i2with j1<i1
+<i2<j2such that xi1#J1and xi2#J2. By slowing down
+thexisequence, Jcan be reached: if xi1sup( J) and
+xi2inf( J), then for some jwith i1j<i2, we have
+xjsup( J) and xj+1<sup( J). Choose y#Jso
+that y>xj+1. Then x0,x1, ...,xj,y|is an admissible
+sequence.
+Case 0 # interior( flow)andJ=<. Let J1,J2#Jbe
+such that every element of J1is greater than every element
+ofJ2. Let j1be as in the previous two cases. Let j1<p1<q1
+<p2be so that Ip1=Ip2=J1and Iq1=J2. Let x0,x1, ...,xp2
+be a p2-admissible sequence. We first show that for every
+m#N, there is an m-admissible sequence starting from x0.
+This is obvious for mp2, so suppose that m>p2. Lety0,y1, ...,ymbe an m-admissible sequence. We have three
+subcases.
+Subcase xp1=yp1. In this case x0,x1, ...,xp1,yp1+1,
+yp1+2, ...,ymism-admissible.
+Subcase xp1<yp1.I f xq1<yq1, then by slowing down,
+thexisequence can meet up with the yisequence somewhere
+along the descent from J1toJ2.I fxq1>yq1, then for some
+j#[p1+1, ..., q1], we have xj<yjand xj+1yj+1. Since
+(yj+1&yj)tj#flow and ( xj+1&xj)tj#flow, and yj+1&yj
+<yj+1&xj<xj+1&xj, it must be that ( yj+1&xj)tj#flow.
+Hence, the sequence x0,x1, ...,xj,yj+1,yj+2, ...,ymis
+m-admissible.
+Subcase xp1>yp1.I f xq1<yq1, then by slowing down,
+thexisequence can meet up with the yisequence somewhere
+along the descent from J1toJ2. So suppose that xq1>yq1.
+Now if xp2>yp2, then by slowing down, the xisequence can
+meet up with the yisequence somewhere along the ascent
+from J2toJ1.I fxp2<yp2, then the yisequence must cross
+the xisequence as above, and the x0,x1, ...,xj,yj+1,
+yj+2, ...,ymconstruction from the previous subcase
+provides an m-admissible sequence. This completes the case
+analysis.
+It remains to construct an infinite admissible sequence.
+Let x0#I0be such that for every m#N, there is an
+m-admissible sequence starting from x0. Let Rbe the set of
+t0-successors of x0; that is, R=[y#R|(y&x0)t0#flow] .
+Since flow is bounded, Ris bounded. Let ( t$i)i#Nbe the
+sequence of reals such that t$i=ti+1for all i0. Let ( I$i)i#N
+be the sequence of intervals such that I$0=I1&R, and
+I$i=Ii+1for all i1. If we apply what we have already
+proven to the duration sequence ( t$i)i#Nand the interval
+sequence ( I$i)i#N, we conclude that there is an x1#I$0such
+that for every m#N, there is an m-admissible (with respect
+to (t$i)i#Nand ( I$i)i#N) sequence starting from x1. Continu-
+ing inductively, we form an admissible sequence starting
+from x0.K
+Now the proof of the main theorem consists of reducing
+to one dimension, eliminating discontinuous jumps, and
+applying Lemma 3.26.
+Theorem 3.27.If A is an initialized rectangular automaton
+with bounded nondeterminism ,then the |-language Lang (A)
+closed under divergent limits .
+Proof . Let Abe an n-dimensional initialized rectangular
+automaton with bounded nondeterminism. By Proposi-
+tion 3.19, it suffices to show that the edge |-language
+LangE(A) is closed under divergent limits. Suppose that
+?#(E_R0)|is a divergent timed edge word such that for112 HENZINGER ET AL.
+
+--- Page 20 ---
+every m#N, there is a finite edge run of Aof the form
+qm
+0w?0qm
+1w?1}}}w?mqm
+m+1. We need to show that there is
+an infinite edge run \ofAof the form q0w?0q1w?1q2w?2}}}.
+First, observe that each of the ncoordinates of a rectangular
+automaton is independent of the other coordinates. Hence, A
+has an edge run \iff each of the n1D rectangular automata
+defined by projecting the continuous state of Ato one of the
+coordinates has the corresponding projection of \as an
+edge run. Therefore, without loss of generality, we assume
+that n=1.
+Let%=[i#N|1# jump (?i)]be the set of positions with
+discontinuous jumps in the first (and only) coordinate. If
+i#%, then the value of the continuous state after the ith step
+is independent of its previous value. So if %is infinite, then
+we can string together \from infinitely many segments that
+lead from one discontinuous jump to the next: for all j0,
+choose qj=qf(j)
+jforf(j)=min [i#%|ij].I f%is finite,
+then we can string together \from | %| many segments that
+lead, as in the previous case, from one discontinuous jump
+to the next, followed by an application of Lemma 3.26. In
+Lemma 3.26, let Ibe the set of all invariant, preguard, and
+postguard intervals of A; let flow be the flow interval of the
+vertex associated with the state qk
+jfor any kj>max( %);
+and let I0be the interval associated with the zone
+Post?0?1}}}?max( %)(Init). The initialization of Aensures that
+after the first max( %) steps, the flow interval flow remains
+constant. The bounded nondeterminism of Aensures, by
+Fact 3.25, that the zone Post?0?1}}}?max( %)(Init) is bounded and
+rectangular. K
+Corollary 3.28.The |-language emptiness problem for
+initialized rectangular automata with bounded nondeterminism
+is complete for PSPACE .
+3.4. Simulation Relations
+We introduced several mappings between the state spaces
+of rectangular automata. We were interested only that the
+mappings preserve reachability and |-languages. Now we
+study the mappings in greater detail and show that they are
+timed (bi)simulations [LV96] on the underlying labeled
+transition systems. In particular the map :from Section 3.1
+specifies a timed bisimulation between an initialized stop-
+watch automaton Cand the timed automaton DC, the map
+;from Section 3.1 specifies a timed bisimulation between an
+initialized singular automaton Band the initialized stop-
+watch automaton CB, and the map #from Section 3.2 specifies
+a timed forward simulation of an initialized rectangular
+automaton Aby the initialized singular automaton BA,a s
+well as a timed backward simulation of BAbyA.
+LetA1andA2be two rectangular automata with =moves
+and the same observation alphabet, 7. A binary relation
+//Reach (A1)_Reach (A2)i sa timed forward simulation of
+A2by A1if the following two conditions are met:1. For every initial state rofA2, there is an initial state
+qofA1such that ( q,r)#/.
+2. For all states r,r$#Reach (A2), every state q#Reach (A1)
+with ( q,r)#/, and every label {#7_R0,i frw{
+A2r$, then
+there exists a state q$#Reach (A1) such that ( q$,r$) #/and
+qw{
+A1q$.
+The relation /is atimed backward simulation of A2by A1if
+the following three conditions are met:
+1. For every state r#Reach (A2), there exists a state
+q#Reach (A1) with ( q,r)#/.
+2. For every initial state rofA2and every state q#
+Reach (A1), if ( q,r)#/, then qis an initial state of A1.
+3. For all states r,r$#Reach (A2), every state q$#
+Reach (A1) with ( q$,r$) #/, and every label {#7_R0,i f
+rw{
+A2r$, then there exists a state q#Reach (A1) such that
+(q,r)#/and qw{
+A1q$.
+If/is a timed forward simulation of A2byA1, and /&1is
+a timed forward simulation of A1byA2, then /is atimed
+bisimulation between A1and A2. Notice that, if there is a
+timed forward simulation of A2byA1, then every timed
+word accepted by A2is accepted also by A1; if there is a
+timed backward simulation of A2byA1, then every finite
+timed word accepted by A2is accepted also by A1.
+For a map }:QA1QA2from the states of A1to the states
+ofA2, define the relation }^/Reach (A1)_Reach (A2) such
+that ( q,r)#}^iffr=}(q). In this way, we obtain the relations
+:^and ;. For a map }:QA12QA2from the states of A1to
+zones of A2, define the relation }^/Reach (A1)_Reach (A2)
+such that ( q,r)#}^iffr#}(q). In this way, we obtain the
+relation #^. The next proposition follows from Lemma 3.2 in
+the case of :^, from Lemma 3.4 in the case of ;, and from
+Lemmas 3.13, 3.14, and 3.17 in the case of #^.
+Proposition 3.29.For every initialized stopwatch auto-
+maton C with = moves ,the relation : ^ is a timed bisimulation
+between C and the timed automaton D C.For every initialized
+singular automaton B with = moves ,the relation ; is a timed
+bisimulation between B and the initialized stopwatch auto-
+maton DC.For every initialized rectangular automaton A ,the
+relation # ^ is a timed forward simulation of A by BA,and # ^&1
+is a timed backward simulation of BA,restricted to its upper-
+half space ,by A .
+Simulation relations compose, as summarized in Figs. 11
+and 12. In particular, the timed automaton DCBAtimed
+forward simulates the initialized rectangular automaton A
+via the relation :^b;b#^, and Atimed backward simulates
+DCBAvia#^&1b;b:^. It is not difficult to check that Adoes not
+timed forward simulate BA, and BAdoes not timed back-
+ward simulate A[Kop96].113 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 21 ---
+FIG. 11. Chain of timed simulations from AtoDCBA.
+3.5. Symbolic Reachability Analysis
+Consider an n-dimensional rectangular automaton A,
+and a rectangular zone ZfofA. To solve the reachability
+problem for Aand Zfsymbolically, by computing with
+multirectangular zones, we may attempt to compute the
+sequence Init,Post (Init),Post2(Init), ... of zones, until either
+the intersection with Zfis nonempty, or a fixpint of Post is
+reached within a finite number of steps (that fixpoint, then,isReach (A)). This procedure, which we call the symbolic
+execution ofA[ACH
++95], will terminate if the zone Zfis
+reachable or if there is a natural number i#Nsuch that
+Reach (A)=Posti(Init), but it will not terminate if Zfis not
+reachable and no such iexists. Symbolic execution therefore
+constitutes a semidecision procedure for the reachability
+problem of rectangular automata. The procedure has been
+implemented in the automatic verification tool HyTech
+[HHWT97], and successfully applied to examples of practical
+interest [HHWT95, HW95, NS95, Cor96, HWT96, SMF97].
+While the reachability problem is decidable for all
+initialized rectangular automata, even for timed automata
+symbolic execution does not always terminate. To see this,
+consider the 2D timed automaton Bfrom Fig. 13, with first
+coordinate cand second coordinate d. The only vertex
+ofB, called v, has the invariant region [0, )_[0, 1]. For
+each i0, Post2i
+B(InitB)=[(v,(x,y)) | 0 xi, and either
+FIG. 12. Putting together the commuting diagrams.y=x&wxxory=x#N]. Hence the fixpoint computation
+does not converge. To blame is the unbounded invariant
+region. This is because symbolic execution is known to ter-
+minate for every timed automaton with bounded invariant
+regions [HNSY94] (where Ahas bounded invariant
+regions if for every vertex vofA,inv(v) if bounded). It
+follows that symbolic execution terminates also for
+initialized rectangular automata with bounded invariant
+regions. This is the content of the next proposition.
+Proposition 3.30.For every initialized rectangular auto-
+maton A with = moves and bounded invariant regions ,there is a
+natural number i #Nsuch that Reach (A)=Posti(Init).
+Proof . Consider an initialized rectangular automaton A
+with =moves and bounded invariant regions. The construc-
+tion of the singular automaton BAfrom Section 3.2 can
+be modified in two respects. First, it is a simple matter
+to accommodate inherited =edges from A. Second, BAis
+equipped with bounded invariant regions as follows, by
+introducing additional =edges. Whenever a lower-bound
+variable bl(i)falls to 1 below the lower boundary of the
+bounded invariant interval for ai, the slope of bl(i)is
+changed to 0 via an =edge. Upper-bound variables are
+treated symmetrically. These modifications do not affect the
+mapping #and its properties. Now the proposition follows114 HENZINGER ET AL.
+
+--- Page 22 ---
+FIG. 13. The timed automaton Bfor which Reach (B)Posti(Init) for
+alli0.
+immediately from the relationships shown in Fig. 12 and the
+statement of the proposition for timed automata. K
+In this section, we remedy the problems arising from
+unbounded invariant regions by preprocessing the given
+automaton A. For initialized A, we construct in linear time
+an initialized rectangular automaton Abdwith =moves such
+that (1) Reach (A)&Zf{<iffReach (Abd)&Zf{<, and
+(2) there is a natural number i#Nsuch that Reach (Abd)=
+Posti
+Abd(Init Abd). The second condition implies that the
+symbolic execution of Abdterminates, and the first condition
+implies that it gives the correct answer to the reachability
+problem for A. Consequently, the reachability problem for
+Acan be solved, rather than by translating Ainto a timed
+automaton, by direct symbolic execution of Abd. While
+translation doubles the dimension, the dimension of Abd
+remains n, which alleviates a major practical bottleneck in
+the verification of hybrid systems [HHWT97].
+To facilitate the proof of condition (2), we first introduce
+a third automaton A$bd, which ratifies both (1) and (2) but
+is exponentially larger than A. The automaton A$bdwill have
+bounded invariant regions, and therefore satisfy condition
+(2) by Proposition 3.30. For the remainder of this section,
+assume that the given automaton Ais initialized, and that
+its variables are a1, ...,an.
+An Exponential Preprocessing Step
+We define an n-dimensional initialized rectangular auto-
+maton A$bdwith =moves and bounded invariant regions, and
+a rectangular zone Z$fofA$bd, such that Reach (A)&Zf{<
+iffReach (A$bd)&Z$f{<. Let hbe 1 more than the largest
+rational constant that appears in the definitions of AandZf
+as a finite endpoint of an interval. Let gbe 1 less than the
+smallest such constant. The idea is to truncate all invariant,
+preguard, and postguard regions of Aby intersection with
+[g,h]n. When a variable reaches the upper or lower boundary
+of the rectangular region [ g,h]n, we change its slope to 0. The
+automaton A$bdhas the vertex set VA$bd=VA_[0, 1, 2 ]n. Put
+low=0, ok=1, and high=2, and let oknbe the n-vector
+(ok,ok, ...,ok). Each state (( v,*),x)o f A$bdis intended to
+represent all states of Aof the form ( v,y) with yigif*i=low,and yi=xi#[g,h]i f*i=ok, and yihif*i=high. All of
+these states will be shown equivalent for reachability purposes.
+The remaining components of A$bdare defined as follows.
+The observation alphabet of A$bdis the same as for A. The
+initial, invariant, and flow functions of A$bdare defined by
+initA$bd(v,*)i={initA(v)i&[g,h],
+<,if*i=ok,
+otherwise;
+[h,h], if *i=high,
+invA$bd(v,*)i={invA(v)i&[g,h], if *i=ok,
+[g,g], if *i=low;
+flowA$bd(v,*)i={flowA(v)i,
+[0, 0],if*i=ok,
+otherwise.
+For each edge e=(v,w)o f A, the automaton A$bdhas
+an edge e$=(( v,okn), (w,okn)) with obsA$bd(e$)=obsA(e),
+preA$bd(e$) = preA(e)&[g,h]n,postA$bd(e$) = postA(e)&
+[g,h]n, and jumpA$bd(e$)= jumpA(e). Define trunc :Rn
+[g,h]nbytrunc (x)i=gifxi<g,trunc (x)i=xiifgxih,
+and trunc (x)i=hifxi>h. A rectangular region R/Rnis
+gh-limited if for every coordinate i#[1, ..., n], (1) either inf( Ri)
+=& org+1inf( Ri)h&1, and (2) either sup( Ri)=
+org+1sup( Ri)h&1. By definition of gandh, all initial,
+invariant, preguard, and postguard regions of A, as well as
+[Zf]vfor all vertices vofA, are gh-limited regions. The
+following fact ensures that the guards of A$bdhave the same
+effect as the guards of A.
+Fact 3.31. Let x#Rn, and let R/Rnbe a gh-limited
+rectangular region. Then x#Rifftrunc (x)#R&[g,h]n.
+In addition to the edges inherited from A, the automaton
+A$bdhas=edges for toggling the components of *. For every
+vertex vofA, every coordinate i#[1, ..., n], and every
+vector *with *i=ok, there is an =edge from ( v,*)t o
+(v,*[*i:=low]), and another =edge in the reverse direc-
+tion, from ( v,*[*i:=low]) to ( v,*), each annotated with
+the guarded command ai=gai:=g. Here *[*i:=low]
+stands for the vector that agrees with *on all components
+except for the ith component, which is low. The trivial
+assignment is for initialization. Similarly, there are =edges
+from ( v,*)t o( v,*[*i:=high]) and from ( v,*[*i:=high])
+to ( v,*), each annotated with the guarded command
+ai=hai:=h. This completes the definition of A$bd. Note
+that the rectangular automaton A$bdis initialized and has
+bounded invariant regions.
+Define the function ‘:QAQA$bdby‘(v,x)=(( v,okn),
+trunc (x)), and extend ‘to zones in the natural way. Notice
+that InitA$bd=‘(InitA). Define Z$f=‘(Zf).
+Lemma 3.32.Let A be an initialized rectangular auto-
+maton ,and let Zfbe a rectangular zone of A .Then Reach (A)
+&Zf{< iff Reach (A$bd)&Z$f{<.115 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 23 ---
+Proof . It suffices to prove the lemma for one-dimen-
+sional A. For the ‘‘only if’’ direction, we show that for all
+labels ?#EA_R0,i fqw?
+Arthen ‘(q)w?
+A$bd‘(r). For
+time steps, suppose that ( v,x1)wt
+A(v,x2) for t>0. Then
+(x2&x1)t#flowA(v). If gx1,x2h, then trunc (x1)=x1
+andtrunc (x2)=x2. Since flowA$bd(v,ok)=flowA(v), we have
+‘(v,x1)wt
+A$bd‘(v,x2). Now suppose that x1ghx2.
+Then there exist three durations t1,t2,t3#R0such that
+t=t1+t2+t3and ( v,x1)wt1
+A(v,g)wt2
+A(v,h)wt3
+A(v,x2).
+In this case, trunc (x1)=gand trunc (x2)=h. Since
+flowA$bd(v,ok)=flowA(v), we have
+((v,ok),trunc (x1))w=
+A$bd((v,low),g)wt1
+A$bd((v,low),g)
+w=
+A$bd((v,ok),g)wt2
+A$bd((v,ok),h)
+w=
+A$bd((v,high),h)wt3
+A$bd((v,high),h)
+w=
+A$bd((v,ok),trunc (x2)).
+Again ‘(v,x1)wt
+A$bd‘(v,x2). Other positions of x1and x2
+relative to gandhare handled similarly. For edge steps, the
+key fact is that all preguard and postguard regions are
+gh-limited. Suppose that ( v1,x1)we
+A(v2,x2) for e#EA.
+Then x1#preA(e) and x2#postA(e), and so by Fact 3.31,
+trunc (x1)#preA$bd(e$) and trunc (x2)#postA$bd(e$), where e$i s
+the edge of A$bdinherited from e. In addition, jumpA$bd(e$)=
+jumpA(e), and so ‘(v1,x1)we$
+A$bd‘(v2,x2).
+For the ‘‘if’’ direction we apply a more global argument.
+Suppose that
+((v0,ok),y0)w?1
+A$bd((v1,ok),y1)w?2
+A$bd}}}
+w?m
+A$bd((vm,ok),ym),
+where (( v0,ok),y0)#InitA$bdand (( vm,ok),ym)#Z$f.W e
+find x0, ...,xmsuch that
+(v0,x0)w?1
+A(v1,x1)w?2
+A}}}w?m
+A(vm,xm)
+and for each i#[0, ..., m],trunc (xi)=yi. Then, by Fact
+3.31, ( v0,x0)#InitAand ( vm,xm)#Zf. First, since Ais
+initialized, it suffices to assume that each ?i#EA$bdhas
+jump (?i)=<(otherwise we string together the solutions
+obtained for the segments between discontinuous jumps);
+consequently, flowA(vi)=flowA(vj) for all i,j#[0, ..., m].
+Second, by Fact 3.31, it suffices to assume that ?i#R0for
+alli; that is, all msteps are time steps. Let flow be the com-
+mon value of the flow region flowA(vi), for i#[0, ..., m].I f
+0#flow, then
+(v0,y0)w?1
+A(v1,y1)w?2
+A}}}w?m
+A(vm,ym),so putting xi=yifor each i, we are finished. Now suppose
+that flow/(0, ). Here the most interesting case is given
+byy0=gand ym=hforg<h. In this case, there exist
+0j1j2<msuch that yi=gforij1, and g<yi<hfor
+j1<ij2, and yi=hfori>j2. We put xi=yiforj1<ij2.
+To set the xifori>j2, we need only determine a suitable
+slope. Let k2be such that for some h$h, we have k2=
+(h$&yj2)?j2+1#flow. Such a k2>0 exists because
+((vj2,ok),yj2)ww?j2+1
+A$bd((vj2+1,ok),h). Put xi=yj2+k2}
+(i&j2) for each i>j2. Then ( vi,xi)ww?i+1
+A(vi+1,xi+1) for
+alli#[j2,j2+1, ..., m&1]. It remains to set the xifor
+ij1, which is done in the same way. Since (( vj1,ok),g)
+ww ?j1+1
+A((vj1+1,ok),yj1+1), there exists a k1#flow such
+that for some g$g, we have k1=(yj1+1&g$)?j1+1#flow.
+For each i#[0, ..., j1], put xi=yj1+1&k1}(j1+1& i). Then
+(vi,xi)ww?i+1
+A(vi+1,xi+1) for all i#[0, ..., j1], and we are
+finished. All other cases are handled in a similar fashion. K
+A Linear Preprocessing Step
+The automaton A$bduses the discrete part of the state to
+store information about variables whose values are too
+small or too large to be relevant. This causes the vertex set
+ofA$bdto be exponentially larger than the vertex set of A.W e
+now define an initialized rectangular automaton Abd, with
+the same dimension and vertex set as A, which uses the
+continuous part of the state for the same purpose. Instead
+of stopping a variable when it reaches g(resp. h), the
+automaton Abdallows a nondeterministic jump to any value
+below g(resp. above h). Formally, Abdis identical to A,
+except for 2 n}|VA| additional =edges. For every vertex vof
+A, and every coordinate i#[1, ..., n], the automaton Abd
+has two =edges from vtov, which are annotated respectively
+with the two guarded commands aigai:# ( & ,g]
+and aihai:# [ h,).
+The following two lemmas prove that the simple modifi-
+cation Abdcan be used to decide reachability on Aby symbolic
+execution. The connection between Abdand Ais established
+via the automaton A$bd. The first lemma implies that Abd
+is timed bisimilar to A$bd.
+Lemma 3.33.For all states q and r of the rectangular
+automaton Abd,and every label { #7_R0,we have
+qw{
+Abdr iff ‘ (q)w{
+A$bd‘(r).
+Proof . For {#7, the statement of the lemma follows
+from Fact 3.31. For {#R0, it suffices to prove the result
+for one-dimensional A. Suppose that ( v,x1)w{
+Abd(v,x2). If
+g<x1,x2<h, then immediately ‘(v,x1)=(( v,ok),x1)
+w{
+A$bd((v,ok),x2)=‘(v,x2), The most interesting case is
+x1<g<h<x2. In this case, there exists a duration t{
+such that ( h&g)t#flowA(v). Therefore,116 HENZINGER ET AL.
+
+--- Page 24 ---
+‘(v,x1)=(( v,ok),g)w=
+A$bd((v,low),g)
+ww{&t
+A$bd((v,low),g)
+w=
+A$bd((v,ok),g)
+wt
+A$bd((v,ok),h)=‘(v,x2).
+Similar arguments apply to all relative positions of x1,x2,g,
+and h. The reverse implication follows from the =edges
+ofAbd.K
+LetQok/QA$bdbe the set of states of A$bdthat have the
+form (( v,okn),x). Then ‘is an onto function from QAbdtoQA$bd. From Lemma 3.33, it follows that for every
+zone ZofAbd,PostA$bd(‘(Z))&Qok=‘(PostAbd(Z)). Since
+‘(q)#InitA$bdifq#InitAbd(by Fact 3.31), we conclude that
+Reach (A$bd)&Qok=‘(Reach (Abd)). Another consequence
+of Lemma 3.33 is the next lemma, which implies that the
+symbolic execution of Abdmust terminate within at most
+one more step than the symbolic execution of A$bd(whose
+bounded invariant regions guarantee termination).
+Lemma 3.34.For all zones Z of the rectangular auto-
+maton A ,if PostA$bd(‘(Z))=‘(Z),then Post2
+Abd(Z)=PostAbd(Z).
+Proof . Consider a zone ZofAsuch that PostA$bd(‘(Z))
+=‘(Z). We assume that qw{
+Abdrfor two states
+q#PostAbd(Z) and rPostAbd(Z), and show a contradiction.
+From Lemma 3.33 it follows that for all states r$ with
+‘(r$)=‘(r), also r$PostAbd(Z). On the other hand, ‘(q)#
+‘(PostAbd(Z))/PostA$bd(‘(Z))=‘(Z), using Lemma 3.33 a
+second time. Since r#PostAbd(q), we have ‘(r)#PostA$bd(‘(Z))
+&Qok=‘(PostAbd(Z)) by a third and fourth application of
+Lemma 3.33. So there exists a state r$#Post Abd(Z) with
+‘(r$)=‘(r), which gives a contradiction. K
+From Lemmas 3.32 and 3.33 it follows that reachability in A
+is equivalent to reachability in Abd: we have Reach (A)&Zf
+{<iffReach (A$bd)&Z$f{<iff‘(Reach (Abd))&‘(Zf){<
+iffReach (Abd)&Zf{<(the final equivalence follows from
+Fact 3.31, because all regions of Zfaregh-limited). From
+Proposition 3.30, Lemma 3.33, and Lemma 3.34 it follows that
+the symbolic execution of Abdterminates.
+Theorem 3.35.Let A be an initialized rectangular
+automaton ,and let Zfbe a rectangular zone of A .Then there
+exists a rectangular automaton Abd,obtained from A by
+adding = moves ,such that (1) Reach (A)&Zf{< iff
+Reach (Abd)&Zf{<,and (2)there is a natural number
+i#Nwith Reach (Abd)=Posti
+Abd(InitAbd).
+4. UNDECIDABILITY
+In Section 3, we showed that the initialized rectangular
+automata form a decidable class of hybrid automata. In this
+section, we show that they form a maximal such class.We proceed in two steps. First, we show that without initial-
+ization, even a single two-slope variable leads to an
+undecidable reachability problem. Second, we show that the
+rectangularity of the model must remain inviolate. Any
+coupling between coordinates, such as comparisons between
+variables, brings undecidability already with a single nonclock
+variable. (Timed automata, which have only clock variables,
+remain decidable in the presence of variable comparisons
+[AD94].) A main consequence is the undecidability of
+compact automata with clocks and one stopwatch, which
+are of interest for the specification of duration properties
+[KPSY93].
+Ann-dimensional rectangular automaton Aissimple if it
+meets the following restrictions:
+1. Exactly one variable of Aisnota clock.
+2. The automaton Ahas only one initial state q0, and q0
+has the form ( v, (0, 0, ..., 0)).
+3. For every edge eofA, and every coordinate
+i#[1, ..., n],i f i#jump (e) then post(e)i=[0, 0], and if
+ijump (e) then post(e)i=pre(e)i.
+4. For every vertex vofA, the invariant region inv(v)
+and the flow region flow(v) are compact (by restriction (2),
+the initial region init(v) is compact as well). For every edge
+eofA, the preguard region pre(e) is compact (by restriction
+(3), the postguard region post(e) is compact as well).
+5. The observation alphabet of Ais a one-letter alphabet,
+and the invariant function invofAis constant. (One can
+require that Ahas the fixed invariant function *v.[0, 1]nor
+*v.Rn, with only minor modifications of our proofs.)
+The automaton Aism-simple if it meets restrictions (2)(4),
+and exactly mvariables of Aare not clocks.
+We use simple automata for our undecidability results.
+Restrictions (2) and (3) ensure that every simple automaton
+has deterministic jumps, which eliminates the nondeter-
+minism of jumps as a possible source of undecidability.
+Many limited decidability results are based on a technique,
+called digitization , which discretizes time steps with nonin-
+teger durations [HMP92, BES93, BER94, PV94]. Since the
+digitization technique requires closed guard and invariant
+regions, restriction (4) implies that the technique does not
+generalize beyond very special cases. Many limited decidability
+results apply to automata with a single stopwatch [BES93,
+KPSY93, BER94, MV94, BR95, ACH97]. Restriction (1)
+implies that these results do not generalize either.
+All of our undecidability proofs are reductions from the
+halting problem for two-counter machines to the reachability
+problem for simple rectangular automata. A two-counter
+machine M consists of a finite control and two unbounded
+nonnegative integer variables called counters. Initially both
+counter values are 0. Three types of instructions are used:
+branching based upon whether a specific counter has the
+value 0, incrementing a counter, and decrementing a counter117 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 25 ---
+(which leaves unchanged a counter value of 0). When a
+specified halting location is reached, the machine halts. In
+our reductions, the finite control of Mis encoded in the
+finite control of a simple rectangular automaton AM;i n
+particular, there is a vertex vsuch that that Mhalts iff the
+zone [v]_inv(v) is reachable for AM. Each counter is
+encoded by a clock of AM, and we supply widgets for per-
+forming the operations that correspond to incrementing or
+decrementing a counter. Typically, the counter value u
+corresponds to the clock value k1}(k2k1)u, where k1andk2
+are the slopes of a two-slope variable of AM, with k1being
+the larger. When k1=2k2, decrementing (resp. increment-
+ing) a counter corresponds to doubling (resp. halving) the
+value of the corresponding clock. Notice that since k1>k2,
+it is the density of the continuous domain, rather than
+its infinite extent, that is used to encode the potentially
+unbounded counter values.
+4.1.Uninitialized Automata
+We show that initialization is necessary for a decidable
+reachability problem.
+Theorem 4.1.For every two slopes k1,k2#Qwith
+k1{k2,the reachability problem is undecidable for simple
+rectangular automata with a two-slope variable of slopes k1
+and k2.
+We first prove three lemmas that are basic to all of our
+undecidability proofs. Let Wbe a positive rational number.
+A simple rectangular automaton AisW-wrapping if its
+invariant function is defined as follows:
+vFor every variable aofAthat is a clock, and every ver-
+texvofA,inv(v)(a)=[0, W].
+vIfbis the nonclock variable of A, and btakes only
+nonnegative slopes (i.e., flow(v)(b)/[0, ) for all v),
+then for each vertex vofA,inv(v)(b)=[0, W}
+max[sup( flow(w)(b)) |w#V]].
+vIfbis the nonclock variable of A, and btakes only
+nonpositive slopes, then for each vertex vofA,inv(v)(b)=
+[W} min [inf(flow(w)(b)) |w#V],0 ] .
+vIfbis the nonclock variable of A, and btakes
+both positive and negative slopes, then for each vertex
+vof A,inv(v)(b)=[ W} min [inf(flow(w)(b)) |w#V],
+W} max [sup( flow(w)(b)) |w#V]].
+AW-wrapping edge for a clock aand a vertex vis an edge
+from vto itself that is annotated with the guarded command
+a=Wa:=0. A W-wrapping edge for a nonclock variable
+band a vertex vwith flow(v)(b)=[ k,k] is an edge from v
+to itself that is annotated with the guarded command
+b=k}Wb:=0. The invariant of a wrapping automaton
+forces wrapping edges to be taken when they are enabled.
+We use wrapping to simulate discrete events by continuousrounds taking W(or some multiple thereof) units of time.
+The wrapping edges ensure that variables take the same
+values at the beginning and end of a round, unless they are
+explicitly reassigned by a nonwrapping edge. This is the
+content of the wrapping lemma. A similar wrapping technique
+can be found in [Cer92].
+In figures of simple automata, we use the following
+conventions. First, all variables whose slopes are not listed
+are clocks, i.e., they have slope 1. Second, wrapping condi-
+tions are left implicit; in particular, we omit invariants from
+every figure after those regarding the three basic lemmas,
+and we omit wrapping edges beginning with Fig. 20.
+Wrapping Lemma. Let W be a positive rational number .
+Let k1#Q"[0],and consider the simple W-wrapping
+automaton fragment of Fig . 14. ( Figure 14assumes that
+k1>0. If k1<0, replace c k1Wb yc k1W.)Suppose
+that the value of c is x when the edge e1is traversed ,where
+0<x<k1}Wi fk1>0, and k1}W<x<0 if k1<0. Then
+the next time e3is traversed ,the value of c is again x .
+Proof . Figure 15 contains a time portrait that illustrates
+the proof for W=4 and k1=1. The markings e1,e2, and e3
+along the time axis show at which points these edges are
+traversed. We give the proof for k1>0. In order for e3to be
+traversed in the future, the following series of events must
+occur: (1) e1is traversed; (2) exactly ( W}k1&x)k1time
+units elapse, after which chas the value W}k1, and ahas the
+value ( W}k1&x)k1; (3) the wrapping edge e2is traversed,
+after which chas the value 0, and ahas the value ( W}k1&x)
+k1; (4) exactly W&(W}k1&x)k1=xk1time units elapse,
+after which ahas the value Wand chas the value x.K
+By allowing clocks cand dto wrap only simultaneously,
+we can check if the two clocks have the same value.
+Equality Lemma. Let W be a positive rational number .
+Consider the simple W-wrapping automaton fragment of
+Fig.1 6 , in which all variables are clocks .Suppose that the
+value of c is x and the value of d is y when the edge e1
+is traversed ,where 0<x,y<W.Then the edge e3can be
+traversed later iff x =y.Furthermore ,the next time e3is
+traversed ,the value of both c and d is x (which is equal to y ).
+FIG. 14. Wrapping lemma: the skewed clock cretains its entry value
+upon exit.118 HENZINGER ET AL.
+
+--- Page 26 ---
+FIG. 15. Proof of the wrapping lemma for slope 1.
+Similarly, by assigning the skewed clock dto 0 at the
+same time as wrapping the skewed clock cto 0, we perform
+the assignment d:= (k2k1)}c, where c*=k1and d4=k2.
+Assignment Lemma. Let W be a positive rational
+number .Let k1,k2#Qwith k1{0, and consider the simple
+W-wrapping automaton fragment of Fig . 17.3Suppose that
+the value of c is x when the edge e1is traversed ,where
+0<x<k1}Wi fk1>0, and k1}W<x<0 if k1<0. Then
+the next time e3is traversed ,the value of c is again x and the
+value of d is (k2k1)}x.
+Now we are ready to prove Theorem 4.1.Proof of Theorem 4.1. We reduce the halting problem
+for two-counter machines to the reachability problem for
+simple wrapping automata with a two-slope variable taking
+slopes k
+1and k2. Let Mbe a two-counter machine with
+counters CandD. We describe the construction of a simple
+wrapping automaton AMwith the following six variables: a,
+b,b$,c, and dare clocks, and zis a two-slope variable with
+slopes k1and k2. The values of the counters Cand Dare
+encoded in the values of the clocks cand d, respectively.
+Case k1>k2>0 or k1<k2<0. The automaton AMis
+W-wrapping, where Wmay be chosen to be any number
+larger than | k1|. We encode counter value uby clock value
+|k1|}(k2k1)u. The relationships c=|k1|}(k2k1)Cand
+d=|k1|}(k2k1)Dhold when a=0 or a=W, except when
+more than one time interval of duration Wis needed to
+simulate one computation step of M. The initialization of C
+and Dis implemented by the initial vertex of AMand an
+outgoing edge ewith the preguard pre(e)(c)=pre(e)(d)=
+[|k1|, |k1|]. The test C=0 is implemented by two edges e1
+and e2, where pre(e1)(c)=[| k1|, |k1|] (corresponding to
+C=0) and pre(e2)(c)=[0, | k2|] (corresponding to C{0).
+Decrementing a counter corresponds to first checking if
+its value is 0 as above, and if not, then multiplying the
+corresponding clock value by k1k2. This is implemented
+by concatenating two assignment-lemma constructions,
+as shown in Fig. 18 for counter C. In the first, z*=k1;i t
+performs z:=k1}c. In the second, z*=k2; it performsFIG. 16. Equality lemma: testing if c=d.
+c:= ( 1 k2)}z. The bottom portion of Fig. 18 shows a time
+portrait of the decrementation fragment for W=4, k1=2,
+and k2=1. Notice that the value of d, which represents the
+unchanged counter D, is not affected by the decrementation
+fragment. Incrementing a counter corresponds to multiply-
+ing the corresponding clock value by k2k1. This is done by
+reversing the two assignments, as shown in Fig. 19 for coun-
+terC. First z:=k2}cis performed, and then c:= ( 1 k1)}z.
+The bottom portion of Fig. 19 shows a time portrait of the
+incrementation fragment for W=4, k1=2, and k2=1.
+Each instruction of Mcan be implemented as outlined
+above, with the terminal edge of the widget for instruction
+icoinciding with the initial edge of the widget for instruction
+i+1 (with the obvious modifications for branch instruc-
+tions). It follows that the vertex of AMthat corresponds to
+the halting location of Mis reachable iff Mhalts.
+Case k1{0 and k2=0. The construction is insensitive
+to the sign of k1. We use the wrapping constant W=4 and
+encode counter value uby clock value 21&u. Initialization
+and test for zero are implemented easily. Decrementing a
+counter corresponds to doubling the corresponding clock.
+The doubling procedure is shown in Fig. 20 for the clock c;
+in this and all remaining figures, we omit the wrapping
+edges required to maintain the value of d. The idea is to
+perform z:=k1}cusing the assignment lemma, then to put
+z*=0 until creaches Wagain, and then to put z*=k1so that
+when areaches W, we have z=2k1}x, where xis the
+original value of c. Finally, we perform c:= ( 1 k1)}zwith
+the assignment lemma. The bottom portion of Fig. 20 shows
+a time portrait for k1=2. Incrementing a counter corre-
+sponds to halving the corresponding clock, which can be
+FIG. 17. Assignment lemma: performing the assignment d:= (k2k1)}c.119 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+3Figure 17 assumes that k1,k20. If k1<0, replace ck1}Wby
+ck1}W;i fk2<0, replace dk2}Wbydk2}W.
+
+--- Page 27 ---
+FIG. 18. Counter decrement: multiplying cbyk1k2using the two-
+slope variable z.
+done with two auxiliary clocks band b$. To halve the value
+ofc, first a value is nondeterministically guessed in b. Then
+b$: = 2 bis performed using the above doubling procedure.
+Then c=b$ is checked by the equality lemma, and if this suc-
+ceeds, then c:=bis performed using the assignment lemma.
+Case k1>0> k2. First suppose that | k2|<k1. The
+wrapping constant Wcan be any number larger than k1.W e
+encode counter value uby clock value k1}(|k2|k1)u. Now
+we need two synchronization clocks, aand b. Clock cis
+synchronized with a, and clock dis synchronized with b.
+FIG. 19 Counter increment: multiplying cbyk2k1using the two-
+slope variable z.The relationship c=k1}(|k2|k1)Cholds when a=0 or
+a=W, and the relationship d=k1}(|k2|k1)Dholds when
+b=0 or b=W. To multiply cbyk1|k2|, we first perform
+z:=k1}cand reset cto 0. Then we put z*=k2, and when z
+reaches 0, we reset ato 0. At this point c=(k1|k2|)}x,
+where xis the original value of c. See Fig. 21. The bottom
+portion of the figure shows a time portrait for W=4, k1=2,
+and k2=&1. To multiply cby |k2|k1, simply reverse the
+slopes of z. Specifically, perform z:=k2}c, reset cto 0, then
+putz*=k1, and when zreaches 0, reset ato 0.
+If |k2|>k1, we use a wrapping constant larger than | k2|
+and encode counter value uby clock value | k2|}(k1|k2|)u.
+This simply switches the roles of multiplying by k1|k2| and
+multiplying by | k2|k1.
+Finally, suppose that k2=& k1. In this case we use the
+wrapping constant 4 and encode counter value uby clock
+value clock value 21&u. Again we use separate synchroniza-
+tion clocks aand bforcand d. To double c, perform
+z:=k1}c, and then put z*=k2=& k1, resetting awhen z
+reaches 0. See Fig. 22, which gives the construction, and also
+a time portrait for k1=3. Halving cis done by nondeter-
+ministically guessing the midpoint of the interval of time
+between c=4 and a=4. The guess is checked by starting z
+at value 0 when creaches 4, keeping zat slope k1for the first
+half of the interval, and at slope & k1for the second half. If
+zreturns to 0 at the same instant that areaches 4, the guess
+was correct. See Fig. 23, which gives the construction, and a
+time portrait for k1=5. K
+4.2.Generalized Automata
+A slight generalization of the invariant, flow, preguard,
+postguard, or jump function leads to the undecidability of
+rectangular automata, even under the stringent restrictions
+of simplicity and initialization. For the remainder of this
+section, fix an n-dimensional rectangular automaton A.
+Rectangular Automata with Assignments
+The jump function of Acan be generalized to allow,
+during edge steps, the value of one variable to be assigned
+to another variable. A jump function with assignments forA
+assigns to each edge eofAboth a jump set jump (e)/[1, ..., n]
+and an assignment function assign (e):[1, ..., n][1, ..., n].
+The edge-step relation w_, for _#7, is then redefined as
+follows: ( v,x)w_(w,y) iff there is an edge e=(v,w)o fA
+such that obs(e)=_, and x#pre(v), and y#post(w), and
+for all i#[1, ..., n]with ijump (e), we have yi=xassign (i).
+Arectangular automaton with assignments is a rectangular
+automaton whose jump function is replaced by a jump
+function with assignments.
+Using a jump function with assignments, the proof of
+Theorem 4.1 can be replicated even if the two-slope variable
+is replaced by a memory cell (with slope 0) or by a skewed
+clock (with any slope different from 0 and 1). The former120 HENZINGER ET AL.
+
+--- Page 28 ---
+FIG. 20. Doubling cusing the two-slope variable zwith the slopes 0 and k1.
+FIG. 21. Multiplying cbyk1|k2| when k1>0> k2and | k2|<k1.
+FIG. 22. Doubling cwhen k2=& k1.121 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 29 ---
+FIG. 23. Halving cwhen k2=& k1.
+gives a new proof of a result from [Cer92]. In the following
+theorem, notice that every simple rectangular automaton
+whose nonclock variable is a one-slope variable is necessarily
+initialized.
+Theorem 4.2.For every slope k #Q"[1],the reachability
+problem is undecidable for simple rectangular automata with
+assignments and a one-slope variable of slope k .
+Proof . Consider k#Q"[1]. We repeat the construction
+given in the proof of Theorem 4.1 for the case k1=1 and
+k2=kwith the following modifications. The two-slope
+variable zis replaced by a clock z1and a one-slope variable
+z2with slope k. Each vertex of AMis augmented with a bit
+slp#[1, 2]that indicates if the value of zcorresponds to the
+current value of z1or to the current value of z2. Assigments
+are used to copy the value of z1into z2, or vice versa,
+whenever the bit slpchanges. More precisely, for each edge
+e=(v,w)o fAM, we have an edge e$ from ( v,slp)t o( w,slp$),
+where slp=iiff the slope of zinviski, and slp$=iiff the
+slope of zinwiski. For all coordinates other than z,z1, and
+z2, the preguard and postguard intervals and the jump sets
+ofeand e$ coincide. In addition, pre(e$)(zslp)=pre(e)(z),
+post(e$)(zslp$)=post(e)(z), and zslp$is in the jump set of e$ iff
+zis in the jump set of e. Finally, the assignment function of
+e$ assigns to zslp$the value of zslp.K
+Triangular Preguard ,Postguard ,and Invariant Constraints
+The preguard, postguard, and invariant functions of A
+can be generalized to allow comparisons between the values
+of variables. We call preguard, postguard, and invariant
+constraints of the form ab, where aand bare variables,
+triangular, because they define triangular regions of Rn.
+Atriangular restriction  for Ais a reflexive and transitive
+binary relation on [1, ..., n].Atriangular preguard (resp.
+postguard )function forAassigns to each edge eofAboth a
+rectangular region pre(e) (resp. post(e)) and a triangular
+restriction e. The edge-step relation w_, for _#7, is then
+redefined as follows: ( v,x)w_(w,y) iff there is an edge
+e=(v,w)o fAsuch that obs(e)=_,x#pre(v),y#post(w),
+for all i#[1, ..., n]with ijump (e), we have xi=yi, and foralli,j#[1, ..., n]with iej, we have xixj(resp. yiyj).
+Atriangular invariant function forAassigns to each vertex
+vofAboth a rectangular region inv(v) and a triangular
+restriction v. The state space QofAis then redefined
+to contain a pair ( v,x)#V_Rniffx#inv(v) and for all
+i,j#[1, ..., n]with ivj, we have xixj.A n automaton
+with triangular preguards (resp. postguards ;invariants )i sa
+rectangular automaton whose preguard (resp. postguard;
+invariant) function is replaced by a triangular preguard
+(resp. postguard; invariant) function.
+Using any of the three types of triangular constraints, the
+proof of Theorem 4.2 can be replicated without assignments.
+Theorem 4.3.For every slope k #Q"[1],the reachability
+problem is undecidable for simple automata with triangular
+preguards or postguards or invariants ,and a one-slope
+variable of slope k .
+Proof . Triangular preguards, postguards, or invariants
+permit comparisons between variables of the form a=b.
+This allows an assignment a:=bto be simulated by a reset
+a:=0 at a nondeterministically chosen point in time,
+followed later by the test a=b(assuming positive values
+and slopes). As usual, wrapping ensures that all other variables,as well as b, maintain their values while the assignment is
+simulated. In this way, the construction outlined in the
+proof of Theorem 4.2 can be modified appropriately. K
+Triangular Flow Constraints
+The flow functions of Acan be generalized to impose an
+ordering on the first derivatives of variables. For example,
+the triangular flow constraint 1 a*b42 says that both a
+and bmay increase at any slopes between 1 and 2, but b
+increases always as least as fast as a.Atriangular flow func-
+tion forAassigns to each vertex vofAboth a rectangular
+region flow(v) and a triangular restriction 
+v. For t>0,
+the time-step relation w[t]is then redefined as follows:
+(v,x)w[t](w,y) iffv=w, and ( y&x)t#flow(v), and for all
+i,j#[1, ..., n]with ivj, we have yi&xiyj&xj. The
+triangular flow function is called constant if the functions122 HENZINGER ET AL.
+
+--- Page 30 ---
+flow and *v.vare both constant functions on the set of
+vertices. An automaton with constant triangular flow is a
+rectangular automaton whose flow function is replaced by a
+constant triangular flow function.
+Using a constant triangular flow constraint, the proof of
+Theorem 4.1 can be replicated. This is nontrivial, because
+Theorem 4.1 permits a two-slope variable that is not governed
+by a constant flow function. For the simulation of the two-
+slope variable, we use three infinite-slope variables that do
+follow a constant flow function, albeit a triangular one.
+Theorem 4.4.The reachability problem is undecidable
+for3-simple automata with constant triangular flow .
+Proof . We use three nonclock variables z,z1, and z2
+with the constant triangular flow constraint 1 z*1z*
+z*22. The idea is to repeat the construction given in the
+proof of Theorem 4.1 for the case k1=1 and k2=2 with two
+additional variables, z1andz2, which enforce that the slope
+ofzis always either 1 or 2. The slope 1 of zis enforced by
+resetting z2to 0 whenever awraps to 0, and later checking
+that a=47z2=4. Similarly, the slope 2 of zis enforced by
+resetting z1to 0 whenever awraps to 0, and later checking
+that a=47z1=8. K
+5. CONCLUSION
+There are three uniform extensions of finite-state machines
+with real-valued variables. Timed automata [AD94] equip
+finite-state machines with perfect clocks, and the reachability
+and|-language emptiness problems for timed automata are
+decidable. Linear hybrid automata [AHH96] equip finite-
+state machines with continuous variables whose behavior
+satisfies linear constraints, and the reachability problem for
+linear hybrid automata is undecidable. Yet, because the Pre
+and Post operations of linear hybrid automata maintain the
+linearity of zones, the reachability problem is semidecidable,
+and thus the verification of many linear hybrid systems is
+possible. This observation has been exploited in the model
+checker HyTech [HHWT97]. Initialized rectangular auto-
+mata equip finite-state machines with drifting clocks, that is,
+continuous variables whose behavior satisfies rectangular
+constraints. Initialized rectangular automata lie strictly
+between timed automata and linear hybrid automata at the
+boundary of decidability. On one hand, initialized rectangular
+automata generalize timed automata without incurring a
+complexity penalty. Their reachability problem is PSPACE-
+complete and, under the natural restriction of bounded
+nondeterminism, so is their |-language emptiness problem.
+(We do not know the complexity of the |-language emptiness
+problem without the restriction of bounded nondeterminism.)
+On the other hand, initialized rectangular automata form a
+maximal decidable class of hybrid systems, because even
+the simplest uninitialized or nonrectangular systems have
+undecidable reachability problems.In summary, there are two factors for decidability:
+(1)rectangularity , that is, the behavior of all variables is
+decoupled, and (2) initialization , that is, a variable is reini-
+tialized whenever its flow changes.
+Initialized rectangular automata are also interesting from
+a practical perspective. First, reachability analysis using
+HyTech terminates on every initialized rectangular auto-
+maton with bounded invariants, and on every initialized
+rectangular automaton after a linear-time preprocessing
+step. Second, many distributed communication protocols
+assume that local clocks have bounded drift. Such protocols
+are naturally modeled as initialized rectangular hybrid
+automata. For example, HyTech has been applied success-
+fully to verify one such protocol used in Philips audio com-ponents [HW95]. Third, initialized rectangular automata
+can be used to conservatively approximate, arbitrarily
+closely, hybrid systems with general dynamical laws
+[OSY94, PBV96, HHWT98].
+ACKNOWLEDGMENT
+We thank Howard Wong-Toi for a careful reading and for Abd.
+REFERENCES
+[ACH+95] R. Alur, C. Courcoubetis, N. Halbwachs, T. A. Henzinger,
+P.-H. Ho, X. Nicollin, A. Olivero, J. Sifakis, and S. Yovine,
+The algorithmic analysis of hybrid systems, Theor .Comput .
+Sci.138(1995), 334.
+[ACH97] R. Alur, C. Courcoubetis, and T. A. Henzinger, Computing
+accumulated delays in real-time systems, Formal Methods
+System Design 11, No. 2 (1997), 137156.
+[ACHH93] R. Alur, C. Courcoubetis, T. A. Henzinger, and P.-H. Ho,
+Hybrid automata: An algorithmic approach to the specifica-
+tion and verification of hybrid systems, in‘‘Hybrid Systems’’
+(R. L. Grossman, A. Nerode, A. P. Ravn, and H. Rischel,
+Eds.), Lecture Notes in Computer Science, Vol. 736,
+pp. 209229, Springer-Verlag, New York Berlin, 1993.
+[AD94] R. Alur and D. L. Dill, A theory of timed automata, Theor .
+Comput .Sci.126(1994), 183235.
+[AHH96] R. Alur, T. A. Henzinger, and P.-H. Ho, Automatic symbolic
+verification of embedded systems, IEEE Trans .Software
+Eng.22, No. 3 (1996), 181201.
+[AHV93] R. Alur, T. A. Henzinger, and M. Y. Vardi, Parametric real-
+time reasoning, in‘‘Proceedings of the 25th Annual
+Symposium on Theory of Computing,’’ pp. 592601, ACM
+Press, New York, 1993.
+[BER94] A. Bouajjani, R. Echahed, and R. Robbana, Verifying
+invariance properties of timed systems with duration
+variables, in‘‘FTRTFT 94: Formal Techniques in Real-time
+and Fault-tolerant Systems’’ (H. Langmaack, W.-P. de
+Roever, and J. Vytopil, Eds.), Lecture Notes in Computer
+Science, Vol. 863, pp. 193210, Springer-Verlag, New York 
+Berlin, 1994.
+[BES93] A. Bouajjani, R. Echahed, and J. Sifakis, On model checking
+for real-time properties with durations, in‘‘Proceedings
+of the Eighth Annual Symposium on Logic in Computer
+Science,’’ pp. 147159, IEEE Comput. Soc. Press, New York,1993.
+[BR95] A. Bouajjani and R. Robbana, Verifying |-regular properties
+for subclasses of linear hybrid systems, in‘‘CAV 95:123 WHAT’S DECIDABLE ABOUT HYBRID AUTOMATA?
+
+--- Page 31 ---
+Computer-aided Verification’’ (P. Wolper, Ed.), Lecture
+Notes in Computer Science, Vol. 939, pp. 437450, Springer-
+Verlag, New York Berlin, 1995.
+[Cer92] K. C 8era  ns, ‘‘Algorithmic Problems in Analysis of Real-time
+System Specifications,’’ Ph.D. thesis, University of Latvia,
+1992.
+[Cor96] J. C. Corbett, Timing analysis of Ada tasking programs,
+IEEE Trans .Software Eng .22, No. 7 (1996), 461483.
+[HHWT95] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi, HyTech : The
+next generation, in‘‘Proceedings of the 16th Annual Real-
+time Systems Symposium,’’ pp. 5665, IEEE Comput. Soc.
+Press, New York, 1995.
+[HHWT97] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi, HyTech :
+A model checker for hybrid systems, Software Tools Tech-
+nology Transfer 1(1997), 110122.
+[HHWT98] T. A. Henzinger, P.-H. Ho, and H. Wong-Toi, Algorithmic
+analysis of nonlinear hybrid systems, IEEE Trans .Automatic
+Control 43, No. 4 (1998), 540554.
+[HMP92] T. A. Henzinger, Z. Manna, and A. Pnueli, What good are
+digital clocks?, in‘‘ICALP 92: Automata, Languages, and
+Programming’’ (W. Kuich, Ed.), Lecture Notes in Computer
+Science, Vol. 623, pp. 545558, Springer-Verlag, New York 
+Berlin, 1992.
+[HNSY94] T. A. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine,
+Symbolic model checking for real-time systems, Inform .6
+Comput .111, No. 2 (1994), 193244.
+[HRP94] N. Halbwachs, P. Raymond, and Y.-E. Proy, Verification of
+linear hybrid systems by means of convex approximation, in
+‘‘SAS 94: Static Analysis Symposium’’ (B. LeCharlier, Ed.),Lecture Notes in Computer Science, Vol. 864, pp. 223237,
+Springer-Verlag, New York Berlin, 1994.
+[HW95] P.-H. Ho and H. Wong-Toi, Automated analysis of an audio
+control protocol, in‘‘CAV 95: Computer-aided Verification’’
+(P. Wolper, Ed.), Lecture Notes in Computer Science,Vol. 939, pp. 381394, Springer-Verlag, New York Berlin,
+1995.
+[HWT96] T. A. Henzinger and H. Wong-Toi, Using HyTech to syn-
+thesize control parameters for a steam boiler, in‘‘Formal
+Methods for Industrial Applications: Specifying andProgramming the Steam Boiler Control’’ (J.-R. Abrial,
+E. Bo  rger, and H. Langmaack, Eds.), Lecture Notes in
+Computer Science, Vol. 1165, pp. 265282, Springer-Verlag,
+New York Berlin, 1996.
+[Kop96] P. W. Kopke, ‘‘The Theory of Rectangular Hybrid
+Automata,’’ Ph.D. thesis, Cornell University, 1996.
+[KPSY93] Y. Kesten, A. Pnueli, J. Sifakis, and S. Yovine, Integration
+graphs: A class of decidable hybrid systems, in‘‘HybridSystems’’ (R. L. Grossman, A. Nerode, A. P. Ravn, and
+H. Rischel, Eds.), Lecture Notes in Computer Science,
+Vol. 736, pp. 179208, Springer-Verlag, New York Berlin,
+1993.
+[LV96] N. A. Lynch and F. Vaandrager, Forward and backward
+simulations, Part II: Timing-based systems, Inform .6
+Comput .128, No. 1 (1996), 125.
+[MV94] J. McManis and P. Varaiya, Suspension automata: A
+decidable class of hybrid automata, in‘‘CAV 94: Computer-
+aided Verification’’ (D. L. Dill, Ed.), Lecture Notes in
+Computer Science, Vol. 818, pp. 105117, Springer-Verlag,
+New York Berlin, 1994.
+[NOSY93] X. Nicollin, A. Olivero, J. Sifakis, and S. Yovine, An
+approach to the description and analysis of hybrid systems,in‘‘Hybrid Systems’’ (R. L. Grossman, A. Nerode, A. P.
+Ravn, and H. Rischel, Eds.), Lecture Notes in Computer
+Science, Vol. 736, pp. 149178, Springer-Verlag, New
+York Berlin, 1993.
+[NS95] S. Nadjm-Tehrani and J.-E. Stro  mberg, Proving dynamic
+properties in an aerospace application, in‘‘Proceedings of
+the 16th Annual Real-time Systems Symposium,’’ pp. 210,
+IEEE Comput. Soc. Press, New York, 1995.
+[OSY94] A. Olivero, J. Sifakis, and S. Yovine, Using abstractions for
+the verification of linear hybrid systems, in‘‘CAV 94:
+Computer-aided Verification’’ (D. L. Dill, Ed.), Lecture
+Notes in Computer Science, Vol. 818, pp. 8194, Springer-
+Verlag, New York Berlin, 1994.
+[PBV96] A. Puri, V. Borkar, and P. Varaiya, =-Approximation of dif-
+ferential inclusions, in‘‘Hybrid Systems III’’ (R. Alur, T. A.
+Henzinger, and E. D. Sontag, Eds.), Lecture Notes in Com-
+puter Science, Vol. 1066, pp. 362376, Springer-Verlag, New
+York Berlin, 1996.
+[PV94] A. Puri and P. Varaiya, Decidability of hybrid systems with
+rectangular differential inclusions, in‘‘CAV 94: Computer-
+aided Verification’’ (D. L. Dill, Ed.), Lecture Notes in
+Computer Science, Vol. 818, pp. 95104, Springer-Verlag,
+New York Berlin, 1994.
+[SMF97] T. Stauner, O. Mu  ller, and M. Fuchs, Using HyTech to
+verify an automotive control system, in‘‘HART 97: Hybrid
+and Real-time Systems’’ (O. Maler, Ed.), Lecture Notes in
+Computer Science, Vol. 1201, pp. 139153, Springer-Verlag,
+New York Berlin, 1997.
+[VW86] M. Y. Vardi and P. Wolper, An automata-theoretic ap-
+proach to automatic program verification, in‘‘Proceedings
+of the First Annual Symposium on Logic in Computer
+Science,’’ pp. 322331, IEEE Comput. Soc. Press, New York,
+1986.
+Printed in Belgium124 HENZINGER ET AL.

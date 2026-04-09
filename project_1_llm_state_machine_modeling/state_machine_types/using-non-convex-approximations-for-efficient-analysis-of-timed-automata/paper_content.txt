@@ -1,0 +1,627 @@
+--- Page 1 ---
+Using non-convex approximations for eﬃcient
+analysis of timed automata
+Frédéric Herbreteau1, Dileep Kini2, B. Srivathsan1, and
+Igor Walukiewicz1
+1 Université de Bordeaux, IPB, CNRS, LaBRI UMR5800
+2 Indian Institute of Technology Bombay, Department of Computer Science and
+Engineering
+Abstract
+The reachability problem for timed automata asks if there exists a path from an initial state to
+a target state. The standard solution to this problem involves computing the zone graph of the
+automaton, which in principle could be inﬁnite. In order to make the graph ﬁnite, zones are
+approximated using an extrapolation operator. For reasons of eﬃciency in current algorithms
+extrapolation of a zone is always a zone; and in particular it is convex.
+In this paper, we propose to solve the reachability problem without such extrapolation oper-
+ators. To ensure termination, we provide an eﬃcient algorithm to check if a zone is included in
+the so called region closure of another. Although theoretically better, closure cannot be used in
+the standard algorithm since a closure of a zone may not be convex.
+An additional beneﬁt of the proposed approach is that it permits to calculate approximating
+parameters on-the-ﬂy during exploration of the zone graph, as opposed to the current methods
+which do it by a static analysis of the automaton prior to the exploration. This allows for further
+improvements in the algorithm. Promising experimental results are presented.
+1998 ACM Subject Classiﬁcation D.2.4 Software/Program Veriﬁcation; F.3.1 Specifying and
+Verifying and Reasoning about Programs; F.4.1 Mathematical Logic
+Keywords and phrases Timed Automata; Model-checking; Non-convex abstraction; On-the-ﬂy
+abstraction
+Digital Object Identiﬁer 10.4230/LIPIcs.FSTTCS.2011.78
+1 Introduction
+Timed automata [1] are obtained from ﬁnite automata by adding clocks that can be reset
+and whose values can be compared with constants. The crucial property of timed automata
+is that their reachability problem is decidable: one can check if a given target state is
+reachable from the initial state. Reachability algorithms are at the core of veriﬁcation tools
+like Uppaal [4] or RED [16], and are used in industrial case studies [11, 6]. The standard
+solution constructs a search tree whose nodes are approximations of zones. In this paper
+we give an eﬃcient algorithm for checking if a zone is included in an approximation of
+another zone. This enables a reachability algorithm to work with search trees whose nodes
+are just unapproximated zones. This has numerous advantages: one can use non-convex
+approximations, and one can compute approximating parameters on the ﬂy.
+The ﬁrst solution to the reachability problem has used regions, which are equivalence
+classes of clock valuations. Subsequent research has shown that the region abstraction is
+very ineﬃcient and an other method using zonesinstead of regions has been proposed. This
+©Frédéric Herbreteau, Dileep Kini, B. Srivathsan, and Igor Walukiewicz;
+licensed under Creative Commons License NC-ND
+31stInt’l Conference on Foundations of Software Technology and Theoretical Computer Science (FSTTCS 2011).
+Editors: Supratik Chakraborty, Amit Kumar; pp. 78–89
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 79
+can be implemented eﬃciently using DBMs [10] and is used at present in almost all timed-
+veriﬁcation tools. The number of reachable zones can be inﬁnite, so one needs an abstraction
+operator to get a ﬁnite approximation. The simplest is to approximate a zone with the set
+of regions it intersects, the so called closureof a zone. Unfortunately, the closure may
+not always be convex and no eﬃcient representation of closures is known. For this reason
+implementations use another convex approximation that is also based on (reﬁned) regions.
+We propose a new algorithm for the reachability problem using closures of zones. To this
+eﬀect we provide an eﬃcient algorithm for checking whether a zone is included in a closure
+of another zone. In consequence we can work with non-convex approximations without a
+need to store them explicitly.
+Thresholds for approximations are very important for eﬃcient implementation. Good
+thresholds give substantial gains in time and space. The simplest approach is to take as a
+threshold the maximal constant appearing in a transition of the automaton. A considerable
+gain in eﬃciency can be obtained by analyzing the graph of the automaton and calculating
+thresholds speciﬁc for each clock and state of the automaton [2]. An even more eﬃcient
+approach is the so called LU-approximation that distinguishes between upper and lower
+bounds [3]. This is the method used in the current implementation of UPPAAL. We show
+that we can accommodate closure on top of the LU-approximation at no extra cost.
+Since our algorithm never stores approximations, we can compute thresholds on-the-ﬂy.
+This means that our computation of thresholds does not take into account unreachable
+states. In consequence in some cases we get much better LU-thresholds than those obtained
+by static analysis. This happens in particular in a very common context of analysis of
+parallel compositions of timed automata.
+Related work
+The topic of this paper is approximation of zones and eﬃcient handling of them. We show
+that it is possible to use non-convex approximations and that it can be done eﬃciently.
+In particular, we improve on state of the art approximations [3]. Every forward algorithm
+needs approximations, so our work can apply to tools like RED or UPPAAL.
+Recent work [15] reports on backward analysis approach using general linear constraints.
+This approach does not use approximations and relies on SMT solver to simplify the con-
+straints. Comparing forward and backward methods would require a substantial test suite,
+and is not the subject of this paper.
+Organization of the paper
+The next section presents the basic notions and recalls some of their properties. Section 3
+describes the new algorithm for eﬃcient inclusion test between a zone and a closure of
+another zone. The algorithm constructing the search tree and calculating approximations
+on-the-ﬂy is presented in Section 4. Some results obtained with a prototype implementation
+are presented in the last section. All missing proofs are presented in the full version of the
+paper [13].
+2 Preliminaries
+2.1 Timed automata and the reachability problem
+LetXbe a set of clocks, i.e., variables that range over R≥0, the set of non-negative real
+numbers. A clock constraint is a conjunction of constraints x#cforx∈X,#∈{<,≤,=
+FSTTCS 2011
+
+--- Page 3 ---
+80 Using non-convex approximations for eﬃcient analysis of timed automata
+,≥,>}andc∈N, e.g. (x≤3∧y >0). Let Φ(X)denote the set of clock constraints over
+clock variables X. Aclock valuation overXis a function ν:X→R≥0. We denote RX
+≥0
+the set of clock valuations over X, and 0the valuation that associates 0to every clock in
+X. We write νφwhenνsatisﬁesφ∈Φ(X), i.e. when every constraint in φholds after
+replacing every xbyν(x). Forδ∈R≥0, letν+δbe the valuation that associates ν(x) +δ
+to every clock x. ForR⊆X, let [R]νbe the valuation that sets xto0ifx∈R, and that
+setsxtoν(x)otherwise.
+ATimed Automaton (TA) is a tupleA= (Q,q 0,X,T, Acc)whereQis a ﬁnite set of
+states,q0∈Qis the initial state, Xis a ﬁnite set of clocks, Acc⊆Qis a set of accepting
+states, and T⊆Q×Φ(X)×2X×Qis a ﬁnite set of transitions (q,g,R,q/prime)wheregis a
+guard, andRis the set of clocks that are reseton the transition. An example of a TA is
+depicted in Figure 1. The class of TA we consider is commonly known as diagonal-free TA
+since clock comparisons like x−y≤1are disallowed. Notice that since we are interested
+in state reachability, considering timed automata without state invariants does not entail
+any loss of generality. Indeed, state invariants can be added to guards, then removed, while
+preserving state reachability.
+Aconﬁguration ofAis a pair (q,ν)∈Q×RX
+≥0;(q0,0)is theinitial conﬁguration . We
+write (q,ν)δ,t−→(q/prime,ν/prime)if there exists δ∈R≥0and a transition t= (q,g,R,q/prime)inAsuch
+thatν+δg, andν/prime= [R]ν. Then (q/prime,ν/prime)is called a successor of(q,ν). Arunof
+Ais a ﬁnite sequence of transitions: (q0,ν0)δ0,t0−−−→ (q1,ν1)δ1,t1−−−→··· (qn,νn)starting from
+(q0,ν0) = (q0,0).
+A run is accepting if it ends in a conﬁguration (qn,νn)withqn∈Acc. Thereachability
+problem is to decide whether a given automaton has an accepting run. This problem is
+known to be Pspace-complete [1, 8].
+2.2 Symbolic semantics for timed automata
+The reachability problem is solved using so-called symbolic semantics. It considers sets of
+(uncountably many) valuations instead of valuations separately. A zoneis a set of valuations
+deﬁned by a conjunction of two kinds of constraints: comparison of diﬀerence between two
+clocks with an integer like x−y#c, or comparison of a single clock with an integer like x#c,
+where #∈{<,≤,=,≥,>}andc∈N. For instance (x−y≥1)∧(y <2)is a zone. The
+transition relation on valuations is transferred to zones as follows. We have (q,Z)t− →(q/prime,Z/prime)
+ifZ/primeis the set of valuations ν/primesuch that (q,ν)δ,t−→(q/prime,ν/prime)for someν∈Zandδ∈R≥0. The
+node (q/prime,Z/prime)is called a successor of (q,Z). It can be checked that if Zis a zone, then Z/primeis
+also a zone.
+Thezone graph ofA, denotedZG(A), has nodes of the form (q,Z)with initial node
+(q0,{0}), and edges deﬁned as above. Immediately from the deﬁnition of ZG(A)we infer
+thatAhas an accepting run iﬀ there is a node (q,Z)reachable in ZG(A)withq∈Acc.
+Now, every node (q,Z)has ﬁnitely many successors: at most one successor of (q,Z)per
+transition inA. Still a reachability algorithm may not terminate as the number of reachable
+nodes inZG(A)may not be ﬁnite [9]. The next step is thus to deﬁne an abstract semantics
+ofAas a ﬁnite graph. The basic idea is to deﬁne a ﬁnite partition of the set of valuations
+RX
+≥0. Then, instead of considering nodes (q,S)with set of valuations S(e.g. zones Z), one
+considers a union of the parts of RX
+≥0that intersect S. This gives the ﬁnite abstraction.
+Let us consider a bound function associating to each clock xofAa boundαx∈N. A
+region[1] with respect to αis the set of valuations speciﬁed as follows:
+1.for each clock x∈X, one constraint from the set:
+
+--- Page 4 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 81
+q0 q1 q2 q3x≤5y≥5, x:= 0
+x≤14, y:= 0
+y≥106
+Figure 1 Timed automaton A.
+{x=c|c= 0,...,αx}∪{c−1<x<c|c= 1,...,αx}∪{x>αx}
+2.for each pair of clocks x,yhaving interval constraints: c−1<x<candd−1<y<d,
+it is speciﬁed if fract (x)is less than, equal to or greater than fract (y).
+It can be checked that the set of regions is a ﬁnite partition of RX
+≥0.
+Theclosure abstraction of a set of valuations S, denoted Closureα(S), is the union of
+the regions that intersect S[7]. A simulation graph, denoted SGα(A), has nodes of the
+form (q,S)whereqis a state ofAandS⊆RX
+≥0is a set of valuations. The initial node of
+SGα(A)is(q0,{0}). There is an edge (q,S)t− →(q/prime,Closureα(S/prime))inSGα(A)iﬀS/primeis the set
+of valuations ν/primesuch that (q,ν)δ,t−→(q/prime,ν/prime)for someν∈Sandδ∈R≥0. Notice that the
+reachable part of SGα(A)is ﬁnite since the number of regions is ﬁnite.
+The deﬁnition of the graph SGα(A)is parametrized by a bound function α. It is well-
+known that if we take αAassociating to each clock xthe maximal integer csuch thatx#c
+appears in some guard of AthenSGα(A)preserves the reachability properties.
+ITheorem 1. [7]Ahas an accepting run iﬀ there is a reachable node (q,S)inSGα(A)
+withq∈AccandαA≤α.
+For eﬃciency it is important to have a good bound function α. The nodes of SGα(A)
+are unions of regions. Hence the size of SGα(A)depends on the number of regions which is
+O/parenleftbig
+|X|!.2|X|./producttext
+x∈X(2.αx+ 2)/parenrightbig
+[1]. It follows that smaller values for αyield a coarser, hence
+smaller, symbolic graph SGα(A). Note that current implementations do not use closure but
+some convex under-approximation of it that makes the graph even bigger.
+It has been observed in [2] that instead of considering a global bound function αAfor
+all states inA, one can use diﬀerent functions in each state of the automaton. Consider for
+instance the automaton Ain Figure 1. Looking at the guards, we get that αx= 14and
+αy= 106. Yet, a closer look at the automaton reveals that in the state q2it is enough to
+take the bound αy(q2) = 5. This observation from [2] points out that one can often get
+very big gains by associating a bound function α(q)to each state qinAthat is later used
+for the abstraction of nodes of the form (q,Closureα(q)(S)). In op. cit. an algorithm for
+inferring bounds based on static analysis of the structure of the automaton is proposed. In
+Section 4.2 we will show how to calculate these bounds on-the-ﬂy during the exploration of
+the automaton’s state space.
+3 Eﬃcient testing of inclusion in a closure of a zone
+The tests of the form Z⊆Closureα(Z/prime)will be at the core of the new algorithm we propose.
+This is an important diﬀerence with respect to the standard algorithm that makes the tests
+of the form Z⊆Z/prime. The latter tests are done in O(|X|2)time, where|X|is the number of
+clocks. Wepresentinthissectionasimplealgorithmthatcandothetests Z⊆Closureα(Z/prime)
+at the same complexity with neither the need to represent nor to compute the closure.
+FSTTCS 2011
+
+--- Page 5 ---
+82 Using non-convex approximations for eﬃcient analysis of timed automata
+We start by examining the question as to how one decides if a region Rintersects a zone
+Z. The important point is that it is enough to verify that the projection on every pair of
+variables is nonempty. This is the cornerstone for the eﬃcient inclusion testing algorithm
+that even extends to LU-approximations.
+3.1 When is R∩Zempty
+It will be very convenient to represent zones by distance graphs . Such a graph has clocks
+as vertices, with an additional special clock x0representing constant 0. For readability, we
+will often write 0instead ofx0. Between every two vertices there is an edge with a weight
+of the form (4,c)wherec∈Z∪{∞}and4is either≤or<. An edgex4c−→yrepresents
+a constraint y−x4c: or in words, the distance from xtoyis bounded by c. Let [ [G] ]be
+the set of valuations of clock variables satisfying all the constraints given by the edges of G
+with the restriction that the value of x0is0.
+An arithmetic over the weights (4,c)can be deﬁned as follows [5].
+Equality (41,c1) = (42,c2)ifc1=c2and41=42.
+Addition (41,c1) + (42,c2) = (4,c1+c2)where4=<iﬀ either41or42is<.
+Minus−(4,c) = (4,−c).
+Order (41,c1)<(42,c2)if eitherc1<c 2or (c1=c2and41=<and42=≤).
+Floor⌊(<,c)⌋= (≤,c−1)and⌊(≤,c)⌋= (≤,c).
+This arithmetic lets us talk about the weight of a path as a weight of the sum of its edges.
+A cycle in a distance graph Gis said to be negative if the sum of the weights of its edges is
+at most (<,0); otherwise the cycle is positive. The following useful proposition is folklore.
+IProposition 2. A distance graph Ghas only positive cycles iﬀ [ [G] ]/negationslash=∅.
+A distance graph is in canonical form if the weight of the edge from xtoyis the lower
+bound of the weights of paths from xtoy. Adistance graph of a region R, denotedGR, is
+the canonical graph representing all the constraints deﬁning R. Similarly GZfor a zoneZ.
+We can now state a necessary and suﬃcient condition for the intersection R∩Zto be
+empty in terms of cycles in distance graphs. We denote by Rxythe weight of the edge
+x4xycxy−−−−−→yin the canonical distance graph representing R. Similarly for Z.
+IProposition 3. LetRbe a region and let Zbe a zone. The intersection R∩Zis empty
+iﬀ there exist variables x,ysuch thatZyx+Rxy≤(<,0).
+A variant of this fact has been proven as an intermediate step of Proposition 2 in [7].
+3.2 Eﬃcient inclusion testing
+Our goal is to eﬃciently perform the test Z⊆Closure (Z/prime)for two zones ZandZ/prime. We are
+aiming atO(|X|2)complexity, since this is the complexity of current algorithms used for
+checking inclusion of two zones. Proposition 3 can be used to eﬃciently test the inclusion
+R⊆Closure (Z/prime). It remains to understand what are the regions intersecting the zone Z
+and then to consider all possible cases. The next lemma basically says that every consistent
+instantiation of an edge in GZleads to a region intersecting Z.
+ILemma 4. LetGbe a distance graph in canonical form, with all cycles positive. Let x,y
+be two variables, and let x4xycxy−→yandy4yxcyx−→xbe edges in G. For every d∈Rsuch that
+d4xycxyand−d4yxcyxthere exists a valuation v∈[ [G] ]withv(y)−v(x) =d.
+
+--- Page 6 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 83
+Thanks to this lemma it is enough to look at edges of GZone by one to see what regions
+we can get. This insight is used to get the desired eﬃcient inclusion test
+ITheorem 5. LetZ,Z/primebe zones. Then, Z*Closureα(Z/prime)iﬀ there exist variables x,y,
+both diﬀerent from x0, such that one of the following conditions hold:
+1.Z/prime
+0x<Z 0xandZ/prime
+0x≤(≤,αx), or
+2.Z/prime
+x0<Zx0andZx0≥(≤,−αx), or
+3.Zx0≥(≤,−αx)andZ/prime
+xy<ZxyandZ/prime
+xy≤(≤,αy) +⌊Zx0⌋.
+Comparison with the algorithm for Z⊆Z/prime
+Given two zones ZandZ/prime, the procedure for checking Z⊆Z/primeworks on two graphs GZ
+andGZ/primethat are in canonical form. This form reduces the inclusion test to comparing the
+edges of the graphs one by one. Note that our algorithm for Z⊆Closureα(Z/prime)does not
+do worse. It works on GZandGZ/primetoo. The edge by edge checks are only marginally more
+complicated. The overall procedure is still O(|X|2).
+3.3 Handling LU-approximation
+In [3] the authors propose to distinguish between maximal constants used in upper and lower
+bounds comparisons: for each clock x,Lx∈N∪{−∞} represents the maximal constant c
+such that there exists a constraint x>corx≥cin a guard of a transition in the automaton;
+dually,Ux∈N∪{−∞} represents the maximal constant csuch that there is a constraint
+x < corx≤cin a guard of a transition. If such a cdoes not exist, then it is considered
+to be−∞. They have introduced an extrapolation operator Extra+
+LU(Z)that takes into
+account this information. This is probably the best presently known convex abstraction of
+zones.
+We now explain how to extend our inclusion test to handle LU approximation, namely
+givenZandZ/primehow to directly check Z⊆Closureα(Extra+
+LU(Z/prime))eﬃciently. Observe that
+for eachx, the maximal constant αxis the maximum of LxandUx. In the sequel, this is
+denotedZ⊆Closure+
+LU(Z/prime). For this we need to understand ﬁrst when a region intersecting
+Zintersects Extra+
+LU(Z/prime). Therefore, we study the conditions that a region Rshould satisfy
+if it intersects Extra+
+LU(Z)for a zoneZ.
+We recall the deﬁnition given in [3] that has originally been presented using diﬀerence
+bound matrices (DBM). In a DBM (cij,≺i,j)stands forxi−xj≺i,jci,j. In the language of
+distance graphs, this corresponds to an edge xj≺i,jci,j−→xi; hence toZjiin our notation. Let
+Z+denote Extra+
+LU(Z)andGZ+its distance graph. We have:
+Z+
+xy=
+
+(<,∞)ifZxy>(≤, Ly)
+(<,∞)if−Zy0>(≤, Ly)
+(<,∞)if−Zx0>(≤, Ux), y/negationslash= 0
+(<,−Ux)if−Zx0>(≤, Ux), y= 0
+Zxy otherwise .(1)
+From this deﬁnition it will be important for us to note that GZ+isGZwith some weights
+put to (<,∞)and some weights on the edges to x0put to (<,−Ux). Note that Extra+
+LU(Z/prime)
+is not in the canonical form. If we put Extra+
+LU(Z/prime)into the canonical form then we could
+just use Theorem 5. We cannot aﬀord to do this since canonization can take cubic time
+[5]. The following theorem implies that we can do the test without canonizing Extra+
+LU(Z/prime).
+Hence we can get a simple quadratic test also in this case.
+FSTTCS 2011
+
+--- Page 7 ---
+84 Using non-convex approximations for eﬃcient analysis of timed automata
+ITheorem 6. LetZ,Z/primebe zones. Let Z/prime+denote Extra+
+LU(Z/prime)obtained from Z/primeusing
+Equation 1 for each edge. Note that Z/prime+is not necessarily in canonical form. Then, we get
+thatZ*Closureα(Z/prime+)iﬀ there exist variables x,ydiﬀerent form x0such that one of the
+following conditions hold:
+1.Z/prime+
+0x<Z 0xandZ/prime+
+0x≤(≤,αx), or
+2.Z/prime+
+x0<Zx0andZx0≥(≤,−αx), or
+3.Zx0≥(≤,−αx)andZ/prime+
+xy<ZxyandZ/prime+
+xy≤(≤,αy) +⌊Zx0⌋.
+4 A New Algorithm for Reachability
+Our goal is to decide if a ﬁnal state of a given timed automaton is reachable. We do it by
+computing a ﬁnite preﬁx of the reachability tree of the zone graph ZG(A)that is suﬃcient
+to solve the reachability problem. Finiteness is ensured by not exploring a node (q,Z)if
+there exists a (q,Z/prime)such thatZ⊆Closureα(Z/prime), for a suitable α. We will ﬁrst describe a
+simple algorithm based on the closure and then we will address the issue of ﬁnding tighter
+bounds for the clock values.
+4.1 The basic algorithm
+Given a timed automaton Awe ﬁrst calculate the bound function αAas described just
+before Theorem 1. Each node in the tree that we compute is of the form (q,Z), whereqis a
+state of the automaton, and Zis an unapproximated zone. The root node is (q0,Z0), which
+is the initial node of ZG(A). The algorithm performs a depth ﬁrst search: at a node (q,Z),
+a transition t= (q,g,r,q/prime)not yet considered for exploration is picked and the successor
+(q/prime,Z/prime)is computed where (q,Z)t− →(q/prime,Z/prime)inZG(A). Ifq/primeis a ﬁnal state and Z/primeis not
+empty then the algorithm terminates. Otherwise the search continues from (q/prime,Z/prime)unless
+there is already a node (q/prime,Z/prime/prime)withZ/prime⊆ClosureαA(Z/prime/prime)in the current tree.
+The correctness of the algorithm is straightforward. It follows from the fact that if
+Z/prime⊆ClosureαA(Z/prime/prime)then all the states reachable from (q/prime,Z/prime)are reachable from (q/prime,Z/prime/prime)
+and hence it is not necessary to explore the tree from (q/prime,Z/prime). Termination of the algorithm
+is ensured since there are ﬁnitely many sets of the form ClosureαA(Z). Indeed, the algorithm
+will construct a preﬁx of the reachability tree of SGα(A)as described in Theorem 1.
+The above algorithm does not use the classical extrapolation operator named Extra+
+M
+in [3] andExtra+
+αhereafter, but the coarser Closureαoperator [7]. This is possible since the
+algorithm does not need to represent Closureα(Z), which is in general not a zone. Instead of
+storing Closureα(Z)the algorithm just stores Zand performs tests Z⊆Closureα(Z/prime)each
+time it is needed (in contrast to Algorithm 2 in [7]). This is as eﬃcient as testing Z⊆Z/prime
+thanks to the algorithm presented in the previous section.
+Since Closureαis a coarser abstraction, this simple algorithm already covers some of the
+optimizations of the standard algorithm. For example the Extra+
+α(Z)abstraction proposed
+in [3] is subsumed since Extra+
+α(Z)⊆Closureα(Z)for any zone Z[7, 3]. Other important
+optimizations of the standard algorithm concern ﬁner computation of bounding functions
+α. We now show that the structure of the proposed algorithm allows to improve this too.
+4.2 Computing clock bounds on-the-ﬂy
+We can improve on the idea of Behrmann et al. [2] of computing a bound function αqfor
+each stateq. We will compute these bounding functions on-the-ﬂy and they will depend also
+on a zone and not just a state. An obvious gain is that we will never consider constraints
+
+--- Page 8 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 85
+Algorithm 1 Reachability algorithm with
+on-the-ﬂyboundcomputationandnon-convex
+abstraction.
+1function main():
+2 push((q0,Z0,α0), stack)
+3 while(stack/negationslash=∅)do
+4 (q,Z,α ):=top(stack); pop(stack)
+5explore(q,Z,α)
+6resolve()
+7 return"empty"
+8
+9function explore(q,Z,α):
+10 if(qis accepting)
+11 exit"not empty"
+12 if(∃(q,Z/prime,α/prime)nontentative
+13 ands.t.Z⊆Closureα/prime(Z/prime))
+14 mark (q,Z,α )tentative wrt (q,Z/prime,α/prime)
+15α:=α/prime; propagate( parent (q,Z,α ))
+16 else
+17 propagate(q,Z,α)
+18 for each (qs,Zs,αs)inchildren (q,Z,α )do19 if(Zs/negationslash=∅)
+20 explore(qs,Zs,αs)
+21
+22 function resolve():
+23 for each (q,Z,α )tentative wrt (q,Z/prime,α/prime)do
+24 if(Z/negationslash⊆Closureα/prime(Z/prime))
+25 mark (q,Z,α )nontentative
+26α:=−∞; propagate( parent (q,Z,α ))
+27 push((q,Z,α ), stack)
+28
+29 function propagate(q,Z,α):
+30α:=max
+(q,Z,α )g;R−−→ (q/prime,Z/prime,α/prime)maxedge(g,R,α/prime)
+31 if(αhas changed)
+32 for each (qt,Zt,αt)tentative wrt (q,Z,α )do
+33αt:=α; propagate( parent (qt,Zt,αt))
+34 if((q,Z,α )/negationslash= (q0,Z0,α0))
+35 propagate(parent (q,Z,α ))
+36
+37 function maxedge(g,R,α):
+38 letαR=λx.ifx∈Rthen−∞ elseα(x)
+39 letαg=λx.ifx#cingthencelse−∞
+40 return(λx. max (αR(x),αg(x)))
+coming from unreachable transitions. We comment more on advantages of this approach in
+Section 5.
+Our modiﬁed algorithm is given in Figure 1. It computes a tree whose nodes are triples
+(q,Z,α )where (q,Z)is a node of ZG(A)andαis a bound function. Each node (q,Z,α )has
+as many child nodes (qs,Zs,αs)as there are successors (qs,Zs)of(q,Z)inZG(A). Notice
+that this includes successors with an empty zone Zs, which are however not further unfolded.
+These nodes must be included for correctness of our constant propagation procedure. By
+default bound functions map each clock to −∞. They are later updated as explained below.
+Each node is further marked either tentative ornontentative . The leaf nodes (q,Z,α )of
+the tree are either deadlock nodes (either there is no transition out of state qorZis empty),
+ortentative nodes. All the other nodes are marked nontentative .
+Our algorithm starts from the root node (q0,Z0,α0), consisting of the initial state, initial
+zone, and the function mapping each clock to −∞. It repeatedly alternates an exploration
+and a resolution phase as described below.
+Exploration phase
+Before exploring a node n= (q,Z,α )the function explore checks ifqis accepting and Z
+is not empty; if it is so then Ahas an accepting run. Otherwise the algorithm checks if
+there exists a nontentative noden/prime= (q/prime,Z/prime,α/prime)in the current tree such that q=q/primeand
+Z⊆Closureα/prime(Z/prime). If yes,nbecomes a tentative node and its exploration is temporarily
+stopped as each state reachable from nis also reachable from n/prime. If none of these holds, the
+successors of the node are explored. The exploration terminates since Closureαhas a ﬁnite
+range.
+When the exploration algorithm gets to a new node, it propagates the bounds from this
+node to all its predecessors. The goal of these propagations is to maintain the following
+invariant. For every node n= (q,Z,α ):
+1.ifnisnontentative , thenαis the maximum of the αsfrom all successor nodes (qs,Zs,αs)
+ofn(taking into account guards and resets as made precise in the function maxedge);
+2.ifnistentative with respect to (q/prime,Z/prime,α/prime), thenαis equal toα/prime.
+The result of propagation is analogous to the inequalities seen in the static guard analysis [2],
+however now applied to the zone graph, on-the-ﬂy. Hence, the bounds associated to each
+FSTTCS 2011
+
+--- Page 9 ---
+86 Using non-convex approximations for eﬃcient analysis of timed automata
+node (q,Z,α )never exceed those that are computed by the static guard analysis.
+A delicate point about this procedure is handling of tentative nodes. When a node nis
+markedtentative , we haveα=α/prime. However the value of α/primemay be updated when the tree
+is further explored. Thus each time we update the bounds function of a node, it is not only
+propagated upward in the tree but also to the nodes that are tentative with respect to n/prime.
+This algorithm terminates as the bound functions in each node never decrease and are
+bounded. From the invariants above, we get that in every node, αis a solution to the
+equations in [2] applied on ZG(A).
+It could seem that the algorithm will be forced to do a high number of propagations of
+bounds. The experiments reported in Section 5 show that the present very simple approach
+to bound propagation is good enough. Since we propagate the bounds as soon as they are
+modiﬁed, most of the time, the value of αdoes not change in line 30 of function propagate .
+In general, bounds are only propagated on very short distances in the tree, mostly along one
+single edge. For this reason we do not concentrate on optimizing the function propagate . In
+the implementation we use the presented function augmented with a minor “optimization”
+that avoids calculating maximum over all successors in line 30 when it is not needed.
+Resolution phase
+Finally, as the bounds may have changed since nhas been marked tentative, the function
+resolve checks for the consistency of tentative nodes. IfZ⊆Closureα/prime(Z/prime)is not true
+anymore,nneeds to be explored. Hence it is viewed as a new node: the bounds are set to
+−∞andnis pushed on the stackfor further consideration in the function main. Setting
+αto−∞is safe asαwill be computed and propagated when nis explored. We perform
+also a small optimization and propagate this bound upward, thereby making some bounds
+decrease.
+The resolution phase may provide new nodes to be explored. The algorithm terminates
+when this is not the case, that is when all tentative nodes remain tentative. We can then
+conclude that no accepting state is reachable.
+ITheorem 7. An accepting state is reachable in ZG(A)iﬀ the algorithm reaches a node
+with an accepting state and a non-empty zone.
+4.3 Handling LU approximations
+Recall that Extra+
+LU(Z)approximation used two bounds: LxandUxfor each clock x. In
+our algorithm we can easily propagate LU bounds instead of just maximal bounds. We can
+also replace the test Z⊆Closureα/prime(Z/prime)byZ⊆Closureα/prime(Extra+
+L/primeU/prime(Z/prime)), whereL/primeandU/prime
+are the bounds calculated for (q/prime,Z/prime)andα/prime
+x= max(L/prime
+x,U/prime
+x)for every clock x. As discussed
+in Section 3.3, this test can be done eﬃciently too. The proof of correctness of the resulting
+algorithm is only slightly more complicated.
+5 Experimental results
+We have implemented the algorithm from Figure 1, and have tested it on classical bench-
+marks. The results are presented in Table 1, along with a comparison to UPPAAL and
+our implementation of UPPAAL’s core algorithm that uses the Extra+
+LUextrapolation [3]
+and computes bounds by static analysis [2]. Since we have not considered symmetry reduc-
+tion [12] in our tool, we have not used it in UPPAAL either.
+
+--- Page 10 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 87
+Table 1Experimental results: number of visited nodes and running time with a timeout (T.O.)
+of 60 seconds. Experiments done on a MacBook with 2.4GHz Intel Core Duo processor and 2GB
+of memory running MacOS X 10.6.7.
+Model Our algorithm UPPAAL’s algorithm UPPAAL 4.1.3 (-n4 -C -o1)
+nodes s.nodes s.nodes s.
+A1 2 0.00 10003 0.07 10003 0.07
+A2 7 0.00 3999 0.60 2003 0.01
+A3 3 0.00 10004 0.37 10004 0.32
+CSMA/CD7 5031 0.32 5923 0.27− T.O.
+CSMA/CD8 16588 1.36 19017 1.08− T.O.
+CSMA/CD9 54439 6.01 60783 4.19− T.O.
+FDDI10 459 0.02 525 0.06 12049 2.43
+FDDI20 1719 0.29 2045 0.78− T.O.
+FDDI30 3779 1.29 4565 4.50− T.O.
+Fischer7 7737 0.42 20021 0.53 18374 0.35
+Fischer8 25080 1.55 91506 2.48 85438 1.53
+Fischer9 81035 5.90 420627 12.54 398685 8.95
+Fischer10 −T.O.− T.O. 1827009 53.44
+The comparison to UPPAAL is not meaningful for the CSMA/CD and the FDDI proto-
+cols. Indeed, UPPAAL runs out of time even if we signiﬁcantly increase the time allowed;
+switching to breadth-ﬁrst search has not helped either. We suspect that this is due to the or-
+der in which UPPAAL takes the transitions in the automaton. For this reason in columns 4
+and 5, we provide results from our own implementation of UPPAAL’s algorithm that takes
+transitions in the same order as the implementation of our algorithm. Although RED also
+uses approximations, it is even more diﬃcult to draw a meaningful comparison with it, since
+it uses symbolic state representation unlike UPPAAL or our tool. Since this paper is about
+approximation methods, and not tool comparison, we leave more extensive comparisons as
+further work.
+The results show that our algorithm provides important gains. Analyzing the results
+more closely we could see that both the use of closure, and on-the-ﬂy computation of bounds
+are important. In Fischer’s protocol our algorithm visits much less nodes. In the FDDI
+protocol with nprocesses, the DBMs are rather big square matrices of order 3n+ 2. Never-
+theless our inclusion test based on Closure is signiﬁcantly better in the running time. The
+CSMA/CD case shows that the cost of bounds propagation does not always counterbalance
+the gains. However the overhead is not very high either. We comment further on the results
+below.
+The ﬁrst improvement comes from the computation of the maximal bounds used for the
+abstraction as demonstrated by the examples A2(Figure 2), Fischer and CSMA/CD that
+correspond to three diﬀerent situations. In the A2example, the transition that yields the
+big bound 104onyinq0is not reachable from any (q0,Z), hence we just get the lower bound
+20onyin(q0,Z), and a subsequent gain in performance.
+The automatonA1in Figure 2 illustrates the gain on the CSMA/CD protocol. The
+transition from q0toq1is disabled as it must synchronize on letter a!. The static analysis
+algorithm [2] ignores this fact, hence it associates bound 104toyinq0. Since our algorithm
+computes the bounds on-the-ﬂy, yis associated the bound 10in every node (q0,Z). We
+observe that UPPAAL’s algorithm visits 10003nodes onZG(A1)whereas our algorithm
+only visits 2nodes. The same situation occurs in the CSMA/CD example. However despite
+the improvement in the number of nodes (roughly 10%) the cost of computing the bounds
+impacts the running time negatively.
+The gains that we observe in the analysis of the Fischer’s protocol are explained by the
+automatonA3in Figure 2.A3has a bounded integer variable nthat is initialized to 0.
+FSTTCS 2011
+
+--- Page 11 ---
+88 Using non-convex approximations for eﬃcient analysis of timed automata
+ZZ/prime
+αxαy
+xy
+0
+Z:x−y≥1
+Z/prime:x>αxA1
+a!q2q1q0x<=1x:=0x==1y<=10y>=10000 A2
+x:=0x:=0q0y>=20 && x==2y==10000x==1x==5q1q3q2
+A3
+n==10&&y>=10000n==10&&y<=200x:=0x<=1x==1y<=10q1q0q2
+Figure 2 Examples explaining gains obtained with the algorithm.
+Hence, the transitions from q0toq2, and from q1toq2, that check if nis equal to 10are
+disabled. This is ignored by the static analysis algorithm that associates the bound 104to
+clockyinq0. Our algorithm however associates the bound 10toyin every node (q0,Z).
+We observe that UPPAAL’s algorithm visits 10004nodes whereas our algorithm only visits
+3nodes. A similar situation occurs in the Fischer’s protocol. We include the last row to
+underline that our implementation is not as mature as UPPAAL. We strongly think that
+UPPAAL could beneﬁt from methods presented here.
+The second kind of improvement comes from the Closureαabstraction that particularly
+improves the analysis of the Fischer’s and the FDDI protocols. The situation observed on
+the FDDI protocol is explained in Figure 2. For the zone Zin the ﬁgure, by deﬁnition
+Extra+
+LU(Z) =Z, and in consequence Z/prime/negationslash⊆Z. However, Z/prime⊆Closureα(Z). On FDDI and
+Fischer’s protocols, our algorithm performs better due to the non-convex approximation.
+6 Conclusions
+We have proposed a new algorithm for checking reachability properties of timed automata.
+The algorithm has two sources of improvement that are quite independent: the use of the
+Closureαoperator, and the computation of bound functions on-the-ﬂy.
+Apart from immediate gains presented in Table 1, we think that our approach opens
+some new perspectives on analysis of timed systems. We show that the use of non-convex
+approximations can be eﬃcient. We have used very simple approximations, but it may be
+well the case that there are more sophisticated approximations to be discovered. The struc-
+ture of our algorithm permits to calculate bounding constants on the ﬂy. One should note
+that standard benchmarks are very well understood and very well modeled. In particular
+they have no “superﬂuous” constraints or clocks. However in not-so-clean models coming
+from systems in practice one can expect the on-the-ﬂy approach to be even more beneﬁcial.
+There are numerous directions for further research. One of them is to ﬁnd other approxi-
+mation operators. Methods for constraint propagation also deserve a closer look. We believe
+that our approximations methods are compatible with partial order reductions [12, 14]. We
+hope that the two techniques can beneﬁt from each other.
+References
+1R. Alur and D.L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183–235, 1994.
+2G. Behrmann, P. Bouyer, E. Fleury, and K. G. Larsen. Static guard analysis in timed
+automata veriﬁcation. In TACAS, volume 2619 of LNCS, pages 254–270. Springer, 2003.
+
+--- Page 12 ---
+F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz 89
+3G. Behrmann, P. Bouyer, K. G. Larsen, and R. Pelanek. Lower and upper bounds in
+zone-based abstractions of timed automata. Int. Journal on Software Tools for Technology
+Transfer, 8(3):204–215, 2006.
+4G. Behrmann, A. David, K. G Larsen, J. Haakansson, P. Pettersson, W. Yi, and M. Hen-
+driks. UPPAAL 4.0. In QEST’06 , pages 125–126, 2006.
+5J. Bengtsson and W. Yi. Timed automata: Semantics, algorithms and tools. Lectures on
+Concurrency and Petri Nets , pages 87–124, 2004.
+6B. Bérard, B. Bouyer, and A. Petit. Analysing the PGM protocol with UPPAAL. Int.
+Journal of Production Research , 42(14):2773–2791, 2004.
+7P. Bouyer. Forward analysis of updatable timed automata. Form. Methods in Syst. Des. ,
+24(3):281–320, 2004.
+8C. Courcoubetis and M. Yannakakis. Minimum and maximum delay problems in real-time
+systems. Form. Methods Syst. Des. , 1(4):385–415, 1992.
+9C. Daws and S. Tripakis. Model checking of real-time reachability properties using abstrac-
+tions. In TACAS’98 , volume 1384 of LNCS, pages 313–329. Springer, 1998.
+10D. Dill. Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems. In
+AVMFSS , volume 407 of LNCS, pages 197–212. Springer, 1989.
+11K. Havelund, A. Skou, K. Larsen, and K. Lund. Formal modeling and analysis of an
+audio/video protocol: An industrial case study using UPPAAL. In RTSS, pages 2–13,
+1997.
+12M.Hendriks,G.Behrmann,K.G.Larsen,P.Niebert,andF.Vaandrager. Addingsymmetry
+reduction to UPPAAL. In Int. Workshop on Formal Modeling and Analysis of Timed
+Systems, volume 2791 of LNCS, pages 46–59. Springer, 2004.
+13F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz. Using non-convex approx-
+imations for eﬃcient analysis of timed automata. http://hal.archives-ouvertes.fr/inria-
+00559902/en/, 2011. Extended version with proofs.
+14J. Malinowski and P. Niebert. SAT based bounded model checking with partial order
+semantics for timed automata. In TACAS, volume 6015 of LNCS, pages 405–419, 2010.
+15G. Morbé, F. Pigorsch, and C. Scholl. Fully symbolic model checking for timed automata.
+InCAV’11, volume 6806 of LNCS, pages 616–632. Springer, 2011.
+16Farn Wang. Eﬃcient veriﬁcation of timed automata with BDD-like data structures. Int.
+J. on Software Tools for Technology Transfer , 6:77–97, 2004.
+FSTTCS 2011

@@ -1,0 +1,833 @@
+--- Page 1 ---
+Computing and Informatics, Vol. 28, 2009, 655–672
+VERIFICATION OF A FIELDBUS SCHEDULING
+PROTOCOL USING TIMED AUTOMATA
+Nicholaos Petalidis
+Department of Informatics and Communications
+TEI of Serres
+Terma Magnisias
+62100 Serres, Greece
+e-mail:n.petalidis@computer.org
+Manuscript received 5 September 2007; revised 3 November 20 08
+Communicated by Jolana Sebesty´ enov´ a
+Abstract. This paper deals with the formal veriﬁcation of a ﬁeldbus rea l-time
+scheduling mechanism, using the notion of timed-automata a nd the UPPAAL model
+checker. A new approach is proposed here that treats the set o f schedulers that
+regulate access on a ﬁeldbus as a separate entity, called the scheduling layer. In
+addition a network with a changing topology is considered, w here nodes may be
+turned on or oﬀ. The behaviour of the scheduling layer in conj unction with the
+data link, the medium and the network management layer is exa mined and it is
+proved that it enjoys a number of desirable properties.
+Keywords: Fieldbus, formal veriﬁcation, protocol veriﬁcation, time d automata,
+UPPAAL
+1 INTRODUCTION
+Factory communication protocols that are designed to opera te at the plant level are
+usually token-bus protocols built around a scheduler that d istributes a token across
+the network’s nodes. Examples of such protocols are the Foun dation Fieldbus [1]
+and the ISA Fieldbus [2]. These ﬁeldbus protocols, as they ar e called, perform time-
+critical transactions which must be concluded within a pre- speciﬁed time window.
+Fieldbuses are usually employed in hazardous environments (e.g. nuclear plants) and
+their error-free operation is very important.
+
+--- Page 2 ---
+656 N. Petalidis
+During the previous decade a number of attempts were made to c onﬁrm that
+these protocols performed in accordance to their designer’ s intentions. However, the
+lack of industrial strength automated tools at the time, pro mpted researchers to
+resort to simpliﬁcations of the underlying mechanisms in th e protocols, failing thus
+to provide convincing proofs of correctness.
+For example in [3] a ﬁeldbus scheduler was presented and anal ysed but only as
+a separate entity and the resulting veriﬁcation results wer e valid only under normal
+operating conditions, i.e. with a single scheduler operati ng on the link. A formal
+approach was also taken in [4] but the timing constraints of t he protocol were not
+taken into consideration. Similar approaches can be found e lsewhere too. In [5]
+a simple consumer-producer scenario was analysed but again with no reference to
+the scheduling characteristics of the protocol.
+The ﬁrst attempt to analyse a ﬁeldbus protocol with a mature m odelling tool,
+namely UPPAAL [6, 7], was made in [8]. However, in there, emph asis was placed
+on the “bus coupler” and the transmission of data over the dat a link layer. The
+protocol under investigation did not include any schedulin g mechanism.
+A diﬀerent method using UML Statecharts is reported in [9], w here the
+PROFIsafe ﬁeldbus protocol is speciﬁed by means of UML State charts and model-
+led using the VALID toolset. However, the protocol itself is a master-slave protocol
+with no token circulation. Similarly in [10] where a veriﬁca tion via simulation was
+attempted the scheduling mechanism is not taken under consi deration.
+In [11] a model of the hardware redundancy mechanism of the Et hernet Po-
+werLink ﬁeldbus protocol appears. The mechanism allows for devices to connect
+simultaneously to two independent links and to receive fram es from both but process
+frames from only one. This way if one link fails, the network c an still operate. The
+presented model is again based on timed automata. The model, however, does not
+include the redundancy mechanisms that relate to the link’s arbiter.
+A ﬁeldbus that has attracted much attention is the Controlle r Area Network
+(CAN) protocol, and various versions of it have been analyse d in a number of articles,
+e.g. [12, 13, 14, 15]. CANs do not have a dedicated scheduler f or the link and thus
+their modelling does not include such a feature. Instead the re is a time-master node
+that is responsible for maintaining a common sense of time. O f particular interest
+is [12] because the authors investigate the problem of model ling a system with clock
+drifts. The authors propose calculating the maximum drift ǫof a clock and then
+oﬀering a synchronisation within the [ t−ǫ, t+ǫ] interval in order to model the possible
+variance that may be present due to the existence of the drift . Unfortunately, this
+technique can only be realistically used when ǫis in the same order of magnitude as t,
+for otherwise most modelling tools cannot handle the result ing diﬀerence between t
+andǫ.
+Finally in [16] another real-time network, RTnet, is modell ed and its operation
+is veriﬁed. Although RTnet is not a true ﬁeldbus protocol it n evertheless has a lot
+in common with ﬁeldbus protocols, such as real-time transmi ssions with a token
+distributed around the network. Unlike a ﬁeldbus, however, RTnet follows a dis-
+tributed approach in scheduling real time traﬃc. The paper p roves a number of
+
+--- Page 3 ---
+Veriﬁcation of a Scheduling Protocol 657
+properties that the protocol enjoys, for example that at mos t one node has the role
+of the token holder, at most one node has the role of the monito r and so on.
+Similarly, here the focus is placed on a time-critical proto col but with a schedul-
+ing operation that is diﬀerent from that of RTnet. Also, in or der to provide the proof
+a diﬀerent approach is proposed that treats the set of schedu lers as a separate layer,
+thescheduling layer . This is in contrast with the conventional view that schedul ing
+is just a part of the data-link layer. Furthermore, our purpo se is not to simply verify
+the absence of deadlocks and livelocks, but to validate that the operating require-
+ments hold even in a network with a changing topology. During this process the
+methodology of specifying and validating each layer is also presented. We believe
+that the treatment of the set of schedulers as a layer and the b readth of the approach
+that includes a changing topology of schedulers and data nod es constitute the novel
+characteristics of this paper.
+The real-time scheduler adopted here is a version of the sche duler found in the
+Foundation Fieldbus data-link layer protocol that abstrac ts away from all unneces-
+sary details like for example the exact format of the packets the scheduler transmits
+or receives. The modelling and validation is performed usin g the UPPAAL tool
+which itself is based on the notion of timed automata [17, 18] .
+2 THE UPPAAL MODELLING TOOL
+The following is meant to be a brief introduction to the UPPAA L tool. The inter-
+ested reader can ﬁnd a more extensive tutorial on UPPAAL in [1 9].
+UPPAAL is a set of tools that allows for the validation and ver iﬁcation of real-
+time systems.
+One can use the tool to model a system using timed automata. A t imed au-
+tomaton is essentially a ﬁnite state machine extended to inc lude the notion of time
+via the adoption of clock variables. Clocks use a dense-time notion and evaluate to
+a real number. More formally:
+Deﬁnition 1. Atimed automaton (TA) Tis a tuple /an}bracketle{tL, l0, C, A, E, I /an}bracketri}htwhere Lis
+a ﬁnite set of locations and l0is the initial location. Cis the set of clocks, Ais a set
+of actions, co-actions and the internal τaction. E⊆L×A×B(C)×2C×Lis a set
+of edges between locations with an action, a guard, and a set o f clocks to be reset
+andI:L→B(C) is a function assigning invariants to locations [19].
+In the above deﬁnition, the set of possible guarding express ions typically includes
+conjunctions over simple conditions involving clocks or in teger variables and simple
+relations ( <,≤,=,≥, >) to natural numbers.
+Locations can be ordinary, urgent or committed. An automato n in an urgent
+or committed location cannot delay. Furthermore, an automa ton in a committed
+location cannot interleave with other automata.
+Timed automata may form a network , i.e. a system of more than one automata
+that communicate with each other via synchronisation actio ns.
+
+--- Page 4 ---
+658 N. Petalidis
+Deﬁnition 2. A network of timed automata is the parallel composition A1|. . .|An
+of a set of timed automata A1, . . ., A n, called processes, combined into a single
+system by the CCS parallel composition operator with all ext ernal actions hidden.
+Synchronous communication between the processes is by hand -shake synchronisation
+using input and output actions; asynchronous communicatio n is by shared variables.
+Time progresses at the same pace for each automaton in the sys tem.
+UPPAAL allows for one to deﬁne a system, simulate it, verify i nvariants and
+perform reachability analysis. UPPAAL provides with a numb er of queries that can
+be performed on the system under question and prove the reach ability, safety and
+liveness properties that the system respects. More speciﬁc ally, the queries available
+in the veriﬁer can be categorised as follows:
+•Queries used to prove reachability properties, i.e. that th ere exists a path starting
+at the initial state, such that pis eventually satisﬁed along that path.
+–E<>p : there exists a path where peventually holds
+•Queries used to prove safety properties, i.e. that somethin g bad will never happen
+–A[ ]p: for all paths, palways holds
+–E[ ]p: there exists a path where palways holds
+•Queries used to prove liveness properties, i.e. that someth ing good will eventually
+happen
+–A<>p : for all paths, pwill eventually hold
+–p→q: whenever pholds, qwill eventully hold
+where pandqare simple formulas with basic arithmetic and Boolean opera tors.
+Using this language we are allowed to prove important proper ties that the ﬁeld-
+bus protocol respects, for example that as long as there is a s cheduler online, a node
+will be oﬀerred a token.
+3 DESCRIPTION OF THE PROTOCOL
+The protocol described here is a token-bus real-time protoc ol based on the Foun-
+dation Fieldbus data link layer protocol [1]. Nodes are conn ected on a bus-type
+network. A node can transmit on the bus if it has authorisatio n to do so. Authori-
+sation to transmit is granted via the reception of a token. Th e token goes around
+in address order from one node to another. A node may request e xtra time within
+the same cycle of token circulation, in which case if time per mits it will receive the
+token for another time, after all nodes in the link have been s erved at least once.
+The link should not be inactive for more than a pre-speciﬁed p eriod of time
+and thus nodes are forced to transmit at least every VMRD< PTRDslot times ( VST).
+VMRDdenotes the maximum response delay allowed to be observed an d is a constant
+
+--- Page 5 ---
+Veriﬁcation of a Scheduling Protocol 659
+value set by the network management and PTRDis the token recovery delay. The
+slot time is equal to twice the maximum delay in the transmiss ion of one octet plus
+a safety factor. In here, it is assumed that the minimum packe t size is 8 octets long.
+If a node does not have a packet to transmit during the next VMRDslot times then
+it should return the token.
+The particular node which is responsible for distributing t he token across the
+other nodes of the link will be called a Link Active Scheduler (LAS), or simply an
+active scheduler. An active scheduler is said to hold the scheduler token . There
+can be only one LAS at any particular instant. Any node that ha s the necessary
+functionality for becoming an LAS is called a Link Master (LM ). A node that can
+become neither an LAS nor an LM is a Data Link Entity (DLE).
+In order to make the protocol robust there are mechanisms, in the event of
+failure of the current active scheduler, for enabling an LM t o become an LAS:
+i) Each LM is assigned an address iand listens to the bus. If there is no activity
+for a period of i×VSTthen the LM transmits a CL (Claim LAS) packet to
+claim LAS responsibilities. If again no activity is heard fo r another period of
+i×VST, the LM sends the same packet again, after which it chooses a u niformly-
+distributed random integer in the range (0 . . .3)×VST, and monitors the medium
+for that many slot-times. If no activity is again heard the se nding LM assumes
+scheduling responsibilities and transmits a packet so that there is no more than
+14×VSToctet-durations of inactivity on the local link.
+ii) Once an LM has become the active scheduler it passes the to ken, via the PT
+(Pass Token) packet, to the nodes of the link. A node that rece ives this token is
+said to hold the delegated token . When a node ﬁnishes transmitting it returns
+the token via a RT (Return Token) packet or an RI (Request Inte rval) packet.
+In the latter case, the node is requesting for extra time with in this cycle of
+token circulation. Only one node at a time can hold the delega ted token.
+iii) An LM node may request to become an active scheduler, in w hich case the
+LAS transfers scheduling responsibilities through a TL (Tr ansfer LAS) packet
+before it starts a new cycle of circulating the token. The rec eiving LM may
+choose to explicitly deny assumming responsibilities thro ugh an SR (Status
+Response) packet, or it may accept responsibilities by star ting itself a new
+token circulation.
+iv) When the active scheduler is awaiting for a node to reply ( through an RT, RI,
+or SR packet) it should make sure that the link should not go id le for more than
+VIRRDslot times. VIRRDdenotes the value of the immediate response recovery
+delay.
+v) Finally, in order to minimise clock drifts the LAS distrib utes a TD (Time Dis-
+tribution) packet that allows the clocks of the DLEs to be syn crhonised with the
+clock of the scheduler. This packet is transmitted at least o nce in a 0 .95×VTDP
+period, and it takes priority over any other transmission.
+The default values for the variables introduced so far can be found in Table 1.
+
+--- Page 6 ---
+660 N. Petalidis
+Finally, it is assumed that a node that can act as an LM receive s the ON signal
+by the network management before it goes on-line and an OFF si gnal before it goes
+oﬀ-line.
+SNODES= {1016,...,FF16} The set of scheduling nodes
+DNODES The set of data link entities (DLEs)
+VST∈{1,...,4 095} The slot time. Its unit is the transmission duration
+of one octet and its suggested value is 8. In a link
+with a transmission rate of 1Mbps it is 512 µsecs
+VMRD∈{VST,...,11×VST} PTRD∈
+{VMRD+3,...,14}The maximum period a token holder can go with-
+out transmitting and the associated recovery delay.
+Suggested values are 10 or VMRD+ 3.
+VIRRD∈{2×VST,...,12×VST} The maximum period of inactivity which an active
+scheduler allows. Its default value is VMRD+VST
+VDTHT The default token holding time. Its default value is
+set to 278 ×VST
+Λi=i×VST, i∈SNODES The maximum period of link inactivity, for which LM
+iwaits, before claiming scheduling responsibilities
+VTDP∈{5 ms,55 sec } The time distribution period. Determines the mini-
+mum frequency of time distribution on the local link
+and was set to 51 .2 sec.
+VMDC The minimum delay between successive network-
+management commands
+Table 1. The parameters of the system
+3.1 Assumptions
+Some assumptions and simpliﬁcations were made in order to pr oduce a model with
+a manageable state-space. In particular
+i) Only packets that are transmitted from/to an LM or a LAS are modelled. The
+rest, since they are not identiﬁable by an LM or a LAS, are mode lled as VAR
+packets and only their presence is detected.
+ii) The RQ (Round-trip delay query) and RR (Round-trip delay response) packets
+are not modelled, since they are used to measure the physical characteristics of
+the link and these cannot be interpreted realistically on th e model.
+iii) Transferring of the LAS takes place after an explicit re quest from an LM.
+In this model transferring of a LAS through a TL packet takes p lace non-
+deterministically.
+iv) Inclusion of the standardised request/response sequen ce for node activation
+through the transmission of PN (Probe Node), PR (Probe Respo nse) packets
+increased the generated state-space prohibitevely. Inste ad to model the eﬀect of
+
+--- Page 7 ---
+Veriﬁcation of a Scheduling Protocol 661
+a changing token circulation list, the LAS would non-determ inistically choose
+to include or exclude nodes from this list.
+v) Clock-drifts are inevitable in real life. Fieldbus devic es are expected to drift
+in the range of µsecs for every sec. However, UPPAAL cannot model variable
+rate clocks. Stopwatches can be used to the same eﬀect but tha t would require
+to include invariants that check for values in the {1µsec, . . .,51.2×106µsec}
+range, which again is not possible in the tool. It was proved, however, that
+a time synchronisation packet (TD) was transmitted at least once in the required
+intervals.
+4 DESIGN AND METHODOLOGY
+4.1 The Design of the Speciﬁcation
+One of the peculiarities of specifying a scheduler is that it cannot be directly thought
+of as representing a layer that provides services to the laye r above it using the layers
+below it. In fact, the scheduler’s functions appear to be an i solated part of the
+data-link layer protocol. Even the standards describe the s cheduler’s functionality
+in a separate part of the data-link layer speciﬁcation. Adop ting this approach during
+formalisation leads to faithful interpretations of the inf ormal speciﬁcation and formal
+models suited for deriving conforming implementations.
+However, if one wants to specify the properties that the spec iﬁcation should
+honour and examine its behaviour this is not the most appropr iate approach. In
+such a case the speciﬁcation depends upon the formulation of predicates. In the
+case of layered protocols, these properties are part of the s peciﬁcation of the service
+deﬁnition and can be easily deduced from there. Scheduler sp eciﬁcations, however,
+do not have such service deﬁnitions, at least in the form sugg ested in [20] or [21].
+This creates the problem that it is diﬃcult to decide against what properties to
+verify the protocol.
+In order to cope with this problem, a list of properties that e ach scheduler should
+have is formulated and it is considered that each scheduler p rovides a service to the
+data-link layer. In other words, it is assumed that the set of active and inactive
+schedulers forms a layer which provides a service to the data -link layer using the
+physical layer. The beneﬁt of this view is that arguments can be made about the
+behaviour of the scheduling in general; the arguments are no t restricted to proofs
+about the absence of deadlocks or livelocks in a particular s cheduler node. Whereas
+in the classical layering of ﬁeldbus standards the properti es of the schedulers are
+implicit, in this view they are explicit. Thus the job of the v eriﬁcation engineer is
+made easier. An additional beneﬁt is that by un-coupling the scheduling from the
+data-link layer, the process of speciﬁcation and veriﬁcati on is modularised and thus
+simpliﬁed.
+Another design decision made is to consider not only the inte ractions of the
+scheduler with the data-link layer but with the network mana gement as well. In real-
+
+--- Page 8 ---
+662 N. Petalidis
+time protocols it is crucial to be able to argue about events w hich should happen.
+For example, it is important to insist that at any time there i s an LAS operating
+on the link. Such a statement, though, without a qualifying a ssumption is usually
+too strong and sometimes unrealistic. Thus the previous sta tement would better
+be as follows: at any time, provided there is at least one LM on-line, there i s an
+LAS operating on the link . Therefore, a scheduler is viewed as operating in two
+dimensions. Above and parallel to the scheduling layer ther e is the physical layer
+and vertical to the scheduling layer there is the network man agement layer. The
+network management instructs a scheduler to go either on-li ne or oﬀ-line. Figure 1
+presents this view together with the view which conventiona l approaches take.
+Physical LayerLAS DLE DLE LMData Link Layer Data Link Layer
+Scheduling LayerDLE DLE
+LAS LMPhysical LayerNetwork Management Layer
+Fig. 1. The Fieldbus layers as viewed conventionally (left) and as seen here (right)
+Finally, it is assumed that the functions of the lower level, such as framing,
+validation of packets and communication with the physical l ayer are provided by
+the medium which interconnects all the nodes of the link. A si milar decomposi-
+tion of functions is performed for the data-link entities of the network. Thus, the
+termmedium layer will be used from now on to denote a layer with the combined
+functionality of the physical layer and the lower sub-level of the network’s nodes.
+Having a separate medium layer gives us not only better decou pling between the
+upper level and the lower level functions of a node but also al lows us to explicitly
+model the primitives exchanged between the scheduling and t he physical layer. In
+particular the scheduler needs to detect the presence of act ivity on the link and
+it does this by detecting the occurence of the primitives STA RT, DATA and END
+which are issued by the physical layer. Similarly, in our mod el the medium layer
+“translates” the occurrence of a packet in the link by issuin g the same primitives.
+Finally, a separate medium layer also allows us to explicitl y model link characteristics
+such as packet loss or corruption. The decomposition of the l ayers and the packets
+they exchange is presented in Figure 2.
+4.2 The Adopted Methodology
+In order to follow a consistent method in the development of t he speciﬁcation for
+the layers presented above the following methodology was us ed.
+The set of messages accepted by each layer was divided into tw o subsets: a sub-
+set Σ outcontaining all the messages that the automaton transmits an d a set Σ in
+containing all the messages that the automaton is ready to ac cept. The union of
+
+--- Page 9 ---
+Veriﬁcation of a Scheduling Protocol 663
+Fig. 2. Decomposition of the system under investigation
+these forms the set of messages Σ of the automaton: Σ = Σ in/uniontextΣout. This basically
+incorporates what a layer might send or receive.
+After that each safety property was formulated as follows: F or every message
+X∈Σouta requirement of the form “if Xoccurred then Y∈Σ also occurred”, was
+added.
+Similarly each liveness property was formulated as follows : IfZ∈Σ occured
+thenXwill (eventually) occur or if a timer expired then Xwill (eventually) occur.
+Because the query language of UPPAAL only allowed to prove pr operties in-
+volving locations and variables but no actions, each automa ton was annotated with
+a local variable indicating the last message received. It wa s then possible to express,
+whenever necessary, requirements in the form
+msg.pType ==PT→SL.lastMessage .pType ==RT.
+Here a message is a structure deﬁned as follows:1
+typedef struct {
+int [PT,VAR] pType; //The type of the packet
+int [0,numberOfNodes-1] sender; //the address of the sende r
+int [0,numberOfNodes-1] receiver; //the address of the rec eiver
+int alottedTime; // the time alotted for token usage
+int usedTime; // the time actually used
+} Message;
+After the requirements were laid out in the form of the query l anguage of UPPAAL,
+each automaton was constructed separately and proved that i t satisﬁed the proper-
+ties. This initial proof was made against an “observer”, i.e . an automaton that at
+any time is ready to synchronize with the automaton under inv estigation.
+1Shared variables were used to communicate values over a sing le synchronisation chan-
+nel.
+
+--- Page 10 ---
+664 N. Petalidis
+5 THE AUTOMATA
+5.1 THe Data-Link Layer
+The set of messages of the data-link layer can be deﬁned to be t he set of events
+(packets) that it can understand:
+ΣDLdef={TDj,PTj,RTi,RIi,VAR |i∈SNODES , j∈DNODES }.
+The set of messages that the data link-layer generates can th en be deﬁned as follows:
+Out(Σ DL)def={RIi,RTi,VAR |i∈SNODES }
+where the notation RI idenotes a packet sent via the medium to a node with ad-
+dressi.
+The timed automaton template representing one DLE is presen ted in Figure 3,
+and some of the formalised properties that the automaton res pects can be found in
+Table 2. The template was parameterised by the address of eac h DLE.
+Vln=msg.sender,
+Vcrd=msg.alottedTime,
+Crd = 0,
+Tmrd=0
+msg.pType = ltype,
+msg.sender = address,
+msg.receiver = Vln,
+msg.alottedTime = lduration,
+msg.usedTime=Vcrd,
+Vcrd=0,
+Tmrd=0,
+Crd=0msg.pType=VAR,
+msg.sender=address,
+msg.receiver=temp,
+msg.alottedTime = 0,
+msg.usedTime = 0,
+Tmrd=0Tmrd = 0,
+Crd = 0,
+Vcrd=0Crd=0,
+Tmrd=0
+toLink!fromLink[address]?fromLink[address]?
+toLink! Tmrd<=Vmrdtemp:int[tnStart,tnEnd]
+noToken hasToken
+Crd>=Vcrd
+Crd<Vcrd && Tmrd<Vmrdmsg.pType==PT
+ltype:int[RT,RI],
+lduration: int [Vdmdt,Vdtht]msg.pType==TD
+Tmrd>=Vmrd
+Fig. 3. The timed automaton representing the Data Link Layer
+The automaton has only two states, noToken and hasToken. It c an move to
+the hasToken state only if it receives a token. It can stay in t he hasToken state
+transmitting VAR packets as long as it respects the timing co nstraints. At any time
+before the expiration of the token holding time it may return the token via a RT or
+an RI packet. While in the noToken state it may receive a TD pac ket.
+Note that speciﬁcally for the data-link layer there was no re quirement of the
+formifZ∈Σoccurred then Xwill (eventually) occur because the schedulers should
+continue to operate even if a DLE node fails to act.
+
+--- Page 11 ---
+Veriﬁcation of a Scheduling Protocol 665
+A[] (msg.pType==RT
+imply (DLE1.lastMessage.pType==PT
+|| DLE1.lastMessage.pType==VAR)
+&& DLE1.Tmrd<=Vmrd
+&& DLE1.Crd<=Vcrd)If the DLE has sent an RTpacket then ei-
+ther the previous packet was an PTpacket or
+aV AR packet and the transmission respected
+the relevant time limits.
+A[] (msg.pType==VAR
+imply (DLE1.lastMessage.pType==PT
+|| DLE1.lastMessage.pType==VAR)
+&& DLE1.Tmrd<=Vmrd
+&& DLE1.Crd<=Vcrd)If the DLE has sent a V AR packet then ei-
+ther the previous packet was an PTpacket or
+aV AR packet and the transmission respected
+the relevant time limits.
+Table 2. Some basic safety properties that a DLE automaton re spects
+5.2 The Scheduling Layer
+The set of messages of the scheduling layer can be deﬁned to be the set of messages
+that it may send or receive:
+ΣSLdef={ON,OFF,CL,TLi,TDj,PTj,RTi,RIi,START i,DATA i,END i|
+j∈DNODES , i∈SNODES }.
+The set of messages that the scheduling layer sends can then b e deﬁned as follows:
+Out(Σ SL)def={PTj,CL,TLi,SRi,TDj|i∈SNODES , j∈DNODES }.
+The automaton for the scheduling layer is presented in Figur e 4. The automa-
+ton can be in any of thirteen diﬀerent locations, one of them b eing the ‘oﬀ-line’
+location, which denotes that network management has instru cted the automaton to
+turn oﬀ. There are three more locations where a scheduler lie s during the arbitra-
+tion procedures (LM1, LM2, acquiringToken) and three locat ions for the case where
+the scheduler circulates the token (hasSchedulerToken, mo nitoringPT, noScheduler-
+Token). While in state hasSchedulerToken the scheduler may transmit a TD or
+a PT packet. One more location denotes the state where the sch eduler has trans-
+mitted a TL packet (transmittedTL) and one where the schedul er has received the
+TL packet (receivedTL). Finally the rest of the locations (n ot shown in the ﬁgure)
+are used to eliminate activity due to noise on the link and det ect corrupted packets.
+This automaton is parameterised by the address of the schedu ler.
+Some of the major properties that the scheduling layer shoul d respect are sum-
+marised in Table 3.
+5.3 The Medium Layer
+The medium is basically the interface between the schedulin g and the data link
+layer. The medium guarantees certain properties to the data link layer, provided
+that it can rely upon the scheduling layer for other properti es and vice versa.
+
+--- Page 12 ---
+666 N. Petalidis
+activity[Vtn]?toLink!
+activity[Vtn]?
+toLink!
+activity[Vtn]?activity[Vtn]?
+toLink!Ttdp<(Vtdp−Virrd)
+fromLink[Vtn]?toLink!
+activity[Vtn]?toLink!Tirrd>=Virrd
+toLink!activity[Vtn]?activity[Vtn]?
+fromLink[Vtn]?toLink!
+hasSchedulerTokenwaitingForSchedulerToken transmittedPT
+Tirrd<=2*(Vtn+16)*VstTirrd<=Virrd
+Tirrd<=3*VstTirrd<=(Vtn+16)*VstreceivedTL
+Off LM1 LM2transmittedTL
+acquiringTokenTirrd>=Ptrdmsg.pType!=SR
+Tirrd>=Virrdmsg.pType ==
+	TL
+msg.pType==TL
+Tirrd>=(Vtn+16)*VstTtdp<(Vtdp−Virrd)
+Tirrd>=2*(Vtn+16)*Vst Tirrd>1*VstTirrd<=Virrd
+Ttdp>=Vtdpmsg.pType==SR
+Tirrd<=Ptrd &&
+	Ttdp<=VtdpTirrd<=Ptrd
+Fig. 4. The timed automaton representing an LM (simpliﬁed fo r presentation purposes)
+E<> msg.pType==SR && msg.sender==1
+&& SL2.LM1An LM can send an SR packet (rejecting an
+attempt to transfer the LAS)
+E<> SL1.hasSchedulerToken It is possible for an LM to acquire the sched-
+uler token
+A[] (msg.pType==PT and msg.sender==0
+and Medium.Receiving)
+imply (SL1.transmittedPT
+&& SL1.Tirrd<=Ptrd)If a PT packet was transmitted by a scheduler,
+then that scheduler was in the transmittedPT
+state and the link did not remain inactive for
+more than PTRDtime
+A[](SL1.Tirrd>=16*Vst
+and Medium.Receiving)
+imply msg.pType==CLAlways, if at any time there is link inactiv-
+ity of more than Λ itime then a CL packet is
+transmitted
+(SL1.Tirrd>=16 and msg.sender==0
+and Medium.Receiving and not SL1.Off)
+-> msg.pType==CLIf the link is inactive for Λ islot times, then
+a scheduler that was online during this period
+should oﬀer a CL event
+msg.pType==TL && msg.receiver==1 &&
+Medium.Receiving ->
+((msg.pType==SR && msg.sender==1
+&& Medium.Receiving) or
+(msg.pType==PT && msg.sender==1
+&& Medium.Receiving) or
+(SL1.Tirrd>=Virrd &&
+SL1.hasSchedulerToken) ||SL1.Off)If an attempt to transfer LAS responsibilities
+is made, then the receiving LM will either re-
+ject the transfer, or transmit a PT or nothing
+will happen and the current LAS will resume
+scheduling responsibilities, unless it is turned
+oﬀ
+SL1.hasSchedulerToken
+&& msg.pType==RI && msg.sender==1
+&& SL1.Vrtha[0]>=Vdmdt ->
+(msg.pType==PT && msg.receiver==1
+&& SL1.newCycle==false
+&& SL1.transmittedPT) || SL1.OffIf a DLE has requested for another interval in
+the current cycle of token circulation then it
+will receive it provided that there is enough re-
+maining time ( VRTHA) and that the scheduler
+will not be turned oﬀ
+not (SL1.LM1 || SL1.LM2 ||
+SL1.Off || SL1.acquiringToken)->
+(SL1.Ttdp==Vtdp imply msg.pType==TD)If a scheduler has the token then it will trans-
+mit a TD at least every VTDPtime
+Table 3. Some basic properties of the scheduling layer
+
+--- Page 13 ---
+Veriﬁcation of a Scheduling Protocol 667
+The set of messages that the medium can transmit or receive is basically the
+union of the messages of the data-link and the scheduling lay er without the network
+management messages.
+ΣML= ΣDL/uniondisplay
+ΣSL− {ON,OFF}
+Out(Σ ML)def={TLi,TDj,SRi,PTj,RTi,RIi,START i,DATA i,END i|
+j∈DNODES , i∈SNODES }
+The timed automaton for the medium is represented in Figure 5 . The medium
+receives packets, generates the appropriate activity even ts to all but the originating
+node, and transmits packets to the appropriate destination with the appropriate
+time delay. TD packets are broadcasted to all nodes. A synchr onisation on the
+toLink channel will set the ﬁelds of the shared variable msg t o the appropriate
+values, e.g. a token returned with an RI packet might set the v ariable as follows:
+msg.pType=RI; //The type of the packet
+msg.sender=20; //the address of the sender
+msg.receiver=16;//the address of the receiver
+msg.alottedTime=556; // the time alotted for token usage
+msg.usedTime=556; // the time actually used
+The medium forces a delay in the transmission of packets of at leastVSTtime and
+after that delay a synchronisation will be oﬀered on the toLi nk channel and the
+listening node will receive the message.
+The medium delivers packets by indicating a START, carrying on with three or
+more DATA indications and concluding with an END. The synchr onisation channel
+Activity is used for this purpose together with a shared vari able that indicates
+the type of activity occurring. Sometimes noise might be gen erated in which case
+a START will be followed immediately by an END indication. Fi nally messages
+may be corrupted in which case one or more DATA indications wi ll set the variable
+corrupted to true.
+Some basic properties that the medium layer respects are pre sented in Table 4.
+Similar properties hold for all packets transmitted throug h the Medium layer.
+A[] Medium.Transmitting and msg.pType==PT
+imply Medium.lastMessage.pType==PT
+and Medium1.lt>=Vst)If a token is transmitted, then someone
+has oﬀerred it before VSTtime
+Medium.Receiving and msg.pType==PT
+-> Medium.Transmitting and msg.pType==PT
+and Medium.lt>=VstAlternatively, if a token is oﬀerred, then
+it will eventually be transmitted
+Table 4. Some basic properties of the medium layer
+
+--- Page 14 ---
+668 N. Petalidis
+lt:=0,
+i=0,
+activityType=3lt:=0,
+i=0,
+activityType=3i=i+1,
+lt=0,
+activityType=START
+inReceiver :=msg.receiver,
+i=0,
+lt:=0,
+activityType=1i=i+1,
+lt=0,
+activityType=START
+lt:=0,
+inReceiver=0,
+i=0,
+activityType=3
+activity[i]!lt:=0,
+i=0,
+activityType=2lt:=0,
+i=0,
+activityType=3,
+isCorrupted=false
+i=0,
+lt=0,
+activityType=3
+i=i+1,
+lt=0i=0,
+lt=0,
+activityType=3
+i=i+1,
+lt=0i=i+1,
+lt=0,
+activityType=DATAactivity[i]! activity[i]!
+fromLink[i]!activity[i]!
+toLink?activity[i]!
+fromLink[inReceiver]!i==msg.sender && i<numOfLMs
+i==numOfLMsi<numOfLMs
+i==msg.sender && i<numOfLMsi<numOfLMs && i!=msg.senderi<numOfLMs && i!=msg.sender
+i==numOfLMs
+TransmittingReceiving
+broadcastTDi==numOfLMs
+i<numOfLMsIdle
+lt<=Vsti=i+1,
+lt=0,
+activityType=DATA,
+isCorrupted=temp
+msg.pType!=VAR && lt>=Vst
+lt:=0,
+i=0,
+activityType=3i<numOfLMs && i!=msg.sender
+(msg.pType==VAR || msg.pType ==CL || msg.pType ==SR) && lt>=Vsti=i+1,
+lt=0,
+activityType=END
+i=0,
+lt:=0,
+activityType=STARTi=i+1,
+lt=0,
+activityType=ENDi==numOfLMs
+msg.pType==TD && lt>=Vsti==msg.sender && i<numOfLMs
+i==numOfLMs
+i==numberOfNodes
+i<numberOfNodes && i!=msg.sender
+i==msg.sender && i<numberOfNodes
+Fig. 5. The timed automaton representing the Medium Layer
+5.4 The Network Management Layer
+The network management layer transmits only two messages an d thus its set of
+messages is:
+ΣNL={ON,OFF}
+and
+Out(Σ NL) = Σ NL.
+The automaton itself is very simple. It consists of two state s only. The automaton
+can turn on or oﬀ a scheduler. The only requirement is that it d oes not do that
+inﬁnitely often, but there is a delay of VMDCbefore turning oﬀ a scheduler.
+6 FORMAL VERIFICATION
+In the previous section the formal speciﬁcation in the form o f a timed automaton for
+each layer was given. Initially the automata were proved to s atisfy their respective
+requirements. Their combined behaviour was examined next.
+If there had been a separate deﬁnition for the service which t he data-link layer
+ultimately expects from the scheduling layer, the veriﬁcat ion process would have
+tested whether the combined behaviour of the scheduling and the medium provided
+that service. Unfortunately such a deﬁnition does not exist . In any case, it is worth
+investigating the service which the data-link layer can exp ect.
+The important properties that probably constitute what can be considered to be
+the core of the service expected by the scheduling layer are s tated informally below
+and their corresponding formulas can be found in Table 5.
+
+--- Page 15 ---
+Veriﬁcation of a Scheduling Protocol 669
+1. There can be no deadlock on the system.
+2. If there is a scheduler online, then a DLE will eventually b e oﬀered a token.
+3. At anytime, at most one DLE is in possession of token.
+A[] not deadlock
+A<> (!SL1.Off || !SL2.Off)
+imply (DLE1.hasToken || \ldots || DLE10.hasToken)
+DLE1.hasToken -> (DLE2.noToken and \ldots and DLE10.noTok en)
+\ldots
+DLE10.hasToken -> (DLE1.noToken and \ldots and DLE9.noTok en)
+Table 5. Some basic properties that the ﬁeldbus network resp ects
+Although no major problems were discovered it was neverthel ess necessary to
+interpret the informal description in order to decide how to best formalise a concept.
+For example the informal speciﬁcation would state that immediately after a scheduler
+assumes scheduling responsibilities it will start circula ting the token without clearly
+deﬁning that immediately actually meant just after the mini mum inter-PDU delay
+(VMID) has expired. In addition, the speciﬁcation was not clear ab out the timing
+restrictions concerning the delegation of a token immediat ely after the reception of
+aTLpacket and only after cross-referencing several sections o f the documentation
+it was possible to extract the necessary information. Furth ermore, the speciﬁcation
+did not make clear in some cases that activity resulting from noise on the link should
+not be taken under account.
+Various network conﬁgurations were examined, with emphasi s on the more com-
+mon conﬁgurations of up to three LM nodes, since most ﬁeldbus topologies rarely
+have more than two link masters. Models that allow for the pre sence of noise on the
+link and packet corruption were also analysed. Some of the co nﬁgurations tested are
+presented in Table 6. Note how the resulted state-space is eﬀ ected by changing the
+allowed values of token holding time: VDMDT denotes the minumum token holding
+time, and when it diﬀers from the default token holding time VDTHT the range of
+the periods for which a node can hold the token greatly increa ses and subsequently
+both the state-space and the memory required to keep the stat e increase.
+Regarding the veriﬁcation procedure itself, several notes can be made. For
+a start the ability of token delegation more than once in the s ame cycle of to-
+ken circulation to the same node greatly increased the resul ted state-space of the
+model. The reason for this was the introduction of arrays (e. g.VRTHA) that stored
+for each DLE the time remaining for a subsequent token delega tion. Similarly, in-
+clusion of the request/response protocol for node activati on required arrays to keep
+track of the link’s live list and increased the size of the res ulted state-space. One
+solution was to remove the arrays from the state-space by dec laring them as meta-
+variables where possible. This of course assummed that they were not used in guard
+
+--- Page 16 ---
+670 N. Petalidis
+expressions. The diﬀerence in the generated space is presen ted in Table 62. An-
+other technique that proved useful during validation was th e explicit declaration of
+the allowed ranges for all integer variables. Thus, during t he development of the
+model, any resulted out-of-bounds assignments indicated e rrors in our implemen-
+tation which would otherwise be diﬃcult to uncover. Finally , the allowed integer
+range of UPPAAL [ −32 768 ,32 767] hindered the use of stopwatches for modelling
+clock drifts. The reason was that to model a clock drift of i µsec for every sec it
+would have been necessary to use a timer tand add an invariant such that t≤iin
+a location. But then when another invariant was required to s ay for example that
+a TD packet needed to be transmitted every 51 .2 sec then that invariant would have
+to state that t≤51.2×106µsec; but that would have exceeded the allowed range
+of integer variables.
+LMs DLEs VRTHA Corruption VDTHT States Memory Time
+Noise De-
+tection/negationslash=
+VDMDTResident/Virtual
+(MBytes)
+2 6 Y N N 47299 374 829/1 670 2640.9s
+2 6 N (meta) N N 102266 7.8/28.2 6.147s
+2 6 N (meta) Y N 230239 104.3/246 9.730s
+2 6 N (meta) Y Y 1855 548 185/424 1410.4s
+2 20 N (meta) N N 339374 30.6/63.3 83.92s
+2 20 N (meta) Y N 854309 52.6/109.7 144.05s
+2 20 N (meta) Y Y 8201 003 818/1085 10394 .4 s
+3 20 N (meta) N N 3354 546 142/286 897.03s
+3 20 N (meta) Y N 11469 908 378.9/765 3462.35 s
+3 20 N (meta) Y Y 108642 391 1 630/2 330 86252 s
+3 30 N (meta) N N 4851 107 245/496 2369.02 s
+3 30 N (meta) Y N 16919 216 671.7/1 340 9761.04 s
+Table 6. Some of the conﬁgurations modelled and relative sta tistics proving
+A[ ]not deadlock
+7 CONCLUSIONS
+This paper has presented a proof for the scheduling procedur es found in a number
+of ﬁeldbus systems. The proof was derived by a formal model wh ere the set of
+schedulers was considered as a layer that provides services to the layers above.
+A network with a changing topology was also assumed.
+Clearly, any formal model and formally speciﬁed system reli es upon a set of
+assumptions. The assumptions made for this model were descr ibed previously. Fur-
+thermore two other assumptions were made: that the schedule rs are not continuously
+turned on and oﬀ and that packets (and thus transmission time s) have equal length.
+The ﬁrst hypothesis is not unreasonable and the second one ca n be relaxed aﬀect-
+ing, of course, the resulted state-space. Veriﬁcation was a lso carried out with the
+medium corrupting messages but it would have been more reali stic to try a medium
+2All measurements were made on a T8300 Intel Processor, with 3 GB of RAM, running
+Windows Vista Business Ed. SP1 and UPPAAL ver. 4.1
+
+--- Page 17 ---
+Veriﬁcation of a Scheduling Protocol 671
+that only corrupts messages with certain probabilities. To do that we expect to
+experiment in the near future with models based on weighted p robabilistic timed
+automata.
+REFERENCES
+[1] Fieldbus Foundation, Ed. FF-822: Data Link Layer Protoc ol Speciﬁcation. Fieldbus
+Foundation, 1995.
+[2] ISA, Editor. ISA-50.02, Part 4-1997 Fieldbus Standard f or Use in Industrial Control
+Systems. Part 4: Data Link Protocol Speciﬁcation. ISA, 1997 .
+[3]Durante, L.—Sisto, R.—Valenzano, A. : Formal Speciﬁcation and Veriﬁcation
+of the Real-Time Scheduler In FIP. In IEEE International Wor kshop on Factory
+Communication Systems, 1995, pp. 99–106.
+[4]Mari˜no, P.–Poza, F.–Dom ´ınguez, M.A.—Nogueira, J.B. : Link Level Formal
+Speciﬁcation for Industrial Communication Networks. In IE CON Proceedings, Vol. 1,
+1998, pp. 226–231.
+[5]Juanole, G.—Gallon, L. : Formal Modelling and Analysis of a Critical Time
+Communication Protocol. In IEEE International Workshop on Factory Communica-
+tion Systems, 1995, pp. 107–115.
+[6] Larsen, K. G.—Pettersson, P.—Yi, W.. UPPAAL in a Nutshel l. Int. Journal on Soft-
+ware Tools for Technology Transfer, Vol. 1, October 1997, No . 1–2, pp. 134–152.
+[7]David, A.—Behrmann, G.—Larsen, K.G.—Yi, W. : A Tool Architecture for
+the Next Generation of UPPAAL. In 10thAnniversary Colloquium Formal Methods
+at the Cross Roads: From Panacea to Foundational Support, LN CS 2003.
+[8]David, A.—Yi, W. : Modelling and Analysis of a Commercial Field Bus Protocol.
+In 12thEuromicro Conference on Real-Time Systems, 2000, pp. 165–1 72.
+[9]Malik, R.—M ¨uhlfeld, R. : A Case Study in Veriﬁcation of UML State-Charts:
+The PROFIsafe Protocol. Journal of Universal Computer Scie nce, Vol. 9, 2003, No. 2,
+pp. 138–151.
+[10]Brandao, S.—da Cunha, M.J.—Pinotti, M. : Fieldbus Control System Project
+Support Tool Based on Experimental Analysis and Modelling o f Communication Bus.
+In IEEE International Conference on Industrial Technology , Vol. 2, 2004, pp. 787–792.
+[11]Limal, S.—Potier, S.—Denis, B.—Lesage, J.J. : Formal Veriﬁcation of Re-
+dundant Media Extension of Ethernet Powerlink. In IEEE Conf erence on Emerging
+Technologies and Factory Automation, September 2007, pp. 1 045–1052.
+[12]Rodriguez-Navas, G.—Proenza, J.—Hansson, H. : Using UPPAAL to Model
+and Verify a Clock Synchronization Protocol for the Control ler Area Network. In
+10thIEEE Conference on Emerging Technologies and Factory Autom ation, Vol. 2,
+September 2005, pp. 495–502.
+[13]Leen, G.—Heffernan, D. : Modelling and Veriﬁcation of a Time-Triggered Net-
+working Protocol. In International Conference on Networki ng, International Con-
+ference on Systems and International Conference on Mobile C ommunications and
+Learning Technologies, 2006, pp. 178–188.
+
+--- Page 18 ---
+672 N. Petalidis
+[14]Rodriguez-Navas, G.—Proenza, J.—Hansson, H. : Modelling and Veriﬁcation
+of Master/Slave Clock Synchronization Using Hybrid Automa ta and Model-Checking.
+In ICFEM, 2007, pp. 307–326.
+[15]Bonet, M.—Donaire, G.—Proenza, J. : Modelling MajorCAN with UPPAAL.
+In IEEE Conference on Emerging Technologies and Factory Aut omation, 2007,
+pp. 1404–1407.
+[16]Hanssen, F.—Mader, A.—Jansen, P.G. : Verifying the Distributed Real-Time
+Network Protocol RTnet using UPPAAL. In 14thIEEE International Symposium on
+Modeling, Analysis, and Simulation of Computer and Telecom munication Systems,
+September 2006, pp. 239–246.
+[17]Alur, R.—Dill, D. : Automata for Modelling Real-Time Systems. Theoretical
+Computer Science, Vol. 126, April 1994, No. 2, pp. 183–236.
+[18]Bengtsson, J.—Yi, W. : Timed Automata: Semantics, Algorithms and Tools. In
+W. Reisig and G. Rozenberg (Eds.), Lecture Notes on Concurre ncy and Petri Nets,
+LNCS 3098. Springer-Verlag 2004.
+[19]Behrmann, G.—David, A.—Larsen, K.G. : A Tutorial on UPPAAL. In Marco
+Bernardo and Flavio Corradini (Eds.), Formal Methods for th e Design of Real-Time
+Systems, 4thInternational School on Formal Methods for the Design of Com puter,
+Communication, and Software Systems, SFM-RT 2004, LNCS, No . 3185, pp. 200–236,
+Springer-Verlag 2004.
+[20]Lam, S. S.—Udaya, S. A. : Understanding Interfaces. In K. R. Parker and
+G. A. Rose (Eds.), Formal Description Techniques IV, pp. 165 –184, IFIP 1992.
+[21]Vissers, C.—Logrippo, L. : The Importance of the Service Concept in the Design
+of Data Communications Protocols. In M. Diaz (Ed.), Protoco l Speciﬁcation, Testing
+and Veriﬁcation, Volume V, pp. 3–17, 1986.
+Nicholaos /C8/CT/D8 /CP/D0/CX/CS/CX/D7 is a consulting software engineer. Since
+2004, he has been teaching software engineering at the Techn o-
+logical Educational Institute of Serres, at the Department of
+Informatics and Communications. He received his B.Sc. de-
+gree in computer science from the University of Crete, Greec e
+in 1994, and his Ph. D. degree from the University of Brighton ,
+UK in 1999. His research interests include software develop ment
+methodologies and formal methods for protocol speciﬁcatio n and
+veriﬁcation.

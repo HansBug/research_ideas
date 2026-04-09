@@ -1,0 +1,258 @@
+--- Page 1 ---
+Tool description presented at CAV, Boston MA, July 2004. Appears in
+Springer Verlag LNCS 3114, pp. 496-500. c/circlecopyrtSpringer-Verlag
+SAL 2⋆
+Leonardo de Moura, Sam Owre, Harald Rueß, John Rushby,
+N. Shankar, Maria Sorea, Ashish Tiwari
+Computer Science Laboratory
+SRI International
+333 Ravenswood Avenue
+Menlo Park, CA 94025 USA
+Abstract. SAL 2 augments the speciﬁcation language and explicit-state
+model checker of SAL 1 with high-performance symbolic and bounded
+model checkers, and with novel inﬁnite bounded andwitness model check-
+ers. The bounded model checker can use several diﬀerent SAT solvers,
+while the inﬁnite bounded model checker similarly can use several dif-
+ferent ground decision procedures. SAL 2 provides a scriptable API for
+its basic model checking and analysis functions that can be used to ex-
+tend the system. All four new model checkers are implemented using this
+interface.
+Its high-level speciﬁcation language and wide range of model checkers
+make SAL convenient for those seeking a ready-to-use solution, while
+its scriptability and ﬂexible choice of backend analyzers should make it
+attractive to those seeking an experimental platform.
+1 Introduction
+SAL (see http://sal.csl.sri.com ) is an open suite of tools for analysis of state
+machines; it constitutes part of our vision for a Symbolic Analysis Laboratory
+that will eventually encompass SAL, the PVS veriﬁcation system, the ICS deci-
+sion procedures, and other tools developed in our group and elsewhere.
+SAL provides a language similar to that of PVS, but specialized for the
+speciﬁcation of state machines; it was ﬁrst released with an explicit-state model
+checker as SAL 1 in July 2002; SAL 2, which was released in December 2003,
+adds high-performance symbolic and bounded model checkers, and novel inﬁnite
+bounded andwitness model checkers. Both the bounded model checkers can addi-
+tionally perform veriﬁcation by k-induction, and the capabilities of all the model
+checkers and their components are available through an API that is scriptable
+in Scheme.
+2 The Language
+The SAL language was originally conceived as an intermediate language and was
+developed in collaboration with the research groups of David Dill at Stanford
+⋆This work was partially supported by the DARPA and USAF Rome Laboratory
+contract F33615-00-C-3043, NASA Langley Research Center contract NAS1-00079,
+National Science Foundation grant CCR-ITR-0326540, and by SRI International.
+1
+
+--- Page 2 ---
+and Tom Henzinger at UC Berkeley. Since then, our version of the language
+has evolved, principally through the addition of a richer type system, including
+structured types and subtypes so that, in addition to its role as an intermediate
+language, SAL is now a comprehensive speciﬁcation language in its own right.
+SAL’s type system and expression language are similar to those of PVS,
+including higher types, predicate subtypes, datatypes, inﬁnite types such as re-
+als and integers (and their function types), recursive function deﬁnitions, and
+quantiﬁcation. State machines are speciﬁed as parameterized modules with state
+variables explicitly identiﬁed as input, output, local, or global. The transition
+relation of a module may be speciﬁed using both guarded commands and SMV-
+style variable-wise invariants. Primes are used to indicate the values of variables
+in the new state and may appear in guards and in the right-hand sides of assign-
+ments and nondeterministic selections as well as on their left-hand sides. Modules
+may be composed both synchronously and asynchronously (and in combinations
+of these) to yield systems; a renaming construction allows inputs and outputs of
+diﬀerent modules to be “wired up” appropriately.
+The assertion language is not primitive in SAL but is deﬁned in libraries
+associated with the analyzer concerned. Three of the model checkers that con-
+stitute the analyzers in SAL 2 provide LTL as their assertion language, while
+the witness model checker supports CTL. (Both notations can be used to specify
+formulas in their common subset and SAL translates automatically to the form
+required by the analyzer concerned).
+To support its role as an intermediate language, SAL is deﬁned in XML.
+Parsers and prettyprinters are provided for a human-readable ASCII represen-
+tation, and for a Lisp-like LSAL syntax that is useful in scripting and is trans-
+lated directly into internal representations by the Scheme scripting interface.
+Because the language is so rich, it is easy to translate most other state ma-
+chine languages into SAL. We have a translator from the Stateﬂow notation of
+Matlab/Simulink [ 8], and we expect that ourselves and others will soon provide
+translators from other popular languages.
+3 Preprocessing and Compilation
+Because SAL is a rich language, compiling it into the representations used in
+the deductive cores of its analysis tools (e.g., as BDDs, or as propositional or
+ICS SAT problems) is a substantial task. All the SAL analysis tools share a
+common set of preprocessing and compilation routines that perform extensive
+optimizations. These include partial evaluation, common subexpression elimi-
+nation, and slicing (i.e., cone of inﬂuence reduction). For the ﬁnite-state model
+checkers, arithmetic values and operators are compiled into bitvectors and binary
+“circuits” respectively, with comparable representations for other SAL types. Re-
+verse translations allow counterexamples to be presented to the user as traces
+through the original SAL speciﬁcation with variable assignments expressed in
+their original SAL types. LTL assertions are translated to optimized B¨ uchi au-
+tomata. Many transformations and optimizations can be controlled by the user.
+2
+
+--- Page 3 ---
+SAL 2 provides a lightweight typechecker, called the SAL well-formedness
+checker, that operates like the typechecker of a programming language: it checks
+that functions and operators are applied to arguments of the correct types, but
+does not perform the deeper checks needed for some of SAL’s richer constructs:
+these require proof obligations similar to TCCs in PVS [ 11] (although SAL TCCs
+within modules need merely be invariants, not universally valid as in PVS) and
+will be supported by the full SAL typechecker, which is based on that of PVS.
+4 Model Checkers
+SAL 2 provides high performance symbolic and bounded model checkers (SMC
+and BMC, respectively) for systems deﬁned over ﬁnite state types, and a novel
+“inﬁnite bounded” model checker (inf BMC) that can handle inﬁnite as well
+as ﬁnite state types; SAL 2.1 added the “witness” model checker (WMC) that
+performs ﬁnite-state CTL model checking using a new symbolic method.
+The SMC and WMC symbolic model checkers use the CUDD BDD package
+(see http://vlsi.colorado.edu/~fabio/CUDD/cuddIntro.html ) and provide
+access to its options for controlling the ordering and dynamic reordering of vari-
+ables. The representation of the transition relation as a BDD and the evaluation
+of the transformed assertion use many optimizations and deliver performance
+comparable to other state-of-the-art symbolic model checkers, most of which
+start from much more primitive notations. In a case study with Holger Pfeifer
+and Wilfried Steiner concerning fault-tolerant startup of the Time-Triggered
+Architecture (TTA) [ 13], we routinely analyzed systems with many hundreds of
+state bits and hundreds of billions of reachable states in tens of minutes using
+commodity workstations.
+The WMC model checker implements a novel approach that constructs both
+symbolic witnesses (positive) and counterexamples (negative) for assertions in
+full CTL [ 12]. This symbolic evidence is useful in abstraction-reﬁnement, vacuity
+checking and controller synthesis, and also allows explicit (trace or tree-like)
+witnesses and counterexamples to be extracted.
+The BMC model checker uses a propositional SAT solver to search for coun-
+terexamples no longer than some speciﬁed “depth” (i.e., length); the model
+checker can be instructed to advance the depth incrementally, so that it will ﬁnd
+the shortest counterexample, and it can also verify properties by k-induction [ 5]
+(optionally using other formulas as lemmas). By default, SAL uses ICS [ 3] as its
+SAT solver, but it can optionally be instructed to use zChaﬀ [ 10] or GRASP [ 9].
+In our TTA startup example, the SAL bounded model checker would often solve
+problems having hundreds of thousands of DAG nodes in their SAT representa-
+tions (and more than 600 variables in a BDD representation) in a few minutes.
+The inf BMC model checker uses the standard formulation of bounded model
+checking, but instead of translating into a purely propositional SAT problem, it
+translates to the theory supported by ICS [ 4]. Although ICS is competitive as
+a pure SAT solver, it is actually a decision procedure and satisﬁability solver
+for the combination of ground (i.e., unquantiﬁed) real and integer linear arith-
+metic, equality with uninterpreted function symbols, products (i.e., tuples) and
+3
+
+--- Page 4 ---
+coproducts (i.e., disjoint sums), propositional calculus and propositional sets,
+and restricted forms of lambda calculus, bitvectors, and arrays. Like its ﬁnite
+counterpart, the inf BMC model checker can advance its depth of search incre-
+mentally and can perform k-induction. Counterexamples are presented symbol-
+ically. Although inf BMC uses ICS as its default satisﬁability procedure, it can
+also be instructed to use UCLID [ 2], SVC [ 1], CVC [ 14], or CVC-Lite, albeit
+with restrictions (e.g., UCLID decides less theories than ICS) and without coun-
+terexamples.
+Using real or unbounded integer state types, SAL can represent inﬁnite state
+systems such as hybrid or timed automata, and other formulations of continuous
+or real-time behavior. For example, with Bruno Dutertre, we have developed
+a timed formulation for TTA startup: instances with up to 10 nodes (whose
+representation uses 24 real and 99 discrete variables) can be veriﬁed in a few
+minutes using inf BMC to perform 1-induction on a series of lemmas [ 6]. Instances
+of Fischer’s real time mutual exclusion algorithm with as many as 39 nodes have
+been veriﬁed in the same way.
+5 Scripting and the SAL Simulator
+The preprocessing and model checking components of SAL can be accessed
+through an API deﬁned in Scheme. The actual model checkers are simply Scheme
+scripts deﬁned over this API. Users can write their own scripts to perform spe-
+cialized analyses using the full resources of SAL. The SAL Simulator provides
+a convenient environment in which to develop such scripts: it is essentially a
+read-eval-print loop with the SAL libraries preloaded. Used as a simulator, it
+allows users interactively to explore a speciﬁcation by executing selected tran-
+sitions, ﬁltering the current set of states, or ﬁnding a path to a state satisfying
+a given assertion. Used as an environment for scripting, all the capabilities de-
+scribed above can be employed within user-written Scheme functions. For exam-
+ple, with Gr´ egoire Hamon we have used this capability to develop a prototype
+test case generator for Stateﬂow that ﬁrst uses symbolic model checking to ﬁnd a
+path to some previously unvisited state or transition, then alternates slicing and
+bounded model checking to extend the path to additional unvisited targets [ 7].
+6 Plans for Further Development
+SAL 1, which is still available, provides an explicit-state model checker for a
+subset of the language supported in SAL 2. We intend to redevelop this model
+checker and to integrate it with the others in forthcoming versions of SAL. We
+will also integrate the extensions for specifying and abstracting hybrid systems
+developed by Ashish Tiwari [ 15].
+Over the longer term, we intend to integrate SAL with PVS (so that, for
+suitable speciﬁcations, it will be possible to translate SAL into PVS, and vice-
+versa), and to evolve both into an open scriptable environment for symbolic
+analysis in which numerous tools, developed by ourselves and others, will interact
+through a SAL Tool Bus . The tool bus will extend the SAL language with XML
+4
+
+--- Page 5 ---
+representations for the many artifacts and intermediate products of analysis: for
+example, invariants, abstractions, counterexamples, test cases and their outputs.
+7 Current Status and Availability
+SAL 2 with all the capabilities described is freely available for noncommer-
+cial research purposes (i.e., roughly, research that will be openly published)
+from http://sal.csl.sri.com . Binary versions of the system, which require
+an automatically-generated license key, may be downloaded for Linux, Solaris,
+MacOS X, and Cygwin (for Windows). The SAL binaries also install the ICS
+executable. The SAL and ICS source code is available with a signed license agree-
+ment. The top-level page for tools developed by our group is http://fm.csl.
+sri.com , from which you can ﬁnd links to our Roadmap, papers, examples, and
+a tutorial illustrating all our tools.
+References
+1.Clark W. Barrett, David L. Dill, and Jeremy R. Levitt. A decision procedure for
+bit-vector arithmetic. In Proceedings of the 35th Design Automation Conference ,
+June 1998. San Francisco, CA.
+2.Randal E. Bryant, Shuvendu K. Lahiri, and Sanjit A. Seshia. Modeling and ver-
+ifying systems using a logic of counter arithmetic with lambda expressions and
+uninterpreted functions. In Computer Aided Veriﬁcation . Volume 2404 of Springer-
+Verlag Lecture Notes in Computer Science , pages 78–92, July 27–31 2002.
+3.Leonardo de Moura, Sam Owre, Harald Rueß, John Rushby, and N. Shankar. The
+ICS decision procedures for embedded deduction. In David Basin and Micha¨ el
+Rusinowitch, editors, 2nd International Joint Conference on Automated Reasoning
+(IJCAR) , Volume 3097 of Springer-Verlag Lecture Notes in Computer Science ,
+pages 218–222, Cork, Ireland, July 2004.
+4.Leonardo de Moura, Harald Rueß, and Maria Sorea. Lazy theorem proving for
+bounded model checking over inﬁnite domains. In A. Voronkov, editor, 18th Inter-
+national Conference on Automated Deduction (CADE) , Volume 2392 of Springer-
+Verlag Lecture Notes in Computer Science , pages 438–455, Copenhagen, Denmark,
+July 2002.
+5.Leonardo de Moura, Harald Rueß, and Maria Sorea. Bounded model check-
+ing and induction: From refutation to veriﬁcation. In Warren A. Hunt, Jr. and
+Fabio Somenzi, editors, Computer-Aided Veriﬁcation, CAV ’2003 , Volume 2725 of
+Springer-Verlag Lecture Notes in Computer Science , pages 14–26, Boulder, CO,
+July 2003.
+6.Bruno Dutertre and Maria Sorea. Modeling and veriﬁcation of a fault-tolerant
+real-time startup protocol using calendar automata. In Formal Techniques in Real-
+Time and Fault-Tolerant Systems , Grenoble, France, September 2004. To appear,
+available at http://fm.csl.sri.com/doc/abstracts/ftrtft04 .
+7.Gr´ egoire Hamon, Leonardo deMoura, and John Rushby. Generating eﬃcient test
+sets with a model checker. In 2nd IEEE International Conference on Software
+Engineering and Formal Methods , Beijing, China, September 2004. To appear,
+available at http://fm.csl.sri.com/~rushby/abstracts/sefm04 .
+5
+
+--- Page 6 ---
+8.Gr´ egoire Hamon and John Rushby. An operational semantics for Stateﬂow. In
+M. Wermelinger and T. Margaria-Steﬀen, editors, Fundamental Approaches to Soft-
+ware Engineering: 7th International Conference (FASE) , Volume 2984 of Springer-
+Verlag Lecture Notes in Computer Science , pages 229–243, Barcelona, Spain, 2004.
+9.Joao P. Marques-Silva and Karem A. Sakallah. GRASP - A New Search Algo-
+rithm for Satisﬁability. In Proceedings of IEEE/ACM International Conference on
+Computer-Aided Design , pages 220–227, November 1996.
+10.Matthew W. Moskewicz, Conor F. Madigan, Ying Zhao, Lintao Zhang, and Sharad
+Malik. Chaﬀ: Engineering an Eﬃcient SAT Solver. In Proceedings of the 38th
+Design Automation Conference (DAC’01) , June 2001.
+11.John Rushby, Sam Owre, and N. Shankar. Subtypes for speciﬁcations: Predicate
+subtyping in PVS. IEEE Transactions on Software Engineering , 24(9):709–720,
+September 1998.
+12.N. Shankar and Maria Sorea. Counterexample-driven model checking. Technical
+Report SRI-CSL-03-04, Computer Science Laboratory, SRI International, Menlo
+Park, CA, October 2003. Available at http://www.csl.sri.com/users/sorea/
+reports/wmc.ps.gz .
+13.Wilfried Steiner, John Rushby, Maria Sorea, and Holger Pfeifer. Model checking
+a fault-tolerant startup algorithm: From design exploration to exhaustive fault
+simulation. In The International Conference on Dependable Systems and Networks ,
+pages 189–198, IEEE Computer Society, Florence, Italy, June 2004.
+14.Aaron Stump, Clark W. Barrett, and David L. Dill. CVC: a cooperating validity
+checker. In Computer Aided Veriﬁcation . Volume 2404 of Springer-Verlag Lecture
+Notes in Computer Science , pages 500–504, July 27–31 2002.
+15.Ashish Tiwari. Approximate reachability for linear systems. In O. Maler and
+A. Pnueli, editors, Hybrid Systems: Computation and Control, 6th International
+Workshop, HSCC 2003 , Volume 2623 of Springer-Verlag Lecture Notes in Computer
+Science , pages 514–525, Prague, Czech Republic, April 2003.
+6

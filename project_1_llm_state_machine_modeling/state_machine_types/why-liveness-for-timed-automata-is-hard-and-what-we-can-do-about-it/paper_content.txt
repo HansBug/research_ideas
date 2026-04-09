@@ -1,0 +1,1425 @@
+--- Page 1 ---
+HAL Id: hal-03023737
+https://hal.science/hal-03023737v1
+Submitted on 27 Nov 2020
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Why Liveness for Timed Automata Is Hard, and What We
+Can Do About It
+Frédéric Herbreteau, B. Srivathsan, Tran Thanh Tung, Igor Walukiewicz
+To cite this version:
+Frédéric Herbreteau, B. Srivathsan, Tran Thanh Tung, Igor Walukiewicz. Why Liveness for Timed Automata
+Is Hard, and What We Can Do About It. ACM Transactions on Computational Logic, 2020, ⟨10.1145/3372310⟩.
+⟨hal-03023737⟩
+
+--- Page 2 ---
+Why liveness for timed automata is hard, and what we can
+do about it
+FRÉDÉRIC HERBRETEAU, Université de Bordeaux, Bordeaux INP, CNRS, LaBRI, UMR 5800, Talence,
+France and UMI 2000 ReLaX
+B. SRIVATHSAN, Chennai Mathematical Institute, Chennai, India and UMI 2000 ReLaX
+THANH-TUNG TRAN, School of Computer Science and Engineering, International University, Vietnam
+National University, Ho Chi Minh city (VNU-HCM), Viet Nam
+IGOR WALUKIEWICZ, Université de Bordeaux, Bordeaux INP, CNRS, LaBRI, UMR 5800, Talence, France
+and UMI 2000 ReLaX
+Thereachability problem for timed automata asks if a given automaton has a run leading to an accepting state,
+and the liveness problem asks if the automaton has an infinite run which visits accepting states infinitely often.
+Both these problems are known to be Pspace -complete.
+We show that if P ,Pspace , the liveness problem is more difficult than the reachability problem; in other
+words we exhibit a family of automata for which solving the reachability problem with the standard algorithm
+is in P but solving the liveness problem is Pspace -hard. This leads us to revisit the algorithmics for the liveness
+problem. We propose a notion of a witness for the fact that a timed automaton violates a liveness property.
+We give an algorithm for computing such a witness and compare it with existing solutions.
+CCS Concepts: •Theory of computation →Verification by model checking .
+Additional Key Words and Phrases: Timed automata, liveness verification, complexity, algorithms
+ACM Reference Format:
+Frédéric Herbreteau, B. Srivathsan, Thanh-Tung Tran, and Igor Walukiewicz. 2019. Why liveness for timed
+automata is hard, and what we can do about it. ACM Trans. Comput. Logic 1, 1 (November 2019), 28 pages.
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+1 INTRODUCTION
+Timed automata [ 1] are one of the standard models for timed systems. There has been an extensive
+body of work on the verification of reachability/safety properties of timed automata. In contrast,
+advances on verification of liveness properties are much less spectacular. For verification of liveness
+properties expressed in a logic like Linear Temporal Logic, it is best to consider a slightly more
+general problem of verification of Büchi properties. This means verifying if in a given timed
+automaton there is an infinite path passing through an accepting state infinitely often.
+Testing Büchi properties of timed systems can be surprisingly useful. We give an example in Sec-
+tion 6 where we describe how with a simple liveness test one can discover a typo in the benchmark
+CSMA/CD model [ 16,18]. This typo removes practically all the interesting behaviours from the
+model. Yet the CSMA/CD benchmark has been extensively used for evaluating verification tools,
+and nothing unusual has been observed. Therefore, even if one is interested solely in verification
+of safety properties, it is important to “test” the model under consideration, and for this Büchi
+properties are very useful.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for components of this work owned by others than ACM must be honored.
+Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+©2019 Association for Computing Machinery.
+1529-3785/2019/11-ART $15.00
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 3 ---
+2 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+Verification of reachability properties of timed automata is known to be Pspace -complete [ 1].
+In practice, reachability analysis is possible thanks to the so-called zones and their abstractions
+[3,4,10,12]. Roughly, the standard approach used nowadays for reachability/safety properties
+performs a breadth first search (BFS) over the set of pairs (state, zone) reachable in the automaton,
+storing only pairs with the maximal abstracted zones (with respect to inclusion, called subsumption
+in this context). In jargon: the algorithm constructs a zone graph with subsumption .
+Verifying Büchi properties for timed automata is also known to be Pspace -complete [ 1]. In this
+paper, we give strong evidence that verification of Büchi properties is inherently more difficult
+than verification of reachability properties. For a long time it has been understood that for liveness
+checking, there is a problem with the approach outlined above - keeping only the maximal zones
+with respect to inclusion (i.e. zone graph with subsumption) is no longer sound [ 13,15]. It is possible
+to use the zone graph without subsumption, but this one is almost always too big to handle. One
+could however hope that some modification of the notion of zone graph with subsumption can
+give an algorithm for Büchi properties that is provably not much more costly than the algorithm
+for reachability properties. We show that this is unlikely. We present a family of automata for
+which the size of the zone graph with subsumption is linear in the size of the automata and hence
+reachability can be decided in P; however deciding existence of a Büchi accepting run for these
+automata amounts to solving the halting problem for Linear Bounded Automata. This proves
+that unless P= Pspace , there is no hope of obtaining an algorithm for Büchi properties that has
+provably similar complexity to the standard reachability algorithm (which constructs zone graph
+with subsumption).
+Our goal in this paper is to rethink the foundations of verification of Büchi properties for timed
+automata, and propose some algorithmic solutions. The first question we address is this: what can
+be a witness to the fact that an automaton has no Büchi accepting run? As we have mentioned
+above, for reachability properties such a witness is a zone graph with subsumption. We propose
+a similar notion of a witness for Büchi properties that allows only “safe” subsumptions. As the
+next contribution, we give an algorithm for computing such a witness. Due to the hardness result
+mentioned above, we cannot hope to have as efficient an algorithm as for reachability. We propose
+an algorithm that will iteratively apply the reachability algorithm. It will first construct the zone
+graph with subsumption, stopping if it finds a Büchi run. If all subsumptions in this graph are
+safe according to our definition then this graph forms a witness for non-existence of a Büchi run.
+Otherwise the algorithm recursively refines strongly connected components of the graph with
+unsafe subsumptions. This algorithm computes the zone graph without subsumption in the worst
+case - this as we show is anyway the best that can be done in some cases. The expected advantage
+is that in many cases our algorithm can stop sooner. We have implemented our algorithm and
+tested it on a set of benchmarks from [ 13]. The results show that indeed the algorithm mostly stops
+after the first iteration, and constructs witnesses of size very close to those for safety.
+A preliminary version of this work appears in [ 7], where we first prove that if P ,NP, liveness is
+more difficult than reachability for timed automata and then give an iterative algorithm to compute
+a witness for a Büchi accepting run. Here we strengthen the complexity result: if P ,Pspace ,
+liveness is more difficult than reachability. We also give a modified iterative algorithm for witness
+detection and compare its performance with the earlier version.
+Related work: Verification of Büchi properties is decidable thanks to the region construction [ 1].
+The use of zones and certain abstractions for this problem was developed in [ 15]. Later Li [ 14] has
+shown that existence of a Büchi run is preserved by every abstraction based on simulation relations.
+In particular, this is the case for the a≼LUabstraction [ 3], which is the coarsest abstraction depending
+only on lower and upper bounds in clock guards (LU-bounds) [ 8]. Thanks to these results liveness
+checking can be done on an abstract zone graph using a≼LUabstraction (but without subsumption).
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 4 ---
+Why liveness for timed automata is hard, and what we can do about it 3
+The question of whether subsumption can be used to improve the liveness verification was raised
+in [15]. Laarman et al. [ 13] recently proposed a nested DFS based algorithm for checking Büchi
+properties of timed automata. They study in depth when it is sound to use subsumption in the
+nested DFS algorithm. Our conditions on the use of subsumption are expressed in terms of zone
+graphs and are independent of a particular algorithm. This allows us to focus on the task of finding
+a witness graph efficiently; in particular we can use BFS based algorithms for the task. We give a
+more detailed comparison of the two algorithms in Section 6.
+Organization of the paper: In the next section we present the basic definitions, as well as the
+algorithms for constructing the abstract zone graph, and the abstract zone graph with subsumption.
+We also describe the nested DFS algorithm from [ 13]. In Section 3 we give our notion of a witness
+for non-existence of a Büchi run in a given automaton. Section 4 presents a theorem which exhibits
+the above stated algorithmic difference between verification of liveness and reachability properties.
+In Section 5 we give an algorithm for finding witnesses for non-existence of a Büchi run. In Section 6
+we report on some experimental results.
+2 PRELIMINARIES
+In this section we present the definitions of timed Büchi automata, the Büchi non-emptiness problem
+and the abstract zone graphs used for deciding non-emptiness. We also describe the subsumption
+optimization and the standard algorithm for constructing an abstract zone graph with subsumption.
+This can be used to answer reachability properties. We finish this section with the nested DFS
+algorithm for Büchi properties [13].
+2.1 Timed Büchi automata
+LetR≥0denote the set of non-negative reals. A clock is a variable that ranges over R≥0. Let
+X={x1, . . . , xn}be a set of clocks. A valuation is a function v:X→R≥0. The set of all clock
+valuations is denoted by RX
+≥0. We denote by 0the valuation that associates 0to every clock in X. A
+clock constraint ϕis a conjunction of constraints of the form x∼cwhere x∈X,∼∈{ <,≤,=,≥, >}
+andc∈N. LetΦ(X)denote the set of clock constraints over the set of clocks X. A valuation vis
+said to satisfy a constraint ϕ, written as v⊨ϕ, when every constraint in ϕholds after replacing
+every xbyv(x). Forδ∈R≥0, letv+δbe the valuation that associates v(x)+δto every clock x.
+ForR⊆X, let[R]vbe the valuation that sets xto0ifx∈R, and that sets xtov(x)otherwise.
+Definition 2.1 (Timed Büchi Automata (TBA) [ 1]).ATimed Büchi Automaton is a tupleA=
+(Q,q0,X,T,F)in which Qis a finite set of states, q0is the initial state, Xis a finite set of clocks,
+F⊆Qis a set of accepting states, and T⊆Q×Φ(X)×2X×Qis a finite set of transitions of the
+form(q,д,R,q′)whereдis a clock constraint called the guard , and Ris a set of clocks that are reset
+on the transition from qtoq′.
+The semantics of a TBA A=(Q,q0,X,T,F)is given by a transition system of its configurations.
+Aconfiguration ofAis a pair(q,v)∈Q×RX
+≥0, with(q0,0)being the initial configuration. There
+are two kinds of transitions:
+•delay:(q,v)→δ(q,v+δ)forδ∈R≥0;
+•action:(q,v)→t(q′,v′)fort=(q,д,R,q′)∈Tsuch thatv⊨дandv′=[R]v.
+ArunofAis a (finite or infinite) sequence of transitions starting from the initial configuration:
+(q0,0)δ0,t0−−−→( q1,v1)δ1,t1−−−→··· , where(q,v)δ,t−−→( q′,v′)denotes a delay δfollowed by action t
+starting from(q,v+δ). A configuration(q,v)is said to be accepting ifq∈F. An infinite run
+satisfies the Büchi condition if it visits accepting configurations infinitely often. The run is Zeno if its
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 5 ---
+4 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+accumulated duration is finite, i.e.,Í
+i≥0δi≤cfor some c∈R≥0. Else it is non-Zeno . The problem
+we are interested in is termed the Büchi non-emptiness problem .
+Definition 2.2. The Büchi non-emptiness problem for TBA is to decide if a given TBA Ahas a
+non-Zeno run satisfying the Büchi condition.
+Example 2.3. Figure 1 gives an example of a TBA A1which has a Büchi accepting run: for
+instance the run which leaves state 0and reaches state 1at time unit 1, after which the loop
+transition at state 1is taken at intervals of 1time unit. Figure 4 gives a TBA A2for which there is
+no Büchi accepting run. The reset of xand the guard x≥1imply that between two consecutive
+visits to state 1, at least 1time unit should have elapsed. Since yis never reset, the value of ykeeps
+increasing by at least 1unit at each arrival to state 1. Onceybecomes >100, the guard y≤100
+disables the transition from 1to0.
+The Büchi non-emptiness problem is known to be Pspace -complete [ 1]. Standard solutions to
+this problem use regions or zones: they construct an untimed Büchi automaton and check for its
+emptiness. There are various methods to handle the non-Zeno requirement [9, 17].
+Remark 1. In this paper, we will assume that the automata are strongly non-Zeno [ 15], that is,
+every infinite accepting run is non-Zeno. It is possible to convert every TBA into a strongly non-Zeno
+TBA. This strongly non-Zeno construction could lead to an exponential blowup [ 6,9] to the abstract
+zone graph (which is defined below), but we prefer to employ this commonly used assumption in order
+not to divert from the main subject.
+We will now describe a translation which reduces the Büchi non-emptiness problem to checking
+non-emptiness of an untimed Büchi automaton.
+2.2 Abstract zone graphs
+As the semantics of a TBA is an infinite transition system, algorithms for TBA consider special
+sets of valuations called zones . A zone is a set of valuations described by a conjunction of two
+kinds of constraints: either xi∼corxi−xj∼cwhere xi,xj∈X,c∈Zand∼∈{ <,≤,=, >,≥}.
+For example(x1>3∧x2−x1≤− 4)is a zone. Zones can be efficiently represented by Difference
+Bound Matrices (DBMs) [5].
+Thezone graph ZG(A)of a TBAA=(Q,q0,X,T,F)is a directed graph whose nodes are pairs
+of the form(q,Z)consisting of a state qofAand a zone Z. The initial node is (q0,Z0)with
+Z0={0+δ|δ∈R≥0}. For every transition t=(q,д,R,q′)∈T, and every set of valuations
+W, we define the transition ⇒tas:(q,W)⇒t(q′,W′)where W′={v′|∃v∈W,∃δ∈R≥0:
+(q,v)→t→δ(q′,v′)}. In other words, W′is obtained by first computing the →tsuccessors of W,
+followed by all time successors. It can be shown that if Wis a zone, then so is W′. In the zone graph,
+from every node(q,Z)there is a transition (q,Z)⇒t(q′,Z′)corresponding to the transitions t
+from q. The transition relation ⇒is the union of⇒tover all t∈T.
+Observe that there is a slight difference in the definition of transitions in the automaton (q,v)δ,t−−→
+(q′,v′)where we first have a delay δ, followed by a transition t, and the definition of transitions
+in the zone graph: (q,W)⇒t(q′,W′)where W′is the set of valuations obtained from Wby
+first taking transition t, and then doing a delay. The two definitions match since the initial zone
+encompasses an initial delay from the initial valuation 0.
+Although the zone graph ZG(A)groups together valuations, the number of zones is still infi-
+nite [ 4]. Figure 1 shows an example of a TBA whose zone graph consists of infinitely many nodes
+reachable from the initial node. For effectiveness, zones are further abstracted. Let us write P(S)
+for the set of subsets of S. An abstraction operator is a function a:P(R|X|
+≥0)→P( R|X|
+≥0)such that
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 6 ---
+Why liveness for timed automata is hard, and what we can do about it 5
+0 1y≤100
+{x}x≥1
+{x}
+AutomatonA1
+0,0=x=y 1,0≤y−x≤100 1,1≤y−x≤101 1,2≤y−x≤102···
+Zone graph ZG(A 1)
+0,0=x=y 1,0≤y−x≤100 1,1≤y−x≤101 1,101≤y−x≤201 ···
+Abstract zone graph ZGa≼LU(A 1)
+0,0=x=y 1,0≤y−x≤100 1,1≤y−x≤101
+ZGa≼LU(A 1)with subsumption
+Fig. 1. Example of an automaton whose zone graph is infinite. The abstract zone graph is computed with
+a≼LUabstraction, taking L(x)=1,U(x)=−∞,L(y)=−∞,U(y)=100. It contains 103nodes. The zone graph
+with subsumption contains only 3 nodes. The “squiggly” edge denotes the subsumption: a≼LU(1≤y−x≤
+101)⊆a≼LU(0≤y−x≤100).
+W⊆a(W)and a(a(W))=a(W)for every set of valuations W∈P(R|X|
+≥0). The abstraction is finite
+ifahas a finite range. An abstraction operator defines an abstract symbolic semantics defined by:
+(q,W)⇒t
+a(q′,a(W′))when a(W)=Wand(q,W)⇒t(q′,W′). Essentially, each time a successor
+W′is computed, it is abstracted to a(W′). We define a transition relation ⇒ato be the union of⇒t
+a
+over all transitions t. For a finite abstraction operator a, the abstract zone graph ZGa(A)consists of
+node pairs(q,W)of the form W=a(W). The initial node is (q0,a(Z0))where(q0,Z0)is the initial
+node of ZG(A). Transitions are given by the ⇒arelation. Such a graph ZGa(A)can be seen as a
+Büchi automaton with the accepting states (q,W)forq∈F.
+2.2.1 The a≼LUabstraction. Abstractions for timed automata are typically parameterized by the
+maximum of constants appearing in the guards of the automaton. The structure of the automaton
+determines two functions L:X7→N∪{−∞} andU:X7→N∪{−∞} . For a clock x, the value
+L(x)denotes the maximum constant occurring in guards of the form x≥corx>c; if no such
+guard exists then L(x)=−∞. The value U(x)denotes the maximum constant occurring in guards
+x≤corx<c; if no such guard exists then U(x)=−∞. This can be further refined by considering
+LUbounds for each state of the automaton [ 2]. In this paper we will use the abstraction operator
+a≼LU[3] and the abstract zone graph ZGa≼LU(A) induced by it. Another abstraction operator
+Extra+
+LUis commonly used in timed automata tools [ 3]. However, it is known that a≼LUis a coarser
+abstraction than Extra+
+LUand hence it could potentially lead to smaller abstract zone graphs [ 3].
+We will therefore stick to a≼LUabstraction in this document. In order to define a≼LU, we need to
+first define a simulation pre-order on valuations.
+Definition 2.4 (LU-preorder [ 3]).LetL,U:X7→N∪{−∞} be two bound functions. For a pair of
+valuations we set v≼LUv′if for every clock x:
+•ifv′(x)<v(x)thenv′(x)>L(x), and
+•ifv′(x)>v(x)thenv(x)>U(x).
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 7 ---
+6 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+xy
+U(x) L(x)L(y)U(y)
+•v′
+•u•w•r
+Z:
+a≼LU(Z):∪
+Fig. 2. The dark gray portion shows a zone Z. The light gray shows the valuations added in the a≼LU
+abstraction of Z, with respect to the LUbounds marked in the picture. Each valuation in the light gray zone
+is simulated by a valuation in the zone Zw.r.t.≼LU. The abstraction a≼LU(Z)is given by the union of the
+shaded portions. The picture illustrates a valuation v′such that r≼LUv′,u≼LUv′andw≼LUv′.
+The a≼LUabstraction is based on this relation.
+Definition 2.5 ( a≼LU-abstraction [ 3]).Given LandUbound functions, for a set of valuations W
+we define:
+a≼LU(W)={v| ∃v′∈W.v≼LUv′}.
+Figure 2 gives an example of a zone Zand its abstraction a≼LU(Z). Consider the valuation v′in
+the figure. Note that U(x)<L(x)<v′(x), and L(y)<v′(y)<U(y). Hence, for a valuation vto be
+simulated by v′, i.e. forv≼LUv′in the definition above, we need U(x)<v(x), andv′(y)≤v(y).
+We cannot have v′(y)>v(y)as this requires v(y)>U(y), that is impossible due to v′(y)<U(y).
+Valuations r,uandwin the figure satisfy these criteria. In fact, a≼LU(v′)is the set of valuations
+given by x>U(x)andy≥v′(y).
+Figures 1 and 4 give examples of abstract zone graphs obtained using a≼LUabstraction. It was
+shown in [ 8] that the a≼LUabstraction induces the smallest zone graphs, for a given bound function
+LU. Moreover, we know from [ 14] that ZGa≼LU(A)is sound and complete for Büchi non-emptiness:
+Theorem 2.6. [14] A TBAAhas a run satisfying the Büchi condition iff the abstract zone graph
+ZGa≼LU(A) has a run satisfying the Büchi condition.
+This gives an algorithm for the Büchi non-emptiness problem: given a TBA A, compute the
+(finite) Büchi automaton ZGa≼LU(A)and check for its emptiness. There is however a challenge due
+to the use of the a≼LUabstraction. There are zones Zfor which a≼LU(Z)is non-convex (c.f. Figure 2)
+and hence it is better to avoid storing a≼LU(Z). Therefore, the solution to compute ZGa≼LU(A)
+works with a graph consisting of (state, zone) pairs and uses the a≼LUabstraction indirectly [ 8]. The
+algorithm for computing ZGa≼LU(A)is shown in Figure 3. We will denote the transition relation
+⇒by→for convenience, as shown by the edge relation in Figure 3.
+We now state a lemma which makes the optimization described in the next section possible.
+Lemma 2.7 (Simulation property of a≼LU-abstraction). LetAbe a TBA, and LUbe bound
+functions computed from guards of A. For every pair of nodes (q,Z)and(q,Z′)ofZGa≼LU(A): if
+a≼LU(Z)⊆a≼LU(Z′), then for every transition (q,Z)→( q1,Z1), there exists(q,Z′)→( q1,Z′
+1)such
+that a≼LU(Z1)⊆a≼LU(Z′
+1).
+We refer the reader to [ 3] and [ 12] for a proof of the above lemma, and a more detailed account of
+thea≼LUabstraction (both of which are not required for the rest of this paper). We however present
+a brief intuition about why this property holds. Roughly, we want a relation between valuations v
+andv′which ensures that whenever vsatisfies a guard д, valuation v′also satisfies д(and hence
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 8 ---
+Why liveness for timed automata is hard, and what we can do about it 7
+1procedure abstract_zone_graph( A)
+2 V:={(q0,Z0)}, Waiting :={(q0,Z0)}
+3→:=∅// edge relation
+4 while (Waiting ,∅)
+5 take and remove(q,Z)from Waiting
+6 for each t=(q,д,R,q′)∈A
+7 compute(q,Z)⇒t(q′,Z′)
+8 if∃(q′,Z1)∈Vs.ta≼LU(Z′)=a≼LU(Z1)
+9 add(q,Z)→( q′,Z1)
+10 else
+11 add(q′,Z′)toVand Waiting
+12 add(q,Z)→( q′,Z′)
+13 return (V,→)
+14
+15
+16
+17
+1819 procedure subsumption_graph( A)
+20 V:={(q0,Z0)}, Waiting :={(q0,Z0)}
+21→:=∅// edge relation
+22⇝:=∅// subsumption relation
+23 while (Waiting ,∅)
+24 take and remove(q,Z)from Waiting
+25 for each t=(q,д,R,q′)∈A
+26 compute(q,Z)⇒t(q′,Z′)
+27 if∃(q′,Z1)∈Vs.ta≼LU(Z′)=a≼LU(Z1)
+28 add(q,Z)→( q′,Z1)
+29 else if∃(q′,Z1)∈Vs.t.a≼LU(Z′)⊆a≼LU(Z1)
+30 add(q′,Z′)toV
+31 add(q,Z)→( q′,Z′)and(q′,Z′)⇝(q′,Z1)
+32 else
+33 add(q′,Z′)toVand Waiting
+34 add(q,Z)→( q′,Z′)
+35 return (V,→,⇝)
+Fig. 3. Algorithm on the left computes ZGa≼LU(A). The test a≼LU(Z′)=a≼LU(Z1)can be done using the
+method in [8]. On the right is an algorithm which uses subsumption.
+runs fromvcan be simulated by runs from v′). The LUbound functions say that all lower bound
+guards x≥c,x>chave c≤L(x)and all upper bound guards x≤c,x<chave c≤U(x). Hence,
+whenv′(x)<v(x), a problem arises when a lower bound guard дis of the form x≥corx>c
+withv′(x)≤c≤v(x)as this will lead to vsatisfyingд, butv′violatingд; in this case v′cannot
+simulatev. This motivates the first condition in the definition: if v′(x)<v(x)thenv′(x)>L(x).
+Similar reasoning holds for the symmetric case.
+For a node n∈ZGa≼LU(A) we write n.qandn.Zfor the state and zone present in node n
+respectively.
+2.3 Using subsumption to compute smaller graphs
+Although ZGa≼LU(A) is the smallest abstract zone graph for a given LU, its size could be (and
+usually is) exponential in the size of A. An essential optimization that makes analysis of timed
+automata feasible is the use of subsumption. For two nodes tandsofZGa≼LU(A) we say tis
+subsumed by s, written as t⊑s, ift.q=s.qand a≼LU(t.Z)⊆ a≼LU(s.Z). When t⊑s, the node
+ssimulates t. Hence, at least for testing reachability, it is enough to keep in the graph only the
+maximal nodes with respect to subsumption. The algorithm incorporating subsumption is shown
+in the right hand side of Figure 3.
+Subsumption optimization is known to give substantial gains for the reachability problem [11].
+However, subsumption is not a priori correct for liveness: in Figure 1, the zone graph with subsump-
+tion contains no cycle consisting entirely of →edges but the zone graph has one. Admitting cycles
+with subsumption edges is not sound either: Figure 4 illustrates an example of an automaton whose
+zone graph has no cycles, but zone graph with subsumption has a cycle consisting of →and⇝
+edges. Therefore, it is not immediately clear how to decide Büchi non-emptiness from subsumption
+graphs (in other words, zone graphs with subsumption edges). The question of how subsumption
+graphs can be used for Büchi non-emptiness was raised in [ 15]. An algorithm proposed in [ 13]
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 9 ---
+8 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+0 1
+y≤100x≥1,{x}
+AutomatonA2
+0,0=y−x 1,1≤y−x 0,1≤y−x≤100 1,2≤y−x≤101 1,101≤y−x···
+Abstract Zone graph ZG(A 2)
+0,0=x=y 1,1≤y−x 0,1≤y−x≤100
+ZGa≼LU(A 2)with subsumption
+Fig. 4. Example of an automaton with no Büchi accepting run. Abstract zone graph is computed with L(x)=
+1,U(x)=−∞,L(y)=−∞,U(y)=100. There are no cycles in abstract zone graph. Allowing subsumption
+gives a smaller graph. However the graph with subsumption has an infinite path that does not correspond to
+any run ofA2. In general, counting subsumption edge as part of cycles is incorrect for Büchi emptiness.
+1procedure ndfs()
+2 Cyan := Blue := Red := ∅
+3 dfsBlue( s0)
+4 report no cycle
+5
+6procedure dfsRed( s)
+7 Red := Red∪{s}
+8 for all s→tdo
+9 if(Cyan⊑t)then report cycle
+10 if(t̸⊑Red) then dfsRed( t)11
+12procedure dfsBlue( s)
+13 Cyan := Cyan∪{s}
+14 for all s→tdo
+15 if(t<Blue∪Cyan and t̸⊑Red)
+16 then dfsBlue( t)
+17 if(s∈F)then
+18 dfsRed( s)
+19 Blue := Blue∪{s}
+20 Cyan := Cyan\{s}
+Fig. 5. Nested DFS algorithm with subsumption [13] to compute a subgraph of ZGa≼LU(A)
+(illustrated in Figure 5) gives a restricted way of using subsumption in a nested DFS algorithm
+for detecting accepting cycles. It exploits the following property: if we know that from a node
+sthere is no reachable accepting cycle, then no node t⊑sneeds to be explored. The red nodes
+in the nested DFS algorithm play the role of node s(c.f. Lines 10 and 15 in algorithm). Another
+optimization occurs in Line 9 - if there is a path from a node tto node ssubsuming it, then a cycle
+can be concluded.
+The goal of this paper is to find subsumption graphs of ZGa≼LU(A)that are sound and complete
+for liveness, and to design efficient algorithms to compute them.
+3 LIVENESS COMPATIBLE SUBSUMPTIONS
+In this section, we are interested in understanding generic conditions for subsumption to be correct
+for liveness analysis. We start with an example. Consider the TBA A3andZGa≼LU(A 3)illustrated
+in Figure 6 - which is given by the graph without the two squiggly edges. The zone graph has
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 10 ---
+Why liveness for timed automata is hard, and what we can do about it 9
+q
+r s
+t
+AutomatonA3{x}{x}
+x≥1
+{x}y≤100 x≥1
+{x}(q,x=y≥0)
+(r,0≤y−x)
+(r,1≤y−x)
+(r,2≤y−x)
+(r,100≤y−x)
+(r,101≤y−x)(s,0≤y−x)
+(t,0≤y−x≤100)
+(s,1≤y−x≤101)
+(t,1≤y−x≤100)
+(t,y−x=100)
+(s,y−x=101)...
+...
+Fig. 6. On the left is a TBA A3; on the right the graph obtained by removing the two squiggly edges is
+ZGa≼LU(A 3). Assume that L=U=100at every state. This can be achieved by adding more transitions on
+each state (which are not shown for clarity). Squiggly edges show subsumptions. The part of ZGa≼LU(A 3)
+restricted to white nodes and squiggly edges is the zone graph with subsumption. In this graph there is no
+accepting cycle consisting only of →edges. Removing the squiggly edge on the node (r,1≤y−x)and adding
+the grey nodes having state ridentifies the accepting cycle.
+an accepting cycle on the node (r,101≤y−x). For each of the states r,sandtof the TBA,
+there are at least 100 nodes in the zone graph. Note that (r,1≤y−x)⊑( r,0≤y−x)and
+(s,1≤y−x≤101)⊑( s,0≤y−x). If we allowed the luxury to use subsumptions freely, we
+would get the graph consisting only of the white nodes in the figure and the two squiggly edges
+denoting subsumption. However, in this graph there is no accepting cycle made uniquely of →
+edges. There are cycles containing subsumption edges but, as we have seen in Figure 4, it is not
+sound to take such cycles as witnesses for the existence of an accepting computation in general.
+Hence, the subsumption on (r,1≤y−x)should not be used to detect accepting cycles. On the
+other hand, the graph of white nodes with no subsumption edge is not complete for liveness as it
+has no accepting run. Observe that using subsumption on the node (s,1≤y−x≤101)would do
+no harm, as further exploration would not lead to accepting cycles anyway. This subsumption gives
+already a significant gain. In fact, the zone graph restricted to the white and grey nodes, along with
+the subsumption edge on the right is a liveness complete graph according to our definition below.
+Algorithm in Figure 5 does not detect this possibility and explores the whole graph.
+Our goal is to make use of subsumption as much as possible, subject to the restriction that the
+resulting graph contains an accepting cycle of →edges iff ZGa≼LU(A)contains one. Since including
+subsumption edges as part of a cycle is not sound in general, we will avoid using subsumption
+edges in cycles that contain accepting states. Therefore, in the graphs that we construct, cycles with
+accepting states will be actual cycles in ZGa≼LU(A)- so every such cycle will give an accepting
+computation. The challenge is to decide what are the subsumptions that are safe and can be left in
+the graph. We first make precise the notion of a graph with subsumptions, and then follow up with
+a condition that makes a zone graph with subsumption complete for liveness.
+Definition 3.1 (Subsumption graph). LetGbe a graph consisting of a subset of nodes and edges of
+ZGa≼LU(A)together with new edges called subsumption edges. Each node is labeled either covered
+oruncovered . Such a graph is called a subsumption graph if it satisfies the following conditions:
+C1the initial node of ZGa≼LU(A)belongs to Gand is labeled uncovered,
+C2for every uncovered node s, all its successor transitions s− →s′occurring in ZGa≼LU(A)
+should be present in G,
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 11 ---
+10 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+C3for every covered node t∈Gthere is an uncovered node s∈Gsuch that t⊑s; moreover
+there is an explicit subsumption edge t⇝sinG,
+C4there is a path of− →edges from the initial node to every other node.
+A path in a subsumption graph is made of both →and⇝edges. We write s1d∗s2to denote
+that there is a path from s1tos2in the subsumption graph. We now describe the relation between
+paths in a zone graph and in a subsumption graph. For the rest of this section, we fix an automaton
+Aand a subsumption graph GforA.
+Lemma 3.2. For every (finite or infinite) path s0→s1→s2→··· inZGa≼LU(A)there is a path
+s′
+0d∗s′
+1d∗s′
+2d∗···inGsuch that for each i,si⊑s′
+iands′
+iis uncovered.
+Proof. Proof proceeds by induction. From C1, the initial node s0is present in Gand is uncovered.
+Suppose we have constructed s′
+0d∗s′
+1d∗···s′
+n. Since sn⊑s′
+n, there is a transition s′
+n→s′
+n+1
+such that sn+1⊑s′
+n+1inZGa≼LU(A)(c.f. Lemma 2.7). As s′
+nis uncovered, this transition is present
+inG(C2). Ifs′
+n+1is uncovered in G, we are done. Otherwise, there is an edge s′
+n+1⇝s′′
+n+1inGwith
+s′
+n+1⊑s′′
+n+1(C3). This gives s′
+nd∗s′′
+n+1as required. □
+Lemma 3.2 along with condition C4says that if there is a path s0→∗sinZGa≼LU(A), there is a
+path s0→∗s′with s⊑s′in the subsumption graph G. This shows that subsumption graphs are
+complete for reachability. However, these conditions are not sufficient for liveness - for a cycle of
+→edges in the zone graph, we may not get a corresponding cycle of →edges in the subsumption
+graph (c.f. Figures 4 and 6). We now give an extra criterion.
+Definition 3.3 (Liveness compatible subsumption graph). A subsumption graph Gis said to be
+liveness compatible if it additionally satisfies the following condition:
+C5there is no cycle containing both an accepting node and a subsumption edge.
+In Figure 6, the zone graph restricted to white nodes and the squiggly edges is not liveness
+compatible. There is a cycle containing an accepting node (r,1≤y−x)and a subsumption edge
+from this node. However, removing this subsumption edge and adding the grey nodes makes it
+liveness compatible. The only remaining subsumption edge is from (s,1≤y−x≤101)and it is not
+part of a cycle containing an accepting node. Intuitively, when we add a subsumption edge t′⇝s′,
+we know that paths in ZGa≼LU(A)starting from t′can be simulated from s′in the subsumption
+graph. But if there is a cycle containing t′⇝s′in the subsumption graph, this would mean that
+the simulation from s′can bring us back to t′. Hence some accepting runs from t′inZGa≼LU(A)
+could be lost in the subsumption graph. We show that condition C5above makes such a situation
+impossible.
+Theorem 3.4. ZGa≼LU(A)has an infinite accepting path iff a liveness compatible subsumption
+graph has an infinite accepting path consisting of →edges.
+Proof. LetGbe a liveness compatible subsumption graph. Since all the − →edges in Gcome
+from the zone graph, a cycle of − →edges in Gimplies such a cycle in the zone graph. This shows
+the direction from right to left. Suppose ZGa≼LU(A)has an accepting run ρ:s0− →s1− →··· . From
+Lemma 3.2, we have a path ρ′inGof the form: s′
+0d∗s′
+1d∗s′
+2d∗···such that each si⊑s′
+i.
+Sinceρis an accepting run, some accepting node srepeats infinitely often in ρ. Corresponding
+positions in ρ′contain nodes which subsume s. Since there are finitely many nodes in G, there
+should be some accepting node s′which occurs infinitely often in ρ′. Therefore there is a cycle
+containing s′inG. By liveness compatibility criterion C5this cycle should be made of only − →
+edges. From condition C4, there should be a path consisting of − →edges from the initial node of G
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 12 ---
+Why liveness for timed automata is hard, and what we can do about it 11
+tills′. This gives an infinite path in Gmade of→edges that visits an accepting node s′infinitely
+often. □
+The above theorem gives a characterization for the use of subsumption to decide liveness. It now
+remains to design an algorithm that computes such graphs. Before we give an algorithm, we make
+an observation about the complexity of computing liveness compatible subsumption graphs. Note
+that these liveness compatible subsumption graphs have more nodes than subsumption graphs
+used for reachability. In the next section, we show that liveness compatible graphs can be much
+larger than subsumption graphs, and there is an intrinsic difficulty in inferring liveness from plain
+subsumption graphs (which are sound and complete for reachability).
+4 DECIDING LIVENESS FROM SUBSUMPTION GRAPHS IS PSPACE -COMPLETE
+In order to understand the overhead created due to the liveness compatibility condition, we consider
+a variant of the non-emptiness problem for TBA (Definition 2.2) where a subsumption graph of
+the automaton is also given as input. A subsumption graph Gof a TBAAisminimal if for every
+two nodes sandt, ifs⊑tthen s=torsis the initial node of ZGa≼LU(A). In other words, Gonly
+contains incomparable nodes w.r.t. ⊑, except for the initial node that may not be maximal in G
+w.r.t.⊑. We show that the emptiness problem for TBA remains Pspace -complete even with Gas
+the input. This contrasts with the reachability problem that can be solved in polynomial time from
+G. We first formalize the problem under consideration. The Büchi non-emptiness problem with
+subsumption graph (EMPTY-SUB) is defined by:
+INPUT: A TBAAand a minimal subsumption graph GforA
+OUTPUT: “Yes” ifAhas a Büchi accepting run, “No” otherwise.
+Theorem 4.1. The problem EMPTY-SUB is Pspace -complete.
+The upper bound follows since determining Büchi non-emptiness from the automaton can be
+done in Pspace . For the Pspace -hardness, we give a reduction from the membership problem for
+Linear Bounded Automata (LBA). Recall that an LBA is a Turing machine whose tape is restricted
+to the part on which the input word is written. The membership problem for LBAs asks whether
+the accepting state is reachable from the initial state and initial tape content w. This problem is
+known to be Pspace -complete, even for deterministic LBAs over a binary alphabet. Without loss
+of generality, we consider a deterministic LBA B, over the binary alphabet {0,1}with initial tape
+content w∈{0,1}N, and hence tape of size N. We describe a construction of a TBA AB,wsuch
+that:
+(1) it has a Büchi accepting run iff Bhas an accepting run starting with won the tape;
+(2)AB,whas a unique minimal subsumption graph Gwhich has size polynomial w.r.t. the size
+ofBandw;
+(3) there is a polynomial time algorithm that given Bandw, constructsAB,wandG.
+This gives a polynomial-time reduction from the membership problem of LBAs to EMPTY-SUB,
+thus proving Theorem 4.1.
+We proceed in two steps: first we describe a TBA A′
+B,wwhich satisfies requirement 1 given
+above; following this, to satisfy requirement 2, we make some modifications to A′
+B,wto get the
+final automatonAB,w.
+4.1 Building TBA A′
+B,wthat simulates the LBA
+The main point is to encode the tape of B. Each cell i∈[1;N]of the tape is represented in A′
+B,w
+by a clock xisuch that xi=2iwhen cell icontains a 0, and xi=2i+1when it contains a 1. To
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 13 ---
+12 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+simplify the construction, we introduce an extra clock y. We let X={x1, . . . , xN,y}denote the
+set of clocks ofA′
+B,w. A clock valuation vencodes a tape content w∈{0,1}Nwhenv(y)=0and
+v(xi)=2i+wifor every i∈[1;N](where widenotes the content of the ithcell). We write enc(w)
+for the valuation that encodes w.
+For every state qofB, we have a state qi,·,NinA′
+B,wwhere i∈[1;N]encodes the position of
+the tape head. The transitions of Bare encoded by sequences of transitions in A′
+B,w. We introduce
+intermediate states in A′
+B,wof the form qi,t,kwhere qis a state inB,i∈[1;N]is the position
+of the tape head, tis the transition in Bthat is simulated in A′
+B,w, and k∈[0;N]is an index
+pointing to a cell that is being processed in our simulation. Let tbe a transition qα,β,∆−−−−→ q′inB
+withα,β∈{0,1}and∆∈{− 1,0,1}: whenBis atqand the tape head points to a cell with letter α,
+the LBA overwrites it with β, moves the tape head according to ∆and changes its state to q′. This
+transition tis simulated by the following sequence in A′
+B,w:
+qi,·,N(y=0)∧(xi=2i+α)−−−−−−−−−−−−−→ qi,t,NxN=2(N+1)−−−−−−−−−→
+{xN}qi,t,N−1xN−1=2(N+1)−−−−−−−−−−→
+{xN−1}···
+···qi,t,ixi=2(N+1)+α−β−−−−−−−−−−−−−→
+{xi}··· (1)
+···qi,t,1x1=2(N+1)−−−−−−−−→
+{x1}qi,t,0y=2(N+1)−−−−−−−→
+{y}q′
+i+∆,·,N
+Except for the names of the states, the only elements in (1) parameterized by tandiare the guard
+of the first transition xi=2i+αand the guard from the middle transition xi=2(N+1)+α−β. In
+particular, all sequences have the same last transition that checks y=2(N+1)and that resets y.
+Clockyensures that the duration of sequence (1) is exactly 2(N+1), and that time does not elapse
+in states of the form qi,·,Nthanks to the first guard y=0.
+The first transition checks that cell icontainsαby testing if xi=2i+α. Then, subsequent
+transitions simulate a sequential access to the tape, from its last cell, encoded by xn, to its first cell,
+encoded by x1. The value of any clock xj,xiis left unchanged by (1). Indeed, if vis the value of
+xjinqi,·,N, then 2(N+1)−vtime units must elapse before the transitionxj=2(N+1)−−−−−−−−→
+{xj}is taken, and
+vtime units elapse after the transition since the total delay on the sequence is 2(N+1). Hence
+xj=vinq′
+i+∆,·,N. The transitionxi=2(N+1)+α−β−−−−−−−−−−−−−→
+{xi}updates the value of the clock xi. Due to the first
+transition in the sequence, we know that xi=2i+αinqi,·,N. Then, 2(N+1)−( 2i+β)time units
+elapse before the transition is taken, and we delay 2i+βafter this transition to reach a total delay
+of2(N+1)along the sequence. Hence xi=2i+βinq′
+i+∆,·,N, thereby encoding the new value βof
+celli. Observe that every transition on (1), except the first one, is enabled since for every k∈[1;N],
+xk≤2N+1when qi,t,kis reached, and y≤2N+1when qi,t,0is reached. Finally, the automaton
+reaches state q′
+i+∆,·,Nhence simulating a move to state q′with tape head on cell i+∆inB.
+A′
+B,whas an initialisation sequence that encodes the initial word win the clocks:
+q1,·,NxN=2+(wN−wN−1)−−−−−−−−−−−−−−−→
+{xN−1}···q1,·,ixi=2+(wi−wi−1)−−−−−−−−−−−−→
+{xi−1}q1,·,i−1···q1,·,1x1=2+w1−−−−−−−→
+{y}q0
+1,·,N (2)
+where q0is the initial state of Bandq1,·,kare new intermediate states with k∈[1;N]andqis
+distinct from all states in B. Starting with all clocks equal to 0, the automaton reaches q0
+1,·,Nwith
+y=0andxi=2i+wifor all i∈[1;N], hence valuation enc(w).
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 14 ---
+Why liveness for timed automata is hard, and what we can do about it 13
+A configuration of Bis a triple(q,i,u)where qis a state ofB,i∈[1;N]is the position of the
+tape head, and u∈{0,1}Nis the content of the tape. From the construction above, we get that
+LBAs can be simulated by TBAs:
+Lemma 4.2. A configuration(q,i,u)is reachable in an LBA Bstarted on an input word wif and
+only if the configuration (qi,·,N,enc(u))is reachable inA′
+B,wfrom the initial state q1,·,N.
+The above lemma talks only about reachability while requirement 1 above talks about a Büchi
+run. The last step in our construction of A′
+B,wis to cater to this. Without loss of generality, we can
+assume thatBhas a unique accepting state qfwith no outgoing transition. We make every state of
+the form qf
+i,·,Nwith i∈[1;N]as accepting inA′
+B,w. For every tape head position i∈[1;n], we
+add an extra edge:
+qf
+i,·,N−−−−−−−−−−−→
+{x1,···,xN,y}q1,·,N (3)
+that restartsA′
+B,win its initial configuration once an accepting state has been reached. From
+Lemma 4.2 we get that:
+Corollary 4.3.Bhas a finite accepting run on input word wiffA′
+B,whas a Büchi accepting run
+with initial state q1,·,N.
+4.2 Small Subsumption Graph for A′
+B,w
+A crucial point for our proof of Theorem 4.1 is to get a small minimal subsumption graph Gfor
+A′
+B,w. More precisely the size of Gshould be polynomial w.r.t. the size of Bandw. To get this, we
+will add some states and edges to A′
+B,w.
+A clock order is a total order on the set Xof clocks ofA′
+B,w. Let ibe an integer between 0andN.
+We denote ⊴ithe clock order xi+1⊴i···⊴ixN⊴iy⊴ix1⊴i···⊴ixi. A valuation vsatisfies a
+clock order ⊴iif for all clocks z,z′∈Xwe havev(z)≤v(z′)⇔ z⊴iz′. A set Sof clock valuations
+satisfies ⊴iif all clock valuations v∈Ssatisfy ⊴i. Sequences (1) and (2), reset the clocks in the
+same order: first xN, then xN−1, ..., then x1, and finally y. The initial clock valuation, where all
+clocks have value 0, obviously satisfies ⊴N. Then, by construction of A′
+B,w, we get that:
+Lemma 4.4. For every configuration (qi,t,k,v)reachable inA′
+B,wfrom the initial state q1,·,N, the
+valuationvsatisfies ⊴k.
+All the reachable zones in the (unabstracted) zone graph of A′
+B,ware sets of reachable valuations.
+Hence, from Lemma 4.4, we have that in every reachable node (qi,t,k,Z)in the zone graph of A′
+B,w,
+Zsatisfies ⊴k. We now use this observation to modify A′
+B,wto get a small minimal subsumption
+graph. Let Z⊴k={v∈RN+1
+≥0|vsatisfies ⊴k}be the set of valuations that satisfy ⊴k. Observe that
+Z⊴kis a zone. The next step of the construction consists in modifying A′
+B,win such a way that its
+zone graph contains nodes (qi,t,k,Z⊴k)for every state qi,t,kin the automaton. From Lemma 4.4,
+these zones are maximal w.r.t. zone inclusion, and subsume every other reachable zone. This way
+we will ensure that (1) the minimal subsumption graph is unique, and (2) it does not depend on
+A′
+B,w, except for the names of states, and from this we will get an easy bound on its size.
+We add a new initial state ι, and sequences from ιproducing the zones Z⊴k. For all k,j∈[0;N],
+we introduce intermediate states ιk,jand transitions:
+ι−−−−→
+{xk}ιk,N···−−−→
+{x1}ιk,N−k+1−−−→
+{y}ιk,N−k−−−−→
+{xN}···ιk,1−−−−−→
+{xk+1}ιk,0 (4)
+Starting from ι, every valuation obtained in ιk,0satisfies ⊴k. Moreover, the zone that is reachable
+inιk,0is precisely Z⊴k. Notice that there is a linear number of sequences (4). We then connect
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 15 ---
+14 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+these sequences to all relevant states of A′
+B,wwith the effect that every state is reachable with a
+maximal zone:
+ιN,0→qi,·,N for every i∈[1;N] (5)
+ιk,0→qi,t,k for every i∈[1;N],t∈T,k∈[0;N] (6)
+ιk,0→q1,·,k for every k∈[1;N] (7)
+We are now ready to formally define AB,w.
+Definition 4.5. LetBbe a deterministic LBA (Q,q0,qf,{0,1},T,N)such that the accepting state
+qfhas no outgoing transitions. Let w∈{0,1}Nbe an initial tape content of Bof length N≥0. We
+define the TBAAB,w=(S,ι,F,X,→)by:
+•S={qi,·,N|q∈Q,i∈[1;N]}∪{ qi,t,k|q∈Q,i∈[1;N],t∈T,k∈[0;N]}∪{ q1,·,k|k∈
+[1;N]}∪{ι}∪{ιi,k|i,k∈[0;N]}is the set of states,
+•ι∈Qis the initial state,
+•F={qf
+i,·,N|i∈[1;N]}is the set of final states,
+•X={x1, . . . , xN,y}is the set of clocks,
+•→ is the transition relation defined by:
+–for every transition t∈Tand every tape head position i∈[1;N], there are simulation
+transitions as in (1);
+–there are initialisation transitions as in sequence (2);
+–for every tape head position i∈[1;N], there is a restart transition (3);
+–for every k∈[0;N], there are reset sequences as (4);
+–and for every i∈ [1;N], every t∈T, and every k∈ [0;N]there are maximal zone
+transitions as in (5), (6), and (7).
+We first state the reduction of the membership problem for Linear Bounded Automata to the
+emptiness for Timed Büchi Automata.
+Lemma 4.6. A deterministic LBA Baccepts a word wiffAB,whas a Büchi accepting run.
+This result follows from Corollary 4.3. Observe that on an accepting Büchi run, A′
+B,wvisits an
+accepting state infinitely many times. Each time it enters an accepting state it is re-initialised. In
+AB,wthe first part of the run may be perturbed because of maximal zone generation sequences (4),
+(5), (6) and (7). Nevertheless, after reaching an accepting state for the first time, the state of, AB,w
+is reset and it works the same way as A′
+B,w.
+As a result of adding sequences (4), (5), (6) and (7) that first generate maximal zones, the minimal
+subsumption graph for AB,wis small.
+Lemma 4.7. LetBbe an LBA, wbe a word over{0,1}and letAB,wbe the corresponding LBA. The
+automatonAB,wand its minimal subsumption graph have a size polynomial in the size of Bandw.
+Proof. Observe from Definition 4.5 that AB,wis itself of size polynomial in the size of Bandw.
+LetGbe the minimal subsumption graph for AB,w. We show that it is linear in the size of AB,w.
+The bound on the size of Gfollows from the observation that there is at most one node in Gfor
+every state inAB,w. This can be seen from Figure 7. The states ιandιk,jwith k,j∈[0;N]can only
+be reached once following sequences (4). Now, transitions (5), (6) and (7) generate zones Z⊴Nfor
+states qi,·,N, and Z⊴kfor states qi,t,kandq1,·,k. Taking one more transition from these nodes by
+following sequences (1), (2) or (3) yield new nodes which are covered by the maximal zones Z⊴iat
+the previous level thanks to Lemma 4.4. □
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 16 ---
+Why liveness for timed automata is hard, and what we can do about it 15
+(ι,Z0)
+(ι0,0,Z⊴0) . . .(ιN−1,0,Z⊴N−1) (ιN,0,Z⊴N)
+(q1,t1,0,Z⊴0). . .(qN,tM,0,Z⊴0). . .(q1,·,N,Z⊴N). . .(qN,·,N,Z⊴N). . .(qN,tM,N,Z⊴N)(q1,·,N,Z⊴N)
+• • • • ••(4)
+(5)
+(6)
+(7)
+(1)
+(2)
+(3)
+Fig. 7. The minimal subsumption graph for AB,w. The first level depicted as dotted lines represents the
+sequences of transitions and nodes corresponding to (4). The second level are the nodes generated by
+transitions (5), (6) and (7). The third level are nodes generated by one transition of (1), (2) and (3). The nodes
+reached after these transitions, denoted •in the picture, are subsummed by the nodes at the previous level,
+as shown by the squiggly edges.
+4.3 Polynomial-time reduction for EMPTY-SUB
+To finish the proof of Theorem 4.1, it remains to show that requirement 3 is satisfied by our
+construction: namely, the minimal subsumption graph of AB,wcan be computed in polynomial
+time. Let us recall what we have done till now. Given an LBA Band an input word w, we have
+shown how to construct in polynomial time automaton AB,w. Lemma 4.7 shows that the minimal
+subsumption graph GforAB,whas polynomial size. To construct Gin polynomial time we can
+simply run a breadth-first search on the unabstracted zone graph ZG(AB,w)as illustrated in
+Figure 7. Starting from (ι,Z0)where Z0is the zone consisting of valuations in which all clocks are
+equal, one follows sequences (4). From the structure of AB,w, this computes all nodes (ικ,0,Z⊴k).
+In the next step following transitions (5), (6) and (7), all states of A′
+B,wwill be visited along with
+their maximal zones Z⊴i. Therefore, at depth N+2, the BFS generates exactly one node for each
+state inAB,wcontaining the associated maximal zone. This takes polynomial time since up to
+depth N+1the automaton consists just of a linear number of sequences as in (5), (6), and (7). Then,
+due to subsumption, BFS stops at depth N+3after one transition from (1), (2) or (3). The number of
+nodes at level N+3is bounded by the maximal out degree of the states in AB,wtimes the number
+of nodes in G. This is again of polynomial size w.r.t. Bandw. Hence we get:
+Lemma 4.8. There is a polynomial time algorithm constructing the minimal subsumption graph of
+AB,wwhen givenBandw.
+This completes the polynomial reduction and thus proves Theorem 4.1.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 17 ---
+16 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+Initial
+Subsumption
+graphSCC analysis:
+Identify Unsafe and Safe SCCsRemove subsumptions from
+nodes within unsafe SCCsExtend graph:
+New subsumptions only to
+safe or fresh nodes (squiggly edges)
+Accepting cycle
+or no unsafe SCC
+Fig. 8. Illustration of the iterative algorithm to construct liveness compatible subsumption graphs.
+5 A NEW ALGORITHM FOR LIVENESS
+We now consider the algorithmic problem of computing a liveness compatible subsumption graph
+for a given automaton. Section 3 says that such a graph allows us to determine if the automaton
+has a Büchi run. Section 4 indicated that computing such a graph may be much more complex than
+just computing the subsumption graph using the algorithm in the right of Figure 3. The objective
+is of course to compute a small graph, as otherwise we could just compute the entire abstract zone
+graph without subsumption using the algorithm from the left of Figure 3. A better solution is the
+nested DFS algorithm in Figure 5 - indeed the final graph computed by it is a liveness compatible
+subsumption graph. In this section, we present a different algorithm, and compare its performance
+with the nested DFS approach. Our algorithm iterates between a reachability computation and an
+SCC analysis of the computed graph to find cycles violating condition C5in Definition 3.3. Recall
+that a cycle violates C5if it contains both an accepting state and a subsumption edge; we will call
+such cycles unsafe in the rest of this section.
+Figure 8 illustrates the idea of the algorithm. It starts with an initial subsumption graph obtained
+by a reachability analysis. This subsumption graph may potentially contain unsafe cycles. The
+algorithm proceeds by performing an SCC decomposition of the graph by considering →∪⇝as
+the edge relation (shown by the left figure, with each bubble denoting an SCC). An SCC is marked
+Unsafe (black bubble) if it contains an accepting state and a subsumption edge (with both ends
+in the same SCC). An SCC is marked Safe (grey bubble) if it cannot reach an unsafe SCC. If an
+accepting cycle (consisting only of →edges) is found during this analysis, the algorithm terminates
+saying that the automaton has a Büchi accepting run. Otherwise, the algorithm proceeds to the
+next step. The SCC analysis guarantees that the grey part is liveness compatible and exploration-
+complete, whereas the remaining part is not yet liveness compatible. Subsumption edges from
+nodes within unsafe SCCs are removed. This opens nodes for exploration (shown in the middle
+picture as dots in the black bubbles). A subsumption graph construction is started from the grey
+dots with subsumption restricted to the previously found safe nodes or the fresh nodes which
+appear in the new exploration (shown by the squiggly edges in the picture on the right). This
+restriction is imposed in order to avoid falling repeatedly into the same bad cycle: the grey nodes
+were subsumed by nodes in their inhabiting black SCCs, and hence the successors of grey nodes
+will also be subsumed by the corresponding successors in the black SCCs. So such subsumptions
+would stop the new exploration in one step. Even with this restricted subsumption, it is still possible
+that new unsafe cycles are formed. Therefore, once the new exploration terminates, the obtained
+subsumption graph is passed on for the SCC analysis. This process is iterated till either the SCC
+analysis identifies an accepting cycle, or there are no more unsafe SCCs. The latter case gives a
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 18 ---
+Why liveness for timed automata is hard, and what we can do about it 17
+liveness compatible subsumption graph with no accepting cycles and hence the algorithm can
+terminate saying that the automaton has no Büchi run. The algorithm needs to handle an extra
+detail: the removal of subsumption edges after the SCC analysis could lead to dangling nodes that
+are not→reachable from the initial node. All such nodes are removed before the next subsumption
+graph computation (in the picture on the right).
+The algorithm can be viewed as an iterative refinement of the initial subsumption graph till a
+liveness compatible graph is obtained. To achieve the behavior of restricted subsumption, a level
+field is added to each node and subsumption is allowed only between nodes of the same level, or to
+nodes in the previous levels that do not reach unsafe cycles (nodes in grey SCCs).
+We will now give a more detailed description of the algorithm. We will say that a node sis
+covered if it has an outgoing subsumption edge s⇝s′, for some s′, otherwise sisuncovered .
+Iterative SCC based algorithm with subsumption:
+Phase 0 (Initialize). LetSinitandSbe the singleton sets containing the initial node which is
+the initial (state, zone) pair. Set the level of this node to 1. Let K=1.
+Phase 1 (Construct level Ksubsumption graph). Construct a subsumption graph from nodes
+inSinitin the following manner. Set the pool of nodes to be explored to be equal to Sinit.
+Every node added in this phase will have level field set to K. Repeatedly, pick a node (q,Z)
+from the pool (and remove it from the pool). For every edge (q,Z)⇒( q′,Z′), check if there
+is already a node(q′,Z1)∈Sfor which one of the conditions below holds:
+1.1a≼LU(Z′)=a≼LU(Z1), or
+1.2a≼LU(Z′)⊂a≼LU(Z1), node(q′,Z1)is uncovered and has the level Kor∞.
+If there is no such node, then add the node (q′,Z′)to the pool as well as to S, and add the
+edge(q,Z)→( q′,Z′)toS. Moreover, for every uncovered (and not initial) node (q′,Z2)of
+level Kwith a≼LU(Z2)⊂a≼LU(Z′): add(q′,Z2)⇝(q′,Z′)and remove all other edges from
+(q′,Z2).
+If there is(q′,Z1)satisfying the condition 1.1, add the edge (q,Z)→( q′,Z1)toS. If condition
+1.2 is satisfied, choose one such node (q′,Z1), with preference given to level ∞nodes; then
+add the node(q′,Z′)and the edges(q,Z)→( q′,Z′),(q′,Z′)⇝(q′,Z1)toS.
+By the end of this phase, graph Sis extended with some nodes of level K.
+Phase 2 (Check for good and bad cycles). Consider the subgraph GKofSinduced by nodes
+of level≤K, and containing all the →and⇝edges between these nodes. Decompose GK
+into maximal SCCs by considering both →and⇝as the same kind of edges. We single out
+two types of maximal SCCs:
+•accepting: when it contains an accepting state and no subsumption edges with both ends
+in the SCC;
+•unsafe: when it contains an accepting state and a subsumption edge with both ends of the
+edge in the SCC.
+If there is an accepting SCC in GKthen stop, and return non-empty . Otherwise, identify nodes
+inGKwhich cannot reach an unsafe SCC. Change the level of all such nodes to ∞.
+Phase 3 (Remove potentially unsafe subsumptions). LetS′
+Kbe the set of nodes which are
+subsumed (that is the only edge out of them is a subsumption edge) that still have level K.
+Remove subsumption edges with source in S′
+K. Remove, from Sand from S′
+K, all nodes that
+are not→reachable from the initial node of the graph (the node created in Phase 0). Set Sinit
+toS′
+K, and set level K+1to all nodes in Sinit. Set K:=K+1.
+Repeat or stop IfSinitis non-empty, restart from Phase 1; otherwise return empty , and stop.
+Before we give the invariants and prove correctness of this algorithm, we illustrate this algorithm
+on an example.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 19 ---
+18 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+AutomatonA4{x1}x1≥1,{x1}
+{x2,y2}{x2}y2≤100
+x2≥1,{x2}ab
+c de
+f
+Initial
+subsumption
+grapha
+bc de
+f
+After one
+refinementa
+bc de
+f
+c
+b
+After two
+refinementsa
+bc de
+f
+c
+b
+bc
+Fig. 9. The top figure shows an automaton with clocks {x1,y1,x2,y2}. Clocky1does not appear in the
+transitions for clarity. We also assume that L=U=100for each clock. The white state is an accepting state.
+The figures below describe subsumption graphs obtained after two refinements of the initial subsumption
+graph. We do not show the exact zones. The squiggly edges illustrate subsumptions.
+Example 5.1. Consider the automaton A4shown in Figure 9. We assume that it has 4clocks
+{x1,y1,x2,y2}. We can also assume that the bounds LandUare100for each clock. The additional
+guards that can achieve these bounds have not been illustrated. The white state is an accepting state.
+The transitions aandbare similar to the left hand side of the automaton A3(states q,r) in Figure 6
+for clocks x1andy1. Repeated application of the loop bgives zones(y1−x1≥0),(y1−x1≥1)and
+so on till(y1−x1≥101). In all these zones, we will have x2=y2=y1. The transitions c,d,eandf
+behave like the right hand side of A3(states q,s,t) for clocks x2andy2. Repeated application of the
+loop e fgenerates zones 1≤y2−x2≤101,2≤y2−x2≤101and so on. When this computation
+happens, the value of y1−x1remains unchanged. Moreover, due to the resets in c, we will have
+that bothy1andx1are bigger than y2.
+In the discussion below we denote nσthe node reached after the sequence of transitions σ.
+If subsumptions are not used, then zones in nodes nabicd(ef)jreached after sequence abicd(e f)j
+will all be different for each i∈{1, . . . , 100},j∈{1, . . . , 100}: the constraint between x1andy1
+distinguishes zones reached by different biand the constraint between x2andy2distinguishes
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 20 ---
+Why liveness for timed automata is hard, and what we can do about it 19
+the zones reached from different (e f)j. Termination occurs after loops biand(e f)jtake at least
+100steps. Therefore the number of zones is bigger than 100×100. If we were allowed to use
+subsumptions freely, we would not need to explore each loop more than once. This is shown by the
+illustration of the initial subsumption graph in Figure 9. This initial subsumption graph is sound
+and complete for reachability. However, this graph is not liveness compatible since there is a cycle
+containing a subsumption edge and accepting nodes naandnab. Of course, if we had a mechanism
+to check whether iterating edge bindeed corresponds to an infinite run of A4, we could stop. This
+kind of “loop acceleration” is not our focus here.1The purpose of this example is to illustrate the
+gains of using the iterative algorithm where a restricted amount of subsumption is allowed.
+Let us get back to the initial subsumption graph. The SCC analysis on this graph will reveal
+that the nodes{nac,nacd,nacde,nacdef}are all safe, and hence will have level ∞. This is because
+none of these nodes can reach the unsafe cycle formed by naandnab. For the next iteration, the
+subsumption edge nab⇝nbin this unsafe cycle will be removed and an exploration started
+from the opened state nab. In this new iteration, the already inferred safe nodes can be used for
+subsumption. Therefore, the node nabcwill be subsumed by nac. The node nabbwill be subsumed
+bynabas it is in the same level. This will now form the unsafe cycle nab→nabb⇝nab, and hence
+nabbwill be opened again for exploration. This process continues till bis iterated 101times when
+an equality edge nab101→nab101would be obtained (as in Figure 6), which means we will have
+K=101in the end. In each iteration j, we get 2new nodes nabjbandnabjc. The e floop is never
+reached in the new iterations.
+This example points out an advantage of using the iterative method: subsumptions can be used
+to cut out “non-accepting” parts of the graph. These are the parts in the graph from which a witness
+for Büchi non-emptiness cannot be obtained. The nested DFS algorithm adds a subsumption edge
+x⇝yonly if the currently explored part of the graph proves that there is no witness from y. In
+our iterative method, we are less restrictive about this. We allow to use subsumptions x⇝yeven
+ifyhas not been completely explored yet, and subsequently remove unsafe subsumptions in an
+iterative manner. This mechanism could potentially give rise to more nodes ythat end up being
+safe for subsumption. This is exemplified by the behaviour of the algorithm on the automaton
+A4. Indeed for this example, the nested DFS algorithm computes the entire zone graph without
+subsumption: the node nacdbecomes ready for subsumption (that is, its colour is red) only after
+node nais completely explored (which is when red DFS is started from na). Hence the subsumptions
+on the right which cut out the e floops cannot be made by the nested DFS.
+A more detailed comparison of the iterative algorithm and the nested DFS approach is given in
+the Section 6.
+We will now prove correctness of the iterative algorithm.
+Theorem 5.2. A strongly non-Zeno TBA Ahas a run satisfying the Büchi condition iff the iterative
+SCC based algorithm with subsumption returns non-empty.
+Proof. We will show that the invariants listed below hold after Phase 3 of the Kthiteration.
+Invariants I1, I3, I5, I7 imply that the graph Scomputed by the iterative algorithm is liveness
+compatible if Sinitis empty. The conclusion then follows from Theorem 3.4 saying that in this case
+there is no Büchi cycle in the zone graph, and Theorem 2.6 saying that then the automaton does
+not have a run satisfying the Büchi condition.
+I1the set of nodes in Sis a subset of nodes in ZGa≼LU(A);
+I2each node in Shas a level between 1andK, or level∞; all nodes in Sinithave level K,
+1Note that the hardness result of Section 4 is independent of the underlying algorithm. Therefore no acceleration method
+can be both complete and efficient.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 21 ---
+20 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+I3for every uncovered node in S\Sinitall its successors are present in S;
+I4every→or⇝edge out of a level ∞node leads to a level ∞node.
+I5There is no cycle containing both an accepting node and a subsumption edge.
+I6Every covered node has level ∞.
+I7There is a path of− →edges from the initial node to every node.
+We will prove the above invariants by induction on K. Let us denote by SiandSi
+initthe sets S
+andSinitobtained after the execution of Phase 3 of the algorithm in the ithiteration. Let S0and
+S0
+initbe the respective sets before the first execution of Phase 1.
+From Phase 0of the algorithm, the sets S0
+initandS0contain only the initial node of ZGa≼LU(A).
+This node is uncovered and its level is 1. All the invariants mentioned above are clearly true.
+Assume that the sets SK−1andSK−1
+initsatisfy the above invariants. If SK−1
+initis empty, the above
+invariants ensure that conditions C1-C5 for liveness compatibility are satisfied. Hence the graph
+SK−1is sound and complete for liveness. We will now consider the case when SK−1
+initis non-empty.
+In this case, the Kthexecution of Phase 1 is started.
+Invariants after Phase 1: From the algorithm, we can infer that all new nodes of the Kth
+iteration are added only during Phase 1. The remaining two phases just change levels of nodes
+and remove some nodes and subsumption edges. Since the added nodes are obtained during a
+subsumption graph computation starting from SK−1
+init, which is contained in ZGa≼LU(A), the new
+nodes added in SKwill belong to the zone graph ZGa≼LU(A). This gives us invariant I1. Invariant
+I2 follows from the fact that we add only nodes of level K. Invariant I3 is due to the fact that the
+algorithm does exhaustive exploration.
+During this phase we have also an additional invariant
+J1There are no edges from level ∞nodes in SK−1to nodes in SK\SK−1.
+At the beginning of Phase 1we have edges from SK−1nodes to SK, namely those to SK
+init. These
+edges go from nodes of level K−1. Note that new→edges start in level Kand end in level≤K
+(the level can be smaller because of case 1.1); all new ⇝edges have level Knodes as a source.
+Invariants after Phase 2: At the end of Phase 2 of Kthiteration, some nodes in SKare marked
+∞. This does not influence invariants I1-I3. Invariant I4 follows from invariant J1, and the code of
+Phase 2 since if a node from SKhas its level changed to ∞then all its successors also have its level
+changed to∞, or already have level ∞. Invariant I5 holds because the algorithm did not stop, so
+there is no accepting SCC in the part of the graph consisting of nodes of level ≤K. By invariant I4,
+such a cycle should have been contained completely in nodes of level ∞. But this is impossible by
+J1, and I5 from the previous phase.
+Invariants after Phase 3: At Phase 3 we consider the set S′
+Kof nodes of level Kwith outgoing
+covering edges: we remove those edges. This way we satisfy I6. Invariant I3 still holds because all
+new uncovered nodes are put in Sinit. We also remove from SKandS′
+Kall nodes that are not →
+reachable from the initial node of the graph. This does not falsify invariants I1-I6, and makes I7
+true. Finally, Kis increased and the levels of nodes in S′
+Kare increased too in order to reestablish
+invariant I2.
+Termination: We have now proved the invariants. Since from invariant I1, the obtained graph
+is always a subset of ZGa≼LU(A), the algorithm terminates after some finite number of iterations as
+each level is non-empty. The number of iterations is bounded by the number of nodes in ZGa≼LU(A).
+This proves that after some number nof iterations, we would have Sn
+initto be empty, and the
+corresponding graph Snwould be liveness compatible. If the algorithm has not stopped in Phase 2,
+then the invariant I4 says that there is no accepting cycle made of − →edges in this graph; so it is
+correct to report empty . □
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 22 ---
+Why liveness for timed automata is hard, and what we can do about it 21
+The algorithm from this section starts from the zone graph with subsumption and iteratively
+expands it till it becomes liveness compatible. From Section 4 we know that there exist cases
+when this process is long because of the conditional complexity bounds. But one can hope that on
+many examples the algorithm terminates after a couple of iterations. The next section presents an
+evaluation of the performance of this algorithm.
+6 EXPERIMENTS
+We first present a comparison of three algorithms. The nested depth-first search algorithm with
+subsumption presented in [ 13] (denoted “Nested DFS” hereafter), the iterative algorithm in [ 7]
+(refered to as “Iterative level-SCC” in the sequel) and our algorithm described in page 17 (named
+“Iterative full-SCC” from now on). The Iterative level-SCC algorithm [ 7] is a variant of the Iterative
+full-SCC algorithm (page 17) where the SCC decomposition of the graph in Phase 2 is done only
+on current level Kinstead of the whole subsumption graph. This guarantees that each node is
+visited at most once during Phase 2. In order to ensure correctness of the algorithm, every SCC
+within level Kthat can reach a node with level less than Kis considered violating. This prevents
+the construction of bad cycles across levels that would not be detected in Phase 2. Finally, accepting
+runs that span accross levels would not be detected in Phase 2 since SCC decomposition is only
+performed on current level K. A last SCC decomposition is thus required upon termination of the
+main loop (i.e. when Sinitbecomes empty) in order to detect accepting runs. We refer the reader
+to [7] for further details.
+All three algorithms have been implemented in our tool TChecker. Our implementation uses
+a slightly different representation of the subsumption graph in order to avoid storing covered
+nodes and as a result we obtain smaller subsumption graphs. More precisely, when we have an
+edge(q,Z)→( q′,Z′)and there exists a node (q′,Z1)such that a≼LU(Z′)⊂ a≼LU(Z1), then our
+algorithm from p. 17 adds an edge (q′,Z′)⇝(q′,Z1). Instead, our implementation removes the
+node(q′,Z′)and adds an edge (q,Z)⇝(q′,Z1). When the covering edge (q,Z)⇝(q′,Z1)is
+deemed inconsistent, the node (q′,Z′)as well as the edge (q,Z)→( q′,Z′)are added back to the
+subsumption graph.
+We have conducted experiments on the classical benchmarks for Timed Automata, that we
+describe below. The first six examples have been proposed in [ 13]. The others are meant to exhibit
+strengths and weaknesses of the three algorithms. Our testing scheme is as follows: we verify
+properties given by Büchi automata on these standard models. To do this, we take the product of
+the model with a property automaton, and check for Büchi non-emptiness on this product.
+The results are shown in Table 1. The first column lists the models and properties that were
+considered (see description below). The black dots •indicate models with an accepting run. Com-
+parison in these cases is difficult since performance depends very much on the order of exploration.
+Other models do not have accepting runs. As a result, the algorithms have to compute an invariant
+to prove non-existence of an accepting run in these models. We report the number of visited
+nodes (“Visited”), the number of nodes in the final invariants (“Size”), the running time (“sec.”) as
+well as the maximum level (“K”) for iterative algorithms. The last two columns report the size of
+subsumption graphs (Definition 3.1) produced by our implementation of UPPAAL’s reachability
+algorithm, and the time needed to compute them. The size of the subsumption graph gives a lower
+bound on the size of liveness compatible subsumption graphs computed by Iterative algorithms.
+Both Iterative algorithms and the reachability algorithm explore the state-space of the automata
+using an optimized search order, called topological search proposed in [11]
+The first six models and properties are taken from [ 13]. Fischer’s protocol is a mutual-exclusion
+protocol based on real-time constraints. Let cdenote the number of processes in the critical section.
+We checked properties (fi1) G(c≤1)mutual exclusion; (fi2) GF(c=0)∧GF(c=1)non-blocking
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 23 ---
+22 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+from [ 14]; and (fi3) G(req 1=⇒Fcs1)every request of process 1is eventually satisfied. FDDI is a
+token ring protocol where the communication can be synchronous or asynchronous. We checked
+property (FD1) FG(async1)process 1eventually communicates asynchronously. Finally, CSMA/CD
+is a protocol to detect and solve message collisions that is used for communications over Ethernet
+networks. We checked two properties (CC1) G(collision =⇒Factive)after a collision, the network
+becomes active again; and (CC2) FG(collision =⇒G¬sent)after some collisions, no message can
+ever be sent. We consider instances of the three models with 7 processes and standard parameter
+values from the literature.
+The results show that our Iterative full-SCC algorithm computes liveness invariants that are
+significantly smaller that those computed by the Nested DFS algorithm and the Iterative level-SCC
+algorithm. Indeed, for all 6 examples, the reachability invariants are liveness compatible as shown
+by the comparison to the reachability algorithm. It also visits less nodes on the first 5 examples.
+Our algorithm stops immediately after Phase 1 for (fi1) and (cc2) that have no reachable accepting
+state. Models (fi2), (fd1) and (cc1) have reachable accepting states, but no bad SCC. As a result,
+our algorithm stops after Phase 2 and skips Phase 3. Finally, (fi3) has an accepting run that is
+found during Phase 2. Examples (cc2) and (cc3) have accepting runs that can be detected early by
+the nested DFS algorithm. Both Iterative algorithms first entirely compute a subsumption graph
+(Phase 1) before detecting the accepting runs (in Phase 2). As a result, they visit and store more
+nodes. This is expected since these algorithms are specialized to compute small subsumption graphs
+in the absence of accepting runs.
+The last five models and properties have been tailored to exhibit strengths and weaknesses
+of each algorithm. To enable this, we consider timed properties since adding new clocks yields
+complex zones and makes covering harder. These examples are built from the CSMA/CD model
+(cc) and the Fischer model (fi) described above. Property (cc3) is depicted in Figure 10 (right). The
+automaton checks that station 1 tries to transmit fast enough, and that it often achieves successful
+transmissions. Property (cc4) is a variation of (cc3) where cycles can be iterated only a bounded
+number of times. This is achieved by adding a new clock t4that is never reset, and an invariant
+t4≤Mto the accepting state (for some constant M). Property (cc5) checks that if collisions are
+infrequent and station 1 tries to send infinitely often, then it effectively sends messages infinitely
+often. Property (fi4) expresses that if process 1 can infinitely often access the critical section for
+Mtime units, then it enters the critical section infinitely often. Finally, property (fi5) checks that
+process 1 requests access to the critical section frequently, but is only granted access in a certain
+time window. As for (cc4), the cycles in (fi5) can be iterated only a bounded number of times.
+Property (cc4) with bounded number of iterations of cycles is difficult for Iterative algorithms.
+This example generates many bad SCCs and hence many refinements, as seen in column K. At level
+1, Iterative algorithms unfold the cycle once. This leads to a bad SCC that is refined at the next
+iteration. The next iteration unfolds the cycle for the second time, building a bad SCC again. This
+goes on until the cycle has been unfolded enough times to detect that it cannot be iterated anymore.
+Nested DFS algorithm outperforms both Iterative algorithms on this example. We observe however
+that full-SCC decomposition has an edge over level-SCC decomposition in the number of stored
+nodes, number of refinements and the running time, at the expense of visiting significantly more
+nodes. Property (cc5) exhibits the same situation but with a different outcome. Indeed, the full-SCC
+decomposition turns out to be very effective. It generates many level- ∞nodes that can be used for
+covering. The liveness compatible subsumption graph produced by the Iterative full-SCC algorithm
+is several orders of magnitude smaller that those generated by both the nested DFS algorithm
+and the Iterative level-SCC algorithm. Notice also that the Iterative full-SCC algorithm performed
+only 1refinement (i.e. K=2) instead of 59for the Iterative level-SCC algorithm. Both Iterative
+algorithms outperfom Nested DFS algorithm on (fi4). In this case, the subsumption graph obtained
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 24 ---
+ModelNested DFS [13] Iterative level-SCC [7] Iterative full-SCC (p. 17) Reachability
+Visited Size sec. Visited Size K sec. Visited Size K sec. Size sec.
+fi1 26651 26651 0.51 7737 7737 1 0.23 7737 7737 1 0.23 7737 0.25
+fi2 205051 132808 2.87 114714 38238 1 1.34 114714 38238 1 1.33 38238 1.27
+fi3• 45749 26679 0.51 29190 20768 1 0.67 29190 20768 1 0.66 20768 0.67
+fd1 21160 18246 0.33 2285 705 1 0.03 2285 705 1 0.02 705 0.08
+cc1 41386 26878 0.52 50049 16683 1 0.41 50049 16683 1 0.41 16683 0.34
+cc2• 57 56 0.00 21640 14397 1 0.71 21640 14397 1 0.72 14397 0.55
+cc3• 16185 16184 0.09 1598686 970387 2 76.00 1768310 970387 275.94 205656 10.94
+cc4 44873 35787 1.33 745259 150078 282 170.76 12228757 85894 157 85.23 365 0.01
+cc5 240011 237458 3.21 821845 201424 60 202.56 7109 1562 2 0.04 772 0.01
+fi4 466572 382936 9.06 232281 77427 1 3.39 232281 77427 1 3.40 77427 3.55
+fi5 48299 24979 0.72 126932 29686 17 1.26 310918 11769 12 0.88 704 0.01
+Table 1. Comparison of the size of liveness invariants, number of visited nodes, number of levels (K) and running time for three algorithms: nested DFS
+algorithm with subsumption [ 13], Iterative algorithm with level-by-level SCC decomposition [ 7] and Iterative algorithm with SCC decomposition of the
+full graph (p. 17). The last two columns show the size of the reachability subsumption graph and the time required to compute it. Iterative algorithms and
+reachability algorithms run a topological search [ 11]. The first 6 examples are from [ 13]. Black dots•mark models that have an accepting run. The tests have
+been run on a MacBook Pro with an Intel Core i5 2.4 GHz processeor and 16Gb of memory.
+
+--- Page 25 ---
+24 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+at level 1is liveness compatible. In contrast, Nested DFS algorithm can only use for covering the
+nodes that have been visited during the red search (see Figure 5). We thus suspect that the nodes
+that are marked red are mostly “small” nodes, hence limiting the use of covering. Finally, on the last
+example (fi5), the Iterative full-SCC algorithm yields a smaller liveness compatible subsumption
+graph than the other two algorithms. Applying the SCC decomposition on the full graph allows to
+close more SCCs. As a result, the algorithm produces more level- ∞nodes that can later be used for
+covering.
+Extending the benefits of full-SCC decomposition. Let us examine more closely the adavantages of
+full-SCC decomposition. This discussion will lead to one more optimization that further improves
+the algorithm.
+As we have seen from Table 1, full-SCC decomposition yields smaller subsumption graphs than
+level-SCC decomposition (when the graph has more than one level), at the cost of visiting more
+nodes. For instance, the Iterative level-SCC algorithm visits 745259 nodes on (cc4) whereas the
+Iterative full-SCC algorithm visits 12228757 nodes. Yet, the latter algorithm is twice as fast as the
+former. This can be explained in two ways. First, the Iterative full-SCC algorithm stores less nodes,
+so searching for a covering node is faster. Second, and more importantly, the exploration of the
+zone graph in Phase 1 is much more expensive than all other explorations in subsequent phases.
+Indeed, computing an edge (q,Z)→( q′,Z′)in Phase 1 costsO(n3)where nis the number of
+clocks. This is the time required to compute the zone Z′. Once the edge is generated and stored
+in memory, the cost of traversing the edge is O(1). As a result, the extra visits in Phase 2 and 3
+are relatively cheap. Thus, bigger number of visits to nodes in Phase 2 by the Iterative full-SCC
+algorithm has a very limited impact on the running time. The difference in running times among
+the two Iterative algorithms on (cc4) comes from the lower number of calls in Phase 1: 157for the
+full-SCC algorithm vs. 282for the level-SCC algorithm. The advantage of full-SCC decomposition
+over level-SCC decomposition is that the former produces more level- ∞nodes, as it is able to close
+SCCs more often.
+We now discuss how we can improve covering and produce even smaller liveness compatible
+subsumption graphs. First observe that nodes are marked ∞during Phase 2 (see p. 17). These nodes
+can be later used for covering during Phase 1 to discard new nodes that are constructed. This means
+that when a node ngets level∞in Phase 2, it can only be used to cover nodes that will be visited
+during subsequent runs of Phase 1. Our algorithm will never try to cover by n, the nodes that have
+been created before ngot level∞.
+We have thus implemented a variant of the Iterative full-SCC algorithm that tries to cover
+existing nodes when a node gets level ∞. Notice that to fullfil Definition 3.1, when a node nis
+covered by a level- ∞node n′, we need to remove all outgoing edges from n, then add an edge
+n⇝n′. As a result, the successor nodes of nin the subsumption graph may become unreachable.
+Hence, this extra optimization is applied in the middle of Phase 3. The resulting modified phase is:
+(Phase3’) LetS′
+Kbe the set of nodes which are subsumed (that is the only edge out of them is
+a subsumption edge) that still have level K. Remove subsumption edges with source in S′
+K.
+(Extended covering) for every node(q,Z)that has been marked level ∞during Phase 2, and
+for every node(q,Z′)such that a≼LU(Z′)⊂a≼LU(Z), remove all outgoing edges from (q,Z′),
+and add an edge(q,Z′)⇝(q,Z).
+Remove, from SandS′
+K, all nodes that are not →reachable from the initial node of the graph
+(the node created in Phase 0). Set SinittoS′
+K, and set level K+1to all nodes in Sinit. Set
+K:=K+1.
+This optimization is correct since the graph built by the algorithm is a subsumption graph (see
+Definition 3.1) and thanks to invariant (I4). Indeed we remove outgoing edges of newly covered
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 26 ---
+Why liveness for timed automata is hard, and what we can do about it 25
+nodes. Moreover the covering edges added by extended covering cannot create bad cycles in
+the graph since they go to level- ∞nodes. Notice that this optimization requires at most 2 extra
+traversals of the graph: one to detect covered nodes, and an other one to detect reachable nodes2.
+Table 2 shows the effect of extended covering for the Iterative full-SCC algorithm on the same
+set of examples as before. We compare three algorithms: Iterative level-SCC algorithm [ 7], Iterative
+full-SCC algorithm (p. 17) and “Iterative full-SCC + Ext. covering” that adds extended covering to
+the Iterative full-SCC algorithm. The last two columns in the table give the size of subsumption
+graphs generated by our implementation of UPPAAL’s algorithm and the time required to compute
+it. Extended covering can also be implemented on top of the Iterative level-SCC algorithm. We do
+not report results here because it has very limited impact. The only example where it provides a
+significant gain is (cc3) where it generates the same subsumption graph as the full-SCC algorithm.
+We observe a minor gain (less that 1%) on examples (cc4), (cc5) and (fi5), and no gain at all on
+other examples. This is because applying SCC decomposition level by level does not generate many
+level-∞nodes.
+Extended covering significantly improves Iterative full-SCC algorithm. Since this algorithm
+generates many level- ∞nodes, we observe a significant gain on most examples. The size of the
+liveness compatible subsumption graphs is close to the size of the subsumption graphs generated by
+UPPAAL’s reachability algorithm. Moreover, the costs of detecting covered nodes and unreachable
+nodes have no significant impact on running time. As explained above the state-space explorations
+are inexpensive compared to Phase 1. Moreover, the small number of stored nodes eases the
+detection of covered nodes. As a result adding extended covering has a positive impact on both
+stored nodes and running time.
+On the importance of Büchi verification for Timed Automata. Finally, the case of CSMA/CD gives
+an interesting motivation for testing Büchi properties. Indeed property (cc2) holds for the CSMA/CD
+model. As a result, the model is not correct since communications should be enabled after a collision.
+It turns out that a transition is missing in the widely used model [ 16,18]. In consequence, in this
+model there is no execution with infinitely many collisions and completed transmissions. Even
+more, once some process enters into a collision, no process can send a message afterwards. The
+model can be fixed by allowing the busyaction in state RETRY as shown in Figure 10.
+W AITST ART
+(xi≤L)
+RET RY
+(xi<2S)cdi,{xi}
+beдini,{xi}
+busyi
+{xi}
+cdi,{xi}
+cdi,{xi} busy i,{xi}beдini
+{xi}
+(xi<S)
+cdi
+{xi}(xi=L),endi,{xi}
+I DLE BU SY
+COLL .
+(y<S)beдini,{y}(y≥S),busyi
+endi,{y}
+(y<S)
+beдini
+{y}(y<S)
+{cd1, . . . , cdN}
+{y}(t1≤3S)(t1<3S),beдin1,{t1}
+(t2<2L)
+end 1
+{t2}(t3≥S)
+busyi
+{t3}
+(t2≥2L)
+end 1
+Fig. 10. Model of CSMA/CD: station (left) and bus (middle); property (CC3) (right). The dashed edge on state
+“RETRY” of the station should be added to the model to allow proper communication after a collision.
+2Detection of reachable nodes can be achieved during Phase 2 when this optimization is not used. When the optimization is
+used, it has to be done after applying extended covering. Hence an extra traversal of the graph is needed.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 27 ---
+ModelIterative level-SCC [7] Iterative full-SCC (p. 17) Iterative full-SCC + Ext. covering Reachability
+Visited Size K sec. Visited Size K sec. Visited Size K sec. Size sec.
+fi1 7737 7737 1 0.23 7737 7737 1 0.23 7737 7737 1 0.23 7737 0.25
+fi2 114714 38238 1 1.34 114714 38238 1 1.33 237890 38238 1 1.36 38238 1.27
+fi3• 29190 20768 1 0.67 29190 20768 1 0.66 29190 20768 1 0.66 20768 0.67
+fd1 2285 705 1 0.03 2285 705 1 0.02 4482 705 1 0.02 705 0.08
+cc1 50049 16683 1 0.41 50049 16683 1 0.41 100593 16683 1 0.42 16683 0.34
+cc2• 21640 14397 1 0.71 21640 14397 1 0.72 21640 14397 1 0.71 14397 0.55
+cc3•1598686 970387 2 76.00 1768310 970387 275.94 2407176 875444 2 52.30 205656 10.94
+cc4 745259 150078 282 170.76 12228757 85894 157 85.23 23208607 608 157 64.55 365 0.01
+cc5 821845 201424 60 202.56 7109 1562 2 0.04 13181 1204 2 0.05 772 0.01
+fi4 232281 77427 1 3.39 232281 77427 1 3.40 475411 77427 1 3.45 77427 3.55
+fi5 126932 29686 17 1.26 310918 11769 12 0.88 457625 2639 11 0.88 704 0.01
+Table 2. Comparison of the size of liveness invariants, number of visited nodes, number of levels (K) and running time for three variants of the iterative
+algorithm: Iterative algorithm with level-by-level SCC decomposition [ 7], Iterative algorithm with SCC decomposition of the full graph (p. 17) and Iterative
+algorithm with full-SCC decomposition and extended covering. The last two columns show the size of the reachability subsumption graph and the time
+required to compute it. All four algorithms run a topological search [ 11]. The first 6 examples are from [ 13]. Black dots•mark models that have an accepting
+run. The tests have been run on a MacBook Pro with an Intel Core i5 2.4 GHz processeor and 16Gb of memory.
+
+--- Page 28 ---
+Why liveness for timed automata is hard, and what we can do about it 27
+This example confirms once more that timed models are compact descriptions of complicated
+behaviors due to both parallelism and interaction between clocks. Büchi properties can be extremely
+useful in making sure that a model works as intended: the missing behaviors can be detected by
+checking if there is a run where every collision is followed by a transmission. Adding the missing
+transition enables interesting behaviors where the stations have collisions and then they restart
+sending messages.
+7 CONCLUSION
+As we show in this paper, the liveness problem for timed automata is substantially more difficult
+algorithmically than the reachability problem.
+The abstract zone graph with subsumption is a standard invariant for reachability properties.
+We have given examples where even knowing this graph upfront keeps the liveness problem
+Pspace -hard. This partly explains why very little progress has been made in verification of liveness
+properties, since the hope was that the liveness problem can be solved almost as efficiently as
+reachability. In the light of the above hardness result, this is impossible modulo complexity theoretic
+assumptions.
+We have defined a notion of an invariant for liveness properties: a graph proving that the
+property does not hold. We have also proposed a high-level algorithm for constructing such an
+invariant. Finally, we have reported on some experiments with a preliminary implementation of
+this algorithm. Further work will be required to understand the relation between sizes of liveness
+and safety invariants, as well as to develop better algorithms for constructing liveness invariants.
+While some results of these experiments are very interesting, the others show that our imple-
+mentation is far from optimal. Finding better algorithms for constructing liveness invariants is
+certainly the most important direction for further work.
+ACKNOWLEDGMENTS
+Research has been conducted within the context of the Joint targeted Program in Information and
+Communication Science and Technology- ICST, supported by CNRS, Inria, and DST. Author B
+Srivathsan is partially funded by grants from Infosys Foundation, India, Tata Consultancy Services,
+India and the MATRICS project of the Science and Education Research Board, India.
+REFERENCES
+[1] R. Alur and D.L. Dill. A theory of timed automata. Theoretical Computer Science , 126(2):183–235, 1994.
+[2]G. Behrmann, P. Bouyer, E. Fleury, and K.G Larsen. Static guard analysis in timed automata verification. In International
+Conference on Tools and Algorithms for the Construction and Analysis of Systems , pages 254–270. Springer, 2003.
+[3]G. Behrmann, P. Bouyer, K. G. Larsen, and R. Pelánek. Lower and upper bounds in zone-based abstractions of timed
+automata. STTT , 8(3):204–215, 2006.
+[4]C. Daws and S. Tripakis. Model checking of real-time reachability properties using abstractions. In TACAS , volume
+1384 of LNCS , pages 313–329, 1998.
+[5] D. L. Dill. Timing assumptions and verification of finite-state concurrent systems. In Automatic Verification Methods
+for Finite State Systems , pages 197–212, 1989.
+[6]F. Herbreteau and B Srivathsan. Coarse abstractions make zeno behaviours difficult to detect. Logical Methods in
+Computer Science , 9, 2013.
+[7]F. Herbreteau, B. Srivathsan, T.-T. Tran, and I. Walukiewicz. Why liveness for timed automata is hard, and what we
+can do about it. In 36th IARCS Annual Conference on Foundations of Software Technology and Theoretical Computer
+Science , pages 48:1–48:14, 2016.
+[8]F. Herbreteau, B Srivathsan, and I. Walukiewicz. Better abstractions for timed automata. In LICS, pages 375–384. IEEE
+Computer Society, 2012.
+[9]F. Herbreteau, B. Srivathsan, and I. Walukiewicz. Efficient emptiness check for timed Büchi automata. Formal Methods
+in System Design , 40(2):122–146, 2012.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.
+
+--- Page 29 ---
+28 F. Herbreteau, B. Srivathsan, T.T. Tran, I. Walukiewicz
+[10] F. Herbreteau, B. Srivathsan, and I. Walukiewicz. Lazy abstractions for timed automata. In CAV, volume 8044 of LNCS ,
+pages 990–1005, 2013.
+[11] F. Herbreteau and T.-T. Tran. Improving search order for reachability testing in timed automata. In FORMATS , pages
+124–139. Springer, 2015.
+[12] Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstractions for timed automata. Information and
+Computation , 251:67–90, 2016.
+[13] A. Laarman, Olesen M. C., Dalsgaard A. E., Larsen K. G., and J. van de Pol. Multi-core emptiness checking of timed
+Büchi automata using inclusion abstraction. In CAV, volume 8044 of LNCS , pages 968–983, 2013.
+[14] G. Li. Checking timed Büchi automata emptiness using LU-abstractions. In FORMATS , pages 228–242, 2009.
+[15] S. Tripakis. Checking timed büchi automata emptiness on simulation graphs. ACM Transactions on Computational
+Logic (TOCL) , 10(3):15, 2009.
+[16] S. Tripakis and S. Yovine. Analysis of timed systems using time-abstracting bisimulations. Formal Methods in System
+Design , 18(1):25–68, 2001.
+[17] S. Tripakis, S. Yovine, and A. Bouajjani. Checking timed Büchi automata emptiness efficiently. Formal Methods in
+System Design , 26(3):267–292, 2005.
+[18] UPPAAL CSMA/CD model. http://www.it.uu.se/research/group/darts/uppaal/benchmarks/genCSMA_CD.awk. Ac-
+cessed: 2014-10-08.
+ACM Trans. Comput. Logic, Vol. 1, No. 1, Article . Publication date: November 2019.

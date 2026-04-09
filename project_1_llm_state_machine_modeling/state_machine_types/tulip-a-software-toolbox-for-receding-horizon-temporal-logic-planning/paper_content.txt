@@ -1,0 +1,256 @@
+--- Page 1 ---
+TuLiP : A Software Toolbox for Receding Horizon Temporal
+Logic Planning
+Tichakorn Wongpiromsarn*, Ufuk Topcu**, Necmiye Ozay**, Huan Xu**, and Richard M. Murray**
+* Singapore-MIT Alliance for Research and Technology, Singapore
+** California Institute of Technology, Pasadena, CA
+{nok, utopcu, necmiye, mumu, murray}@cds.caltech.edu
+ABSTRACT
+This paper describes TuLiP , a Python-based software tool-
+box for the synthesis of embedded control software that is
+provably correct with respect to an expressive subset of lin-
+ear temporal logic (LTL) specications. TuLiP combines
+routines for (1) nite state abstraction of control systems,
+(2) digital design synthesis from LTL specications, and
+(3) receding horizon planning. The underlying digital de-
+sign synthesis routine treats the environment as adversary;
+hence, the resulting controller is guaranteed to be correct
+for any admissible environment prole. TuLiP applies the re-
+ceding horizon framework, allowing the synthesis problem to
+be broken into a set of smaller problems, and consequently
+alleviating the computational complexity of the synthesis
+procedure, while preserving the correctness guarantee.
+Categories and Subject Descriptors
+D.2.4 [ Software Engineering ]: Software/Program Veri-
+cation| Formal methods ; D.2.10 [ Software Engineering ]:
+Design| Methodologies
+General Terms
+Design, Verication
+Keywords
+Linear temporal logic, receding horizon control
+1. INTRODUCTION
+To achieve higher levels of autonomy, modern embedded
+control systems need to reason about complex, uncertain
+environments and make decisions that enable complex mis-
+sions to be accomplished safely and eciently. To this end,
+linear temporal logic (LTL) is widely used as a specication
+language to precisely dene system correctness properties.
+The embedded control software needs to be able to inte-
+grate discrete and continuous decision-making and provide
+correctness guarantee with respect to a given specication.
+Furthermore, since the environment may be dynamic and
+unknown a priori, it is important that the controller ensures
+proper response to all the admissible environment proles.
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+HSCC’11, April 12–14, 2011, Chicago, Illinois, USA.
+Copyright 2011 ACM 978-1-4503-0629-4/11/04 ...$10.00.A common approach to embedded control software syn-
+thesis is to construct a nite transition system that serves as
+an abstract model of the physical system and synthesize a
+strategy, represented by a nite state automaton, satisfying
+the given properties based on this model. Software packages
+based on this procedure include LTLCon [4], conPAS2 [11],
+Pessoa [5] and LTLMoP [1]. LTLCon and conPAS2 han-
+dle ane systems and piecewise ane systems, respectively,
+and arbitrary LTL specications. Pessoa admits nonlinear
+and switched dynamics but only a very limited class of LTL
+specications. However, these three tools do not handle the
+adversarial nature of the environment. Hence, the controller
+is only provably correct with respect to an a priori known
+and xed environment. In contrast, LTLMoP accounts for
+adversaries but only considers fully actuated systems oper-
+ating in the Euclidean plane. To keep the synthesis problem
+tractable, LTLMoP only admits the GR[1] fragment of LTL.
+A sampling-based method has been proposed for -calculus
+specications in [3] but does not provide a correctness guar-
+antee for all the admissible environments.
+This paper introduces TuLiP , a Python-based toolbox for
+embedded control software synthesis. Similar to LTLMoP,
+TuLiP models the environment as an adversary and only
+considers GR[1] formulas. This often leads to the state ex-
+plosion problem since all the admissible environment proles
+need to be taken into consideration in the synthesis process.
+TuLiP alleviates this complexity by integrating a receding
+horizon framework [9]. Additionally, it admits general ane
+dynamics with bounded disturbances.
+2.TuLiP FEATURES
+We now summarize two key features of TuLiP (available
+athttp://www.cds.caltech.edu/tulip ).
+2.1 Embedded Control Software Synthesis
+TuLiP deals with systems that comprise the plant, i.e., the
+physical component regulated by the controller, and its po-
+tentially dynamic and a priori unknown environment. Note
+that the environment does not only include the factors that
+are external to the plant but it also includes the factors
+over which the system does not have control, e.g., hardware
+failure. The plant may contain both continuous (e.g. phys-
+ical) and discrete (e.g. computational) components. TuLiP
+models the embedded control software synthesis problem as
+a game between the plant and the environment. Given the
+model of the plant and system specication 'in LTL, TuLiP
+provides a function that automatically synthesizes a con-
+troller that ensures system correctness with respect to 'for
+any admissible environment, if such a controller exists (i.e.,
+'is realizable). If 'is unrealizable, TuLiP also provides
+313
+
+--- Page 2 ---
+counter examples, i.e., initial states starting from which the
+environment can falsify 'regardless of controller's actions.
+The synthesis feature relies on (1) generating a proposi-
+tion preserving partition of the continuous state space, (2)
+continuous state space discretization based on the evolution
+of the continuous state [8], and (3) digital design synthesis.
+JTLV [6] is used as the underlying synthesis routine.
+Currently, TuLiP handles the case where the continuous
+state of the plant evolves according to discrete-time linear
+time-invariant dynamics: for t2 f0; 1;2;:::g,s[t+ 1] =
+As[t] +Bu[t] +Ed[t]; u[t]2U; d[t]2D; s[0]2S;where
+S2Rnis the continuous state space, U2RmandD2Rp
+are the sets of admissible control inputs and exogenous dis-
+turbances,s[t];u[t];d[t] are the continuous state, the control
+signal and the exogenous disturbance, respectively, at time
+t.U;D;Sare assumed to be bounded polytopes.
+The specication 'is assumed to be of the form
+'=
+ init^ e^^
+i2If3 f;i
+=)
+ s^^
+i2Ig3 g;i
+;
+known as GR[1]. Here  init; e; f;i;i2If; sand g;i;i2
+Igare propositional formulas.  init; eand f;i;i2Ifes-
+sentially describe the assumptions on the initial state of the
+system and the environment.  sand g;i;i2Igdescribe
+the desired behavior of the system. See [9] for more details.
+2.2 Receding Horizon Framework
+For systems with a certain structure, the computational
+complexity of the planner synthesis can be alleviated by solv-
+ing the planning problems in a receding horizon fashion, i.e.,
+compute the plan or strategy over a \shorter" horizon, start-
+ing from the current state, implement the initial portion of
+the plan, and recompute the plan. This approach essentially
+reduces the problem into a set of smaller problems. Cer-
+tain sucient conditions ensure that this \receding horizon"
+strategy preserves the desired system-level properties.
+Given a specication in the form of 'above, TuLiP rst
+constructs a nite state abstraction of the physical system.
+Then, for each i2Ig, we organize the system states into
+a partially ordered set Pi= (fWi
+jg; g;i) whereWi
+0are
+the set of states satisfying  g;i. For each j, we dene a
+short-horizon specication 	i
+jassociated withWi
+jas
+	i
+j=
+(2Wi
+j)^^ e^V
+k2If3 f;k
+=)
+ s^3(2Fi(Wi
+j))^
+:
+Here  is a propositional formula that describes receding
+horizon invariants and Fi:fWi
+jg!fWi
+jgdenes the in-
+termediate goal for starting in Wi
+j. LetVbe the entire
+state space of the system. As described in [9], a sucient
+condition for the receding horizon strategy to lead to cor-
+rect execution with respect to 'is that for all i2Ig, (1)
+Wi
+0[Wi
+1[:::[Wi
+p=V, (2)Wi
+0 g;iWi
+j;8j6= 0, (3)
+Fi(Wi
+j) g;iWi
+j;8j6= 0, (4) init =) is a tautology,
+and (5) 	i
+jis realizable8j.
+Given the plant model, ',fWi
+jg,Fiand , TuLiP auto-
+matically constructs the short horizon specication 	i
+jfor
+eachi;j. It includes functions for verifying that there ex-
+ists a partial order  g;iand that the sucient condition
+above is satised; and automatically computing the receding
+horizon invariant  if one exists or report an error otherwise.
+3. APPLICATIONS AND DISCUSSIONS
+We have demonstrated the successful applications of TuLiP
+in multiple applications, including autonomous driving [9],
+vehicle management systems in avionics [10] and multi-targettracking. Other simpler examples are included in the current
+release of the toolbox. For the autonomous driving prob-
+lem, the receding horizon framework needs to be applied
+for the car to be able to drive a reasonable distance. Due
+to the state explosion problem, TuLiP cannot automatically
+nd the receding horizon invariant  for this specic ap-
+plication. Nevertheless, it provides useful guidelines for the
+user to easily manually construct . Once  is constructed,
+TuLiP successfully checks that the sucient condition for
+applying the receding horizon strategy is satised.
+TuLiP constructs  roughly by starting  = True and
+iterating between (1) checking the realizability of each 	i
+j,
+and (2) updating  to be the conjunction of current  and
+the negation of the counter examples of unrealizable 	i
+j(if
+any). This process stops when  init =) is no longer
+a tautology or all the 	i
+jare realizable. Since the counter
+examples are given as the enumeration of all the infeasible
+initial states, the size of  quickly increases. An extension
+of the current version of TuLiP is to implement a procedure
+for reducing the counter examples into a small formula. We
+also plan to integrate various existing software packages into
+TuLiP including a user-friendly simulation environment such
+as Player/Stage [2] and a state space discretization proce-
+dure that admits a more general class of systems (e.g. one
+based on approximate simulations and bisimulations as dis-
+cussed in [7] and implemented in [5]).
+4. REFERENCES
+[1] C. Finucane, G. Jing, and H. Kress-Gazit. LTLMoP.
+http://code.google.com/p/ltlmop/ .
+[2] B. Gerkey, R. Vaughan, and A. Howard. The
+Player/Stage project: Tools for multi-robot and
+distributed sensor systems. In Conf. on Advanced
+Robotics , 2003.
+[3] S. Karaman and E. Frazzoli. Sampling-based motion
+planning with deterministic -calculus specications.
+InIEEE CDC , 2009.
+[4] M. Kloetzer and C. Belta. LTLCon.
+http://iasi.bu.edu/~software/LTL-control.htm .
+[5] M. Mazo, A. Davitian, and P. Tabuada. Pessoa: A
+tool for embedded controller synthesis. In T. Touili,
+B. Cook, and P. Jackson, editors, CAV , volume 6174
+ofLNCS , pages 566{569. Springer, 2010.
+[6] N. Piterman, A. Pnueli, and Y. Sa'ar. Synthesis of
+reactive(1) designs. In Verication, Model Checking
+and Abstract Interpretation , volume 3855 of LNCS ,
+pages 364 { 380. Springer, 2006.
+http://jtlv.sourceforge.net/ .
+[7] P. Tabuada. Verication and Control of Hybrid
+Systems: A Symbolic Approach . Springer, 2009.
+[8] T. Wongpiromsarn, U. Topcu, and R. M. Murray.
+Automatic synthesis of robust embedded control
+software. In AAAI SS on Embedded Reasoning:
+Intelligence in Emb'd Systems , pages 104{111, 2010.
+[9] T. Wongpiromsarn, U. Topcu, and R. M. Murray.
+Receding horizon control for temporal logic
+specications. In HSCC , pages 101{110, 2010.
+[10] T. Wongpiromsarn, U. Topcu, and R. M. Murray.
+Formal synthesis of embedded control software:
+Application to vehicle management systems. In AIAA
+Infotech@Aerospace , 2011. submitted.
+[11] B. Yordanov and C. Belta. conPAS2.
+http://hyness.bu.edu/conPAS2.html .
+314

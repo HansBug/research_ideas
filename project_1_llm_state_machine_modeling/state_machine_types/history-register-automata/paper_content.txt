@@ -1,0 +1,1553 @@
+--- Page 1 ---
+Logical Methods in Computer Science
+Vol. 12(1:7)2016, pp. 1–32
+www.lmcs-online.orgSubmitted Sep. 10, 2015
+Published Mar. 31, 2016
+HISTORY-REGISTER AUTOMATA
+RADU GRIGOREaAND NIKOS TZEVELEKOSb
+aUniversity of Kent
+e-mail address : radugrigore@gmail.com
+bQueen Mary University of London
+e-mail address : nikos.tzevelekos@qmul.ac.uk
+Abstract. Programs with dynamic allocation are able to create and use an unbounded
+number of fresh resources, such as references, objects, les, etc. We propose History-Register
+Automata (HRA), a new automata-theoretic formalism for modelling such programs. HRAs
+extend the expressiveness of previous approaches and bring us to the limits of decidability
+for reachability checks. The distinctive feature of our machines is their use of unbounded
+memory sets (histories) where input symbols can be selectively stored and compared with
+symbols to follow. In addition, stored symbols can be consumed or deleted by reset. We
+show that the combination of consumption and reset capabilities renders the automata
+powerful enough to imitate counter machines, and yields closure under all regular operations
+apart from complementation. We moreover examine weaker notions of HRAs which strike
+dierent balances between expressiveness and eectiveness.
+1.Introduction
+Program analysis faces substantial challenges due to its aim to devise nitary methods and
+machines which are required to operate on potentially innite program computations. A
+specic such challenge stems from dynamic generative behaviours such as, for example,
+object or thread creation in Java, or reference creation in ML. A program engaging in such
+behaviours is expected to generate a possibly unbounded amount of distinct resources, each
+of which is assigned a unique identier, a name . Hence, any machine designed for analysing
+such programs is expected to operate on an innite alphabet of names. The latter need has
+brought about the introduction of automata over innite alphabets in program analysis,
+starting from prototypical machines for mobile calculi [ 27] and variable programs [ 23], and
+recently developing towards automata for verication tasks such as equivalence checks of
+ML programs [ 29,30], context-bounded analysis of concurrent programs [ 10,3] and runtime
+program monitoring [20].
+The literature on automata over innite alphabets is rich in formalisms each based
+on a dierent approach for tackling the inniteness of the alphabet in a nitary manner
+(see e.g. [ 36] for an overview). A particularly intuitive such model is that of Register
+2012 ACM CCS: [Theory of computation ]: Formal languages and automata theory.
+Key words and phrases: register automata, automata over innite alphabets, innite systems reachability,
+freshness, counter automata.
+LOGICAL METHODSl IN COMPUTER SCIENCE DOI:10.2168/LMCS-12(1:7)2016c R. Grigore and N. Tzevelekos
+CC Creative Commons
+
+--- Page 2 ---
+2 R. GRIGORE AND N. TZEVELEKOS
+q0P
+OP
+O?;1
+1;2The automaton starts at state q0with empty history and non-
+deterministically makes a transition to state PorQ, accepting
+the respective symbol. From state P, it accepts any input name
+awhich does not appear in any of its histories (this is what ?
+stands for), puts it in history number 1, and moves back to q0.
+From state O, it accepts any input name awhich appears in
+history number 1, puts it in history number 2, and moves back
+toq0.
+Figure 1: History-register automaton accepting L0.
+Automata (RA) [23,31], which are machines built around the concept of an ordinary nite-
+state automaton attached with a xed nite amount of registers. The automaton can store
+in its registers names coming from the input, and make control decisions by comparing new
+input names with those already stored. Thus, by talking about addresses of its memory
+registers rather than actual names, a so nitely-described automaton can tackle the innite
+alphabet of names. Driven by program analysis considerations, register automata have been
+recently extended with the feature of name-freshness recognition [ 38], that is, the capability
+of the automaton to accept specic inputs just if they are fresh | they have not appeared
+before during computation. Those automata, called Fresh-Register Automata (FRA) , can
+account for languages like the following,
+L0=fa1:::an2Nj8i6=j: ai6=ajg
+which captures the output of a fresh-name generator ( Nis a countably innite set of names).
+FRAs are expressive enough to model, for example, nitary fragments of languages like the
+-calculus [38] or ML [29].
+The freshness oracle of FRAs administers the automata with perhaps too restricted an
+access to the full history of the computation: it allows them to detect name freshness, but
+not non-freshness. Consider, for instance, the following simple language,
+L0=fw2(fO;PgN )jeach letter of wappears exactly once in it
+^each (O;a) inwis preceded by some ( P;a)g
+where the alphabet is made of pairs containing an element from the set fO;Pgand a name
+(OandPcan be seen as dierent processes or agents exchanging names). The language L0
+represents a paradigmatic scenario of a name generator Pcoupled with a name consumer O:
+each consumed name must have been created rst, and no name can be consumed twice. It
+can capture e.g. the interaction of a process which creates new les with one that opens
+them, where no le can be opened twice. The inability of FRAs to detect non-freshness, as
+well as the fact that names in their history cannot be removed from it, do not allow them
+to expressL0. More generally, the notion of re-usage orconsumption of names is beyond
+the reach of those machines. Another limitation of FRAs is the failure of closure under
+concatenation, interleaving and Kleene star.
+Aiming at providing a stronger theoretical tool for analysing computation with names,
+in this work we further capitalise on the use of histories by eectively upgrading them
+to the status of registers. That is, in addition to registers, we equip our automata with
+a xed number of unbounded sets of names ( histories ) where input names can be stored
+and compared with names to follow. As histories are internally unordered, the kind of
+
+--- Page 3 ---
+HISTORY-REGISTER AUTOMATA 3
+HRA unary HRA
+non-reset
+HRADA / CMAFRA
+RA
+Figure 2: Expressiveness of history-register automata compared to previous models (in
+italics). The inclusion M!M0means that for each A2M we can eectively
+construct anA02M0accepting the same language as A. All inclusions are strict.
+name comparison we allow for is name belonging ( does the input name belong to the i-th
+history? ). Moreover, names can be selected and removed from histories, and individual
+histories can be emptied/reset. We call the resulting machines History-Register Automata
+(HRA) . For example,L0is accepted by the HRA with 2 histories depicted in Figure 1, where
+by convention we model pairs of symbols by sequences of two symbols.1
+The strengthening of the role of histories substantially increases the expressive power of
+our machines. More specically, we identify three distinctive features of HRAs:
+(1) the capability to reset histories;
+(2) the use of multiple histories;
+(3) the capability to select and remove individual names from histories.
+Each feature allows us to express one of the paradigmatic languages below, none of which
+are FRA-recognisable.
+L1=fa0w1:::a 0wn2Nj8i: wi2N^a0wi2L 0gfor givena0
+L2=fa1a0
+1:::ana0
+n2Nja1:::an;a0
+1:::a0
+n2L 0g
+L3=fa1:::ana0
+1:::a0
+n02Nja1:::an;a0
+1:::a0
+n02L 0^8i:9j:a0
+i=ajg
+Apart from the gains in expressive power, the passage to HRAs yields a more well-rounded
+automata-theoretic formalism for generative behaviours as these machines enjoy closure under
+all regular operations apart from complementation. On the other hand, the combination of
+features (1-3) above enables us to use histories as counters and simulate counter machines. We
+therefore obtain non-primitive recursive bounds for checking language emptiness. Given that
+language containment and universality are undecidable already for register automata [ 31],
+HRAs are fairly close to the decidability boundary for properties of languages over innite
+alphabets. Nonetheless, starting from HRAs and weakening them in each of the rst two
+factors (1,2) we obtain automata models which are still highly expressive but computationally
+more tractable. Overall, the expressiveness hierarchy of the machines we examine is depicted
+in Figure 2 (weakening in (1) and (2) respectively occurs in the second column of the gure).
+Motivation and related work. The motivation for this work stems from semantics and
+verication. In semantics, the use of names to model resource generation originates in the
+work of Pitts and Stark on the -calculus [ 32] and Stark's PhD [ 37]. Names have subsequently
+been incorporated in the semantics literature (see e.g. [ 21,4,1,24]), especially after the advent
+1Although, technically speaking, the machines we dene below do not handle constants (as e.g. O; P), the
+latter are encoded as names appearing in initial registers, in standard fashion.
+
+--- Page 4 ---
+4 R. GRIGORE AND N. TZEVELEKOS
+ofNominal Sets [18], which provided formal foundations for doing mathematics with names.
+Moreover, recent work in game semantics has produced algorithmic representations of game
+models using extensions of fresh-register automata [ 29,30,28], thus achieving automated
+equivalence checks for fragments of ML and Java. In a parallel development, a research
+stream on automated analysis of dynamic concurrent programs has developed essentially
+the same formalisms, this time stemming from trace-based operational techniques [ 10,3].
+This conuence of dierent methodologies is exciting and encourages the development of
+stronger automata for a wider range of verication tasks, and just such an automaton we
+examine herein.
+Although our work is driven by program analysis, the closest existing automata models
+to ours come from XML database theory and model checking. Research in the latter area has
+made great strides in the last years on automata over innite alphabets and related logics
+(e.g. see [ 36] for an overview from 2006). As we show in this paper, history-register automata
+t very well inside the big picture of automata over innite alphabets (cf. Figure 2) and in
+fact can be seen as closely related to Data Automata (DA) [7] or, equivalently, Class Memory
+Automata (CMA) [5]. A crucial dierence lies in the reset capabilities of our machines, which
+allow us to express languages like L1that cannot be expressed by DA/CMAs. On the other
+hand, the local termination conditions of DA/CMAs allow them to express languages that
+HRAs cannot capture. We nd the correspondence between HRAs and DAs particularly
+pleasing as it relates two seemingly very dierent kind of machines, with distant operational
+descriptions and intuitions.
+A recent strand of research in foundations of atom-based computation [ 6,9,8] has
+examined nominal variants of classical machine models, ranging from nite-state automata
+to Turing machines. Finally, since the publication of the conference version of this paper [ 39],
+there has been work in nested DA/CMAs [14,13], which can be seen as extensions of
+non-reset HRAs whereby the histories satisfy some nesting relations. The latter are a clean
+extension of our machines, leading to higher reachability complexities.
+This article is the journal version of [ 39], with strengthened results and with full proofs.
+Section 4 is new: it collects all results that show how registers can be simulated by other
+means. Many upper bounds are tighter: Propositions 4.1, 4.4, 5.4, 6.2, 6.8. Some results are
+new: Propositions 4.5, 4.7, 5.6, 6.10. Example 4.3 is new. Most proofs have been revised.
+Section 7 is new: it collects in one place the main properties of HRAs. Also, we relate our
+work to what has been done after the conference version was published.
+Overview. In Section 2 we introduce HRAs and their basic properties. In Section 3 we
+examine regular closure properties of HRAs. In Section 4 we explain how registers can
+be simulated by other means, such as histories. In Section 5 we prove that emptiness is
+Ackermann -complete. In Section 6 we introduce weaker models, and study their properties.
+In Section 7 we summarize the main properties of HRAs. In Section 8 we connect HRAs to
+existing automata formalisms. We conclude by discussing future directions which emanate
+from this work.
+2.Definitions and first properties
+We start by xing some notation. Let Nbe a countably innite alphabet of names , over
+which we range by a,b,c, etc. For any pair of natural numbers ij, we write [i;j] for the
+setfi;i+1;:::;jg, and for each iwe let [i] be the setf1;:::;ig. For any set S, we writejSj
+
+--- Page 5 ---
+HISTORY-REGISTER AUTOMATA 5
+for the cardinality of S, we writeP(S) for the powerset of S, we writePfn(S) for the set
+of nite subsets of S, and we writeP6=;(S) for the set of nonempty subsets of S. We write
+id:S!Sfor the identity function on S, and img(f) for the image of f:S!T.
+We dene automata which are equipped with a xed number of registers andhistories
+where they can store names. Each register is a memory cell where one name can be stored at
+a time; each history can hold an unbounded set of names. We use the term place to refer to
+both histories and registers. Transitions are of two kinds: name-accepting transitions and
+reset transitions. Those of the former kind have labels of the form ( X;X0), for sets of places
+XandX0; and those of the latter carry labels with single sets of places X. A transition
+labelled (X;X0) means:
+accept name aif it is contained precisely in places X, and
+update places in XandX0so thatabe contained precisely in places X0after the transition
+(without touching other names).
+Byabeing contained precisely in places Xwe mean that it appears in every place in X,
+and in no other place. In particular, the label ( ?;X0) signies accepting a fresh name (one
+which does not appear in any place) and inserting it in places X0. On the other hand, a
+transition labelled by Xresets all the places in X; that is, it updates each of them to the
+empty set (registers are modelled as sets with at most one element). Reset transitions do
+not accept names; they are -transitions from the outside. Note that the label ( X;?) has
+dierent semantics from the label X: the former stipulates that a name appearing precisely
+inXbe accepted and then removed from X; whereas the latter clears all the contents of
+places inX, without accepting anything.
+2.1.Denitions. Formally, let us x positive integers mandnwhich will stand for the
+default number of histories and registers respectively in the machines we dene below. The
+setAsnofassignments and the set Laboflabels are:
+Asn=fH: [m+n]!P fn(N)j8i>m:jH(i)j1g
+Lab=P([m+n])2[P([m+n])
+For example,f(i;?)ji2[m+n]gis the empty assignment.2We range over elements of Asn
+byHand variants, and over elements of Labby`and variants.
+LetH2Asnbe an assignment, let a2N be a name, let SN be a set of names, and
+letX[m+n] be a set of places. We introduce the following notation:
+We setH@Xto be the set of names which appear precisely in placesXinH; that is,
+H@X=T
+i2XH(i)nS
+i=2XH(i). In particular, H@?=NnS
+iH(i) is the set of names
+which do not appear in H.
+H[X7!S] is the update H0ofHso that all places in Xare mapped to S; that is,
+H0=f(i;H(i))ji62Xg[f (i;S)ji2Xg. E.g.,H[X7!?] resets all places in X.
+H[ainX] is the update of Hwhich removes name afrom all places and inserts it back
+inX; that is,H[ainX] is the assignment:
+f(i;H(i)[fag)ji2X\[m]g [ f (i;fag)ji2Xn[m]g [ f (i;H(i)nfag)ji =2Xg
+Note above that operation H[ainX] acts dierently in the case of histories ( im) and
+registers (i>m ) inX: in the former case, the name ais added to the history H(i), while
+in the latter the register H(i) is set tofagand its previous content is cleared.
+2We represent functions as sets of pairs.
+
+--- Page 6 ---
+6 R. GRIGORE AND N. TZEVELEKOS
+We can now dene our automata.
+Denition 2.1. Ahistory-register automaton (HRA) of type (m;n) is a tupleA=
+hQ;q 0;H0;;Fiwhere:
+Qis a nite set of states, q0is the initial state, FQare the nal ones,
+H02Asn is the initial assignment, and
+QLabQis the transition relation.
+For brevity, we shall call Aan (m;n)-HRA .
+We write transitions in the forms qX;X0
+!q0andqX!q0, for each kind of transition label.
+In diagrams, we may unify dierent transitions with common source and target, for example
+qX;X0
+!q0andqY;Y0
+!q0may be written qX;X0=Y;Y0
+! q0;moreover, we shall lighten notation
+and writeifor the singletonfig, andijforfi;jg.
+We already gave an overview of the semantics of HRAs. This is formally dened by
+means of congurations representing the current computation state of the automaton. A
+conguration ofAis a pair (q;H)2^Q, where:
+^Q=QAsn
+From the transition relation we obtain the conguration graph of Aas follows.
+Denition 2.2. LetAbe an (m;n)-HRA as above. Its conguration graph (^Q;!),
+where! ^Q
+N[fg
+^Q, is constructed by setting ( q;H)x!(q0;H0) if and only
+if one of the following conditions is satised.
+x=a2N and there is qX;X0
+!q02such thata2H@XandH0=H[ainX0].
+x=and there is qX!q02such thatH0=H[X7!?].
+The language accepted by Ais
+L(A) =fw2Nj(q0;H0)w! !(q;H) andq2Fg
+where! ! is the reexive transitive closure of ! (i.e. ^qx1:::xk! ! ^q0if ^qx1!xk!^q0).
+Note that we use both for the empty sequence and the empty transition so, in particular,
+when writing sequences of the form x1:::xkwe may implicitly consume 's. It is worth
+noting here that our formulation follows M-automata [23] in that multiple places can be
+mentioned at each transition.
+Example 2.3. The languageL1of the Introduction is recognised by the following (1 ;1)-
+HRA (leftmost below), with initial assignment f(1;?);(2;a0)g. The automaton starts by
+acceptinga0, leaving it in register 2, and moving to state q1. There, it loops accepting fresh
+names (appearing in no place) which it stores in history 1. From q1it goes back to q0by
+resetting its history.
+q0q12;2
+1?;1
+q0q1?;1=2;12
+?;2=1;12q0q11;??;1 1;?
+We can also see that the other two HRAs, of type (2 ;0) and (1;0), accept the languages L2
+andL3respectively. Both automata start with empty assignments.
+
+--- Page 7 ---
+HISTORY-REGISTER AUTOMATA 7
+Finally, the automaton we drew in Figure 1 is, in fact, a (2,2)-HRA where its two registers
+initially contain the names OandPrespectively. The transition label Ocorresponds to
+(3;3), andPto (4;4).
+As mentioned in the introductory section, HRAs build upon (Fresh) Register Au-
+tomata [23, 31, 38]. The latter can be dened within the HRA framework as follows.3
+Denition 2.4. ARegister Automaton (RA) ofnregisters is a (0 ;n)-HRA with no
+reset transitions. A Fresh-Register Automaton (FRA) ofnregisters is a (1 ;n)-HRA
+A=hQ;q 0;H0;;Fisuch thatH0(1) =S
+iH0(i) and:
+for all (q;`;q0)2, there areX;X0such that`= (X;X0) and 12X0;
+for all (q;f1g;X0;q0)2, there is also ( q;?;X0;q0)2.
+Thus, in an FRA all the initial names must appear in its history, and the same holds
+for all the names the automaton accepts during computation (1 2X0). As, in addition, no
+reset transitions are allowed, the history eectively contains all names of a run. On the
+other hand, the automaton cannot recognise non-freshness : if a name appearing only in the
+history is to be accepted at any point then a totally fresh name can be also be accepted in
+the same way. Now, from [38] we have the following.
+Lemma 2.5. The languagesL1;L2andL3are not FRA-recognisable.
+Proof.L1was explicitly examined in [ 38]. ForL2andL3we use a similar argument as the
+one for showing that L0L0is not FRA-recognisable [38] .
+2.2.Bisimulation. Bisimulation equivalence, also called bisimilarity , is a useful tool for
+relating automata, even from dierent paradigms. It implies language equivalence and is
+generally easier to reason about than the latter. We will be using it avidly in the sequel.
+Denition 2.6. LetAi=hQi;q0i;H0i;i;Fiibe (m;n)-HRAs, for i= 1;2. A relation
+R^Q1^Q2is called a simulation onA1andA2if, for all (^q1;^q2)2R,
+if^q1! ! ^q0
+1and1(^q0
+1)2F1then ^q2! ! ^q0
+2for some1(^q0
+2)2F2, where1is the rst
+projection function;
+if ^q1! !a!^q0
+1then ^q2! !a!^q0
+2for some (^q0
+1;^q0
+2)2R.
+Ris called a bisimulation if bothRandR1are simulations. We say that A1andA2are
+bisimilar , writtenA1A 2, if ((q01;H01);(q02;H02))2Rfor some bisimulation R.
+Lemma 2.7. IfA1A 2thenL(A1) =L(A2).
+2.3.Determinism. We close our presentation here by describing the deterministic class of
+HRAs. We dened HRAs in such a way that, at any given conguration ( q;H) and for any
+input symbol a, there is at most one set of places Xthat can match a, i.e. such that a2H@X.
+As a result, the notion of determinism in HRAs can be ensured by purely syntactic means.
+Below we write qX! !q02if there is a sequence of transitions qX1!Xn!q0insuch
+thatX=Sn
+i=1Xi. In particular, q?! !q2.
+3The denitions given in [23, 31, 38] are slightly dierent but can routinely be shown equivalent.
+
+--- Page 8 ---
+8 R. GRIGORE AND N. TZEVELEKOS
+Denition 2.8. We say that an HRA Aisdeterministic when, for any reachable cong-
+uration ^qand any name a, if^q! !a!^q1and^q! !a!^q2then ^q1=^q2. We say that an
+HRAAisstrongly deterministic when, for any state qand any sets X,X1,X2,Y1,Y2,
+ifqY1! !XnY1;X1!q12andqY2! !XnY2;X2!q22thenq1=q2,Y1=Y2andX1=X2.
+Even ifAis deterministic, it is still possible to have multiple paths in the conguration
+graph that are labeled by the same word. However, such paths may only dier in their
+-transitions. In the denition of `strongly deterministic', the set Xis guessing where the
+nameaoccurs.
+Lemma 2.9. IfAis strongly deterministic then it is deterministic.
+3.Closure properties
+History-register automata enjoy good closure properties with respect to regular language
+operations. In particular, they are closed under union, intersection, concatenation and
+Kleene star, but not closed under complementation.
+In fact, the design of HRAs is such that the automata for union and intersection
+come almost for free through a straightforward product construction which is essentially
+an ordinary product for nite-state automata, modulo reindexing of places to account for
+duplicate labels (cf. [ 23]). The constructions for Kleene star and concatenation are slightly
+more involved as there is need for passing through intermediate automata which do not
+touch their initial names.
+We shall need the following technical gadget. Given an ( m;n)-HRAAand a sequence
+wofkdistinct names, we construct a bisimilar ( m;n+k)-HRA, denotedAxw, in which
+the names of wappear exclusively in the additional kregisters, which, moreover, remain
+unchanged during computation. The construction will allow us, for instance, to create
+feedback loops in automata ensuring that after each feedback transition the same initial
+conguration occurs.
+Lemma 3.1. LetAbe an (m;n)-HRA with initial assignment H0andw=a1:::aka
+sequence of distinct names. We can eectively construct an (m;n+k)-HRAAxwwith
+initial assignment H0
+0such thatAxwA and:
+H0
+0(m+n+i) =aifor alli2[k], andH0
+0(i) =H0(i)nfa1;:::;akgfor alli2[m+n];
+for all reachable congurations (q;H)ofAxwand alli>m +n,H(i) =H0
+0(i).
+Proof. We constructAxw=hQ0;q0
+0;H0
+0;0;F0ias follows. First, we insert/move all names
+ofwto the new registers (places [ m+n+1;m+n+k]), i.e. we set H0
+0(i) =H0(i)nfa1:::akg
+for alli2[m+n], andH0
+0(m+n+i) =faigfor eachi2[k]. The role of the new registers is
+to constantly store the names in wand act on the behalf of other places when the latter
+intend to use those names: during computation, whenever an aiis captured by a transition
+of the initial automaton A, inAxwit will be instead simulated by a transition involving
+the new registers. In order for the simulation to be accurate, we shall inject inside states
+information specifying the intended location of the ais in the places of A. Thus, the states
+of the new automaton are pairs ( q;f), whereq2Qandfis a function recording, for each
+of the new registers, where would the name of the register appear in the original automaton
+A. That is,
+Q0=Qff: [k]!P([m+n])j8j6=j0:f(j)\f(j0)[m]g
+
+--- Page 9 ---
+HISTORY-REGISTER AUTOMATA 9
+whileq0
+0= (q0;f(i;fjjai2H0(j)g)ji2[k]g) andF0=f(q;f)2Q0jq2Fg. Finally,0
+operates just like albeit taking into account the f's of states to gure out the intended
+positions of the ais and, at the same time, update the f's after each transition. We therefore
+include in0precisely the following transitions. Below we write iform+n+i. For each
+(q;f)2Q0andqX;X0
+!q02,
+add a transition ( q;f)X;X0
+!(q0;f);
+iff(i) =Xfor someithen add (q;f)fig;fig! (q0;f0) wheref0=f[i7!X0];
+Moreover, for each qX!q02include (q;f)X!(q0;f0) wheref0=f(j;f(j)nX)jj2[k]g.
+Following the above line of reasoning, we can show that the relation
+f((q;H);(q;f;H0))j8i2[m+n]:H(i) =H0(i)[fajji2f(j)gg
+with (q;H);(q;f;H0) reachable congurations, is a bisimulation.
+We writeLL0for concatenation of languages, and Lfor Kleene closure of a language.
+We use the same denitions as the standard ones for languages over nite alphabets: LL0
+isfww0jw2L^w02L0g, andLis the least xed-point of the equations 2L
+andLLL, whereis the empty word.
+Proposition 3.2. Languages recognised by HRAs are closed under union, intersection,
+concatenation and Kleene star.
+Proof. We show concatenation and Kleene star only. For the former, consider HRAs
+Ai=hQi;q0i;H0i;i;Fii,i= 1;2, and assume wlog that they have common type ( m;n). Let
+wbe an enlistment of all names in H02and constructA0
+i=Aixw, fori= 1;2. Then, the
+concatenationL(A1)L(A2) is the language recognised by connecting A0
+1andA0
+2serially,
+that is, the automaton obtained by connecting each nal state of A0
+1to the initial state of A0
+2
+with a transition labelled [ m+n], and with initial/nal states those of A0
+1=A0
+2respectively.
+Finally, given an ( m;n)-HRAAand an enlistment wof its initial names, we construct
+an automatonA0by connecting the nal states of Axwto its initial state with a transition
+labelled [m+n]. We can see that L(A0) =L(A).
+As we shall next see, while universality is undecidable for HRAs, their emptiness problem
+can be decided by reduction to coverability for transfer-reset vector addition systems. In
+combination, these results imply that HRAs cannot be eectively complemented. In fact,
+there are HRA-languages whose complements are not recognisable by HRAs. This can be
+shown via the following example, adapted from [26].
+Lemma 3.3. HRAs are not closed under complementation.
+Example 3.4. ConsiderL4=fw2Njnot all names of woccur exactly twice in it g,
+which is accepted by the (2 ;0)-HRA below.
+q0q1q2q3?;1=1;1
+?;2?;1=1;1
+2;2?;1=1;1
+2;1?;1=1;1
+The automaton non-deterministically selects an input name which either appears only once
+in the input or at least three times. We claim that L4, the language of all words whose
+names occur exactly twice in them, is not HRA-recognisable.
+
+--- Page 10 ---
+10 R. GRIGORE AND N. TZEVELEKOS
+Proof. Suppose it were recognisable (wlog, Proposition 4.1) by an ( m;0)-HRAAwithk
+states. Then,Awould accept the word w=a1:::aka1:::akwhere allai's are distinct and
+do not appear in the initial assignment of A. Letp=p1p2be the path inAthrough which w
+is accepted, with each picorresponding to one of the two halves of w. Since allais are fresh for
+A, the non-reset transitions of p1must carry labels of the form ( ?;X), for some sets X. Let
+qbe a state appearing twice in p1, sayp1=p11(q)p12(q)p13. Consider now the path p0=p0
+1p2
+wherep0
+1is the extension of p1which repeats p12, that is,p0
+1=p11(q)p12(q)p12(q)p13. We
+claim thatp0is an accepting path in A. Indeed, by our previous observation on the labels of
+p1, the pathp0
+1does not block, i.e. it cannot reach a transition q1X;Y!q2, withX6=?, in
+some conguration ( q1;H1) such that H1@X=?. We need to show that p2does not block
+either (inp0). Let us denote ( q;H 1) and (q;H 2) the congurations in each of the two visits
+ofqin the run of ponw; and let us write ( q;H 3) for the third visit in the run of p0
+1, given
+that for the other two visits we assume the same congurations as in p. Now observe that,
+for each nonempty X[m], repeating p12cannot reduce the number of names appearing
+precisely in X, thereforejH2@XjjH3@Xj. The latter implies that, since pdoes not block,
+p0does not block either. Now observe that any word accepted by w0is not inL4, asp0
+1
+accepts more than kdistinct names, a contradiction.
+4.Removing Registers
+Although registers are convenient for expressing some languages (Example 4.2 and Exam-
+ple 4.3), when reasoning about HRAs it is more convenient to focus on histories only. In
+this section, we show that this approach is sound and in particular we present three ways of
+removing registers:
+we can construct a bisimilar automaton if we are allowed to use extra histories and resets;
+we can preserve language if we are allowed to use extra histories (but no resets);
+we can preserve emptiness if we are allowed to use extra states (but no histories nor
+resets).
+Each of these constructions will be useful in the sequel either for devising emptiness checks
+and, more generally, they demonstrate that registers can be considered as a derivative notion.
+4.1.Simulating Registers with Histories and Resets. The semantics of registers is
+very similar to that of histories. The main dierence is that registers are forced to contain
+at most one name. To simulate registers with histories, we reset histories before inserting
+names. Resetting histories might cause the automaton to forget names that are necessary
+for deciding how to proceed. The solution is to use two histories for each register: one holds
+the old name, the other holds the new name. Only the history where the new name will be
+written needs to be reset.
+Proposition 4.1. LetA=hQ;q 0;H0;;Fibe an (m;n)-HRA. We can construct an (m+
+2n;0)-HRAA0=hQ0;q0
+0;H0
+0;0;F0ithat is bisimilar to A. We havejQ0j2O(2njQj)and
+j0j2O(2njj). The construction can be done in O
+(m+n)(jQ0j+j0j)
+time.
+Proof. For eachqinQ, we include 2nstates (q;f) inQ0, wheref: [n]![2n] is such that
+f(i)2fi;i+ngfor alli. The name thatAholds in register iwill be found in history m+f(i)
+ofA0. We set fto be the complement of f; that is, f(i),n+ 2if(i). Letfy(i) beiif
+i2[m] andm+f(i) otherwise. Moreover, q0
+0= (q0;id),F0=f(q;f)jq2Fg, andH0
+0is
+
+--- Page 11 ---
+HISTORY-REGISTER AUTOMATA 11
+H0extended so that H0
+0(i) =?for alli > m +n. Finally, we include in 0precisely the
+following transitions.
+For eachqX;X0
+!q02, add (q;f)Y!fy(X);fy(X0)! (q0;f0)whereY= [m+1;m+2n]n
+img(f), andf0is given by: f0(i) =f(i) ifi2X[X0andf0(i) =f(i) otherwise. (Note
+that we need a few extra states in Q0, which remain nameless in this proof.)
+For eachqX!q02, add (q;f)fy(X)! (q0;f).
+The relationf((q;H);((q;f);H0))jH=H0fygwitnesses bisimilarity.
+4.2.Replacing Registers with Histories using Colours. The result of Proposition 4.1
+comes at the cost of introducing reset transitions even if the original automaton does not
+have such transitions. Reset transitions are undesirable because they increase the complexity
+of the emptiness problem (Section 5). We can avoid introducing reset transitions by using the
+colouring technique of [5]. The construction is more involved and the resulting automaton is
+not bisimilar to the original, but it is language equivalent.
+Before we proceed with the proof, let us illustrate the technique on two examples.
+Example 4.2 illustrates how to check that a name is not in the simulated register; Example 4.3
+illustrates also how to check that a name is in the simulated register.
+Example 4.2. The language
+L5=fa1:::anjai6=ai+1for allig
+is recognized by both of the automata below (with histories initially empty):
+q0?;1 q0 q1?;2=2;2
+?;1=1;1?;1=2;1 ?;2=1;2
+The one on the left is a (0 ;1)-HRA, and we can straight away see its accepted language
+isL5. The one on the right is a (2 ;0)-HRA for which it is less clear why it accepts L5. The
+reason is the following invariant:
+H(1)]H(2) is a partition of all names seen so far; and
+if the state is qkthen the last seen name is in H(k+ 1), fork2f0;1g; and
+all possible partitions of the names are realisable.
+The rst two points are easy to check. Because all transitions have labels of the form ( X;fig),
+all seen names are remembered in precisely one history. Because all transitions incoming
+intoqkhave labels the form ( X;fk+ 1g), the last seen name is remembered in H(k+ 1).
+The consequence of these rst two points is that the automaton on the right accepts a name
+only if it is dierent from the last seen name. Indeed, all transitions outgoing from qkhave
+labels of the form ( X;X0) withk+ 1=2X. Thus, the rst two points should be seen as
+lemmas which let us establish that all words accepted by the automaton on the right belong
+toL5.
+Informally, the third point is the key lemma that lets us establish the converse, that all
+words inL5are accepted. However, to see why this is so, we need to rephrase it in a more
+formal way. Given a word a1:::an2L 5, we consider an arbitrary partition H(1)]H(2)
+of the setfa1;:::;ang. Without loss of generality, assume an2H(1). The claim is that
+
+--- Page 12 ---
+12 R. GRIGORE AND N. TZEVELEKOS
+there exists a run of the automaton on the right that accepts the word a1:::anand ends in
+conguration ( q0;H). We can prove this by induction. If an12H(k+ 1) then the previous
+state in the run must have been qk, fork2f0;1g. Supposean12H(2); the other case is
+symmetric. Then, by the induction hypothesis, we know that there is a run that accepts the
+worda1:::an1and ends in conguration ( q1;H0), where we choose
+H0(1),(
+H(1)nfangifan=2fa1;:::;an1g
+H(1)[fangifan2fa1;:::;an1gH0(2),H(2)nfang
+It is clear that H0(1)]H0(2) is a partition of fa1;:::;an1g, as required. Finally, we need
+to show that ( q1;H0)an!(q0;H) belongs to the conguration graph. If an=2fa1;:::;an1g,
+then this is true because of q1?;1!q0; ifan2fa1;:::;an1g, then this is true because of
+q11;1!q0.
+Example 4.3. The language
+L6=fa1:::anjai=ai+1iiis oddg
+is recognized by both of the following automata:
+q0 q1?;1
+1;1q0 q1q2
+q3?;1 1;2?;1=3;1
+1;3
+?;1=2;1
+The one on the left is a (0 ;1)-HRA, while the one on the right is a (3 ;0)-HRA. As in
+the previous example, the fact that the (3 ;0)-HRA accepts L6is not immediately clear.
+Informally, the reason is the following invariant:
+H(1)]H(2)]H(3) is a partition of the names seen so far;
+if the state is qkthen the last seen name is in H(k), fork2f1;2;3g;
+jH(1)j= 1 inq1, andjH(1)j= 0 otherwise; and
+for each partition H(1)]H(2)]H(3) that is compatible with the previous constraints,
+there is a nondeterministic run that realises it.
+The rst two points hold for the same reasons as in Example 4.2. The third point holds
+because all incoming transitions of q1insert a name in H(1), all outgoing transitions of q1
+remove a name from H(1), and all runs alternate between state q1and some other state.
+After an odd number of names was processed, the automaton is in state q1andH(1) contains
+only the last name seen. All outgoing transitions from q1accept a name only if it is in
+H(1) | in other words, if it equals the last seen name. After an even and positive number
+of names was processed, the automaton is in state q2orq3. All outgoing transitions from q2
+accept a name only if it is notinH(2), where the last seen name is; q3acts symmetrically.
+Thus, the rst three points let us establish that all words accepted by the automaton on the
+right belong toL6.
+As in Example 4.2, the last point lets us establish that all word in L6are accepted.
+Given that the proof of the last point is very similar to the one in Example 4.2, let us
+only sketch it. Given a word a1:::an2L 6withn>0, we consider an arbitrary partition
+H(1)]H(2)]H(3) of the setfa1;:::;angsuch thatH(1)fang. Letkbe such that
+an2H(k). Formally, the claim of the last point is that there exists a run of the automaton
+
+--- Page 13 ---
+HISTORY-REGISTER AUTOMATA 13
+on the right that is labelled by the word a1:::anand ends in the conguration ( qk;H). The
+casenodd and>1 is similar to the previous example: We pick k0such thatan12H(k0)
+and
+H0(1),;H0(k0),H(k0)nfangH0(5k0),(
+H(5k0)nfangifan=2fa1;:::;an1g
+H(5k0)[fangifan2fa1;:::;an1g
+Then we invoke the induction hypothesis to show there is a run that accepts a1:::an1and
+ends in conguration ( qk0;H0). In the case neven, we pick
+H0(1),fangH0(2),H(2)nfangH0(3),H(3)nfang
+and then invoke the induction hypothesis to show that there is a run that accepts a1:::an1
+and ends in conguration ( q1;H0). We skip the case n= 1 in this proof sketch.
+We are now ready for the general result, which we prove in two steps. The main
+construction will be presented rst and only applies to HRAs with initially empty registers.
+(The correctness of the main construction requires that certain graphs are 2-colourable. The
+arguments in the previous two examples can be seen as giving explicit colouring algorithms
+that work in special cases.) At a second stage, we show how to initially simulate nonempty
+registers at the expense of some more additional histories.
+Proposition 4.4. LetA=hQ;q 0;H0;;Fibe an (m;n)-non-reset-HRA with registers
+initially empty. We can construct an (m+ 3n;0)-non-reset-HRAA0=hQ0;q0
+0;H0
+0;0;F0i
+that accepts the same language as A. We havejQ0j2O(22njQj)andj0j2O(23:3njj).
+Proof. Each register iwill be simulated by three histories, named iR,iBandiYrespectively.4
+Each stateq2Qwill be simulated by several states ( q;f)2Q0, wheref: [m+ 1;m+n]!
+f?;R;B;Yg. The construction will ensure the following invariant:
+H(iR)]H(iB)]H(iY) is a partition of the names that have been written to register i
+and have subsequently been rewritten by other names or are still in register i;5
+jH(iR)j= 1 iff(i) = R, andjH(iR)j= 0 otherwise; and
+iff(i)6=?then the current name of register iis inH(if(i)); registeriis empty otherwise.
+Thus, according to the last point above, frecords in which of histories iR;iB;iYhas the
+current name of register ibeen stored. We shall instrument A0in such a way that it will
+only store that name, say a, iniRif the next time register iis being invoked by Ais for
+readinga. This way we shall ensure that iRnever contains more than one name. Otherwise,
+i.e. ifAnext invokes ifor overwriting its contents, fwill be mapping ito one ofiB;iY.
+These can be seen as garbage collecting histories: they contain all names that have passed
+from register iand will not be immediately read from it. The reason why we need two of
+these,iBandiY, is to be able to reuse old names of register iwithout running the risk of
+confusing them with its current name a.
+To simulate one transition qX;X0
+!q0, accepting say a name a, we shall use several
+transitions of the form ( q;f)Z;Z0
+!(q0;f0) wherefandf0agree outside X[X0. Let us
+consider an arbitrary such pair ( f;f0), and see how to pick ZandZ0. On histories, XandZ
+coincide:X\[m] =Z\[m]. For each register i2Xn[m], we need that abe equal to the
+4B and Y are the black and yellow colours of [5]; R stands for `read'.
+5note that a name can also be transferred out of register i(via transition with label X; Y where i2XnY),
+instead of being directly rewritten, in which case we would not store it in H(iR)]H(iB)]H(iY).
+
+--- Page 14 ---
+14 R. GRIGORE AND N. TZEVELEKOS
+name currently written in register i. But, we know the current name in register ionly if
+f(i) = R. That is why we include a transition ( q;f)Z;Z0
+!(q0;f0) only ifXn[m]f1(R),
+and we includefiRji2Xn[m]ginZ. For each register i2[m+ 1;m+n]nX, we must
+ensure that ais not equal to the current name in register i, which resides in H(if(i)). Hence,
+we pick all Zsuch that
+Z= (X\[m])]Z1]Z0
+whereZ1=fiRji2Xn[m]gandZ0fixji2[m+1;m+n]nX^x2fB;Yg^x6=f(i)g
+is such that, for all i,jZ0\fiB;iYgj 1. Now we must write the current name to histories
+X0\[m], and we must simulate writing the current name to registers X0n[m]. For each
+i2X0n[m] we shall nondeterministically write the current name to one of iR;iB;iYby
+guessing whether register iwill be used next for reading or not. The place where we write is
+given byf0(i), that is,
+Z0= (X0\[m])]fif0(i)ji2X0n[m]g:
+Finally, we make sure that all i2([m+ 1;m+n]\X)nX0inf0are mapped to ?, as these
+registers are now empty, i.e. we impose f0(([m+ 1;m+n]\X)nX0)f?g.
+Thus, in summary, we take Q0=Q([m+ 1;m+n]!f?;R;B;Yg) and:
+q0
+0= (q0;f(i;?)ji2[m+ 1;m+n]g) andF0=F([m+ 1;m+n]!f?;R;B;Yg);
+H0
+0=H0[f(i;?)ji2[m+n+ 1;m+ 3n]g;
+we include ( q;f)Z;Z0
+!(q0;f0) in0just if there is some qX;X0
+!q0insuch that:
+{Xn[m]f1(R),
+{for alli2[m+ 1;m+n]n(X[X0),f0(i) =f(i),
+{for alli2([m+ 1;m+n]\X)nX0,f0(i) =?,
+{Z= (X\[m])]fiRji2Xn[m]g]Z0
+withZ0fixji2[m+ 1;m+n]nX^x6=f(i)g,
+{Z0= (X0\[m])]fif0(i)ji2X0n[m]g.
+Let us now see what is the size of the HRA A0so constructed. We have jQ0j2O(4njQj).
+For each transition qX;X0
+!q0inA, we introduce several transitions ( q;f)Z;Z0
+!(q0f0) inA0.
+Let us count how many. There are 4nchoices for f; there are3nchoices for Z0
+because for each iwe pickiB, oriY, or none of them; and there are 3nchoices for f0
+becausef0(X0) fiR;iB;iYgandf0is uniquely determined outside X0. In summary,
+j0j2O(22(1+log23)njj).
+Finally, we show that L(A) =L(A0). Let rst w2L(A0) have an accepting transition
+pathp0inA0with edges ( qk;fk)Zk;Z0
+k! (qk+1;fk+1), fork= 1;:::;N . Reading the denition
+of0backwards, this yields an accepting transition path pinAwith edges qkXk;X0
+k!qk+1
+where
+Xk= (Zk\[m])[fijiR2Zkg,
+X0
+k= (Z0
+k\[m])[fijfiR;iB;iYg\Z0
+k6=;g.
+To see that pacceptsw, suppose that p0yields a sequence of congurations (( qk;fk);H0
+k).
+Then, by induction, we can show that pyields a sequence of congurations ( qk;Hk), where:
+for alli2[m],Hk(i) =H0
+k(i);
+for alli2[m+ 1;m+n], iffk(i)6=?thenHk(i) =fagfor somea2H0
+k(ifk(i)), otherwise
+Hk(i) =?;
+for all names a, ifa2H0
+k@Zkthena2Hk@Xk.
+
+--- Page 15 ---
+HISTORY-REGISTER AUTOMATA 15
+Hence,w2L(A).
+Conversely, let w=a1aN2L(A) have an accepting transition path pinAwith edges
+qkXk;X0
+k!qk+1fork= 1;:::;N . We construct a corresponding accepting path p0inA0with
+edges (qk;fk)Zk;Z0
+k! (qk+1;fk+1) as follows. We have that f0=f(i;?)ji2[m]g. Moreover,
+Zk= (Xk\[m])[WkandZ0
+k= (X0
+k\[m])[W0
+kwhere:
+(a)For each position ksuch that the previous appearance of akinwis someak0=akwith
+k0<k, we setWk=W0
+k0. If there is no previous appearance, we set Wk=?.
+(b)For each position kandi2X0
+kn[m] such that the next appearance of akinwis some
+ak0withi2Xk0, we include iRinW0
+k.
+(c)For each position kandi2X0
+kn[m] such that the next appearance of akinwis some
+ak0withi =2Xk0, we include in W0
+kone ofiB;iY. We do the same also if there is no next
+appearance of akinw.
+The above specications determine the values of all Wk;W0
+k, modulo the choice between
+B and Y in case (c). Clearly, if the path p0can be so constructed then A0acceptsw. It
+remains to show that p0can indeed be implemented in A0. The form of the fk's is derived
+from (a-c) according to the denition of 0. But note that the denition of 0imposes the
+following condition:
+(d)For each position kandiY2W0
+ksuch that the next appearance of any ixinp0is in
+someWk0(withk<k0), we must have iB2Wk0. Dually ifiB2W0
+k.
+For example, if iY2W0
+2but none of iB;iY;iRoccurs in any of W3;W0
+3;W4;W0
+4;W5;W0
+5,
+thenfiB;iY;iRg\W6fiBg. This condition stems from the interdiction to include if(i)in
+Wk0whenf(i)6=iR. The consequence of condition (d) is that in case (c) above we cannot
+pick B and Y arbitrarily.
+We need to show that a choice of \colours" (B and Y) satisfying both (c) and (d) can
+be made. We achieve this by applying a graph colouring argument. Let us dene a labelled
+graphGwith:
+Vertices (k;i) and (k;i)0for eachk2[0;N1] andi2[m+ 1;m+n];
+For eachiandk<k0as in (c) above, an edge between ( k;i)0and (k0;i) labelled with \=".
+For eachiandk<k0as in (d) above, an edge between ( k;i)0and (k0;i) labelled with \6=".
+Then, a valid choice of colours can be made as long as Gcan be coloured with B and Y in
+such a way that =-connected vertices have matching colours, while 6=-connected vertices
+have dierent colours. For the latter, it suces to show that the graph obtained by merging
+=-connected vertices can be 2-coloured, for which it is enough to show that Gcontains no
+cycles. SupposeGcontained a cycle. Then, by denition of the edge relation of the graph, it
+must be the case that the leftmost vertex (i.e. the one with the least kindex) in the cycle
+be some (k;i)0. The vertex ( k;i)0has two outgoing edges, one for each label. The 6=-edge in
+particular connects to some ( k0;i) such that k<k0, obtained from condition (d). Since ( k0;i)
+is part of the cycle, it must have an outgoing =-edge to some vertex ( k00;i)0withk00<k0.
+But note that condition (d) stipulates that there is no mention of ibetweenkandk0inp0,
+and therefore k00k. Moreover, k00=kis not an option as it would imply that register i
+was not rewritten between steps kandk0inp, in which case kandk0would fall under case
+(b) above. Hence, k00< kwhich contradicts our assumption that ( k;i)0was the leftmost
+vertex in the cycle.
+
+--- Page 16 ---
+16 R. GRIGORE AND N. TZEVELEKOS
+Note that the above result can be extended to handle the case in which registers are
+not initially empty by simply making use of Lemma 3.1. However, the construction in
+that lemma leads to a doubly exponential blow-up in size, which we can be avoided by the
+alternative approach that follows.
+Proposition 4.5. LetA=hQ;q 0;H0;;Fibe an (m;n)-non-reset-HRA. We can construct
+a bisimilar (m+n;n)-non-reset-HRAA0=hQ0;q0
+0;H0
+0;0;F0isuch that, for all i2[m+n+
+1;m+ 2n],H0(i) =?. Moreover, we have jQ0j2O(2njQj)andj0j2O(22njj).
+Proof. The main idea behind the construction of A0is to use the additional nhistories to
+store just the initial names of the registers in A. Once these names have been used in the
+computation, they are transferred to their actual registers (if any). We will also need to
+track which of the registers in Aare still simulated by histories in A0. Thus, we set
+Q0=Q([m+ 1;m+n]!f0;1g)
+andq0
+0= (q0;f(i;1)ji2[m+ 1;m+n]g),H0
+0=H0[f(m+n+i;?)ji2[n]gand
+F0=F([m+ 1;m+n]!f0;1g). Moreover, for each qX;X0
+!q0inand mapf, we include
+in0a transition ( q;f)Y;Y0
+!(q0;f0) where:
+Y= (X\[m])]Y1]Y0, where
+Y1=fi2Xjf(i) = 1g[fn+iji2X^f(i) = 0g
+andY0fi2[m+ 1;m+n]ji =2X^f(i) = 0g;
+Y0= (X0\[m])[fn+iji2X0n[m]g;
+f0=f[i7!0ji2X[X0].
+Then, taking Rto be the relation:
+R=f((q;H);((q;f);H0)jH[m] =H0[m]^8i2[m+ 1;m+n]:
+^f(i) = 1 =)H0(n+i) =?^H0(i) =H(i)
+^f(i) = 0 =)H0(n+i) =H(i)
+^8j2[m+ 1;m+n]:H0(i)\H0(n+j) =?g
+we can show that Ris a bisimulation.
+Let us now see what is the size of the HRA A0we constructed. We have jQ0j2O(2njQj).
+For each transition qX;X0
+!q0inA, we introduce several transitions ( q;f)Y;Y0
+!(q0f0) inA0:
+there are2nchoices forf; and there are2nchoices forY0. In summary,j0j2O(22njj).
+Hence, the general case follows.
+Corollary 4.6. LetA=hQ;q 0;H0;;Fibe an (m;n)-non-reset-HRA. We can construct
+an(m+ 4n;0)-non-reset-HRAA0=hQ0;q0
+0;H0
+0;0;F0ithat accepts the same language as A.
+We havejQ0j2O(23njQj)andj0j2O(25:3njj).
+
+--- Page 17 ---
+HISTORY-REGISTER AUTOMATA 17
+4.3.Simulating Registers Symbolically. So far we saw how to simulate registers using
+histories. If we are interested only in emptiness/reachability rather than language equivalence,
+we can actually simulate the behaviour of registers without the inclusion of additional histories.
+This alternative is going to be crucial in Section 6.2, where the number of histories will be
+xed to just one.
+We next describe how this simulation can be done. Given an assignment Hwithm
+histories and nregisters, we can represent Hsymbolically as follows:
+we map each name stored in the registers of Hto a number from the set [ n];
+we subsequently replace in Hall these names by their number.
+For example, consider the assignment
+17!fa;b;cg;27!fdg;37!?;47!fag;57!fdg
+of a (1;4)-HRA. We can simulate it symbolically by mapping dto 1, andato 2. This results
+to a symbolic representation:
+17!f2;b;cg;27!1;37!?;47!2;57!1
+where the nominal part has been curtailed to the fact that H(1) contains the names bandc.
+We can now employ this representation technique to represent congurations of ( m;n)-
+HRAs by corresponding ones belonging to ( m;0)-HRAs. In particular, given the conguration
+q;
+17!fa;b;cg;27!fdg;37!?;47!fag;57!fdg	
+of a (1;4)-HRA, we map it to the conguration
+q;
+17!f2g;27!1;37!?;47!2;57!1	
+;
+17!fb;cg	
+of a (1;0)-HRA which incorporates the non-nominal part of our representation scheme in
+its state. Clearly, the state space of the new automaton in this simulation will experience
+an exponential blowup, as the next result shows. However, no additional histories will be
+needed, which is the main target here.
+Proposition 4.7. LetA=hQ;q 0;H0;;Fibe an (m;n)-HRA. We can construct an (m;0)-
+HRAA0=hQ0;q0
+0;H0
+0;0;F0ithat is empty if and only if Ais empty. We have jQ0j2
+O(2mnnBnjQj)andj0j2O(2mnnBnjj), whereBnis thenth Bell number. Moreover, A0
+contains reset transitions if and only if Acontains reset transitions.
+Proof. Each stateq2Qwill be simulated by several states ( q;f)2Q0, wheref: [m+n]!
+P([n]) will be called an assignment skeleton . Such a skeleton fisvalid when:
+jf(i)j1 for registers i2[m+ 1;m+n];
+f(i)Sn
+j=1f(m+j) for histories i2[m];
+for allk2[n] there is a k02[k] such thatSk
+i=1f(m+i) = [k0].
+The latter condition essentially stipulates that fis a partition function on the set [ m+1;m+n]:
+the elements of the set are uniquely assigned numbers which can be seen as class indices |
+two elements are assigned the same number i they belong to the same class. There is also a
+special class in this partition, namely of all elements of [ m+ 1;m+n] to whichfassigns?.
+We can now dene the rest of A0. First, we let q0
+0= (q0;f0), where (f0;H0
+0) is the
+symbolic representation of H0. In order to construct 0we dene a transition relation on
+skeletons, which is very similar to the conguration graph of HRAs (Denition 2.2) except
+that it allows symbols to be permuted after the transition is taken. We write fX;X0
+!f0when
+
+--- Page 18 ---
+18 R. GRIGORE AND N. TZEVELEKOS
+there exists a permutation on [n] and ak2[n] such thatk2f@Xandf0=(f[kinX0]).
+We writefX!f0when there exists a permutation such thatf0=(f[X7!?]).
+To simulate one transition of the form qX;X0
+!q0from, we use several transitions of the
+form (q;f)`!(q0;f0) in0. Let us consider an arbitrary pair ( f;f0) of valid skeletons, and
+see how to pick `. There are four cases, depending on whether XandX0mention or not
+registers.
+CaseX[m] andX0[m]. It must be that f?;?!f0, and we pick `= (X;X0).
+CaseX[m] andX06[m]. It must be that f?;X0
+!f0, and we pick `= (X;?).
+CaseX6[m] andX0[m]. It must be that fX;?!f0, and we pick `= (?;X0).
+CaseX6[m] andX06[m]. It must be that fX;X0
+!f0, and we pick `= (?;?).
+Similarly, each reset transition qX!q0fromyields several transitions of the form
+(q;f)Z!(q0;f0) in0. Given an arbitrary pair ( f;f0) of valid skeletons, we pick Zas follows.
+IfX[m] then it must be that f0=fand we pick Z=X. Otherwise, fX!f0and we
+pickZ=?.
+To estimatejQ0jit suces to count how many valid skeletons there are. The values
+f(m+ 1);:::;f (m+n) of a valid skeleton correspond to a partition of the registers and a
+selection of a class (if any) whose registers are empty. There are Bnpossible partitions and
+(n+ 1) possible selections, which gives (n+ 1)Bncases. For the values f(1);:::;f (m)
+of a valid skeleton there are 2mnpossibilities. In total, jQ0j2mn(n+ 1)BnjQj.
+To estimatej0j, note that once fis xed in the construction above, the constraints on
+f0determine it uniquely. So, the number of transitions increases by the same factor as the
+number of states.
+Since logBn2(nlogn), we have that log
+2mn(n+ 1)Bn
+2(mn+nlogn).
+5.Emptiness and Universality
+5.1.Emptiness. Here we show that deciding emptiness is Ackermann -complete. We work
+by reducing from and to state reachability problems in counter systems (similarly e.g. to [ 7,5]).
+For the upper bound, we reduce nonemptiness of HRAs to control-state reachability of T-
+VASSs. For the lower bound, we reduce control-state reachability of R-VASSs to nonemptiness
+of HRAs. Recall that the nonemptiness problem for HRAs asks, given an HRA Awith
+initial state q0and initial assignment H0, whether (q0;H0)w! !(qF;HF) for some word w,
+nal stateqFand assignment HF.
+The congurations of a k-dimensional TR-VASS (Transfer{Reset Vector Addition System
+with States) have the form ( q;~ v), whereqis a state from a nite set, and ~ vis ak-dimensional
+vector of nonnegative counters. A VASS has moves that shift the counter vector, changing ~ v
+into~ v+~ v0, where~ v0comes from some nite and xed subset of Zk. An R-VASS also has
+moves that reset a counter, changing ~ vinto~ v[i7!0] for some counter i. A T-VASS also
+has moves that transfer the content of one counter into another counter, changing ~ vinto
+~ v[j7!~ v(i) +~ v(j)][i7!0] for some i6=j. A TR-VASS is the obvious combination of the
+above, and is formally dened as follows.
+
+--- Page 19 ---
+HISTORY-REGISTER AUTOMATA 19
+Denition 5.1 (TR-VASS) .Ak-dimensional Transfer-Reset Vector Addition System
+with StatesAis a pairhQ;i, whereQis a nite set of states, and Q(Zk][k]2][k])Q
+is a transition relation. A conguration ofAis a pair (q;~ v) of a state qand a vector
+~ v2Nkof counter values. The conguration graph ofAis constructed by including an
+arc (q;~ v)!(q0;~ v0) when one of the following holds:
+there is some ( q;~ v00;q0)2such that~ v0=~ v+~ v00
+there is some ( q;(i;j);q0)2such that~ v0=~ v[i7!0][j7!~ v(i) +~ v(j)] andi6=j
+there is some ( q;(i;i);q0)2and~ v0=~ v
+there is some ( q;i;q0)2such that~ v0=~ v[i7!0].
+Thecontrol-state reachability problem forAasks whether, given states q0;qFand initial
+vector~ v0, is there some ~ vFsuch that (q0;~ v0)! !(qF;~ vF).
+The reduction from a ( m;0)-HRA to a T-VASS of dimension 2m1 is done by mapping
+each nonempty set of histories Xinto a counter eXof the corresponding T-VASS. Then,
+name-accepting transitions are mapped into counter decreases and increases, while resets
+result in transfers between the counters. Let e:P
+[m]
+![0;2m1] be a bijection such
+thate;= 0; for instance, one could take eX,P
+i2X2i1. Further, given an assignment H,
+leteHdenote the vector ( h1;:::;h 2m1)2N2m1such thatheX=jH@Xj, for all nonempty
+X[m]; that is,heXcounts how many names occur in exactly the histories indexed by X.
+Lemma 5.2. Given an (m;0)-HRAAit is possible to construct a T-VASS A0of dimension
+2m1such that, for all q;q0;H;H0,
+9w;(q;H)w! !A(q0;H0) if and only if (q;eH)! !A0(q0;fH0).
+LetQandbe the states and the transitions of A, and letQ0and0be the transitions
+ofA0. We have thatjQ0j2O(2mjQj)andj0j2O(2mjj). Moreover, the construction takes
+O(jQ0j+mj0j)time. If there are no reset transitions in A, thenA0is ajj-dimensional
+VASS with Q0=Qandj0j=jjthat uses only increments and decrements.
+Let~0 be the all-zero vector (0 ;:::; 0). Let~ibe~0[i7!1] fori2[m], and~0be~0.
+Proof. For each transition qX;X0
+!q0of the HRA, we construct a transition q~eX0~eX!q0in
+the T-VASS. For each transition qX!q0of the HRA, we construct a path
+q1;j1!2;j2!3;j3!2m2;j2m2!2m1;j2m1! q0
+in the T-VASS such that jeY=^YnX. To construct such a path we iterate through 2m1
+nonempty sets Y, and for each we compute YnXinO(m) time.
+Lemma 5.2 implies that nonemptiness of a HRA reduces to control-state reachability
+of a T-VASS. We shall describe an algorithm that solves control-state reachability for the
+T-VASS constructed in Lemma 5.2. The analysis of this algorithm depends on the so-called
+Length Function Theorem, which is phrased in terms of the Fast Growing Hierarchy and
+bad sequences. We dene these next.
+The Fast Growing Hierarchy consists of classes F0,F1,F2, . . . of functions, where
+F0=F1contain the linear functions, F2contains the elementary functions, primitive
+
+--- Page 20 ---
+20 R. GRIGORE AND N. TZEVELEKOS
+recursive functions are in Fkfor some nite k, andF!is the Ackermann complexity class.
+The classesFkare dened in terms of the following functions:
+F0(x),x+ 1Fn+1(x),(FnFn|{z}
+x+ 1 times)(x) =Fx+1
+n(x)F!(x),Fx(x)
+Fork2, (a)f2Fkif and only if f2O(Fn
+k) for some n; and (b) a nondeterministic
+algorithm using space bounded by some function in Fkcan be transformed into a deterministic
+algorithm using time bounded by some (other) function in Fk.
+LetXbe a partially ordered set with some size function jj:X!N. We say that a
+sequencex0;x1;x2;:::of elements of Xis abad sequence whenxi6xjfor alli<j . Given
+a strictly increasing function g:N!N, we say that the sequence is controlled bygwhen
+jxi+1jg(jxij) for alli. We will consider such sequences of VASS congurations, where the
+order is given by
+(q;~ v)(q0;~ v0) i q=q0^~ v(1)~ v0(1)^~ v(2)~ v0(2)^~ v(3)~ v0(3)^:::
+Lemma 5.3 (Length Function Theorem [ 34]).Let^q0;^q1;^q2;::: be a bad sequence of k-
+dimensional VASS congurations. If the sequence is controlled by some function g2Fwith
+1, then its length is bounded by f(j^q0j)for some function f2F+k.
+We can now describe and analyze an algorithm for deciding emptiness of a ( m;0)-HRA.
+Proposition 5.4. The emptiness problem for (m;0)-HRAs is inF2mwhenm> 0. Thus,
+the emptiness problem is in F!whenmis part of the input.
+Proof. LetAbe the given HRA, and let A0be the T-VASS constructed as in Lemma 5.2.
+We use the backward coverability algorithm [ 34, Sections 1.2.2 and 2.2.2], which explores all
+bad sequences ( q0;~ v0);(q1;~ v1); :::; (qL;~ vL) such that
+(q0;~ v0) is a minimal nal conguration, and
+(qk;~ vk) is a minimal conguration out of those that can reach a conguration (qk1;~ vk1).
+The constraint that ( q0;~ v0) is a minimal nal conguration simply means that q0is nal
+and~ v0=~0. To construct such sequences, we need an eective way of generating all possible
+(qk;~ vk), given a xed ( qk1;~ vk1). For this, we enumerate all transitions of A0that go toqk1.
+There are two types of such transitions: qk~i~j!qk1andqki;j!qk1. Forqk~i~j!qk1,
+we let~ vkbemax(~ vk1~i+~j;~0), where max is taken pointwise. For qki;j!qk1with
+i=j, we take~ vkto equal~ vk1. Forqki;j!qk1withi6=j, we may have multiple choices
+for~ vk. Assuming ~ vk1(i) = 0, it could be that ~ vk(i) is any of 0 ;1;:::;~ vk1(j); otherwise, if
+~ vk1(i)6= 0, the transition could not have been taken. In all the cases from above, we keep
+only those choices of ~ vkthat ensure the sequence is bad.
+To show that the sequences so constructed are nite, we use Lemma 5.3. Let j(q;~ v)jbe the
+number bits in a concrete representation of ( q;~ v): we encode qwithlog2jQ0j=mlog2jQj
+bits, then we write each ~ v(i) in binary, precede each of its bits by 1 and mark the end
+with 0. (For example, we represent 5 by 1110110.) For the sequences constructed as in the
+previous paragraph, we have j(qk;~ vk)j2j(qk1;~ vk1)j. Thus, the sequences are controlled
+byg(x) = 2x, which is a function in F1. AsA0has dimension 2m1, Lemma 5.3 gives us
+that the length Lof the sequence is bounded by some function in F2m.
+A nondeterministic algorithm can repeatedly guess the correct successor in the sequence,
+using 2Lj(q0;~0)jspace. Ifm1, then this is bounded by f(mlogjQj) for some function
+
+--- Page 21 ---
+HISTORY-REGISTER AUTOMATA 21
+f2F 2m, and we are in a situation where the distinctions time/space and deterministic/
+nondeterministic are irrelevant.
+It is possible to modify the algorithm described in the previous proof so that it works
+directly on the HRA representation, without appealing to Lemma 5.2. Similarly, it is possible
+to extend the algorithm described in the previous proof to handle registers directly, without
+appealing to Proposition 4.1. Such improvements may be worthwhile in an implementation,
+but the complexity upper bound remains Ackermannian.
+Doing the opposite reduction we show that deciding emptiness is Ackermann -hard
+even for strongly deterministic HRAs. In this direction, each R-VASS of dimension mcan
+be simulated by an ( m;0)-HRA so that the value of each counter iof the former is the same
+as the number of names appearing precisely in history iof the latter. In order to extend the
+bound to strongly deterministic HRAs one can choose to reduce from a restricted class of
+R-VASSs, so that the image of the reduction can be made strongly deterministic, or resolve
+nondeterminacy at the level of HRAs by appropriate obfuscation. We follow the latter,
+simpler solution.
+Proposition 5.5. The emptiness problem for strongly deterministic HRAs is Ackermann -
+hard.
+Proof. LetAbe anm-dimensional R-VASS whose additive transitions only increment or
+decrement single counters: for each transition q~ v!q0, we have~ v=~ifor somei. By [ 35],
+control-state reachability for such R-VASSs is Ackermann -hard. We construct an ( m;0)-
+HRAA0with the same states as A, and we map: each qi !q0toq?;fig!q0, eachqi!q0to
+qfig;?!q0, and eachqi !q0toqfig!q0. We can see that A0simulates the behaviour of Aby
+storing the value of each counter iasjH@figj. Hence,L(A0) is nonempty if and only if qF
+is reachable, from ( q0;~ v0), in the R-VASS A.
+We observe that A0may not be strongly deterministic. Suppose that the size of the
+transition function of Aisn. We can then impose strong determinacy on A0by enriching
+it withnregisters and preluding each transition of the above translation with a transition
+reading from one of the additional registers. We thus obtain an ( m;n)-HRA that is strongly
+deterministic and simulates Aas above.
+Proposition 5.6. The emptiness problem of HRAs is Ackermann -complete.
+Proof. Combine Proposition 4.1 with Proposition 5.4 and Proposition 5.5.
+5.2.Universality. We nally consider universality and language containment. Note rst
+that our machines inherit undecidability of these properties from register automata [ 31].
+However, these properties are decidable in the deterministic case.
+In order to simplify our analysis, we shall be reducing HRAs to the following compact
+form where -transitions are incorporated inside name-accepting ones. As we show below,
+no expressiveness is lost by this packed form.
+Apacked (m;0)-HRA is a tupleA=hQ;q 0;;H 0;Fidened exactly as an ( m;0)-HRA,
+with the exception that now:
+QP([m])P([m])P([m])Q
+
+--- Page 22 ---
+22 R. GRIGORE AND N. TZEVELEKOS
+We shall write qY;X;X0
+!q0for (q;Y;X;X0;q0)2. The semantics of such a transition is
+the same as that of a pair of transitions qY!X;X0
+!q0of an ordinary HRA. Formally,
+congurations of packed HRAs are pairs ( q;H), like in HRAs, and the conguration graph
+of a packed HRA Alike the above is constructed as follows. We set ( q;H)a!(q;H0) if
+there is some qY;X;X0
+!q0insuch that, setting HY=H[Y7!?], we havea2HY@Xand
+H0=HY[ainX0].
+Lemma 5.7. LetAbe an (m;0)-HRA. There is a packed (m;0)-HRAA0such thatAA0.
+Proof. LetA=hQ;q 0;;H 0;Fi. We setA0=hQ;q 0;0;H0;F0iwhere:
+F0=fq02Qj9q2F;Y: q0Y! !q2g
+0=f(q;Y;X;X0;q0)jqY! !X;X0
+!q02g
+Bisimilarity ofAandA0is witnessed by the identity on congurations, which means that
+R=f((q;H);(q;H))jq2Q^H2Asngis a bisimulation.
+We shall decide language containment via complementation. In particular, given a
+deterministic packed HRA A, the automaton A0accepting the language NnL(A) can
+be constructed in the analogous way as for deterministic nite-state automata, namely by
+obfuscating the automaton with all missing transitions and swapping nal with non-nal
+states.
+Lemma 5.8. Deterministic packed HRAs are closed under complementation.
+Proof. LetA=hQ;q 0;;H 0;Fibe a packed ( m;0)-HRA. Following the above rationale, we
+construct a packed ( m;0)-HRAA0=hQ]fqFg;q0;[0;H0;F0i, whereF0=fqFg[(QnF)
+and0is given as follows. For each q2Qand allXsuch that there is no qY;XnY;X0
+!q0add
+a transition q?;X;?!qFin0. In addition, 0contains a transition qF[m];?;?!qF.
+We claim thatL(A0) =NnL(A). Indeed, if s2L(A0) andsis accepted at a state in QnF
+then, sinceAis deterministic, we have s =2L(A). Otherwise, if s=s0as00withathe point
+where a transition to the sink state is taken then, upon acceptance of s0byA,aappears
+precisely in some histories Xsuch thatAhas no transition to accept aat that point. Thus,
+s =2L(A).
+Conversely, if s2NnL(A) then either sinduces a conguration in Awhich does not end
+in a nal state, or s=s0as00wheres0is accepted byAbut at that point ais not a possible
+transition. We can see that, in each case, s2L(A0).
+Proposition 5.9. Language containment and universality are undecidable for (general)
+HRAs and Ackermann -complete for strongly deterministic HRAs.
+Proof. Undecidability in the general case is inherited from RAs.
+Now consider two HRAs AandA0such that we can compute the complement of A0.
+Then, we can decide the language containment L(A)L(A0) by checking whether the
+product ofAwith the complement of A0is empty. The product construction is polynomial,
+and the emptiness check is in Ackermann (Proposition 5.4). Thus, language containment
+is inAckermann if computing the complement of A0is inAckermann . This is the case
+because (a) removing registers can be done while preserving determinism with only an
+exponential increase in size (Proposition 4.1), and (b) complementing deterministic HRAs
+
+--- Page 23 ---
+HISTORY-REGISTER AUTOMATA 23
+without registers takes polynomial time (Lemma 5.8). For hardness, note that emptiness
+and universality are equally hard in the deterministic case (Lemma 5.8), and emptiness is
+Ackermann -hard (Proposition 5.5).
+We showed that language containment is in Ackermann and universality is Acker-
+mann -hard. Finally, note that there is a trivial reduction from universality to language
+containment.
+6.Weakening HRAs
+Since the complexity of HRAs is substantially high, e.g. for deciding emptiness, it is useful
+to seek for restrictions thereof which allow us to trade expressiveness for eciency. As
+the encountered complexity stems from the fact that HRAs can simulate computations of
+R-VASSs, our strategy for producing weakenings is to restrict the functionalities of the
+corresponding R-VASSs. We follow two directions:
+(a)We remove reset transitions. This corresponds to removing counter transfers and resets
+and drops the complexity of control-state reachability to exponential space.
+(b)We restrict the number of histories to just one. We thus obtain polynomial space
+complexity as the corresponding counter machines are simply one-counter automata.
+This kind of restriction is also a natural extension of FRAs with history resets.
+Observe that each of the aspects of HRAs targeted above corresponds to features (1,2) we
+identied in the Introduction, witnessed by the languages L1andL2respectively. We shall
+see that each restriction leads to losing the corresponding language.
+6.1.Non-reset HRAs. We rst weaken our automata by disallowing resets. We show that
+the new machines retain all their closure properties apart from Kleene-star closure. The
+latter is concretely manifested in the fact that language L1of the Introduction is lost. On
+the other hand, the emptiness problem reduces in complexity to exponential space.
+Denition 6.1. Anon-reset HRA of type (m;n) is an (m;n)-HRAA=hQ;q 0;H0;;Fi
+such that there is no qX!q02.
+Closure properties. Of the closure constructions of Section 3 we can see that union and
+intersection readily apply to non-reset HRAs, while the construction for concatenation needs
+some amendments.
+More specically, of the two constructions presented in the proof of Proposition 3.2,
+the one for concatenation can be adapted to non-reset HRAs as follows. We add empty
+transitions from the nal states of A0
+1to the initial state of a version of A0
+2which keeps the
+places used byA0
+1untouched and uses its own separate copy of places, obfuscating its own
+transitions so as to capture accidental matchings of the legacy names of A0
+1. This solution
+cannot be used for Kleene closure as in each loop the automaton needs to nd a fresh copy
+of its initial conguration, and be able to use it (in the previous construction, the nal
+assignment ofA0
+1is lost).
+On the other hand, using an argument similar to that of [ 5, Proposition 7.2], we can
+show that the language L1is not recognised by non-reset HRAs and, hence, the latter are
+not closed under Kleene star. Finally, note that the HRA constructed for the language L4
+
+--- Page 24 ---
+24 R. GRIGORE AND N. TZEVELEKOS
+in Example 3.4 is a non-reset HRA, which implies that non-reset HRAs are not closed under
+complementation.
+Emptiness. In the general case we saw an upper bound of F2m(Proposition 5.4), by a
+reduction to T-VASS followed by the backward coverability algorithm. For a non-reset HRA,
+the same reduction yields a VASS, without transfers. In the absence of transfers, better
+bounds are known for the backward coverability algorithm [ 11]. More generally, it has been
+known for some time that coverability for VASS is ExpSpace -complete [12, 25].
+The following result refers to the number Nof bits used to represent an HRA. Of course,
+Ndepends on the exact representation being used. Still, we do not make this representation
+explicit because the result holds for a wide variety of possible representations. We only
+require that the representation obeys m;n;jj;logjQj2O(N).
+Proposition 6.2. The emptiness problem for a non-reset HRA is in ExpSpace . More
+precisely, it is in NSpace
+2O(NlogN)
+, whereNis the number of bits used to represent the
+HRA.
+Proof. We start with an ( m;n)-non-reset-HRAA=hQ;q 0;;H 0;Fi. We use Proposition 4.7
+to construct an ( m;0)-non-reset-HRA A0=hQ0;q0
+0;0;H0
+0;F0ithat preserves emptiness.
+Moreover, logjQ0j2O(mn+nlogn+logjQj). Using Lemma 5.2, we reduce A0to a (jj+ 1)-
+dimensional VASS with jQ0jstates that uses only increments/decrements. (Lemma 5.2 creates
+anm-dimensional VASS where mis the number of sets labelling transitions. Proposition 4.7
+puts inA0only sets that already occurred in A, with the possible exception of ?.) Now
+we apply the backward coverability algorithm, as described in the proof of Proposition 5.4.
+By [11, Theorem 2], the algorithm will only consider counter values less than some V=
+(3jQ0j)2O(jjlogjj). In the nondeterministic version of the algorithm, we guess the next
+conguration, which means we only need space O((jj+ 1) logV) to store a couple of
+congurations. We have
+log logV=O(jjlogjj+ log logjQ0j) =O(jjlogjj+ log(mn+nlogn+ logjQj))
+Sincem;n;jj;logjQj 2O(N), we conclude logjj+log logV2O(NlogN). This im-
+plies that a nondeterministic version of the backward coverability algorithm works in
+NSpace
+2O(NlogN)
+.
+The previous proposition has a couple of obvious consequences. First, emptiness is also in
+DSpace
+2O(NlogN)
+, by Savitch's theorem. Second, emptiness is also in DTime
+22O(NlogN)
+,
+by a standard easy argument [ 19, Theorem 5.3]. In fact, one can show that the time bound
+applies to the backward coverability algorithm, without invoking generic constructions from
+complexity theory: By [ 11, Theorem 2], the runtime of the backward coverability algorithm |
+like the counter values | is also upper bounded by some T=O
+(3jQ0j)2O(jjlogjj)
+. The rest
+of the argument is as in the proof of Proposition 6.2.
+Proposition 6.3. The emptiness problem for non-reset HRAs is ExpSpace -hard.
+Proof. By [25], the control-state reachability problem for VASS is ExpSpace -hard even if
+all the transitions are restricted to have labels of the form ~i. (More precisely, Lipton
+proves that certain parallel programs of size poly(k) can simulate any Turing machine that
+uses<2kspace. Then, [ 25, Lemma 2] asserts that reachability in these programs reduces
+to reachability in VAS, the full proof being: `We omit a detailed proof of this lemma. It
+
+--- Page 25 ---
+HISTORY-REGISTER AUTOMATA 25
+should, however, be clear that parallel programs can be encoded as vector addition systems.'
+Similarly, we claim without proof, that it should be clear how Lipton's programs reduce to
+the control-state reachability problem for VASSs whose transitions only increment/decrement
+single counters.) We shall reduce the control-state reachability problem for such VASSs to
+the emptiness problem for non-reset HRAs.
+Letmbe the dimension of the VASS. We construct a HRA with m0histories, where
+m0is the smallest integer such that m2m01. As a result, there exists an injection
+: [m]!P6=;([m0]); we x arbitrarily one such injection.
+For each transition q+~i!q0in the VASS, we include a transition q?;(i)!q0in the HRA.
+For each transition q~i!q0in the VASS, we include a transition q(i);?!q0in the HRA.
+This construction maintains the invariant jH@(i)j=~ v(i). To establish the invariant, we
+pick the initial history assignment H0accordingly. Finally, we set as nal the state in whose
+reachability we are interested.
+The reduction described above is clearly polynomial, from which it follows that emptiness
+of non-reset HRAs (even without registers) is ExpSpace -hard.
+Proposition 6.4. The emptiness problem for non-reset HRAs is ExpSpace -complete.
+Proof. Immediate from Proposition 6.2 and Proposition 6.3.
+6.2.Unary HRAs. Our second restriction concerns allowing resets but bounding the
+number of histories to just one. Thus, these automata are closer to the spirit of FRAs
+and, in fact, extend them by rounding up their history capabilities. We show that these
+automata require polynomial space complexity for emptiness and retain all their closure
+properties apart from intersection. The latter is witnessed by failing to recognise L2from
+the Introduction. We can see that extending this example to multiple interleavings we can
+show that intersection is in general incompatible with bounding the number of histories.
+Denition 6.5. A (1;n)-HRA is called unary HRA ofnregisters.
+In other words, unary HRAs are extensions of FRAs where names can be selectively
+inserted or removed from the history and, additionally, the history can be reset. These
+capabilities give us in fact a strict extension.
+Example 6.6. The automata used in Example 2.3 for L1andL3were unary HRAs. Note
+that neither of those languages is FRA-recognisable. On the other hand, in order to recognise
+L2, an HRA would need to use at least two histories: one history for the odd positions of
+the input and another for the even ones. We can formalise an argument to show that L2is
+not recognisable by unary HRAs as follows.
+Proof. SupposeL2=L(A) for some unary HRA Aofnregisters and let
+w=a1b1:::akbkb1a1bkak
+fork=n+ 1 and some pairwise distinct names a1;b1;:::;ak;bk. Asw2L 2, there is a path,
+sayp, inAwhich accepts w. We divide pasp1p2withp2accepting the second half of w. Let
+^p=^p1^p2be the corresponding conguration path and let ( q0;H0) be the rst conguration
+in^p2. We setS=fa1;b1;;ak;bkgnfaja2H0(i)^i>1gand do a case analysis on the
+labels of the form ( X;X0) which appear in p2and accept names from S. Since names in S
+
+--- Page 26 ---
+26 R. GRIGORE AND N. TZEVELEKOS
+do not appear in any H0(i), fori>0, it must be that each such Xis eitherf1gor?. We
+have the following cases.
+There are two such labels, say ( f1g;Xi) and (f1g;Xj), accepting names aiandbjrespec-
+tively. But this would imply that Aalso accepts w0, wherew0iswwith these occurrences
+ofaiandbjswapped, contradicting L(A) =L2(asw0=2L 2).
+There are two such labels, say ( ?;Xi) and (?;Xj), accepting names aiandbjrespectively.
+In order forAnot to accept w0(w0as above), it is necessary that a reset transition with
+labelY31 occurs between the two transitions. Suppose i<j . Then, since k>n , there
+is a nameai0which does not appear in any place after clearing Y. Thus, ( ?;Xj) can
+acceptai0and complete the path pby accepting a word w0=2L 2. Dually ifji.
+Eachai2Sis accepted by a label ( f1g;X0), and each bj2Sby a label ( ?;X0). Let
+ai2Sbe the last such accepted in p2. This means that the rest of the path has length
+at most 2n. Therefore, since k > n , there is a bj2Saccepted in p2beforeai. Let
+(q;H) be the conguration just before accepting bj. In order forAnot to accept any ai0
+at that point, it must be that all ai02Sappear inH. SincejSj> n+ 1, there exists
+ai02H(1)\Ssuch thatai06=ai. But then, the transition accepting aican accept ai0
+instead and lead to acceptance of a word w062L 2.
+We therefore reach a contradiction in every case.
+Closure properties. The closure constructions of Section 3 readily apply to unary HRAs, with
+one exception: intersection. For the latter, we can observe that L2=L(A1)\L(A2), where
+q0q1?;1
+?;?=1;1
+q0q1?;?=1;1
+?;1L(A1) =fa1a0
+1:::ana0
+n2 Nja1:::an2 L 0gandL(A2) =
+fa1a0
+1:::ana0
+n2 Nja0
+1:::a0
+n2 L 0g, andA1andA2are the
+unary (1;0)-HRAs on the side, with empty initial assignments. On
+the other hand, unary HRAs are not closed under complementation
+as well, as one can construct unary HRAs accepting L(A1)and
+L(A2), and then take their union to obtain a unary HRA for L2.
+Emptiness. In the case of just one history, the results on TR-VASS reachability [ 35,16]
+from Section 5 provide rather rough bounds. It is therefore useful to do a direct analysis.
+We reduce nonemptiness for unary HRAs to control-state reachability for one dimensional
+R-VASSs. Our analysis below shows that the minimal path has length at most quadratic,
+from which it follows that nonemptiness has polynomial complexity.
+The following result applies to any R-VASS representation for which jQjlogjQj2O(N),
+wherejQjis the number of states of the R-VASS, and Nis the number of bits used to
+represent the R-VASS. Note that the condition is true if all the states are listed in the
+R-VASS representation, something all reasonable representations would do.
+Lemma 6.7. Control-state reachability for one dimensional R-VASSs is in NL, provided
+that non-reset transitions increase and decrease the counter by at most 1.
+Proof. LetA=hQ;ibe an R-VASS of dimension 1. The proof relies on two observations:
+Fact 1: If (q;i)! !(q0;i0) is a conguration path of Athen, for each k>0, there is a path
+(q;i+k)! !(q0;i00) of the same length.
+Fact 2: If (q;i)! !(q0;i0) is a conguration path of Ain which there are no reset transitions
+and the counter never becomes less than some k>0, then there is a path ( q;ik)! !
+(q0;i00) of the same length.
+
+--- Page 27 ---
+HISTORY-REGISTER AUTOMATA 27
+Consider an instance ( A;q0;i0;qF) of the control-state reachability problem: Is the
+stateqFreachable inAstarting from conguration ( q0;i0)? Letpbe a conguration path of
+minimal length from ( q0;i0) to some conguration whose state is qF. Let us see if a state can
+appear repeatedly in p. By Fact 1, pis non-decreasing: any path segment ( q;i)! !(q;i0)
+can be circumvented if ii0. Now suppose that pcontains a segment ( q;i)! !(q;i+k)
+for somek>0. Consider the segment ( q;i+k)! !(q00;i00) that follows, uses only non-reset
+transitions, and is maximal. By Fact 2, if the counter never becomes < k in the latter
+segment, then there exists a path ( q;i)! !(q00;i00) of the same length. Since pis minimal,
+this is a contradiction, and therefore the counter must become <k, somewhere after ( q;i+k).
+Letp0be the segment ( q;i+k)! ! (q0;k1). Since non-reset transitions decrease the
+counter by1, it must be that all the values i+k;i+k1;:::;k1 occur inp0. When
+one of these values is reached for the rst time, it must be paired with a state that was not
+used for the bigger values. It follows that ( i+k)(k1) + 1jQj, and soijQj2.
+This gives us a bound on the counter value of any state that can be repeated in p. Thus,
+each state can appear in pat mostjQjtimes. This implies that the length of pis at most
+jQj2and that in pthe counter does not exceed the value i0+jQj2.
+We can therefore answer the instance ( A;q0;i0;qF) of the control-state reachability
+problem as follows. Note rst that, by Facts 1 and 2 and because the length of minimal
+reaching path isjQj2, we can replace i0bymin(i0;jQj2). Because we only consider initial
+counter valuesjQj2and because the minimal path has length jQ2j, we can store one
+conguration on the minimal path using O(logjQj) bits. SincejQjlogjQj2O(N), we
+have logjQj2O(logN), and therefore O(logN) bits suce to represent a conguration of
+the minimal path. Finally, we note that a nondeterministic algorithm can guess the next
+conguration on the minimal path.
+We remark that an NLupper bound follows from an analysis of the backward coverability
+algorithm as well. However, the proof from above has the advantage that it is self-contained.
+We now give an upper bound for the emptiness problem of unary HRAs. The result
+holds for all representations that obey several weak requirements. Let hQ;q 0;;H 0;Fibe a
+unary HRA with nregisters, represented with Nbits. We require that
+n2O(N), which is justied because there are >2npossible labels on transitions;
+jj2O(N), which is justied because we expect each transition to require at least a bit;
+jQjlogjQj2O(N), which is justied because we expect each state to be mentioned at
+least once in the representation. (This last point implies that log jQj2O(logN).)
+Proposition 6.8. The emptiness problem for unary HRAs is in PSpace . More precisely,
+it is in NSpace (NlogN), whereNis the number of bits used to represent the HRA.
+Proof. LetA=hQ;q 0;;H 0;Fibe the given unary HRA. Using Proposition 4.7, we
+build a (1;0)-HRAA0that preserves emptiness, has O(Bn2nnlogjj) transitions, and has
+O(Bn2nnlogjQj) states. Using the construction from Lemma 5.2, we reduce the emptiness
+ofA0to control-state reachability in an R-VASS A00. Specialized to our case, the construction
+says that
+for each transition q?;f1g!q0inA0, we include a transition q+1!q0inA00;
+for each transition qf1g;?!q0inA0, we include a transition q1!q0inA00; and
+for each transition qf1g!q0inA0, we include a transition qreset!q0inA00.
+
+--- Page 28 ---
+28 R. GRIGORE AND N. TZEVELEKOS
+According to Lemma 6.7, the control-state reachability problem for A00is inNSpace (logN00),
+whereN00is the number of bits used to represent A00. Thus, it remains to compute N00
+as a function of N. For this, we pick one particular representation of A00, namely a list of
+transitions. For such a representation we have N00=O
+Bn2nnjjlog(Bn2nnjQj)
+. Thus,
+logN00=O(nlogn+ logjj+ log(nlogn+ logjQj)) =O(NlogN)
+The last step assumes that n;jQjlogjQj;jj2O(N). We require the representation of A
+to satisfy these assumptions.
+Proposition 6.9. The emptiness problem for unary HRAs is PSpace -hard.
+Proof. By [15, Theorem 5.1a], the nonemptiness problem of register automata is PSpace -
+hard. Register automata are a special case of unary HRAs.
+Proposition 6.10. The emptiness problem for unary HRAs is PSpace -complete.
+Proof. Immediate from Proposition 6.8 and Proposition 6.9.
+7.Summary of Main Results
+The theorems in this section summarize the main results proved in the previous sections.
+Theorem 7.1. Languages recognised by HRAs are closed under union, intersection, con-
+catenation, and Kleene star, but not under complementation. Also,
+if resets are banned, then closure under Kleene star is lost;
+if the number of histories is bounded, then closure under intersection is lost.
+Proof. Immediate from Proposition 3.2, Lemma 3.3, and the closure results of Section 6.
+Theorem 7.2. Deciding emptiness of an ( m;n)-HRA has the following complexity:
+(a)NL-complete if m=n= 0;
+(b)NP-complete if m= 0 and all sets labelling transitions are singletons;
+(c)PSpace -complete if m1;
+(d)ExpSpace -complete if there are no reset transitions; and
+(e)Ackermann -complete in the general case.
+Proof. (a) Whenm=n= 0, nonemptiness is equivalent to reachability in a directed graph,
+which is a standard NL-complete problem. (b)In this case, HRAs are equivalent to RAs
+that disallow repetitions of values in registers, as they were originally dened [ 23]. For such
+RAs, nonemptiness is known to be NP-complete [ 33, Theorem 4]. (c)Proposition 6.10.
+(d) Proposition 6.4. (e) Proposition 5.6.
+For universality and language inclusion, see Proposition 5.9.
+
+--- Page 29 ---
+HISTORY-REGISTER AUTOMATA 29
+8.Connections with existing formalisms
+We have already seen that HRAs strictly extend FRAs. In this section, we compare HRAs
+with CMAs (class memory automata). Like HRAs and FRAs, CMAs work on innite
+alphabets, and have a decidable nonemptiness problem. Implicitly, we also compare with
+other formalisms: CMAs have been shown to express the same languages as data automata [ 5,
+Proposition 3.7]; and data automata have been shown to express the same languages as the
+two-variable fragment of existential monadic second order logic with data equality, position
+successor, and class successor [7, Proposition 14].
+Denition 8.1. AClass Memory Automaton (CMA) is a tupleA=hQ;q 0;0;;F 1;F2i
+whereQis a nite set of states, q02Qis initial,F1F2Qare sets of nal states and
+the transition relation is of type Q(Q[f?g )Q. Moreover, 0is an initial class
+memory function , that is, a function :N!Q[f?g with nite domain ( faj(a)6=?g
+is nite).
+The semantics of a CMA Ais given as follows. Congurations of Aare pairs of the
+form (q;), whereq2Qanda class memory function. The conguration graph of Ais
+constructed by setting ( q;)a!(q0;0) just if there is ( q;(a);q0)2and0=[a7!q0].
+The initial conguration is ( q0;0), while a conguration ( q;) is accepting just if q2F1
+and, for all a2N,(a)2F2[f?g .
+Thus, CMAs resemble HRAs in that they store input names in \histories", only that
+histories are identied with states: for each state qthere is a corresponding history q(note
+notation overloading), and a transition which accepts a name aand leads to a state qmust
+storeain the history q. Moreover, each name appears in at most one history (hence the
+type of), while the nality conditions for congurations allow us to impose that, at the
+end, all names must appear in specic histories, if they appear in any. For instance, the
+languageL4of Example 3.4, which we know cannot be recognized by HRAs (Lemma 3.3),
+can be recognized by the following CMA on the left (with F1=F2=fq0g).
+q0q1?
+q1
+q1?q0q1?;1
+1;2
+1;2 ?;1
+Each name is put in history q1when seen for the rst time, and in history q0when seen for
+the second time. The automaton accepts if all its names are in q0. This latter condition
+is what makes the essential dierence to HRAs, namely the capability to check where the
+names reside for acceptance. For example, the HRA on the right above would accept the
+same language it we were able to impose the condition that accepting congurations ( q;H)
+satisfya2H@f2gfor all names a2S
+iH(i). Note though that, extending HRAs with such
+nality conditions would render their nonemptiness problem reducible from reachability of
+R-VASS (i.e. the question whether a specic state andcounter content can be reached), a
+problem known to be undecidable [2].
+The above example proves that HRAs cannot express the same languages as CMAs.
+Conversely, as shown in [ 5, Proposition 7.2], the fact that CMAs lack resets does not allow
+them to express languages like, for example, L1. As a result, the languages expressed by
+CMAs are closed under intersection, union and concatenation, but not under Kleene star.
+In the latter sections of [ 5] several extensions of CMAs are considered, one of which does
+
+--- Page 30 ---
+30 R. GRIGORE AND N. TZEVELEKOS
+involve resets. However, the resets considered there do not seem directly comparable to the
+reset capability of HRAs.
+On the other hand, a direct comparison can be made with non-reset HRAs. We already
+saw in Proposition 4.4 that, in the latter idiom, histories can be used for simulating register
+behaviour. In the absence of registers, CMAs dier from non-reset HRAs solely in their
+constraint of relating histories to states (and their termination behaviour, which is more
+expressive). As the latter can be easily counterbalanced by obfuscating the set of states, we
+obtain the following.
+Proposition 8.2. For each non-reset HRA Athere is a CMAA0such thatL(A) =L(A0).
+9.Further directions
+Our goal is to apply automata with histories in static and runtime verication. For static
+verication, the complexity results derived in this paper may seem discouraging at rst.
+However, they are based on very specic representations of hard problems; in practice, we
+expect programs to yield automata of simpler complexities. Experience with tools based
+on coverability of TR-VASSs, like e.g. BFC [ 22], positively testify in that respect. Another
+solution, already pursued herein, is to explore constrained versions of our machines. A
+specic such variant we envisage to consider is one with restricted resets, in analogy to
+e.g. [ 17]. In a related direction, we aim to look at abstractions that would allow us to
+attack the model-checking problem for these automata, and also look at temporal logics that
+capture part or all of the expressivity of HRAs.
+In this work we examined nondeterministic automata but did not look at alternating
+variants. This is justied by the undecidability of universality already at the level of register
+automata. However, if one is willing to restrict the number of registers and histories, there
+may still be room for decidability. In the case of register automata, it has been shown [15]
+that alternating register automata with one register are decidable for emptiness, and become
+undecidable at two registers. While these automata cannot capture languages that inherently
+require more than one register, they can use alternation to express name freshness and
+e.g. capture the languages L0;L2of the Introduction, and also a variant of L1which uses
+constants for tokenizing the input (instead of a0). It would be useful to examine whether a
+similar restriction can yield decidable alternating HRAs, and what would their expressivity
+be. Finally, a problem left open here is decidability and complexity of bisimilarity. (In a
+private communication, Piotrek Hofman sketched a proof that bisimilarity is decidable.)
+References
+[1] S. Abramsky, D. R. Ghica, A. S. Murawski, C.-H. L. Ong, and I. D. B. Stark. Nominal games and full
+abstraction for the nu-calculus. In Logic in Computer Science (LICS) , 2004.
+[2]T. Araki and T. Kasami. Some decision problems related to the reachability problem for Petri nets.
+Theoretical Computer Science (TCS) , 1976.
+[3] M. Faouzi Atig, A. Bouajjani, and S. Qadeer. Context-bounded analysis for concurrent programs with
+dynamic creation of threads. Logical Methods in Computer Science (LMCS) , 2011.
+[4]N. Benton and B. Leperchey. Relational reasoning in a nominal semantics for storage. In Typed Lambda
+Calculi and Applications (TLCA) , 2005.
+[5]H. Bj orklund and T. Schwentick. On notions of regularity for data languages. Theoretical Computer
+Science (TCS) , 2010.
+
+--- Page 31 ---
+HISTORY-REGISTER AUTOMATA 31
+[6]M. Bojanczyk, L. Braud, B. Klin, and S. Lasota. Towards nominal computation. In Principles of
+Programming Languages (POPL) , 2012.
+[7]M. Bojanczyk, C. David, A. Muscholl, T. Schwentick, and L. Segoun. Two-variable logic on data words.
+Transactions on Computational Logic (TOCL) , 2011.
+[8]M. Bojanczyk, B. Klin, and S. Lasota. Automata theory in nominal sets. Logical Methods in Computer
+Science (LMCS) , 2014.
+[9]M. Bojanczyk, B. Klin, S. Lasota, and S. Torunczyk. Turing machines with atoms. In Logic in Computer
+Science (LICS) , 2013.
+[10]A. Bouajjani, S. Fratani, and S. Qadeer. Context-bounded analysis of multithreaded programs with
+dynamic linked structures. In Computer Aided Verication (CAV) , 2007.
+[11]L. Bozzelli and P. Ganty. Complexity analysis of the backward coverability algorithm for VASS. In
+Reachability Problems (RP) , 2011.
+[12]Racko C. The covering and boundedness problems for vector addition systems. Theoretical Computer
+Science (TCS) , 1978.
+[13]C. Cotton-Barratt, A. S. Murawski, and C.-H. Luke Ong. Weak and nested class memory automata. In
+Language and Automata Theory and Applications (LATA) , 2015.
+[14]N. Decker, P. Habermehl, M. Leucker, and D. Thoma. Ordered navigation on multi-attributed data
+words. In Concurrency Theory (CONCUR) , 2014.
+[15]S. Demri and R. Lazi c. LTL with the freeze quantier and register automata. Transactions on Computa-
+tional Logic (TOCL) , 2009.
+[16]D. Figueira, S. Figueira, S. Schmitz, and P. Schnoebelen. Ackermannian and primitive-recursive bounds
+with Dickson's lemma. In Logic in Computer Science (LICS) , 2011.
+[17]A. Finkel and A. Sangnier. Mixing coverability and reachability to analyze VASS with one zero-test. In
+Current Trends in Theory and Practice of Computer Science (SOFSEM) , 2010.
+[18]M. J. Gabbay and A. M. Pitts. A new approach to abstract syntax with variable binding. Formal Aspects
+of Computing , 2002.
+[19]O. Goldreich. Computational Complexity: A Conceptual Perspective . Cambridge University Press, 2008.
+[20]R. Grigore, D. Distefano, R. L. Petersen, and N. Tzevelekos. Runtime verication based on register
+automata. In Tools and Algorithms for the Construction and Analysis of Systems (TACAS) , 2013.
+[21]A. Jerey and J. Rathke. Towards a theory of bisimulation for local names. In Logic in Computer Science
+(LICS) , 1999.
+[22]A. Kaiser, D. Kroening, and T. Wahl. Ecient coverability analysis by proof minimization. In Concurrency
+Theory (CONCUR) , 2012.
+[23] M. Kaminski and N. Francez. Finite-memory automata. Theoretical Computer Science (TCS) , 1994.
+[24]J. Laird. A fully abstract trace semantics for general references. In Automata, Languages, and Program-
+ming (ICALP) , 2007.
+[25]R. J. Lipton. The reachability problem requires exponential space. Technical report, Yale University,
+1976.
+[26]A. Manuel and R. Ramanujam. Class counting automata on datawords. Foundations of Computer
+Science (IJFCS) , 2011.
+[27]U. Montanari and M. Pistore. An introduction to history dependent automata. Electronic Notes in
+Theoretical Computer Science (ENTCS) , 1997.
+[28]A. S. Murawski, S. J. Ramsay, and N. Tzevelekos. Game semantic analysis of equivalence in IMJ. In
+Automated Technology for Verication and Analysis (ATVA) , 2015.
+[29]A. S. Murawski and N. Tzevelekos. Algorithmic nominal game semantics. In European Symposium on
+Programming (ESOP) , 2011.
+[30]A. S. Murawski and N. Tzevelekos. Algorithmic games for full ground references. In Automata, Languages,
+and Programming (ICALP) , 2012.
+[31]F. Neven, T. Schwentick, and V. Vianu. Finite state machines for strings over innite alphabets.
+Transactions on Computational Logic (TOCL) , 2004.
+[32]A. M. Pitts and I. Stark. On the observable properties of higher order functions that dynamically create
+local names, or: What's new? In Mathematical Foundations of Computer Science (MFCS) , 1993.
+[33]H. Sakamoto and D. Ikeda. Intractability of decision problems for nite-memory automata. Theoretical
+Computer Science (TCS) , 2000.
+
+--- Page 32 ---
+32 R. GRIGORE AND N. TZEVELEKOS
+[34]S. Schmitz and P. Schnoebelen. Algorithmic aspects of WQO theory. Lecture Notes hcel-00727025v2 i,
+2012.
+[35]P. Schnoebelen. Revisiting Ackermann-hardness for Lossy Counter Machines and Reset Petri Nets. In
+Mathematical Foundations of Computer Science (MFCS) , 2010.
+[36]L. Segoun. Automata and logics for words and trees over an innite alphabet. In Computer Science
+Logic (CSL) , 2006.
+[37]I. D. B. Stark. Names and Higher-Order Functions . PhD thesis, University of Cambridge Computing
+Laboratory, 1995.
+[38] N. Tzevelekos. Fresh-register automata. In Principles of Programming Languages (POPL) , 2011.
+[39]N. Tzevelekos and R. Grigore. History-register automata. In Foundations of Software Science and
+Computation Structures (FoSSaCS) , 2013.
+This work is licensed under the Creative Commons Attribution-NoDerivs License. To view a
+copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+letter to Creative Commons, 171 Second St, Suite 300, San Francisco, CA 94105, USA, or
+Eisenacher Strasse 2, 10777 Berlin, Germany

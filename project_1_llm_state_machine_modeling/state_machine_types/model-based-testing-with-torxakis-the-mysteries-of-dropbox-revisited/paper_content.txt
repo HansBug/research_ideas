@@ -1,0 +1,1510 @@
+--- Page 1 ---
+Model-Based Testing with TorXakis
+The Mysteries of Dropbox Revisited
+Jan Tretmans
+ESI (TNO), Eindhoven (NL)
+Radboud University, Nijmegen (NL)
+Halmstad University (S)
+jan.tretmans@tno.nlPiërre van de Laar
+ESI (TNO)
+Eindhoven
+The Netherlands
+pierre.vandelaar@tno.nl
+Abstract. Model-based testing is one of the promising
+technologies to increase the efﬁciency and effectiveness
+of software testing. This paper discusses model-based
+testing in general, it presents the model-based testing
+toolTORXAKIS , and it shows how TORXAKIS was ap-
+plied to test a ﬁle synchronization system, Dropbox, re-
+visiting an experiment presented in (Hughes, Pierce,
+Arts, & Norell, 2016).
+Keywords. software testing, model-based testing,
+modelling, test tool.
+1 Introduction
+Software quality is a matter of increasing importance
+and growing concern. Systematic testing plays an im-
+portant role in the quest for improved quality and reli-
+ability of software systems. Software testing, however,
+is often an error-prone, expensive, and time-consuming
+process. Estimates are that testing consumes 30-50%
+of the total software development costs. The tendency
+is that the effort spent on testing is still increasing due
+to the continuing quest for better software quality, and
+the ever growing size and complexity of systems. The
+situation is aggravated by the fact that the complex-
+ity of testing tends to grow faster than the complex-
+ity of the systems being tested, in the worst case even
+exponentially. Whereas development and construction
+methods for software allow the building of ever larger
+and more complex systems, there is a real danger that
+testing methods cannot keep pace with these construc-
+tion and development methods. This may seriously
+hamper the development and testing of future gener-
+ations of software systems.
+Model-Based Testing (MBT) is one of the technolo-
+gies to meet the challenges imposed on software test-
+ing. With MBT a System Under Test ( SUT) is tested
+against an abstract model of its required behaviour.
+The main virtue of model-based testing is that it al-
+lows test automation that goes well beyond the mere
+automatic execution of manually crafted test cases. It
+This work has been supported by NWO-TTW project 13859:
+SUMBAT – Supersizing Model-Based Testing.allows for the algorithmic generation of large amounts
+of test cases, including test oracles for the expected re-
+sults, completely automatically from the model of re-
+quired behaviour.
+In this paper we ﬁrst discuss model-based testing in
+general. Secondly, we present our model-based test-
+ing tool T ORXAKIS , while touching upon some of
+its underlying theories such as the ioco-testing the-
+ory for labelled transition systems (Tretmans, 2008).
+Thirdly, we show the application of T ORXAKIS to
+model-based testing of the ﬁle-synchronization service
+Dropbox. The ﬁrst two parts repeat large parts of
+(Tretmans, 2017); the latter part builds on (Hughes
+et al., 2016): "Mysteries of Dropbox – Property-
+Based Testing of a Distributed Synchronization Ser-
+vice", where model-based testing with the tool Quviq
+QuickCheck (Claessen & Hughes, 2000; Arts, Hughes,
+Johansson, & Wiger, 2006) is applied for testing Drop-
+box. It is our initial response to the challenge posed
+in that paper: "It would be interesting to try to reframe
+[Quviq QuickCheck’s testing of Dropbox] in terms of
+ioco concepts." It is not the aim of this paper to present
+a completely formal treatment, nor to give a fully sci-
+entiﬁc account of model-based testing, nor to give deﬁ-
+nitions or algorithms – we refer to the literature for this
+– but we will show how a model of Dropbox can be
+developed for T ORXAKIS , and how this model is used
+to test a distributed and non-deterministic system like
+Dropbox.
+2 Model-Based Testing (MBT)
+MBT is a form of black-box testing where a System
+Under Test ( SUT) is tested against an abstract model of
+its required behaviour. The model speciﬁes, in a for-
+mal way, what the system shall do, and it is the basis
+for the algorithmic generation of test cases and for the
+evaluation of test results. The model is prescriptive: it
+prescribes which inputs the SUTshall accept and which
+outputs the SUT shall produce in response to those in-
+puts, as opposed to descriptive models as used in, e.g.,
+simulation.
+The main virtue of model-based testing is that it al-
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+247
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 2 ---
+lows test automation that goes well beyond the mere
+automatic execution of manually crafted test cases. It
+allows for the algorithmic generation of large amounts
+of test cases, including their expected results, com-
+pletely automatically and correctly from the model of
+required behaviour.
+From an industrial perspective, model-based testing
+is a promising approach to detect more bugs faster and
+cheaper. The current state of practice is that test au-
+tomation mainly concentrates on the automatic execu-
+tion of tests, but that the problem of test generation is
+not addressed. Model-based testing aims at automati-
+cally generating high-quality test suites from models,
+thus complementing automatic test execution.
+From an academic perspective, model-based testing
+is a formal-methods approach to testing that comple-
+ments formal veriﬁcation and model checking. Formal
+veriﬁcation and model checking intend to show that a
+system has speciﬁed properties by proving that a model
+of that system satisﬁes these properties. Thus, any ver-
+iﬁcation is only as good as the validity of the model
+on which it is based. Model-based testing, on the other
+hand, starts with a (veriﬁed) model, and then aims at
+showing that the real, physical implementation of the
+system behaves in compliance with this model. Due to
+the inherent limitations of testing, testing can never be
+complete: testing can only show the presence of errors,
+not their absence (Dijkstra, 1969).
+2.1 Beneﬁts of Model-Based Testing
+Model-based testing makes it possible to generate tests
+automatically, enabling the next step in test automa-
+tion. It makes it possible to generate more, longer, and
+more diversiﬁed test cases with less effort, whereas, be-
+ing based on sound algorithms, test cases are valid by
+construction.
+Creating models for MBT usually already leads to
+better understanding of system behaviour and require-
+ments and to early detection of speciﬁcation and de-
+sign errors. Moreover, constructing models for MBT
+paves the way for other model-based methods, such as
+model-based analysis, model checking, and simulation,
+and it forms the natural connection to model-based sys-
+tem development that is becoming an important driving
+force in the software industry.
+Test suite maintenance, i.e., adapting test cases when
+the system evolves, is an important challenge of any
+testing process. In MBT, maintenance of a multitude of
+test cases is replaced by maintenance of one model. Fi-
+nally, various notions of (model-)coverage can be auto-
+matically computed, expressing the level of complete-
+ness of testing, and allowing better selection of test
+cases.2.2 Types of Model-Based Testing
+There are different kinds of testing, and thus of model-
+based testing, depending on the kind of models being
+used, the quality aspects being tested, the level of for-
+mality involved, the degree of accessibility and observ-
+ability of the system being tested, and the kind of sys-
+tem being tested.
+In this contribution we consider model-based testing
+asformal, speciﬁcation-based, active, black-box, func-
+tionality testing ofreactive systems. It is testing, be-
+cause it involves checking some properties of the SUT
+by systematically performing experiments on the real,
+running SUT. The kind of properties being checked are
+concerned with functionality, i.e., testing whether the
+system correctly does what it should do in terms of cor-
+rect responses to given stimuli. We do speciﬁcation-
+based, black-box testing, since the externally observ-
+able behaviour of the system, seen as a black-box, is
+compared with what has been speciﬁed. The testing is
+active, in the sense that the tester controls and observes
+theSUT in an active way by giving stimuli and triggers
+to the SUT, and observing its responses, as opposed to
+passive testing, or monitoring. Our SUTs are dynamic,
+data-intensive, reactive systems. Reactive systems re-
+act to external events (stimuli, triggers, inputs) with
+output events (responses, actions, outputs). In dynamic
+systems, outputs depend on inputs as well as on the sys-
+tem state. Data-intensive means that instances of com-
+plex data structures are communicated in inputs and
+outputs, and that state transitions may involve complex
+computations and constraints. Finally, we deal with
+formal testing: there is a formal, well-deﬁned theory
+underpinning models, SUTs, and correctness of SUTs
+with respect to models, which enables formal reason-
+ing about soundness andexhaustiveness of generated
+test suites.
+2.3 Model-Based Testing Challenges
+Software is anywhere, and ever more systems depend
+on software: software controls, connects, and moni-
+tors almost every aspect of systems, be it a car, an air-
+plane, a pacemaker, or a refrigerator. Consequently,
+overall system quality and reliability are more and
+more determined by the quality of the embedded soft-
+ware. Typically, such software consists of several mil-
+lion lines of code, with complex behavioural control-
+ﬂow as well as intricate data structures, with distribu-
+tion and a lot of parallelism, having complex and het-
+erogeneous interfaces, and controlling diverse, multi-
+disciplinary processes. In addition, systems continu-
+ously evolve and are composed into larger systems and
+systems-of-systems, whereas system components may
+come from heterogeneous sources: there can be legacy,
+third-party, out-sourced, off-the-shelf, open source, or
+newly developed components.
+For model-based testing, these trends lead to sev-
+eral challenges. First, the size of the systems implies
+248
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 3 ---
+that making complete models is often infeasible so that
+MBT must deal with partial and under-speciﬁed mod-
+els and abstractions, and that partial knowledge and
+uncertainty cannot be avoided. Secondly, the combi-
+nation of complicated state-behaviour and intricate in-
+put and output-data structures, and their dependencies,
+must be supported in modelling. Thirdly, distribution
+and parallelism imply that MBT must deal with con-
+currency in models, which introduces additional uncer-
+tainty and non-determinism. In the fourth place, since
+complex systems are built from sub-systems and com-
+ponents, and systems themselves are more and more
+combined into systems-of-systems, MBT must sup-
+port compositionality, i.e., building complex models by
+combining simpler models. Lastly, since complexity
+leads to an astronomical number of potential test cases,
+test selection, i.e., how to select those tests from all
+potential test cases that can catch most, and most im-
+portant failures, within constraints of testing time and
+budget, is a key issue in model-based testing.
+In short, to be applicable to testing of modern
+software systems, MBT shall support partial models,
+under-speciﬁcation, abstraction, uncertainty, state and
+data, concurrency, non-determinism, compositionality,
+and test selection. Though several academic and com-
+mercial MBT tools exist, there are not that many tools
+that support all of these aspects.
+3 Model-Based Testing Theory
+A theory for model-based testing must, naturally, ﬁrst
+of all deﬁne the models that are considered. The mod-
+elling formalism determines the kind of properties that
+can be speciﬁed, and, consequently, the kind of prop-
+erties for which test cases can be generated. Secondly,
+it must be precisely deﬁned what it means for an SUT
+to conform to a model. Conformance can be expressed
+using an implementation relation, also called confor-
+mance relation (Brinksma, Alderden, Langerak, Lage-
+maat, & Tretmans, 1990). Although an SUT is a black
+box, we can assume it could be modelled by some
+model instance in a domain of implementation models.
+This assumption is commonly referred to as the testa-
+bility hypothesis, or test assumption (Gaudel, 1995).
+The testability hypothesis allows reasoning about SUTs
+as if they were formal models, and it makes it possible
+to deﬁne the implementation relation as a formal re-
+lation between the domain of speciﬁcation models and
+the domain of implementation models. Soundness, i.e.,
+do all correct SUTs pass, and exhaustiveness, i.e., do all
+incorrect SUTs fail, of test suites is deﬁned with respect
+to an implementation relation.
+In the domain of testing reactive systems there are
+two prevailing ‘schools’ of formal model-based test-
+ing. The oldest one uses Mealy-machines, also called
+ﬁnite-state machines (FSM); see (Chow, 1978; Lee &
+Yannakakis, 1996; Petrenko, 2001). In this paper we
+concentrate on the other one that uses labelled transi-tion systems (LTS) for modelling. A labelled transition
+system is a structure consisting of states with transi-
+tions, labelled with actions, between them. The states
+model the system states; the labelled transitions model
+the actions that a system can perform. Actions can be
+inputs, outputs, or internal steps of the system.
+Conformance for LTS models is precisely deﬁned
+with the ioco-conformance relation (input-output-
+conformance) (Tretmans, 1996, 2008). The confor-
+mance relation ioco expresses that an SUT conforms
+to its speciﬁcation LTS if the SUT never produces an
+output that cannot be produced by the speciﬁcation in
+the same situation, i.e., after the same sequence of ac-
+tions. A particular, virtual output is quiescence, actu-
+ally expressing the absence of real outputs. Quiescence
+corresponds to observing that there is no output of the
+SUT, which is observed in practice as a time-out during
+which no output from the SUT is observed.
+The ioco-conformance relation supports partial
+models, under-speciﬁcation, abstraction, and non-
+determinism. An SUT is assumed to be modelled as
+aninput-enabled LTS (testability hypothesis), that is,
+any input to the implementation is accepted in every
+state, whereas speciﬁcations are not necessarily input-
+enabled. Inputs that are not accepted in a speciﬁca-
+tion state are considered to be underspeciﬁed: no be-
+haviour is speciﬁed for such inputs, implying that any
+behaviour is allowed in the SUT. Models that only
+specify behaviour for a small, selected set of inputs
+are partial models. Abstraction is supported by mod-
+elling actions or activities of systems as internal steps,
+without giving any details. Non-deterministic mod-
+els may result form such internal steps, from having
+transitions from the same state labelled with the same
+action, or having states with multiple outputs (output
+non-determinism). Non-determinism leads to having
+a set of possible outputs after a sequence of actions,
+of which an implementation only needs to implement
+a (non-empty) subset, thus supporting implementation
+freedom.
+Theioco-testing theory for LTS provides a test gen-
+eration algorithm that was proved to be sound andex-
+haustive, i.e., the (possibly inﬁnitely many) test cases
+generated from an LTS model detect all and only ioco-
+incorrect implementations. The ioco-testing theory
+constitutes, on the one hand, a well-deﬁned theory
+of model-based testing, whereas, on the other hand,
+it forms the basis for various practical MBT tools,
+such as T ORX (Belinfante et al., 1999), the A GEDIS
+TOOL SET(Hartman & Nagin, 2004), TGV (Jard
+& Jéron, 2005), Uppaal-Tron (Hessel et al., 2008),
+JTORX (Belinfante, 2010), Axini Test Manager (ATM)
+(Axini, 2019), TESTOR (Marsso, Mateescu, & Serwe,
+2018), and T ORXAKIS (Sect. 4).
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+249
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 4 ---
+4 TORXAKIS Overview
+TORXAKIS is an experimental tool for on-line model-
+based testing. This section gives a light-weight in-
+troduction to and overview of T ORXAKIS . Sect. 5
+illustrates T ORXAKIS with the Dropbox example.
+TORXAKIS is freely available under a BSD3 license
+(TorXakis, 2019).
+4.1 Test Generation
+TORXAKIS implements the ioco-testing theory for
+labelled transition systems (Tretmans, 1996, 2008).
+More precisely, it implements test generation for sym-
+bolic transition systems. The ioco-testing theory
+mainly deals with the dynamic aspects of system be-
+haviour, i.e., with state-based control ﬂow. The static
+aspects, such as data structures, their operations, and
+their constraints, which are part of almost any real
+system, are not covered. Symbolic Transition Sys-
+tems (STS) add (inﬁnite) data and data-dependent con-
+trol ﬂow, such as guarded transitions, to LTS, founded
+on ﬁrst order logic (Frantzen, Tretmans, & Willemse,
+2006). Symbolic ioco (sioco) lifts ioco to the sym-
+bolic level. The semantics of STS and sioco is given
+directly in terms of LTS; STS and sioco do not add
+expressiveness but they provide a way of represent-
+ing and manipulating large and inﬁnite transition sys-
+tems symbolically. Test generation in T ORXAKIS uses
+STS following the algorithm of (Frantzen, Tretmans, &
+Willemse, 2005).
+TORXAKIS is an on-the-ﬂy (on-line) MBT tool
+which means that it combines test generation and test
+execution: generated test steps are immediately exe-
+cuted on the SUT and responses from the SUT are im-
+mediately checked and used when calculating the next
+step in test generation.
+Currently, only random test selection is supported,
+i.e., T ORXAKIS chooses a random action among the
+possible inputs to the SUT in the current state. This in-
+volves choosing among the transitions of the STS and
+choosing a value from the (inﬁnite, constrained) data
+items attached to the transition. The latter involves con-
+straint solving.
+4.2 Modelling
+Labelled transition systems or symbolic transition sys-
+tems form a well-deﬁned semantic basis for modelling
+and model-based testing, but they are not directly suit-
+able for writing down models explicitly. Typically, re-
+alistic systems have more states than there are atoms
+on earth (which is approximately 1050) so an explicit
+representation of states is impossible. What is needed
+is a language to represent large labelled transition sys-
+tems. Process algebras have semantics in terms of la-
+beled transition systems, they support different ways of
+composition such as choice, parallelism, sequencing,
+etc., and they were heavily investigated in the eighties(Milner, 1989; Hoare, 1985; ISO, 1989). They are a
+good candidate to serve as a notation for LTS models.
+TORXAKIS uses its own language to express mod-
+els, which is strongly inspired by the process-algebraic
+language L OTOS (Bolognesi & Brinksma, 1987; ISO,
+1989), and which incorporates ideas from E XTENDED
+LOTOS (Brinksma, 1988) and mCRL2 (Groote &
+Mousavi, 2014). The semantics is based on STS, which
+in turn has a semantics in LTS. The process-algebraic
+part is complemented with a data speciﬁcation lan-
+guage based on algebraic data types (ADT) and func-
+tions like in functional languages. In addition to user-
+deﬁned ADTs, predeﬁned data types such as booleans,
+unbounded integers, strings, and regular expressions
+are provided.
+Having its roots in process algebra, the language is
+compositional. It has several operators to combine pro-
+cesses: sequencing, choice, parallel composition with
+and without communication, interrupt, disable, and ab-
+straction (hiding). Communication between processes
+can be multi-way, and actions can be built using multi-
+ple labels.
+4.3 Implementation
+TORXAKIS is based on the model-based testing
+tools T ORX (Belinfante et al., 1999) and JT ORX
+(Belinfante, 2010). The main additions are data speciﬁ-
+cation and manipulation with algebraic data types, and
+its own, well-deﬁned modelling language. Like T ORX
+and JT ORX, T ORXAKIS generates tests by ﬁrst unfold-
+ing the process expressions from the model into a be-
+haviour tree, on which primitives are deﬁned for gen-
+erating test cases. Unlike T ORX and JT ORX, T ORX-
+AKIS does not unfold data into all possible concrete
+data values, but it keeps data symbolically.
+In order to manipulate symbolic data and solve con-
+straints for test-data generation, T ORXAKIS uses SMT
+solvers (Satisfaction Modulo Theories) (De Moura &
+Bjørner, 2011). Currently, Z3 (De Moura & Bjørner,
+2008) and CVC4 (Barrett et al., 2011) are used via
+the SMT-LIBv2.5 standard interface (C., Fontaine, &
+Tinelli, 2015). Term rewriting is used to evaluate data
+expressions and functions.
+The well-deﬁned process-algebraic basis with ioco
+semantics makes it possible to perform optimizations
+and reductions based on equational reasoning with test-
+ing equivalence, which implies ioco-semantics.
+The core of T ORXAKIS is implemented in the func-
+tional language Haskell (Haskell, 2019), while parts
+of T ORXAKIS itself have been tested with the Haskell
+MBT tool QuickCheck (Claessen & Hughes, 2000).
+4.4 Innovation
+Compared to other model-based testing tools, T ORX-
+AKIS deals with most of the challenges posed in
+Sect. 2: it supports test generation from non-
+250
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 5 ---
+deterministic models, it deals with abstraction, par-
+tial models and under-speciﬁcation, it supports con-
+currency, parallelism, composition of complex mod-
+els from simpler models, and the combination of con-
+structive modelling in transition systems with property-
+oriented speciﬁcation via data constraints.
+4.5 System Under Test ( SUT)
+In order to use T ORXAKIS we need a model specify-
+ing the allowed behaviour of the SUT. The T ORXAKIS
+view of an SUT is a black-box that communicates with
+its environment via messages on its interfaces, i.e., on
+its input and output channels. An input is a message
+sent by the tester to the SUT on an input channel; an
+output is the observation by the tester of a message
+from the SUTon an output channel. A behaviour of the
+SUT is a possible sequence of input and output actions.
+The goal of testing is to compare the actual behaviour
+that the SUTexhibits with the behaviour speciﬁed in the
+model.
+4.6 Model
+The model is written in the T ORXAKIS modelling lan-
+guage. A (collection of) model ﬁle(s) contains all the
+deﬁnitions necessary for expressing the model: chan-
+nel, data-type, function, constant, and process deﬁni-
+tions, which are all combined in a model deﬁnition.
+In addition, the model ﬁle contains some testing spe-
+ciﬁc aspects: connections and en/decodings. A connec-
+tion deﬁnition deﬁnes how T ORXAKIS is connected to
+the SUT by specifying the binding of abstract model
+channels to concrete sockets. En/decodings specify the
+mapping of abstract messages (ADTs) to strings and
+vice versa.
+4.7 Adapter
+Channels in T ORXAKIS are implemented as plain old
+sockets where messages are line-based strings. How-
+ever, a lot of real-life SUTs don’t communicate via
+sockets. In those cases, the SUT must be connected
+via an adapter, wrapper, or test harness that interfaces
+the SUT to T ORXAKIS , and that transforms the native
+communication of the SUT to the socket communica-
+tion that T ORXAKIS expects. Usually, such an adapter
+must be manually developed. Sometimes it is simple,
+e.g., transforming standard IO into socket communica-
+tion using standard (Unix) tools like netcat orsocat ,
+as the Dropbox example will show. Sometimes, build-
+ing an adapter can be quite cumbersome, e.g., when
+the SUT provides a GUI. In this case tools like S ELE-
+NIUM (Selenium, 2019) or S IKULI (Sikuli, 2019) may
+be used to adapt a GUI or a web interface to socket
+communication. An adapter is not speciﬁc for MBT
+but is required for any form of automated test execu-
+tion. If traditional test automation is in place then thisinfrastructure can quite often be reused in an adapter
+for MBT.
+When a SUT communicates over sockets, there is
+still a caveat: sockets have asynchronous communica-
+tion whereas models and test generation assume syn-
+chronous communication. This may lead to race con-
+ditions if a model offers the choice between an input
+and an output. If this occurs the asynchronous com-
+munication of the sockets must be explicitly modelled,
+e.g., as queues in the model.
+4.8 Testing
+Once we have an SUT, a model, and an adapter, we can
+use T ORXAKIS to run tests. The tool performs on-the-
+ﬂy testing of the SUT by automatically generating test
+steps from the model and immediately executing these
+test steps on the SUT, while observing and checking
+the responses from the SUT. A test case may consist of
+thousands of such test steps, which makes it also suit-
+able for reliability testing, and it will eventually lead to
+a verdict for the test case.
+5 Testing Dropbox
+We apply model-based testing with T ORXAKIS to
+test Dropbox. Our work closely follows the work in
+(Hughes et al., 2016), where Dropbox was tested with
+the model-based testing tool Quviq QuickCheck. We
+ﬁrst brieﬂy introduce Dropbox, we then discuss some
+aspects of the testing approach, we present a model in
+the T ORXAKIS modelling language, we run some tests,
+and end with discussion.
+5.1 Dropbox
+Dropbox is a ﬁle-synchronization service (Dropbox,
+2019), like Google-Drive and Microsoft-OneDrive.
+A ﬁle-synchronization service maintains consistency
+among multiple copies of ﬁles or a directory structure
+over different devices. A user can create, delete, read,
+or write a ﬁle on one device and Dropbox synchronizes
+this ﬁle with the other devices. One copy of the ﬁles
+on a device is called a node. A conﬂict arises when
+different nodes write to the same ﬁle: the content of
+the ﬁle cannot be uniquely determined anymore. Drop-
+box deals with conﬂicts by having the content that was
+written by one node in the original ﬁle, and adding an
+additional ﬁle, with a new name, with the conﬂicting
+content. Also this additional ﬁle will eventually be syn-
+chronized.
+Synchronization is performed by uploading and
+downloading ﬁles to a Dropbox server, i.e., a Dropbox
+system with nnodes conceptually consists of n+ 1
+components. How synchronization is performed, i.e.,
+when and which (partial) ﬁles are up- and downloaded
+by the Dropbox clients and how this is administered is
+part of the Dropbox implementation, i.e., the Dropbox
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+251
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 6 ---
+protocol. Since we concentrate on testing the delivered
+synchronization service, we abstract from the precise
+protocol implementation.
+A ﬁle synchronizer like Dropbox is a distributed,
+concurrent, and nondeterministic system. It has state
+(the synchronization status of ﬁles) and data (ﬁle con-
+tents), its modelling requires abstraction, leading to
+nondeterminism, because the precise protocol is not
+documented and the complete internal state is not ob-
+servable, and partial modelling is needed because of its
+size. Altogether, ﬁle synchronizers are interesting and
+challenging systems to be tested, traditionally as well
+as model-based.
+5.2 Testing Approach
+We test the Dropbox synchronization service, that is,
+theSUTis the Dropbox behaviour as observed by users
+of the synchronization service, as a black-box. We
+closely follow (Hughes et al., 2016), where a for-
+mal model for a synchronization service was devel-
+oped and used for model-based testing of Dropbox
+with the tool Quviq QuickCheck (Arts et al., 2006).
+This means that we use the same test setup, make
+the same assumptions, and transform their model for
+Quviq QuickCheck to the T ORXAKIS modelling lan-
+guage. It also means that we will not repeat the de-
+tailed discussion of Dropbox intricacies and model re-
+ﬁnements leading to their ﬁnal model, despite that their
+model rules out implementations that calculate clean
+and handle a reverting write action without any com-
+munication with the server.
+Like in (Hughes et al., 2016), we restrict testing to
+one ﬁle and three nodes, and we use actions ( SUT in-
+puts) R EADN, W RITEN, and S TABILIZE , which read
+the ﬁle at node N, (over-)write the ﬁle at node N, and
+read all ﬁles including conﬂict ﬁles when the system is
+stable, i.e., fully synchronized, respectively. Initially,
+and after deletion, the ﬁle is represented by the special
+content value "$" (? in (Hughes et al., 2016)).
+Our test setup consists of three Linux-virtual ma-
+chines with Dropbox clients implementing the three
+nodes, numbered 0,1, and 2. The ﬁle manipulation on
+the nodes is performed by plain Linux shell commands.
+These commands are sent by T ORXAKIS , which runs
+on the host computer, via sockets (see Sect. 4). The
+adapters connecting T ORXAKIS to the SUT, see Sect. 4,
+consist of a one-line shell script connecting the sockets
+to the shell interpreter via the standard Linux utility
+socat .
+For S TABILIZE we assume that the system has sta-
+bilized, i.e., all ﬁle synchronizations have taken place
+including distribution to all nodes of all conﬂict ﬁles.
+Like in (Hughes et al., 2016), we implement this by
+simply waiting for at least 30 seconds.CHANDEF MyChans ::=
+In0 , In1 , In2 :: Cmd ;
+Out0 , Out1 , Out2 :: Rsp
+ENDDEF
+TYPEDEF Cmd ::=
+Read
+| Write { value :: Value }
+| Stabilize
+ENDDEF
+TYPEDEF Rsp ::=
+Ack
+| NAck { error :: String }
+| File { value :: Value }
+ENDDEF
+TYPEDEF Value ::=
+Value { value :: String }
+ENDDEF
+FUNCDEF isValidValue ( val :: Value ) :: Bool
+::=
+strinre ( value ( val ), REGEX (’[A-Z ]{1 ,3} ’) )
+ENDDEF
+Figure 1: Dropbox model - channels and their types.
+5.3 Modelling
+Our Dropbox model is a straightforward translation of
+(Hughes et al., 2016, Section IV: Formalizing the spec-
+iﬁcation) into the modelling language of T ORXAKIS .
+Parts of the model are shown in Figs. 1, 3, 4, 5, 6, 7,
+and 8.
+A T ORXAKIS model is a collection of different
+kinds of deﬁnitions; see Sect. 4. The ﬁrst one,
+CHANDEF, deﬁnes the channels with their typed mes-
+sages; see Fig. 1. T ORXAKIS assumes that an SUT
+communicates by receiving and sending typed mes-
+sages. A message received by the SUT is an input, and
+thus an action initiated by the tester. A message sent by
+theSUT is an SUT output, and is observed and checked
+by the tester. For Dropbox there are three input chan-
+nels: In0, In1, and In2, where commands of type Cmd
+are sent to the SUT, for each node, respectively. There
+are also three output channels Out0, Out1 , and Out2,
+where responses of type Rspare received from the SUT.
+The commands ( SUT inputs) with their corresponding
+responses ( SUT outputs) are:
+Read reads the ﬁle on the local node, which leads to
+a response consisting of the current ﬁle content
+value ;
+Write(value) writes the new value value to the ﬁle
+while the response gives the old value;
+Stabilize reads all ﬁle values, i.e., the original ﬁle
+and all conﬂict ﬁles, after stabilization, i.e., after
+all ﬁle synchronizations have taken place.
+In addition to these visible actions, there are hidden
+actions. If a user modiﬁes a ﬁle, Dropbox will upload it
+to the Dropbox server, and then later download this ﬁle
+to the other nodes. But a Dropbox user, and thus also
+the (black-box) tester cannot observe these actions, and
+consequently, they do not occur in the CHANDEF deﬁni-
+tion. Yet, these actions do occur and they do change
+the state of the Dropbox system. We use six channels
+252
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 7 ---
+node 0 node 1 node 2
+serverUp0 Down0 Up1 Down1 Up2 Down2In0 Out0 In1 Out1 Out2 In2
+Figure 2: Dropbox structure.
+Down0 ,Down1 ,Down2 ,Up0, Up1, and Up2 to model
+these actions, and later it will be shown how we can ex-
+plicitly hide these channels. The conceptual structure
+of Dropbox with nodes, server, and channels is given
+in Fig. 2. The outer box is our SUT.
+The next step is to deﬁne the processes that model
+state behaviour. The main process is PROCDEF
+dropbox which models the behaviour of Dropbox,
+combining the commands ( SUT inputs), responses
+(SUToutputs), and the checks on them in one state ma-
+chine; see Figs. 3, 4, and 5. The state machine is de-
+ﬁned as a recursive process dropbox with channel pa-
+rameters In0,:::,Up2, and with state variables exactly
+as in (Hughes et al., 2016):
+a global stable value serverVal represents the
+ﬁle value currently held on the server;
+a global set conflicts holds the conﬂicting ﬁle
+values, represented as a ValueList;
+for each node N, there is a local ﬁle value
+localVal N, where all local ﬁle values together
+are represented as a list of values with three ele-
+ments, the ﬁrst element representing localVal 0,
+etc.;
+for each node N, there is a freshness value
+fresh N, indicating whether node Nhas down-
+loaded the latest value of serverVal; all fresh-
+ness values together are represented as a list of
+Booleans with three elements, the second element
+representing fresh 1, etc.;
+for each node N, there is a cleanliness value
+clean N, indicating whether the latest local mod-
+iﬁcation has been uploaded; together they are rep-
+resented as a list of Booleans with three elements,
+the third element representing clean 2, etc.
+The recursive process dropbox deﬁnes for each
+node transitions for reading, writing, uploading,
+and downloading the ﬁle, and one transition for
+Stabilize. The different transitions are separated
+by’##’ , the T ORXAKIS choice operator. The transi-
+tions for reading and writing consist of two steps: ﬁrst
+a command ( SUT input) followed by an SUT output.
+"Followed by" is expressed by the T ORXAKIS action-
+preﬁx operator ’>->’ . After the response, dropbox is
+recursively called with updated state variables.
+Consider ﬁle-reading for node 0(Fig. 3).
+The ﬁrst action is input Read on channel
+In0. Then the SUT will produce output
+File(lookup(localVal,Node(0))), i.e., thePROCDEF dropBox [ In0 , In1 , In2 :: Cmd
+; Out0 , Out1 , Out2 :: Rsp
+; Down0 , Down1 , Down2
+; Up0 , Up1 , Up2
+]
+( serverVal :: Value
+; conflicts :: ValueList
+; localVal :: ValueList
+; fresh :: BoolList
+; clean :: BoolList
+) ::=
+In0 ! Read
+>-> Out0 ! File ( lookup ( localVal , Node (0) ))
+>-> dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( serverVal
+, conflicts
+, localVal
+, fresh
+, clean
+)
+##
+In0 ? cmd [[ IF isWrite ( cmd)
+THEN isValidValue (
+value ( cmd ))
+ELSE False
+FI ]]
+>-> Out0 ! File ( lookup ( localVal , Node (0) ))
+>-> dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( serverVal
+, conflicts
+, update ( localVal
+,Node (0)
+,value ( cmd ))
+, fresh
+, update (clean , Node (0) ,False )
+)
+##
+.....
+Figure 3: Dropbox model - main process dropbox
+with transitions Read andWrite .
+File made by looking up the localVal value of
+Node(0). This is an expression in the data spec-
+iﬁcation language of T ORXAKIS , which is based
+on algebraic data types (ADT) and functions like
+in functional languages. This data language is very
+powerful, but also very rudimentary. Data types
+such as ValueList have to be deﬁned explicitly as
+recursive types (Fig. 6), consisting of either an empty
+listNoValues, or a non-empty list Values with as
+ﬁelds a head value hdand a tail tl, which is again
+aValueList. Functions like lookup have to be
+deﬁned explicitly, too, in a functional (recursive) style.
+Fig. 6 gives as examples the functions lookup and
+update; other functions are included in the full model
+(TorXakis Examples, 2019). After the output there
+is the recursive call of process dropbox, where state
+parameters are not modiﬁed in case of ﬁle-reading.
+Writing a ﬁle for node 0is analogous, but with two
+differences (Fig. 3). First, the action of writing is not a
+unique action, but it is parameterized with the new ﬁle
+value. This is expressed by ?cmd , stating that on chan-
+nelIn0any value, represented by variable cmd, can be
+communicated, which satisﬁes the constraint between
+’[[’ and’]]’. This constraint expresses that cmd
+must be a Write command, referring to the construc-
+torWrite in type Cmd. Moreover, the value of the
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+253
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 8 ---
+.....
+##
+[[ not ( lookup (fresh , Node (0) ))
+/\ lookup (clean , Node (0) ) ]]
+=>> Down0
+>-> dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( serverVal
+, conflicts
+, update ( localVal
+,Node (0)
+,serverVal )
+, update (fresh , Node (0) ,True )
+, clean
+)
+##
+[[ not ( lookup (clean , Node (0) )) ]]
+=>> Up0
+>-> dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( IF lookup (fresh , Node (0) )
+/\ ( lookup ( localVal , Node (0) )
+<> serverVal )
+THEN lookup ( localVal , Node (0) )
+ELSE serverVal
+FI
+, IF not ( lookup (fresh , Node (0)))
+/\ ( lookup ( localVal , Node (0) )
+<> serverVal )
+/\ ( lookup ( localVal , Node (0) )
+<> Value ("$"))
+THEN Values ( lookup ( localVal
+,Node (0))
+,conflicts )
+ELSE conflicts
+FI
+, localVal
+, IF lookup (fresh , Node (0))
+/\ ( lookup ( localVal , Node (0) )
+<> serverVal )
+THEN othersUpdate ( fresh
+,Node (0)
+,False )
+ELSE fresh
+FI
+, update (clean , Node (0) ,True )
+)
+##
+.....
+Figure 4: Dropbox model - transitions Down andUpin
+the main process dropbox.
+write -command must be a valid value, which means
+(see Fig. 1) that it shall be a string contained in the reg-
+ular expression REGEX(’[A-Z]{1,3}’), i.e., a string
+of one to three capital letters.
+The second difference concerns the updates to the
+state parameters in the recursive call of dropbox. We
+see that localVal fornode(0) is updated with the
+new ﬁle value that was used as input in the commu-
+nication on channel In0. Moreover, node(0) is not
+clean anymore.
+The transitions for uploading and downloading will
+be hidden, so they do not have communication with the
+SUT. They just deal with constraints and updates on
+the state. Downloading to node 0(Fig. 4) can occur
+if node 0is not fresh yetclean , as is modelled in
+the guard (precondition) between ’[[’ and’]] =>>’ ,
+before execution of action Down0 . The effect of the
+action is an update of the localVal ofNode(0) with
+serverVal, and re-established freshness.
+Uploading can occur if a node is not clean . The.....
+##
+[[ allTrue ( fresh ) /\ allTrue ( clean ) ]]
+=>>
+( In0 ! Stabilize
+>-> fileAndConflicts [ Out0 ]
+( Values ( serverVal , conflicts ))
+>>> dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( serverVal
+, conflicts
+, localVal
+, fresh
+, clean
+)
+)
+ENDDEF -- dropbox
+PROCDEF fileAndConflicts [ Out :: Rsp ]
+( values :: ValueList )
+EXIT ::=
+Out ?rsp [[ IF isFile ( rsp )
+THEN isValueInList (
+values , value ( rsp))
+ELSE False
+FI ]]
+>-> fileAndConflicts [Out ]
+( removeListValue ( values , value ( rsp )))
+##
+[[ isNoValues ( values ) ]]
+=>> Out ! Ack
+>-> EXIT
+ENDDEF -- fileAndConflicts
+Figure 5: Dropbox model - transition Stabilize and
+and process fileAndConflicts.
+state update is rather intricate, which has to do with
+conﬂicts that can occur when uploading, and with spe-
+cial cases if the upload is actually a delete (repre-
+sented by ﬁle value "$") and if the upload is equal to
+serverVal. The state update has been directly copied
+from (Hughes et al., 2016) where it is very well ex-
+plained, so for more details we refer there.
+We have discussed reading, writing, uploading, and
+downloading for node 0. Similar transitions are deﬁned
+for nodes 1and2. Of course, in the ﬁnal model, param-
+eterized transitions are deﬁned for node N, which can
+then be instantiated. Since this parameterization is not
+completely trivial because of passing of state variable
+values, we do not discuss it here.
+The last action is Stabilize, which can occur if all
+nodes are fresh andclean ; see Fig. 5. Since all nodes
+are assumed to have synchronized it does not matter
+which node we use; we choose node 0.Stabilize
+produces all ﬁle content values that are currently avail-
+able including the conﬂict ﬁles. These content val-
+ues are produced one by one, in arbitrary order, as re-
+sponses on channel Out0 with an acknowledge Ackaf-
+ter the last one. Process fileAndConflicts models
+that all these content values indeed occur once in the
+list of serverVal andconflicts. It removes from
+Values (which is of type ValueList) each content
+value value(rsp) that has been observed on Out0,
+until the list is empty, i.e., isNoValues(values)
+holds. Then the acknowledge Ackis sent, and the pro-
+cess EXITs, which is the trigger for the recursive call
+ofdropbox after fileAndConflicts.
+254
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 9 ---
+TYPEDEF Node ::=
+Node { node :: Int }
+ENDDEF
+TYPEDEF ValueList ::=
+NoValues
+| Values { hd :: Value ; tl :: ValueList }
+ENDDEF
+FUNCDEF lookup ( vals :: ValueList
+; n :: Node ) :: Value ::=
+IF isNoValues ( vals )
+THEN Value ("$")
+ELSE IF node (n) == 0
+THEN hd( vals )
+ELSE lookup (tl( vals ),Node ( node (n) -1))
+FI
+FI
+ENDDEF
+FUNCDEF update ( vals :: ValueList
+; n :: Node
+; v :: Value ) :: ValueList ::=
+IF isNoValues ( vals )
+THEN NoValues
+ELSE IF node (n) == 0
+THEN Values (v,tl( vals ))
+ELSE Values (hd( vals )
+,update (tl( vals ),
+Node ( node (n) -1) ,v))
+FI
+FI
+ENDDEF
+Figure 6: Dropbox model - data types and functions.
+The next step is to deﬁne the complete model in the
+MODELDEF; see Fig. 7. The MODELDEF speciﬁes which
+channels are inputs, which are outputs, and what the
+BEHAVIOUR of the model is using the previously de-
+ﬁned processes. In our case it is a call of the dropbox
+process with appropriate instantiation of the state vari-
+ables serverVal, conflicts, localVal, fresh , and
+clean . Moreover, this is the place where the channels
+Down0 ,:::,Up2 are hidden with the construct HIDE [
+channels ] IN:::NI. Actions that occur on hidden
+channels are internal actions (in process-algebra usu-
+ally denoted by ). They are not visible to the system
+environment, but they do lead to state changes of which
+the consequences can be visible, e.g., when a transition
+that is enabled before the occurrence of is no longer
+enabled in the state after the -occurrence. Visible ac-
+tions, that is inputs and outputs, are visible to the sys-
+tem environment. They lead to state changes both in
+the system and in its environment.
+The last deﬁnition CNECTDEF speciﬁes how the tester
+connects to the external world via sockets; see Fig. 8.
+In the Dropbox case, T ORXAKIS connects as socket
+client, CLIENTSOCK, to the SUT, that shall act as the
+socket server. The CNECTDEF binds the abstract model
+channel In0, which is an input of the model and of
+the SUT, thus an output of T ORXAKIS , to the socket
+on host txs0-pc, one of the virtual machines running
+Dropbox, and port number 7890 . Moreover, the en-
+coding of abstract messages of type Cmd on channel
+In0to strings on the socket is elaborated with function
+encodeCmd: a command is encoded as a string of one
+or more Linux commands, which can then be sent to
+and executed by the appropriate virtual machine. Anal-MODELDEF DropboxModel ::=
+CHAN IN In0 , In1 , In2
+CHAN OUT Out0 , Out1 , Out2
+BEHAVIOUR
+HIDE [Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2 ] IN
+dropBox [ In0 ,In1 ,In2 ,Out0 ,Out1 , Out2
+, Down0 ,Down1 ,Down2 ,Up0 ,Up1 , Up2
+]
+( Value ("$")
+, NoValues
+, Values ( Value ("$"),
+Values ( Value ("$"),
+Values ( Value ("$"),NoValues )))
+, Bools (True , Bools (True ,
+Bools (True , NoBools )))
+, Bools (True , Bools (True ,
+Bools (True , NoBools )))
+)
+NI
+ENDDEF
+Figure 7: Dropbox model - deﬁnition of the model that
+speciﬁes the behaviour over the observable channels.
+ogously, outputs from the SUT, i.e., inputs to T ORX-
+AKIS , are read from socket htxs0-pc; 7890iand de-
+coded to responses of type Rspon channel Out0 using
+function decodeRsp. Analogous bindings of abstract
+channels to real-world socksets are speciﬁed for In1,
+Out1 ,In2, and Out2 .
+5.4 Model-Based Testing
+Now that we have an SUT and a model, we can start
+generating tests and executing them. First, we start the
+SUT, that is, the virtual machines, start the Dropbox
+client on these machines, and start the adapter scripts.
+Then we can start T ORXAKIS and run a test; see Fig. 9.
+User inputs to T ORXAKIS are marked TXS << ; re-
+sponses from T ORXAKIS are marked TXS >> .
+We start the tester with tester DropboxModel
+DropboxSut, expressing that we wish to test
+with MODELDEF DropboxModel and CNECTDEF
+DropboxSut. Then we test for 100 test steps with
+test 100 , and indeed, after 100 test steps it stops
+with verdict PASS.
+TORXAKIS generates inputs to the SUT, such as on
+line 7: In0, [ Write(Value("SHK")) ] ) , indi-
+cating that on channel In0an input action Write with
+ﬁle value "SHK" has occurred. The input ﬁle value
+is generated by T ORXAKIS from the isValidValue
+constraint, using the SMT solver. This action is fol-
+lowed, on line 8, by an output from the SUTon channel
+Out0 , which is the old ﬁle value of Node 0, which is
+"$", representing the empty ﬁle. T ORXAKIS checks
+that this is indeed the correct response.
+Only visible input and output actions are shown in
+this trace. Hidden actions are not shown, but they do
+occur internally, as can be seen, for example, from
+line 24: the old ﬁle value on Node 2 was "X", but
+this value was only written to node 0 (line 11), so
+node 0 and node 2 must have synchronized the value
+"X" via internal UpandDown actions. Also just be-
+foreStabilize, lines 67–74, synchronization has ob-
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+255
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 10 ---
+CNECTDEF DropboxSut ::=
+CLIENTSOCK
+CHAN OUT In0 HOST "txs0 -pc" PORT 7890
+ENCODE In0 ? cmd -> ! encodeCmd ( cmd )
+CHAN IN Out0 HOST "txs0 -pc" PORT 7890
+DECODE Out0 ! decodeRsp (s) <- ?s
+CHAN OUT In1 HOST "txs1 -pc" PORT 7891
+ENCODE In1 ? cmd -> ! encodeCmd ( cmd )
+CHAN IN Out1 HOST "txs1 -pc" PORT 7891
+DECODE Out1 ! decodeRsp (s) <- ?s
+CHAN OUT In2 HOST "txs2 -pc" PORT 7892
+ENCODE In2 ? cmd -> ! encodeCmd ( cmd )
+CHAN IN Out2 HOST "txs2 -pc" PORT 7892
+DECODE Out2 ! decodeRsp (s) <- ?s
+ENDDEF
+FUNCDEF encodeCmd ( cmd :: Cmd ) :: String ::=
+IF isRead ( cmd)
+THEN " cat testfile "
+ELSE IF isWrite ( cmd )
+THEN " cat testfile ; " ++ " echo \"" ++
+value ( value ( cmd)) ++ "\" > testfile "
+ELSE IF isStabilize ( cmd )
+THEN " sleep 30 ; cat * ; echo "
+ELSE "" FI FI FI
+ENDDEF
+FUNCDEF decodeRsp ( s :: String ) :: Rsp ::=
+IF s == ""
+THEN Ack
+ELSE IF s == "$"
+THEN File ( Value ("$"))
+ELSE IF strinre (s, REGEX (’[A-Z ]{1 ,3} ’))
+THEN File ( Value (s))
+ELSE NAck (s) FI FI FI
+ENDDEF
+Figure 8: Dropbox model - connection to the external
+world.
+viously taken place, which can only happen using hid-
+denUpandDown actions. Due to the distributed nature
+of Dropbox and its nondeterminism it is not so easy
+to check the response of the Stabilize command on
+line 75. It is left to the reader to check that the out-
+puts on lines 76–80 are indeed all conﬂict-ﬁle contents
+together with the server ﬁle, and that T ORXAKIS cor-
+rectly assigned the verdict PASS .
+Many more test cases can be generated and executed
+on-the-ﬂy. T ORXAKIS generates random test cases, so
+each time another test case is generated, and appropri-
+ate responses are checked on-the-ﬂy. It should be noted
+that T ORXAKIS is not very fast. Constraint solving,
+nondeterminism, and dealing with internal (hidden) ac-
+tions (exploring all possible ’explanations’ in terms of
+(Hughes et al., 2016)) can make that computation of
+the next action takes a minute.
+5.5 Discussion and Comparison
+We showed that model-based testing of a ﬁle synchro-
+nizer that is distributed, concurrent, and nondetermin-
+istic, that combines state and data, and that has in-
+ternal state transitions that cannot be observed by the
+tester, is possible with T ORXAKIS , just as with Quviq
+QuickCheck. The model used for T ORXAKIS is a di-
+rect translation of the QuickCheck model.
+As opposed to the work with Quviq QuickCheck, we
+did not yet try to reproduce the detected ’surprises’,
+i.e., probably erroneous behaviours of Dropbox. More$ torxakis Dropbox . txs
+TXS >> TorXakis :: Model - Based Testing
+TXS >> txsserver starting : "PC -31093. tsn . tno .nl" : 60275
+TXS >> Solver "z3" initialized : Z3 [4.6.0]
+TXS >> TxsCore initialized
+TXS >> input files parsed :
+TXS >> [" Dropbox . txs "]
+TXS << tester DropboxModel DropboxSut
+TXS >> tester started
+TXS << test 100
+TXS >> .....1: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> .....2: OUT : Act { { ( Out1 , [ File ( Value ("$")) ] ) } }
+TXS >> .....3: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> .....4: OUT : Act { { ( Out2 , [ File ( Value ("$")) ] ) } }
+TXS >> .....5: IN: Act { { ( In1 , [ Write ( Value ("P")) ] ) } }
+TXS >> .....6: OUT : Act { { ( Out1 , [ File ( Value ("$")) ] ) } }
+TXS >> .....7: IN: Act { { ( In0 , [ Write ( Value (" SHK ")) ] ) } }
+TXS >> .....8: OUT : Act { { ( Out0 , [ File ( Value ("$")) ] ) } }
+TXS >> .....9: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> ....10: OUT : Act { { ( Out1 , [ File ( Value ("P")) ] ) } }
+TXS >> ....11: IN: Act { { ( In0 , [ Write ( Value ("X")) ] ) } }
+TXS >> ....12: OUT : Act { { ( Out0 , [ File ( Value (" SHK ")) ] ) } }
+TXS >> ....13: IN: Act { { ( In2 , [ Write ( Value ("A")) ] ) } }
+TXS >> ....14: OUT : Act { { ( Out2 , [ File ( Value ("$")) ] ) } }
+TXS >> ....15: IN: Act { { ( In2 , [ Write ( Value ("SP")) ] ) } }
+TXS >> ....16: OUT : Act { { ( Out2 , [ File ( Value ("A")) ] ) } }
+TXS >> ....17: IN: Act { { ( In1 , [ Write ( Value ("BH")) ] ) } }
+TXS >> ....18: OUT : Act { { ( Out1 , [ File ( Value ("P")) ] ) } }
+TXS >> ....19: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....20: OUT : Act { { ( Out2 , [ File ( Value ("SP")) ] ) } }
+TXS >> ....21: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....22: OUT : Act { { ( Out0 , [ File ( Value ("X")) ] ) } }
+TXS >> ....23: IN: Act { { ( In2 , [ Write ( Value (" PXH ")) ] ) } }
+TXS >> ....24: OUT : Act { { ( Out2 , [ File ( Value ("X")) ] ) } }
+TXS >> ....25: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....26: OUT : Act { { ( Out2 , [ File ( Value (" PXH ")) ] ) } }
+TXS >> ....27: IN: Act { { ( In0 , [ Write ( Value ("AX")) ] ) } }
+TXS >> ....28: OUT : Act { { ( Out0 , [ File ( Value (" PXH ")) ] ) } }
+TXS >> ....29: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....30: OUT : Act { { ( Out2 , [ File ( Value ("AX")) ] ) } }
+TXS >> ....31: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> ....32: OUT : Act { { ( Out1 , [ File ( Value ("AX")) ] ) } }
+TXS >> ....33: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....34: OUT : Act { { ( Out0 , [ File ( Value ("AX")) ] ) } }
+TXS >> ....35: IN: Act { { ( In2 , [ Write ( Value (" TPH ")) ] ) } }
+TXS >> ....36: OUT : Act { { ( Out2 , [ File ( Value ("AX")) ] ) } }
+TXS >> ....37: IN: Act { { ( In0 , [ Write ( Value ("X")) ] ) } }
+TXS >> ....38: OUT : Act { { ( Out0 , [ File ( Value ("AX")) ] ) } }
+TXS >> ....39: IN: Act { { ( In2 , [ Write ( Value (" CPH ")) ] ) } }
+TXS >> ....40: OUT : Act { { ( Out2 , [ File ( Value (" TPH ")) ] ) } }
+TXS >> ....41: IN: Act { { ( In1 , [ Write ( Value ("HX")) ] ) } }
+TXS >> ....42: OUT : Act { { ( Out1 , [ File ( Value (" CPH ")) ] ) } }
+TXS >> ....43: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> ....44: OUT : Act { { ( Out1 , [ File ( Value ("HX")) ] ) } }
+TXS >> ....45: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> ....46: OUT : Act { { ( Out1 , [ File ( Value ("HX")) ] ) } }
+TXS >> ....47: IN: Act { { ( In2 , [ Write ( Value ("Q")) ] ) } }
+TXS >> ....48: OUT : Act { { ( Out2 , [ File ( Value ("HX")) ] ) } }
+TXS >> ....49: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....50: OUT : Act { { ( Out0 , [ File ( Value ("Q")) ] ) } }
+TXS >> ....51: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....52: OUT : Act { { ( Out0 , [ File ( Value ("Q")) ] ) } }
+TXS >> ....53: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....54: OUT : Act { { ( Out2 , [ File ( Value ("Q")) ] ) } }
+TXS >> ....55: IN: Act { { ( In0 , [ Write ( Value ("K")) ] ) } }
+TXS >> ....56: OUT : Act { { ( Out0 , [ File ( Value ("Q")) ] ) } }
+TXS >> ....57: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....58: OUT : Act { { ( Out2 , [ File ( Value ("K")) ] ) } }
+TXS >> ....59: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....60: OUT : Act { { ( Out0 , [ File ( Value ("K")) ] ) } }
+TXS >> ....61: IN: Act { { ( In2 , [ Write ( Value (" ABL ")) ] ) } }
+TXS >> ....62: OUT : Act { { ( Out2 , [ File ( Value ("K")) ] ) } }
+TXS >> ....63: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....64: OUT : Act { { ( Out2 , [ File ( Value (" ABL ")) ] ) } }
+TXS >> ....65: IN: Act { { ( In2 , [ Write ( Value ("P")) ] ) } }
+TXS >> ....66: OUT : Act { { ( Out2 , [ File ( Value (" ABL ")) ] ) } }
+TXS >> ....67: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....68: OUT : Act { { ( Out0 , [ File ( Value ("P")) ] ) } }
+TXS >> ....69: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....70: OUT : Act { { ( Out2 , [ File ( Value ("P")) ] ) } }
+TXS >> ....71: IN: Act { { ( In1 , [ Read ] ) } }
+TXS >> ....72: OUT : Act { { ( Out1 , [ File ( Value ("P")) ] ) } }
+TXS >> ....73: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....74: OUT : Act { { ( Out0 , [ File ( Value ("P")) ] ) } }
+TXS >> ....75: IN: Act { { ( In0 , [ Stabilize ] ) } }
+TXS >> ....76: OUT : Act { { ( Out0 , [ File ( Value ("P")) ] ) } }
+TXS >> ....77: OUT : Act { { ( Out0 , [ File ( Value ("X")) ] ) } }
+TXS >> ....78: OUT : Act { { ( Out0 , [ File ( Value ("BH")) ] ) } }
+TXS >> ....79: OUT : Act { { ( Out0 , [ File ( Value ("SP")) ] ) } }
+TXS >> ....80: OUT : Act { { ( Out0 , [ Ack ] ) } }
+TXS >> ....81: IN: Act { { ( In1 , [ Write ( Value ("AB")) ] ) } }
+TXS >> ....82: OUT : Act { { ( Out1 , [ File ( Value ("P")) ] ) } }
+TXS >> ....83: IN: Act { { ( In1 , [ Write ( Value ("X")) ] ) } }
+TXS >> ....84: OUT : Act { { ( Out1 , [ File ( Value ("AB")) ] ) } }
+TXS >> ....85: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ....86: OUT : Act { { ( Out0 , [ File ( Value ("P")) ] ) } }
+TXS >> ....87: IN: Act { { ( In2 , [ Write ( Value (" PNB ")) ] ) } }
+TXS >> ....88: OUT : Act { { ( Out2 , [ File ( Value ("P")) ] ) } }
+TXS >> ....89: IN: Act { { ( In1 , [ Write ( Value ("D")) ] ) } }
+TXS >> ....90: OUT : Act { { ( Out1 , [ File ( Value ("X")) ] ) } }
+TXS >> ....91: IN: Act { { ( In1 , [ Write ( Value ("L")) ] ) } }
+TXS >> ....92: OUT : Act { { ( Out1 , [ File ( Value ("D")) ] ) } }
+TXS >> ....93: IN: Act { { ( In2 , [ Read ] ) } }
+TXS >> ....94: OUT : Act { { ( Out2 , [ File ( Value (" PNB ")) ] ) } }
+TXS >> ....95: IN: Act { { ( In1 , [ Write ( Value ("KK")) ] ) } }
+TXS >> ....96: OUT : Act { { ( Out1 , [ File ( Value (" PNB ")) ] ) } }
+TXS >> ....97: IN: Act { { ( In2 , [ Write ( Value ("P")) ] ) } }
+TXS >> ....98: OUT : Act { { ( Out2 , [ File ( Value (" PNB ")) ] ) } }
+TXS >> ....99: IN: Act { { ( In0 , [ Read ] ) } }
+TXS >> ...100: OUT : Act { { ( Out0 , [ File ( Value ("KK")) ] ) } }
+TXS >> PASS
+TXS <<
+Figure 9: TORXAKIS test run of Dropbox.
+256
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 11 ---
+testing and analysis is needed, probably with steering
+the test generation into speciﬁc corners of behaviour.
+Moreover, some of these ’surprises’ require explicit
+deletion of ﬁles, which we currently do not do. For
+steering, T ORXAKIS has a feature called test purposes,
+and future work will include using test purposes to re-
+produce particular behaviours. But it might be that
+these Dropbox ’surprises’ have been repaired in the
+mean time, as was announced in (Hughes et al., 2016).
+A difference between the Quviq QuickCheck ap-
+proach and T ORXAKIS is the treatment of hidden ac-
+tions. Whereas Quviq QuickCheck needs explicit rea-
+soning about possible ’explanations’ on top of the state
+machine model using a speciﬁcally developed tech-
+nique, the process-algebraic language of T ORXAKIS
+hasHIDE as an abstraction operator built into the lan-
+guage, which allows to turn any action into an internal
+action. Together with the ioco-conformance relation,
+which takes such internal actions into consideration,
+it makes the construction of ’explanations’ completely
+automatic and an integral part of test generation and
+observation analysis.
+TORXAKIS has its own modelling language based
+on process algebra and algebraic data types and with
+symbolic transition system semantics. This allows to
+precisely deﬁne what a conforming SUT is using the
+ioco-conformance relation, in a formal testing frame-
+work which enables to deﬁne soundness and exhaus-
+tiveness of generated test cases. Quviq QuickCheck is
+embedded in the Erlang programming language, that
+is, speciﬁcations are just Erlang programs that call li-
+braries supplied by QuickCheck and the generated tests
+invoke the SUT directly via Erlang function calls. A
+formal notion of ’conformance’ of a SUT is missing.
+A powerful feature of Quviq QuickCheck for analy-
+sis and diagnosis is shrinking. It automatically reduces
+the length of a test after failure detection, which eases
+analysis. Currently, T ORXAKIS has no such feature.
+Several extensions of the presented work are possi-
+ble. One of them is applying the same model to test
+other ﬁle synchronizers. Another is adding additional
+Dropbox behaviour to the model, such as working with
+multiple, named ﬁles and folders. This would com-
+plicate the model, but not necessarily fundamentally
+change the model: instead of keeping a single ﬁle value
+we would have to keep a (nested) map of ﬁle names to
+ﬁle values, and read and write would be parameterized
+with ﬁle or folder names.
+Another, more fundamental question concerns the
+quality of the generated test cases. How good are the
+test suites in detecting bugs, what is their coverage, and
+to what extent can we be conﬁdent that an SUT that
+passes the tests is indeed correct? Can we compare dif-
+ferent (model-based) test generation strategies, e.g., the
+one of Quviq QuickCheck with the one of T ORXAKIS ,
+and assign a measure of quality or coverage to the gen-
+erated test suites, and thus, indirectly, a measure to the
+quality of the tested SUT?6 Concluding Remarks
+We discussed model-based testing, its principles, ben-
+eﬁts, and some theory. We showed how the model-
+based testing tool T ORXAKIS can be used to test a
+ﬁle synchronization service. T ORXAKIS implements
+ioco-test generation for symbolic transition systems,
+and it supports state-based control ﬂow together with
+complex data structures, on-the-ﬂy testing, partial and
+under-speciﬁcation, non-determinism, abstraction, ran-
+dom test selection, concurrency, and model composi-
+tionality. T ORXAKIS is an experimental MBT tool,
+used in applied research, education, and case studies
+in the (embedded systems) industry. T ORXAKIS cur-
+rently misses good usability, scalability does not al-
+ways match the requirements of complex systems, and
+test selection is still only random, but more sophisti-
+cated selection strategies are being investigated (Bos,
+Janssen, & Moerman, 2019; Bos & Tretmans, 2019).
+New software testing methodologies are needed if
+testing shall keep up with software development and
+meet the challenges imposed on it, otherwise we may
+not be able to test future generations of software sys-
+tems. Model-based testing may be one of them.
+References
+Arts, T., Hughes, J., Johansson, J., & Wiger, U.
+(2006). Testing Telecoms Software with Quviq
+Quickcheck. In ACM SIGPLAN Workshop on
+Erlang (pp. 2–10). ACM.
+Axini. (2019). http://www.axini.com.
+Barrett, C., Conway, C., Deters, M., Hadarean, L.,
+Jovanovi ´c, D., King, T., . . . Tinelli, C. (2011).
+CVC4. In CAV (pp. 171–177). LNCS 6806.
+Springer.
+Belinfante, A. (2010). JTorX: A Tool for On-Line
+Model-Driven Test Derivation and Execution . In
+J. Esparza et al. (Eds.), TACAS (pp. 266–270).
+LNCS 6015. Springer.
+Belinfante, A., Feenstra, J., Vries, R. d., Tretmans, J.,
+Goga, N., Feijs, L., . . . Heerink, L. (1999). For-
+mal Test Automation: A Simple Experiment. In
+G. Csopaki et al. (Eds.), Testing of Communicat-
+ing Systems (pp. 179–196). Kluwer.
+Bolognesi, T., & Brinksma, E. (1987). Introduction to
+the ISO Speciﬁcation Language LOTOS. Com-
+puter Networks and ISDN Systems, 14, 25–59.
+Bos, P. v. d., Janssen, R., & Moerman, J. (2019). n-
+Complete Test Suites for IOCO. Software Qual-
+ity Journal ,27(2), 563–588.
+Bos, P. v. d., & Tretmans, J. (2019). Coverage-
+Based Testing with Symbolic Transition Sys-
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________
+257
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 
+
+--- Page 12 ---
+tems. In D. Beyer et al. (Eds.), TAP. LNCS
+11823. Springer.
+Brinksma, E. (1988). On the Design of Extended LO-
+TOS (Unpublished doctoral dissertation). Uni-
+versity of Twente, Enschede (NL).
+Brinksma, E., Alderden, R., Langerak, R., Lagemaat,
+J. v. d., & Tretmans, J. (1990). A Formal Ap-
+proach to Conformance Testing. In J. de Meer et
+al. (Eds.), Protocol Test Systems (pp. 349–363).
+North-Holland.
+C., B., Fontaine, P., & Tinelli, C. (2015). The SMT-
+LIB Standard: Version 2.5 (Tech. Rep.). Dept. of
+Comp. Sc., Uni. of Iowa. www.SMT-LIB.org.
+Chow, T. (1978). Testing Software Design Modeled
+by Finite-State Machines. IEEE Trans. on Soft.
+Eng., 4(3), 178–187.
+Claessen, K., & Hughes, J. (2000). QuickCheck: A
+Lightweight Tool for Random Testing of Haskell
+Programs. In ACM SIGPLAN Functional Pro-
+gramming (pp. 268–279). ACM.
+De Moura, L., & Bjørner, N. (2008). Z3: An efﬁcient
+SMT solver. In C. Ramakrishnan et al. (Eds.),
+TACAS (pp. 337–340). LNCS 4963. Springer.
+De Moura, L., & Bjørner, N. (2011). Satisﬁabil-
+ity Modulo Theories: Introduction and Applica-
+tions. Comm. ACM ,54(9), 69–77.
+Dijkstra, E. (1969). Notes On Structured Pro-
+gramming – EWD249 (Report No. 70-WSK-03).
+Eindhoven (NL): T.H. Eindhoven.
+Dropbox. (2019). https://www.dropbox.com.
+Frantzen, L., Tretmans, J., & Willemse, T. (2005).
+Test Generation Based on Symbolic Speciﬁca-
+tions. In J. Grabowski et al. (Eds.), FATES (pp.
+1–15). LNCS 3395. Springer.
+Frantzen, L., Tretmans, J., & Willemse, T. (2006). A
+Symbolic Framework for Model-Based Testing.
+In K. Havelund et al. (Eds.), FATES/RV (pp. 40–
+54). LNCS 4262. Springer.
+Gaudel, M.-C. (1995). Testing can be Formal, too. In
+P. Mosses et al. (Eds.), TAPSOFT (pp. 82–96).
+LNCS 915. Springer.
+Groote, J., & Mousavi, M. (2014). Modeling and
+Analysis of Communicating Systems. MIT Press.
+Hartman, A., & Nagin, K. (2004). The AGEDIS Tools
+for Model Based Testing. In ISSTA (pp. 129–
+132). ACM.
+Haskell. (2019). https://www.haskell.org.
+Hessel, A., Larsen, K., Mikucionis, M., Nielsen, B.,
+Pettersson, P., & Skou, A. (2008). Testing Real-
+Time Systems Using U PPAAL . In R. Hierons etal. (Eds.), Formal Methods and Testing (pp. 77–
+117). LNCS 4949. Springer.
+Hoare, C. (1985). Communicating Sequential Pro-
+cesses. Prentice-Hall.
+Hughes, J., Pierce, B., Arts, T., & Norell, U. (2016).
+Mysteries of DropBox: Property-Based Testing
+of a Distributed Synchronization Service. In
+IEEE ICST (pp. 135–145). IEEE.
+ISO. (1989). Inf. Proc. Syst., OSI, LOTOS – A For-
+mal Description Technique Based on the Tempo-
+ral Ordering of Observational Behaviour. Int.
+Standard IS-8807.
+Jard, C., & Jéron, T. (2005). TGV: Theory, Princi-
+ples and Algorithms: A Tool for the Automatic
+Synthesis of Conformance Test Cases for Non-
+Deterministic Reactive Systems. Software Tools
+for Tech. Trans., 7(4), 297–315.
+Lee, D., & Yannakakis, M. (1996). Principles and
+Methods for Testing Finite State Machines – A
+Survey. Procs. of IEEE ,84(8), 1090–1123.
+Marsso, L., Mateescu, R., & Serwe, W. (2018).
+TESTOR: A Modular Tool for On-the-Fly Con-
+formance Test Case Generation. In D. Beyer et
+al. (Eds.), TACAS (pp. 211–228). LNCS 10806.
+Springer.
+Milner, R. (1989). Communication and Concurrency.
+Prentice-Hall.
+Petrenko, A. (2001). Fault Model-Driven Test Deriva-
+tion from Finite State Models: Annotated Bibli-
+ography. In F. Cassez et al. (Eds.), MOVEP (pp.
+196–205). LNCS 2067. Springer.
+Selenium. (2019). http://www.seleniumhq.org.
+Sikuli. (2019). http://www.sikuli.org .
+TorXakis. (2019). https://github.com/
+TorXakis/TorXakis.
+TorXakis Examples. (2019). https://github.com/
+TorXakis/TorXakis/tree/develop/
+examps.
+Tretmans, J. (1996). Test Generation with Inputs,
+Outputs and Repetitive Quiescence. Software—
+Concepts and Tools, 17(3), 103–120.
+Tretmans, J. (2008). Model Based Testing with La-
+belled Transition Systems. In R. Hierons et al.
+(Eds.), Formal Methods and Testing (pp. 1–38).
+LNCS 4949. Springer.
+Tretmans, J. (2017). On the Existence of Practi-
+cal Testers. In J.-P. Katoen et al. (Eds.), Mod-
+elEd, TestEd, TrustEd – Essays Dedicated to Ed
+Brinksma on the Occasion of His 60th Birthday
+(pp. 87–106). LNCS 10500. Springer.
+258
+_____________________________________________________________________________________________________
+Proceedings of the Central European Conference on Information and Intelligent Systems
+_____________________________________________________________________________________________________ 
+                            
+ 
+30th CECIIS, October 2-4, 2019, Varaždin, Croatia
+ 

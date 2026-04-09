@@ -1,0 +1,2232 @@
+--- Page 1 ---
+Adding Nesting Structure to Words
+RAJEEV ALUR
+University of Pennsylvania
+and
+P. Madhusudan
+University of Illinois at Urbana-Champaign
+We propose the model of nested words for representation of data with both a linear ordering and
+a hierarchically nested matching of items. Examples of data with such dual linear-hierarchical
+structure include executions of structured programs, annotated linguistic data, and HTML/XML
+documents. Nested words generalize both words and ordered trees, and allow both word and
+tree operations. We dene nested word automata |nite-state acceptors for nested words, and
+show that the resulting class of regular languages of nested words has all the appealing the-
+oretical properties that the classical regular word languages enjoys: deterministic nested word
+automata are as expressive as their nondeterministic counterparts; the class is closed under union,
+intersection, complementation, concatenation, Kleene-*, prexes, and language homomorphisms;
+membership, emptiness, language inclusion, and language equivalence are all decidable; and de-
+nability in monadic second order logic corresponds exactly to nite-state recognizability. We
+also consider regular languages of innite nested words and show that the closure properties,
+MSO-characterization, and decidability of decision problems carry over.
+The linear encodings of nested words give the class of visibly pushdown languages of words, and
+this class lies between balanced languages and deterministic context-free languages. We argue that
+for algorithmic verication of structured programs, instead of viewing the program as a context-
+free language over words, one should view it as a regular language of nested words (or equivalently,
+a visibly pushdown language), and this would allow model checking of many properties (such as
+stack inspection, pre-post conditions) that are not expressible in existing specication logics.
+We also study the relationship between ordered trees and nested words, and the corresponding
+automata: while the analysis complexity of nested word automata is the same as that of classical
+tree automata, they combine both bottom-up and top-down traversals, and enjoy expressiveness
+and succinctness benets over tree automata.
+Categories and Subject Descriptors: D.2.4 [ Software Engineering ]: Software/Program verica-
+tion| Model checking ; F.4.3 [ Mathematical logic ]: Formal languages| Context-free languages
+General Terms: Theory, Verication
+Additional Key Words and Phrases: Pushdown automata, Software model checking, Tree au-
+tomata, XML processing
+Rajeev Alur, Department of Computer and Information Science, University of Pennsylvania, 3330
+Walnut Street, Philadelphia, PA 19104. Email: alur@cis.upenn.edu
+Madhusudan Parthasarathy, Department of Computer Science, University of Illinois at Urbana-
+Champaign, 201 N. Goodwin Avenue, Urbana, IL 61801. Email: madhu@cs.uiuc.edu
+This paper unies and extends results that have appeared in conference papers [Alur and Mad-
+husudan 2004], [Alur and Madhusudan 2006], and [Alur 2007].
+This version is a revised version of the paper that appeared in JACM: it xes a bug in the
+deteminization construction in Theorem 3.3.
+Permission to make digital/hard copy of all or part of this material without fee for personal
+or classroom use provided that the copies are not made or distributed for prot or commercial
+advantage, the ACM copyright/server notice, the title of the publication, and its date appear, and
+notice is given that copying is by permission of the ACM, Inc. To copy otherwise, to republish,
+to post on servers, or to redistribute to lists requires prior specic permission and/or a fee.
+c2009 ACM 0004-5411/2009/0100-0001 $5.00
+Journal of the ACM, Vol. 56, No. 3, May 2009, Pages 1{0 ??.
+
+--- Page 2 ---
+2 R. Alur and P. Madhusudan
+1. INTRODUCTION
+Linearly structured data is usually modeled as words, and queried using word au-
+tomata and related specication languages such as regular expressions. Hierarchi-
+cally structured data is naturally modeled as (unordered) trees, and queried using
+tree automata. In many applications including executions of structured programs,
+annotated linguistic data, and primary/secondary bonds in genomic sequences, the
+data has both a natural linear sequencing of positions and a hierarchically nested
+matching of positions. For example, in natural language processing, the sentence
+is a linear sequence of words, and parsing into syntactic categories imparts the hi-
+erarchical structure. Sometimes, even though the only logical structure on data is
+hierarchical, linear sequencing is added either for storage or for stream processing.
+For example, in SAX representation of XML data, the document is a linear se-
+quence of text characters, along with a hierarchically nested matching of open-tags
+with closing tags.
+In this paper, we propose the model of nested words for representing and querying
+data with dual linear-hierarchical structure. A nested word consists of a sequence
+of linearly ordered positions, augmented with nesting edges connecting calls to
+returns (or open-tags to close-tags). The edges do not cross creating a properly
+nested hierarchical structure, and we allow some of the edges to be pending. This
+nesting structure can be uniquely represented by a sequence specifying the types
+of positions (calls, returns, and internals). Words are nested words where all po-
+sitions are internals. Ordered trees can be interpreted as nested words using the
+following traversal: to process an a-labeled node, rst print an a-labeled call, pro-
+cess all the children in order, and print an a-labeled return. Note that this is a
+combination of top-down and bottom-up traversals, and each node is processed
+twice. Binary trees, ranked trees, unranked trees, hedges, and documents that do
+not parse correctly, all can be represented with equal ease. Word operations such
+as prexes, suxes, concatenation, reversal, as well as tree operations referring to
+the hierarchical structure, can be dened naturally on nested words.
+We dene and study nite-state automata as acceptors of nested words. A nested
+word automaton (NWA) is similar to a classical nite-state word automaton, and
+reads the input from left to right according to the linear sequence. At a call, it
+can propagate states along both linear and nesting outgoing edges, and at a return,
+the new state is determined based on states labeling both the linear and nesting
+incoming edges. The resulting class of regular languages of nested words has all the
+appealing theoretical properties that the regular languages of words and trees enjoy.
+In particular, we show that deterministic nested word automata are as expressive
+as their nondeterministic counterparts. Given a nondeterministic automaton A
+withsstates, the determinization involves subsets of pairs of states (as opposed to
+subsets of states for word automata), leading to a deterministic automaton with
+2s2states, and we show this bound to be tight. The class is closed under all
+Boolean operations (union, intersection, and complement), and a variety of word
+operations such as concatenation, Kleene- , and prex-closure. The class is also
+closed under nesting-respecting language homomorphisms, which can model tree
+operations. Decision problems such as membership, emptiness, language inclusion,
+and language equivalence are all decidable. We also establish that the notion of
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 3 ---
+Adding nesting structure to words  3
+regularity coincides with the denability in the monadic second order logic (MSO)
+of nested words (MSO of nested words has unary predicates over positions, rst
+and second order quantiers, linear successor relation, and the nesting relation).
+The motivating application area for our results has been software verication.
+Pushdown automata naturally model the control ow of sequential computation in
+typical programming languages with nested, and potentially recursive, invocations
+of program modules such as procedures and method calls. Consequently, a vari-
+ety of program analysis, compiler optimization, and model checking questions can
+be formulated as decision problems for pushdown automata. For instance, in con-
+temporary software model checking tools, to verify whether a program P(written
+in C, for instance) satises a regular correctness requirement '(written in linear
+temporal logic LTL, for instance), the verier rst abstracts the program into a
+pushdown model Pawith nite-state control, compiles the negation of the speci-
+cation into a nite-state automaton A:'that accepts all computations that violate
+'and algorithmically checks that the intersection of the languages of PaandA:'
+is empty. The problem of checking regular requirements of pushdown models has
+been extensively studied in recent years leading to ecient implementations and
+applications to program analysis [Reps et al. 1995; Boujjani et al. 1997; Ball and
+Rajamani 2000; Alur et al. 2005; Henzinger et al. 2002; Esparza et al. 2003; Chen
+and Wagner 2002]. While many analysis problems such as identifying dead code and
+accesses to uninitialized variables can be captured as regular requirements, many
+others require inspection of the stack or matching of calls and returns, and are
+context-free. Even though the general problem of checking context-free properties
+of pushdown automata is undecidable, algorithmic solutions have been proposed
+for checking many dierent kinds of non-regular properties. For example, access
+control requirements such as \a module Ashould be invoked only if the module
+Bbelongs to the call-stack," and bounds on stack size such as \if the number of
+interrupt-handlers in the call-stack currently is less than 5, then a property pholds"
+require inspection of the stack, and decision procedures for certain classes of stack
+properties already exist [Jensen et al. 1999; Chen and Wagner 2002; Esparza et al.
+2003; Chatterjee et al. 2004]. A separate class of non-regular, but decidable, prop-
+erties includes the temporal logic Caret that allows matching of calls and returns
+and can express the classical correctness requirements of program modules with
+pre and post conditions, such as \if pholds when a module is invoked, the module
+must return, and qholds upon return" [Alur et al. 2004]. This suggests that the an-
+swer to the question \which class of properties are algorithmically checkable against
+pushdown models?" should be more general than \regular word languages." Our
+results suggest that the answer lies in viewing the program as a generator of nested
+words. The key feature of checkable requirements, such as stack inspection and
+matching calls and returns, is that the stacks in the model and the property are
+correlated: while the stacks are not identical, the two synchronize on when to push
+and when to pop, and are always of the same depth. This can be best captured by
+modeling the execution of a program Pas a nested word with nesting edges from
+calls to returns. Specication of the program is given as a nested word automaton
+A(or written as a formula 'in one of the new temporal logics for nested words),
+and verication corresponds to checking whether every nested word generated by
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 4 ---
+4 R. Alur and P. Madhusudan
+Pis accepted by A. IfPis abstracted into a model Pawith only boolean variables,
+then it can be interpreted as an NWA, and verication can be solved using decision
+procedures for NWAs. Nested-word automata can express a variety of require-
+ments such as stack-inspection properties, pre-post conditions, and interprocedural
+data-ow properties. More broadly, modeling structured programs and program
+specications as languages of nested words generalizes the linear-time semantics
+that allows integration of Pnueli-style temporal reasoning [Pnueli 1977] and Hoare-
+style structured reasoning [Hoare 1969]. We believe that the nested-word view will
+provide a unifying basis for the next generation of specication logics for program
+analysis, software verication, and runtime monitoring.
+Given a language Lof nested words over , the linear encoding of nested words
+gives a language ^Lover the tagged alphabet consisting of symbols tagged with the
+type of the position. If Lis regular language of nested words, then ^Lis context-free.
+In fact, the pushdown automata accepting ^Lhave a special structure: while reading
+a call, the automaton must push one symbol, while reading a return symbol, it must
+pop one symbol (if the stack is non-empty), and while reading an internal symbol,
+it can only update its control state. We call such automata visibly pushdown au-
+tomata and the class of word languages they accept visibly pushdown languages
+(VPL). Since our automata can be determinized, VPLs correspond to a subclass
+of deterministic context-free languages (DCFL). We give a grammar-based charac-
+terization of VPLs, which helps in understanding of VPLs as a generalization of
+parenthesis languages, bracketed languages, and balanced languages [McNaughton
+1967; Ginsburg and Harrison 1967; Berstel and Boasson 2002]. Note that VPLs
+have better closure properties than CFLs, DCFLs, or parenthesis languages: CFLs
+are not closed under intersection and complement, DCFLs are not closed under
+union, intersection, and concatenation, and balanced languages are not closed un-
+der complement and prex-closure.
+Data with dual linear-hierarchical structure is traditionally modeled using binary,
+and more generally, using ordered unranked, trees, and queried using tree automata
+(see [Neven 2002; Libkin 2005; Schwentick 2007] for recent surveys on applications
+of unranked trees and tree automata to XML processing). In ordered trees, nodes
+with the same parent are linearly ordered, and the classical tree traversals such as
+inx (or depth-rst left-to-right) can be used to dene an implicit ordering of all
+nodes. It turns out that, hedges, where a hedge is a sequence of ordered trees,
+are a special class of nested words, namely, the ones corresponding to Dyck words,
+and regular hedge languages correspond to balanced languages. For document
+processing, nested words do have many advantages over ordered trees as trees lack
+an explicit ordering of all nodes. Tree-based representation implicitly assumes that
+the input linear data can be parsed into a tree, and thus, one cannot represent
+and process data that may not parse correctly. Word operations such as prexes,
+suxes, and concatenation, while natural for document processing, do not have
+analogous tree operations. Second, tree automata can naturally express constraints
+on the sequence of labels along a hierarchical path, and also along the left-to-right
+siblings, but they have diculty to capture constraints that refer to the global linear
+order. For example, the query that patterns p1;:::pkappear in the document in
+that order (that is, the regular expression p1:::pkover the linear order)
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 5 ---
+Adding nesting structure to words  5
+compiles into a deterministic word automaton (and hence deterministic NWA) of
+linear size, but standard deterministic bottom-up tree automaton for this query
+must be of size exponential in k. In fact, NWAs can be viewed as a kind of tree
+automata such that both bottom-up tree automata and top-down tree automata
+are special cases.
+Analysis of liveness requirements such as \every write operation must be fol-
+lowed by a read operation" is formulated using automata over innite words, and
+the theory of !-regular languages is well developed with many of the counterparts
+of the results for regular languages (c.f. [Thomas 1990; Vardi and Wolper 1994]).
+Consequently, we also dene nested !-words and consider nested word automata
+augmented with acceptance conditions such as B uchi and Muller , that accept lan-
+guages of nested !-words. We establish that the resulting class of regular languages
+of nested!-words is closed under operations such as union, intersection, comple-
+mentation, and homomorphisms. Decision problems for these automata have the
+same complexity as the corresponding problems for NWAs. As in the nite case, the
+class can be characterized by the monadic second order logic. The signicant dier-
+ence is that deterministic automata with Muller acceptance condition on states that
+appear innitely often along the linear run do not capture all regular properties: the
+language \there are only nitely many pending calls" can be easily characterized
+using a nondeterministic B uchi NWA, and we prove that no deterministic Muller
+automaton accepts this language. However, we show that nondeterministic B uchi
+NWAs can be complemented and hence problems such as checking for inclusion are
+still decidable.
+Outline
+Section 2 denes nested words and their word encodings, and gives dierent appli-
+cation domains where nested words can be useful. Section 3 denes nested word
+automata and the notion of regularity. We consider some variations of the deni-
+tion of the automata, including the nondeterministic automata, show how NWAs
+can be useful in program analysis, and establish closure properties. Section 4 gives
+logic based characterization of regularity. In Section 5, we dene visibly pushdown
+languages as the class of word languages equivalent to regular languages of nested
+words. We also give grammar based characterization, and study relationship to
+parenthesis languages and balanced grammars. Section 6 studies decision prob-
+lems for NWAs. Section 7 presents encoding of ordered trees and hedges as nested
+words, and studies the relationship between regular tree languages, regular nested-
+word languages, and balanced languages. To understand the relationship between
+tree automata and NWAs, we also introduce bottom-up and top-down restrictions
+of NWAs. Section 8 considers the extension of nested words and automata over
+nested words to the case of innite words. Finally, we discuss related work and
+conclusions.
+2. LINEAR HIERARCHICAL MODELS
+2.1 Nested Words
+Given a linear sequence, we add hierarchical structure using edges that are well
+nested (that is, they do not cross). We will use edges starting at 1 and edges
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 6 ---
+6 R. Alur and P. Madhusudan
+ending at +1to model \pending" edges. Assume that 1< i < +1for every
+integeri.
+Amatching relation ;of length`, for`0, is a subset off1;1;2;:::`g
+f1;2;:::`; +1gsuch that
+(1) Nesting edges go only forward: if i;jtheni<j ;
+(2) No two nesting edges share a position: for 1 i`,jfjji;jgj 1 and
+jfjjj;igj 1;
+(3) Nesting edges do not cross: if i;jandi0;j0then it is not the case that
+i<i0j <j0.
+Wheni;jholds, for 1i`, the position iis called a call position . For
+a call position i, ifi;+1, theniis called a pending call , otherwise iis called
+amatched call , and the unique position jsuch thati;jis called its return-
+successor . Similarly, when i;jholds, for 1j`, the position jis called a
+return position . For a return position j, if1;j, thenjis called a pending
+return , otherwise jis called a matched return , and the unique position isuch that
+i;jis called its call-predecessor . Our denition requires that a position cannot
+be both a call and a return. A position 1 i`that is neither a call nor a return
+is called internal .
+A matching relation ;of length`can be viewed as a a directed acyclic graph
+over`vertices corresponding to positions. For 1 i<` , there is a linear edge from
+itoi+ 1. The initial position has an incoming linear edge with no source, and
+the last position has an outgoing linear edge with no destination. For matched call
+positionsi, there is a nesting edge (sometimes also called a summary edge ) fromi
+to its return-successor. For pending calls i, there is a nesting edge from iwith no
+destination, and for pending returns j, there is a nesting edge to jwith no source.
+We call such graphs corresponding to matching relations as nested sequences . Note
+that a call has indegree 1 and outdegree 2, a return has indegree 2 and outdegree
+1, and an internal has indegree 1 and outdegree 1.
+Figure 1 shows two nested sequences. Nesting edges are drawn using dotted
+lines. For the left sequence, the matching relation is f(2;8);(4;7)g, and for the
+right sequence, it is f(1;1);(1;4);
+(2;3);(5;+1);(7;+1)g. Note that our denition allows a nesting edge from a
+positionito its linear successor, and in that case there will be two edges from
+itoi+ 1; this is the case for positions 2 and 3 of the second sequence. The
+second sequence has two pending calls and two pending returns. Also note that all
+pending return positions in a nested sequence appear before any of the pending call
+positions.
+Anested word nover an alphabet  is a pair ( a1:::a`;;), for`0, such that
+ai, for each 1i`, is a symbol in , and ;is a matching relation of length
+`. In other words, a nested word is a nested sequence whose positions are labeled
+with symbols in . Let us denote the set of all nested words over  as NW(). A
+language of nested words over  is a subset of NW().
+A nested word nwith matching relation ;is said to be well-matched if there
+is no position isuch that1;iori;+1. Thus, in a well-matched nested
+word, every call has a return-successor and every return has a call-predecessor. We
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 7 ---
+Adding nesting structure to words  7
+12
+4
+79 8 4 5
+7
+3 1 2 3 6
+5 6 8
+Fig. 1. Sample nested sequences
+will use WNW ()NW() to denote the set of all well-matched nested words
+over . A nested word nof length`is said to be rooted if 1;`holds. Observe
+that a rooted word must be well-matched. In Figure 1, only the left sequence is
+well-matched, and neither of the sequences is rooted.
+While the length of a nested word captures its linear complexity, its (nesting)
+depth captures its hierarchical complexity. For i;j, we say that the call position
+iis pending at every position ksuch thati<k<j . The depth of a position iis the
+number of calls that are pending at i. Note that the depth of the rst position 0, it
+increases by 1 following a call, and decreases by 1 following a matched return. The
+depth of a nested word is the maximum depth of any of its positions. In Figure 1,
+both sequences have depth 2.
+2.2 Word Encoding
+Nested words over  can be encoded by words in a natural way by using the tags
+handito denote calls and returns, respectively. For each symbol ain , we will
+use a new symbol hato denote a call position labeled with a, and a new symbol ai
+to denote a return position labeled with a. We useh to denote the set of symbols
+fhaja2g, and ito denote the set of symbols faija2g. Then, given an
+alphabet , dene the tagged alphabet ^ to be the set  [h[i. Formally,
+we dene the mapping nww:NW()7!^as follows: given a nested word
+n= (a1;:::a`;;) of length `over , ^n=nww(n) is a word b1;:::b`over ^ such
+that for each 1i`,bi=aiifiis an internal, bi=haiifiis a call, and bi=aii
+ifiis a return.
+For Figure 1, assuming all positions are labeled with the same symbol a, the
+tagged words corresponding to the two nested sequences are ahaahaaaaiaia, and
+aihaaiaihaahaa.
+Since we allow calls and returns to be pending, every word over the tagged
+alphabet ^ corresponds to a nested word. This correspondence is captured by the
+following lemma:
+Lemma 2.1. The transformation nw w:NW()7!^is a bijection.
+The inverse of nwwis a transformation function that maps words over ^ to
+nested words over , and will be denoted wnw:^7!NW(). This one-to-one
+correspondence shows that:
+Proposition 2.2 (Counting nested sequences). There are exactly 3`dis-
+tinct matching relations of length `, and the number of nested words of length `over
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 8 ---
+8 R. Alur and P. Madhusudan
+global int x;
+main() {
+x = 3 ;
+if P x=1;
+}
+bool P() {
+local int y=0;
+x = y;
+if (x==0) return 1
+else return 0;
+}
+Fig. 2. Example program
+an alphabet is3`jj`.
+Observe that if wis a word over , then wnw(w) is the corresponding nested
+word with the empty matching relation.
+Using the correspondence between nested words and tagged words, every classical
+operation on words and languages of nested words can be dened for nested words
+and languages of nested words. We list a few operations below.
+Concatenation of two nested words nandn0is the nested word wnw(nww(n)nww(n0)).
+Notice that the matching relation of the concatenation can connect pending calls of
+the rst with the pending returns of the latter. Concatenation extends to languages
+of nested words, and leads to the operation of Kleene- over languages.
+Given a nested word n=wnw(b1:::b`), its subword from position itoj, denoted
+n[i;j], is the nested word wnw(bi:::bj), provided 1ij`, and the empty
+nested-word otherwise. Note that if i;jin a nested word, then in the subword
+that starts before iand ends before j, this nesting edge will change to a pending
+call edge; and in the subword that starts after iand ends after j, this nesting edge
+will change to a pending return edge. Subwords of the form n[1;j] are prexes
+ofnand subwords of the form n[i;`] are suxes ofn. Note that for 1 i`,
+concatenating the prex n[1;i] and the sux n[i+ 1;`] gives back n.
+For example, for the rst sequence in Figure 1, the prex of rst ve positions is
+the nested word corresponding to ahaahaa, and has two pending calls; the sux of
+last four positions is the nested word corresponding to aaiaia, and has two pending
+returns.
+2.3 Examples
+In this section, we give potential applications where data has the dual linear-
+hierarchical structure, and can naturally be modeled using nested words.
+2.3.1 Executions of sequential structured programs. In the linear-time semantics
+of programs, execution of a program is typically modeled as a word. We propose to
+augment this linear structure with nesting edges from entries to exits of program
+blocks.
+As a simple example, consider the program of Figure 2. For program analysis,
+the choice of  depends on the desired level of detail. As an example, suppose
+we are interested in tracking read/write accesses to the global program variable x,
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 9 ---
+Adding nesting structure to words  9
+en sk wr en ex wr ex
+sk wr rd
+Fig. 3. Sample program execution
+and also whether these accesses belong to the same context. Then, we can choose
+the following set of symbols: rdto denote a read access to x,wrto denote a write
+access tox,ento denote beginning of a new scope (such as a call to a function
+or a procedure), exto denote the ending of the current scope, and skto denote all
+other actions of the program. Note that in any structured programming language,
+in a given execution, there is a natural nested matching of the symbols enand ex.
+Figure 3 shows a sample execution of the program modeled as a nested word.
+The main benet is that using nesting edges one can skip call to a procedure
+entirely, and continue to trace a local path through the calling procedure. Consider
+the property that \if a procedure writes to xthen it later reads x." This requires
+keeping track of the context. If we were to model executions as words, the set of
+executions satisfying this property would be a context-free language of words, and
+hence, is not speciable in classical temporal logics. Soon we will see that when we
+model executions as nested words, the set of executions satisfying this property is
+a regular language of nested words, and is amenable to algorithmic verication.
+2.3.2 Annotated linguistic data. Linguistic research and NLP technologies use
+large repositories (corpora) of annotated text and speech data. The data has a
+natural linear order (the order of words in a sentence) while the annotation adds
+a hierarchical structure. Traditionally, the result is represented as an ordered tree,
+but can equally be represented as a nested word. For illustration, we use an example
+from [Bird et al. 2006]. The sentence is
+I saw the old man with a dog today
+The linguistic categorization parses the sentence into following categories: S (sen-
+tence), VP (verb phrase), NP (noun phrase), PP (prepositional phrase), Det (de-
+terminer), Adj (adjective), N (noun), Prep (proposition), and V (verb). The parsed
+sentence is given by the tagged word of Figure 4. The call and return positions are
+tagged with the syntactic categories, while internal positions spell out the original
+sentence. In the gure, we label each internal position with a word, but this can
+be a sequence of internal positions, each labeled with a character. Since matching
+calls and returns have the same symbol labeling them, the symbol is shown on the
+connecting nesting edge.
+To verify hypotheses, linguists need to ask fairly complex queries over such cor-
+pora. An example, again from [Bird et al. 2006] is \nd all sentences with verb
+phrases in which a noun follows a verb which is a child of the verb phrase". Here,
+follows means in the linear order of the original sentence, and child refers to the
+hierarchical structure imparted by parsing. The sentence in Figure 4 has this prop-
+erty because \man" (and \dog") follows \saw". For such queries that refer to both
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 10 ---
+10 R. Alur and P. Madhusudan
+withPrepI
+saw
+the old manNP
+Det Adj NVNP
+aDet
+dogNNPPPtodayNS
+VP
+NP
+Fig. 4. Parsed sentence as a nested word
+hierarchical and linear structure, representation using nested words, as opposed to
+classical trees, has succinctness benets as discussed in Section 7.
+2.3.3 XML documents. XML documents can be interpreted as nested words:
+the linear structure corresponds to the sequence of text characters, and the hi-
+erarchical structure is given by the matching of open- and close-tag constructs.
+Traditionally, trees and automata on unranked trees are used in the study of XML
+(see [Neven 2002; Libkin 2005] for recent surveys). However, if one is interested
+in the linear ordering of all the leaves (or all the nodes), then representation using
+nested words is benecial. Indeed, the SAX representation of XML documents co-
+incides with the tagged word encoding of nested words. The linear structure is also
+useful while processing XML documents in streaming applications.
+To explain the correspondence between nested words and XML documents, let
+us revisit the parsed sentence of Figure 4. The same structure can be represented
+as an XML document as shown in Figure 5. Instead of developing the connection
+between XML and nested words in a formal way, we rely on the already well-
+understood connection between XML and unranked ordered forests, and give precise
+translations between such forests and nested words in Section 7.
+3. REGULAR LANGUAGES OF NESTED WORDS
+3.1 Nested Word Automata
+Now we dene nite-state acceptors over nested words that can process both linear
+and hierarchical structure.
+Anested word automaton (NWA)Aover an alphabet  is a structure
+(Q;q0;Qf;P;p 0;Pf;c;i;r) consisting of
+|a nite set of (linear) states Q,
+|an initial (linear) state q02Q,
+|a set of (linear) nal states QfQ,
+|a nite set of hierarchical states P,
+|an initial hierarchical state p02P,
+|a set of hierarchical nal states PfP,
+|a call-transition function c:Q7!QP,
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 11 ---
+Adding nesting structure to words  11
+<S>
+<NP> I
+</NP>
+<VP>
+<V> saw
+</V>
+<NP>
+<NP>
+<Det> the
+</Det>
+<Adj> old
+</Adj>
+<N> man
+</N>
+</NP>
+<PP>
+<Prep> with
+</Prep>
+<NP>
+<Det> a
+</Det>
+<N> dog
+</N>
+</NP>
+</PP>
+</NP>
+</VP>
+<N> today
+</N>
+</S>
+Fig. 5. XML representation of parsed sentence
+|an internal-transition function i:Q7!Q, and
+|a return-transition function r:QP7!Q.
+The automaton Astarts in the initial state, and reads the nested word from left
+to right according to the linear order. The state is propagated along the linear
+edges as in case of a standard word automaton. However, at a call, the nested word
+automaton can propagate a hierarchical state along the outgoing nesting edge also.
+At a return, the new state is determined based on the states propagated along the
+linear edge as well as along the incoming nesting edge. The pending nesting edges
+incident upon pending returns are labeled with the initial hierarchical state. The
+run is accepting if the nal linear state is accepting, and if the hierarchical states
+propagated along pending nesting edges from pending calls are also accepting.
+Formally, a runrof the automaton Aover a nested word n= (a1:::a`;;) is
+a sequence qi2Q, for 0i`, of states corresponding to linear edges starting
+with the initial state q0, and a sequence pi2P, for callsi, of states corresponding
+to nesting edges, such that for each position 1 i`,
+|ifiis a call, then c(qi1;ai) = (qi;pi);
+|ifiis an internal, then i(qi1;ai) =qi;
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 12 ---
+12 R. Alur and P. Madhusudan
+0,<0/p1,0>/p0,0>/pq0 q10,<0/p0,1>/p1,0>/p1,<1/p0,1>/p0,1>/p 1,<0/p1,0>/p1,1>/p
+10
+1
+10 0 1 0
+1
+1 0 1 1 0
+0 0 0q0 q0
+q1
+q1
+q0p0
+p1
+q1q0q1q0 q1
+q0pp
+q1p1
+q0
+q0q0q1q1
+q1
+q1p0p1
+Fig. 6. Example of an NWA and its runs
+|ifiis a return with call-predecessor j, thenr(qi1;pj;ai) =qi, and ifiis a
+pending return, then r(qi1;p0;ai) =qi.
+Verify that for a given nested word n, the automaton has precisely one run over n.
+The automaton Aaccepts the nested word nif in this run, q`2Qfand for pending
+callsi,pi2Pf.
+The language L(A) of a nested-word automaton Ais the set of nested words
+it accepts. We dene the notion of regularity using acceptance by nite-state au-
+tomata:
+A language Lof nested words over  is regular if there exists a nested
+word automaton Aover  such that L=L(A).
+To illustrate the denition, let us consider an example. Suppose  = f0;1g.
+Consider the language Lof nested words nsuch that every subword starting at a
+call and ending at a matching return contains an even number of 0-labeled positions.
+That is, whenever 1 ij`andi;j,jfkjikjandak= 0gjis even.
+We will give an NWA whose language is L.
+We use the standard convention for drawing automata as graphs over (linear)
+states. A call transition c(q;a) = (q0;p) is denoted by an edge from qtoq0labeled
+withha=p, and a return transition r(q;p;a ) =q0is denoted by an edge from q
+toq0labeled with ai=p. To avoid cluttering, we allow the transition functions to
+be partial. In such a case, assume that the missing transitions go to the implicit
+\error" state qesuch thatqeis not a nal state, and all transitions from qego to
+qe.
+The desired NWA is shown in Figure 6. It has 3 states q0,q1, andqe(not shown).
+The stateq0is initial, and q0,q1are nal. It has 3 hierarchical states p,p0,p1, of
+whichpis initial, and p0,p1are nal. The state q0means that the number of 0-
+labeled positions since the last unmatched call is even, and state q1means that this
+number is odd. Upon a call, this information is propagated along the nesting edge,
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 13 ---
+Adding nesting structure to words  13
+while the new linear state reects the parity count starting at this new call. For
+example, in state q1, while processing a call, the hierarchical state on the nesting
+edge isp1, and the new linear state is q0=q1depending on whether the call is labeled
+1=0. Upon a return, if it is a matched return, then the current count must be even,
+and the state is retrieved along the nesting edge. For example, in state q1, if the
+current return is matched, then the return must be labeled 0 (if return is labeled
+1, then the corresponding transition is missing in the gure, so the automaton will
+enter the error state and reject), and the new state is set to q0=q1depending on
+whether the hierarchical state on the nesting edge is p0=p1. Unmatched returns,
+indicated by the hierarchical state on the incoming nesting edge being p, are treated
+like internal positions.
+The runs of this automaton on two nested word are also shown in Figure 6. Both
+words are accepted.
+One can view nested word automata as graph automata over the nested sequence
+of linear and hierarchical edges: a run is a labeling of the edges such that the states
+on the outgoing edges at a node are determined by the states on the incoming edges
+and the symbol labeling the node. Labels on edges with unspecied sources (the
+initial linear edge and nesting edges into pending calls) need to satisfy initialization
+constraints, and labels on edges with unspecied destination (the linear edge out
+of last position and nesting edges from pending calls) need to satisfy acceptance
+constraints.
+3.2 Equivalent Denitions
+In this section, we rst describe some alternate ways of describing the acceptance
+of nested words by NWAs, and then, some restrictions on the denition of NWAs
+without sacricing expressiveness.
+Note that the call-transition function cof a nested word automaton Ahas two
+components that specify, respectively, the states to be propagated along the linear
+and the hierarchical edges. We will refer to these two components as l
+candh
+c.
+That is,c(q;a) = (l
+c(q;a);h
+c(q;a)).
+For a nested word n, let 1i1<i2<ik`be all the pending call positions
+inn. Then, the sequence pi1:::pinq`inPQis the frontier of the run of the
+automaton Aonn, where each pijis the hierarchical state labeling the pending
+nesting edge from call position ij, andq`is the last linear state of the run. The
+frontier of the run at a position iis the frontier of the run over the prex n[1;i].
+The frontier of a run carries all the information of the prex read so far, namely,
+the last linear state and the hierarchical states labeling all the nesting edges from
+calls that are pending at this position. In fact, we can dene the behavior of the
+automaton using only frontiers. The initial frontier is q0. Suppose the current
+frontier isp1:::pkq, and the automaton reads a symbol a. If the current position
+is an internal, the new frontier is p1:::pki(q;a). If the current position is a call,
+then the new frontier is p1:::pkh
+c(q;a)l
+c(q;a). If the current position is a return,
+then ifk >0 then the new frontier is p1:::pk1r(q;pk;a), and ifk= 0, then the
+new frontier is r(q;p0;a). The automaton accepts a word if the nal frontier is in
+P
+fQf.
+The denition of nested-word automata can be restricted in several ways with-
+out sacricing the expressiveness. Our notion of acceptance requires the last lin-
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 14 ---
+14 R. Alur and P. Madhusudan
+ear state to be nal and all pending hierarchical states to be nal. However,
+acceptance using only nal linear states is adequate. A nested word automaton
+A= (Q;q0;Qf;P;p 0;Pf;c;i;r) is said to be linearly-accepting ifPf=P.
+Theorem 3.1 (Linear acceptance). Given a nested word automaton A, one
+can eectively construct a linearly-accepting NWA Bsuch thatL(B) =L(A)and
+Bhas twice as many states as A.
+Proof. Consider an NWA A= (Q;q0;Qf;P;p 0;Pf;c;i;r). The automaton
+Bremembers, in addition to the state of A, a bit that indicates whether the ac-
+ceptance requires a matching return. This bit is set to 1 whenever a non-nal
+hierarchical state is propagated along the nesting edge. The desired automaton B
+is (Qf0;1g;(q0;0);Qff0g;Pf0;1g;P0f0g;Pf0;1g;0
+c;0
+i;0
+r). The in-
+ternal transition function is given by 0
+i((q;x);a) = (i(q;a);x). The call transition
+function is given by 0
+c((q;x);a) = ((l
+c(q;a);y);(h
+c(q;a);x)), wherey= 0 ix= 0
+andh
+c(q;a)2Pf. The return transition function is given by 0
+r((q;x);(p;y);a) =
+(r(q;p;a );y).
+For a nested word nwithkpending calls, the frontier of the run of Aonnis
+p1:::pkqi the frontier of the run of Bonnis (p1;0);(p2;x1):::(pk;xk1)(q;xk)
+withxi= 1 ipj2Pffor allji. This claim can be proved by induction on the
+length ofn, and implies that the languages of the two automata are the same. 2
+We can further assume that the hierarchical states are implicitly specied: the set
+Pof hierarchical states equals the set Qof linear states; the initial hierarchical state
+equals the initial state q0, and the current state is propagated along the nesting edge
+at calls. A linearly-accepting nested word automaton A= (Q;q0;Qf;P;p 0;P;c;i;r)
+is said to be weakly-hierarchical ifP=Q,p0=q0, and for all states qand sym-
+bolsa,h
+c(q;a) =q. A weakly-hierarchical nested word automaton then can be
+represented as ( Q;q0;Qf;l
+c:Q7!Q;i:Q7!Q;r:QQ7!Q).
+Weakly-hierarchical NWAs can capture all regular languages:
+Theorem 3.2 (Weakly-hierarchical automata). Given a nested word au-
+tomatonAwithslinear states over , one can eectively construct a weakly-
+hierarchical NWA Bwith 2sjjstates such that L(B) =L(A).
+Proof. We know that an NWA can be transformed into a linearly accepting one
+by doubling the states. Consider a linearly-accepting NWA A= (Q;q0;Qf;P;p 0;c;i;r).
+The weakly-hierarchical automaton Bremembers, in addition to the state of A, the
+symbol labeling the innermost pending call for the current position so that it can be
+retrieved at a return and the hierarchical component of the call-transition function
+ofAcan be applied. The desired automaton Bis (Q;(q0;a0);Qf;0
+c;0
+i;0
+r)
+(herea0is some arbitrarily chosen symbol in ). The internal transition func-
+tion is given by 0
+i((q;a);b) = (i(q;b);a). At a call labeled b, the automaton in
+state (q;a) transitions to ( l
+c(q;b);b). At a return labeled c, the automaton in
+state (q;a), if the state propagated along the nesting edge is ( q0;b), moves to state
+(r(q;h
+c(q0;a);c);b).2
+3.3 Nondeterministic Automata
+Nondeterministic NWAs can have multiple initial states, and at every position, can
+have multiple choices for updating the state.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 15 ---
+Adding nesting structure to words  15
+A nondeterministic nested word automaton Aover  has
+|a nite set of (linear) states Q,
+|a set of (linear) initial states Q0Q,
+|a set of (linear) nal states QfQ,
+|a nite set of hierarchical states P,
+|a set of initial hierarchical states P0P,
+|a set of nal hierarchical states PfP,
+|a call-transition relation cQQP,
+|an internal-transition relation iQQ, and
+|a return-transition relation rQPQ.
+Arunrof the nondeterministic automaton Aover a nested word n= (a1:::a`;;)
+is a sequence qi2Q, for 0i`, of states corresponding to linear edges, and a
+sequencepi2P, for callsi, of hierarchical states corresponding to nesting edges,
+such thatq02Q0, and for each position 1 i`,
+|ifiis a call, then ( qi1;ai;qi;pi)2c;
+|ifiis an internal, then ( qi1;ai;qi)2i;
+|ifiis a matched return with call-predecessor jthen (qi1;pj;ai;qi)2r, and if
+iis a pending return then ( qi1;p0;ai;qi)2rfor somep02P0.
+The run is accepting if q`2Qfand for all pending calls i,pi2Pf. The automaton
+Aaccepts the nested word nifAhas some accepting run over n. The language
+L(A) is the set of nested words it accepts.
+We now show that nondeterministic automata are no more expressive than the
+deterministic ones. The determinization construction is a generalization of the
+classical determinization of nondeterministic word automata. We assume linear
+acceptance: we can transform any nondeterministic NWA into one that is linearly-
+accepting by doubling the states as in the proof of Theorem 3.1.
+Theorem 3.3 (Determinization). Given a nondeterministic linearly-accepting
+NWAA, one can eectively construct a deterministic linearly-accepting NWA B
+such thatL(B) =L(A). Moreover, if Ahasslinear states, then Bhas2s2linear
+states andO(2s2)hierarchical states.
+Proof. LetLbe accepted by a nondeterministic linearly-accepting NWA A=
+(Q;Q 0;Qf;P;P 0;c;i;r). Given a nested word n,Acan have multiple runs over n.
+Thus, at any position, the state of Bneeds to keep track of all possible states of A,
+as in case of classical subset construction for determinization of nondeterministic
+word automata. However, keeping only a set of states of Ais not enough: at a
+return position, while combining linear states along the incoming linear edge with
+hierarchical states along the incoming nesting edge, Bneeds to gure out which
+pairs of states belong to the same run. The main idea behind the construction is
+to do a subset construction over summaries (pairs of states) but postpone handling
+the call-transitions by storing the set of summaries before the call, along with the
+call symbol, in the hierarchical state, and simulate the eect of the corresponding
+call-transition at the time of the matching return.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 16 ---
+16 R. Alur and P. Madhusudan
+Consider a nested word with kpending calls. Such a word can be represented
+asn=n1ha1n2ha2nkhaknk+1, where each nj, for 1jk+ 1, is a nested
+word with no pending calls (the initial nested word n1can have pending returns,
+and the nested words n2;:::nk+1are well-matched). Then after processing n,
+the determinized automaton Bwe construct will be in state Sk+1, with the pair
+(Sj;aj) labeling the nesting edge originating at the corresponding pending call haj,
+for 1jk. Each state Sjcontains all the pairs ( q;q0) of states of Asuch
+that the nondeterministic automaton Acan process the nested word njstarting in
+stateqand end up in state q0. Note that the execution of the automaton Awhile
+processing each such nested word njdepends solely on the state at the beginning
+of the word nj, and not on the states labeling the pending nesting edges. The
+construction ensures that only \reachable" summaries are being tracked: if a pair
+(q;q0) belongs to Sj, it is guaranteed that there is a run of Aon the nested word
+nin which the state at the beginning of processing of the subword njisqand at
+the end isq0. Due to this property, in order to check whether Aacceptsnor not,
+corresponds to checking if the current state Sk+1contains a pair ( q;q0) such that
+q0is a nal state.
+To explain how the determinized automaton Bupdates its state, let us consider
+the dierent cases corresponding to the type of symbol that follows n.
+If the next symbol is an internal symbol a, then the state is updated by the
+following rule: for each ( q;q0) inSk+1, if there is an internal transition from the
+stateq0to a stateq00on the symbol a, then the pair ( q;q00) is a possible summary
+ofAon the well-matched word nk+1a, and is added to the updated state.
+Suppose the symbol following nis a call symbolha. The automaton Bpropagates
+the pair (Sk+1;a) along the nesting edge, and updates the linear state by the
+following rule: for each ( q;q0) inSk+1, if a state q00is a possible next linear state
+resulting from a call transition from the state q0on the call symbol a, then the pair
+(q00;q00) is added to the updated state. Such a pair is a summary of Aon the empty
+word, while ensuring that only reachable summaries are processed. This summary
+will subsequently be updated reecting execution of Aon the subword starting after
+the callha.
+Suppose the next symbol following the nested word nis a return bi. Then the
+revised state after processing the return should correspond to the summaries on the
+well-matched nested word nkhaknk+1bi. The desired state is constructed from the
+summaries in Skand the call symbol ak, both of which label the incident nesting
+edge at the return bi, the summaries in the current linear state Sk+1, the return
+symbolb, and the call/return transition relations of A. If a pair ( q;q0) belongs to
+Sk(meaning that Acan go from state qto stateq0onnk), and the automaton A
+in the state q0on the call symbol akcan label the nesting edge with a hierarchical
+statepwhile updating the linear state to q1, and a pair ( q1;q2) belongs to Sk+1
+(meaning that Acan go from the state q1to stateq2onnk+1), and the automaton
+Ain the state q2on the return symbol bwithplabeling the incident nesting edge,
+can transition to a state q00, thenAcan go from the state qto the state q00on the
+nested wod nkhaknk+1bi, and the pair ( q;q00) is added to the update state.
+A nal detail concerns handling of unmatched returns. The determinized au-
+tomatonBuses a special hierarchical state p0
+0as the initial hierarchical state. If
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 17 ---
+Adding nesting structure to words  17
+the incident edge at a return is labeled with this state, then it updates the summary
+in a manner similar to the processing of internal symbols.
+The components of the deterministic automaton Bequivalent to Aare listed
+below:
+|The states of BareQ0= 2QQ.
+|The initial state is the set Q0Q0of pairs of initial states.
+|A stateS2Q0is accepting i it contains a pair of the form ( q;q0) withq02Qf.
+|The hierarchical states of BareP0=fp0
+0g[(Q0).
+|The initial hierarchical state is p0
+0.
+|The internal-transition function 0
+iis given by: for S2Q0anda2,0
+i(S;a)
+consists of pairs ( q;q00) such that there exists ( q;q0)2Sand an internal transition
+(q0;a;q00)2i.
+|The call-transition function 0
+cis given by: for S2Q0anda2,0
+c(S;a) =
+(S0;(S;a)), whereS0consists of pairs ( q00;q00) such that there exists ( q;q0)2S
+and a hierarchical state p2Pand a call transition ( q0;a;q00;p)2c.
+|The return-transition function 0
+ris given by: (1) for S;S02Q0anda;b2,
+0
+r(S;(S0;a);b) consists of pairs ( q;q00) such that there exists ( q;q0)2S0and
+(q1;q2)2Sand a hierarchical state p2Pand a call transition ( q0;a;q 1;p) and
+a return transition ( q2;p;b;q00)2r; and (2) for S2Q0anda2,0
+r(S;p0
+0;a)
+consists of pairs ( q;q00) such that there exists ( q;q0)2Sand an initial hierarchical
+statep02P0and a return transition ( q0;p0;a;q00)2r.
+2
+Recall that a nondeterministic word automaton with sstates can be transformed
+into a deterministic one with 2sstates. The determinization construction above
+requires keeping track of set of pairs of states, and as the following lower bound
+shows, this is really needed.
+Theorem 3.4 (Succinctness of nondeterminism). There exists a family Ls,
+s1, of regular languages of nested words such that each Lsis accepted by a non-
+deterministic NWA with O(s)states, but every deterministic NWA accepting Ls
+must have 2s2states.
+Proof. Let  =fa;b;cg. Consider s= 2k. Consider the language Lthat
+contains words of the form, for some u;v2(a+b)k,
+hc((a+b)c(a+b)cc)ucvcc ((a+b)c(a+b)cc)vciu
+Intuitively, the constraint says that the word must end with the sux vciu, where
+uandvare twok-bit strings such that the subsequence ucvcc must have appeared
+before.
+Consider a deterministic NWA accepting L. The words in Lhave only one nesting
+edge, and all begin with the same call symbol. Hence, the NWA has no information
+to propagate across the nesting edge, and behaves essentially like a standard word
+automaton. As the automaton reads the word from left to right every pair of succes-
+sivek-bit strings are potential candidates for uandv. A deterministic automaton
+needs to remember, for each such pair, if it has occurred or not. Formally, we say
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 18 ---
+18 R. Alur and P. Madhusudan
+that two nested words nandn0inL0=hc((a+b)c(a+b)cc)are equivalent i
+for every pair of words u;v2(a+b)k, the worducvcc appears as a subword of n
+i it appears as a subword of n0. Since there are s2pairs of words u;v2(a+b)k,
+the number of equivalence classes of L0by this relation is 2s2. It is easy to check
+that ifAis a deterministic NWA for L, andnandn0are two inequivalent words in
+L0, then the linear states of Aafter reading nandn0must be distinct. This implies
+that every deterministic NWA for Lmust have at least 2s2states.
+There is a nondeterministic automaton with O(s) states to accept L. We give
+the essence of the construction. The automaton guesses a word u2(a+b)k, and
+sends this guess across linear as well as hierarchical edges. That is, the initial state,
+on reading a call position labeled c, splits into ( qu;pu), for every u2(a+b)k. The
+statequskips over a word in (( a+b)c(a+b)cc), and nondeterministically decides
+that what follows is the desired subword ucvcc . For this, it rst needs to check
+that it reads a word that matches the guessed u, and then, it remembers v2(a+b)k
+that follows in the state, leading to a state q0
+v. The state q0
+vskips over a word in
+((a+b)c(a+b)cc), and nondeterministically decides that what follows must be
+the wordvci. If this check succeeds, then at the return position, the state puis
+retrieved along the nesting edge, and checks that what follows matches u. This can
+be formalized using states that consist of a mode and a word over fa;bgof length
+at mostk, where the number modes is a small constant. The resulting automaton
+hasO(s) states. 2
+3.4 Examples
+In this section, we outline the application of nested word automata for program
+verication and document processing.
+3.4.1 NWAs in Program Analysis. In the context of software verication, a
+popular paradigm relies on data abstraction , where the data in a program is ab-
+stracted using a nite set of boolean variables that stand for predicates on the
+data-space [Ball et al. 2001; Henzinger et al. 2002]. The resulting models hence
+have nite-state but stack-based control ow (see Boolean programs [Ball and Ra-
+jamani 2000] and recursive state machines [Alur et al. 2005] as concrete instances
+of pushdown models of programs). For example, abstraction of the program in
+Figure 2 will replace integer variables xandywith boolean variables that keep
+track of the values of the predicates x==0 and y==0 . The abstraction introduces
+nondeterminism, and the resulting program is an overapproximation of the original
+program.
+Given a program Awith boolean variables, we can view Aas a nondeterministic
+generator of nested words in the following manner. We choose an observation al-
+phabet  depending upon the goal of verication. A state of the NWA records the
+line number and the values of all program variables in scope. Internal transitions
+correspond to execution of a statement within a procedure. Call transitions corre-
+spond to calling of a procedure: the updated linear state reects the control in the
+called procedure, and the hierarchical state passed along the nesting edge records
+the return line number along with the values of local variables in the calling pro-
+cedure. Return transitions combine the returned value, and the updates to global
+variables, from the called procedure, with the information stored in the incoming
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 19 ---
+Adding nesting structure to words  19
+wr,ex>/1wr,sk
+q0 q1
+rd,<en/1rd,sk,<en/0,ex>/0
+(b)wrwr,sk,<en,ex>
+q0 q1
+rdrd,sk,<en,ex>
+(a)
+Fig. 7. Program requirements as NWAs
+hierarchical state to compute the new state in the calling procedure. Thus, we can
+associate a regular language L(A) of nested words with a program with boolean
+variables.
+The requirements of a program can also be described as regular languages of
+nested words. Verication corresponds to language inclusion: do all nested words
+generated by a program satisfy the specication? Thus, verication reduces to
+decision problems for NWAs.
+For sample requirements, consider the example of Figure 3. Suppose we want
+to specify that writes to xare followed by some read of x. We will consider three
+variations of this requirement.
+First, suppose we want to specify that a symbol wris followed by rd, without
+any reference to the procedural context. This can be captured by standard word
+automata, and also by NWAs. Figure 7 (a) shows the 2-state NWA for the require-
+ment. In this example, hierarchical states are not really used: assume that there is
+a single hierarchical state ?, which is also initial, and is implicitly used in all call
+and return transitions.
+Now suppose, we want to specify that if a procedure writes to x, then the same
+procedure should read it before it returns. That is, between every pair of matching
+entry and exit, along the local path obtained deleting every enclosed well-matched
+subword from an entry to an exit, every wris followed by rd. Viewed as a property
+of words, this is not a regular language, and thus, not expressible in the specication
+languages supported by existing software model checkers such as SLAM [Ball and
+Rajamani 2000] and BLAST [Henzinger et al. 2002]. However, over nested words,
+this can easily be specied using an NWA, see Figure 7 (b). The initial state is q0,
+and has no pending obligations, and is the only nal state. The hierarchical states
+aref0;1g, where 0 is the initial state. The state q1means that along the local path
+of the current scope, a write-access has been encountered with no following read
+access. While processing the call, the automaton remembers the current state by
+propagating 0 or 1 along the nesting edge, and starts checking the requirement for
+the called procedure by transitioning to the initial state q0. While processing inter-
+nal read/write symbols, it updates the state as in the nite-state word automaton
+of case (a). At a return, if the current state is q0(meaning the current context
+satises the desired requirement), it restores the state of the calling context. Note
+that there are no return transitions from the state q1, and this means that if a
+return position is encountered while in state q1, the automaton implicitly goes to
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 20 ---
+20 R. Alur and P. Madhusudan
+wr,ex>/1wr,sk
+q0 q1sk,<en/0,ex>/0
+q2rd
+rd,sk,ex>/0,ex>/1,ex>/2<en/2<en/1
+rd, ex>/2wr
+Fig. 8. Context-bounded program requirement
+an error state rejecting the input word.
+Finally, suppose we want to specify that if a procedure writes to x, then the
+variable is read before the procedure returns, but either by this procedure or by
+one of the (transitively) called procedures. That is, along every global path sand-
+wiched between a pair of matching entry and exit, every wris followed by rd. This
+requirement is again not expressible using classical word automata. Figure 8 shows
+the corresponding NWA. State q2means that a read has been encountered, and
+this is dierent from the initial state q0, since a read in the called procedure can be
+used to satisfy the pending obligation of the calling procedure. There are 3 hier-
+archical states 0,1,2 corresponding to the three linear states, and the current state
+is propagated along the nesting edge when processing a call. As before, in state
+q0, while processing a return, the state of the calling context is restored; in state
+q1, since the current context has unmet obligations, processing a return leads to
+rejection. While processing a return in the state q2, the new state is q2irrespective
+of the state retrieved along the nesting edge.
+3.4.2 NWAs for document processing. Since nite word automata are NWAs,
+classical word query languages such as regular expressions can be compiled into
+NWAs. As we will show in Section 7, dierent forms of tree automata are also
+NWAs.
+As an illustrative example of a query, let us revisit the query \nd all sentences
+with verb phrases in which a noun follows a verb which is a child of the verb phrase"
+discussed in Section 2.3.2. For this query, internal positions are not relevant, so we
+will assume that the alphabet consists of the tags fS;VP;NP;PP;Det;Adj;N;Prep;V g
+corresponding to the various syntactic categories, and the input word has only call
+and return positions. The nondeterministic automaton is shown in Figure 9. The
+set of hierarchical states contains the dummy initial state ?, and for each tag X,
+there are two symbols XandX0. The set of nal hierarchical states is empty. Since
+(1) there are no return transitions if the state on the incoming hierarchical edge is
+?, (2) there can be no pending calls as no hierarchical state is nal, and (3) every
+call transition on tag Xlabels the hierarchical edge with either XorX0, and every
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 21 ---
+Adding nesting structure to words  21
+<X/X, X>/X <X/X, X>/X <X/X, X>/XVP>/VP’ N>/N’q4 q5 q6<X/X’
+X>/X’V>/V’ <VP/VP’q0q2 q3 q1<X/X, X>/X <X/X, X>/X <X/X, X>/X
+<N/N’
+Fig. 9. NWA for the linguistic query
+return transition on tag Xrequires the label on incoming hierarchical edge to be
+XorX0, the automaton enforces the requirement that all the tags match properly.
+In Figure 9, Xranges over the set of tags (for example, q0has a call transition to
+itself for every tag X, with the corresponding hierarchical state being X).
+The automaton guesses that the desired verb phrase follows by marking the
+corresponding hierarchical edge with VP0(transition from q0toq1). The immediate
+children of this verb phrase are also marked using the primed versions of the tags.
+When a child verb is found the automaton is is in state q3, and searches for noun
+phrase (again marked with the primed version). The transition from q5to the nal
+stateq6ensures that the desired pattern lies within the guessed verb phrase.
+3.5 Closure Properties
+The class of regular languages of nested words enjoys a variety of closure properties.
+We begin with the boolean operations.
+Theorem 3.5 (Boolean closure). IfL1andL2are regular languages of nested
+words over , thenL1[L2,L1\L2, andNW()nL1are also regular languages.
+Proof. LetAj= (Qj;qj
+0;Qj
+f;Pj;pj
+0;j
+c;j
+i;j
+r), forj= 1;2, be a linearly-accepting
+NWA accepting Lj. Dene the product of these two automata as follows. The set
+of linear states is Q1Q2; the initial state is ( q1
+0;q2
+0); the set of hierarchical states
+isP1P2; and the initial hierarchical state is ( p1
+0;p2
+0). The transition functions
+are dened in the obvious way; for example, the return-transition function rof
+the product is given by r((q1;q2);(p1;p2);a) = (1
+r(q1;p1;a);2
+r(q2;p2;a)). Setting
+the set of nal states to Q1
+fQ2
+fgives the intersection L1\L2, while choosing
+(Q1
+fQ2)[(Q1Q2
+f) as the set of nal states gives the union L1[L2.
+For a linearly-accepting deterministic NWA, one can complement the language
+simply by complementing the set of linear nal states: the complement of the
+linearly-accepting automaton ( Q;q0;Qf;P;p 0;c;i;r) is the linearly-accepting NWA
+(Q;q0;QnQf;P;p 0;c;i;r).2
+We have already seen how the word encoding allows us to dene word operations
+over nested words. We proceed to show that the regular languages are closed under
+such operations.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 22 ---
+22 R. Alur and P. Madhusudan
+Theorem 3.6 (Concatenation closure). IfL1andL2are regular languages
+of nested words, then so are L1L2andL
+1.
+Proof. Suppose we are given weakly-hierarchical NWAs A1andA2, with dis-
+joint state sets, accepting L1andL2, respectively. We can design a nondeterministic
+NWA that accepts L1L2by guessing a split of the input word ninton1andn2.
+The NWA simulates A1, and at some point, instead of going to a nal state of A1,
+switches to the initial state of A2. While simulating A2, at a return, if the state
+labeling the incoming nesting edge is a state of A1, then it is treated like the initial
+state ofA2.
+A slightly more involved construction can be done to show closure under Kleene-
+. LetA= (Q;Q 0;Qf;l
+c;i;r) be a weakly-hierarchical nondeterministic NWA
+that accepts L. We build the automaton Aas follows.AsimulatesAstep by step,
+but whenAchanges its state to a nal state, Acan nondeterministically update
+its state to an initial state, and thus, restart A. Upon this switch, Amust treat
+the unmatched nesting edges as if they are pending, and this requires tagging its
+state so that in a tagged state, at a return, the states labeling the incident nesting
+edges are ignored. More precisely, the state-space of AisQ]Q0, and its initial
+and nal states are Q0
+0. Its transitions are as follows
+(Internal). For each internal transition ( q;a;p )2i,Acontains the internal
+transitions ( q;a;p ) and (q0;a;p0), and ifp2Qf, then the internal transitions
+(q;a;r0) and (q0;a;r0) for eachr2Q0.
+(Call). For each (linear) call transition ( q;a;p )2l
+c,Acontains the call tran-
+sitions (q;a;p ) and (q0;a;p), and ifp2Qf, then the call transitions ( q;a;r0) and
+(q0;a;r0), for eachr2Q0.
+(Return). For each return transition ( q;r;a;p )2r,Acontains the return
+transitions ( q;r;a;p ) and (q;r0;a;p0), and ifp2Qf, then the return transitions
+(q;r;a;s0) and (q;r0;a;s0), for eachs2Q0. For each return transition ( q;r;a;p )2
+rwithr2Q0,Acontains the return transitions ( q0;s;a;p0) for eachs2Q[Q0,
+and ifp2Qf, also the return transitions ( q0;s;a;t0) for eachs2Q[Q0andt2Q0.
+Note that from a tagged state, at a call, Apropagates the tagged state along the
+nesting edge and an untagged state along the linear edge. It is easy to check that
+L(A) =L.2
+Besides prexes and suxes, we will also consider reversal. Reverse of a nested
+wordnis dened to be wnw(b`:::b 2b1), where for each 1 i`,bi=aiifiis
+an internal, bi=haiifiis a return, and bi=aiiifiis a call. That is, to reverse a
+nested word, we reverse the underlying word as well as all the nesting edges.
+Theorem 3.7 (Closure under word operations). IfLis a regular language
+of nested words then all the following languages are regular: the set of reversals of
+all the nested words in L; the set of all prexes of all the nested words in L; the set
+of all suxes of all the nested words in L.
+Proof. Consider a nondeterministic NWA A= (Q;Q 0;Qf;P;P 0;Pf;ci;r).
+DeneARto be (Q;Qf;Q0;P;Pf;P0;R
+c;R
+i;R
+r) where (q;a;q0;p)2ci (q0;p;a;q )2
+R
+r, (q;p;a;q0)2ri (q0;a;q;p )2R
+c, and (q;a;q0)2ii (q0a;q)2R
+i. Thus,
+ARis obtained by switching the roles of initial and nal states for both linear and
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 23 ---
+Adding nesting structure to words  23
+hierarchical components, reversing the internal transitions, and dualizing call and
+return transitions. It is easy to show that ARaccepts precisely the reversals of the
+nested words accepted by A.
+For closure under prexes, consider a weakly-hierarchical nondeterministic NWA
+A= (Q;Q 0;Qf;l
+c;i;r). The automaton Bhas the following types of states:
+(q;q0;1) if there exists a nested word nwhich takes Afrom stateqto stateq02Qf;
+(q;q0;2) if there exists a nested word nwithout any pending returns, which takes
+Afrom stateqto stateq02Qf; (q;q0;3) if there exists a well-matched nested word
+nwhich takes Afrom stateqto stateq0. Initial states of Bare of the form ( q;q0;1)
+such thatq2Q0andq02Qf. All states are nal. The state of Bkeeps track
+the current state of Aalong with a target state where the run of Acan end so
+that we are sure of existence of a sux leading to a word in L(A). Initially, the
+target state is required to be a nal state, and this target is propagated along the
+run. At a call, Bcan either propagate the current target across the linear edge
+requiring that the current state can reach the target without using pending returns;
+or propagate the current target across the nesting edge, and across the linear edge,
+guess a new target state requiring that the current state can reach this target using
+a well-matched word. The third component of the state is used to keep track of
+the constraint on whether pending calls and/or returns are allowed. Note that the
+reachability information necessary for eectively constructing the automaton Bcan
+be computed using analysis techniques discussed in decision problems. Transitions
+ofBare described below.
+(Internal). For every internal transition ( q;a;p )2i, forx= 1;2;3, for every
+q02Q, if both (q;q0;x) and (p;q0;x) are states of B, then there is an internal
+transition (( q;q0;x);a;(p;q0;x)).
+(Call). Consider a linear call transition ( q;a;p )2l
+candq02Qandx= 1;2;3,
+such that ( q;q0;x) is a state of B. Then for every state rsuch that ( p;r;3) is
+a state ofBand there exists b2 and state r02Qsuch that ( r0;q0;x) is a
+state ofBand (r;q;b;r0)2r, there is a call transition (( q;q0;x);a;(p;r;3)). In
+addition, if x= 1;2 and (p;q0;2) is a state of B, then there is a call transition
+((q;q0;x);a;(p;q0;2)).
+(Return). For every return transition ( q;p;a;r )2r, forx= 1;2;3, forq02Q,
+if (p;q0;x) and (r;q0;x) are states of B, then there is a return transition
+((q;q;3);(p;q0;x);a;(r;q0;x)). Also, for every return transition ( q;p;a;r )2rwith
+p2Q0, for everyq02Qf, if (q;q0;1) and (r;q0;1) and (p;q0;1) are states of Bthen
+there is a return transition (( q;q0;1);(p;q0;1);a;(r;q0;1)).
+The automaton Baccepts a nested word ni there exists a nested word n0such
+that the concatenation of nandn0is accepted by A.
+Closure under suxes follows from the closure under prexes and reversals. 2
+Finally, we consider language homomorphisms. For every symbol a2^, leth(a)
+be a language nested words. We say that hrespects nesting if for each a2,
+h(a)WNW (),h(ha)hWNW (), andh(ai)WNW ()i. That is,
+internal symbols get mapped to well-matched words, call symbols get mapped to
+well-matched words with an extra call symbol at the beginning, and return symbols
+get mapped to well-matched words with an extra return symbol at the end. Given
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 24 ---
+24 R. Alur and P. Madhusudan
+a language Lover ^,h(L) consists of words wobtained from some word w02Lby
+replacing each letter ain the tagged word for w0by some word in h(a). Nesting-
+respecting language homomorphisms can model a variety of operations such as
+renaming of symbols and tree operations such as replacing letters by well-matched
+words.
+Theorem 3.8 (Homomorphism closure). IfLis a regular language of nested
+words over , andhis a language homomorphism such that hrespects nesting and
+for everya2^,h(a)is a regular language of nested words, then h(L)is regular.
+Proof. LetAbe the NWA accepting L, and for each a, letBabe the NWA for
+h(a). The nondeterministic automaton Bforh(L) has states consisting of three
+components. The rst keeps track of the state of A. The second remembers the
+current symbol a2^ of the word in Lbeing guessed. The third component is a
+state ofBa. When this automaton Bais in a nal state, then the second component
+can be updated by nondeterministically guessing the next symbol b, updating the
+state ofAaccordingly, and setting the third component to the initial state of Bb.
+Whenbis a call symbol, we know that the rst symbol of the word in h(b) is a
+pending call, and we can propagate the state of Aalong the nesting edge, so that
+it can be retrieved correctly later to simulate the behavior of Aat the matching
+return. 2
+4. MONADIC SECOND ORDER LOGIC OF NESTED WORDS
+We show that the monadic second order logic (MSO) of nested words has the
+same expressiveness as nested word automata. The vocabulary of nested sequences
+includes the linear successor and the matching relation ;. In order to model
+pending edges, we will use two unary predicates call and retcorresponding to
+call and return positions.
+Let us x a countable set of rst-order variables FVand a countable set of
+monadic second-order (set) variables SV. We denote by x;y;x0, etc., elements in
+FVand byX;Y;X0, etc., elements of SV.
+The monadic second-order logic of nested words is given by the syntax:
+':=a(x)jX(x)jcall (x)jret(x)jx=y+ 1jx;yj'_'j:'j9x:'j9X:';
+wherea2,x;y2FV, andX2SV.
+The semantics is dened over nested words in a natural way. The rst-order
+variables are interpreted over positions of the nested word, while set variables are
+interpreted over sets of positions. a(x) holds if the symbol at the position inter-
+preted forxisa,call (x) holds if the position interpreted for xis a call,x=y+ 1
+holds if the position interpreted for yis (linear) next to the position interpreted
+forx, andx;yholds if the positions xandyare related by a nesting edge. For
+example,
+8x:(call (x)!9y: x;y)
+holds in a nested word i it has no pending calls;
+8x:8y:(a(x)^x;y))b(y)
+holds in a nested word i for every matched call labeled a, the corresponding return-
+successor is labeled b.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 25 ---
+Adding nesting structure to words  25
+For a sentence '(a formula with no free variables), the language it denes is the
+set of all nested words that satisfy '. We show that the class of all nested-word
+languages dened by MSO sentences is exactly the regular nested-word languages.
+Theorem 4.1 (MSO characterization). A language Lof nested words over
+is regular i there is an MSO sentence 'over that denes L.
+Proof. The proof is similar to the proof that MSO over words denes the same
+class as that of regular word languages (see [Thomas 1990]).
+First we show that for any sentence ', the setL(') of satisfying models is
+regular. Let us assume that in all formulas, each variable is quantied at most
+once. Consider any formula (x1;:::;xm;X1;:::;Xk) (i.e. with free variables
+Z=fx1;:::;xm;X1;:::;Xkg). Then consider the alphabet Zconsisting of pairs
+(a;V) such that a2 andV:Z7!f0;1gis a valuation function. Then a nested
+wordn0over Zencodes a nested word nalong with a valuation for the variables
+(provided singleton variables get assigned to exactly one position). Let L( ) denote
+the set of nested words n0over Zsuch that the underlying nested word nsatises
+ under the valuation dened by n0. Then we show, by structural induction, that
+L( ) is regular.
+The property that rst-order variables are assigned exactly once can be checked
+using the nite control of an NWA. The atomic formulas X(x),a(x) andx=y+ 1
+are easy to handle.
+To handle the atomic formula x;y, we build a NWA that propagates, at every
+call position, the current symbol in Zonto the outgoing nesting edge. While
+reading a return labeled with ( a;v) wherevassignsyto 1, the automaton requires
+that the hierarchical state along the incoming nesting edge is of the form ( a0;v0)
+such thatv0assignsxto 1.
+Disjunction and negation can be dealt with using the fact that NWAs are closed
+under union and complement. Also, existential quantication corresponds to re-
+stricting the valuation functions to exclude a variable and can be done by renaming
+the alphabet, which is a special kind of nesting-respecting language homomorphism.
+For the converse, consider a weakly-hierarchical NWA A= (Q;q0;Qf;l
+c;i;r)
+whereQ=fq0;:::qkg. The corresponding MSO formula will express that there is
+an accepting run of Aon the input word and will be of the form 9X0:::9Xk'. Here
+Xistands for the positions where the run is in state qi. We can write conditions in
+'that ensure that the variables Xiindeed dene an accepting run. The clauses for
+initialization, acceptance, and consecution according to call and internal transition
+functions are straightforward. The only interesting detail here is to ensure that the
+run follows the return-transition function at return positions. The case for matched
+returns can be expressed by the formula:
+8x8y8z^k
+i=0^k
+j=0^a2(z=y+1^x;z^Xj(x)^Xi(y)^a(z)!Xr(qi;qj;a)(z))
+2
+5. VISIBLY PUSHDOWN LANGUAGES OF WORDS
+5.1 Visibly Pushdown Automata
+Given a language Lof nested words over , let nww(L) be the language of tagged
+words over ^ corresponding to the nested words in L. One can interpret a linearly-
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 26 ---
+26 R. Alur and P. Madhusudan
+accepting nested word automaton A= (Q;q0;Qf;P;p 0;c;i;r) as a pushdown
+word automaton ^Aover ^ as follows. Assume without loss of generality that call
+transitions of Ado not propagate p0on the nesting edge. The set of states of ^Ais
+Q, withq0as the initial state, and acceptance is by nal states given by Qf. The
+set of stack symbols is P, andp0is the bottom stack symbol. The call transitions
+are push transitions: in state q, while readingha, the automaton pushes h
+c(q;a)
+onto the stack, and updates state to l
+c(q;a). The internal transitions consume
+an input symbol in  without updating the stack. The return transitions are pop
+transitions: in state q, withpon top the stack, while reading a symbol ai, the
+automaton pops the stack, provided p6=p0, and updates the state to r(q;p;a ). If
+the frontier of the run of Aafter reading a nested word nisp1:::pkq, then, after
+reading the tagged word nww(n), the pushdown automaton ^Awill be in state q,
+and its stack will be p0p1:::pk, withpkon top.
+The readers familiar with pushdown automata may prefer to understand NWAs
+as a special case. We chose to present the denition of NWAs in Section 3.1 without
+explicit reference to a stack for two reasons. First, the denition of NWA is really
+guided by the shape of the input structures they process, and are thus closer to
+denitions of tree automata. Second, while a stack-based implementation is the
+most natural way to process the tagged word encoding a nested word, alternatives
+are possible if the entire nested word is stored in memory as a graph.
+This leads to:
+Proposition 5.1 (Regular nested-word languages as word CFLs). If
+Lis a regular language of nested words over then nw w(L)is a context-free lan-
+guage of words over ^.
+Not all context-free languages over ^ correspond to regular languages of nested
+words. A (word) language Lover ^ is said to be a visibly pushdown language (VPL)
+iwnw(L) is a regular language of nested words. In particular, f(ha)k(bi)kjk0g
+is a visibly pushdown language, but fakbkjk0gis a context-free language which
+is not a VPL.
+The pushdown automaton ^Acorresponding to an NWA Ais of a special form:
+it pushes while reading symbols of the form ha, pops while reading symbols of the
+formai, and does not update the stack while reading symbols in . We call such
+automata visibly pushdown automata . The height of the stack is determined by
+the input word, and equals the depth of the prex read plus one (for the bottom
+of the stack). Visibly pushdown automata accept precisely the visibly pushdown
+languages. Since NWAs can be determinized, it follows that the VPLs is a subclass
+ofdeterministic context-free languages (DCFLs). Closure properties and decision
+problems for VPLs follow from corresponding properties of NWAs.
+While visibly pushdown languages are a strict subclass of context-free languages,
+for every context-free language, we can associate a visibly pushdown language by
+projection in the following way.
+Theorem 5.2 (Relation between CFLs and VPLs). IfLis a context-free
+language over , then there exists a VPL L0over ^such thatL=h(L0), whereh
+is the renaming function that maps symbols ha,a, andai, toa.
+Proof. LetAbe a pushdown automaton over  and let us assume, without loss
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 27 ---
+Adding nesting structure to words  27
+of generality, that on reading a symbol, Apushes or pops at most one stack symbol,
+and acceptance is dened using nal states. Now consider the visibly pushdown
+automaton A0over ^ obtained by transforming Asuch that every transition on a
+that pushes onto the stack is transformed to a push transition on ha, transitions
+onathat pop the stack are changed to pop transitions on aiand the remaining
+a-transitions are left unchanged. Then a word w=a1a2:::a`is accepted by Ai
+there is some augmentation w0ofw,w0=b1b2:::b`, where each bi2fai;hai;aiig,
+such thatw0is accepted by A0. ThusA0accepts the words in L(A) annotated with
+information on how Ahandles the stack. It follows that L(A) =h(L(A0)), whereh
+is the renaming function that maps, for each a2, symbolsha,a, andai, toa.2
+5.2 Grammar-based Characterization
+It is well known that context-free languages can be described either by pushdown au-
+tomata or by context-free grammars. In this section, we identify a class of context-
+free grammars that corresponds to visibly pushdown languages.
+A context-free grammar over an alphabet  is a tuple G= (V;S; Prod ), where
+Vis a nite set of variables, S2Vis a start variable, and Prod is a nite set of
+productions of the form X!such thatX2Vand2(V[). The semantics
+of the grammar Gis dened by the derivation relation )over (V[): for every
+production X!and for all words ;02(V[),X0)0holds. The
+languageL(G) of the grammar Gconsists of all words w2such thatS)w,
+that is, a word wover  is in the language of the grammar Gi it can be derived
+from the start variable Sin one or more steps.
+A context-free grammar G= (V;S; Prod ) over ^ is a visibly pushdown grammar
+if the setVof variables is partitioned into two disjoint sets V0andV1, such that
+all the productions are of one the following forms
+|X!"forX2V;
+|X!aYforX;Y2Vanda2^ such that if X2V0thena2 andY2V0;
+|X!haYbiZforX;Z2VandY2V0anda;b2 such that if X2V0then
+Z2V0.
+The variables in V0derive only well-matched words where there is a one-to-one
+correspondence between calls and returns. The variables in V1derive words that
+can contain pending calls as well as pending returns. In the rule X!aY, ifa
+is a call or a return, then either it is unmatched or its matching return or call is
+not remembered, and the variable Xmust be in V1. In the rule X!haYbiZ,
+the positions corresponding to symbols aandbare the matching calls and returns,
+with a well-matched word, generated by Y2V0, sandwiched in between, and if X
+is required to be well-matched then that requirement propagates to Z.
+Observe that the rule X!aYis right-linear, and is as in regular grammars. The
+ruleX!haYbiZrequiresaandbto be matching call and return symbols, and
+can be encoded by a visibly pushdown automaton that, while reading a, pushes
+the obligation that the matching return should be b, withZto be subsequently
+expanded. This intuition can be made precise:
+Theorem 5.3 (Visibly pushdown grammars). A language Lover is a
+regular language of nested words i the language nw w(L)over ^has a visibly
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 28 ---
+28 R. Alur and P. Madhusudan
+pushdown grammar.
+Proof. LetG= (V;S; Prod ) be a visibly pushdown grammar over ^. We build
+a nondeterministic NWA AGthat accepts wnw(L(G)) as follows. The set of states
+ofAGisV. The unique initial state is S. The set of hierarchical states is  V
+along with an initial hierarchical state ?. The transitions of AGfrom a state Xon
+a symbolaare as follows:
+Internal:.icontains (X;a;Y ) for each variable Ysuch thatX!aYis a pro-
+duction ofG.
+Call:.ccontains (X;a;Y;?) for each variable Ysuch thatX!haYis a pro-
+duction ofG; and (X;a;Y; (b;Z)) for each production X!haYbiZofG.
+Return:.rcontains (X;?;a;Y ) for each variable Ysuch thatX!aiYis a
+production of G; and ifXis a nullable symbol (that is, X!"is a production of
+G) and is inV0, then for each variable Y,rcontains (X;(a;Y);a;Y ).
+The rst clause says that the automaton can update state from XtoYwhile
+processing an a-labeled internal position according to the rule X!aY. The
+second clause says that while reading a call, to simulate the rule X!haY(this
+can happen only when X2V1), the automaton propagates the initial state ?along
+the nesting edge, and updates the state to Y. To simulate the rule X!haYbiZ,
+the automaton changes the state to Ywhile remembering the continuation of the
+rule by propagating the pair ( b;Z) onto the nesting edge. The third clause handles
+returns. The return can be consumed using a rule X!aiYwhenXis inV1.
+If the current state is nullable and in V0, then the state along the nesting edge
+contains the required continuation, and the symbol being read should be consistent
+with it. If neither of these conditions hold, then no transition is enabled, and the
+automaton will reject. The sole accepting hierarchical state is ?(which means
+that there is no requirement concerning matching return), and the linear accepting
+states are nullable variables X.
+Conversely, consider a linearly-accepting NWA A= (Q;q0;Qf;P;p 0;c;i;r).
+We will construct a visibly pushdown grammar GAthat generates nww(L(A)).
+For each state q2Q, the setV1has two variables XqandYq; and for every pair of
+(linear) states q;p, the setV0has a variable Zq;p. Intuitively, the variable Xqsays
+that the state is qand there are no pending call edges; the variable Yqsays that
+the state is qand no pending returns should be encountered; and the variable Zq;p
+says that the current state is qand the state just before the next pending return is
+required to be p. The start variable is Xq0.
+(1) For each state q, there is a production Zq;q!", and ifq2QF, there are
+productions Xq!"andYq!".
+(2) For each symbol aand stateq, letp=i(q;a). There are productions Xq!
+aXpandYq!aYp, and for each state q0, there is a production Zq;q0!aZp;q0.
+(3) For symbols a;b, and states q;p, letq0=l
+c(q;a) andp0=r(p;h
+c(q;a);b).
+There are productions Xq!haZq0;pbiXp0andYq!haZq0;pbiYp0, and for every
+stater, there is a production Zq;r!haZq0;pbiZp0;r.
+(4) For each symbol aand stateq, letp=l
+c(q;a). There are productions Xq!
+haYpandYq!haYp.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 29 ---
+Adding nesting structure to words  29
+Closure under
+Union Intersection Complement Concat/Kleene- Prex/Sux
+Regular Yes Yes Yes Yes Yes
+CFL Yes No No Yes Yes
+DCFL No No Yes No Yes
+Balanced Yes Yes No Yes No
+VPL Yes Yes Yes Yes Yes
+Fig. 10. Closure properties of classes of word languages
+(5) For each symbol aand stateq, letp=r(q;p0;a). There is a production
+Xq!aiXp.
+In any derivation starting from the start variable, the string contains only one
+trailingXorYvariable, which can be nullied by the rst clause, provided the
+current state is accepting. The rst clause allows nullifying a variable Zq;q0when
+the current state qis same as the target state q0, forcing the next symbol to be a
+return. Clause 2 corresponds to processing internal positions consistent with the
+intended interpretation of the variables. Clause 3 captures summarization. In state
+q, while reading a call a, the automaton propagates h
+c(q;a) while updating its
+state toq0=l
+c(q;a) We guess the matching return symbol band the state pjust
+before reading this matching return. The well-matched word sandwiched between
+is generated by the variable Zq0;p, and takes the automaton from q0top. The
+variable following the matching return bis consistent with the return transition
+that updates state p, using hierarchical state h
+c(q;a) along the nesting edge while
+readingb. The clause 4 corresponds to the guess that the call being read has no
+matching return, and hence, it suces to remember the state along with the fact
+that no pending returns can be read by switching to the Yvariables. The nal
+clause allows processing of unmatched returns. 2
+Recall that a bracketed language consists of well-bracketed words of dierent types
+of parentheses (c.f. [Ginsburg and Harrison 1967; Hopcroft and Ullman 1979]). A
+parenthesis language is a bracketed language with only one kind of parentheses.
+Bracketed languages are special case of balanced grammars [Berstel and Boasson
+2002; Br uggermann-Klein and Wood 2004]. The original denition of balanced
+grammars considers productions of the form X!haLai, whereLis a regular
+language over the nonterminals V. We present a simpler formulation that turns
+out to be equivalent.
+A grammar G= (V;S; Prod ) is a balanced grammar if all the productions are of
+the formX!"orX!haYaiZ. Clearly, a balanced grammar is also a visibly
+pushdown grammar. In particular, the maximal parenthesis language|the Dyck
+language consisting of all well-bracketed words, denoted Dyck (), is generated by
+the grammar with sole variable Swith productions S!"andS!haSaiS, for
+everya2. It is known that every context-free language is a homomorphism of the
+intersection of the Dyck language with a regular language (in contrast, Theorem 5.2
+asserts that every CFL is a homomorphism of a VPL).
+The table of Figure 5.2 summarizes and compares closure properties for CFLs,
+deterministic CFLs (DCFLs), VPLs, balanced languages, and regular languages.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 30 ---
+30 R. Alur and P. Madhusudan
+6. DECISION PROBLEMS
+As we have already indicated, a nested word automaton can be interpreted as a
+pushdown automaton. The emptiness problem (given A, isL(A) =;?) and the
+membership problem (given Aand a nested word n, isn2L(A)?) for nested word
+automata are solvable in polynomial-time since we can reduce it to the emptiness
+and membership problems for pushdown automata. For these problems, Acan be
+nondeterministic.
+If the automaton Aisxed, then we can solve the membership problem in simul-
+taneously linear time and linear space, as we can determinize Aand simply simulate
+the word on A. In fact, this would be a streaming algorithm that uses at most space
+O(d) wheredis the depth of nesting of the input word. A streaming algorithm is one
+where the input must be read left-to-right, and can be read only once. Note that
+this result comes useful in type-checking streaming XML documents, as the depth
+of documents is often not large. When Ais xed, the result in [von Braunm uhl
+and Verbeek 1983] exploits the visibly pushdown structure to solve the membership
+problem in logarithmic space, and [Dymond 1988] shows that membership can be
+checked using boolean circuits of logarithmic depth. These results lead to:
+Proposition 6.1 (Emptiness and membership). The emptiness problem for
+nondeterministic nested word automata is decidable in time O(jAj3). The mem-
+bership problem for nondeterministic nested word automata, given Aand a nested
+wordnof length`, can be solved in time O(jAj3:`). WhenAis xed, it is solvable
+(1) in time O(`)and spaceO(d)(wheredis the depth of n) in a streaming setting;
+(2) in space O(log ` )and timeO(`2:log ` ); and (3) by (uniform) Boolean circuits
+of depthO(log ` ).
+The inclusion problem (and hence the equivalence problem) for nested word au-
+tomata is decidable. Given A1andA2, we can check L(A1)A2by checking if
+L(A1)\L(A2) is empty, since regular nested languages are eectively closed under
+complement and intersection. Note that if the automata are deterministic, then
+these checks are polynomial-time, and if the automata are nondeterministic, the
+checks require the determinization construction.
+Theorem 6.2 (Universality and inclusion). The universality problem and
+the inclusion problem for nondeterministic nested word automata are Exptime -
+complete.
+Proof. Decidability and membership in Exptime for inclusion hold because,
+given nondeterministic NWAs A1andA2, we can take the complement of A2after
+determinizing it, take its intersection with A1and check for emptiness. Univer-
+sality reduces to checking inclusion of the language of the xed 1-state NWA A1
+accepting all nested words with the given NWA. We now show that universality
+isExptime -hard for nondeterministic NWAs (hardness of inclusion follows by the
+above reduction).
+The reduction is from the membership problem for alternating linear-space Tur-
+ing machines (TM) and is similar to the proof in [Boujjani et al. 1997] where it is
+shown that checking pushdown systems against linear temporal logic specications
+isExptime -hard.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 31 ---
+Adding nesting structure to words  31
+Decision problems for automata
+Emptiness Universality/Equivalence Inclusion
+DFA Nlogspace Nlogspace Nlogspace
+NFA Nlogspace Pspace Pspace
+PDA Ptime Undecidable Undecidable
+DPDA Ptime Decidable Undecidable
+NWA Ptime Ptime Ptime
+Nondet NWA Ptime Exptime Exptime
+Fig. 11. Summary of decision problems
+Given an input word for such a xed TM, a run of the TM on the word can
+be seen as a binary tree of congurations, where the branching is induced by the
+universal transitions. Each conguration can be encoded using O(s) bits, where s
+is the length of the input word. Consider an inx traversal of this tree, where every
+conguration of the tree occurs twice: when it is reached from above for the rst
+time, we write out the conguration and when we reach it again from its left child
+we write out the conguration in reverse. This encoding has the property that for
+any parent-child pair, there is a place along the encoding where the conguration
+at the parent and child appear consecutively. We then design, given an input word
+to the TM, a nondeterministic NWA that accepts a word ninis either a wrong
+encoding (i.e. does not correspond to a run of the TM on the input word) or n
+encodes a run that is not accepting. The NWA checks if the word satises the
+property that a conguration at a node is reversed when it is visited again using
+the nesting edges. The NWA can also guess nondeterministically a parent-child
+pair and check whether they correspond to a wrong evolution of the TM, using the
+nite-state control. Thus the NWA accepts all nested words i the Turing machine
+does not accept the input. 2
+The table of Figure 6 summarizes and compares decision problems for various
+kinds of word and nested-word automata.
+7. RELATION TO TREE AUTOMATA
+In this section, we show that ordered trees, and more generally, hedges|sequences
+of ordered trees, can be naturally viewed as nested words, and existing versions of
+tree automata can be interpreted as nested word automata.
+7.1 Hedges as Nested Words
+Ordered trees and hedges can be interpreted as nested words. In this representation,
+it does not really matter whether the tree is binary, ranked, or unranked.
+The setOT() of ordered trees and the set H() of hedges over an alphabet 
+is dened inductively:
+(1)"is inOT() andH(): this is the empty tree;
+(2)t1;:::tk2H(), where k1 and each tiis a nonempty tree in OT(): this
+corresponds to the hedge with ktrees.
+(3) fora2 andt2H(),a(t) is inOT() andH(): this represents the tree
+with root labeled a, and children corresponding to the trees in the hedge t.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 32 ---
+32 R. Alur and P. Madhusudan
+Consider the transformation tw:H()7!^that encodes an ordered tree/hedge
+over  as a word over ^:tw(") =";tw(t1;:::tk) = tw(t1)tw(tk); and
+tw(a(t)) =hatw(t)ai. This transformation can be viewed as a traversal of the
+hedge, where processing an a-labeled node corresponds to rst printing an a-labeled
+call, followed by processing all the children in order, and then printing an a-labeled
+return. Note that each node is visited and copied twice. This is the standard
+representation of trees for streaming applications [Segoun and Vianu 2002]. An
+a-labeled leaf corresponds to the word haai, we will usehaias its abbreviation.
+The transformation tnw:H()7!NW() is the functional composition of tw
+and wnw. However, not all nested words correspond to hedges: a nested word
+n= (a1:::a`;;) is said to be a hedge word i it has no internals, and for all i;j,
+ai=aj. A hedge word is a tree word if it is rooted (that is, 1 ;`holds). We will
+denote the set of hedge words by HW()WNW (), and the set of tree words
+byTW()HW(). It is easy to see that hedge words correspond exactly to the
+Dyck words over ^ [Br uggermann-Klein and Wood 2004].
+Proposition 7.1 (Encoding hedges). The transformation t nw:H()7!
+NW()is a bijection between H()andHW()and a bijection between OT()
+andTW(); and the composed mapping t nwnww is a bijection between H()
+and Dyck ().
+The inverse of tnwthen is a transformation function that maps hedge/tree
+words to hedges/trees, and will be denoted nwt. It is worth noting that a nested
+word automaton can easily check the conditions necessary for a nested word to
+correspond to a hedge word or a tree word.
+Proposition 7.2 (Hedge and tree words). The setsHW()andTW()
+are regular languages of nested words.
+7.2 Bottom-up Automata
+A weakly-hierarchical nested word automaton A= (Q;q0;Qf;l
+c;i;r) is said to
+bebottom-up i the call-transition function does not depend on the current state:
+l
+c(q;a) =l
+c(q0;a) for allq;q02Qanda2. Consider the run of a bottom-
+up NWAAon a nested word n, letibe a call with return-successor j. Then,A
+processes the rooted subword n[i;j] without using the prex of nuptoi. This does
+not limit expressiveness provided there are no unmatched calls. However, if iis a
+pending call, then the acceptance of nbyAdoes not depend at all on the prex
+n[1;i1], and this causes problems. In particular, for  = fa;bg, the language
+containing the single nested word ahacan be accepted by an NWA, but not by a
+bottom-up NWA (if a bottom-up NWA accepts aha, then it will also accept nha,
+for every nested word n). To avoid this anomaly, we will assume that bottom-up
+automata process only well-matched words.
+Theorem 7.3 (Expressiveness of bottom-up automata). Given a
+weakly-hierarchical NWA Awithsstates, one can eectively construct a weakly-
+hierarchical bottom-up NWA Bwithssstates such that L(A)\WNW () =L(B)\
+WNW ().
+Proof. LetA= (Q;q0;Qf;l
+c;i;r) be a weakly-hierarchical NWA. A state of
+Bis a function f:Q7!Q. When a call is encountered, since Bcannot use the
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 33 ---
+Adding nesting structure to words  33
+current state, it simulates Afor every possible state. Consider a nested word n
+and a position ifor which the inner-most pending call is j. The state of Bbefore
+processing position iisfsuch that the subword n[j;i1] takesAfromqtof(q),
+for eachq2Q.
+The initial state of Bis the identity function. A state fis nal iff(q0)2Qf.
+After reading an a-labeled call, the state of Bisfsuch thatf(q) =l
+c(q;a).
+While reading an a-labeled internal in state f,Bupdates its state to f0such
+thatf0(q) =i(f(q);a). While reading an a-labeled return in state f, if the state
+along the nesting edge is g, thenBupdates its state to f0such thatf0(q) =
+r(f(g(q));g(q);a). To complete the proof, one establishes that for a well-matched
+wordn,AacceptsniBacceptsn.2
+A variety of denitions of bottom-up tree automata have been considered in the
+literature. In the generic denition of a bottom-up automaton over unranked trees,
+the automaton has a nite set of states Q, an initial state q0, a set of nal states
+QfQ, and a transition function :Q7!Q. The run rof the automa-
+ton maps each ordered tree tto a stater(t). For the empty tree ",r(") is the
+initial state q0, and for a tree twith ana-labeled root and children t1:::tk,r(t)
+is(r(t1)r(tk);a). The automaton accepts a tree tifr(t)2Qf. The transi-
+tion function must be speciable by a nite-state automaton itself. The denition
+simplies for binary trees, where the transition function maps QQ toQ.
+All of these can be viewed as special cases of bottom-up NWAs. In particular,
+bottom-up stepwise tree automata are very similar and process the input in the
+same order [Br uggemann-Klein et al. 2001; Martens and Niehren 2005]. The only
+dierence is that stepwise automata were dened to read only tree or hedge words,
+and process the symbol at a call when rst encountered. That is, a stepwise bottom-
+up tree automaton is a bottom-up NWA on hedge words with the restriction that
+r:QQ7!Qdoes not depend on its third argument.
+Proposition 7.4 (Bottom-up tree automata). IfLH()is accepted by
+a stepwise bottom-up tree automaton with sstates, then there exists a bottom-up
+NWAAwithsstates such that nw t(L(A)) =L.
+Since stepwise bottom-up tree automata accept all regular tree languages, it fol-
+lows that NWAs can dene all regular tree languages. Also, stepwise automata have
+been shown to be more succinct than many other classes of tree automata [Martens
+and Niehren 2005], so succinctness gap of NWAs with respect to bottom-up NWAs
+carries over to these classes. We show the following exponential gap, using tech-
+niques developed for dening congruences for nested words [Alur et al. 2005]:
+Theorem 7.5 (Succinctness gap for bottom-up automata). There exists
+a familyLs,s1, of regular languages of tree words such that each Lsis accepted
+by an NWA with O(s2)states, but every bottom-up NWA accepting Lsmust have
+2sstates.
+Proof. Let  =fa;bg. We will use Lto denote the set fhai;hbig. Fors1,
+consider the language Lsof tree words of the form hahbimhaLi1haiLsiaiai, where
+i=mmods.
+First, we want to establish that there is a deterministic word automaton (and
+hence, also an NWA) with O(s2) states accepting Ls. The automaton can compute
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 34 ---
+34 R. Alur and P. Madhusudan
+the value of i=mmodsafter readinghahbimhaby counting the number of repeti-
+tions ofhbimodulosusingO(s) states. Then, it must ensure that what follows is
+Li1haiLsiaiai. For each value of i, this can be done using O(s) states.
+LetAbe a bottom-up NWA accepting Ls. Letqbe the unique state of Ahaving
+read the prexhahbimha. This state qis independent of msinceAis bottom up.
+The setLscontains 2swell-matched words. If Ahas less than 2sstates then there
+must exist two distinct words nandn0inLssuch thatAgoes to the same state q0
+after reading both nandn0starting in state q. Sincenandn0are distinct, they
+must dier in some block. That is, there must exist 1 issuch thatnis of
+the formLi1haiLsiandn0is of the form Li1hbiLsi. Now consider the words
+hahbiihanaiaiandhahbiihan0aiai. Only one of them is in Ls, butAwill either
+accept both or reject both. 2
+Finally, let us revisit the grammar based characterization using visibly pushdown
+grammars. If we are restricting to hedge words, then we do not need the right-linear
+rules, and Dyck rules suce. This leads to the following equivalence theorem.
+The equivalence of regular hedge languages and the original balanced languages
+(dened using rules of the form X!haLai, whereLis a regular word language
+over nonterminals) implies that our denition of balanced grammars is equivalent
+to the original one [Br uggermann-Klein and Wood 2004].
+Theorem 7.6 (Regular Hedge Languages and Balanced Languages).
+LetLHW()be a set of hedge words over . Then the following are equivalent
+(1)Lis a regular nested-word language.
+(2)nwt(L)is a regular hedge language.
+(3)nww(L)is a balanced language.
+Proof. We already know that over hedge words, NWAs have the same expres-
+siveness as tree automata. From Theorem 5.3, we know that a balanced language, a
+special case of a visibly pushdown grammar, can be translated into an NWA. What
+remains to be shown is that while the translation from an NWA Ato the grammar
+GAcan be done using only Dyck rules when L(A) contains only hedge words. The
+translation is similar as in the proof of Theorem 5.3. Let A= (Q;q0;Qf;P;c;r)
+be an NWA accepting only hedge words (initial hierarchical state, nal hierar-
+chical states, and internal transition relation are not used while processing hedge
+words). We need only variables Zq;pgenerating hedge words with the interpreta-
+tion that the current state is qand the state before the next pending return is
+p. The start variables are of the Zq0;pwithp2Qf. For each state q, we have a
+production Zq;q!". For each symbol aand statesp;q;q0, we have a production
+Zq;p!haZlc(q;a);q0aiZr(q0;hc(q;a);a);p. The grammar generates only those hedge
+words accepted by A, and has only Dyck rules. 2
+The relationship among various classes of languages is depicted in Figure 12.
+7.3 Top-down Automata
+A nested word automaton at a return position joins the information owing along
+the linear edge and the nesting edge. In this section, we study the impact of
+disallowing such a join. A top-down automaton, at a call, processes the subword
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 35 ---
+Adding nesting structure to words  35
+Regular Nested−word Languages
+= Visibly Pushdown Word LanguagesDeterministic Context−free Word Languages
+Regular Word LanguagesRegular Hedge Languages
+= Balanced Word Languages
+Fig. 12. Relationship among languages classes
+upto the matching return and the sux after the return independently. This can
+be formulated as a restriction of the return transition relation: the next state is
+based upon the state propagated along the nesting edge and the only information
+along the linear edge is whether the inside subword is accepted or not.
+Anondeterministic top-down nested word automaton is a nondeterministic NWA
+(Q;Q 0;Qf;P;c;i;r) such that the return relation is specied by the hierarchical
+return relation h
+rPQ: (q;p;a;q0)2ri (p;a;q0)2h
+randq2Qf. The
+automaton is deterministic if there is only one initial state and choice of at most
+one transition given the current state and symbol.
+Over tree words, the standard denition of top-down tree automata is essen-
+tially the same as our notion of top-down automata. A top-down tree automaton
+processing hedges consists of states Q, initial state q0, nal states FQ, and a
+transition function :Q7!2QQ. The automaton starts in the initial state
+q0processing the root node of the left-most tree in the hedge t. While processing
+ana-labeled node in state q, it chooses a transition ( q1;q2)2(q;a), and sends a
+copy in state q1to the left-most child of the current node, and a copy in state q2
+to the right-sibling of the current node. If there is no child, then q1is processing
+the empty tree, and if there is no right sibling, q2is processing the empty tree. An
+empty tree is accepted in a state qiq2F. To accept the hedge t, all copies
+must accept. Such a top-down tree automaton is deterministic if j(q;a)j1 for
+all statesqand labelsa.
+Proposition 7.7 (Top-down tree automata). IfLH(), thenLis ac-
+cepted by a (non)deterministic top-down tree automaton with sstates i there exists
+a (non)deterministic top-down NWA Awithsstates such that nw t(L(A)) =L.
+This implies that the well-known expressiveness deciency of deterministic top-
+down tree automata applies in case of nested words. Consider the requirement
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 36 ---
+36 R. Alur and P. Madhusudan
+that the nested word contains some a-labeled symbol. This cannot be checked by
+a top-down automaton.
+Corollary 7.8 (Expressiveness of deterministic top-down automata).
+Deterministic top-down nested word automata are strictly less expressive than nested
+word automata.
+Nondeterminism can be used to address this deciency, provided we restrict at-
+tention to well-matched words.
+Theorem 7.9 (Expressiveness of nondeterministic top-down automata).
+Given a nondeterministic NWA Awithsstates, one can eectively construct a
+nondeterministic NWA BwithO(s2jj)states such that L(A)\WNW () =
+L(B)\WNW ().
+Proof. LetA= (Q;Q 0;Qf;P;c;i;r) be an NWA. We can ignore initial and
+nal hierarchical states, since we are interested only in well-matched words. For
+every pair ( q;q0) of states of A,Bhas a (linear) state meaning that the current
+state ofAisqand there is an obligation that the state of Awill beq0at the rst
+unmatched return. We will also need hierarchical states of the form ( q;q0;a) to
+label nesting edges to mean that the symbol at the return is guessed to be a. The
+initial states are of the form ( q;q0) withq2Q0andq02Qf. States of the form
+(q;q) are accepting. For every internal transition ( q;a;q0) ofA, for everyp,Bhas
+an internal transition (( q;p);a;(q0;p)). For every call transition ( q;a;ql;qh) ofA,
+for every return transition ( p;qh;b;r), for every state q0,Bhas a call transition
+((q;q0);a;(ql;p);(r;q0;b)). Note that here Bis demanding a run from qltopon
+the inside subword, and the accepting condition ensures that this obligation is met.
+The hierarchical return transitions of Bare of the form (( q;q0;a);a;(q;q0)), and
+ensure the consistency of the return symbol guessed at the call-predecessor with
+the symbol being read. 2
+7.4 Path Languages
+The mix of top-down and bottom-up traversal in nested word automata can be bet-
+ter explained on unary trees. We will consider a mapping that views a word as a
+sequence of symbols along a hierarchical path. More precisely, consider the transfor-
+mation function path : 7!NW() such that path(a1:::a`) iswnw(ha1:::ha`a`i:::a 1i).
+Note that for a word w,path(w) is rooted and has depth jwj.
+For a word language L, let path(L) =fpath(w)jw2Lgbe the correspond-
+ing language of tree words. We call such languages path languages . Observe that for
+unary trees, the multitude of denitions of tree automata collapse to two: top-down
+and bottom-up. Top-down tree automata for path(L) correspond to word automata
+acceptingL, while bottom-up tree automata correspond to word automata process-
+ing the words in reverse. The following proposition follows from denitions:
+Proposition 7.10 (Path languages). For a word language L, nw t(path(L))
+is accepted by a deterministic top-down tree automaton with sstates iLis accepted
+by a deterministic word automaton with sstates, and nw t(path(L))is accepted by
+a deterministic bottom-up tree automaton with sstates iLR, the reverse of L, is
+accepted by a deterministic word automaton with sstates.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 37 ---
+Adding nesting structure to words  37
+It follows that path(L) is a regular language of nested words i Lis a regular
+language of words. Also, for path languages, deterministic top-down and deter-
+ministic bottom-up automata can express all regular languages. Given that a word
+languageLand its reverse can have exponentially dierent complexities in terms
+of the number of states of deterministic acceptors, we get
+Theorem 7.11 (Bottom-up and top-down traversal of NWAs). There ex-
+ists a family Ls,s1, of regular path languages such that each Lsis accepted by
+a NWA with O(s)states, but every deterministic bottom-up or top-down NWA ac-
+ceptingLsmust have 2sstates.
+Proof. For  =fa;bg, letLsbe saas. An NWA with linear number of
+states can accept the corresponding path language: it needs to count scalls going
+down, count sreturns on way back, and also make sure that the input word is
+indeed a path word by passing each call-symbol along the hierarchical edge. It
+is easy to see that Lsrequires 2sstates for a DFA to enforce the constraint that
+s+1-th symbol from end is an a. SinceLsis its own reverse, from Proposition 7.10,
+the theorem follows. 2
+8. NESTED !-WORDS
+Automata over nite words are useful for specication and verication of safety
+properties. To be able to specify and verify liveness properties (for example, \ev-
+ery write is eventually followed by a read"), we need to consider innite words.
+Consequently, we now consider extensions of the results in the previous sections to
+innite words with a matching relation.
+The denition of a matching relation over Nas a subset of ( N[f1g )(N[
+f+1g) is a straightforward generalization of the denition of matching relation of
+length`; the axioms stay the same. A nested!-word over  is a pair ( a1a2:::;;),
+wherea1a2:::is an!-word over  and ;is a matching relation over N. The
+notions such as word encoding and operations generalize to nested !-words in the
+obvious way.
+In order to generalize NWAs to !-automata over nested words, we need to dene
+the notion of acceptance of an innite run over nested !-words, where the run con-
+sists of innite sequences of linear and hierarchical states. Since there are multiple
+possibilities here, we begin with the simplest possible notion of acceptance: B uchi
+acceptance using linear states. Since B uchi word automata need to be nondeter-
+ministic to capture all !-regular languages, we will consider nondeterministic B uchi
+automata over nested !-words.
+A(linearly-accepting) nondeterministic B uchi nested word automaton (BNWA)
+over an alphabet  consists of states Q, initial states Q0Q, B uchi states QfQ,
+hierarchical states P, initial hierarchical states P0P, a call transition relation
+cQQP, an internal transition relation iQQ, and a return
+transition relation rQPQ. A runrof the BNWA Aover a nested !-word
+n= (a1a2:::;;) is an innite sequence qi2Q, fori0, of states corresponding to
+linear edges, and a sequence pi2P, for callsi, of hierarchical states corresponding
+to nesting edges, such that q02Q0, and for each position i1, ifiis a call then
+(qi1;ai;qi;pi)2c; ifiis an internal then ( qi1;ai;qi)2i; ifiis a matched return
+with call-predecessor jthen (qi1;pj;ai;qi)2r, and ifiis a pending return then
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 38 ---
+38 R. Alur and P. Madhusudan
+(qi1;p0;ai;qi)2rfor somep02P0. The run is accepting if qi2Qffor innitely
+many indices i0. The automaton Aaccepts the nested !-wordnifAhas some
+accepting run over n. The language L(A) is the set of nested !-words it accepts.
+A setLof nested!-words is regular i there is a BNWA Asuch thatL(A) =L.
+The class of regular languages of nested !-words is closed under various opera-
+tions. In particular:
+Theorem 8.1 (Closure for !-languages). LetL1andL2be regular lan-
+guages of nested !-words over . Then,L1[L2andL1\L2are also regular.
+Further, if L3is a regular language of nested words over , thenL3:L1and(L3)!
+are regular languages of nested !-words. If his a language homomorphism such
+thathrespects nesting and for every a2^,h(a)is a regular language of nested
+words, then h(L1)is a regular language of nested !-words.
+Proof. The closure constructions for nondeterministic B uchi NWAs are similar
+to the ones in Theorem 3.5. For the case of intersection, we need to make sure that
+the B uchi states of both automata are visited innitely often, and this can be done
+by adding a bit to the state as is done for intersection of B uchi word automata.
+The construction for L!is similar to the construction for Lin Theorem 3.6.
+In this construction, for every transition leading to a state q2QF, the state is
+nondeterministically reset to some initial state. To ensure membership in L!, we
+need to require that this reset happens innitely often, and this can be captured
+by a B uchi condition after adding a bit to the state. The proof of closure under
+nesting-respecting homomorphisms is similar to the case of nite words. 2
+For automata over !-words, it is known that B uchi acceptance condition cannot
+capture all regular languages if we restrict attention to deterministic automata.
+For deterministic automata over !-words, adequate acceptance conditions include
+parity condition and Muller condition . For the nested case, it turns out that, for
+deterministic automata, no condition on the set of linear states repeating innitely
+often can capture all regular languages.
+A(linearly-accepting) deterministic Muller nested word automaton (MNWA) over
+an alphabet  consists of states Q, initial state q02Q, a Muller setF=fF1;:::Fkg
+of accepting sets FiQ, hierarchical states P, initial hierarchical state p0P,
+a call transition function c:Q7!QP, an internal transition function
+i:Q7!Q, and a return transition function r:QP7!Q. Given a nested
+!-wordn, the unique run rof a MNWA Aovernis dened as in case of deterministic
+NWAs. This run is accepting if the set fq2Qjfor innitely many indices i
+0; qi=qg2F .
+It is easy to see that Muller acceptance condition does not increase expressive-
+ness if nondeterminism is allowed. However, the classical determinization of B uchi
+automata fails in this case. Consider the language Lrepbdd consisting of all nested
+!-words onover the unary alphabet such that nhas only nitely many pending
+calls (that is, there exists k2Nsuch that the depth of innitely many positions
+is less than or equal to k). This property has been studied in the context of veri-
+cation of pushdown programs, and is called \repeatedly bounded stack depth" in
+[Cachat et al. 2002].
+Theorem 8.2 (Inadequacy of deterministic linear Muller acceptance).
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 39 ---
+Adding nesting structure to words  39
+The language Lrepbdd of nested!-words with only nitely many pending calls is
+accepted by a nondeterministic B uchi NWA but cannot be accepted by any deter-
+ministic Muller NWA.
+Proof. We can easily design a BNWA that accepts Lrepbdd. The automaton
+nondeterministically chooses a position in the word, and checks that there are no
+subsequent pending calls. The check can be performed by tagging the state. The
+tag is propagated at internal positions. At calls, the tag is propagated only across
+nesting edges, and at returns the tag is retrieved from the incoming nesting edges.
+The check succeeds if a tagged state is encountered innitely often.
+Now to show that no MNWA can accept Lrepbdd, assume the contrary and let
+A= (Q;q0;F;P;p 0;c;i;r) be a deterministic Muller automaton that accepts
+Lrepbdd. LetG1= (Q;!) be the summary-graph of Awhereq!q0i there exists
+a well-matched nested word nthat takes the automaton from qtoq0. Note that if
+qis a state reachable by Aon some nested word n0, then there must be an outgoing
+edge fromqinG1(ifnis any well-matched nested word, then n0n!is inLrepbdd, and
+is accepted by the deterministic automaton A, and hence, there will be a summary
+edge fromqcorresponding n). Also, since concatenation of well-matched words is
+well-matched, G1is transitively closed.
+Consider the strongly connected components (SCC) of G1. A sink SCC of G1is
+a strongly connected component S0such that every edge ( q;q0)2G1, ifq2S0then
+q0is also inS0.
+Now letG2= (Q;)) which is a super-graph of G1with additional call-edges :
+(q;q0) is a call-edge if there is a transition from qtoq0inAon a call. We now show:
+Lemma: There is a sink SCC SofG1and a state q2Sreachable from
+the initial state q0inG2such that there is a cycle involving qinG2that
+includes a call-edge.
+If the lemma is true, then we can show a contradiction. Consider a nested word
+that fromq0reachesqusing the summary edges and call-edges in G2and then
+loops forever in S. This word has only nitely many pending calls, and hence must
+be accepting and hence QS, the union of all states reachable using summary edges
+inSmust be in the Muller set F. Now consider another nested !-word that takes
+Afromq0toqbut now follows the cycle that involves q. Along the cycle, some
+are well-matched words corresponding to summary edges and some are calls; note
+that there will be no returns that match these calls. If Q0is the set of states visited
+from going to qalong the cycle, then we can show that Q0QS(after the cycle,
+if we feed enough returns to match the calls then we get a summary edge from q;
+however summary edges from qgo only toSand hence the states seen must be a
+subset ofQS). Now, consider the innite word that rst goes from q0toq, and then
+alternately takes the cycle in G2to reachqand takes the set of all possible summary
+edges inSto reachqagain. This word has innitely many pending calls, but the
+set of states seen innitely often is QSand is hence accepted, a contradiction.
+Now let us show the lemma. Note that from any state, one can take summary
+edges inG1to reach a sink SCC of G1. Let us take summary edges from q0to
+reach a state q1in a sink SCC S1ofG1and take the call edge from q1to reach
+q0
+1. Ifq0
+12S1, we are done as we have a cycle from q1toq1using a call-edge.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 40 ---
+40 R. Alur and P. Madhusudan
+Otherwise take summary edges in G1fromq0
+1to reach a state q2in a sink SCC S2.
+IfS2=S1, we are again done, else take a call-edge from q2and repeat till some
+sink SCC repeats. 2
+This raises the question: what is the appropriate acceptance condition for au-
+tomata over innite nested words? This was answered in [L oding et al. 2004]. Given
+a nested!-wordn, a position iis a top-level position if it is not within a nesting edge
+(that is, there are no positions j <i<k withj;k). If the acceptance condition
+can examine the part of the run restricted to the top-level positions, then determin-
+istic Muller (or deterministic Parity) condition suces. More precisely, a determin-
+istic stair Muller NWA is like a MNWA, but its run over a nested !-word is accept-
+ing if the setfq2Qjfor innitely many top-level positionsi0; qi=qg2F .
+Deterministic stair Muller NWAs can accept all regular languages of nested !-words.
+Closure of BNWAs under complementation, can be shown without resorting to
+determinization using the stair Muller acceptance condition.
+Theorem 8.3 (Complementation for !-languages). The class of regular
+languages of nested !-words is closed under complement: given a BNWA Awiths
+states, one can construct a BNWA with 2O(s2)states accepting the complement of
+L(A).
+Proof. LetA= (Q;Q 0;Qf;P;P 0;c;i;r) be a BNWA with sstates over .
+We can assume that there are transitions from every state on every letter, and that
+there is a run of Aon every nested !-word. Consider an !-wordw2^!. Thenw
+can be factored into nite words where we treat a segment of symbols starting at a
+call and ending at the matching return as a block. This factorization can be, say,
+of the form w=a1a2w1a3w2w3a4:::where each wiis a nite word over ^ that
+starts with a call and ends with the matching return. The symbols aican be calls,
+returns or internal symbols but if some aiis a call, then aj(j > i ) cannot be a
+return. Consider the following !-word which can be seen as a pseudo-run of Aon
+w:w0=a1a2S1a3S2S3a4:::where each Siis the set of all triples ( q;q0;f) where
+q;q02Q,f2f0;1gsuch that there is some run of Aonwistarting at the state q
+and ending at the state q0and containing a state in Qfif= 1.
+LetSdenote the set of all sets SwhereScontains triples of the form ( q;q0;f)
+whereq;q02Qandf2f0;1g; the summary edges used above hence are in S. Then
+PR= (i[[S)![(i[[S):(h[[S)!denotes the set of all possible pseudo-
+runs. We can now construct a nondeterministic B uchi word automaton ARthat
+accepts the set LRof all accepting pseudo-runs ; where a pseudo-run is accepting if
+there is a run of Athat runs over the ^-segments of the word in the usual way, and
+on lettersS2S, updates the state using a summary edge in Sand either meets
+Qfinnitely often or uses summary edges of the form ( q;q0;1) innitely often.
+Note that an !-wordwis accepted by Ai the pseudo-run corresponding to wis
+accepting. Now we construct a deterministic Streett automaton BRthat accepts
+thecomplement ofLR. The automaton ARhasO(s) states. Due to complexity of
+complementation, BRhas 2O(slogs)states andO(s) accepting constraints [Thomas
+1990].
+We now construct a nondeterministic B uchi NWA Bthat, on reading w, generates
+the pseudo-run of wonline and checks whether it is in LR. The factorization of w
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 41 ---
+Adding nesting structure to words  41
+into segments is done nondeterministically and the summary edges are computed
+online using the nesting edges (as in the proof of determinization of NWAs on nite
+words). The states of this automaton Bcorrespond to the summaries in S, and
+thus, it has 2O(s2)states.
+The desired automaton is the product of BandBR, and has 2O(s2)states and
+O(s) Streett accepting constraints. The resulting automaton can be converted to a
+B uchi automaton and accepts the complement of L(A), and has 2O(s2)states. 2
+We can also characterize the class of regular languages of nested !-words using
+monadic second order logic which is now interpreted over innite words, using the
+closure properties.
+Theorem 8.4 (MSO characterization of !-languages). A language Lof
+nested!-words over is regular i there is an MSO sentence 'over that denes
+L.
+Proof. The proof of Theorem 4.1 can be easily adopted to the innite case.
+To show that for a given MSO sentence, the set of its satisfying nested !-words
+can be accepted by a B uchi NWA, we use the same encoding. Consider any formula
+ (x1;:::;xm;X1;:::;Xk), and consider the alphabet Zconsisting of pairs ( a;V)
+such thata2 andV:Z7!f0;1gis a valuation function. Then a nested !-word
+n0over Zencodes a nested !-wordnalong with a valuation for the variables. Let
+L( ) denote the set of nested words n0over Zsuch that the underlying nested
+wordnsatises under the valuation dened by n0. Then we show, by structural
+induction, that L( ) is regular. The property that rst-order variables are assigned
+exactly once can be checked using the nite control of a B uchi NWA and the accep-
+tance condition. The atomic formulas are handled as before. Disjunction,negation,
+and existential quantication are handled using corresponding constructions for
+B uchi NWAs.
+The translation from B uchi NWAs to MSO uses the same encoding for capturing
+the runs of the automaton by a formula. Only the conjunct corresponding to the
+acceptance requirement for the run needs to be modied. 2
+The emptiness problem !-NWAs is decidable in polynomial time since they can be
+interpreted as pushdown automata over innite words over ^ [Burkart and Steen
+1992]. From our results it also follows that the universality and inclusion prob-
+lems are Exptime -complete for nondeterministic B uchi NWAs: the upper bounds
+follow from the complexity of complementation, and lower bounds follow from the
+corresponding bounds for NWAs.
+9. RELATED WORK
+Software Model Checking. Our work was motivated by the use of pushdown au-
+tomata in software verication. It is worth noting that most of the algorithms for
+inter-procedural program analysis and context-free reachability compute summary
+edges between control locations to capture the computation of the called proce-
+dure (see, for example [Sharir and Pnueli 1981; Reps et al. 1995]). The problem
+of checking regular requirements of pushdown models has been extensively studied
+in recent years leading to ecient implementations and applications to program
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 42 ---
+42 R. Alur and P. Madhusudan
+analysis [Reps et al. 1995; Boujjani et al. 1997; Ball and Rajamani 2000; Alur et al.
+2005; Henzinger et al. 2002; Esparza et al. 2003; Chen and Wagner 2002]. Decision
+procedures for certain classes of non-regular properties already exist [Jensen et al.
+1999; Chen and Wagner 2002; Esparza et al. 2003; Chatterjee et al. 2004]. The
+idea of making calls and returns in a recursive program visible to the specica-
+tion language for writing properties appears implicitly in [Jensen et al. 1999] which
+proposes a logic over stack contents to specify security constraints, and in [Esparza
+et al. 2003] which augments linear temporal logic with regular valuations over stack
+contents, and in our recent work on the temporal logic Caret that allows modal-
+ities for matching calls and returns [Alur et al. 2004]. Also, properties expressing
+boundedness of stack, and repeatedly boundedness, have received a lot of attention
+recently [Cachat et al. 2002; Bouquet et al. 2003].
+Context-free Languages. There is an extensive literature on pushdown automata,
+context-free languages, deterministic pushdown automata, and context-free !-languages
+(c.f. [Autebert et al. 1997]). The most related work is McNaughton's parenthesis
+languages with a decidable equivalence problem [McNaughton 1967]. Knuth showed
+that parentheses languages are closed under union, intersection, and dierence (but
+not under complementation, primarily because parenthesis languages can consist of
+only well parenthesized words), and it is decidable to check whether a context-free
+language is a parenthesis language [Knuth 1967]. These proofs are grammar-based
+and complex, and connection to pushdown automata was not studied. Furthermore,
+parenthesis languages are a strict subclass of visibly pushdown languages, even when
+restricted to languages of well-bracketed words. Recently, balanced grammars are
+dened as a generalization of parenthesis languages by allowing several kinds of
+parentheses and regular languages in the right hand sides of productions [Berstel
+and Boasson 2002]. It turns out that this class of languages is also a strict subclass
+of VPLs. The class of visibly pushdown languages, was also considered implicitly in
+papers related to parsing input-driven languages [von Braunm uhl and Verbeek 1983;
+Dymond 1988]. Input-driven languages are precisely visibly pushdown languages
+(the stack operations are driven by the input). However, the papers considered
+only the membership problem for these languages (namely showing that member-
+ship is easier for these languages than for general context-free languages) and did
+not systematically study the class of languages dened by such automata.
+It has been observed that propositional dynamic logic can be augmented with
+some restricted class of context-free languages, and simple-minded pushdown au-
+tomata, which may be viewed as a restricted class of VPAs, have been proposed to
+explain the phenomenon [Harel et al. 2000].
+There is a logical characterization of context free languages using quantications
+over matchings [Lautemann et al. 1994], and Theorem 5.2 follows from that result.
+Tree Automata. There is a rich literature on tree automata, and we used [Schwentick
+2007; Comon et al. 2002] for our research. Besides classical top-down and bottom-
+up automata over binary trees, stepwise bottom-up tree automata for process-
+ing unranked ordered trees [Martens and Niehren 2005; Br uggemann-Klein et al.
+2001] are the most relevant to this paper. The connection between balanced gram-
+mars and regular hedge languages has been explored [Berstel and Boasson 2002;
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 43 ---
+Adding nesting structure to words  43
+Br uggermann-Klein and Wood 2004]. Many of the constructions for nested word
+automata can be traced to the corresponding constructions for tree automata. De-
+terministic word automata have been also used for stream processing of XML doc-
+uments [Green et al. 2003], where the authors argue, with experimental supporting
+data, that nite-state word automata may be good enough given that hierarchical
+depth of documents is small. Pushdown automata have been used in various ways
+for streaming algorithms for querying XML data. For instance, [Gupta and Suciu
+2003] denes XPush machines, a particular form deterministic pushdown automata
+developed for processing multiple queries.
+10. CONCLUSIONS
+We have proposed a new model of nested words that allows capturing linear and
+hierarchical structure simultaneously. Both words and ordered trees are special
+cases of nested words, and nested words support both word and tree operations.
+Automata over nested words lead to a robust class of languages with appealing
+theoretical properties. Linear encodings of nested words gives the class of visi-
+bly pushdown languages, and this class lies between the parenthesis languages and
+deterministic context-free languages. Over trees, nested word automata combine
+top-down and bottom-up traversals, and are exponentially more succinct than ex-
+isting denitions of tree automata.
+This theory oers a way of extending the expressiveness of specication languages
+supported in model checking and program analysis tools: instead of modeling a
+boolean program as a context-free language of words and checking regular proper-
+ties, one can model both the program and the specication as regular languages
+of nested words. More generally, pushdown automata can be replaced by NWAs,
+provided the pushdown automaton is only a consumer, rather than a producer, of
+the matching relation.
+Given that NWAs can be more succinct than standard tree automata, and have
+same complexity of decision problems as that of standard tree automata, NWAs can
+potentially replace tree automata in some applications such as streaming algorithms
+for query processing. We need to explore if compiling existing XML query languages
+into nested word automata reduces query processing time in practice.
+ACKNOWLEDGMENTS
+We thank Marcelo Arenas, Pablo Barcelo, Swarat Chaudhuri, Kousha Etessami,
+Neil Immerman, Viraj Kumar, Leonid Libkin, Christof L oding, Val Tannen, Mahesh
+Viswanathan, and Mihalis Yannakakis for fruitful discussions related to this paper.
+We thank Christian Dax and Felix Klaedtke for pointing out the bug in the proof
+of Theorem 3.3 in the version that appeared in JACM. This research was partially
+supported by ARO URI award DAAD19-01-1-0473 and NSF awards CCR-0306382
+and CPA-0541149.
+REFERENCES
+Alur, R. 2007. Marrying words and trees. In Proceedings of the 26th ACM Symposium on
+Principles of Database Systems . 233{242.
+Alur, R. ,Benedikt, M. ,Etessami, K. ,Godefroid, P. ,Reps, T. ,and Yannakakis, M. 2005.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 44 ---
+44 R. Alur and P. Madhusudan
+Analysis of recursive state machines. ACM Transactions on Programming Languages and
+Systems 27, 4, 786{818.
+Alur, R. ,Etessami, K. ,and Madhusudan, P. 2004. A temporal logic of nested calls and returns.
+InTACAS'04: Tenth International Conference on Tools and Algorithms for the Construction
+and Analysis of Software . LNCS 2988. Springer, 467{481.
+Alur, R. ,Kumar, V. ,Madhusudan, P. ,and Viswanathan, M. 2005. Congruences for visibly
+pushdown languages. In Automata, Languages and Programming: Proceedings of the 32nd
+ICALP . LNCS 3580. Springer, 1102{1114.
+Alur, R. and Madhusudan, P. 2004. Visibly pushdown languages. In Proceedings of the 36th
+ACM Symposium on Theory of Computing . 202{211.
+Alur, R. and Madhusudan, P. 2006. Adding nesting structure to words. In Developments in
+Language Theory . LNCS 4036. Springer, 1{13.
+Autebert, J. ,Berstel, J. ,and Boasson, L. 1997. Context-free languages and pushdown au-
+tomata. In Handbook of Formal Languages . Vol. 1. Springer, 111{174.
+Ball, T. ,Majumdar, R. ,Millstein, T. ,and Rajamani, S. 2001. Automatic predicate ab-
+straction of C programs. In SIGPLAN Conference on Programming Language Design and
+Implementation . 203{213.
+Ball, T. and Rajamani, S. 2000. Bebop: A symbolic model checker for boolean programs. In
+SPIN 2000 Workshop on Model Checking of Software . LNCS 1885. Springer, 113{130.
+Berstel, J. and Boasson, L. 2002. Balanced grammars and their languages. In Formal and
+Natural Computing: Essays Dedicated to Grzegorz Rozenberg . LNCS 2300. Springer, 3{25.
+Bird, S. ,Chen, Y. ,Davidson, S. ,Lee, H. ,and Zheng, Y. 2006. Designing and evaluating an
+XPath dialect for linguistic queries. In Proceedings of the 22nd International Conference on
+Data Engineering . 52.
+Boujjani, A. ,Esparza, J. ,and Maler, O. 1997. Reachability analysis of pushdown automata:
+Applications to model checking. In CONCUR'97: Concurrency Theory, Eighth International
+Conference . LNCS 1243. Springer, 135{150.
+Bouquet, A. ,Serre, O. ,and Walukiewicz, I. 2003. Pushdown games with unboundedness and
+regular conditions. In FSTTCS 2003: Foundations of Software Technology and Theoretical
+Computer Science, 23rd International Conference . LNCS 2914. Springer, 88{99.
+Bruggemann-Klein, A. ,Murata, M. ,and Wood, D. 2001. Regular tree and regular hedge lan-
+guages over unranked alphabets: Version 1. Tech. Rep. HKUST-TCSC-2001-0, The Hongkong
+University of Science and Technology.
+Bruggermann-Klein, A. and Wood, D. 2004. Balanced context-free grammars, hedge grammars
+and pushdown caterpillar automata. In Proceedings of the Extreme Markup Languages .
+Burkart, O. and Steffen, B. 1992. Model checking for context-free processes. In CONCUR'92:
+Concurrency Theory, Third International Conference . LNCS 630. Springer, 123{137.
+Cachat, T. ,Duparc, J. ,and Thomas, W. 2002. Solving pushdown games with a  3winning
+condition. In Proceedings of the 11th Annual Conference of the European Association for
+Computer Science Logic, CSL 2002 . LNCS 2471. Springer, 322{336.
+Chatterjee, K. ,Ma, D. ,Majumdar, R. ,Zhao, T. ,Henzinger, T. ,and Palsberg, J. 2004.
+Stack size analysis for interrupt driven programs. Information and Computation 194, 2, 144{
+174.
+Chen, H. and Wagner, D. 2002. MOPS: An infrastructure for examining security properties
+of software. In Proceedings of ACM Conference on Computer and Communications Security .
+235{244.
+Comon, H. ,Dauchet, M. ,Gilleron, R. ,Lugiez, D. ,Tison, S. ,and Tommasi,
+M. 2002. Tree automata techniques and applications. Draft, Available at
+http://www.grappa.univ-lille3.fr/tata/ .
+Dymond, P. 1988. Input-driven languages are in log n depth. Information Processing Letters 26, 5,
+247{250.
+Esparza, J. ,Kucera, A. ,and Schwoon, S. S. 2003. Model-checking LTL with regular valuations
+for pushdown systems. Information and Computation 186, 2, 355{376.
+Journal of the ACM, Vol. 56, No. 3, May 2009.
+
+--- Page 45 ---
+Adding nesting structure to words  45
+Ginsburg, S. and Harrison, M. 1967. Bracketed context-free languages. Journal of Computer
+and System Sciences 1 , 1{23.
+Green, T. ,Miklau, G. ,Onizuka, M. ,and Suciu, D. 2003. Processing XML streams with
+deterministic automata. In ICDT '03: Proceedings of the 9th International Conference on
+Database Theory . LNCS 2572. Springer, 173{189.
+Gupta, A. and Suciu, D. 2003. Stream processing of XPath queries with predicates. In Proceed-
+ings of ACM SIGMOD Conference on Management of Data . 419{430.
+Harel, D. ,Kozen, D. ,and Tiuryn, J. 2000. Dynamic Logic . MIT Press.
+Henzinger, T. ,Jhala, R. ,Majumdar, R. ,Necula, G. ,Sutre, G. ,and Weimer, W. 2002.
+Temporal-safety proofs for systems code. In CAV 02: Proc. of 14th Conf. on Computer Aided
+Verication . LNCS 2404. Springer, 526{538.
+Hoare, C. 1969. An axiomatic basis for computer programming. Communications of the
+ACM 12, 10, 576{580.
+Hopcroft, J. and Ullman, J. 1979. Introduction to Automata Theory, Languages, and Com-
+putation . Addison-Wesley.
+Jensen, T. ,Metayer, D. L. ,and Thorn, T. 1999. Verication of control ow based security
+properties. In Proceedings of the IEEE Symposium on Security and Privacy . 89{103.
+Knuth, D. 1967. A characterization of parenthesis languages. Information and Control 11, 3,
+269{289.
+Lautemann, A. ,Schwentick, T. ,and Th erien, D. 1994. Logics for context-free languages.
+InProceedings of Computer Science Logic, 8th International Workshop, CSL 94 . LNCS 933.
+Springer, 205{216.
+Libkin, L. 2005. Logics for unranked trees: An overview. In Automata, Languages and Program-
+ming, 32nd International Colloquium, Proceedings . LNCS 3580. Springer, 35{50.
+Loding, C. ,Madhusudan, P. ,and Serre, O. 2004. Visibly pushdown games. In FSTTCS 2004:
+Foundations of Software Technology and Theoretical Computer Science, 24th International
+Conference . LNCS 3328. Springer, 408{420.
+Martens, W. and Niehren, J. 2005. Minimizing tree automata for unranked trees. In Proceedings
+of the 10th International Symposium on Database Programming Languages . 233{247.
+McNaughton, R. 1967. Parenthesis grammars. Journal of the ACM 14, 3, 490{500.
+Neven, F. 2002. Automata, logic, and XML. In Proceedings of the 11th Annual Conference of
+the European Association for Computer Science Logic, CSL 2002 . LNCS 2471. Springer, 2{26.
+Pnueli, A. 1977. The temporal logic of programs. In Proceedings of the 18th IEEE Symposium
+on Foundations of Computer Science . 46{77.
+Reps, T. ,Horwitz, S. ,and Sagiv, S. 1995. Precise interprocedural dataow analysis via graph
+reachability. In Proceedings of the ACM Symposium on Principles of Programming Languages .
+49{61.
+Schwentick, T. 2007. Automata for XML { A survey. J. Comput. Syst. Sci. 73, 3, 289{315.
+Segoufin, L. and Vianu, V. 2002. Validating streaming XML documents. In Proceedings of the
+21st ACM Symposium on Principles of Database Systems . 53{64.
+Sharir, M. and Pnueli, A. 1981. Two approaches to inter-procedural data-ow analysis. In
+Program ow analysis: Theory and applications . Prentice Hall.
+Thomas, W. 1990. Automata on innite objects. In Handbook of Theoretical Computer Science ,
+J. van Leeuwen, Ed. Vol. B. Elsevier Science Publishers, 133{191.
+Vardi, M. and Wolper, P. 1994. Reasoning about innite computations. Information and
+Computation 115, 1, 1{37.
+von Braunm uhl, B. and Verbeek, R. 1983. Input-driven languages are recognized in log n
+space. In Fundamentals of Computation Theory, Proceedings . LNCS 158. Springer, 40{51.
+Journal of the ACM, Vol. 56, No. 3, May 2009.

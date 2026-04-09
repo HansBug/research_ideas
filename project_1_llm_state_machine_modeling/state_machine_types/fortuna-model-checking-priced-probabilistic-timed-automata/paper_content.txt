@@ -1,0 +1,1630 @@
+--- Page 1 ---
+ 
+ 
+ 
+Fortuna: Model Checking Priced Probabilistic Timed Automata
+Berendsen, J.K.; Jansen, D.N.; Vaandrager, F.W.
+2009, External research report 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Version of the following full text: author's version
+Downloaded from: https://hdl.handle.net/2066/75424
+Download date: 2026-04-07
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Note:
+To cite this publication please use the final published version (if applicable).
+
+--- Page 2 ---
+Fortuna: M odel Checking  
+Priced P robabilistic T im ed A utom ata
+Jasper Berendsen, David N. Jansen, and Frits W. Vaandrager
+Institute for Computing and Information Sciences, Radboud University Nijmegen 
+P.O. Box 9010, 6500 GL Nijmegen, the Netherlands
+A bstract. We introduce FORTUNA, the first tool for model checking 
+priced probabilistic timed automata (PPTAs). FORTUNA can handle the 
+combination  of real-time, probabilistic and cost features, which is re­
+quired for addressing key design trade-offs that arise in many practi­
+cal applications. For example the Zeroconf, Bluetooth, IEEE802.11 and 
+Firewire protocols, protocols for sensor networks, and scheduling prob­
+lems with failures. PPTAs are an extension of probabilistic timed au­
+tomata (PTAs) with cost-rates and discrete cost increments on states. 
+FORTUNA is able to compute the maximal probability by which a state 
+can be reached under a certain cost-bound (and time-bound). Although 
+this problem is undecidable in general, there exists a semi-algorithm 
+that produces a non-decreasing sequence of probabilities converging to 
+the maximum. This paper presents a number of crucial optimizations 
+of that algorithm. Since PPTAs are PTAs with trivial cost parameters, 
+we were able to compare the performance of FORTUNA with existing ap­
+proaches for PTAs. Surprisingly, although PPTAs are more general, our 
+techniques exhibit superior performance.
+1 Introduction
+Model checking technology has initially been developed for finite state mod­
+els. Both hardware and communication protocols may be modelled naturally in 
+terms of finite state models, and in these areas model checking has been very 
+successful [13]. In practice, however, finite state models are often not sufficiently 
+rich. A characteristic of embedded and cyber-physical systems, is that they have 
+to meet a multitude of quantitative  constraints. These constraints involve the 
+resources that a system may use (computation resources, power consumption, 
+memory usage, communication bandwidth, costs, etc.), assumptions about the 
+environment in which it operates (arrival rates, hybrid behaviour), and require­
+ments on the services that the system has to provide (timing constraints, QoS, 
+availability, fault tolerance, etc.). In order to handle quantitative constraints, 
+model checking technology has been extended with features for specifying real­
+time, probabilistic behaviour, and costs. Efficient tools have been developed such 
+as Uppaal [3], Uppaal Cora [5] and PRISM [14], th at have been successfully ap­
+plied to challenging problems in different areas [3, 5,14]. Nevertheless, until now
+*  Supported by NWO/EW project 612.000.103 FRAAI, and the European Commu­
+nity’s 7th Framework Programme No. 214755 (QUASIMODO).
+
+
+--- Page 3 ---
+no model checking tool was able to handle the combination  of real-time, prob­
+abilistic and cost features. For many practical applications, however, the key 
+design trade-offs can only be addressed by models that incorporate all these 
+features. We give three examples:
+—  Operation of the Zeroconf protocol [ 8]  depends in an essential way on both 
+timing and probabilities. In order to determine the optimal value for some 
+parameters (like the number of retransmissions) one needs a cost function 
+th at combines timing delays and cost of failure [10, 8]. Many other protocols 
+also require formal methods that combine probabilities, costs and timing.
+—  Timing plays an essential role in communication protocols for sensor net­
+works. In a network with battery-powered devices, the limited energy budget 
+can be modelled using costs. Probabilities are needed to model node failure 
+and message loss.
+—  In scheduling problems it may be useful to consider the probability that a 
+resource (e.g., a production machine) breaks down or produces imperfect 
+output.
+This paper presents FORTUNA, the first model checking tool th at is able to deal 
+with the combination of probabilities, costs and timing. FORTUNA is based on the 
+model of priced probabilistic timed autom ata (PPTAs) introduced in [9,17]. P P ­
+TAs equip timed autom ata with prices and probabilities on discrete transitions. 
+Cost -rates  indicate the increase of cost per time unit, whereas prices on discrete 
+transitions indicate instantaneous costs. PPTAs are the orthogonal extension of 
+both probabilistic timed autom ata (PTAs) [15] and priced timed autom ata [4, 
+1], as PTAs extend timed autom ata with probabilities on discrete transitions 
+and priced timed autom ata extend timed autom ata with prices. FORTUNA is 
+able to compute the fundamental problem of cost-bounded maximal probabilis­
+tic reachability (CBMR) for PPTA. CBMR determines the maximal probability 
+by which a state can be reached under a certain cost-bound (and time-bound.) 
+Sections 6 gives two examples th at show the usefulness of CBMR in practice.
+As PTAs are PPTAs with trivial cost parameters, we were able to compare 
+the performance of F o r t u n a  with existing approaches for PTAs that compute 
+maximal probabilistic reachability. The comparison is made on a number of 
+existing PTA case studies to the best approaches available: the game-based ver­
+ification of [16], and the backwards reachability approach of [18]. Surprisingly, 
+although FORTUNA is more general, it shows the best performance.
+FORTUNA adds a number of crucial optimizations to the algorithm described 
+in [9]. The algorithm of [9] performs symbolic backwards exploration, in the 
+spirit of the backwards reachability approach of [18]. Like th at work, F o r t u n a  
+only adds intersections of symbolic states to the state space, thereby reducing 
+the number of stored states. To compute the probability, the explored symbolic 
+state graph is transformed into a Markov decision process th at is analysed with 
+existing techniques. For PPTA F o r t u n a  may not terminate, since the problem 
+is known to be undecidable in general [7]. But, for increasing exploration depth, 
+the produced sequence of probabilities is non-decreasing and converges to the 
+maximum probability [9].
+2
+
+
+--- Page 4 ---
+The optimizations described in this article increase performance drastically. 
+Three optimizations make modifications to the symbolic state graph th at is ex­
+plored, by generating abstractions that preserve probabilistic reachability. The 
+proofs are done in a rigorous way by the use of (probabilistic) simulation rela­
+tions. The last optimization employs Hasse diagram data structures to speed up 
+comparisons between symbolic states.
+Other approaches for maximal probabilistic reachability on PTA use quite 
+different techniques. Game-based verification [16] uses an abstraction-refinement 
+scheme to iteratively generate tighter lower and upper bounds on the solution. 
+We present a detailed comparison of F o r t u n a  with the results from [16]. We 
+do not compare with the digital clocks approach of [17] since the same authors 
+have shown game-based verification to be much faster [16].
+Organization of the paper  Section 2 are the preliminaries, introducing definitions 
+and lemmas from: probability theory, Markov decision processes, and autom ata 
+theory. Section 3 introduces the model of PPTAs and cost-bounded maximal 
+probabilistic reachability. In Section 4, the algorithm to compute cost-bounded 
+maximal probabilistic reachability on PPTAs is discussed, its correctness the­
+orem, and several optimizations and their correctness theorems. Section 5 dis­
+cusses some implementation issues of F o r t u n a .  Section 6 compares F o r t u n a  
+with existing approaches on case studies, and shows the usefulness of our opti­
+mizations. In addition verification of an example PPTA model is shown. Finally, 
+Section 7 concludes this work.
+The FoRTuNA tool and case studies discussed in this paper are available 
+from h ttp ://w w w .c s .ru .n l/J .B e re n d s e n /fo rtu n a /.
+2 Prelim inaries
+In this section, we provide a summary of basic mathematical notions neces­
+sary for our development. In particular, we review the definitions of probabil­
+ity spaces, Markov decision processes, and probabilistic reachability.For a more 
+leisurely introduction we refer to []. Our reader is encouraged to skip (portions 
+of) this section as he sees fit.
+2.1 P ro b a b ility  Spaces
+Let V be a set. A subset F  of 2V is said to be a a-field  over V if F  satisfies the 
+following properties:
+—  V G  F
+—  if W  G  F  then V \W  is also in F  (closed under complement)
+—  if Wi, W2, ... G  F  then Wi U W 2 U ... is also in F  (closed under countable 
+union)
+The pair (V, F ) is called a measurable space.
+3
+
+
+--- Page 5 ---
+A measure  over (V, F ) is a function j  :  F  ^  R >0 such th at j(0 ) =  0, 
+and for each countable set r of pairwise disjoint elements of F , we have that 
+j ( U o e r  G  =  ^ o e r j(G ). If j( V ) < 1, then j  is a sub-probability measure.  In 
+case F  =  2V a special situation arises: for each set W G  F  we have th at j( W ) = 
+'Thwew  j(w ), where j( w ) =  j({w }). In this case j  is called a distribution.  The 
+set of distributions over V is denoted Dist(V). The support  of a distribution j
+defis defined as supp(j) =  {v G  V |  j(v ) > 0}.
+2.2 M ark o v  D ecision P ro cesses
+M arkov decision processes  (MDPs) are widely used to formally model and anal­
+yse systems that exhibit both nondeterministic and probabilistic behaviour.
+D efin itio n  1 (M D P ). Let Act be a fixed set of actions. A n  MDP is a tuple  
+M =  (S, sinn, T ), where S  is a set of states,  s¡n¡ t G  S is the initial state, and  
+T Ç S X  Act X  D ist(S) is a probabilistic transition relation. We require that T  is  
+total in the sense that, fo r each state s, there exists an action a and a distribution  
+j  such that  (s, a, j )  G  T .
+The restriction of having at least one distribution for each state is imposed to 
+ensure that policies (defined below) always exist.
+Intuitively speaking, an MDP describes the following behaviour. Whenever 
+the system is in some state, s G  S say, an action a G  Act and a distribution j 
+with (s, a, j) G  T are selected nondeterministically. Subsequently, the next state 
+is selected probabilistically according to j ,  i.e. the next state r is selected with 
+probability j( r ) . Thus, a transition involves resolving both a nondeterministic 
+and a probabilistic choice.
+Note that our definition of MDPs allows sub-distributions for the transition 
+relation. For (s, a, j )  G  T , the remaining probability 1  —  ^ r j( r )  may be inter­
+preted as a deadlock probability. Note that any MDP can easily be transformed 
+into an MDP that uses only complete distributions by adding a trapping state 
+strap  th at is equipped with a self-loop with probability 1, such that the ‘missing’  
+probabilities of all sub-distributions lead to strap. For the rest of the paper we 
+implicitly apply this transformation when needed.
+A probabilistic transition  s — — ^ is made by nondeterministically selecting an 
+action a and a distribution j  G  Dist(S ) such that (s, a, j )  G  T .A  transition  
+s — — ^  r is made by the probabilistic transition s — — ^  followed by choosing next 
+state r G  S with probability j( r )  > 0. In case j  is a Dirac distribution we also 
+write s — ± r.
+An infinite path  starting in state s 0 is an infinite sequence of transitions: 
+w =  s 0 a°’  M ° >  s 1 a 1 ,M l >  s 2 a2’  M 2 >  •  •  •  such that (s1 ; a1 ; j ) G  T  for all i. Let w 1  
+denote the ith state in the path w, i.e. w 1 =  s1.
+A finite path  is a finite prefix of an infinite path. We denote the last state in 
+a finite path w by last(w). The length  of a path is the number of transitions that 
+it contains. A path of length 0 consists only of the starting state.
+4
+
+
+--- Page 6 ---
+We assume a special action label t  G  Act that denotes internal  transitions.
+we write s 0 ^  sn .
+Autom ata  (also called labelled transition systems) can be seen as a spe­
+cialization of MDPs, where the probabilistic transition relation uses only Dirac 
+distributions. Alternatively we may redefine the transition relation to go to a 
+single next state instead of a distribution, as is done in the following definition.
+D efin itio n  2 (A u to m a to n ). A n autom aton is a tuple  (S, sinit, D), where  S is 
+a set of states,  s¡n¡ t G  S is the initial state, and  D Ç S X  Act X  S .
+Let Paths^ and PathsM denote the infinite and finite paths, respectively, of 
+MDP M . In order to associate a probability space to an MDP, we first need to 
+resolve all nondeterministic choices. To this end, we consider policies (also called 
+strategies, schedulers, or adversaries.) A (determ inistic) policy  is a function that 
+maps every finite path w in an MDP to an action a G  Act and a distribution 
+j  G  D ist(S) such that (last(w), a, j )  G  T . We use Pol(M ) to denote the set of all 
+deterministic policies of an MDP M . A policy resolves all nondeterminism, and 
+therefore an MDP together with a policy yields a discrete-time Markov chain.
+In the literature also a more general notion of policy has been proposed, which 
+maps every finite path to a distribution  of probabilistic transitions. From [20] we 
+know that deterministic policies are sufficient to obtain maximal probabilistic 
+reachability (defined below) when a bounded number of transitions may be used 
+to reach the goal. In case the number of states and probabilistic transitions in 
+the MDP is finite, this also holds when an unbounded number of transitions may 
+be used to reach the goal.
+For a given state s, we now define probability measure Prob^(s) on P a th s^ .  
+Let F  be the smallest a-field over P aths^ such th at every cone  of some finite path 
+w G  PathsM is in F . A cone  of a finite path is the set all infinite continuations 
+of the path. Formally, the cone C(w) of w G  PathsM is defined as {w' G  P aths^ |  
+w < w'}, where < is the standard prefix order on sequences. The function Q A 
+assigns probabilities to finite paths according to decisions made by policy A and 
+a given starting state s. Formally, for any r, s G  S and w G  PathsM, we define 
+Q a inductively as follows:
+The probability assigned to a cone C(w) equals the probability assigned by Qa to
+defthe finite path w: ProbA(s)(C(w)) =  Qa(s, w). By standard measure theoretical 
+arguments, ProbA(s) is a measure over (P ath s^ , F ).We assume internal transitions to be non-probabilistic, i.e. s -— ^  implies j  = 
+{ r^ 1 } , for some r. When we have a finite path of T-transitions s 0 sn
+Qa(s, w0 otherwise 
+d _ e f  (  Q a(s, w) •  j ( r )  if A(w) =  (a, j)
+otherwise
+5
+
+
+--- Page 7 ---
+2.3 P ro b a b ilistic  R eac h ab ility
+The reach probability  is the likelihood to reach a certain set of goal states in a 
+finite number of transitions under some policy. For a starting state s G  S, a set 
+of goal states G Ç S , and policy A, it is formally defined as
+ProbReachA(s, G) =  ProbA(s)({w G  P aths^ | 3i G  N . w 1 G  G})
+The set {w G  Paths^ | 3i G  N . w 1 G  G} is measurable by ProbA(s), because it 
+may be written as the countable union |J {C(w) | w G  PathsM A last(w) G  G}. 
+The reach probability using not more than  n transitions  is defined as
+ProbReach;|n (s, G) =  ProbA(s)({w G  P aths^ |  3i G  [0, n] . w 1 G  G})
+Like above {w G  P aths^ |  3i G  [0, n] . w 1 G  G} is measurable by ProbA(s). When 
+s =  sinit we write ProbReachA(G) and ProbReach;|n (G), respectively.
+L em m a 1 (C o n v erg en ce). Let M  =  (S, sinit, T ) be an MDP,  A G  Pol(M ),
+s G  S, and G Ç S . Then  (ProbReach^n (s, G)} neN  is a non-decreasing sequence  
+in [0,1] converging to  ProbReachA(s, G).
+Proof.  By Lemma 34 of [18]. □
+The following definition shows how for any policy A and finite path w, we 
+can construct a policy A[w] th at acts like A when path w has already occurred.
+D efin itio n  3. For a policy  A and finite path w, let  A[w] be the policy such that  
+fo r any finite path  w ':
+a def ÍA(w — — w'') i f w' is of the form  last(w) — — w''Alwlfw )  =  <
+(^A(w') otherwise
+We have the following known lemma.
+L em m a 2. G iven state  s, policy  A such that  A(s) =  (a, j ), and set of paths  
+f  G  P aths^ measurable by  ProbA(s), thenn:
+ProbA( s )( f) =  ^  j (r) •  ProbA [s J— —r](r)({w 1 (s —— w) G  f } )
+re s
+Proof.  See Appendix A.1.
+L em m a 3. Let A(s) =  (a, j ) . I f s G  G, then:
+1. fo r any  n G  N: ProbReach;|n+ 1(s, G) =  reS j ( r )  •  ProbReach~n a,M  (r, G)A [s — ■ — —  r]
+2. ProbReachA(s, G) =  ^ reS j ( r )  •  ProbReach — ,—  (r, G)A [s — r]
+6
+
+
+--- Page 8 ---
+Proof.  We prove result 1. The proof of result 2 is very similar: the only difference 
+is th at there is no upperbound n on the length of the paths.
+ProbReach;|n+ 1(s, G)
+=  ProbA(s)({w G  P aths^ |  3* < n +  1.w 1 G  G}) by definition of ProbReach
+=  ProbA(s)({w G  P aths^ |  3* G  [1,n +  1].w 1 G  G}) since s G  G
+j ( r )  •  P ro ^ j g  ,—  j(r)({w G  P aths^ |  3* :  [0, n].w 1 G  G}) by Lemma 2
+res
+=  j ( r )  •  ProbReach-n g M  (r, G) by definition of ProbReach
+A [s — — —r]re s
+□ □
+The reach probability depends on the nondeterministic choices made by the 
+policy. A nondeterministic choice can be used to model a branch in system ex­
+ecution that cannot be resolved probabilistically, or for which the probability 
+distribution is not known. The m axim al reach probability  is of interest, i.e. the 
+maximal attainable value if all choices are optimal. The maximal reach proba­
+bility for G Ç S is defined as:
+SupProbReachM(G) =  sup ProbReachA(G)
+AePol(M )
+And using not more than n transitions:
+SupProbReachMn(G) = =  sup ProbReach;|n (G)
+AePol(M)
+From [20] we know that if A has a finite number of states and probabilistic 
+transitions, then we can find the policy that obtains the value of SupProbReachM (G). 
+Moreover, we may restrict to policies that always takes the same decision in each 
+state, irrespective of the path or the length of the path by which the state was 
+reached. The value of SupProbReachM(G) can be computed by several techniques 
+including: value iteration, (modified) policy iteration and linear programming.
+3 P riced P rob ab ilistic T im ed A u tom ata
+3.1 T im e, C locks a n d  G u a rd s
+A clock  is a real-valued variable that can be used to measure the elapse of time.
+All clocks run at the same pace. A clock valuation  assigns a non-negative value to 
+each clock in some set X. Let R > 0 denote the set of all possible clock valuations.
+A clock valuation v G  R >0 is thus a mapping X — R >0. For d G  R >0, let v+d 
+denote the clock valuation that maps each x G  X to v(x) +  d. For R Ç X, let 
+v[R := 0] denote the clock valuation in which the clocks in R have been reset,
+i.e. v[R := 0](x) equals 0 if x G  R and v(x) otherwise.
+7
+
+
+--- Page 9 ---
+A guard  is a conjunction of inequalities where the value of a single clock is 
+compared to an integer. Formally, the set Guards(X) of guards g is defined by 
+the grammar:
+g ::= x xi b | g A g |  true, where x G  X, b G  N, xi G  { <, <, >, > }.
+(In)equalities such as (x =  b) and (2 < x —  y < 3) are abbreviations for a 
+conjunction of multiple inequalities. We write v |= g when valuation v satisfies 
+the constraints of guard g.
+3.2 P P T A s a n d  th e ir sem an tics
+We are now in a position to define PPTAs.
+D efin itio n  4 (P P T A ). A priced probabilistic timed autom aton (P P T A ) is a  
+tuple A  =  (L, 1 ¡ n¡ t, X, inv, edges, $), where:
+—  L is a finite set of locations;
+—  1 ¡ n¡ t G  L is the initial loca,tion;
+—  X is a finite set of clocks;
+—  inv :  L — Guards(X) assigns an invariant to each location;
+—  edges Ç L x Guards(X) x Dist(2X  x N x L) is a finite set of edges; and
+—  $ :  L — N associates a cost-rate with each locationn.
+For edge (l, g,p) G  edges, l denotes the source location, g the guard, and p a 
+distribution over instantaneous effects,  which consist of a set of clocks to be 
+reset, a cost increment, and a destination location. For the rest of the paper we 
+fix a PPTA A  =  (L, 1 ¡ n¡ t, X, inv, edges, $).
+Example 1  Figure 1  shows a PPTA with clock x. Loca­
+tions are represented by rounded boxes, with branch­
+ing arrows between them  denoting the edges of the 
+PPTA. The initial location is 1 0. Invariants and cost- 
+rates are written in the locations. Guards (e.g. x<0) 
+are placed next to the source location; probabilities, 
+resets and cost increments are at the branches (e. g. 
+probability 0.3 and x:=0.) Probabilities 1, guards that 
+always hold, and instantaneous cost increments of 0 
+are left out.
+Intuitively, a PPTA behaves as follows. It always is 
+in a state consisting of a location l, a clock valuation 
+v, and the cost incurred until now c. A policy makes 
+the nondeterministic choice between delaying or which 
+edge to take. Only edges with guards satisfying the 
+current valuation are available. Delaying will increase each clock by the quantity 
+of delay and the accumulated cost by the quantity of delay times the cost-rate 
+$(1). When taking an edge, a reset set, cost increment, and destination location 
+are chosen probabilistically. They determine which clocks are reset, the cost 
+increment, and the next location.Fig. 1. Example PPTA
+8
+
+
+--- Page 10 ---
+D efin itio n  5 (P P T A  S em an tics). Fix Act =  R >0 U { t}. The semantics of 
+P P T A  A , denoted  [A], is given by the tuple  (S, s¡n¡ t, T ), where  S =  {(/, v, c) |  / G  
+L A v =  inv(/) A c G  R}, i.e. states consist of a location, a clock valuation, and  
+the accumulated cost;  s¡n¡ t =  (/¡n¡ t, {x — 0 |  x G  X}, 0); and ((/, v, c), d, ^) G  T iff 
+(/, v, c) G  S , d G  R > 0, v +  d =  inv(/) and one of the following conditions holds:
+—  either  ^(/, v +  d, c +  $(/)d) =  1
+—  or there exists  (/, g,p) G  edges such that  v +  d =  g and fo r all  (/', v', c') G  S : 
+M (//, v', c ) =  2 RÇX s.t.v' = (v+d)[R: = 0 ]  p(R , c' —  d^$(/) —  c, O
+if  the first condition holds then we call  ((/, v, c), d, ^) a time transition, otherwise  
+we call it a  delayed discrete transition.
+It is straightforward to prove th at [A] is an MDP, where time transitions spend­
+ing zero time ensure every state has at least one outgoing transition. Time diver­
+gence of [A] is not an issue for this paper since we are dealing with reachability 
+properties, see [18].
+3.3 C o st-B o u n d e d  M ax im al R eac h ab ility
+Cost-bounded maxim al reachability  (CBMR) is the maximal probability by which 
+a goal location in a PPTA can be reached, without the accumulated cost exceed­
+ing some bound. For PPTA A  we fix /goa| G  L to be the goal state, and cbound  G  N 
+to be the cost-bound.
+D efin itio n  6 (C B M R ). C BM R is the probability  SupProbReachj^j (^goai),
+where (7  g o al {/goal} x R >0 X  [0, cbound]-
+Naturally, by comparing CBMR to a probability p, CBPR can be used to answer 
+the question “Is it possible to reach location /goal  with probability at least p G  
+(0,1]  and with cost at most cbound?” .
+3.4 P re d e c e sso r O p e ratio n s
+We now define predecessor operations on sets of states of [A] . Predecessor op­
+erations are essential to the symbolic backward exploration that is done in our 
+algorithm. The discrete predecessor  of a set of states Z via edge e and instanta­
+neous effect ƒ, gives all states in [A] that can reach some state in Z via edge e 
+and instantaneous effect ƒ. The tim e predecessor  of a set of states Z , gives all 
+states in [A] th at can reach some state in Z by letting time elapse.
+D efin itio n  7 (P re d e c e sso r O p e ra tio n s). Let [A] =  (S, s¡n¡ t, T ). For any  Z  Ç
+S, e =  (/,g,p) G  edges. Let ƒ =  (R, h ,/') G  supp(p). The discrete predecessor  
+and tim e predecessor operations are respectively:
+dpree ƒ (Z ) d = f {(/, v, c) G  S |  v =  g A (/', v[R := 0], c +  h) G  Z } 
+tpre(Z) d =f {s G  S | 3d > 0.3r G  Z.s — r}
+9
+
+
+--- Page 11 ---
+L em m a 4 (P ro p e rtie s  o f P red e ce sso rs).
+—  I f S =  dpree ƒ (T ), then fo r all  s G  S there exists  r  G  T such that s - 0— r.
+—  f  S =  tpre(T), then fo r all  s G  S there exists  r  G  T and d G  R >0 such that
+ds - — r .
+Proof.  Straightforward from the definition of tpre and dpre. □
+4 T he A lgorithm
+Algorithm 1  is used for computing CBMR for paths of length up to maxlength 
+(possibly to). It gets as inputs a CBMR problem, i.e. a PPTA A, a goal location 
+Igoai, a cost-bound cbound, and the maximal path length maxlength .1 Algorithm 1  
+returns a finite autom aton ( Visited , a¡n¡ t, D), which we will call reachability graph.  
+The reachability graph captures symbolically all transitions by which a target 
+state may be reached. Definition 8 defines an MDP M  for the reachability graph. 
+Now, from Theorem 1, we see that:
+1. The maximal reach probability in M  is an upperbound on the CBMR solu­
+tion.
+2. If maxlength =  to the upperbound is precise.
+3. Increasing maxlength leads to a higher or equal upperbound on CBMR with 
+unbounded lenght.
+Zones  are sets of states of [A] th at share the same location. Since clocks and 
+cost take real values, zones may (and will) contain infinitely many states. In [9] it 
+is shown that the zones generated by our algorithm have a finite representation 
+called multi-priced zones. Multi-priced zones are closed under the operations of 
+the algorithm. They are a subclass of convex polyhedra.
+Visited  are the zones th at are generated by Algorithm 1  in a backward fash­
+ion: starting from the zone of goal states (agoa| ), more zones are generated by 
+repeatedly computing predecessors of explored zones. The predecessor of a zone 
+is computed by first computing the time predecessor, and from that the discrete 
+predecessor. The operations are combined to avoid storing an intermediate zone. 
+The algorithm proceeds in a breadth-first way, by first calculating the predeces­
+sors of all zones th at were waiting to be explored, before computing predecessors 
+of the newly generated zones. In addition to predecessors, intersections of ex­
+plored zones are added to Visited,  which are zones themselves.
+We now discuss the algorithm line by line. An example is given later. Through­
+out this work, edges a reachability graph may be called directions  to distinguish 
+them from the edges in a PPTA. An im portant property of any direction gener­
+ated by Algorithm 1  is the following:
+A direction (a, e, ƒ, p) means any state in p is reachable from some state 
+in a  by a delayed discrete transition with 0 delay using edge e and 
+instantaneous effect ƒ, followed by a time transition.
+1  As a minor condition, inv(1¡n ¡ t) should require all clocks to be zero.
+10
+
+
+--- Page 12 ---
+A lg o rith m  1: The basic backwards reachability algorithm
+1 In p u t: PPTA  A  =  (L,1¡n ¡ t , X, inv, edges, $),1goal, cbound, maxlength, 
+where inv( 1¡n¡t) =  A x 6x(* =  °)
+O u tp u t: ( Visited,  a¡n ¡ t, D)
+2 a g o a l •  ^ g o a l x inv( 1goal) x [0, cbound]
+3 a¡n¡t := {(l ¡ n ¡  t, {x ^  0 | x G  X}, 0)}
+4 lf a ¡n ¡t ^  a g o a l th e n  a ¡n ¡t •—  a g o a l
+5 Visited  :  =  {agoal,a¡n  ¡  t}
+6 D  :  —  { (ag o a l , T, a g o a l ) , (^ ^  ¡n ¡t 5 T 5 a ¡n ¡t) }
+7 Waiting0  :  =  {agoal}
+8 for i :=  1 to  maxlength
+9 If Waitingi-1  =  0 th e n  b re a k
+10 Waitingt  :=  0
+11 fo re a c h  p G  Waitingi-1
+12 fo re a c h  e G  edges and ƒ is an inst. effect of e going to the location of p
+13 a := dpreef  (tpre(p))
+14 If a =  0
+15 D  :=  D  U {(a, e, ƒ, p)}
+16 If a G  Visited,  th e n  Waitingt  :=  Waitingt  U {a}, Visited  := Visited U {a}
+17 fo re ac h  (a',a',p')  G  D
+18 If a n  a1 =  0
+19 D := D  U {(a n  a',e, ƒ, p), (a  n  a ', a ', p')}
+20 If a  n  a ' /  Visited,
+21 Waitingi  := Waitingi  U {a n  a'} , Visited  :=  Visited,  U {a n  a'}
+22 r e tu r n  ( Visited,  a¡n ¡ t, D)
+L ine 2 Zone a goal  is the goal set of states.
+L ine 3 Zone a¡n¡ t is a singleton consisting of the initial state.
+L ine 4 Needed for the special case when a¡n¡ t C a goal.
+L ine 5 Visited  maintains the zones that were generated and starts as {agoal, a¡n¡ t}.
+L ine 6 D maintains the directions of the reachability graph.
+L ine 7 W aitingi  are zones to be explored after iteration i. Goal zone a goal  is the 
+first zone to be explored.
+L ine 8 The algorithm takes exactly maxlength steps in the outer loop. All the 
+paths of maximal length maxlength of [A] are symbolically explored, includ­
+ing those having a loop.
+L ine 9 Quit the loop if there is nothing left to explore.
+L ine 10 The set of zones waiting to be explored in the next iteration is initially
+0.
+L ine 11 Pick an arbitrary zone p from the current set of zones waiting to be 
+explored.
+L ine 12 Explore all incoming edge/effect combinations e, ƒ of the PPTA for p.
+L ine 13 Compute the predecessor a  via e, ƒ.
+L ine 14 Only proceed if the generated predecessor a  is not empty.
+L ine 15 Add the direction.
+L ine 16 In case a  was not visited before, add it to the next set of waiting zones.
+11
+
+
+--- Page 13 ---
+Lines 17-21 are concerned with the intersections. Intersections are useful for 
+the following reason. Given zones p and p', let a  =  dpree f i (tpre(p)) and a ' =  
+dpree f 2 (tpre(p')) for some e G  edges and ƒ ]_ , f 2 instantaneous effects of e. Now, by 
+Lemma 4, a  n a ' contains the states that can reach p as well as p': A state in p is 
+reached by taking edge e, probabilistically choosing ƒ 1, and delaying some time. 
+A state in p' is reached by taking the same edge e, probabilistically choosing 
+ƒ2, and delaying some (possibly different) time. Whenever ƒ 1 =  ƒ  and the goal 
+can be reached via both p and p', the probabilities of choosing either effect can 
+be added. This explains why we first took the time predecessor and then the 
+discrete predecessor: only after the probabilistic choice has been resolved, the 
+policy gets the information whether ƒ 1 or ƒ  was chosen and can decide how long 
+to delay to reach p or p , respectively. This reasoning can easily be generalized 
+to intersections of more than two zones.
+L ine 17 Pick each direction in an arbitrary order.
+L ine 18 Proceed on a non-empty intersection of the source zones.
+L ine 19 The intersection gets outgoing directions to the target zones of the 
+two directions. These directions capture the possibility of states in the in­
+tersection to go in both ways. Note that in subsequent iterations of the loop 
+on lines 16-20 more directions may be added that start from the same in­
+tersection. Intersections between multiple zones are generated by pair-wise 
+intersection.
+L ines 20, 21 In case the intersection was not visited before, add it to the next 
+set of waiting zones.
+Example 2  Figure 2 shows the reachability graph 
+th at Algorithm 1  would generate for the PPTA 
+of Figure 1  if 1 goal  =  and cbound  =  3. In the 
+figure, zones are labeled a¡n¡ t , A, B ,..., and are 
+represented by planes in coordinate systems with 
+x and c at the axes. Furthermore, zones have a 
+location. Labels on directions are left out and 
+probabilities are added in such a way that there 
+is no ambiguity from which edge in the PPTA 
+they were generated. Plain edges are the ones re­
+sulting from line 15. Thus, for example B is the 
+predecessor of A. The predecessors of B ,. .. ,  E 
+are left out for brevity. Dashed edges are the 
+ones resulting from line 19. Note that F is the 
+intersection of D and E, while C is the inter­
+section of C and B. Zone F  has only an empty 
+predecessor.
+The next definition is used to transform any reachability graph that is gener­
+ated by Algorithm 1  into an MDP. As such, it generates the symbolic semantics 
+for the PPTA under the given CBMR problem.F ig. 2. Reachability graph
+12
+
+
+--- Page 14 ---
+Example 3  Figure 3 shows the MDP of Definition 8 for the 
+reachability graph of Figure 2. The positions of the states 
+correspond to the positions of the zones in the reachability 
+graph. For brevity probabilities and labels have been left 
+out.
+D efin itio n  8 (S ym bolic sem a n tics). Given reachability graph  Q 
+(S, s¡n¡ t, D ), we define the M arkov decision process  MDP(Q) =  (S, s¡n¡ t, T ), where  
+(s, a, p) G  T if and only if either  F ig . 3  Con­
+structed MDP
+—  a =  t  and p  =  | r ^ 1 j  and there exists  (s,T, r) G  D ; without optimiza- 
+or tions
+—  a =  e and there exists  D e,M  Ç D such that
+1. V(s', e', ƒ ', r ') G  D e,M .s ' =  s A e' =  e
+2. V(si, ei, ƒ 1, r  1 ), (s 2, e2, ƒ2, r2) G  De,M .ri =  r 2 = ^  
+ƒ1 =  ƒ 2
+3. D e,M  is maximal
+4. Vr G  S .p(r) =  £  {s,{l,g,p )J,r)eD^  P(.Í )
+T h e o re m  1. Assume Algorithm 1 is executed with input P P T A  A , location  1 goal, 
+C boU n d  G  N, and maxlength G  N U {to}. A nd on the output we define  M  by 
+D efinition 8. Now all of the following hold:
+1. Vn < maxlength. SupProbReachj^Aj(agoal) =  SupProbReachM"({agoal})
+2. Vn < maxlength. SupProbReachj^Aj(agoal) < SupProbReachM({agoal})
+3. I f  maxlength =  to we have that:
+SupProbReachj^j (agoal) =  SupProbReachM ({agoal})4. Let  maxlength =  m =  to, and construct  M  ' from  the same input as  M  except  
+that maxlength is set to  m +  1. Then, the probability does not decrease:  
+SupProbReachM({agoal}) < SupProbReachM,({agoal})
+Proof.  Result 1  follows from Theorem 1  in [9], but is rephrased in Appendix A.2. 
+The proof goes along the same lines as the proof of Proposition 29 in [18]. 
+However, the length of paths match in [A] and M , which is possible due to 
+the delayed discrete transitions in [A ]. Results 2, 3, and 4 follow directly from 
+result 1, the definition of supremum and Lemma 1. □
+D efin itio n  9 (C over). Given a set of zones S , fo r any  p, a  G  S , we say p  
+covers a, w ritten  p D—  a, iff p D a  and there exists no q  G  S  such that  p D q D a.
+Optimization 1  extends Algorithm 1. To understand its basic idea, regard two 
+zones p and p with p D p . All states in a zone have the same probabilistic tran­
+sitions available, as long as these contribute to reaching the goal with maximal 
+probability. If execution of the MDP enters p , this corresponds to an execution 
+of the semantics th at enters some state r G  p . But, execution of the MDP might 
+as well enter p, since r  G  p. Therefore, we may add a T-direction from p' to 
+p. A T-direction has probability 1  and does not correspond with any transition
+13
+
+
+--- Page 15 ---
+O p tim iz a tio n  1.
+Fragment A:  inserted after lines 15 and 19 of Algorithm 1
+15bis,19bis foreach (a, e,f, p), (a', e', f',p ') G  D, with (a ',e ',f') = (a, e, f  )  
+15ter,19ter if p' C p th en  D := D \{(a, e, f,  p)}
+Fragment B:  replaces line 22 of Algorithm 1  
+22' foreach p, p' G  Visited  
+23' if p D—  p' th en  D := D U  {(p', t, p)}
+24' retu rn  ( Visited,  a¡n ¡ t, D)
+O p tim iz a tio n  2: replaces line 18 of Algorithm 1  
+18' if a n a' = 0 and (a' = a¡n ¡ t or Elf' = f.a' = (e, f '))
+in the semantics. Fragment B adds the minimal number of T-directions to ob­
+tain a path of T-directions from any subzone to a superzone. The optimization 
+comes from Fragment A that removes directions from any zone a  to p, when p is 
+reachable from a  with the same label. A policy can simply go to p by first going 
+to p and then taking T-directions. The benefit of Optimization 1  comes from 
+the way Definition 8 works: given an edge, sets D e,M  are constructed by taking 
+all possible (maximal) combinations of instantaneous effects of that edge. Given 
+some edge e with n instantaneous effects, a zone with m¡ outgoing directions 
+th at use the i-th instantaneous effect would have m 1 •  m 2 •  ... •  m n possibilities 
+for D e,M , which gives a blow-up exponential in n.
+Example 4  Recall Example 2. W ith Optimization 1  the 
+reachability graph will differ from the one in Figure 2: the 
+direction from ainit to B will not be present, and there 
+will be T-directions (C, t, B), (F, t, D) and (F, t, E). The 
+generated MDP is depicted in Figure 4.
+T h e o re m  2. A ssum e that we change Algorithm  1 with  
+O ptim ization 1, then Theorem 1 results 2-4 still hold.
+Intersections are only useful if they capture probabilis­
+tic branching. Optimization 2 is straightforward, and is 
+also made in [18] to suppress intersections that have only 
+outgoing transitions with the same probability resolution.Fig. 4. MDP when 
+using Optimiza­
+tion 1
+T h e o re m  3. B oth fo r Algorithm  1 changed with Opti­
+m izations 1 and 2, and Algorithm  1 changed with only  
+O ptim ization 2, theorem 1 results 2-4 still hold.
+We now define a transformation from a reachability graph Q to a reachability 
+graph Q. The transformation reduces the number of probabilistic transitions in 
+MDP(Q) w .r.t. MDP(Q), but does not affect the maximum reach probability. 
+The zones of Q are maintained by the transformation, but Q has extra inter­
+mediate  zones. Two or more directions leaving a zone in Q th at have the same
+14
+
+
+--- Page 16 ---
+label are replaced in Q by a direction with the same label going to a fresh in­
+termediate zone. From the fresh intermediate zone there are T-directions going 
+to the goal zones of the original directions in Q. The benefit is the same as for 
+Optimization 1: we reduce the number of outgoing directions from a state that 
+have the same label.
+Example 5  Recall Example 4. Optimization 3 cre­
+ates an intermediate state with T transitions to 
+zone D and zone E. Figure 5 shows the generated 
+MDP.
+In Q all directions leaving a zone have a different label, 
+except for T-directions, that all use the label t . Because 
+of these properties of directions in Q, from Definition 8 
+we can see that for each zone and each direction leav­
+ing that zone there is only one possibility to construct a F ig 5 MDP with 
+probabilistic transition. Each direction has a correspond- all optimizations 
+ing T-direction from the intermediate zone and there is one 
+direction to the intermediate zone, so in total at most one 
+extra direction is needed per instantaneous effect per zone.
+O p tim iz a tio n  3. Given reachability graph  (S, s¡n¡ t, D). We define the reacha­
+bility graph  (S U I, s¡n¡ t, D ), where  I  Ç S x Act and fo r any  (s, a, r) G  D
+—  if 3(s, a, r ') G  D .r' =  r  then  (s, a, (s, a)) G  D  and  ((s, a), t, r) G  D .
+—  otherwise:  (s, a, r) G  D .
+T h e o re m  4. Given reachability graph Q. Let Q be obtained from  Q by applying  
+the transform ation of O ptim ization 3, then fo r any G:
+SupProbReachM D P (-Q)(G) =  SupProbReachM D P (-Q ) (G)
+It is not hard to see that also without Optimization 1, Optimization 3 will still 
+make sure each zone has no two outgoing directions with the same label, except 
+for T-directions. However, Optimization 1  is useful for the following reasons:
+—  It works during the construction of the reachability graph, i.e. directions 
+from a zone are removed as soon as it gets a new outgoing direction.
+—  It needs no extra ‘interm ediate’  states.
+—  The added T-directions do not depend on the labels of the directions that 
+were removed. As such they can be used for more directions at the same 
+time.
+5 Im plem entation Issues
+A straightforward ehancement Fo r t u n a  employs is to consider only locations 
+th at are reachable. To this end a standard symbolic forward  exploration is per­
+formed, not taking probabilities into account. Since there are no guards on cost,
+15
+
+
+--- Page 17 ---
+lowering the cost in a state by say C will not influence the locations reachable, 
+although they are reachable with C less cost. Thus, we need to compute mini­
+mum cost reachability for combinations of clock values and locations, and store 
+the locations that are reachable with a cost below the CBMR cost-bound. This 
+amounts to minimum cost reachability in a priced timed autom aton which is a 
+decidable problem [4].
+We use convex polyhedra instead of the multi-priced zones of [9] to repre­
+sent zones, because there is a advanced library for them  available: the Parm a 
+Polyhedra Library [2]. The library offers operations on convex polyhedra, such 
+as intersection, inclusion checking, and time predecessor. Another advantage is 
+th at convex polyhedra will allow for an extension to more general classes of 
+autom ata, such as the probabilistic linear hybrid autom ata of [ 21].
+A disadvantage could be reduced performance, although it has yet to be 
+investigated if multi-priced zones allow for a more efficient implementation than 
+general convex polyhedra. Some operations of the Parm a Polyhedra Library 
+take considerable computation time, most notably the inclusion and intersection 
+operations on polyhedra. To reduce the number of intersections, we maintain 
+a Hasse diagram structure for zones th at share the same location. The Hasse 
+diagrams use the D—  relation to order their zones. The top and bottom  elements 
+are added. Now, as a new zone enters the explored state space on line 17, it will 
+be inserted in the Hasse diagram that corresponds to its location. This means 
+more inclusion checks to determine the position of the new element in the Hasse 
+diagram, but the benefit comes at line 18 of Algorithm 1: If one zone includes 
+the other, the smaller is the intersection of the two, and inclusion can now be 
+quickly decided based on the Hasse diagram. Additionally, we reuse the diagram 
+for the T-directions of Optimization 1: they are no longer stored. However, when 
+the MDP is generated, they are treated as if they were stored.
+6 C ase Studies and M odel C hecking R esu lts
+We present two simple case studies th at illustrate the practical usefulness of 
+PPTAs and CBMR. In addition, we present experimental results for some PTA 
+case studies, taken from [16], which do not include costs. Even though these 
+case studies only exploit part of the functionality of Fo r t u n a , they allow us 
+to compare the performance of Fo r t u n a  to other tools. We also demonstrate 
+the usefulness of our optimizations by comparing non-optimized versions of our 
+algorithm to optimized ones.
+Fo r t u n a  uses a CCS style parallel composition, whereas the approaches that 
+we compare with have a CSP style composition. Due to this, the models used 
+by the different tools are not entirely isomorphic. We tried to stay as close as 
+possible to the original case studies. We did not change the number of locations 
+in the PTAs, but only added intermediate locations on some transitions when 
+needed. Two case studies are concerned with calculating a minimum probabil­
+ity. However, both can be rephrased in maximum probability, as shown in the 
+respective papers.
+16
+
+
+--- Page 18 ---
+''s t a r t u ^ Ç idie;^ s:= ° r  f p r o d u c e ^ ^ ^ f f i ^
+s:=0æ=1s:=0 ( repair,1startup.
+j = 0 ,idle,0 _4
+y<4pickup,4
+Fig. 6.  A Production Plant
+All experiments are carried out on a 2GHz PC with 2GB RAM, which is 
+similar to the hardware used in [16]. We do not compare on memory use as 
+these statistics from the other approaches are unavailable to us. However, for 
+the instance of the case study that is the largest in both states and directions 
+(firewire 100k), Fo r t u n a  needs only 70MB.
+6.1 A  P ro d u c tio n  P la n t
+This case study has been inspired by a case study on a lacquer production 
+plant [19]. Although small, it easily scales up to more elaborate plant models. 
+The PPTA on the left of Figure 6 models a production plant. Initially the system 
+is in the startup location, but goes immediately to the idle location. At some point 
+in time, a scheduler may decide to produce the lacquer. Production takes 1  day 
+and costs 3 credits. W ith probability 0.7 production succeeds and the lacquer is 
+stored, which costs 4 credits per day. W ith probability 0.3 production fails; the 
+machine needs to be cleaned, after which production can start again. The PPTA 
+on the right of Figure 6 models the customer. After 4 days the customer will 
+try to pick up the product. The two PPTAs work in parallel: they start at the 
+same time and their clocks work at the same speeds. The CBMR is the maximal 
+probability to reach the locations store and pickup with cost at most 9. Note that 
+leaving a customer waiting also costs 4 credits per day. Fo r t u n a  calculates a 
+maximum probability of 0.91. In order to realize this, the plant scheduler should 
+wait for 1.5 days before starting production.
+6.2 C S M A  w ith  E n erg y  C o n stra in ts
+IEEE 802.3 CSMA/CD (Carrier Sense, Multiple Access with Collision Detection) 
+is a protocol to avoid data collision on a single channel. The authors of [18] model 
+CSMA with PTAs and are able to compute the maximal probability that both 
+senders have successfully sent their data within a deadline. In certain settings 
+power consumption is important. Sending data consumes power, and typically 
+when a node is listening to receive data, it consumes more power than in other 
+modes. We build a PPTA from the PTA in [18], due to lack of space we refer 
+to their figures and further explanation. We added the following cost to their 
+model: an instantaneous cost of 50 upon a send,  cost-rate 1  in the wait and 
+done  locations, and cost-rate 3 in the transm it  location. All other locations use 
+cost-rate 0. W ith CBMR we are now able to compute the maximal probability 
+by which both nodes are done, but total power consumption is not more than
+cbound.
+17
+
+
+--- Page 19 ---
+6.3 E x p e rim e n ts o n  O p tim iz atio n s
+We have presented Optimizations 1-3 and the optimization that uses Hasse 
+diagrams. Optimization 2 is already used in the backward reachability algorithm 
+of [18]. We conjecture this optimization is always useful and did not experiment 
+with turning it off: by excluding more intersections one can save on the number 
+of directions th at are added at line 19 and  the number of zones in the state 
+space.
+Also, we conjecture Optimization 3 is always useful. Like explained, extra 
+intermediate states are used in the MDP, but the savings in terms of the number 
+of probabilistic transitions in the MDP is huge. Adhoc tests we ran indicate this. 
+Notice that the extra intermediate states are only added to the MDP and are 
+not part of the state space th at is explored backwards.
+The benefit of the other optimizations becomes apparent from Table 1. The 
+last column shows the situation when using only use Optimizations 2 and 3. The 
+second column puts Optimization 1  into play. Finally, the first column also adds 
+the use of Hasse diagrams.
+The implementation gives no guarantees on the order in which zones are 
+explored. The explored zones determine which directions are present. Therefore 
+when trying to add an intersection, Optimization 2 may or may not suppress 
+this. As a result, the number of zones, directions, and T-directions may vary 
+between different runs of the algorithm. Each experiment is repeated 10 times. 
+We use the format a±b to express the calculated mean a and the calculated 
+standard deviation b, where b has the same significance as the least significant 
+digit of a.
+For each optimization level the number of generated states is approximately 
+the same. We have displayed the number of directions for each optimization 
+level, and the number of T-directions when using Hasse diagrams.
+The second column shows a strong reduction in the number of directions, for 
+all case studies except “csma” . This results mainly in less memory usage. Also 
+the benefit of using Hasse diagrams is clear. There are some great reductions in 
+the number of directions, as well as in the run-time.
+6.4 C o m p ariso n  to  o th e r A p p ro ach es
+Table 2 compares the performance of F o r t u n a  to the game-based verification  
+approach of [16], and the backwards reachability  approach of [18]. The statistics 
+are take from [16]. The probabilities computed by F o r t u n a ,  as shown in the 
+last column, vary slightly from those results on the larger instances. This is a 
+result of rounding errors.
+Uppaal-Pro is another tool for checking maximal reachability on PTA, avail­
+able from [12]. Since at the time of writing Uppaal-Pro is still in its development 
+phase, we have not included it in our comparison. The backwards reachability  
+approach is included in the comparison because it is closest to our approach in 
+its workings. From [16], we see the digital clocks  approach of [17], performs worse 
+in all the instances.
+18
+
+
+--- Page 20 ---
+T a b le  1. Performance statistics of the optimizations
+C ase s tu d y  
+(p a ra m e te rs ) 
+[m in /m a x ]O p tim iz a tio n  1  
+a n d  H asse d ia g ra m sO p tim iz a tio n  1 only
+O p tim iz a tio n s  2 a n d  3
+D irs. r- d irs . T im e  (s) D irs. T im e  (s) D irs. T im e  (s)
+csm a_cost
+(c_bound)
+[max]8k
+9k
+10k
+I l k9 4 7 ± 0
+1697± 1
+2 7 5 4 ± 0
+4 2 2 3 ± 09 5 6 ± 0
+1795± 0
+2 9 2 2 ± 0
+4 6 6 2 ± 0I .8 3 1 Ì 2 6  
+4 .3 8 8 Ì 3 2
+I I .0 8 Ì 1 6  
+2 6 .B 9 Ì 1 81 5 3 8 Ì2 0
+2 7 8 0 Ì2 7
+5 2 7 7 Ì1 9 9
+9 9 2 1 Ì5 4 32 .8 7 3 Ì2 8
+1 2 .0 2 6 Ì6 3
+6 2 .6 8 4 Ì2 1
+2 7 1 .6 Ì1 12 3 5 7 Ì2 9
+5 2 8 3 Ì1 4 0
+1 2 5 8 9 Ì2 5 0
+2 8 4 6 4 Ì1 0 0 43 .0 4 Ü 3 5
+1 2 .9 8 Ì1 1
+6 7 .5 6 Ì3 5
+2 9 6 .1 Ì1 0 3
+csm a
+(m a x .b ac k o ff
+collisions)
+[max]2 4 
+2 8 
+4 4 
+4 82 9 0 ± 0
+7 4 2 ± 0
+1 593± 0
+3 2 7 3 ± 0172± 0
+4 7 6 ± 0
+8 1 2 ± 0
+2 0 9 2 ± 00 .2 7 0 Ì7
+0 .7 3 5 Ì8
+2 .4 1 8 Ì3 4
+7 .2 4 1 Ì3 83 6 0 ± 0
+9 4 8 ± 0
+1941± 0
+4 2 4 7 ± 00 .2 6 B Ì 7
+0 .7 2 6 Ì B
+2 .3 6 6 Ì 1 8
+7 .2 2 3 Ì 3 73 7 4 ± 0
+1002± 0
+1999± 0
+4 6 1 7 ± 00 .2 6 7 Ì9
+0 .7 5 2 Ì1 2
+2 .4 0 6 Ì2 7
+7 .9 0 1 Ì6 2
+csm a_abst
+(d e a d lin e
+b c m a x )
+[min]l k  1  
+2k 1  
+3k  1  
+l k  2 
+2k 2 
+3k  23 6 2 ± 0
+6 0 2 ± 0
+1 499± 0
+1298± 1
+29 5 5 ± 0
+5 2 9 8 ± 03 0 9 ± 0
+5 5 2 ± 0
+1527± 0
+1061± 0
+2 7 3 7 ± 0
+5 3 5 4 ± 00 .3 2 3 Ì 1 9
+0 .6 2 7 Ì 2 4
+3 .4 4 B Ì 4 9
+1 .8 8 B ÌB 4
+7 .7 S Ì 1 8
+4 6 .1 4 Ì 4 45 7 4 ± 3
+1036± 7
+8 3 7 5 Ì1 2 5
+2 2 6 3 ± 6
+5 3 2 6 Ì5 2
+2 5 4 9 2 Ì4 2 50 .4 5 9 Ì2 2
+0 .8 1 1 Ì1 7
+6 .8 7 9 Ì5 9
+3 .9 9 Ì1 3
+1 3 .9 2 Ì1 8
+8 3 .6 8 Ì8 77 8 1 ± 1
+1591± 5
+1 0 7 9 0 Ì5
+5 2 3 6 ± 3
+1 3 5 7 6 Ì2 7
+5 1 8 5 6 Ì1 2 30 .4 6 7 Ì1 4
+0 .8 6 3 Ì1 5
+7 .0 5 3 Ì8 2
+4 .4 0 1 Ì9 5
+1 7 .0 3 Ì1 1
+1 0 2 .8 Ì1 0
+firew ire_abst
+(d e a d lin e )
+[min]5k
+10k
+20k
+100k102± 0
+2 7 6 ± 0
+9 4 6 ± 0
+2 0 8 8 4 Ì05 2 ± 0
+169± 0
+6 2 9 ± 0
+1 4 5 1 6 Ì00 .0 2 4 Ì B
+0 .0 8 1 Ì 6
+0 .B 8 7 Ì 8
+2 2 1 .8 Ì 1 12 2 0 ± 2
+1 284± 0
+1 4 8 6 4 Ì20 .0 2 9 Ì6
+0 .1 9 2 Ì6
+4 .1 3 5 Ì1 62 9 0 ± 0
+1727± 0
+1 8 6 9 4 Ì20 .0 3 4 Ì5
+0 .2 1 6 Ì5
+4 .6 1 0 Ì2 0
+>  1 lo u r >  1 h o u r
+n rp  .m alicio u s 
+(d e a d lin e ) 
+[max]5
+10
+202 4 4 ± 3
+65 4 ± 1 2
+1 4 3 6 Ì2 7168± 5
+4 7 8 ± 5
+1107± 40 .1 4 1 Ì 9
+0 .7 1 1 Ì 1 4
+3 .1 3 B Ì 7 33 1 2 ± 3
+99 7 ± 5
+2 5 6 9 Ì1 40 .1 9 2 Ì1 0
+1 .4 8 0 Ì2 4
+1 2 .0 4 3 Ì4 55 6 7 ± 1 5
+2 3 0 0 Ì2 5
+7 4 0 4 Ì3 70 .2 0 4 Ì1 2
+1 .6 2 9 Ì2 9
+1 3 .0 7 Ì1 0
+A s Fo r t u n a  u s e s  t h e  b a c k w a r d  r e a c h a b i l it y  a p p r o a c h  w ith  n e w  o p tim iz a ­
+tio n s , it im p r o v e s  o n  t h e  l a t t e r .  F o r  a ll in s ta n c e s  Fo r t u n a  is f a s te r  t h a n  g a m e - 
+b a s e d  v e r if ic a tio n , o f te n  s e v e ra l o r d e r s  o f  m a g n itu d e . W h y  Fo r t u n a  o u t- p e r f o r m s  
+g a m e - b a s e d  v e r if ic a tio n  is h a r d  t o  say , a s  b o t h  a p p r o a c h e s  a r e  v e r y  d if f e r e n t in  
+n a tu r e . H o w e v e r, w e see t h e  fo llo w in g  p o s s ib le  r e a s o n s :
+—  L ik e  b a c k w a r d  r e a c h a b ility , Fo r t u n a  d o e s  n o t  c a lc u la te  t h e  d iffe re n c e  b e ­
+tw e e n  tw o  z o n e s , b u t  o n ly  in te r s e c tio n s . A s a  r e s u lt, t h e  n u m b e r  o f  s t a t e s  is 
+m u c h  s m a lle r , a s  c a n  b e  s e e n  in  t h e  ta b le .
+—  F o r t u n a  d o e s  f o r w a r d  e x p lo r a tio n  o f  t h e  r e a c h a b le  s t a t e  s p a c e .
+—  F o r t u n a  u s e s  t h e  e ffic ie n t P a r m a  P o ly h e d r a  L ib r a r y  [2] t o  d o  o p e r a tio n s  
+o n  z o n e s .
+—  F o r t u n a  h a s  b e e n  im p le m e n te d  in  C + + ,  b u t  w e d o  n o t  k n o w  t h e  im p le ­
+m e n t a ti o n  la n g u a g e  fo r t h e  o t h e r  to o ls .
+7 C onclusion
+We have presented Fo r t u n a , the first tool for model checking PPTA. Fo r t u n a  
+is able to compute CBMR. It uses novel optimizations th at drastically improve 
+the backward reachability algorithm. Although Fo r t u n a  is more general, it 
+outperforms existing tools for PTAs by several orders of magnitude on a number 
+of case studies in computing maximal probabilistic reachability.
+Users of Fo r t u n a  enter models as hard-wired C + +  code, using calls to an 
+interface. Although this interface is quite clear, a user-interface is preferable. To 
+increase useablity, the actual policy and the traces it generates should be given 
+as feedback to to the user. Another interesting feature would be to output the
+19
+
+
+--- Page 21 ---
+T a b le  2. Performance statistics and comparisons
+Case study Fo r t u n a Game-based Backwards M in/M ax
+(parameters) verification [16] reachability [18] reachability
+[min /m ax States Time (s) States Time (s) States Time (s) probability
+csma 2 4 224=1=0 0.270=1=7 6,476 3.9 243 20.7 0.143555
+(max_backoff 2 8 572=1=0 0.735=1=8 18,196 8.9 575 77.8 0.00525932
+collisions) 4 4 1082=1=0 2.418=1=34 34,826 20.5 303 1443.7 0.0769043
+[max] 4 8 2315=1=0 7.241=1=38 239,298 431.4 >  1 hour 1.65363e-5
+csma_abst lk 254=1=0 0.323=1=19 6,392 1.9 366 68.2 0.0
+(deadline) 2k 437=1=0 0.627=1=24 24,173 20.7 722 367.8 0.869791
+[min] 3k 1178=1=0 3.445=1=49 79,608 448.0 1,736 1436.3 0.999820099
+firewire_abst 5k 6 4 = 1 = 0 0.024=t5 205 0.25 63 2.45 0.78125
+(deadline) 10k 181=1= 0 0.081=1=6 1,023 1.76 180 3.8 0.9747314
+[min] 20k 641=1=0 0.587=1=8 9,059 26.1 640 26.4 0.999629555
+nrp_malicious 5 123±2 0.141=1=9 1,663 1.5 75 2.9 0.100072
+(deadline) 10 293=1=2 0.711=1=14 8,080 11.1 408 117.3 0.105447
+[max] 20 632±2 3.135=1=73 49,622 218.1 1,108 1606.5 0.105658
+probability at each depth of exploration. This sequence of probabilities is non­
+decreasing. The algorithm may be stopped when the outcome is large enough 
+compared to some objective. In this iterative approach at each iteration one 
+can benefit from the probabilities calculated in the previous iteration. In case of 
+model checking PTAs, zones can be represented by DBMs (difference bounded 
+matrices), see [ 6]. These allow faster operations on them  than the more general 
+convex polyhedra we use. Thus for this special sub-problem the use of a DBM 
+library may improve performance drastically for PTA models.
+R eferences
+1. R. Alur, S. L. Torre, and G. J. Pappas. Optimal paths in weighted timed automata. 
+In M. D. D. Benedetto and A. L. Sangiovanni-Vincentelli, editors, HSCC,  volume 
+2034 of Lecture Notes in Computer Science,  pages 49-62. Springer, 2001.
+2. R. Bagnara, P. M. Hill, and E. Zaffanella. The Parma Polyhedra Library: Toward a 
+complete set of numerical abstractions for the analysis and verification of hardware 
+and software systems. Science of Computer Programming,  72(1-2):3-21, 2008.
+3. G. Behrmann, A. David, and K. G. Larsen. A tutorial on uppaal. In M. Bernardo 
+and F. Corradini, editors, SFM,  volume 3185 of LNCS,  pages 200-236, Berlin,
+2004. Springer.
+4. G. Behrmann, A. Fehnker, T. Hune, K. G. Larsen, P. Pettersson, J. Romijn, and 
+F. W. Vaandrager. Minimum-cost reachability for priced timed automata. In 
+M. D. D. Benedetto and A. L. Sangiovanni-Vincentelli, editors, HSCC,  volume 
+2034 of Lecture Notes in Computer Science,  pages 147-161. Springer, 2001.
+5. G. Behrmann, K. G. Larsen, and J. I. Rasmussen. Optimal scheduling using priced 
+timed automata. SIGM ETRICS Performance Evaluation Review,  32(4):34-40,
+2005.
+6. J. Bengtsson and W. Yi. Timed automata: semantics, algorithms and tools. In 
+J. Desel, W. Reisig, and G. Rozenberg, editors, Lectures on Concurrency and Petri  
+Nets , volume 3098 of LNCS , pages 87-124, Berlin, 2004. Springer.
+7. J. Berendsen, T. Chen, and D. N. Jansen. Undecidability of cost-bounded reach­
+ability in priced probabilistic timed automata. In J. Chen and S. B. Cooper, edi-
+20
+
+
+--- Page 22 ---
+tors, TAMC , volume 5532 of Lecture Notes in Computer Science , pages 128-137. 
+Springer, 2009.
+8. J. Berendsen, B. Gebremichael, F. Vaandrager, and M. Zhang. Formal specification 
+and analysis of zeroconf using Uppaal. ACM  Transactions on Embedded Computing  
+Systems,  2010. To appear.
+9. J. Berendsen, D. N. Jansen, and J.-P. Katoen. Probably on time and within budget: 
+On reachability in priced probabilistic timed automata. In QEST,  pages 311-322. 
+IEEE Computer Society, 2006.
+10. H. C. Bohnenkamp, P. van der Stok, H. Hermanns, and F. W. Vaandrager. Cost- 
+optimization of the ipv4 zeroconf protocol. In DSN,  pages 531-540. IEEE Computer 
+Society, 2003.
+11. B. A. Davey and H. A. Priestley. Introduction to Lattices and Order.  Cambridge 
+mathematical textbooks. Cambridge University Press, 2nd edition, 2002.
+12. A. Haugstad. http://www.cs.aau.dk/~arild/uppaal-probabilistic/.
+13. R. P. Kurshan. Verification technology transfer. In O. Grumberg and H. Veith, 
+editors, 25 Years of Model Checking,  volume 5000 of LNCS,  pages 46-64. Springer, 
+2008.
+14. M. Kwiatkowska, G. Norman, and D. Parker. Prism: Probabilistic model check­
+ing for performance and reliability analysis. ACM  SIGM ETRICS Performance  
+Evaluation Review,  36(4):40-45, 2009.
+15. M. Kwiatkowska, G. Norman, R. Segala, and J. Sproston. Automatic verification 
+of real-time systems with discrete probability distributions. Theoretical Computer  
+Science , 282(1):101-150, 2002.
+16. M. Z. Kwiatkowska, G. Norman, and D. Parker. Stochastic games for verification 
+of probabilistic timed automata. In J. Ouaknine and F. W. Vaandrager, editors, 
+FORMATS,  volume 5813 of Lecture Notes in Computer Science,  pages 212-227. 
+Springer, 2009.
+17. M. Z. Kwiatkowska, G. Norman, D. Parker, and J. Sproston. Performance analysis 
+of probabilistic timed automata using digital clocks. Formal Methods in System  
+Design,  29(1):33-78, 2006.
+18. M. Z. Kwiatkowska, G. Norman, J. Sproston, and F. Wang. Symbolic model check­
+ing for probabilistic timed automata. Information and Computation,  205(7):1027- 
+1077, 2007.
+19. A. Mader, H. Bohnenkamp, Y. S. Usenko, D. N. Jansen, J. Hurink, and H. Her­
+manns. Synthesis and stochastic assessment of cost-optimal schedules. Technical 
+Report TR-CTIT-06-14, Centre for Telematics and Information Technology, Uni­
+versity of Twente, Enschede, 2006. http://eprints.eemcs.utwente.nl/2694/.
+20. M. L. Puterman. Markov Decision Processes : Discrete Stochastic Dynamic Pro­
+gramming . Wiley, 2005.
+21. J. Sproston. Decidable model checking of probabilistic hybrid automata. In 
+M. Joseph, editor, Formal Techniques in Real-Time and Fault-tolerant Systems:
+. . . FTRTFT,  volume 1926 of LNCS,  pages 31-45, Berlin, 2000. Springer.
+A  Proofs
+A .1 P ro o f o f L em m a 2
+Recall th at we defined the probability space (P ath s^ , F , P ro b es)). The a-field
+F  is said to be generated  by the set of cones {C(w) | w G  PathsM A w 0 =  s}.
+21
+
+
+--- Page 23 ---
+The set of cones also generates a (conventional) field F , where F  satisfies the 
+following properties:
+—  P aths^ G  F
+—  if W G  F  then P ath s^ \W  G  F  (closed under complement)
+—  if X, Y  G  F  then X  U Y  G  F  (closed under finite  union)
+The difference with a a-field is that a field does require countable unions of 
+elements to be elements.
+Lemma 2 can be viewed as proving th at the measure Prob^(s) equals the 
+measure /(w 0) • Prob r  o,M  (w 0)(C(w)), where both measures are defined over) A[s ----> w ° ] ^  ''' ^  n l
+the same measurable space (P ath s^ , F ). From Caratheodory’ s extension theo­
+rem, we may derive that in order to check this equality, it is enough to check 
+th at the measures are equal on the elements of F . We may skip elements in F  
+th at are not in F , see e.g. [?].
+We first proof the lemma for cones of the form C (s — U  w) for any path 
+(s — U  w) G  PathsM. Thus for A(s) =  ( a ,/)  we want to prove:
+ProbA(s)(C(s — U  w)) =  /(w 0) •  ProbA[s— ^ w °](w 0)(C(w))
+The proof is by induction on the length of w. For n =  0. Then w is a single state, 
+say r.
+ProbA(s)(C(s — U  w)) =  ProbA(s)(C(s — U  r))
+=  ProbA(s)(C(s)) •  /( r )
+=  / (r)
+=  / (r) •  ProbA[s— U r](r)(C(r))
+=  /(w 0) •  ProbA[s— i lUw°](w 0)(C(w))
+Now assume the lemma holds for n. We will proof it also holds for n + 1 . Let
+' a, &w =  w' -----u  r.
+a f , &
+— U  r))
+by definition of Prob 
+by induction
+by definition of Prob
+W hat remains is the case of the element C(s), and the case of elements 
+th at are formed from other elements by complement or union. Assume we haveProbA(s)(C(s — U  w)) =  ProbA(s)(C(s — U  w' 
+=  ProbA(s)(C(s — U  w')) •  /¡(r)
+=  /(w '°) •  ProbA[s— w ,°]  (w'°)(C(w')) •  /( r )
+=  /(w '°) •  ProbA[s— w ,°]  (w'°)(C(w' —U  r)) 
+=  / (w0) •  ProbA[s— ,Uw°](w°)(C(w))by definition of Prob 
+by definition of Prob 
+by definition of Prob
+22
+
+
+--- Page 24 ---
+arbitrary X, Y G  F , such that the measures are equal on X  and on Y .  
+ProbA(s)(P a th s~ \X ) =  ProbA(s)(P aths~ ) -  ProbA(s)(X )
+=  £ M (r) •  ProbA[s— — ^ r](r)(PathsM)
+res
+—  p(r) •  Prob^ g,M ,  j(r)({w |  (s — — ^  r) G  X }) by induction
+re s
+''y^ p(r) •  Prob^ g,M ,  j(r)({w | (s — ^  r) G  P a th s ^ \X }) by induction
+res
+And we have:
+ProbA(s)(X  U Y ) =  ProbA(s)((X \Y ) U Y )
+=  P rob^(s)(X \Y ) +  Prob^(s)(Y ) by union of disjoint sets
+=  £  M (r) •  ProbA[s^ r] (r)({w | (s r) G  X \Y })
+re s
++  ^(r) •  Prob^ g,^ ^(r)({w | (s — — ^  r) G  Y }) by induction
+res
+=  £  M (r) •  ProbA[s— ^ r] (r)({w | (s r) G  X  U Y })
+re s
+The final case is when we have the element C(s). By definition of C(•) we 
+have that C (s) =  y  resupp(M )  C(s — — ^  r). But this union is proven by the previous 
+cases.
+A .2 P ro o f o f T h e o re m  1
+Only result 1  remains to be proven. The proof is very similar to the proof of 
+Proposition 29 in [18], however the length of paths match in [A] and M . Let 
+[A] =  (S, s¡n¡ t, T ). Let (Z, s¡n¡ t, D) be the reachability graph generated by Algo­
+rithm  1, thus Visited  =  Z . Let M  =  (Z ,a¡n¡ t, T) be the MDP generated using 
+Definition 8, i.e. MDP(Z, s¡n¡ t, D) =  M .
+We introduce two new notations th at improve the readability of the proof. 
+Notice that by Definition 5 each state s G  S is a tuple (/, v, c) such that / G  L, 
+v G  inv(/) and c G  R >0. We overload the +  operator and let s+ d denote the state 
+reached from s after a time transition with delay d. Thus, s+ d  =  (/, v +  d, c + 
+d •  $(/)). For any (/, g,p) G  edges and f  G  supp(p) we know that f  =  (R, h, /') for 
+some R Ç X, h G  N and /' G  L. We abuse notation by using f  as a function and 
+let f  (s) =  (/', v[R := 0], c +  h).
+The proof needs the following properties:
+1. If SupProbReachj^Aj (s, ffgoai) > 0 then there exists a  G  Z  such that s G  
+tpre(a).
+2. For all (a, a, p) G  T , if a =  t and p =  {p^1}, then a  Ç p.
+23
+
+
+--- Page 25 ---
+3. For all n G  N, a  G  Z , B G  Pol(M ), s G  tpre(a) there exists A G  Pol([A]) such 
+that:
+ProbReach^"(s, a goai) —  ProbReach|"(a, {agoa|})
+4. For all n < maxlength, s G  S, A G  Pol([A]), if SupProbReachj^"j (s, agoal) > 0, 
+then there exist i < n, a  G  Waitingi ,  B G  Pol(M ) such th at s G  tpre(a) and
+ProbReachJ"(a, {agoa|}) —  ProbReach^" (s, a goa|)
+5. For all n < maxlength, A G  Pol([A]), there exist B G  Pol(M ) such that
+ProbReachJ"({agoa|}) —  ProbReach^" (agoa|)
+By Definition 5, s¡n¡ t =  (/¡n¡ t, {x ^  0 |  x G  X}, 0). From Algorithm 1  we have that 
+a¡n¡t =  {s¡n¡t}. Then tpre(a¡n¡t) =  a¡n¡t by definition of tpre. Thus s¡n¡t G  tpre(a¡n¡t). 
+Using property 3 and the definition of SupProbReach we have that:
+SupProbReachj^"j(agoa|) —  SupProbReachM"({agoa|})
+Using property 5 and the definition of SupProbReach we have that:
+SupProbReachj^"j(agoa|) < SupProbReachM"({agoa|})
+Combining the two inequations above concludes the proof.
+Proof of property 1  If SupProbReachj^"j (s, a goa|) > 0 then there exists a finite 
+path w G  P a t h s ' such th at w 0 =  s, |w| < n, and last(w) G  a goa|. By induction 
+on n and the definition of dpre and tpre, we can conclude there exists a path 
+w G  PathsM such th at |w| < n, s G  tpre(w0), and last(w) =  a goa|.
+Proof of property 2  For any (a, a, p) G  T with a =  t  and p =  {p^1}, by 
+Definition 8, we have th at (a, t, p) G  D. The proof is by induction on n, which 
+represents the number of directions in D th at use action t . For n =  2, from 
+Algorithm 1, we can see all directions are added as a result of line 6, and clearly 
+a  Ç p.
+Now assume the property holds for some n —  2. We will proof it also holds 
+for n +  1. The last direction that was added to D and uses action t must have 
+been added on line 19. From lines 17-19 we see that it was added as a result of 
+an existing direction that uses action t. From line 19 we see th at a  Ç p holds.
+Proof of property 3  The proof is by induction on n. Now look at the case when 
+n =  0. By definition of ProbReach, two cases have to be considered.
+—  If ProbReachJ"(a, {agoa|}) =  1, then a  =  a goa|. From Algorithm 1  we have 
+th at agoa| =  {/goa| X  inv(/goa|) X  [0, cbound]}. Then tpre(agoa|) =  agoa| by defini­
+tion of tpre. Since s G  tpre(a) =  a goa| we have ProbReach;|"(s, a goa|) =  1  for 
+any policy A G  Pol ([A]).
+24
+
+
+--- Page 26 ---
+—  If ProbReach- " (a, {agoa|}) =  0, then for any policy A G  Pol([A]) the in­
+equality holds.
+Now suppose that property 3 holds for n. We will proof it also holds for n +  1. If 
+a  =  a goa|, then the result follows as in the first case for n =  0. We are therefore 
+left to consider the case when a  =  a goa|. Let B (a) =  (a, /) . By Lemma 3:
+ProbReachf"+ 1(a, {agoa|}) =  £  /(p ) •  ProbReach-" _  _  (p, {agoa|}) (1)
+pes p ]
+When a =  t, we have th at /a =  { p '^ 1 }  for some p' G  Z . Using property 2 
+we have th at a  Ç p'. By definition of tpre we have that s G  tpre(p'). Thus:
+RHS of (1) =  ProbReach- " - - (p', {agoa|})B[a— A  p']
+< ProbReach- "(s, a goa|) for some A by induction
+< ProbReach- "+ 1(s, a goa|) by Lemma 1
+Now look at the case when a =  t . By Definition 8, for some D e, ^ with 
+e =  (/, g,p) and a =  e we have that
+RHS of (1) =  £  £  p (f n  •  ProbReach-" e,- (p, {agoa|})
+p e^(.,e,/,p )eD e,- /  B[ff^ p ]
+£  p (f ) •  ProbReach- " e,- (p, {agoa|}) (2)
+(CT,e,/,p)eDe,- B [ C T  P ]
+Because s G  tpre(a) there exists a time transition s — s+ d  in [A], with 
+s+ d  G  a. From Algorithm 1  we can see that (a, e, f, p) G  D 6 j|Q  implies that 
+a  Ç dpree ƒ (tpre(p)). By definition of dpre we have that f  (s+d) G  tpre(p) and 
+s+ d  =  v. Thus, by induction for any (a, e, f, p) G  D 6 j|Q  there exists a policy 
+Af G  Pol ([A]) such that:
+ProbReach- " ( f  (s+d),agoa|) —  ProbReach- " e,_  (p, {agoa|})B[c t— -^p ]
+Let A be the policy such that:
+—  A(s) =  (d, /) , where for any r =  (/', v', c') G  S :
+/ (r) =  £  p (R ,c' — d •  $(/)— c  /' ) =  £  p (f  )
+RCX s.t. ƒ esupp(p) s.t.
+v' = (v+d)[ñ:= 0]  ƒ (s+d)=r
+The probabilistic transition s — — ^  exists due to Definition 5.
+For any (a, e, f,p ) G  De,p :
+A[s — f  (s+d)] =  Af
+25
+
+
+--- Page 27 ---
+Now we are able to complete the proof of property 3 as follows: 
+ProbReach|"+ 1(a, {agoa|})
+£  p (f  ) •  ProbReach-" e , —  ^  {agoa| })
+^  / T e n ►  p ](ff,e,f,p)eDe,—
+< £  P (f ) •  ProbReach- " ( f  (s+d),agoa|) 
+(ff,e,/,p)eDe, -
+< £  P (f ) •  ProbReach- " ( f  (s+d),agoa|) 
+fesupp(p)
+=  E  £  P (f  ) •  ProbReach-" (rby ( 1) and ( 2) 
+by induction
+by rewriting
+res ƒ esupp(p) s.t. 
+ƒ  (s+d)=r
+/
+EreS\
+ƒesupp(p) s.t.  \  ƒ (s+d)=r /•  ProbReach- " d  (r, a goa|) by construction of A
+A[s— — ^ r]
+E / (r) ^  ProbReach-" d,M  (r,a goa|) A[s----^ r]reS
+ProbReach- " + 1(s, a goa|)by construction of A 
+by Lemma 3
+Proof of property 4  The proof is by induction on n. Now look at the case when 
+n =  0. By definition of ProbReach, two cases have to be considered.
+—  If ProbReach- "(s, a goa|) =  1, then s G  a goa| G  Waiting0.  We have s G
+tpre(agoa|) by definition of tpre. Now, for arbitrary B we have th at ProbReach- " (a goa|, {agoa|}) =
+1.
+—  The case ProbReach- "(s, a goa|) =  0. Since we assumed SupProbReach-" (s, a goa|) >
+0, by property 1, we have that s G  tpre(a) for some a  G  Z . Clearly from the 
+algorithm we see that then for some i < n we have th at a  G  Waitingi .  Now
+for any policy B G  Pol(M ) the inequality holds.
+Now suppose that property 4 holds for n. We will prove it also holds for 
+n + 1  < maxlength. If ProbReach- " + 1(s ,a goa|) =  0, then the result follows as in 
+the second case for n =  0. We are therefore left to consider the case when
+ProbReach- "+ 1(s, a goa|) > 0 (3)
+If s G  agoal, then the result follows as in the first case for n =  0. We are therefore 
+left to consider the case when s G  a goa|. Let A(s) =  (d,/) . By Lemma 3:
+ProbReach- "+ 1(s, agoa|) =  ^ ^ / ( r )  •  ProbReach- " d  ^ (r,agoa|) (4)
+re s A[s^ r]
+By Definition 5 we can distinguish two cases.
+26
+
+
+--- Page 28 ---
+1. A chooses a time transition, so /  =  { r^ 1 }  for some r G  S , then
+RHS of (4) =  ProbReach- " d  (r, a goa|) (5)
+A [s — r]
+Using assumption (3) we conclude SupProbReach-" (r, a goa|) > 0. Now, by 
+induction, the exists i < n, a  G  W aitingi ,  B G  Pol(M ) such th at r G  tpre(a) 
+and
+RHS of (5) < ProbReach- " (a, {agoal})
+Clearly s G  tpre(a), and using Lemma 1  we are done.
+2. A chooses a delayed discrete (probabilistic) transition. By Definition 5:
+RHS of (4) =  
+/
+EresE  p ( f )
+, ƒ  esupp(p)  s.t.
+\  ƒ (s+d)=r
+p (f ) •  ProbReach\
+)
+/•  ProbReach -  " d , ( r,
+A[s— *  r]
+ƒesupp(p)" d,—  (f(s +  d ),a goa|)A[s----> ƒ (s+d)](6)
+Now consider any f  G  supp(p) such that ProbReach- " d  (f  (s +
+A[s— — >  ƒ (s+d)]
+d ),a goa|) > 0. By induction there exists i < n, a zone (J G  Waitingi,  and a 
+policy B ^ 1 G  Pol(M ) such that f  (s +  d) G  t p r e ^  ) and
+ProbReach- " ^ , {agoa|}) > ProbReach- " , (f (s +  d),agoa|) (7)
+B A [s >  ƒ (s+d)]
+Let a-^ =  dpree ƒ ( t p r e ^ )). By definition of dpre we have th at s+ d  G  a-^.  By 
+lines 13-15 of Algorithm 1  we have that a-^ G  W aitingi+1  and (a-^, e, f, ) G  
+D. On lines 17-21 of the algorithm the following zone wil be constructed:
+a  =  Q ^  | f  G  supp(p) A SupProbReach-" (f  (s +  d),agoa|) > 0}
+Clearly s+ d G  a, thus s G  tpre(a). Moreover, the following directions are 
+constructed:
+D ' =  {(a, e, f , ^ ) |  f  G  supp(p) A SupProbReach-" (f (s +  d),agoa|) > 0}
+Now construct /  using Definition 8, where D D '. Let B G  Pol(M ) such 
+th at B (a) =  (e,/ )  and B[a —^  ^ ]  =  B^1 . We are now able to finish the
+27
+
+
+--- Page 29 ---
+proof as follows:
+ProbReach- "+ 1(a, {agoa|})
+=  V '' /(p ) •  ProbReach- " e  ß (p, {agoa|}) by Lemma 3
+pes *p ]
+=  E Í  E P (f ) J  •  ProbReach-" ^ {agoa|})
+pes \ ( ff,(i,g,p),/,p)efle,ß J B [ff "p ]
+by construction of /  in Definition 8
+> E  P (f ) •  ProbReach- " e,ß ^ , {agoa|}) by construction of De,|¡ 
+(a,(i,s,p)j,pf )eD' "pf]
+=  p (f ) •  ProbReach- "(p-^, {agoa|}) by construction of B
+(CT,(i,g,p)J,pf )eD'
+> E  P (f ) •  ProbReach- " d  —  (f (s +  d),agoa|) by (7)
+M ,J )J p f  )eD  A[s— —
+P (f  ) •  ProbReach-" d,—  (f  (s +  d ) a goa| )A[s—^  ƒ (s+d)]ƒesupp(p) s.t. [  J  ( + ) ]
+ProbReach-” d  —  (ƒ(s+ d ),C T g o a |)>0
+A [s— — ^/(s + d )]
+by construction of D '
+=  ProbReach- "+ 1(s ,a goa|) by ( 6) and (4)
+Proof of property 5  The proof is by induction on n. Now look at the case when 
+n =  0. By definition of ProbReach, two cases have to be considered.
+—  If ProbReach- " (a goa|) =  1, then s¡n¡ t G  a goa| G  Waiting0.  But then a¡n¡ t Ç 
+a goa|. By line 4 of Algorithm 1: a¡n¡ t =  a goa|. Now, for arbitrary B we have 
+th at ProbReach- "({ agoa|}) =  1.
+—  If ProbReach- " (a goa|) =  0, for any policy B G  Pol(M ) the inequality holds.
+Now suppose that property 5 holds for n. We will prove it also holds for 
+n + 1  < maxlength. By Definition 5, we can distinguish two cases.
+—  A chooses a time transition, then from Algorithm 1  we know that inv(1¡n¡ t ) =
+A æex(x =  0). Therefore only the time transition with zero delay is possible 
+from s¡n¡ t , and by Lemma 3 we have the following:
+ProbReach- "+ 1(agoa| ) =  ProbReach- " 0 (agoa| ) ( 8)
+A[s¡ n ¡ t  ~^s¡ n ¡ t ]
+By induction there exists B G  Pol(M ) such that
+RHS of ( 8) < ProbReach- "({ agoa|})
+< ProbReach- "+ 1({agoa|}) by Lemma 1
+28
+
+
+--- Page 30 ---
+—  A chooses a delayed discrete (probabilistic) transition. If ProbReach- "+ 1(agoa|)
+0 the inequality holds for any policy B G  Pol(M). Now, assume ProbReach - " + 1
+0. This implies SupProbReach-A"j+ 1(s¡n¡ t, a goa|) > 0. By property 4, there ex­
+ists i < n + 1 , a  G  W aitingi ,  B ' G  Pol(M ) such that s¡n¡ t G  tpre(a) and
+ProbReach- "+ 1(agoa|) < ProbReach- "+ 1(a, {agoa|}) (9)
+From Algorithm 1  we know th at inv(1¡n¡ t) =  / \ xeX(x =  0). Therefore tpre(a) =  
+a  and s¡n¡t G  a. In case a  =  agoal, we have that s¡n¡t G  agoal, and the result 
+follows as in the first case for n =  0. We are therefore left to consider the 
+case when a  G  {agoa|}. Let B '(a) =  (e,/') .
+RHS of (9)
+=  y '' / ;(p) •  ProbReach- " , (p, {agoa|}) by Lemma 3
+pes B> —> p ]
+=  E (  E  P (f  ) ) •  ProbReach-" e,— ^ ^  {agoa|} )
+peS V  (^(í^pXAp^^e, —  J  B  [ C T  ^ p ]
+by construction of /  in Definition 8
+E  P (f  ) •  ProbReach-" e , —  s  ^  {agoa|})
+KO^pXAp^^e, —  B [c t > p ]
+Because of the invariant inv(1¡n¡ t), we have that a¡n¡ t Ç a. From lines 17-19 
+of Algorithm 1, we conclude that we can construct D ' Ç D such th at for 
+each (a, e, f, p) G  D e,M / there exists (a¡n¡ t, e, f, p) G  D '. Using Definition 8,  
+we have th at (a¡n¡ t, e ,/) , where D e,M  =  D '. Now, we can construct policy
+B G  Pol(M ) such th at B(a¡n¡ t) =  (e, / )  and B[a¡n¡ t — — ^  p] =  B '[a e ,M  >  p] for 
+any p G  supp(/ ). We are now able to finish the proof as follows:
+y ^  p (f ) •  ProbReach
+KO^pXAp^^e, —
+=  p (f ) •  ProbReach
+(^¡nít,(¡,9,P),/,p)eD'- "
+B'k  —  > p]  
+- "/ _ (p, {agoa|})
+( p, { agoal} )B [ff¡n ¡t— — —  p ]
+^ / ( p )  •  ProbReach-" e,—  ^  {agoa|})
+peS B [ ^ ¡ n ¡ t > p ]
+ProbReach- "+1 
+B ({agoa|}) by Lemma 3
+A .3 P ro o f o f T h e o re m  2
+We will need the following lemma.
+L em m a 5. For any two zones  p, a  G  S , when  p D a, then either p  
+there exists a zone  u G  S  swch that p D u D—  a.a  or(agoa|) >
+29
+
+
+--- Page 31 ---
+Proof.  See [11].
+We will now define a notion of weak simulation on reachability graphs needed 
+for this proof and later proofs. It differs from the traditional notion in that a 
+transition s — r will not be simulated by a path s ^ —^  f, but a path s — ^  f  
+instead. This limitation is essential to Lemma ??. The necessity of the limitation 
+is best shown with the following small example.
+Assume a probabilistic transition (s, a ,/ )  in M DP(M ), that is generated by 
+Definition 8 from D e,M  =  {(s, e, f 1, r), (s, e, f 2, r)}. W ithout the limitation there
+e ƒ1 e ƒ 2may exist paths f  ^  q 1 — — f  and f ^  q 2 — — f ,  but we are not guaranteed 
+th at there exists a distribution with two outcomes, since q 1 and q 2 may differ, 
+thus the probability of reaching rf from sf is lower than reaching r from s.
+D efin itio n  10 (W eak S im u latio n ). Given reachability graphs  Q =  (S, s¡n¡ t, D) 
+and Cf  =  (S, f¡n¡ t, D), we say that Cf  simulates Q i f there exists a relation  
+R Ç S x S such that
+1. s¡n ¡t R s¡n ¡t
+2. if  s R s and s — >  r, then either  a =  t  and r R s, or there exists an  f  such  
+that s — ^  f  and r R f.
+R is called a  weak simulation relation.
+L em m a 6. Given reachability graphs  Q =  (S, s ¡ n  ¡ t, D), Q =  (S, s¡n  ¡ t, D), and 
+G Ç S. A ssum e  Q simulates  Q via R. Let G  =  {s |  3s G  G.s R s}, then:
+1. For any  A G  Pol(MDP(Q)), there exists Al G  Pol(MDP(Q)) such that
+ProbReachA(G) > ProbReach^(G)
+2.
+SupProbReachM D p(Q)(G) > SupProbReachM D p(Q)(G)
+Proof.  Result 2 follows in a straightforward manner from result 1. The proof 
+of result 1 follows straightforwardly from the following lemma which is more 
+general. □
+L em m a 7. Given reachability graphs  Q =  (S, s¡  n  ¡  t, T ), Q =  (S, s¡ n  ¡  t, !T), and 
+G Ç S. Assume Q simulates  Q via R. Let G =  {s |  3s G  G.s R s}. For any 
+s G  S, A G  Pol(Q), n G  N, and s G  S with s R s, we have that there exists  
+A G  Pol(Q) such that
+ProbReachA(s, G) > ProbReach- "(s, G)
+Proof.  When s G  G, the righthand side equals 1  by definition of ProbReach. 
+By definition of G, we have that s G  G, thus also the lefthand side equals 1.  
+Now assume s G  G. When s G  G, the lefthand side equals 1  by definition of 
+ProbReach, and the inequality follows trivially. Now assume s G  G.
+30
+
+
+--- Page 32 ---
+The proof is by induction on n. For n =  0, the righthand side equals 0 by 
+definition of ProbReach, and the inequality follows trivially.
+Now assume the lemma holds for n, we prove it also holds for n +  1. Let 
+A(s) =  (a ,/). By Lemma 3:
+ProbReach- " + 1(s, G) =  /( r )  •  ProbReach- " — —  n (r, G) (10)
+A[s-----r]re s
+Look at the case when a =  t . By Definition 8:  / ( r )  =  ^ ( s (; g p)  ƒ r )eD —  P(f  )  
+for some D e , M , and a =  e. By weak simulation, for every â =  (s,e, f, r) G  D e, M .  
+there exists G  PathsQ of the form (w á)0 ^  last(wá) such that s ■ e — and 
+r R last(w á). By induction there exists Aá G  Pol(Q) such that:
+ProbReach^ (last(wá),G ) > ProbReach- " e —  (r, G)A[s— , — — r]
+Let D ' =  {(s, e, f, (wá)0) | â =  (s,e, f, r) G  D e , M }. Now construct /  using 
+Definition 8, where D e , ^ D D '. Let A G  Pol(M ) such that A(s) =  (e ,/),
+ProbA(s)(C(s -— — —  ^ á)) =  / ( ( ^ á)0) and A[s ■ e — — ]  =  Aá for any â G  D e,M .  
+Note th at when the state (w á)0 is reached after resolving the probabilistic choice 
+of / ,  policy A will take all the t  transitions of wá. We conclude the case as
+31
+
+
+--- Page 33 ---
+follows:
+ProbReach- "+ 1(s, G)
+= y 2 / ( r )  •  ProbReach- " e,„ (r, G) by (10)
+re s A[s_—r]
+=  (  V  p (f ) I  •  ProbReach-  e  „ (r, G) by Definition 8I / A[s— , — — r]reS \(s,(i ,g ,p) ,ƒ , r)eDe,^ /
+=  p (f ) •  ProbReach- " e,M  (r, G) by rewritingA[s— , — — r]
+< p (f ) •  ProbReach- " (last(wá),G ) by induction
+^(^(l^PXAOeDe,^
+^  p (f  ) •  ProbReach-;” e,fl ^  0 ((^  )0,G)
+ä=(S,(i,g,p),/,r)eDe,f , [ S  ^  )  ]
+by construction of A
+Ep (f ) •  ProbR each e,p (f, G) by construction of D'A[s----— r]
+(s,(i,9,p),/,f)ED'
+< p (f ) •  ProbReach _  e,p (f, G) since D e n D D 'A[s----— s]
+E> p (f ) •  ProbR each e,ß (r, G) by rewritingI / A  [s ----— r ]ses \ (s,(l,g,p),./ !,r)e.D e,p /
+E/ ( f )  •  ProbR each e,ß (f, G) by construction of /  in Definition 8 A  [ s  -- —  r ]ses
+=  ProbReachA (s, G) by Lemma 3
+In case a =  t, we have that /  =  {r—1} for some r G  S .
+RHS of (10) =  ProbReach- " a,„ (r, G) (11)A[s— - — — r]
+By induction there exists A G  Pol(M ) such that
+ProbReachA (', G) > RHS of (11)
+and we are done. □
+Assume that (S, s¡ n  ¡  t , D) and (S, s¡n  ¡  t, D) are the reachability graphs generated 
+by the original and new algorithm, respectively. Assume that M  =  (S, s ¡  n¡ t, T )  
+and M  =  (S, s¡ n  ¡  t, T) are the MDPs generated on the output of the original and 
+new algorithm, respectively, using Definition 8. Note that s¡ n  ¡ t =  s¡n  ¡ t .
+We will prove the following equation, from which the theorem follows straight­
+forwardly.
+SupProbReachM ({agoal}) =  SupProbReachM ({agoal})
+32
+
+
+--- Page 34 ---
+We have the following equation:
+D =  {(a, e, f, p) G  D |  ^(a, e, f, p') G  D.p' C p}U
+{(a, (l, true,p), 0, p) G  D | p D—  a  A (a uses l) A p =  {(l, 0)—1}} (12)
+The second part of the union follows directly from Optimization 1  Fragment B. 
+Since Fragment B is executed only at the very end, we see that before executing 
+Fragment B, D should be equal to the first part of the union. This follows directly 
+from Optimization 1  Fragment A that is executed after each added edge.
+It follows directly from Optimization 1  th at S =  S. We define relations 
+R 1, R 2 :Ç S x S as follows: R 1 =  {( s, s) | s =  s} and R 2 =  {( s, s) | s D s}. 
+We will prove (S, s¡ n¡  t, D) simulates (S, s¡  n¡  t, D) via R 1, and (S, s¡  n  ¡  t , D) simulates 
+(S, s¡ n  ¡  t , D) via R2, both non-probabilistically in the sense of Definition 10. The 
+theorem then follows straightforwardly by Lemma ??.
+Clearly s¡  n  ¡  t R 1 s¡ n  ¡ t . Assume s R 1 s and s — r. Note th at s =  s by construction 
+of R 1 . In case this direction is also present in D condition 2 holds. In case this 
+direction is not present in D this is as a result of Fragment A. Fragment A may 
+delete multiple directions, but in the end, for each deleted direction s — r  there 
+will be a direction s — r ' with r ' C r. Now, by Lemma 5, Fragment B makes 
+sure there is a path of directions r ' ^  r in D. Then condition 2 holds.
+Clearly s¡n  ¡  t R 2 s¡  n  ¡  t . Assume s R 2 s and s — f. In case this direction was not 
+added as a result of Fragment B, we know that it also exists in D. Note that 
+s D s by construction of R2. Because s n s =  s =  0 on line 18, and due to line 19 
+there will be a direction s — r, with r =  f  . Since f  R 2 r we are done. In case 
+s — f  was added as a result of Fragment B, we know that a =  t  and f  D—  s .  
+But then f  D s, which implies f  R 2 s and we are done.
+A .4 P ro o f o f T h e o re m  3
+Assume D, D are the directions generated by the original and new algorithm, 
+respectively. Assume M  =  (S ,a ¡n  ¡ t, T ) and M  =  (S ,a ¡n  ¡  t,T ) are the MDPs 
+generated on the output of the original and new algorithm, respectively, using 
+Definition 8. Note that a  n  t =  a  n  t.
+We need the following property. For any a  G  S  and A G  Pol(M ), there exists 
+a  G  S  and A G  Pol(M ) such that a  D a  and
+ProbReach- "(a, {agoa|}) =  ProbReach- "(a, {agoa|})
+Using this property we conclude there exists a  D a¡n  ¡ t and A G  Pol(M ) such that
+ProbReach- "(a, {agoal}) =  ProbReach- "({agoal})
+It follows that the condition on the intersection of line 18’  holds for the intersec­
+tion a  n a  n  t. Since a  n a  n  t =  a  n  t, by line 19 for every (a, e, f, p) G  D, if a  =  a, 
+then also (a¡n  ¡  t, e, f,p ) G  D. Let A(a) =  (a ,/). By Definition 8:  /  is defined 
+by some De,M . Let De,M ' =  {(a¡ n¡t, e ,f,p ) |  (a, e, f,p ) G  De,M }, which by Defini­
+tion 8 defines / '.  Let A' G  Pol(M ) be the policy such th at A'(a¡n  ¡  t) =  ( a ,/')  and
+33
+
+
+--- Page 35 ---
+A'[a¡n  ¡  t a,M  —  p] =  A [a — —— p] for any p G  S . Clearly we can conclude the proof 
+with
+ProbReach- "({agoal}) =  ProbReach- "(a, {agoal})
+Proof of the property  The proof is by induction on n. If n =  0 and a  =  a goal  
+then ProbReachA(a, {agoal}) =  1. We can choose a  =  a goal  since a goal  G  S , thus 
+we are done. For n =  0 and a  =  a goal  then ProbReachA(a, {agoal}) =  0 and we 
+are done.
+Now assume the property holds for n. We will prove it will also holds for n+ 1. 
+In case a  =  a goal, the proof is completed as for n =  0. Now assume a  =  a goal. 
+Let A(a) =  (a, /) . By Lemma 3:
+ProbReach- " + 1(a, {agoal}) =  /(p ) •  ProbReach- " a,M  (p, {agoal}) (13)¿— L A [ct ----— p ]
+By Definition 8:  Vp G  S ./(p ) =  ^ ( C T  e ƒ p)eD p (f ) for some D e,M  Ç D, where 
+e =  (1,g,p). By induction, for every (a, e, f, p) G  D e,M  there exists p G  S  and 
+Ap G  Pol(M ) such th at p D p and
+ProbReach - " 1 (p, {agoal}) =  ProbReach- " a,M  (p, {agoal})p  A [c t----— p ]
+Zone a  =  dpre^(tpre(p )) will be generated by line 15 since p G  S , thus 
+(a,e, f, p) G  D. From the definitions of dpre and tpre it is easy to see that 
+a  D a.
+Let D ' Ç D be such th at for every (a, e, f , p) G  D e,M  there exists a (a, e, f, p) G  
+D ' as described above. Now let a ' =  fV ,e, AS)eD' a. And let De„n =  {(a', e, f, p) |  
+3 a .(a, e, f, p) G  D'}. From D e,M  by Definition 8 the new condition in line 18’  will 
+hold for each pair of elements of D e |S  . By Definition 8 we have (a', / )  G  T .
+34
+
+
+--- Page 36 ---
+—  —  —  e ƒ ßNow let A be the policy such that A (a') =  (a, / )  and A (a' ’  ’  —  p) =  Ap (p).
+Now putting everything together:
+RHS of (13) =  /(p ) •  ProbReach- "(p, {agoal}) by induction
+pes
+=  p (f ) )  •  ProbReach- "(p, {agoal}) by Definition 8
+pe^  V  (l  (i ,g ,P)  , ƒ , p)eDe,M  /
+E  p (f ) •  ProbReach- "(p, {agoal})
+=  p (f ) •  ProbReach- "(p, {agoal}) by construction of D e,^
+=  E i  E  P(f  M ^  ProbReachl ’ "  ('  {agoal})
+peS \ ( 0'',(l,g,P),./ !,p)e-D e ,;i /
+/(p ) •  ProbReach- "(p, {agoal}) by Definition 8
+se s
+/(p ) •  ProbR each-"—p](p, {agoal}) by definition of A
+se s
+=  ProbReach- "+ 1(a, {agoal}) by Lemma 3
+A .5 P ro o f o f T h e o re m  4
+Let Q =  (S, s¡n¡ t, D) and Q =  (S, s¡n¡ t, D). Let M  =  MDP(Q) and M  =  MDP(Q). 
+By definition of Optimization 3: S =  S U I  and s¡n¡ t =  s¡n¡ t .
+We will prove the following two properties, from which the theorem follows 
+straightforwardly.
+1. For any s G  S , G Ç S, and A G  Pol(M ), there exists A G  Pol(M ) such that
+ProbReachA(s,G) < ProbReachA (s,G)
+2. For any n G  N, s G  S, G Ç S , and A G  Pol(M ), there exists A G  Pol(M )  
+such that
+ProbReach- "(s, G) < ProbReachA (s, G)
+Proof of property 1  We define a relation R Ç S x S as follows: R =  {(s,s) |  
+s =  s }. We will prove Q simulates Q via R non-probabilistically in the sense of 
+Definition 10. The property then follows straightforwardly by Lemma ??.
+Clearly s¡n¡ t R s¡n¡ t . Assume s R s and s — r. Note th at s =  s by construction 
+of R. In case this direction is also present in D condition 2 holds. In case this 
+direction is not present in D, there exist directions s — (s, a) and (s, a) — r in 
+D, thus condition 2 holds.
+35
+
+
+--- Page 37 ---
+Proof of property 2  The proof is by induction on n. For n =  0, in case s G  G 
+both sides are 1. In case s G  G the left side is 0.
+Now assume the property holds for n. We will prove it also holds for n +  1. 
+In case s G  G both sides are 1. Now assume s G  G, then by Lemma 3, when 
+A(s) =  (a, /):
+ProbReach-"+ 1(s, G) =  /( r )  •  ProbReach- " — —  (r, G)
+re s A  [s  — r]
+By induction there exist policies Ar such that:
+< / ( r )  •  ProbReachAr (r, G)
+reS
+Let A be an policy such that A(s w') =  Ar (w'), and A(w) is arbitrary in 
+case w does not have the form s —  w'. By Definition 3:
+=  E / (r) •  ProbReachA [s ° G)
+res
+=  ProbReachA(s, G) by Lemma 3
+□
+36
+

@@ -1,0 +1,1560 @@
+--- Page 1 ---
+PReCISE – FUNDP
+University of Namur
+Rue Grandgagnage, 21
+B-5000 Namur
+Belgium
+PAPER March, 2011
+AUTHORS J. Ortiz, A. Legay, P-Y . Schobbens
+EMAIL jor@info.fundp.ac.be , alegay@irisia.fr ,
+pierre-yves.schobbens@fundp.ac.be
+VENUE CIAA’11
+STATUS Extended version of the paper Submitted to CIAA’11
+PROJECT
+FUNDING
+Distributed Event Clock Automata
+Copyright cUniversity of Namur. All rights reserved.
+
+--- Page 2 ---
+Distributed Event Clock Automata
+Extended Abstract
+James Ortiz1, Axel Legay2 3, and Pierre-Yves Schobbens1
+1Computer Science Faculty, University of Namur
+2INRIA/IRISA, Rennes
+3Institut Monteﬁore, University of Li `ege
+james.ortizvega@fundp.ac.be
+alegay@irisa.fr
+pierre-yves.schobbens@fundp.ac.be
+Abstract. In distributed real-time systems, we cannot assume that clocks are
+perfectly synchronized. To model them, we use independent clocks and deﬁne
+their multi-timed semantics. The universal timed language, and the timed lan-
+guage inclusion of icTA are shown undecidable. Thus, we propose Recursive
+Distributed Event Clock Automata ( DECA ).DECA are closed under all boolean
+operations and their timed language inclusion problem is decidable (more pre-
+cisely PSPACE -complete), allowing stepwise reﬁnement. We also propose Re-
+cursive Distributed Event Clock Temporal Logic ( DECTL ), a real-time logic with
+independent time evolutions. This logic can be model-checked by translating a
+DECTL formula into a DECA automaton.
+1 Introduction
+Real-Time Distributed Systems ( RTDS ) take an increasingly important role in our soci-
+ety, including in aircrafts and spacecrafts, satellite telecommunication networks or posi-
+tioning systems. Distributed Systems consist of computer systems at different locations,
+that communicate through a network to achieve their function. Real-Time Systems have
+to obey strict requirements about the time of their actions. To ensure these, they rely on
+clocks. When systems are widely distributed, we cannot assume that their clocks are
+perfectly synchronized.
+One of the most successful techniques for modeling real-time systems are Timed
+Automata ( TA) [2]. A timed automaton is a ﬁnite automaton augmented with real-
+valued clocks. Constraints on these clocks are used to restrict the behaviors of the au-
+tomaton. The model of TAassumes perfect clocks: all clocks have inﬁnite precision and
+are perfectly synchronized.
+This causes TAto have an undecidable language inclusion problem [2]. The situ-
+ation contrasts strongly with the one of automata without real time, where the prob-
+lems of complementation, language inclusion, emptiness, union and intersection are
+decidable, as well as the satisﬁability and validity of propositional linear temporal
+logic ( LTL). These properties are the basis of the success of model-checking. When
+all these problems are decidable, we call the formalism (automata or logic) fully de-
+cidable. These negative results spurred a quest for expressive but still fully decidable
+formalisms.
+
+--- Page 3 ---
+To restore decidability, [4] proposed to restrict the behavior of clocks. The key idea
+is that the problematic clocks of TAare reset by non-deterministic transitions. In con-
+trast, an event clock ( EC)xpis reset when a given atomic proposition poccurs. The
+event clock values are deterministic and thus Event Clock Automata ECA are deter-
+minizable, making language inclusion decidable and thus enabling reﬁnement based
+development. Event clocks can also be introduced in temporal logic [15]. An event
+clock constraint is naturally translated into a proposition CIp, that means “the last time
+that apoccurred was dtime units ago, where dlies inI”. However, the expressiveness
+ofECA is rather weak. Furthermore, this logic violates the substitution principle: Any
+proposition should be replaceable by a formula.
+Therefore [9] introduced the notion of “recursive” event. In a recursive event model,
+the reset of a clock is decided by a lower-level automaton (or formula). This automa-
+ton cannot read the clock that it is resetting. Clock resets are thus still deterministic,
+but the concept of “event” is now much more expressive. BIandCIare modalities
+that can contain any subformulas, and can be nested. The temporal logic of recursive
+event clocks (variously called SCL [15] or EventClockTL [9]) has the same expressive-
+ness as Metric Interval Temporal Logic MITL [3] (a decidable fragment of MTL where
+punctual constraints are forbidden) in the interval semantics. First-and second-order
+monadic logics with matching expressiveness have been provided [9], yielding a natu-
+ral, robust, fully decidable level of real-time expressiveness. In this paper, we remove
+the assumption of perfect clock synchronization. Here, inspired by [6, 10, 1], we study
+the worst case: the clocks can advance totally independently if they are in different pro-
+cesses. While [1] only studied untimed languages, namely the universal and existential
+languages, here we deﬁne and study the corresponding timed languages. [13, 8] studied
+the opposite case, where the difference between clocks (drift) is inﬁnitesimally small.
+Our ﬁrst contribution is to extend the Recursive Event Clock Automata ( RECA )
+with such distributed (a.k.a independent) clocks, yielding the Distributed Recursive
+Event Clock Automata ( DECA ). We will show that DECA are determinizable, thus
+closed under complementation, and thus that their language inclusion problem is decid-
+able (more exactly, PSPACE -complete). We also show the decidability and regularity
+of their universal languages.
+Our second contribution is to extend EventClockTL with distributed clocks. This
+gives us the (Recursive) Distributed Event Clock Temporal Logic ( DECTL ), which we
+show to be PSPACE -complete.
+Structure of the paper . The rest of the paper is organized as follows. Sections 2
+and 3 recall preliminary notions. Section 4 extends the semantics to multiple timed
+languages. Section 5 deﬁnes DECA and studies their properties. Section 6 examines
+real-time temporal logics: it recalls EventClockTL [15], then introduces and studies
+DECTL .
+2 Preliminaries
+We brieﬂy recall the various models of time that are used in the literature [5]. We present
+our results in the interval semantics, that is the richest and most natural (but also most
+difﬁcult) model. We also recall clocks and their constraints.
+3
+
+--- Page 4 ---
+2.1 Models of time
+Models of time can be linear, considering a single future, or branching, considering
+several alternative futures. We only consider linear time in this paper. Our goal here is
+to model real-time systems, and thus we use the real numbers as our model of time.
+This avoids a premature commitment to a speciﬁc discretization of time. In this paper,
+we use the interval semantics , where the state of the model is known at any point in
+time, as opposed to point semantics , where it is known only at events.
+LetPbe a ﬁnite set of propositional symbols . Aletter is an element of a ﬁnite set .
+In this paper, we choose to deﬁne a letter as propositional valuation over P, so we pose
+= 2P. LetNbe the set of natural numbers, Rdenote the set of real numbers, R0
+the set of non-negative real numbers. We use the interval semantics. We denote by IR0
+the set of real intervals whose bounds are in R0. An interval I2IR0is a convex
+subset of R0. Two intervals IandI0are said to be adjacent when they are disjoint:
+I\I0=;andI[I0is an interval. An (alternating) interval sequence is a sequence
+I=I0I1of non-empty intervals of IR0where : (i)I0=f0g; (ii) singular and
+open intervals alternate; (iii) successive intervals IjandIj+1areadjacent for allj0,
+(iv) if inﬁnite, the sequence of intervals is progressive , i .e., for every t2R0, there
+existsj2Nsuch thatt2Ij. A interval state sequence can equivalently be seen as an
+sequence of elements in 2PIR+. It can also be seen as a signal , i.e. a function from
+R+to states: Let = (;I)be a interval state sequence and given t2R+, leti2N
+be the interval such that t2Ii. We deﬁne(t)as the statei. A signal derived from an
+ISSwill always have ﬁnite variability. Below, our automata will consider two ISSthat
+deﬁne the same signal as equivalent, even if the intervals might be split differently. Our
+automata assume ﬁnite variability. In Section 4, we will extend this model to several
+time scales.
+2.2 Clocks
+A clock is a variable that increases with time. Thus, the value of a clock is the time
+elapsed since its last reset. When we use continuous time, there is not always a “last”
+reset, e.g. when the reset holds in an open interval. For this case, we will use non-
+standard clock values of the form +, intuitively meaning that the clock was reset just
+units before. The set of non-standard real numbers, noted R+
+0, is the set off;+j
+2R0g, ordered by <nsas following: 1<ns+
+2iff12. The addition
+is commutative, and +
+1+2= (1+2)+.R+
+?isR+
+0plus a special value ?for
+uninitialized clocks. ?is not comparable to other values, and is absorbing for addition.
+LetXbe a ﬁnite set of clock names. A clock valuation over Xis a mapping :X!
+R+
+?. For a valuation and a time value t2R0, let+tdenote the valuation such that
+(+t)(x) =(x) +t, for each clock x2X.
+The set of constraints over X, denoted(X), is deﬁned by the following grammar,
+whereranges over(X),x2X,c2N, and2 f<;;=; >;g:
+::=truejxcj1^2j1_2j:
+We writej=when the valuation satisﬁes the constraint . When xhas the value
+?, we evaluate xcto false.
+4
+
+--- Page 5 ---
+3 Automata Background
+Based on time and clocks, several variants of timed automata have been proposed after
+the seminal Timed Automata TA[2]. Below, we review brieﬂy icTA [1] and RECA [9],
+that are the basis of our DECA .
+3.1 Timed Automata
+A Timed Automaton ( TA) [2] is a ﬁnite state automaton augmented with clocks: real
+variables that can be reset to 0, and otherwise increase at a uniform rate. Time is thus
+global, and clocks are perfectly precise and synchronized. Our deﬁnition of TAhas the
+following minor peculiarities:
+1. We use a continuous signal semantics throughout the paper, i.e. the state is a func-
+tion of time.
+2. In particular, we do not allow to be in two locations, or to make two transitions, at
+the same time. Time strictly increases along an ISS, as in [2].
+3. We observe states, rather than actions, to link with temporal logics.
+4. We implicitly allow -transitions [7], that were absent from [2].
+Deﬁnition 1. A Timed Automaton is a tuple A= (;X;S;s0;!ta;Inv;;F), such that:
+(i), a ﬁnite alphabet.
+(ii) X, a ﬁnite set of positive real variables called clocks.
+(iii) S, a ﬁnite set of locations.
+(iv) s 02S, the initial location.
+(v)!taS(X)2XS, a ﬁnite set of transitions.
+(vi) Inv :S!(X)gives the invariant.
+(vii): (S[! ta)!, a labelling of locations and transitions.
+(viii)F, an acceptance condition. For instance, for ﬁnite acceptance, we have F S, a
+set of ﬁnal locations. We also use B ¨uchi (where FS) or parity conditions (where
+F:S!N).
+TA are neither determinizable nor complementable. Their emptiness problem can be
+solved using the region construction, but their inclusion problem is undecidable [2].
+3.2 Timed Automata with Independent Clocks
+Distributed Timed Automata ( DTA ) [10, 1] consist of a number of local timed automata.
+Each automaton owns clocks. The clocks of a process evolve synchronously, but inde-
+pendently of the clocks of the other processes. The clocks belonging to one process can
+be read by another process, but a clock can only be reset by its owner process.
+Deﬁnition 2. ADTA is a tupleD= (Proc;A;), such that :
+(i) Proc is a nonempty, ﬁnite set of process labels.
+(ii)Ais an indexed set of Timed Automata, A=(Aq)q2Proc.
+(iii):S
+q2ProcXq!Proc maps each clock to its owner process.
+5
+
+--- Page 6 ---
+whereAqcan only reset owner clocks and Aq=(q;Xq;Sq;S0
+q;!q;Iq;q;Fq)are
+Timed Automata.
+Note that a process can read a clock of another process, since the xqneed not be
+disjoint. In [1], DTA are not much studied. Instead, their product is ﬁrst computed,
+giving rise to the class of Timed Automata with independent clocks ( icTA ).icTA assume
+asignature . Asignature is a pair (Proc;P), where Proc is a nonempty ﬁnite set of
+process labels, and Pis a ﬁnite set of propositional symbols, from which we deﬁne
+= 2P. For a tuple tthat is indexed by Proc ,tprefers to the projection of tontop2
+Proc .
+Deﬁnition 3. AnicTA is a pair (A;), whereAis aTAand:X!Proc maps each
+clock to a process.
+The semantics of DTA ,icTA , and our DECA , depends on the local evolutions of
+time. This is modelled by a tuple =(q)q2Procof local time functions. Each local
+time function qmaps the reference time to the local time of process q, i.e,q:R0 !
+R0. The functions qmust be continuous, strictly increasing, and divergent, and satisfy
+q(0) = 0 . The set of all these tuples is denoted by Rates . We can also consider as
+a mapping to a tuple of local times: :R0 !(R0)Proc. Note that the reference time
+is arbitrary.
+Deﬁnition 4. Given a clock valuation : X!R0and a delay tuple t2RProc, the
+valuation+tis deﬁned by (+t)(x)=(x) +t(x)for allx2X.
+A run of an icTAAforis an alternating sequence of states and transitions q00!
+q1d1!q1+d11!:::, wherei0,diis a non-decreasing sequence of values from
+R0, states are triples of a location, a clock valuation, and lastly the reference time:
+q2Q=f(s;;t)2SRX
+0R0jj=Inv(s)g. A run should furthermore satisfy:
+1. the starting state is q0= (s0;0;0), where0assigns 0to all the clocks,
+2. the transitions must alternate between two types:
+–Delay transition, i.e. spending time in a location: qid !qi+d, whereqi=
+(si;i;ti), andqi+d= (si;i+ ((ti+d)(ti));ti+d), if the invariant is
+continuously true in local time: 8t2]ti;ti+d[:i+ ((t)(ti))j=Inv(si).
+–Discrete transition: following a transition i= (si1;;Y;si)2! icTAwhen
+the clock constraint is satisﬁed. The clocks in Yare then reset. This transition
+is instantaneous. (si1;i1;ti1)i!(si;i;ti), such thati1j=,i=
+i1[Y!0];ti1=ti.
+3. The acceptance condition is veriﬁed, e.g. for a ﬁnite automaton, sn2F.
+Given a run = (s0;0;t0)0!(s1;1;t1):::ofAfor, we deﬁne its ISS as
+((0);ft0g);((s1);]t1;t2[);:::. The languageL(A;)is deﬁned as the set of ISS
+of accepting runs of Bfor, closed under, the equivalence generated by merging
+adjacent intervals with the same labelling. The existential language of Ais denoted by
+L9(A) =S
+2RatesL(A;)and the universal semantics of Ais denoted byL8(A) =T
+2RatesL(A;).
+6
+
+--- Page 7 ---
+IfjProcj= 1, then an icTAAactually reduces to an ordinary timed automaton and
+we haveL8(A)=L(A;)for any2Rates . Moreover, ifjProcj>1and2Rates
+exhibits, for all p2Proc , the same local time evolution, then L(A;)is the language
+ofAconsidered as an ordinary timed automaton.
+3.3 Recursive Event Clocks Automata
+Recursive Event Clock Automata ( RECA ) [14, 9] extend ECA [5]. “Recursive” refers
+to the fact that the resets of an event clock xBare controlled by a lower-level automaton
+B: WhenBpasses in a monitored location, it resets xB. We present here a version of
+RECA for continuous time, where transitions have all properties of locations.
+Deﬁnition 5. ARECAAof levell2Nis a tupleA= (;C;S;s0;!reca;M;;; F),
+such that:
+(i)is a ﬁnite alphabet.
+(ii) C is a ﬁnite set of clocks, of the form xBoryB, withBa lower-level RECA .
+(iii) S is a ﬁnite set of locations.
+(iv) s 02S is the initial location.
+(v)!recaSS are the transitions.
+(vi) M(S[!reca)is the set of monitored locations or transitions: when the au-
+tomaton visit such a location, it resets the associated clock.
+(vii):(S[!reca)!is a labelling function which labels each location or tran-
+sition with a symbol.
+(viii): (S[!reca)!(C)gives the guard or invariant clock constraints.
+(ix) F is an acceptance condition, e.g. a set of ﬁnal locations, or of B ¨uchi accepting
+locations.
+Throughout the paper, we assume this uniform naming convention. RECA can be
+determinized and thus complemented: They are fully decidable [9].
+4 Multi-Timed Languages
+Surprisingly, Akshay et al. [1] only consider untimed languages for their timed au-
+tomata. We are interested in timed languages, but we have several times here. We thus
+deﬁne a multi- ISS as a sequence of letters and (local time) interval sequences, one
+for each local time in PProc := (;(Iq)q2P). LetPbe a rate deﬁned on
+P. Given an interval I, we can obtain the corresponding multi-interval P(I)by ap-
+plyingPto its bounds, for instance P(]ti;ti+1[) =]P(ti);P(ti+1)[. This extends
+naturally to interval sequences. Given an ISS= (;I)(expressed in the reference
+time), its multi- ISSP()is(;P(I)). LetBbe an icTA , the languageL(B;),
+is deﬁned as the set of ISS of accepting runs of Bfor, closed under the equiva-
+lence generated by merging adjacent intervals with the same propositional labelling.
+However, ISS is not signiﬁcant here, since it is expressed in the (arbitrary) refer-
+ence time. The multi-timed language L(B;;P )is the set of all accepted multi- ISS:
+L(B;;P ) =P(L(B;)). If we select a subset QofP, we can project a multi- ISS
+7
+
+--- Page 8 ---
+= (;(Iq)q2P)to this subset Q, notedjQ= (;(Iq)q2Q). This projection extends
+naturally to languages. In particular, the UNTIME operation [2] is the case with P=;.
+Note thatL(B;;P )jQ=L(B;;Q ). When there is only one process Proc =fqg,
+the timed language observed by q,L((A;);;fqg), does not depend on , and for an
+icTA , it is the usual timed language L(A)of its TA. Whenis the identity, we also
+obtain the usual timed language.
+For expressing real-time requirements, we have to choose the process(es) that will
+measure the time. When we want to avoid some forbidden timed behaviours, we natu-
+rally consult the existential timed semantics: we consider local times as non-deterministic.
+If we want a given timed behaviour to be possible whatever the evolution of local times,
+we check that it belongs to the universal semantics. Thus we deﬁne, for an automaton
+Band a subset of its processes P:
+–the existential timed language observed by P:L9(B;P) =S
+2RatesL(B;;P )
+–the universal timed language observed by P:L8(B;P) =T
+2RatesL(B;;P )
+The untimed languages deﬁned in [1] are the special cases with an empty set of ob-
+servers. More generally:
+Theorem 1.L9(B;P)jQ=L9(B;Q)whereQP.
+Proof.
+L9(B;P)jQ= ([
+2RatesL(B;;P ))jQ
+= ([
+2RatesP(L(B;)))jQ
+= ([
+2RatesfP(;I)j(;I)2L(B;))g)jQ
+= (f(;P(I))j(;I)2L(B;))^2Ratesg)jQ
+=f(;Q(I))j(;I)2L(B;))^2Ratesg
+=L9(B;Q)
+but for universal languages, we need to prove the following theorems :
+Theorem 2. For any icTAB, ifjPj2thenL8(B;P) =;wherePProc.
+Proof. We prove this by contradiction. Consider the set of processes P=fp1;p2;:::;png
+withn2, the universal timed language L8(B;P)wherePProc and an ISS, then
+we want to prove that for all 2Rates ,P()=2L(B;;P ). Assume to the contrary
+that for some P=fp1;p2;:::;pngwithn2, the universal timed language L8(B;P)
+=T
+2RatesL(B;;P )=T
+2RatesP(L(B;))6=;, then there is , for all2Rates ,
+P()2L(B;;P ). Consider the ISS=((0);f0g);((s1);]0;t1[);:::, the tuple
+of local functions =(p1; p2; :::;pn)and since:8,P()2L(B;;P ), then
+we have that:8,9that is (s0;0;t0)0!(s1;1;t1):::a run ofB, whereP()
+8
+
+--- Page 9 ---
+=P(ISS()). GivenB,2Rates and=((0);f0g);((s1);]0;t1[);:::; we have
+thatp1(t1)=tp1with1tp12,p2(t1)=tp2with1tp22,:::,pn(t1)=
+tpnwith1tpn2, where we assume due to the construction that 1,2are both
+integer and for each 1in,tpi2[1;2]. Letp1(t)=tp1t,p2(t)=2tp2t,:::,
+pn(t)=ntpntimpliestp1t1=tp1thent1= 1, 2tp2t1=tp2thent1= 1=2,:::,
+ntpnt1=tpnthent1= 1=nwhich is impossible and contradicts that L8(B;P)6=;.
+Theorem 3. For some icTABwith ﬁnal states F 6=;, ifjPj<2thenL8(B;P)6=;
+wherePProc.
+Proof. We prove this by contradiction. Consider the set of a single process P=fpg
+and the universal timed language L8(B;P)wherePProc and an ISS, then we
+want to prove that for all 2Rates ,P()2L(B;;P ). Assume to the contrary that
+for someP=fpg, the universal timed language L8(B;P)=T
+2RatesL(B;;P )=T
+2RatesP(L(B;)) =;, then there is , for all2Rates ,P()=2L(B;;P ). Con-
+sider the ISS=((0);f0g);((s1);]0;t1[);:::, the tuple of local functions =(p)
+and since:8,P()2L(B;;P ), then we have that :8,9that is (s0;0;t0)0!
+(s1;1;t1):::a run ofB, whereP()=P(ISS()). GivenB,2Rates and=
+((0);f0g);((s1);]0;t1[);:::; we have that p1(t1)=tpwith1tp12, where
+we assume due to the construction that 1,2are both integer and tp2[1;2]. Let
+p(t)=tpt, impliestpt1=tpthent1= 1, which contradicts that L8(B;P) =;.
+Theorem 4.L8(B;P)jQL8(B;Q)whereQP.
+Proof. Consider the set of processes P=fp1;p2;:::;pngwithn2, the universal
+timed languageL8(B;P)jQwhereQPProc and2jQjn, then we want to
+prove thatL8(B;P)jQL8(B;Q).
+L8(B;P)jQ= (\
+2RatesL(B;;P ))jQ
+=;L8(B;Q)
+Theorem 5. For any icTAB,L9(B;Q)is the language of an icTA onQ.
+Construction 1 The existential timed languages can be computed by a variant of the
+region construction, of which the construction of [1] is a special case. Let q2Proc
+be a process whose clocks we want to eliminate, i.e. we have an icTABonProc
+and we would like to construct an icTA onProcnfqgwhose existential language
+isL9(B;Procnfqg). We construct the region equivalence, but on the clocks of q
+only. This gives a region icTA without the clocks of q, and where the locations are
+now a pair of an original location and a region constraint on clocks of q, which has
+the required language. If we want to eliminate several processes, we eliminate them
+one by one: eliminating several processes together would give a result that does not
+reﬂect the independence of their clocks.
+Theorem 6. For any icTAB,L9(B;fqg)is the language of a TA.
+9
+
+--- Page 10 ---
+Construction 2 The existential timed language can be computed by the region con-
+struction [1] of a icTA for the independent clocks of the single process q2Proc ,
+whose clocks evolve at of same speed, i.e., they follow the same clock rate, then
+our model corresponds to a standard timed automata [2]. We construct the region
+equivalence with the clocks of q. A region constraint is of the formV
+q2Procq.
+This gives a region icTA with the clocks of q, and where the locations are now a
+pair of an original location and a region constraint on clocks of q, which has the
+required language. We label the region state byV
+q2Procq. Then we mark as ﬁnal
+the locations where all members are ﬁnal (which, in turn, means that one of their
+members is an original ﬁnal state), to represent that the ISSmust be accepted under
+evolution of time q. The resulting automaton is a TA.
+This variety of languages leads to three generalisations of the classical problems of
+emptiness, inclusion, intersection and union. First, the -wise deﬁnitions:
+Deﬁnition 6. Given icTA orDECAA;B;C,
+1.Cis an-intersection ofA;Biff82Rates;L(C;) =L(A;)\L(B;)
+2.Cis an-union ofA;Biff82Rates;L(C;) =L(A;)[L(B;)
+3.Cis a-complement automaton of Aiff82Rates;L(C;) =L(A;)c, wherec
+is the complement operator.
+4.Ais a-language-included in Biff82Rates;L(A;)L(B;)
+5. The-emptiness problem for Ais82Rates;L(A;) =;
+The existential variant use respectively the existential timed language observed by
+PProc .
+Deﬁnition 7. Given icTA orDECAA;B;C,
+1.Cis an9-intersection observed by PofA;BiffL9(C;P) =L9(A;P)\L9(B;P)
+2.Cis an9-union observed by PofA;BiffL9(C;P) =L9(A;P)[L9(B;P)
+3.Cis a9-complement automaton observed by PofAiffL9(C;P) =L9(A;P)c,
+wherecis the complement operator.
+4.Ais9-language-included observed by PinBiffL9(A;P)L9(B;P)
+5. The9-emptiness problem observed by PforAisL9(A;P) =;
+The universal variant use respectively the universal timed language observed by
+PProc .
+Deﬁnition 8. Given icTA orDECAA;B;C,
+1.Cis an8-intersection observed by PofA;BiffL8(C;P) =L8(A;P)\L8(B;P)
+2.Cis an8-union observed by PofA;BiffL8(C;P) =L8(A;P)[L8(B;P)
+3.Cis a8-complement automaton observed by PofAiffL8(C;P) =L8(A;P)c,
+wherecis the complement operator.
+4.Ais8-language-included observed by PinBiffL8(A;P)L8(B;P)
+5. The8-emptiness problem observed by PforAisL8(A;P) =;
+The-wise deﬁnitions are indeed the strongest:
+10
+
+--- Page 11 ---
+-A construction for union is the following :
+Construction 3 LetA=(A;XA;SA;sA
+0;!A
+icta;A;InvA;FA;A)andB= (B;XB;
+SB;sB
+0;!B
+icta;B;InvB;FB;B)be two icTA . Without loss of generality we assume
+that the sets of clocks XAandXB(and respectively the sets of locations SAandSB)
+are all pairwise disjoint.
+Union LetC= (C;XC;SC;sC
+0;!C
+icta;C;InvC;FC;C)be the icTA deﬁned as
+follows:
+(i)C=A[B,
+(ii)XC=XA[XB,
+(iii) SC=SA[SB,
+(iv) sC
+0= (sA
+0;sB
+0)2SC,
+(v)!C
+icta=!A
+icta[!B
+icta,
+(vi)C=A[B,
+(vii) InvC=InvA[InvB,
+(viii) FC=FA[FB,
+(ix)C=A[B,
+The proof of union correctness is the following:
+Correctness We need to show that for all 2Rates ,2L(C;)iff2L(A;)[
+L(B;). Assume that =((0);ft0g);((s1);]t1;t2[);:::; ((sn);]tn1;tn[)2
+L(C;)is an ISSand an icTAC. Thenoriginates from some runs =(sC
+0;0;t0)
+0!(sC
+1;1;t1):::n1! (sC
+n;n;tn)ofCwith regard to , where a run is an al-
+ternating sequence of states and transitions. The states are triples of a location, a
+clock valuation, and lastly the reference time: f(s;;t)2SCRX
+0R0jj=
+Inv(s)g. The transitions must alternate between two types: ( i) Delay transition, i.e.
+spending time in a location: qid !qi+d, whereqi= (si;i;ti), andqi+d=
+(si;i+ ((ti+d)(ti));ti+d), if the invariant is continuously true in lo-
+cal time:8t2]ti;ti+d[:i+ ((t)(ti))j=Inv(si). (ii) Discrete transition:
+following a transition i= (si1;;Y;si)2! icTAwhen the clock constraint
+is satisﬁed. The clocks in Yare then reset. This transition is instantaneous.
+(si1;i1;ti1)i!(si;i;ti), such thati1j=,i=i1[Y!0];ti1=
+ti. For any clock xC2XC,(xC)=(t)(ti)wherei0is the index of
+the last transition which reset clock xCor is(t)ifxCwas never reset. We can
+say theCacceptsat timetwith regard to , if there is a run for an equiva-
+lent ofthat visits an accepting location sC
+n2FCattand on the rate, where
+we can safely assume due to the construction that, for each 1in,sC
+0 !C
+sC
+n. By induction hypothesis we know that =((0);ft0g),((s1);]t1;t2[);:::;
+((sn);]tn1;tn[)2(L(A;)[L(B;)), then there is an accepting run 0=
+(sA[B
+0;0
+0;t0)0!(sA[B
+1;0
+1;t1):::n1! (sA[B
+n;0
+n;tn)be the run for that
+visits an accepting location sA[B
+n2(FA[FB)attand on the rate, where we
+can safely assume due to the construction that, for each 1in,sA[B
+0 !A[B
+sA[B
+n. Firstly, we say that Caccepts an ISSattwith regard to rate, if there
+is a runforthat visits a accepting location sC
+n2FCatt. Secondly the clock
+11
+
+--- Page 12 ---
+valuation depends on the ISS, on the reference time of evaluation t, and on the
+rate. It is easy to see that for each 1inthe clock valuation assigns a
+(non-standard) positive real to each clock variable i=0
+i. Thirdly, since sC
+n12
+(SA[SB)and there exists a transition C
+n1=(sC
+n2;;Y;sC
+n1)2!C
+icTA, there
+existssA[B
+n2(FA[FB)such thatsC
+n2(FA[FB)and there exists a transition
+A[B
+n = ((sA
+n1;;Y;sA
+n)2!A
+icTA[(sB
+n1;;Y;sB
+n)2!B
+icTA)where the clock
+constraints are satisﬁed by the valuation 0
+n. Hence we can adjunct sA[B
+0 !sA[B
+n
+to the run overAandB. It follows immediately that Caccepts the set of ISSat
+timetand on the rate, then the language L(C;)is the set of ISSof accepting
+runs ofCwith regard to , and the languageL(A;)[L(B;)is deﬁned as the set
+ofISSof accepting runs of the union of AandBwith regard to . We have that
+L(C;) =L(A;)[L(B;).
+-A construction for intersection is the following :
+Construction 4 LetA=(A;XA;SA;sA
+0;!A
+icta;A;InvA;FA;A)andB= (B;XB;
+SB;sB
+0;!B
+icta;B;InvB;FB;B)be two icTA . Without loss of generality we assume
+that the sets of clocks XAandXB(and respectively the sets of locations SAandSB)
+are all pairwise disjoint.
+Intersection LetC= (C;XC;SC;sC
+0;!C
+icta;C;InvC;FC;C)be the icTA de-
+ﬁned as follows:
+(i)C=A\B,
+(ii)XC=XA[XB,
+(iii) SC=SASB,
+(iv) sC
+0= (sA
+0;sB
+0)2SC,
+(v) For all sA
+1,sA
+22SA,sB
+1,sB
+22SB,C=A^B, andYC=YA
+[YB:((sA
+1;sA
+2);C;YC;(sB
+1;sB
+2))2!C
+ictaiff there exist transitions
+(sA
+1;A;YA;sA
+2)2!A
+ictaand(sB
+1;B;YB;sB
+2)2!B
+icta,
+(vi) For allsA
+12SA,sB
+22SBands2SC,C(s) =A(s1)^B(s2),
+(vii) InvC=InvA^InvB,
+(viii) FC=FAFB,
+(ix)C=A[B,
+The proof of intersection correctness is the following:
+Correctness We need to show that for any 2Rates ,2L(C;)iff2L(A;)\
+L(B;). Assume that =((0);ft0g);((s1);]t1;t2[);:::; ((sn);]tn1;tn[)2
+L(C;)is an ISSand an icTAC. Thenoriginates from some runs =(sC
+0;0;t0)
+0!(sC
+1;1;t1):::n1! (sC
+n;n;tn)ofCwith regard to , where a run is an
+alternating sequence of states and transitions. The states are triples of a location, a
+clock valuation, and lastly the reference time: f(s;;t)2SCRX
+0R0jj=
+Inv(s)g. The transitions must alternate between two types: ( i) Delay transition, i.e.
+spending time in a location: qid !qi+d, whereqi= (si;i;ti), andqi+d=
+(si;i+((ti+d)(ti));ti+d), if the invariant is continuously true in local time:
+8t2]ti;ti+d[:i+ ((t)(ti))j=Inv(si). (ii) Discrete transition: following a
+12
+
+--- Page 13 ---
+transitioni= (si1;;Y;si)2! icTAwhen the clock constraint is satisﬁed. The
+clocks inYare then reset. This transition is instantaneous. (si1;i1;ti1)i!
+(si;i;ti), such thati1j=,i=i1[Y!0];ti1=ti. For any clock xC2
+XC,(xC)=(t)(ti)wherei0is the index of the last transition which reset
+clockxCor is(t)ifxCwas never reset. We can say the Cacceptsat timetwith
+regard to, if there is a run for an equivalent of that visits an accepting location
+sC
+n2FCattand on the rate, where we can safely assume due to the construction
+that, for each 1in,sC
+0 !CsC
+n. By induction hypothesis we know that 
+=((0);ft0g),((s1);]t1;t2[);:::; ((sn);]tn1;tn[)2(L(A;)\L(B;)),
+then there is an accepting run 0=(sA\B
+0;0
+0;t0)0!(sA\B
+1;0
+1;t1):::n1!
+(sA\B
+n;0
+n;tn)be the run for that visits an accepting location sA\B
+n2(FAFB)
+at timetand on the rate , where we can safely assume due to the construction that,
+for each 1in,sA\B
+0 !A\BsA\B
+n. Firstly, we say that Caccepts an ISS
+attwith regard to rate, if there is a run forthat visits a accepting location
+sn2FCatt. Secondly the clock valuation depends on the ISS, on the reference
+time of evaluation t, and on the rate. It is easy to see that for each 1in
+the clock valuation assigns a (non-standard) positive real to each clock variable
+i=0
+i. Thirdly, since sC
+n12(SASB)and there exists a transition C
+n1=
+(sn2;;Y;sn1)2!C
+icTA, there exists sA\B
+n2(FAFB)such thatsC
+n2(FA
+FB)and there exists a transition A\B
+n =((sA
+n1;sA
+n);C;YC;(sB
+n1;sB
+n))2!C
+icta
+iff there exist transitions (sA
+n1;A;YA;sA
+n)2!A
+ictaand(sB
+n1;B;YB;sB
+n)2
+!B
+icta, for allsA
+n1,sA
+n2SA,sB
+n1,sB
+n2SB,C=A^B, andYC=YA[YB,
+where the clock constraints are satisﬁed by the valuation 0
+n. Hence we can adjunct
+sA\B
+0 !sA\B
+n to the run overAandB. It follows immediately that Caccepts the
+set of ISSat timetand on the rate, then the language L(C;)is the set of ISS
+of accepting runs of Cwith regard to , and the language L(A;)\L(B;)is
+deﬁned as the set of ISSof accepting runs of the intersection of AandBwith
+regard to. We have thatL(C;) =L(A;)\L(B;).
+Theorem 7. IfCis an-union ofA;B, then for any PProc,L9(C;P) =L9(A;P)[
+L9(B;P).
+Proof.
+L9(A;P)[L9(B;P) = ([
+2RatesL(A;;P ))[([
+2RatesL(B;;P ))
+= ([
+2RatesP(L(A;)))[([
+2RatesP(L(B;)))
+= ([
+2RatesfP()j2L(A;)g)[
+([
+2RatesfP()j2L(B;)g)
+=f(;P(I))j(2L(A;))_(2L(B;))
+13
+
+--- Page 14 ---
+^2Ratesg
+=f(;P(I))j2(L(A;)[L(B;))
+^2Ratesg
+=f(;P(I))j2L(C;)^2Ratesg
+=L9(C;P)
+Theorem 8. IfCis an-intersection ofA;B, then for any PProc,L8(C;P) =
+L8(A;)\L8(B;P).
+Proof.
+L8(A;P)\L8(B;P) = (\
+2RatesL(A;;P ))\(\
+2RatesL(B;;P ))
+= (\
+2RatesP(L(A;)))\(\
+2RatesP(L(B;)))
+= (\
+2RatesfP()j2L(A;)g)\
+(\
+2RatesfP()j2L(B;)g)
+= (\
+2RatesfP()j(2L(A;))^
+(2L(B;))g^2Ratesg)
+= (\
+2RatesfP()j2(L(A;)\
+L(B;))g^2Ratesg)
+= (\
+2RatesfP()j2L(C;)^2Ratesg)
+=L8(C;P)
+Theorem 9. IfCis an-intersection ofA;B, then for any PProc,L9(C;P) =
+L9(A;P)\L9(B;P).
+Proof. The-intersection ofC, follow from the constructions similar to the Theorem
+8.
+Theorem 10. IfCis an-union ofA;B, then for any PProc,L8(C;P) =L8(A;)[
+L8(B;P).
+Proof. The-union ofC, follow from the constructions similar to the Theorem 7 .
+We note that the above theorems are valid for the ﬁnite version, but also for the
+inﬁnite ones, e.g. for B ¨uchi automata, which are determinized to a parity automaton
+14
+
+--- Page 15 ---
+[12]. The different classes of union for the inﬁnite version of an icTA can be constructed
+similar to the Construction 3 . The construction of intersection for the inﬁnite version
+of an icTA can be constructed using the same construction of intersection for the B ¨uchi
+automata.
+-A construction for intersection for inﬁnite version is the following :
+Construction 5 LetA=(A;XA;SA;sA
+0;!A
+icta;A;InvA;FA;A)andB= (B;XB;
+SB;sB
+0;!B
+icta;B;InvB;FB;B)be B ¨uchiicTA . Without loss of generality we as-
+sume that the sets of clocks XAandXB(and respectively the sets of locations SA
+andSB) are all pairwise disjoint.
+Intersection LetC= (C;XC;SC;sC
+0;!C
+icta;C;InvC;FC;C)be the icTA de-
+ﬁned as follows:
+(i)C=A\B,
+(ii)XC=XA[XB,
+(iii) SC=SASBf1;2g,
+(iv) sC
+0= (sA
+0;sB
+0;1)2SC,
+(v) For allsA
+1,sA
+22SA,sB
+1,sB
+22SB,C=A^B, andYC=YA[YB
+andi,j2f1;2g:((sA
+1;sB
+1;i),C,YC,(sA
+2;sB
+2;j))2!C
+ictaiff there exist
+transitions (sA
+1;A;YA;sA
+2)2!A
+ictaand(sB
+1;B;YB;sB
+2)2!B
+ictaand:
+(a) ifi= 1andsA
+12FA, thenj= 2, or
+(b) ifi= 2andsB
+12FB, thenj= 1, or
+(c) neithera)orb)above applies and j=i.
+(vi) For allsA
+12SA,sB
+22SBands2SC,C(s) =A(s1)^B(s2),
+(vii) InvC=InvA^InvB,
+(viii) FC=FASBf1g,
+(ix)C=A[B,
+The proof of intersection correctness for inﬁnite version is the following:
+Correctness We need to show that for any 2Rates ,2L(C;)iff2L(A;)\
+L(B;). Assume that =((0);ft0g);((s1);]t1;t2[);:::2L(C;)is an ISS
+and an icTAC. Thenoriginates from some runs =(sC
+0;0;t0)0!(sC
+1;1;t1)
+:::ofCwith regard to , where a run is an alternating sequence of states and transi-
+tions. The states are triples of a location, a clock valuation, and lastly the reference
+time:f(s;;t)2SCRX
+0R0jj=Inv(s)g. The transitions must alternate be-
+tween two types: ( i) Delay transition, i.e. spending time in a location: qid !qi+d,
+whereqi= (si;i;ti), andqi+d= (si;i+((ti+d)(ti));ti+d), if the invari-
+ant is continuously true in local time: 8t2]ti;ti+d[:i+((t)(ti))j=Inv(si).
+(ii) Discrete transition: following a transition i= (si1;;Y;si)2! icTAwhen the
+clock constraint is satisﬁed. The clocks in Yare then reset. This transition is in-
+stantaneous. (si1;i1;ti1)i!(si;i;ti), such thati1j=,i=i1[Y!
+0];ti1=ti. For any clock xC2XC,(xC)=(t)(ti)wherei0is the
+index of the last transition which reset clock xCor is(t)ifxCwas never reset. To
+determine whether a run of is accepting, we consider the set inf()FCwhich
+is the set of all locations that occur in inﬁnitely often. We can say the Caccepts
+15
+
+--- Page 16 ---
+at timetwith regard to , if there is a run for an equivalent of that visits in-
+ﬁnitely often accepting locations in FCattand on the rate, where we can safely
+assume due to the construction that, inf()\FC6=;. By induction hypothesis we
+know that=((0);ft0g),((s1);]t1;t2[);:::2(L(A;)\L(B;)), then there
+is an accepting run 0=(sA\B
+0;0
+0;t0)0!(sA\B
+1;0
+1;t1):::be the run for at
+timetand on the rate , where we can safely assume due to the construction that,
+inf()\FA\B6=;. Firstly, we say that Caccepts an ISSattwith regard to rate
+, if there is a run forthat visits visits inﬁnitely often accepting locations in
+FA\Batt. Secondly the clock valuation depends on the ISS, on the reference
+time of evaluation t, and on the rate. It is easy to see that for each for i0the
+clock valuation assigns a (non-standard) positive real to each clock variable i=0
+i.
+Thirdly, since sC2(SASBf1, 2g)and there exists a transition C=(s;;Y;s0)
+2!C
+icTA, there exists a sA\Bthat visit inﬁnitely often to (FASBf1g)such
+thatsC2(SASBf1;2g)and there exists a transition A\B=((sA
+1;sB
+1;i),C,
+YC,(sA
+2;sB
+2;j))2!C
+ictaiff there exist transitions (sA
+1;A;YA;sA
+2)2!A
+ictaand
+(sB
+1;B;YB;sB
+2)2!B
+ictafor allsA
+1,sA
+22SA,sB
+1,sB
+22SB,C=A^B, and
+YC=YA[YBandi,j2f1;2g, and:
+(a) ifi= 1andsA
+12FA, thenj= 2, or
+(b) ifi= 2andsB
+12FB, thenj= 1, or
+(c) neithera)orb)above applies and j=i.
+Hence we can adjunct inf()\(FASBf1g)to the run overAandB. It follows
+immediately thatCaccepts the set of ISSat timetand on the rate, then the
+languageL(C;)is the set of ISSof accepting runs of Cwith regard to , and the
+languageL(A;)\L(B;)is deﬁned as the set of ISSof accepting runs of the
+intersection ofAandBwith regard to . We have thatL(C;) =L(A;)\L(B;).
+However, icTA are not determinizable, not closed under complement, and their in-
+clusion problem is undecidable (whether -wise, existential with at least one observer,
+or universal with at most one observer), because TA[2] are a special case of icTA .
+5 Distributed Event Clock Automata
+To restore full decidability, we use event clocks [5]. For expressiveness, we use RECA
+[9] with independent clocks [1]. The event clock xq
+A(oryq
+A) denotes records the time
+since the last (resp. next) time that the automaton Acould visit a monitored state, mea-
+sured in the local time of process q.
+Deﬁnition 9. A distributed recursive event clock automaton ( DECA ) is a pair (A;)
+whereAis aRECA and:C!Proc maps each clock to a process.
+Deﬁnition 10. Arunof aDECAAfor a rateis a pair of sequences (s;I):s
+gives an alternation of transitions and locations 1;s1;2;s2;:::, andIis an interval
+sequence, such that:
+(i) The run starts from the initial state: 12fs0gS.
+(ii) For alli>1, the run follows a discrete transition: i= (si1;si)2!reca
+16
+
+--- Page 17 ---
+(iii) The clock constraints are satisﬁed by the valuation of the clocks deﬁned below:
+8t2R0;(;t; )j=((t)).
+(iv) It satisﬁes the acceptance condition, e.g. it visits inﬁnitely often a B ¨uchi accepting
+location.
+TheISS of a run= (s;I)of aDECAAis the pair ((s);I). We say thatA
+accepts an ISSattwith, if there is a run for an equivalent of that visits a
+monitored location at t. This is noted by (t;)2L+(A;). This timetwill be used to
+reset the clock, below.
+The clock valuation depends on the ISS, on the reference time of evaluation t,
+and on the rate . It assigns a (non-standard) positive real, or undeﬁned, to each clock
+variable.
+(;t;;xq
+B) =8
+<
+:q(t)q(r) ifr= maxfs<tj(s;)2L+(B;)gexists
+(q(t)q(r))+else, ifr= supfs<tj(s;)2L+(B;)gexists
+? else
+(;t;;yq
+B) =8
+<
+:q(l)q(t) ifl= minfs>tj(s;)2L+(B;)gexists
+(q(l)q(t))+else, ifl= inffs>tj(s;)2L+(B;)gexists
+? else
+       {a}0<xpB<1∧0<xqB<1{a}0<xpB<1∧0<xqB<1{b}xpB≥1xqB≤1{b}xpB≥1xqB≤1{b}xpB<1xqB=1{c}xpB<1xqB>1{}￿{}￿{}￿{}￿{}￿{}￿  {}￿{a,b,c}resetHigh Level DECA ALower Level Automaton B
+Fig. 1. Example of DECA from [1]
+Example 1. The example of Fig.1 from [1] is in fact both a DECA and an icTAA
+over Proc =fp;qg, and the set of propositions P=fa;b;cg. States have an empty
+labelling. Both clocks are reset by the initial monitored transition of B. After this, they
+may diverge. The existential timed language, here, is read from the automaton:
+L9(A;Proc ) =ITL1(f(a;tp
+1;tq
+1)j0<tp
+1<1^0<tq
+1<1g
+[f(b;tp
+1;tq
+1)jtp
+11^0<tq
+11g[f (c;tp
+1;tq
+1)j0<tp
+1<1^tq
+1>1g
+[f(a;tp
+1;tq
+1);(b;tp
+2;tq
+2)j0<tp
+1<1^0<tq
+1<1^tq
+1<tq
+21^tp
+1<tp
+2g)
+17
+
+--- Page 18 ---
+Here, all universal timed languages are empty: L8(A;P) =;forP2. For instance,
+we cannot have (a;ta)2L8(A;fpg), because there are some where the time of q
+increases steeply, and gets over 1before the time of pcould reach ta. However, the
+universal untimed language L8(A;;)isfa;abg.
+5.1 Multi-Timed Languages of DECA
+DECA inherit the main property of RECA : they are determinizable. The determiniza-
+tion preserves the -wise, existential and universal languages.
+Deﬁnition 11. Two states or locations s1;s2have disjoint labellings iff(s1)6=(s2)
+or there is no clock valuation such thatj=(s1)andj=(s2).
+Deﬁnition 12. ADECA orRECAAis deterministic iff all the following conditions
+hold:
+(i)Ahas exactly one initial location s02Sand,
+(ii) Any two distinct successor locations s26=s3;s1!s2;s1!s3, and with same
+labellings have mutually exclusive clock constraints, i.e. for all clock valuation ,
+2(s3)^(s2).
+Deﬁnition 13. ADECAAis complete iff: for any symbol Q2, any clock valuation
+, and for any location s2S there is a successor location s12S with(s1) =Qand
+j=(s1).
+Therefore, ifAis a complete DECA , then for each ISS, there is at least one
+accepting run ofA. The determinism ensures that, at each time tduring a run, the
+choice of the next state is uniquely determined by the current location of the automaton
+and(;).
+We give the procedure for the construction of a deterministic Det(A) from the given
+aDECAA. This construction is identical to the construction for RECA .
+Construction 6 GivenA, we construct the deterministic DECAB=Det(A)as fol-
+lows:
+(i) The set of propositions used in Bis the same as the set of propositions used
+inA:B=A,
+(ii) The set of clocks used in Bis the same as the set clocks used in A,CB=CA.
+(iii) The set of locations of Bis the set of non-empty subsets of locations of A
+with the same labelling, that is fs1;s2;;sng2SBiff :
+(a)n1,
+(b) for alli, 1in:si2SA,
+(c) for alli;jsuch that 1i<jn, we have that A(si)=A(sj).
+(iv) The starting location of Bis the only initial location of A, that is,q=sB
+0
+whereq2SB, iff:
+(a)s=sA
+0, wheres2SA,
+(b) there does not exists a location q0with
+1ITLwill add the missing intervals between time points.
+18
+
+--- Page 19 ---
+i.B(q0)=B(q),
+ii.s=q0, thens=sA
+0,
+iii.q=q0.
+(v) A transition relation, we deﬁne (q1;q2)2!B
+recaSBSBiff:
+(a) for alls22q2, there exists s12q1such that, (s1;s2)2!A
+deca; the loca-
+tions inq2are!A
+deca-successors of locations in q1,
+(b) for alls22SAsuch thatA(s2)=B(q2)and there exists s12q1with
+(s1;s2)2!A
+deca, we haves22q2, i.e.q2is the maximal set of locations
+that share the label of q2and are!A
+deca-successors of a location of q1.
+(vi) A location q2SBbelongs to the set MBof monitored locations iff there exists
+a location ofAinqthat is monitored, i.e. q2MBiff there exists s2qsuch
+thats2MA.
+(vii) A transition (q1,q2)2!B
+recaSBSBbelongs to the set MBof monitored
+locations iff there exists a transition of Ain(q1,q2)that is monitored, i.e. (q1,
+q2)2MBiff there exists (s1,s2)2(q1,q2)such that (s1,s2)2MA.
+(viii) The labeling function B(q)=A(s)withs2q, for allq2SB. The locations
+q2SBare labelled with the same label as in A.
+(ix) The labeling function for a transition relation (q1;q2)2!B
+recaand(s1;s2)2
+!A
+reca,B((q1;q2))=A((s1;s2))with (s1;s2)2(q1;q2), for all (q1;q2)2
+!B
+decaSBSB. The transitions (q1;q2)2!B
+decaSBSBare labelled
+with the same label as in A.
+(x) The invariant clock constraint B(q)=VA(s)withs2q, for allq2SB. The
+locationsq2SBare assigned with the conjunction of all the clock constraints
+ofs2q.
+(xi) The invariant clock constraint for a transition relation (q1;q2)2!B
+recaand
+(s1;s2)2!A
+reca,B((q1;q2))=VA((s1;s2))with (s1;s2)2(q1;q2), for
+all(q1;q2)2!B
+recaSBSB. The transitions (q1;q2)2!B
+recaSBSB
+are assigned with the conjunction of all the clock constraints of (s1;s2)2
+(q1;q2).
+(xii) The accepting locations FBSB.
+Now we recall the deﬁnition of an equivalence relation between clock valuations
+based on the event-recording clocks and event-prediction clocks. An equivalence class
+of a clock valuation is called a clock region (ofA). For a clock valuation ,[]denotes
+the clock region that contains . The set of clock regions of Ais denoted by REG (A).
+Letq2Proc . Then, we obtain a notion of of equivalence between two such valua-
+tions.
+Deﬁnition 14. Two clock valuations ,0are in the same region, denoted 0,
+for a DECAA= (;C;S;s0;!reca;M;;; F;)iff the following conditions are
+considered:
+(i)and0agree on which clocks have the undeﬁned value ?. Those clocks are
+called undeﬁned. The set of clocks undeﬁned in the clock valuation is denoted
+UND (). The other clocks are called active. The set of clocks active in the clock
+valuationis denoted ACT().
+19
+
+--- Page 20 ---
+(ii)and0agree on the integer part of all active clocks that are at most K, where
+Kis the biggest constant appearing in the clock constraints of the transitions of
+A:
+(a) For each x2ACT(), if()(x)Kor(0)(x)Kimpliesb(x)c=
+b0(x)c.
+(iii)and0agree on the fractional part of all active clocks that are at most K:
+(a) For an event-prediction clock y,fract ((y))=(y)b(y)cand for an
+event-recording clock x,fract ((x))=(x)b(x)c. For allz1,z22
+ACT()with(z1)Kand(z2)K:
+(1)fract ((z1))= 0 ifffract (0(z1))= 0,
+(2)fract ((z1))fract ((z2))ifffract (0(z1))fract (0(z2))
+Aclock region is an equivalence class of clock valuations induced by . Each region
+can be characterized by the ﬁnite set of constraints it satisﬁes. Now, we say that two
+clock valuations and0over Care equivalent, denoted 0if they are equivalent
+when restricted to each process, pp0
+pfor allp2Proc . The number of clock
+regions is ﬁnite: 2O(jCjlog(jCjK)), wherejCjthe number of clocks, jSjis the number
+of locations and Kbe the largest integer constant that appears in the clock constraints
+inA.
+The equivalence relation pforp2Proc over the clock valuations can be extended
+over the set of possible conﬁgurations of the DECA . Thus, two conﬁgurations are equiv-
+alent, i.e. (s1;1)p(s2;2)iffs1=s2and1p2. The resulting equivalent classes
+of conﬁgurations of an DECAA, are captured by the so-called region automaton . The
+region automaton corresponding to a given DECAAis deﬁned as a ﬁnite state automa-
+ton with the state space SfReg(A)g, where Reg(A) is the clock region. The number
+of locations in the region automaton is jSj2O(jCjlog(jCjK))wherejCjthe number of
+clocks,jSjis the number of locations and Kbe the largest integer constant that appears
+in the clock constraints in A.
+Proposition 1. For every DECAA,Det(A)accepts the same language: L+(A;) =
+L+(Det(A);)then for allA,Det(A)is deterministic.
+Proof. Letbe an ISS. We show that there exists an accepting run forat timetover
+Afor a rateiff there exists an accepting run 0for the same andoverDet(A). We
+are using induction over the length of the runs. Let =(s0;I0);(s1;I1);(s2;I2);:::
+(sn;In)be the run for at timetand on the rateoverA, where sare an alternation
+of transitions and locations 1;s1;2;s2;, (wherei= (si1;si)2!deca), andIi
+is an alternating sequence of interval. By induction hypothesis this is possible only if
+there exists a run 0=(s0
+0;I0);(s0
+1;I1);(s0
+2;I2);:::(s0
+n;In)forat timetand on the
+rateoverDet(A), where we can safely assume due to the construction that, for each
+1in,si2s0
+i. Firstly, we say that Aaccepts an ISSattwith rate, if there is a
+runforthat visits a monitored location at t. This timetwill used to reset the clock.
+Secondly the clock valuation depends on the ISS, on the reference time of evaluation
+t, and on the rate. It is easy to see that for each 1inthe clock valuation
+assigns a (non-standard) positive real, or undeﬁned, to each clock variable (;t; )A
+=0(;t; )Det(A). Thirdly, since sn12s0
+n1and there exists a transition ifrom
+20
+
+--- Page 21 ---
+(sn1;sn)inA, there exists s0
+nsuch thatsn2s0
+nand there exists a transition 0
+nfrom
+(s0
+n1;s0
+n)where the clock constraints are satisﬁed by the valuation 0(;t; )Det(A).
+Hence we can adjunct s0
+n1,0
+n,s0
+nto the run over Det(A). It follows immediately that
+Aaccepts the set of ISSat timetand on the rate, then the language L+(A;)is
+deﬁned as the set of ISSof accepting runs of Awith regard to , and the language
+L+(Det(A);)is deﬁned as the set of ISSof accepting runs of Det(A) with regard
+to. We have thatL+(A;) =L+(Det(A);). The other direction of the implication
+is proved using a similar argument.
+Proposition 2. For every DECAA,Det(A)accepts the same existential language
+L9(Det(A),P)=L9(A;P) for anyPProc then for allA,Det(A)is determin-
+istic.
+Proof. We can derive this easily using the Proposition 1 .
+Proposition 3. For every DECAA,Det(A)accepts the same universal language L8(Det(A)
+,P)=L8(A;P) for anyPProc then for allA,Det(A)is deterministic.
+Proof. We can derive this easily using the Proposition 1 .
+The theorems are valid for the ﬁnite version, but also for the inﬁnite ones, e.g. for
+B¨uchi automata, which are determinized to a parity automaton [12]. The construction
+of aDet(A)for the inﬁnite version of a DECAAcan be constructed using the same
+construction of deterministic for ﬁnite version.
+Proposition 4. For every DECAA,Det(A)accepts the same language: L+(A;) =
+L+(Det(A);)then for allA,Det(A)is deterministic.
+Proof. Letbe an ISS. We show that there exists an accepting run forat timetover
+Afor a rateiff there exists an accepting run 0for the same andoverDet(A). We
+are using induction over the length of the runs. Let =(s0;I0);(s1;I1);(s2;I2);:::be
+the run forat timetand on the rateoverA, where sare an alternation of transitions
+and locations 1;s1;2;s2;, (wherei= (si1;si)2!deca), andIiis an alternat-
+ing sequence of interval. By induction hypothesis this is possible only if there exists a
+run0=(s0
+0;I0);(s0
+1;I1);(s0
+2;I2);::: forat timetand on the rateover Det(A),
+where we can safely assume due to the construction that, for i1,si2s0
+i. Firstly, we
+say thatAaccepts an ISSattwith rate, if there is a run forthat visits inﬁnitely
+often a monitored location at t. This timetwill used to reset the clock. Secondly the
+clock valuation depends on the ISS, on the reference time of evaluation t, and on the
+rate. It is easy to see that for i1the clock valuation assigns a (non-standard) pos-
+itive real, or undeﬁned, to each clock variable (;t; )A=0(;t; )Det(A). Thirdly,
+sincesi12s0
+i1and there exists a transition ifrom (si1;si)inA, there exists
+s0
+isuch thatsi2s0
+iand there exists a transition 0
+ifrom (s0
+i1;s0
+i)where the clock
+constraints are satisﬁed by the valuation 0(;t; )Det(A). Hence we can adjunct s0
+i1,
+0
+i,s0
+ito the run over Det(A). It follows immediately that Aaccepts the set of ISS
+at timetand on the rate, then the language L+(A;)is deﬁned as the set of ISS
+21
+
+--- Page 22 ---
+of accepting runs of Awith regard to , and the language L+(Det(A);)is de-
+ﬁned as the set of ISSof accepting runs of Det(A) with regard to . We have that
+L+(A;) =L+(Det(A);). The other direction of the implication is proved using a
+similar argument.
+Theorem 11. DECA is closed under union operation.
+(Construction 7) LetA= (A;SA;sA
+0;!A
+deca;CA;A;A;MA;FA;A)andB=
+(B;SB;sB
+0;!B
+deca;CB;B;B;MB;FB;B)be two DECA . Without loss of gen-
+erality we assume that the sets of clocks CAandCB(and respectively the sets of
+locations SAandSB) are all pairwise disjoint.
+Union LetC= (C;SC;sC
+0;!C
+deca;CC;C;C;MC;FC;C)be the DECA deﬁned
+as follows:
+(i) The alphabet in Care as inA, that isC=A=B,
+(ii) The clocks ofCare the disjoint union of AandB, that is CC=CA[CB,
+(iii) The locations of Care tuples (s;)such that either :
+(a)s2SA,2(C[C)and for all&2(A[A),&2iff&2
+(A(s)[A(s)), which will ensure the coherence of the labelling of
+(s;)with the labelling of sinA,
+(b) ors2SB,2(C[C)and for all&2(B[B),&2iff&2
+(A(s)[A(s)), which will ensure the coherence of the labelling of
+(s;)with the labelling sinB,
+(iv) The starting location of Cis the following sC
+0=f(s;)2SCjs=
+sA
+0ors=sB
+0)g,
+(v) The subset of monitored locations of Cis the following set: MC=f(s;)2
+SCjs2MAors2MBg,
+(vi) The label of the location (s;)is simply the set of symbols :C((s;)) =
+, where2C, for every (s;)2SC,
+(vii) The clock constraints of the locations (s;)inCis the intersection of the
+clock constraints of the location (s1;)inAand the location (s2;)in
+B, that isC(s;) =A(s1;)[B(s2;),
+(viii) The transition relation of Cis the following subset of SCSC:!C
+deca =
+f[(s1;1);(s2;2)]j(s1;s2)2!A
+decaor(s1;s2)2!B
+decag,
+(ix) The accepting conditions for Cis the union of the accepting condition for
+AandB, that is FC=f(s;)js2FAors2FBg.
+(x) The function that maps each clock to a process in Care the union ofA
+andB, that isC=A[B,
+Theorem 12. DECA is closed under intersection operation.
+(Construction 8) LetA= (A;SA;sA
+0;!A
+deca;CA;A;A;MA;FA;A)andB=
+(B;SB;sB
+0;!B
+deca;CB;B;B;MB;FB;B)be two DECA . Without loss of gen-
+erality we assume that the sets of clocks CAandCB(and respectively the sets of
+locations SAandSB) are all pairwise disjoint.
+Intersection LetC= (C;SC;sC
+0;!C
+deca;CC;C;C;MC;FC;C)be the DECA
+deﬁned as follows:
+(i) The alphabet in Care as inA, that isC=A=B,
+22
+
+--- Page 23 ---
+(ii) The clocks ofCare the union ofAandB, that is CC=CA[CB,
+(iii) The set of locations of Care the tuples (sa;sb)such thatsa2SA,sb2
+SBand for all&2(A[A)\(B[B),&2(A(sa)[A(sa))iff&
+2(B(sb)[B(sb)),
+(iv) The starting location of Cis the following sC
+0=f(sa;sb)2SCjsa=
+sA
+0andsb=sB
+0g,
+(v) The subset of monitored locations of Cis the following set: MC=f(sa;sb)2
+SCjsa2MAandsb2MBg,
+(vi) The label locations (sa;sb)ofCis the intersection of the label of sainA
+and the label of sbinB, that isC((sa;sb))=A(sa)^B(sb), for every
+(sa;sb)2SC,
+(vii) The transition relation of Cis the following set SCSC:!C
+deca =
+f[(sa
+1;sb
+1);(sa
+2;sb
+2)]j(sa
+1;sa
+2)2!A
+deca_(sa
+1=sa
+2)and(sb
+1;sb
+2)2!B
+deca
+_(sb
+1=sb
+2)g,
+(viii) The clock constraints of the locations (sa;sb)ofCis the intersection of
+the clock constraints of the location sainAand the location sbinB, that
+isC((sa;sb)) =A(sa)^B(sb),
+(ix) The accepting conditions for Cis deﬁned using a generalized B ¨uchi con-
+dition : FC=fGA;GBgwith GA=f(sa;sb)jsa2FAgandGB=
+f(sa;sb)jsb2FBgand the reduction from a generalized B ¨uchi au-
+tomata to B ¨uchi automata is : FC=FAf1g.
+(x) The function that maps each clock to a process in Care the union ofA
+andB, that isC=A[B,
+Theorem 13. DECA is closed under complementation operation.
+Complementation Given a DECAA=(A;SA;sA
+0;!A
+deca;CA;A;A;MA;FA;
+A), such that: DECA are closed under complementation since they are deter-
+minizable. In the Construction 6 , we show that for a automata A, we can have
+a deterministic automata Det(A). In that case we can construct as following :
+(i) We construct a automata Det(A) as in Construction 6 . (ii) A deterministic
+automatonAhas a unique run corresponding to a given ISS(seeDeﬁnition
+14). (iii) Hence replacing FbySnFas the ﬁnal locations for the acceptance of
+Awould result in the automaton accepting the complement of L(A;)c.
+Theorem 14. The-wise emptiness problem for DECA isPSPACE -complete.
+Proof. Using region technique [2] and [14] showed that the emptiness problem for
+RECA is decidable. As we shown in this paper, a RECA is aDECA . The emptiness
+problem of DECA is decidable in n2nlogn, wherenis the number of locations, mis
+the number of clocks, and cis the largest constant that appears in clock constraints, it
+follows that emptiness of a DECAAcan be checked in PSPACE .
+Theorem 15. The-wise language inclusion problem for DECA isPSPACE -complete.
+Proof. Consider two DECAAandBwith regard to 2rates , such that each automaton
+has at most nlocations, let mbe the number of clocks. Let cbe the largest constant
+23
+
+--- Page 24 ---
+that appears in the clock constraints. To check whether L(A;)L(B;), we ﬁrst
+determinizeBtoB1, after we complement B1toB2. The automataB2has2nlogn
+locations since it is a B ¨uchi automaton and the integer constants that appear in the
+clock constraints of B2are bounded by c. LetDbe the intersection of AandB2. The
+DECADhasn2nlognlocations, where the integer constants that appear in the clock
+constraints ofDare also bounded by c.
+From Theorems 14 and 15 and the Construction 7, 8 and 9 , we have the next
+Theorem .
+Theorem 16. The-wise universality problem for DECA isPSPACE -complete.
+Proof. We can derive this easily using the Theorem 14 and 15
+Theorem 17. The existential emptiness and language inclusion problem for DECA are
+PSPACE -complete.
+Proof. We can derive this easily using the Theorem 14, 15 and 16 .
+Theorem 18. The universal emptiness and language inclusion problem for DECA are
+PSPACE -complete.
+Proof. We can derive this easily using the Theorem 14, 15 and 16 .
+Corollary 1. For all DECAB;QProc;L9(B;Q)is the language of a DECA .
+Construction 9 For the existential languages of DECA , we can eliminate a process q
+from a DECA while preserving the existential language of the remaining processes.
+We ﬁrst complete and determinize automata appearing in the clocks of this process
+q. We then make their product with the main automaton. We then perform the region
+construction [3] on the clocks of q. Remember that the clocks are constrained to be
+0in the respective monitored location, i.e. when at least one original monitored lo-
+cation appears in this construction, and that prediction clocks run backwards so that
+it is the complement of their fractional part that participates in the region construc-
+tion [3]. The region construction for prediction clocks is non-deterministic and is
+not a bisimulation quotient, unlike the one of TA, but preserves the language [14].
+Note that the elimination of the clocks of one process only, allows independent
+evolution of the other clocks. The resulting automaton is still a DECA .
+Corollary 2. For all DECAB;q2Proc;L8(B;fqg)is the language of a RECA .
+Construction 10 For the universal languages L8(B;Q)of aDECAB, we complete
+and determinize the main automaton B. Then we apply the region construction for
+independent clocks [1]. The automaton becomes non-deterministic, because each
+region has several successors, depending on . Note that the region construction
+forECA was already non-deterministic. A region constraint is expressed as a con-
+junctionV
+p2Procp. We label each region state byV
+p2Qp. Then we determinize
+it again but we mark as ﬁnal the locations where all members are ﬁnal (which, in
+turn, means that one of their members is an original ﬁnal state), to represent that
+theISS must be accepted under allevolutions of time . The resulting automaton
+is aRECA .
+24
+
+--- Page 25 ---
+Corollary 3. For all DECAB;q2Proc;L8(B;fqg)is the language of a DECA .
+Construction 11 For the universal languages of DECA , we can eliminate a process q
+from a DECA while preserving the universal language of the remaining processes.
+We ﬁrst complete and determinize automata appearing in the clocks of this process
+q. We then make their product with the main automaton. We then perform the region
+construction [3] on the clocks of q. Remember that the clocks are constrained to be
+0in the respective monitored location, i.e. when at least one original monitored lo-
+cation appears in this construction, and that prediction clocks run backwards so that
+it is the complement of their fractional part that participates in the region construc-
+tion [3]. The region construction for prediction clocks is non-deterministic and is
+not a bisimulation quotient, unlike the one of TA, but preserves the language [14].
+Note that the elimination of the clocks of one process only, allows independent
+evolution of the other clocks. The resulting automaton is still a DECA .
+Corollary 4. For all DECAB;QProc;L9(B;Q)is the language of a RECA .
+Construction 12 For the existential languages L9(B;Q)of aDECAB, we complete
+and determinize the main automaton B. Then we apply the region construction for
+independent clocks [1]. The automaton becomes non-deterministic, because each
+region has several successors, depending on . Note that the region construction
+forECA was already non-deterministic. A region constraint is expressed as a con-
+junctionV
+p2Procp. We label each region state byV
+p2Qp. Then we determinize
+it again but we mark as ﬁnal the locations where all members are ﬁnal (which, in
+turn, means that one of their members is an original ﬁnal state), to represent that
+theISS must be accepted under allevolutions of time . The resulting automaton
+is aRECA .
+In contrast, the universal language of DTA andicTA is undecidable [1].
+6 Recursive Distributed Event Clocks Temporal Logic
+The aim of this section is to construct a fully decidable distributed real-time logic to
+specify requirements on RTDS . (Recursive) Distributed Event Clock Temporal Logic
+(DECTL ) extend the (Recursive) Event Clock Temporal Logic ( EventClockTL ) [15,
+9] with distributed (a.k.a. independent) clocks. As in Section 3.2, we assume a set of
+processes Proc . The clocks of each process will evolve according to its local time given
+by a Rate.DECTL is based on LTL, and adds two local real-time modalities. The
+recording modality Cq
+Imeans thatwas true last time in the interval Iaccording to
+the local time of q. Symmetrically, the predicting modality Bq
+Isays thewill occur
+withinIaccording to the local time of q. If we have only one process, we ﬁnd back
+EventClockTL [15].
+We could construct similarly a more expressive logic that allows to observe not
+only the last , but also the last but one, and more generally the last but n  [11].
+This logic is still translatable in DECA . We could also extend the known expressive
+equivalence of EventClockTL andMITL+Past [9] to construct a version of MITL with
+25
+
+--- Page 26 ---
+independent clocks. Lastly, independent clocks can also be introduced in a linear -
+calculus, to increase expressiveness by counting. We do not present these logics here
+by lack of space.
+Deﬁnition 15. Theformulas ofDECTL are deﬁned by the grammar:
+::=truejp2PjBq
+IjCq
+Ij1^2j:j1U2j1S2
+where p is a propositional symbol, I2INis an interval and q2Proc. We can now
+deﬁne how to evaluate the truth value of a DECTL formula along an ISSand a Rate
+, noted (;t)j=1. We omitbelow.
+(;t)j=p iff p2(t)
+(;t)j=:iff(;t)6j=
+(;t)j=1^2iff(;t)j=1and(;t)j=2
+(;t)j=1U2iff9t0>t:(;t0)j=2and8t002(t;t0),(;t00)j=1
+(;t)j=1S2iff9t0<t:(;t0)j=2and8t002(t0;t),(;t00)j=1
+(;t)j=Cq
+Iiff9t0<t:q(t)q(t0)2I^(;t0)j=
+and8t00<t:q(t)q(t00)<I,(;t00)6j=
+(;t)j=Bq
+Iiff9t0>t:q(t0)q(t)2I^(;t0)j=
+and8t00>t:q(t00)q(t)<I,(;t00)6j=
+Example 2. The formula:(Fb^:Bq
+1b), whereFb=trueUbsays that the ﬁrst b, if
+any, must occur within 1 second, as measured by q. It holds on the automation of Fig.1.
+However, the formula measured by p,:(Fb^:Bp
+1b), does not hold.
+6.1 Expressiveness between DECTL andDECA
+In this section we show that DECA are sufﬁciently expressive to deﬁne all DECTL
+properties. We can translate any DECTL formulainto a DECA automatonAthat
+accepts the pairs (;t), such that (;t)j=, for allby a tableau construction. The
+translation is done level by level, where the level of a formula is the nesting depth of
+real-time modalities. A formula Bq
+Iis translated as constraint xq
+A2I. The formula
+is recursively translated in a tableau automaton Awhere the monitored states are the
+states containing .
+Deﬁnition 16. The level of a DECTL formulas1,2,3denoted byLF, is a recursive
+function that satisfying the following :
+LF(p) = 0
+LF(1_2) =Max (LF(1)[LF (2))
+LF(:1) =LF(1)
+LF(1U2) =Max (LF(1)[LF (2))
+LF(1S2) =Max (LF(1)[LF (2))
+LF(Bq
+I3) = 1 +LF(3)
+LF(Cq
+I3) = 1 +LF(3)
+A formulais of leveli, ifLF()=i. Recursively, we can deﬁne that the formula
+3is a levelkwhere 0k<i and1,2is a leveljwhere 0ji.
+26
+
+--- Page 27 ---
+Deﬁnition 17. The closure set of a DECTL formula1,2,3denoted byCF, is a
+recursive function that satisfying the following:
+CF(p) =fpg
+CF(1_2) =CF(1)[CF (2)[f1_2g
+CF(:1) =CF(1)
+CF(1U2) =CF(1)[CF (2)[f1U2g
+CF(1S2) =CF(1)[CF (2)[f1S2g
+CF(Bq
+I3) =S
+q2ProcBq
+I3
+CF(Cq
+I3) =S
+q2ProcCq
+I3
+CFc(1) is the setCF(1) closed by negation.
+Theorem 19. For every DECTL formula, we can construct a DECAA, that accepts
+the pairs (;t), whereis deﬁned on the set of propositions appearing in and a time
+t2R+, such that (;t)j=.
+Proof. LetLF() = 0. We deﬁne a transition structure B=(Q;q0;!ts;QF)that checks
+the semantics of the operators and propositions of level 0 formula. For the other levels
+i, such thati>0, we will transform the transition structure into a DECA . Let DECTL
+formula,1,2, we deﬁneBas follows:
+(i) The state Sis the set of pairs (s;'), wheres22CFc()with>2sand'2
+fopen;singg(indicating if the control can stay in the state for an open interval of
+time or just a singular interval of time) and the following properties are veriﬁed:
+(a) For all12CFc():12siff:1=2s.
+(b) For all (1_2)2CFc():1_22siff12sor22s.
+(c) For all (1U2)2CFc():
+(1) If22sand'=open then1U22s.
+(2) If1U22sand'=open then12sor22s.
+(d) For all (1S2)2CFc():
+(1) If22sand'=open then1S22s.
+(2) If1S22sand'=open then12sor22s.
+(ii) The initial state is the subset of pairs (s;')2Q, such that'=sing and does not
+exists1S22CFc()and1S22s. That initial state is singular and it does
+not contains a since formula in positive form.
+(iii) The transition relation !tsis subset [(s1;'1);(s2;'2)]ofQQthat respects the
+following restrictions:
+(a)'1=open and'2=sing or'1=sing and'2=open .
+(b) The following rules express how until formulas are transferred form one state
+to the next of the transition structure:
+(1)1U22s1^'1=sing iff1U22s2.
+(2)1U22s1^'1=open^2=2s1, implies (1U22s2^12s2)
+_22s2.
+(3)12s1^'1=open^(12s2_(22s2^1U22s2)) implies1
+U22s1.
+(c) The following are for the since formulas:
+(1)1S22s2^'2=sing iff1S22s1.
+27
+
+--- Page 28 ---
+(2)1S22s2^'2=open^2=2s2implies22s1_(12s1^(1
+S2)2s1).
+(3)12s2^'2=open^(22s1_(1S2)2s1) implies1S22
+s2.
+(iv) We use a generalized B ¨uchi acceptance condition. For each formula 1U22
+CFc(), there is a set QF1U2=f(s;')j1U2=2s_22sg.
+Now, we will transforms the transition structure Binto a DECAA. We constructA
+=(A;CA;SA;sA
+0;MA;!A
+deca;A;A;FA;A)as follows :
+(i) The set of symbols used by Ais the set of propositional symbols that appear in
+the formula ,A=fpjp2CFc()g,
+(ii) The set of clocks used by Ais the set of clocks that appear in the formula ,
+CA=fBq
+I[Cq
+Ijq2ProcandI isaninterval g,
+(iii) The set of locations SAis the set of pairs ((s;');&)such that:
+(a)(s;')2SA.
+(b)&is a label that is open iff '=open .
+(c) The labeling is propositionally consistent with the formula in s: for all propo-
+sitionp2P:p2&iffp2s,
+(iv) The initial location sA
+0is the subset of locations ((s;');&)2SAsuch that (s;')
+=sA
+0,
+(v) The set MAof monitored locations is the subset of locations ((s;');&)2SA
+such that2s, that is the subset of locations where the formula is true,
+(vi) The transition relation is the set of pairs [((s1;'1);&1);((s2;'2);&2)]with((si;'i);&i)
+2SAfori2f1;2g, such that: ((s1;'1);(s2;'2))2!deca,
+(vii) The labeling function Ais deﬁned as follows: A(((s;');&)) =&,
+(viii) The clock constraints Ais deﬁned as follows: A(((s;');&)) =',
+(ix) We transfer in Athe generalized B ¨uchi acceptance condition of the transition
+structureB:FAis the set of sets of accepting locations fF1;F2;Fngwhere
+each Ficorresponds to a set of accepting states in Sas follows: Fi=f((s;');&)j
+(s;')2QFg,
+(x)
+The logic ReDECTL andReDECA in fact use the same clocks:
+Theorem 20. (;t;;xq
+A)2Iiff(;t)j=Cq
+Ip, wherepis a proposition of process
+qsuch that (;t)j=piffAacceptsat timetwith.
+The construction is exponential in the size of the non-real time part of the formula,
+but linear in the real-time part. The test of emptiness is done by the region construction
+presented in Section 5, that is exponential in the real-time part but linear for the rest.
+Corollary 5. The Satisﬁability and validity problems for DECTL are decidable.
+Proof. The satisﬁability of a DECTL formulacan be decided by constructing A, the
+automata for and testing ifL(A)6=;. Similarly the validity of a DECTL formula
+can be decided by constructing A:, the automaton for the negation of and testing if
+L(A:) =;.
+28
+
+--- Page 29 ---
+Corollary 6. Satisﬁability and validity of DECTL arePSPACE -complete.
+Corollary 7. The automatonAhasn2O(nlog cn)locations, where nis the length
+of the formula (the number of propositions, modal operators and logical connectives)
+the number of clocks is nandcis the largest constant appearing in the constraints in
+A.
+7 Conclusions
+We have proposed the basis of a framework for analyzing distributed real-time systems
+through of the introduction of independent (or distributed) event clocks, inspired by
+DTA [10] and icTA [1]. In contrast to [1], we have given a real-time semantics, and thus
+we can specify real-time properties. We have deﬁned DECA and proved they are fully
+decidable, and thus that their language inclusion problem is PSPACE -complete, as for
+classical automata. This give us an algorithm to verify real-time properties. Actually,
+since we can use zones without constraints between independent clocks, and since the
+number of regions is reduced wrt. ECA , we can even expect veriﬁcation to be faster in
+practice. We also plan further work to gain more speed through partial-order techniques.
+In contrast, DTA [10] and icTA [1] have undecidable inclusion problems. We have also
+shown that the universal (timed) languages of DECA are decidable and regular, unlike
+the universal languages of icTA [1]. We propose the logic DECTL to specify real-time
+properties with distributed observers in linear temporal logic. We have shown that the
+problems of satisﬁability, validity and model-checking are decidable for DECTL , more
+precisely PSPACE -complete, as for LTL- we cannot hope better.
+References
+1. S. Akshay, B. Bollig, P. Gastin, M. Mukund, and K. N. Kumar. Distributed timed automata
+with independently evolving clocks. In F. van Breugel and M. Chechik, editors, CONCUR ,
+volume 5201 of LNCS , pages 82–97. Springer, 2008.
+2. R. Alur and D. L. Dill. A theory of timed automata. Theor. Comput. Sci. , 126(2):183–235,
+1994.
+3. R. Alur, T. Feder, and T. A. Henzinger. The beneﬁts of relaxing punctuality. ACM ,
+43(1):116–146, 1996.
+4. R. Alur, L. Fix, and T. A. Henzinger. A determinizable class of timed automata. In CAV,
+volume 818 of LNCS , pages 1–13. Springer, 1994.
+5. R. Alur and T. A. Henzinger. Logics and models of real time: A survey. In REX Workshop ,
+volume 600 of LNCS , pages 74–106. Springer, 1991.
+6. J. Bengtsson, B. Jonsson, J. Lilius, and W. Yi. Partial order reductions for timed systems. In
+D. Sangiorgi and R. de Simone, editors, CONCUR , volume 1466 of LNCS , pages 485–500.
+Springer, 1998.
+7. B. B ´erard, A. Petit, V . Diekert, and P. Gastin. Characterization of the expressive power of
+silent transitions in timed automata. Fundam. Inform. , 36(2-3):145–182, 1998.
+8. M. De Wulf, L. Doyen, N. Markey, and J.-F. Raskin. Robustness and implementability of
+timed automata. In Y . Lakhnech and S. Yovine, editors, FORMATS/FTRTFT , volume 3253
+ofLNCS , pages 118–133. Springer, 2004.
+29
+
+--- Page 30 ---
+9. T. A. Henzinger, J.-F. Raskin, and P.-Y . Schobbens. The regular real-time languages. In
+ICALP , volume 1443 of LNCS , pages 580–591. Springer, 1998.
+10. P. Krishnan. Distributed timed automata. Electr. Notes Theor. Comput. Sci. , 28, 1999.
+11. J. Ortiz, A. Legay, and P.-Y . Schobbens. Memory event clocks. In K. Chatterjee and T. A.
+Henzinger, editors, FORMATS , volume 6246 of LNCS , pages 198–212. Springer, 2010.
+12. N. Piterman. From nondeterministic buchi and streett automata to deterministic parity au-
+tomata. In Proceedings of the 21st Annual IEEE Symposium on Logic in Computer Science ,
+pages 255–264, Washington, DC, USA, 2006. IEEE Computer Society.
+13. A. Puri. Dynamical properties of timed automata. In A. P. Ravn and H. Rischel, editors,
+FTRTFT , volume 1486 of LNCS , pages 210–227. Springer, 1998.
+14. J.-F. Raskin. Logics, Automata and Classical Theories for Deciding Real Time . Phd thesis,
+FUNDP University, Belgium, 1999.
+15. J.-F. Raskin and P.-Y . Schobbens. State clock logic: A decidable real-time logic. In HART ,
+volume 1201 of LNCS , pages 33–47. Springer, 1997.
+30

@@ -1,0 +1,1349 @@
+--- Page 1 ---
+TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS 1
+Modelling of Surgical Procedures using Statecharts
+for Semi-Autonomous Robotic Surgery
+Fabio Falezza1, Nicola Piccinelli1, Giacomo De Rossi1, Andrea Roberti1, Gernot Kronreif2, Francesco Setti1,
+Paolo Fiorini1and Riccardo Muradore1
+Abstract —In this paper we propose a new methodology to
+model surgical procedures that is speciﬁcally tailored to semi-
+autonomous robotic surgery. We propose to use a restricted
+version of statecharts to merge the bottom-up approach, based on
+data-driven techniques ( e.g. machine learning), with the top-down
+approach based on knowledge representation techniques. We con-
+sider medical knowledge about the procedure and sensing of the
+environment in two concurrent regions of the statecharts to facil-
+itate re-usability and adaptability of the modules. Our approach
+allows producing a well deﬁned procedural model exploiting the
+hierarchy capability of the statecharts, while machine learning
+modules act as soft sensors to trigger state transitions. Integrating
+data driven and prior knowledge techniques provides a robust,
+modular, ﬂexible and re-conﬁgurable methodology to deﬁne a
+surgical procedure which is comprehensible by both humans and
+machines. We validate our approach on the three surgical phases
+of a Robot-Assisted Radical Prostatectomy (RARP) that directly
+involve the assistant surgeon: bladder mobilization, bladder neck
+transection, and vesicourethral anastomosis, all performed on
+synthetic manikins.
+Index Terms —surgical robotics, statecharts, supervisory con-
+troller, autonomous robotics
+I. I NTRODUCTION
+The research interest in Robotic-assisted Minimally Invasive
+Surgery (R-MIS) is shifting from teleoperated devices to the
+development of autonomous support systems for the execution
+of repetitive surgical steps, such as suturing, ablation and
+microscopic image scanning. The higher level of autonomy
+can potentially further improve the quality of an intervention
+in terms of patient’s safety and recovery time [1]. Moreover,
+it can optimize the use of operating rooms, reducing the
+surgeon’s workload and therefore hospital costs. In general,
+autonomy requires systems with advanced capabilities in per-
+ception, reasoning, decision making [2], motion planning [3]
+and interaction with the physical environment. Nonetheless,
+for autonomous or semi-autonomous systems Human Robot
+Interaction (HRI) plays a key role in providing both safety of
+execution and a successful knowledge transfer between users
+This project has received funding from the European Research Council
+(ERC) under the European Unions Horizon 2020 research and innovation
+programme under grant agreement No. 742671 (ARS) and from the European
+Union’s Horizon 2020 research and innovation programme under grant
+agreement No. 779813 (SARAS).
+1Fabio Falezza, Nicola Piccinelli, Andrea Roberti, Giacomo De Rossi,
+Francesco Setti, Paolo Fiorini and Riccardo Muradore are with the
+Department of Computer Science, University of Verona, Strada le
+Grazie 15, 37134 - Verona, Italy, name.surname@univr.it ,
+2Gernot Kronreif with ACMIT Gmbh, Wiener Neustadt, Austria,
+gernot.kronreif@acmit.at
+Contact author: Fabio Falezza, fabio.falezza@univr.it
+Fig. 1. The proposed methodology from a perspective of knowledge
+integration (top-down and bottom-up approaches) and required technical
+skills. This approach is the one followed in the EU funded SARAS project
+(www.saras-project.eu ).
+and robots. Two different approaches can be adopted to model
+the medical knowledge from the surgeons: a top-down and a
+bottom-up approach.
+The top-down approach is based on encoding prior knowl-
+edge into a formal representation understandable by both hu-
+mans and machines. Different approaches have been proposed,
+like description logic [4], formal ontologies [5], or defeasible
+reasoning [6]. Statecharts models are a graphical speciﬁcation
+formalism that allows the nesting of Finite State Machines
+(FSMs hierarchy), their orthogonality (FSMs parallelism) and
+re-usability of components [7], [8]. The major advantage
+brought by FSMs is that they can be formally veriﬁed [9],
+and, therefore, are always guaranteed to operate according
+to their design. For this reason, FSMs are widely employed
+in the representation of mission-critical workﬂows, such as
+the case for surgical procedures. The representation power of
+statecharts has been exploited to build a discrete-event simula-
+tion model of the pre-operative process [10]. The progress of
+individual patients through surgical care is decribed as series
+of asynchronous updates in patients’ records; these updates are
+triggered by events produced by parallel FSMs that represent
+concurrent clinical and managerial activities. The bottom-
+up approach tries to infer a model from raw data through
+data analysis techniques, such as deep learning, possibly in
+an unsupervised, end-to-end manner to speed-up the process
+and to avoid labeling bias [11]. In this work, we adopt a
+safer approach that follows the engineering stack guidelines
+for which the top down model is adapted in its formulation
+to the events based on the available observations on both
+the environment and the robots [12]. This improves both
+
+--- Page 2 ---
+2 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+safety and explainability of possible Machine Learning (ML)
+modules used to process the data. Relevant information can
+be extracted from documents [13] or from video streams [14],
+also combined with instrument usage signals ( e.g. kinematics
+in case of robotic surgery) [15]. The work in [16] adopts
+multiple disjointed FSMs, one for each surgical subtask, where
+the parameters ( i.e. the thresholds viable to trigger events)
+are learned in a reinforcement learning manner. In this paper
+we propose a methodology based on a revised statechart
+model that aims at ﬁnding a proper merging of top-down
+and bottom-up approaches to implement a control strategy for
+semi-autonomous surgical operations, as depicted in Fig. 1.
+The statechart formulation has been selected for its inherent
+combination of structured and unstructured knowledge that
+can be handled hierarchically at different levels of abstraction.
+To achieve this abstraction, the statechart at the top level is
+split in two concurrent regions: procedure and observer. The
+procedure region represents the medical knowledge extracted
+from clinical trials with surgeons and from literature review;
+theobserver region is composed of a concurrent set of FSMs
+that provides a logical description for the environment state
+(e.g. semantic robot position, kinematics state, etc.). The ML-
+based bottom-up approach is considered as a software-sensor
+that operates uniquely within each separate observer of the
+region to provide trigger events. The decision on how such
+triggers drive the procedure evolution over time is controlled
+by the structure of the procedure region. The adoption of data-
+driven modules to provide feedback regarding the environment
+allows increasing ﬂexibility and modules’ re-usability for
+the entire system. The procedure region of the statechart is
+subdivided in hierarchical levels to reﬁne how the desired
+behaviour of the robotic system is deﬁned. Such division of
+knowledge at the procedure design level helps in simplifying
+both modelling and comprehension of the statechart itself.
+The control commands for the robots are then deﬁned in the
+innermost level. In summary, as main contributions in this
+paper we present:
+a robust, modular, ﬂexible and re-conﬁgurable methodol-
+ogy to deﬁne a surgical procedure,
+an effective approach to integrate top-down surgical
+knowledge with bottom-up sensor data,
+a supervisory technique to control semi-autonomous
+robotics systems.
+The paper is organized as follows: in Section II we will
+review the state of the art in task automation. In Section III
+we will detail the proposed modelling methodology and in
+Section IV we will present the case study. In Section V the
+experimental setup, shown in Fig. 6a, used to validate our
+architecture is described and the execution of a speciﬁc phase
+is presented. Finally, in Section VI we will discuss the overall
+tests conducted with surgeons and few conclusions are drawn
+on the proposed approach and future perspectives are outlined.
+II. R ELATED WORK
+The automation of basic surgical tasks is taking a lot of
+attention in the recent years with various approaches being
+proposed. For instance, the description using Finite StateMachine (FSM) can be used to account for simple tasks,
+where the environment is assumed to be static and situation
+awareness can be neglected. In [17] an automated mechanical
+needle guide to improve precision is proposed. In [18] an
+FSM based framework for automation of surgical sub-tasks
+is developed and tested on simple surgeon training tasks like
+peg&ring and knot-tying. In [19] a depth-sensor has been used
+to increase the accuracy of peg&ring task. Finally, in [20],
+a Hierarchical Finite State Machine (HFSM) is exploited to
+control autonomous mobile systems. This work shows how the
+hierarchy can be exploited to subdivide the controller between
+discrete and continuous time, allowing the separation of the
+high-level decision-making to their low-level implementation.
+An alternative approach to FSM is represented by Behaviour
+Trees (BT) with their emphasis on modularity [21]. In [22] a
+BT is used to model and control a semi-autonomous simulated
+brain tumor ablation; here the leaves of the BT represent the
+surgical sub-tasks of the ablation. The main drawback of BTs
+is the lack of introspection. Indeed, the current state of the
+system cannot be retrieved directly, but it must be derived
+analysing the path from the root node to the current running
+leaf. In [23] a cognitive framework to perform autonomous
+needle insertion has been proposed. The supervisory controller
+was built by using a Hidden Markov Model.
+All of these data-driven approaches, however, require a large
+amount of data to achieve a sufﬁciently robust learning, which
+is not usually available in surgery. Moreover, the planned
+action cannot be easily interpreted and monitored by a human
+expert since data-driven models are often based on latent
+variables representation of the environment.
+In critical scenarios like surgical procedures, knowledge
+based approaches are the preferred way since they provide
+a clearer description of the workﬂow. For instance, in [24] an
+ontology-based framework for the automation of the peg&ring
+task has been proposed. The main drawback was the lack of
+real-time reconﬁguration of the system. In fact, ontologies are
+much more used in the ﬁeld of situation understanding by
+humans [25]. A solution to the limitation of the ontologies
+can be found in the non-monotonic programming, where the
+planning is carried out in a more ﬂexible way, thus the
+knowledge can be updated in real-time from the sensing
+information. In [2] Answer Set Programming has been used
+to deﬁne the reasoning module and has been successfully
+applied on an automated peg-and-ring task. The drawback
+of non-monotonic programming resides in the computational
+complexity required to solve a planning problem, which makes
+this approach often unsuitable for real-time applications.
+III. M ETHOD
+The proposed modelling methodology relies on the state-
+charts visual notation, a simpliﬁed example of which is shown
+in Fig. 2, that will be brieﬂy summarized to ease the reading in
+the following sections. A statechart uses rounded rectangles to
+denote the states (or regions) at any level, using encapsulation
+to express the hierarchy relation. Arrows are allowed to start
+and terminate at any level. Each arrow is labelled with an
+event, optionally with a parenthesized condition and an output
+
+--- Page 3 ---
+FALEZZA et al. : MODELLING OF SURGICAL PROCEDURES USING STATECHARTS FOR SEMI-AUTONOMOUS ROBOTIC SURGERY 3
+Fig. 2. An example of a two-level and concurrent statechart
+event after a backslash, and marks the possible transitions
+between states. The initial state is marked with an arrow
+pointing to it starting from a small dot without label. The
+encapsulations imply the exclusive-or (XOR) decomposition
+of inner states, meaning that the current state must be only
+one and it must be selected from the states set of the grouping
+state. Moreover, the encapsulations could introduce the AND
+decomposition, capturing the property that, being in a state,
+the system must be in all of its AND components using dashed
+lines.
+The statechart notation is quite expressive as it allows
+modeling behaviours that are not required in our application.
+Therefore, in this paper we propose a revision of statecharts
+which impose a clear separation between the sensing of the
+environment and the representation of the procedure knowl-
+edge into two distinct regions of the chart, as shown in Fig. 3.
+Indeed, the concurrency capability of the statecharts will be
+exploited only to represent the parallelism of the sensing,
+while the hierarchy will be used only to separate the medical
+knowledge from the implementation of the robotic tasks. The
+proposed revisions are:
+R1 The hierarchy depth of the procedure must be
+equal to three: activity ,task andprimitive (see Sec-
+tion III-A);
+R2 At the lowest level ( i.e. primitive), the states are
+atomic and hierarchy-agnostic, thus they do not de-
+pend on the execution time or the order with respect
+to others states (see Section III-B);
+R3 The sensing region is evaluated concurrently to the
+knowledge region, but it is the only generator of
+events during transitions (see Section III-C);
+R4 Concurrency is only allowed within the sensing re-
+gion, thus transitions between concurrent FSMs are
+forbidden (see Section III-D).
+Using our revised statechart modelling, we can now deﬁne
+the adopted heuristics for the planning. We exploit the intrinsic
+priority of the hierarchy since an event generated by the
+sensing system can be adopted as a transition trigger by any
+level of the procedure. At each control cycle, the controller,
+which evaluates the statechart, starts from higher to lower
+level and checks if there exists a trigger event on the edges
+exiting the current state. If a trigger event is present, then the
+Fig. 3. The structure of the revised statechart. The statechart is composed of
+nobservers that run concurrently to the procedure. The observers generate
+events consumed by the procedure’s state transitions. The procedure hierarchy
+is not reported in this ﬁgure but is composed of three levels.
+state is activated and the search is stopped. When a transition
+occurs, the innermost FSMs are reset to their initial state.
+Even if such heuristic ensures the high-level command to
+be prioritized, it can lead to transitions shadowing, meaning
+that transitions on lower-levels could never been crossed if
+transitions at higher-levels on the same trigger are ﬁred. To
+minimize such effect, the modelling of the procedure should
+be approached exploiting a semantic separation of events. At
+the higher levels of the procedure, the events should refer only
+to the environment conditions for the activity ( e.g. in surgery,
+positioning over the bladder, thread cut, catheter visible, etc.),
+while at the lowest level the events should refer only to
+the robot internal state ( e.g. target pose reached, pose not
+reachable, grasp closed, etc.). Fig. 3 shows an example of
+the structure of our revised statechart.
+The extension to multiple robots can be obtained by simply
+duplicating the statechart and adjusting it for each manipulator.
+The synchronous operation of multiple statecharts that operate
+on the same triggers is guaranteed by the assumption that
+each trigger produced by every observer is processed simul-
+taneously by all statecharts. Therefore, each robot effectively
+observes the environment, including all others robots, inde-
+pendently, thus eliminating the necessity of speciﬁc synchro-
+nization states.
+A. Procedure depth
+Generally, the number of hierarchical levels allowed in a
+statechart is unbounded. In our case, as stated in the rule
+R1the number of the levels is set to three. The adoption
+of a three-level hierarchy has been proposed in [26] and is
+also part of the deﬁnition of the Hierarchical Task Network
+(HTN) [27], which is a popular task planning methodology.
+Therefore, the resulting procedure can be deﬁned by grouping
+the states of the statechart into three well-deﬁned levels of
+a surgical procedure: phase ,action and surgeme , mapped
+respectively into activity ,task, and primitive , which is a lexical
+formalism also adopted in [28].
+The highest level, composed of phase states, is the equiva-
+lent to the goals of the STRIPS modelling [29]. In the surgical
+
+--- Page 4 ---
+4 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+ﬁeld, this level models the main phases of a complex surgical
+procedure ( e.g. in the case of radical prostatectomy, some goal
+tasks could be bladder mobilization, bladder neck transection,
+or an idle statement). The middle level, composed of action
+states, can be seen as a set of intermediate tasks that make the
+goal task ( e.g. for the bladder neck transection phase a set of
+actions are grasping the catheter and pulling the catheter).
+Finally, in the lowest level we ﬁnd atomic sub-task that
+cannot be logically subdivided into a smaller subset, thus
+composed of surgeme states ( e.g. close the gripper or move to
+a speciﬁc point).
+B. Atomic and hierarchy-agnostic execution
+The rule R2enforces the re-usability of the surgemes al-
+lowing the deﬁnition of multiple complex surgical procedures
+by means of a relatively small set of common and shared
+primitives. The side effect of this design choice is the need of
+prohibiting any transition from a lower level to a higher one.
+In fact, the re-usability requires to have hierarchy-agnostic
+surgemes and of course transitions towards the upper levels
+requires a knowledge about the parent states (not available at
+the surgeme level).
+C. Event generation
+An observer is a FSM that operates concurrently to the
+procedure with the aim of observing the environment and
+of generating trigger events based on measurements (observa-
+tions). The deﬁnition of the observer entities allows separating
+the generation of triggers, which happens in the sensing region,
+from their consumption, which happens in the knowledge
+region. Therefore, the rule R3states that the knowledge
+region must not generate triggers to easily ensure the absence
+of inﬁnite loops, undeﬁned behaviors, and deadlocks. The
+deﬁnition of the events can be obtained in two different ways:
+bottom-up: the procedure is modeled and reﬁned by
+surgeons using only the available observers;
+top-down: the procedure is ﬁrst deﬁned based on the
+knowledge of surgeons, then the engineers will develop
+the requested observers to accomplish the procedure.
+The formalism presented hitherto intends to logically separate
+these two approaches to avoid contrasts in requirements formu-
+lated by surgeons and engineers: the surgeons designing the
+procedure in a top-down manner could specify undetectable
+events (or that could require hardware that is not applicable
+to laparoscopy), whereas the engineers working in a bottom-
+up manner could overlook important events that do not rise
+directly from the data. This approach simpliﬁes the mod-
+elling of the procedure and allows to design a more efﬁcient
+system based on the available sensors, surgical instruments,
+and computational power. The managing of the interleaved
+requirements should be assigned to a specialized bio-engineer
+who has to handle surgical and engineering critical aspects.
+D. Concurrent isolation
+The standard set of rules for statecharts do not prevent
+the deﬁnition of edges over concurrent states, but in thecase of the proposed procedure-observers statecharts this kind
+of transitions are meaningless as surgical procedures follow
+a well-deﬁned sequence of states (which is hampered only
+by the occurrence of unexpected complications that must be
+handled manually). This is the reason why we introduced rule
+R4that forbids the deﬁnition of edges on concurrent states,
+thus between observers and procedures, and between different
+observers.
+IV. C ASE STUDY : RADICAL PROSTATECTOMY
+Robotic Assisted Radical Prostatectomy (RARP) is a surgi-
+cal procedure where the surgeon utilises a robotic manipulator
+to remove the prostate along with, in some cases, the seminal
+vesicles and the pelvic lymph nodes [30]. The procedure is
+performed for treatment of prostate cancer. All results of
+robotic prostatectomy so far indicate the beneﬁts of minimally
+invasive surgery while also showing encouraging short and
+long-term outcomes in terms of continence, potency, and
+cancer control; it is regarded as a major innovation in the
+surgical treatment of prostate cancer. RARPs are currently
+performed using either the da Vinci®surgical system or any
+comparable robotic platform. Surgeons remotely control the
+instruments of the robotic manipulator using two joysticks
+available on the console. In the operating room, there must
+be also an assistant surgeon next to the patient, helping the
+main surgeon. This paper provides a ﬁrst step towards the full
+automation of the assistant surgeon’s role.
+We followed the procedure presented in [31], [32] that
+bridges the clinical and engineering requirements to improve
+the effectiveness of both the surgeon, equipped with two
+da Vinci®instruments and an endoscope, and the semi-
+autonomous assistant handling two standard laparoscopy in-
+struments. At ﬁrst, the surgeon identiﬁes the proper plane
+of dissection to operate on the bladder neck, which is then
+divided transversely with respect to the urethra, until he/she
+identiﬁes the urethral catheter pushed through the prostate. At
+this point, the assistant surgeon, using the right laparoscopic
+tool, mobilizes the bladder to clear the view, and, with the
+left laparoscopic tool, raises the prostate. Once the prostate is
+suspended anteriorly, the main surgeon grasps the tip of the
+catheter and lifts it upwards to increase access to the lower
+part of the prostate, including the vas deferens and the sem-
+inal vesicles. After the prostate has been removed, the main
+surgeon performs the vesicourethral anastomosis. During this
+phase, the activities of the assistant surgeon consist of avoiding
+the bladder inﬂation by keeping it pushed down and, once the
+suture has been completed, cutting the needle’s thread with the
+scissors [30]. We have distributed the activities of the assistant
+between the two robotic arms: the left side arm is in charge
+of the bladder neck transection phase, provided with a grasper
+tool for mobilizing the catheter, while the right side arm takes
+care of the bladder mobilization and anastomosis with a pair
+of curved scissors, which are curved upward during the former
+phase to avoid puncturing the bladder; all motions are intended
+to be executed with collision-free trajectories considering both
+the main surgeon’s instruments and the anatomy as obstacles.
+The anastomosis for the assistant consists only in cutting the
+
+--- Page 5 ---
+FALEZZA et al. : MODELLING OF SURGICAL PROCEDURES USING STATECHARTS FOR SEMI-AUTONOMOUS ROBOTIC SURGERY 5
+thread, which translates into movements toward the thread and
+then closing the instrument to cut.
+In the following paragraphs, we will describe the statecharts
+used to control both the manipulators. These charts represent
+a single instance of operation modeled on the experimental
+setup: they demonstrate the general methodology for merging
+the top-down medical knowledge with the bottom-up sensing
+data. Initially we will focus on the sensing part describing in
+detail which observers have been integrated and which events
+have been observed. Subsequently, the surgemes are deﬁned
+and integrated into the platform. Finally, the procedures for
+the left and right arm are modeled following the proposed
+methodology. The procedures schemes are shown in Fig. 4
+and Fig. 5, with each symbol explained in Table I.
+A. Observers
+Each robot observer is a statechart composed of 3 concur-
+rent FSMs. The purpose of these observers is to identify the
+current state of the robot and to trigger events when a desired
+state is reached. The observed states are the Cartesian position
+of the manipulator’s end-effector, the rotation of the tool and
+the closure/opening state of the gripper. For instance, when
+the target rotation of the left arm is reached, the trigger tl
+8is
+generated; when the tool is opened or closed, the triggers tl
+12
+ortl
+10are generated respectively; tl
+14ortl
+15are generated when
+the target pose is reachable or not, respectively. The triggers
+for the right arm work in the same manner, please see Table I
+for the full list.
+Theforce observer is made of an FSM with only two states.
+The purpose of this observer is to measure the interaction force
+of the autonomous robotic arm to verify whether a successful
+grasping happened. A parametric threshold Wtis set: if the
+measured force Wm> W tthetl
+2trigger is generated while
+transiting from state Ol
+1toOl
+2, otherwise it loops on the initial
+stateOl
+1generating the trigger tl
+1continuously.
+The catheter observer and the feature observer are two
+concurrent FSMs composed of two states with transitions that
+allow to loop in both states. The former analyses the camera
+RGB images to detect the catheter: when the catheter is found
+the transition from Ol
+3toOl
+4is performed, triggering the
+event tl
+3; when the track is lost the opposite state transition
+is computed triggering the event tl
+4. More details on how the
+catheter detection is computed are presented in the Supple-
+mentary Material. The feature observer estimates the catheter
+odometry and checks whether the linear speed of the catheter
+goes over and then below two parametric thresholds Wmax
+t
+andWmin
+t within a sliding window Tt. This observer is used
+during the procedure to detect whenever the main surgeon
+has completely extracted the catheter from the prostate and is
+ready to give it to the autonomous robotic arm. Practically, if
+the measured speed Wm> Wmax
+t and then within Ttseconds
+Wm< Wmin
+t, the transitions from Ol
+5toOl
+6and then back
+toOl
+5are performed, triggering the event tl
+6.
+An instance of the speech observer is available to each
+arm and they are FSMs composed of a single state (e.g. Ol
+14,
+Or
+9). The state runs a speech recognition algorithm that adopts
+Natural Language Processing (NLP) to transform commands
+imparted by the surgeon’s speech to triggers.Thepreoperative observer is in charge to generate a trigger
+when the robot’s end-effector reaches a predeﬁned position
+in the anatomy. The FSM is composed of a single state Or
+1,
+with as many transitions as the number of predeﬁned positions.
+For instance, for the right arm there are three transitions tr
+1; tr
+2
+describing landmarks on the bladder and tr
+3which describes
+the idle position for the arm.
+B. Surgemes
+Only 4 types of surgemes have been implemented to ac-
+complish the whole procedure under study, and they are the
+following:
+No operation surgeme is used to keep the robot in the
+current state. No operation is performed until a transition
+is done. This surgeme is used in the states Sl
+1,Sl
+9,Sl
+11,
+Sr
+2, and Sr
+4.
+Movement surgeme interpolates a trajectory from the
+current position to the target position. The target position
+is given as a required parameter to the surgeme. If the
+target position is changed at run-time the trajectory is re-
+computed. This surgeme is used in the states Sl
+2,Sl
+3,Sl
+6,
+Sl
+8,Sl
+10,Sl
+12,Sr
+1,Sr
+3,Sr
+5,Sr
+6,Sr
+7,Sr
+8,Sr
+9, and Sr
+12.
+Rotate tool surgeme is used to rotate the tool around
+its main axis. It takes as argument the desired absolute
+rotation. This surgeme is used in the states Sl
+4andSr
+11.
+Open/close surgeme is used to open or close the
+grasper/scissors. It takes as argument the desired target
+closing percentage e.g.100% means totally closed. This
+surgeme is used in the states Sl
+5,Sl
+7,Sr
+10, and Sr
+13.
+C. Left arm procedure
+The procedure for the left arm is composed of two phases:
+theidle phase and the bladder neck transection phase . Since
+the experiment is performed in a semi-autonomous scenario,
+while the main surgeon is dissecting the bladder neck, the
+assistant surgeon does not have to accomplish any speciﬁc
+task. For this reason, in the idle phase the tool stays in a
+safe position allowing the main surgeon to operate. In this
+phase, the autonomous system is waiting for the trigger tl
+16
+which corresponds to the speech command “left arm grasp
+the catheter”, which allows the phase transition to the bladder
+neck transection phase .
+The bladder neck transection phase is composed of three
+actions: follow action ,grasp action andpull action . The ﬁrst
+action has the purpose to follow the catheter by keeping
+a safe distance, while the second one is designed to grasp
+the catheter. The last action pulls the catheter towards the
+pelvis bones and handles any possible positioning adjustments
+requested by the main surgeon. The transition from follow
+action tograsp action is enabled when the catheter stops
+after reaching a threshold velocity (trigger tl
+6). The grasp
+action progressed only into three possible transitions which are
+dependent on the internal current state Sl
+9: iftl
+17is triggered
+by the surgeon command “left arm retry”, the effect is a reset
+of the internal state to the initial one of the action; if the
+measured force on the tool is under threshold, tl
+1is triggered
+and the state doesn’t change as it waits for a slight pull by
+
+--- Page 6 ---
+6 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+Fig. 4. Left arm procedure modeled as statechart (i.e. bladder neck transection). The observer states are represented by Oi, the surgeme states are represented
+bySjand the observed events and the triggers are labeled with okandtkrespectively.
+the surgeon to verify the grasp; ﬁnally, if the force is over
+threshold ( tl
+s), the current action is changed to pull as the
+grasp is considered as achieved.
+Follow action: This is composed of two surgeme Sl
+1and
+Sl
+2. The system remains in the initial state Sl
+1until the catheter
+becomes visible (trigger tl
+3), a condition that ﬁres the state
+transition to Sl
+2in which the left SARAS (SARAS2) arm
+follows the catheter within a predeﬁned safe distance from
+the surgeon’s tool currently grasping the catheter.
+Grasp action: This is composed in total of seven
+surgemes. The initial one ( Sl
+3) consists of an additional move-
+ment towards the catheter to signal the surgeon that the correct
+sequence of events towards the grasping action is occurring.
+When the tool reaches the desired position (trigger tl
+14), the
+next state is set to Sl
+4to rotate the tool relative to the catheter’s
+attitude. Once the desired rotation has been reached ( tl
+8),
+the controller transits to the state Sl
+5where the manipulator
+opens the grasper. At this point, when the grasper has beensuccessfully opened ( tl
+12), the next surgeme in Sl
+6moves the
+tool to the ﬁnal grasping point, which is computed as the
+current position of the da Vinci®tooltip, with a small offset
+to avoid tool collisions. Now, the system can transit to Sl
+7
+whenever either the desired grasping point is reached ( tl
+14) or
+the speech command “left arm close the instrument” ( tl
+21) is
+requested. In this surgeme ( Sl
+7) the left arm closes the grasper
+and, once the tool has been totally closed ( tl
+10) the next state is
+set to Sl
+8. At this point, the tool is commanded back slightly
+along the RCM axis to carefully pull the catheter and thus
+verify whether the grasping was truly successful. When the
+desired position is reached ( tl
+14) the system transits to the next
+stateSl
+9which is a no operations surgeme .
+Pull action: This is composed of three surgemes, with the
+initial state Sl
+10used to move the manipulator towards a point
+deﬁned as the maximum traction point (from the pre-registered
+map). The transition to the next state Sl
+11could happen if the
+desired position is reached (trigger tl
+14) or the “left arm stop”
+
+--- Page 7 ---
+FALEZZA et al. : MODELLING OF SURGICAL PROCEDURES USING STATECHARTS FOR SEMI-AUTONOMOUS ROBOTIC SURGERY 7
+TABLE I
+SYMBOLS DESCRIPTION OF THE OBSERVERS ,SURGEMES AND TRIGGERS FOR THE LEFT (l,TOP)AND RIGHT (r,BOTTOM )ARMS IN FIG. 4AND FIG. 5.
+Observer Observer Label Surgeme Surgeme Label Event/Trigger Event/Trigger Label
+Ol
+1Force under threshold Sl
+1Idle ol
+1=tl
+1Force under threshold
+Ol
+2Force over threshold Sl
+2Follow the catheter ol
+2=tl
+2Force over threshold
+Ol
+3Looking for catheter Sl
+3Approach the catheter ol
+3=tl
+3Catheter found
+Ol
+4Tracking the catheter Sl
+4Open the tool ol
+4=tl
+4Catheter vision lost
+Ol
+5Features under threshold Sl
+5Rotate the tool ol
+5Velocity over threshold
+Ol
+6Features over threshold Sl
+6Move to the grasping point ol
+6=tl
+6Catheter stopped
+Ol
+7Rotation in idle Sl
+7Close the tool ol
+7Tool is rotating
+Ol
+8Rotation moving Sl
+8Check the grasping ol
+8=tl
+8Goal rotation reached
+Ol
+9Tool close Sl
+9Wait for conﬁrm grasping ol
+9Tool is closing
+Ol
+10Tool moving Sl
+10Pull more ol
+10=tl
+10Tool closed
+Ol
+11Tool open Sl
+11Idle ol
+11Tool is opening
+Ol
+12Robot idle Sl
+12Pull less ol
+12=tl
+12Tool open
+Ol
+13Robot moving ol
+13Robot is moving
+Ol
+14Speech recognition ol
+14=tl
+14Goal reached
+ol
+15=tl
+15Goal not reachable
+ol
+16=tl
+16Speech grasp catheter
+ol
+17=tl
+17Speech retry
+ol
+18=tl
+18Speech stop
+ol
+19=tl
+19Speech pull more
+ol
+20=tl
+20Speech pull less
+ol
+21=tl
+21Speech close instrument
+Or
+1Preoperative poses Sr
+1Approach bladder or
+1=tr
+1On bladder top
+Or
+2Rotation in idle Sr
+2Idle or
+2=tr
+2On bladder bottom
+Or
+3Rotation moving Sr
+3Push bladder or
+3=tr
+3On safe pose
+Or
+4Tool close Sr
+4Hold bladder or
+4Tool is rotating
+Or
+5Tool moving Sr
+5Push less or
+5=tr
+5Goal rotation reached
+Or
+6Tool open Sr
+6Push bladder here or
+6Tool is closing
+Or
+7Robot idle Sr
+7Release bladder or
+7=tr
+7Tool closed
+Or
+8Robot moving Sr
+8Safe pose or
+8Tool is opening
+Or
+9Speech recognition Sr
+9Follow thread or
+9=tr
+9Tool open
+Sr
+10Open scissor or
+10Robot is moving
+Sr
+11Rotate scissor or
+11=tr
+11Goal reached
+Sr
+12Approach thread or
+12=tr
+12Goal not reached
+Sr
+13Cut thread or
+13=tr
+13Speech bladder push down
+or
+14=tr
+14Speech cut needle
+or
+15=tr
+15Speech idle
+or
+16=tr
+16Speech close
+or
+17=tr
+17Speech restart
+or
+18=tr
+18Speech push more
+or
+19=tr
+19Speech push less
+or
+20=tr
+20Speech push here
+or
+21=tr
+21Speech release
+or
+22=tr
+22Speech stop
+speech command ( tl
+18) is provided by the main surgeon. The
+stateSl
+11is ano operations surgeme and it is intended to be the
+ﬁnal surgeme of the procedure. If the speech command “left
+arm pull more” ( tl
+19) is provided, the next state goes back to
+Sl
+10; if the speech command is “left arm pull less” ( tl
+20), the
+next state is set to Sl
+12. This state moves the tool to a point
+nearby the bladder neck to release the catheter, and the next
+state is set to Sl
+11if the desired position is reached or if the
+“left arm stop” sentence tl
+18is detected.
+D. Right arm procedure
+The procedure for the right arm is limited to three phases
+due to the scissors tool: these are the idle, the bladder mobi-
+lization , and the vesicourethral anastomosis phases. The idle
+phase is again used to keep the robot in a safe conﬁguration
+and far from the main surgeon’s tools. When the “right arm
+push down the bladder” speech command is provided (trigger
+tr
+13) the system transits to the bladder mobilization phase .This phase is composed of three actions: approach action ,
+push action and release action . The ﬁrst action approaches
+the upper part of the bladder, while the second action pushes
+the bladder down and handles any possible adjustment of the
+applied pressure or pressure point. The last action releases the
+bladder and moves back the manipulator to the safe position.
+The transition from the approach action and the push action
+happens when the end-effector reaches the top of the bladder
+(tr
+1). The transition from push action torelease action occurs
+when the “right arm release” command is provided ( tr
+21).
+When trigger tr
+14is ﬁred, following the “right arm cut the
+needle” speech command, a phase change occurs towards the
+vesicourethral anastomosis phase . This phase, the last one
+of the procedure, is composed of a single action cut action
+consisting of moving the scissors to the thread and cut it.
+Approach action: This is composed of two surgemes Sr
+1
+andSr
+2. The initial state is Sr
+1where the end-effector is moved
+to the top of the bladder. In case the surgeon needs to stop the
+
+--- Page 8 ---
+8 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+Fig. 5. Right arm procedure modeled as statechart (i.e. bladder mobilization, vesicourethral anastomosis). The observer states are represented by Oi, the
+surgeme states are represented by Sjand the observed events and the triggers are labeled with okandtkrespectively.
+motion, the speech command “stop” ( tr
+22) changes the current
+surgeme to Sr
+2. In the state Sr
+2the robot is still and it keeps this
+state until the speech command “right arm retry” is provided
+(tr
+22).
+Push action: This is composed of four surgemes, where
+the initial state Sr
+3moves the robot to the bottom of the
+bladder increasing the pressure applied until either a “stop”
+speech command is received ( tr
+22) or the bottom position is
+reached ( tr
+11). In any case, the next state Sr
+4keeps the robot
+still and holds the bladder down. From this state three speech
+commands could ﬁre a state transition: “right arm push more”
+(tr
+18)which sets the next state back to Sr
+3; “right arm push less”
+(tr
+19)which let to transit to the state Sr
+5or “right arm push
+here” ( tr
+20)which trigger the transition to the state Sr
+6. The
+stateSr
+5moves the arm to the top of the bladder, decreasing
+the applied pressure until either a “stop” speech command is
+received ( tr
+22) or the position is reached ( tr
+11). The state Sr
+6
+moves the arm towards the main surgeon tool and is used to
+apply pressure to a different point. When the “stop” speech
+command is received ( tr
+22) or the goal is reached ( tr
+11) it
+transits back to Sr
+4.Release action: This is composed of two surgemes Sr
+7
+andSr
+8. The initial state Sr
+7moves the tool back on the top
+of the bladder. When the desired position is reached ( tr
+11), the
+state transits to Sr
+8which moves the tool to the safe position.
+Cut action: This is composed of ﬁve surgemes. The
+initial state Sr
+9moves the robotic arm towards the position of
+the thread (which is in our case pointed by the main surgeon’s
+tool). When the desired thread position is reached ( tr
+11), the
+system transits to Sr
+10where the scissors are opened. When the
+tool is fully open, the trigger tr
+9is generated and the next state
+is set to Sr
+10where the tool is rotated to be perpendicular to the
+thread. Once the desired rotation is reached ( tr
+5), the state is
+set to Sr
+12and the manipulator approaches the thread. In case
+the thread position is reached ( tr
+11) or the speech command
+“right arm close the instrument” ( tr
+22) is requested by the main
+surgeon, the next state is set to Sr
+13and the robot cuts the
+thread. If the thread is missed, the surgeon can request by the
+command “right arm release” ( tr
+21) to restart the action from
+Sr
+9, otherwise the phase is completed.
+
+--- Page 9 ---
+FALEZZA et al. : MODELLING OF SURGICAL PROCEDURES USING STATECHARTS FOR SEMI-AUTONOMOUS ROBOTIC SURGERY 9
+(a) External view
+1
+234
+5
+6
+(b) Anatomical phantom
+Fig. 6. The platform used for the experimental validation: (1) the autonomous left robotic arm (SARAS2) pulling the catheter, (2) the autonomous right
+robotic arm (SARAS1) mobilizing the bladder, (3) the left teleoperated da Vinci®arm (PSM2), (4) the right teleoperated arm da Vinci®(PSM1), (5) the
+bladder neck, ( i.e.the conjunction between bladder and prostate), (6) the mobilized bladder.
+V. E XPERIMENTAL VALIDATION
+The proposed modeling approach has been tested on a
+realistic surgical phantom, shown in Fig. 6b, developed by
+ACMIT Gmbh. It is composed of a 3D-printed pelvis bone
+and the following silicone elements: rectum, bladder, urethra,
+seminal vesicles, vas deferens, and prostate, all immersed
+in a silicate fat-like foam. On these realistically-reproduced
+anatomical structures we operate with the ﬁrst model of
+the da Vinci®surgical robot (since 2000) controlled via
+the daVinci Research Kit (dVRK) and two Franka Emika’s
+Panda robots with custom laparoscopic adapters, designed by
+Mr. Matteo Piano, as end-effector (SARAS1/SARAS2). The
+right/left instrument arms (PSM1/PSM2) and the endoscope
+arm (ECM) are teleoperated by the surgeon, whereas the
+Panda robots are autonomous. This model of da Vinci®does
+not provide a fourth arm (Fig. 6a). Before proceeding with
+the execution of the surgical procedure, all the robotic arms
+and the vision system are registered together to create a
+common reference frame following the methodology proposed
+in [33]. Moreover, the operative scene is reconstructed in 3D
+to identify pre-operative points of interest that are mapped to
+a live point cloud reconstruction during the operation [34].
+The latter allows to precisely track all exogenous actors, for
+instance the catheter. The details of the solutions adopted
+for scene reconstruction and mapping can be found in the
+supplementary material attached to this article.
+To validate the proposed architecture, we invited three
+surgeons with experience in robotic-assisted radical prostatec-
+tomy to attempt the procedure in cooperation with the SARAS
+autonomous system. Before the validation, each surgeon has
+been briefed on the functionality of the system with an expla-
+nation on the speech commands list, the way the autonomous
+system detects the catheter, and the instructions on the user
+interface available to them in the da Vinci®master console;
+the whole training took approximately twenty minutes. In total,
+the validation is composed of 38 executions of SARAS-related
+phases of the RARP, including 10 repetitions of the bladder
+mobilization , 14 of the bladder neck transection , and 14 ofthevesicourethral anastomosis . In the following paragraphs,
+we proceed with an in-depth analysis of the bladder neck
+transection phase due to its comprehensive application of all
+the surgemes and its extensive interaction requirements with
+the main surgeon. In Fig. 7 a sequence of snapshots shows
+the main steps of the phase and in Fig. 8 a sequence diagram
+shows the temporal relation between transitions.
+The procedure starts in the idlephase with the conﬁguration
+shown in Fig. 7a. The robot is still in a safe position waiting
+for the surgeon’s speech command to trigger the bladder neck
+transection phase. When the command is received ( tl
+16), the
+system transits to the bladder neck transection phase. As
+consequence also the current action and surgeme are modiﬁed,
+which are set respectively to Follow andSl
+1, as shown in
+Fig. 7b. In the meantime, the catheter observer is working
+concurrently, searching for the presence of the catheter.
+Once the catheter is found ( tl
+3) the current surgeme transits
+toSl
+2, and the autonomous system moves the end effector at
+3:5 cm apart from the catheter position as shown in Fig. 7c.
+The main surgeon starts the catheter extraction by grasping
+and pulling upward the catheter with the intent of placing the
+catheter tip in a position that facilitates the grasping by the
+autonomous system. In the meantime, the feature observer
+analyzes the catheter velocity proﬁle with respect to the
+threshold and action transitions, Fig. 9a.
+The velocity exceeds the threshold for a sufﬁcient time
+at28:01 s and then drops to a value approximately close to
+0at28:61 s. This behavior makes the feature observer to
+trigger tl
+6, thus the transition from follow tograsp is executed.
+Consequently, the current state of the surgeme is set to Sl
+3, as
+shown in Fig. 7d. The autonomous system moves the end-
+effectors of SARAS 1 and 2 at a 1 cm distance from the
+catheter ( Sl
+3); then it rotates the tool ( Sl
+4), opens the grasper
+(Sl
+5), and moves again the tool at the grasping point ( Sl
+6).
+The next transition guards are waiting for the triggers tl
+14and
+tl
+21: the former is given when the grasping point position is
+reached, while the latter is provided by the speech observer
+when the “left arm close the instrument” command is provided.
+
+--- Page 10 ---
+10 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+(a) Idle
+ (b) Idle!bladder neck
+transection, follow, Sl
+1
+(c)Sl
+1!Sl
+2
+(d) Follow !grasp,
+Sl
+3!Sl
+4!Sl
+5!Sl
+6
+(e)
+Sl
+6!Sl
+7!Sl
+8!Sl
+9
+(f) Grasp !grasp,
+Sl
+3!Sl
+4!Sl
+5!Sl
+6
+(g)Sl
+6!Sl
+7
+(h)Sl
+7!Sl
+8!Sl
+9
+(i)Sl
+9
+(j) Grasp !pull,
+Sl
+10!Sl
+11
+(k)Sl
+11!Sl
+12!Sl
+11
+(l)Sl
+11!Sl
+10!Sl
+11
+Fig. 7. A series of snapshots taken from the experimental validation during the bladder neck transection . State transitions are indicated in the captions
+as arrows and since some of them occurs quickly the transitions are sometimes grouped together in the same snapshot. A detailed view of the transitions
+occurrences is available in Fig. 8.
+Fig. 8. The sequence diagram shows the time when each transition occurred during the bladder neck transection . The time ﬂow is represented by the vertical
+dashed lines. A transition that occurred between two states is indicated as an arrow, the label above the arrow indicates the trigger which activates the transition.
+On the right side of the diagram, the transition times are reported. The red, blue, and black colours are used to group the transitions occurring for phases,
+actions and surgemes respectively.
+
+--- Page 11 ---
+FALEZZA et al. : MODELLING OF SURGICAL PROCEDURES USING STATECHARTS FOR SEMI-AUTONOMOUS ROBOTIC SURGERY 11
+(a)
+ (b)
+Fig. 9. The catheter speed and the modulus of the interaction force during the follow andgrasp action respectively. a) the horizontal black dashed lines
+represent the feature observer threshold, the vertical black lines represent the action transition and the vertical dotted black lines represent the surgeme
+transitions, b) the horizontal black dashed line represents the force observer threshold, the vertical black lines represent the action transitions and the vertical
+dotted black lines represent the surgeme transitions.
+When tl
+14andtl
+21are triggered, the surgeme S7closes the
+gripper, Sl
+8moves the end effector to verify the grasping,
+which is followed by Sl
+9which puts the statechart in an idle
+state waiting for the conﬁrmation to continue. As shown in
+Fig. 7e, during this attempt, the gripper missed the catheter.
+For this reason, the surgeon triggers the transition tl
+17, with
+the “left arm retry” speech command, as shown in Fig. 7f,
+bringing back the current state to Sl
+3. The execution is the
+same as before until the current state reaches Sl
+6: this time the
+grasping is successful as shown in Fig. 7g and the autonomous
+system reaches Sl
+9extracting the catheter as shown in Fig. 7h.
+The surgeon pulls the catheter in order to generate a force on
+the autonomous arm which is monitored by the force observer .
+If the force reaches the desired threshold, the grasping is
+strong enough to proceed with the next phase of the procedure.
+Fig. 9b shows the force proﬁle.
+Since the monitoring is performed by directly sensing the
+torques applied at the joints, these measurements could exceed
+the threshold multiple times during the motion execution
+due to the motor’s controller action. For this reason, the
+transition could occur only when the surgeme state is Sl
+9,
+which guarantees that the robot has already executed every
+step necessary to grasp the catheter and it is still. When the
+force exceeds the threshold ( tl
+2), the current action moves to
+Pull , and the actual surgeme is set to Sl
+10. Then the end
+effector is moved to the pulling point and when the goal is
+reached the surgeme tl
+14switches the current state to Sl
+11
+as shown in Fig. 7j. The surgeon requests “left arm pull
+less” ( tl
+20) with the speciﬁc speech command which sets the
+current state to Sl
+12and the end effector is moved near the
+bladder neck position as shown in Fig. 7k. When the position
+is reached ( tl
+14) the system gets back to the surgeme Sl
+11.
+The catheter is retracted by the autonomous arm according
+to the main surgeon’s instructions. At this point, the surgeon
+imparts the speech commands to pull the catheter and to stop
+the motion when the end-effector reaches the desired position.
+This corresponds to the transition from Sl
+10toSl
+11, and then
+back to Sl
+10again. The catheter extraction is so concluded with
+success.VI. D ISCUSSION AND CONCLUSIONS
+We have evaluated the developed system for autonomous
+RARP in terms of phase success rate , which is expressed
+as the number of succeeded phases on the total number of
+executions. We consider to be a successful phase whenever
+the surgeon is able to accomplish the goal without any fatal
+error ( e.g.damages to the robots or the patient). Any time the
+surgeon has encountered minor issues ( e.g.missing the thread
+or the catheter grasping), but they has been able to recover the
+phase without any external intervention, the same is considered
+successful.
+The ﬁrst phase, the bladder mobilization , has minimal
+interaction with the surgeon, and its success is closely linked
+to the calibration of the robot with respect to the environment.
+For this reason, it has required a minimal amount of tests to
+accomplish the validation, with all of the performed test being
+successful. No minor nor fatal issues have been encountered
+in testing this phase.
+The validation of the second phase, the bladder neck tran-
+section , in only one test out of the 14 executed has encountered
+a fatal error which prevented the phase completion. The issue
+was caused by an erroneous value of the force threshold which
+let the statechart unable to transit on the trigger t2to the
+Pull action. This was caused by a technical mishap preventing
+the run-time threshold adaptation and the following procedure
+interruption. This phase also brought out several minor incon-
+veniences, such as few collisions with the da Vinci®arms,
+minor collisions with the bladder during the movement of the
+SARAS2 arm and misinterpreted speech commands promptly
+recovered by the surgeons’ direct intervention.
+Finally, during the vesicourethral anastomosis phase valida-
+tion, the system encountered a fatal error out of 14 executions.
+The issue was caused by the surgeon, since he/she failed to
+correctly point the desired needle approach position causing
+the SARAS1 arm to start moving toward an undesired and
+non-reachable conﬁguration. This caused the robot to halt in a
+non-reachable position that lead to a control system lock and a
+fatal error. Another issue we faced during this last phase was
+the SARAS1 arm failure to accomplish the needle’s thread
+
+--- Page 12 ---
+12 TRANSACTIONS ON MEDICAL ROBOTICS AND BIONICS
+cut. This can be caused by erroneous indications from the
+main surgeon mainly due to the low resolution of the images
+displayed on the da Vinci®console available with the dVRK
+platform. These failures, however, only led to the repetition of
+the positioning movement of the arm near the thread, but they
+did not prevent the phase completion.
+In conclusion, the tests on the platform saw only 2 phases
+out of 38 interrupted by an unrecoverable error, with both of
+the issues caused by inappropriate initial positioning of the
+pre-operative points of interest and the surgeon inexperience
+while collaborating with SARAS arms. The framework proved
+to be robust, modular, and ﬂexible by executing successfully
+the tasks usually performed by an assistant surgeon in a semi-
+autonomous way. Its design allowed to be quickly extended
+to heterogeneous tasks while remaining coherent with the
+formalism already in place for surgical processes. As future
+works, the authors intend to introduce more nuanced observers
+that adopt more powerful and adaptable sensing modules based
+on ML techniques, like the methods presented in [35], along
+with the development of a proper training session for surgeons
+to improve usage readiness while maintaining the highest level
+of native interaction for expert RARP surgeons.
+REFERENCES
+[1] G.-Z. Yang, J. Cambias, et al. , “Medical robotics—regulatory, ethical,
+and legal considerations for increasing levels of autonomy,” Science
+Robotics , vol. 2, no. 4, p. 8638, 2017.
+[2] M. Ginesi, D. Meli, et al. , “Autonomous task planning and situation
+awareness in robotic surgery*,” in 2020 IEEE/RSJ International Con-
+ference on Intelligent Robots and Systems (IROS) , 2020, pp. 3144–3150.
+[3] A. Sozzi, M. Bonf `e,et al. , “Dynamic motion planning for autonomous
+assistive surgical robots,” Electronics , vol. 8, no. 9, p. 957, 2019.
+[4] A. Rector and J. Rogers, “Ontological and practical issues in using a
+description logic to represent medical concept systems: Experience from
+galen,” in Reasoning Web International Summer School . Springer, 2006,
+pp. 197–231.
+[5] T. Haidegger, “Autonomy for surgical robots: Concepts and paradigms,”
+IEEE Transactions on Medical Robotics and Bionics , vol. 1, no. 2, pp.
+65–76, 2019.
+[6] L. Longo, “Argumentation for knowledge representation, conﬂict resolu-
+tion, defeasible inference and its integration with machine learning,” in
+Machine Learning for Health Informatics . Springer, 2016, pp. 183–208.
+[7] D. Harel and A. Pnueli, “On the development of reactive systems,” in
+Logics and models of concurrent systems . Springer, 1985, pp. 477–498.
+[8] S. Van Mierlo and H. Vangheluwe, “Statecharts: A formalism to model,
+simulate and synthesize reactive and autonomous timed systems,” in
+Foundations of Multi-Paradigm Modelling for Cyber-Physical Systems .
+Springer, 2020, pp. 155–176.
+[9] Q. Zhao and B. H. Krogh, “Formal veriﬁcation of statecharts using ﬁnite-
+state model checkers,” IEEE transactions on control systems technology ,
+vol. 14, no. 5, pp. 943–950, 2006.
+[10] B. Sobolev, D. Harel, C. Vasilakis, and A. Levy, “Using the statecharts
+paradigm for simulation of patient ﬂow in surgical care,” Health Care
+Management Science , vol. 11, no. 1, pp. 79–86, 2008.
+[11] F. Lalys and P. Jannin, “Surgical process modelling: a review,” Interna-
+tional journal of computer assisted radiology and surgery , vol. 9, no. 3,
+pp. 495–511, 2014.
+[12] N. Djuric, V . Radosavljevic, et al. , “Uncertainty-aware short-term motion
+prediction of trafﬁc actors for autonomous driving,” in Proceedings of
+the IEEE/CVF Winter Conference on Applications of Computer Vision
+(WACV) , March 2020.
+[13] S. Zheng, J. J. Lu, N. Ghasemzadeh, et al. , “Effective information extrac-
+tion framework for heterogeneous clinical reports using online machine
+learning and controlled vocabularies,” JMIR medical informatics , vol. 5,
+no. 2, p. e12, 2017.
+[14] G. Forestier, F. Petitjean, P. Senin, et al. , “Finding discriminative
+and interpretable patterns in sequences of surgical activities,” Artiﬁcial
+Intelligence in Medicine , vol. 82, pp. 11–19, 2017.[15] O. Dergachyova, D. Bouget, et al. , “Automatic data-driven real-time
+segmentation and recognition of surgical workﬂow,” International Jour-
+nal of Computer Assisted Radiology and Surgery , vol. 11, no. 6, pp.
+1081–1089, 2016.
+[16] A. Murali, S. Sen, B. Kehoe, A. Garg, S. McFarland, S. Patil, W. D.
+Boyd, S. Lim, P. Abbeel, and K. Goldberg, “Learning by observation
+for surgical subtasks: Multilateral cutting of 3d viscoelastic and 2d
+orthotropic tissue phantoms,” in 2015 IEEE International Conference
+on Robotics and Automation (ICRA) . IEEE, 2015, pp. 1202–1209.
+[17] S. Sen, A. Garg, D. V . Gealy, et al. , “Automating multi-throw multi-
+lateral surgical suturing with a mechanical needle guide and sequen-
+tial convex optimization,” in 2016 IEEE International Conference on
+Robotics and Automation (ICRA) , 2016, pp. 4178–4185.
+[18] T. D. Nagy and T. Haidegger, “A dvrk-based framework for surgical
+subtask automation,” Acta Polytechnica Hungarica , pp. 61–78, 2019.
+[19] M. Hwang, D. Seita, B. Thananjeyan, et al. , “Applying depth-sensing
+to automated surgical manipulation with a da vinci robot,” in 2020
+International Symposium on Medical Robotics (ISMR) , 2020, pp. 22–
+29.
+[20] A. Kurt and ¨U.¨Ozg¨uner, “Hierarchical ﬁnite state machines for au-
+tonomous mobile systems,” Control Engineering Practice , vol. 21, no. 2,
+pp. 184–194, 2013.
+[21] M. Colledanchise and P. ¨Ogren, “How behavior trees modularize hybrid
+control systems and generalize sequential behavior compositions, the
+subsumption architecture, and decision trees,” IEEE Transactions on
+Robotics , vol. 33, no. 2, pp. 372–389, 2017.
+[22] D. Hu, Y . Gong, B. Hannaford, and E. J. Seibel, “Semi-autonomous
+simulated brain tumor ablation with ravenii surgical robot using be-
+havior tree,” in 2015 IEEE International Conference on Robotics and
+Automation (ICRA) , 2015, pp. 3868–3875.
+[23] R. Muradore, P. Fiorini, et al. , “Development of a cognitive robotic
+system for simple surgical tasks,” International Journal of Advanced
+Robotic Systems , vol. 12, no. 4, p. 37, 2015.
+[24] M. Ginesi, D. Meli, H. Nakawala, A. Roberti, and P. Fiorini, “A
+knowledge-based framework for task automation in surgery,” in 2019
+19th International Conference on Advanced Robotics (ICAR) . IEEE,
+2019, pp. 37–42.
+[25] Z. Dogmus, G. Gezici, V . Patoglu, and E. Erdem, “Developing and
+maintaining an ontology for rehabilitation robotics.” in KEOD , 2012,
+pp. 389–395.
+[26] C. E. Reiley and G. D. Hager, “Task versus subtask surgical skill evalu-
+ation of robotic minimally invasive surgery,” Lecture Notes in Computer
+Science (including subseries Lecture Notes in Artiﬁcial Intelligence and
+Lecture Notes in Bioinformatics) , vol. 5761 LNCS, no. PART 1, pp.
+435–442, 2009.
+[27] M. Ghallab, D. Nau, and P. Traverso, Automated Planning: theory and
+practice . Elsevier, 2004.
+[28] C. E. Reiley, H. C. Lin, et al. , “Automatic recognition of surgical motions
+using statistical modeling for capturing variability,” in MMVR , vol. 132,
+2008, pp. 396–401.
+[29] T. Bylander, “The computational complexity of propositional strips
+planning,” Artiﬁcial Intelligence , vol. 69, no. 1-2, pp. 165–204, 1994.
+[30] V . R. Patel, K. K. Shah, R. K. Thaly, and H. Lavery, “Robotic-assisted
+laparoscopic radical prostatectomy: the ohio state university technique,”
+Journal of robotic surgery , vol. 1, no. 1, pp. 51–59, 2007.
+[31] E. Oleari, A. Leporini, D. Trojaniello, A. Sanna, U. Capitanio, F. Deh ´o,
+A. Larcher, et al. , “Enhancing surgical process modeling for artiﬁcial
+intelligence development in robotics: the saras case study for minimally
+invasive procedures,” in 13th International Symposium on Medical
+Information and Communication Technology (ISMICT) . IEEE, 2019.
+[32] F. Setti, E. Oleari, A. Leporini, D. Trojaniello, A. Sanna, U. Capitanio,
+F. Montorsi, et al. , “A multirobots teleoperated platform for artiﬁcial
+intelligence training data collection in minimally invasive surgery,” in
+International Symposium on Medical Robotics (ISMR) . IEEE, 2019.
+[33] A. Roberti, N. Piccinelli, et al. , “Improving rigid 3-d calibration for
+robotic surgery,” IEEE Transactions on Medical Robotics and Bionics ,
+vol. 2, no. 4, pp. 569–573, 2020.
+[34] N. Piccinelli, A. Roberti, E. Tagliabue, et al. , “Rigid 3d registration
+of pre-operative information for semi-autonomous surgery,” in 2020
+International Symposium on Medical Robotics (ISMR) , 2020, pp. 139–
+145.
+[35] G. De Rossi, M. Minelli, S. Roin, F. Falezza, et al. , “A First Evaluation
+of a Multi-Modal Learning System to Control Surgical Assistant Robots
+via Action Segmentation,” IEEE Transactions on Medical Robotics and
+Bionics , pp. 1–11, 2021.

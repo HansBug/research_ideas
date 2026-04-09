@@ -1,0 +1,975 @@
+--- Page 1 ---
+Pushdown Module Checking with
+Imperfect Information?
+Benjamin Aminof1, Aniello Murano2, and Moshe Y. Vardi3
+1Hebrew University, Jerusalem 91904, Israel.
+2Universitµ a degli Studi di Napoli \Federico II", 80126 Napoli, Italy.
+3Rice University, Houston, TX 77251-1892, U.S.A.
+Abstract. The model checking problem for ¯nite-state open systems
+(module checking ) has been extensively studied in the literature, both
+in the context of environments with perfect and imperfect information
+about the system. Recently, the perfect information case has been ex-
+tended to in¯nite-state systems ( pushdown module checking ). In this pa-
+per, we extend pushdown module checking to the imperfect information
+setting; i.e., the environment has only a partial view of the system's
+control states and pushdown store content. We study the complexity of
+this problem with respect to the branching-time temporal logic CTL,
+and show that pushdown module checking, which is by itself harder than
+pushdown model checking, becomes undecidable when the environment
+has imperfect information. We also show that undecidability relies on
+hiding information about the pushdown store. Indeed, we prove that
+with imperfect information about the control states, but a visible push-
+down store, the problem is decidable and its complexity is the same as
+that of (perfect information) pushdown module checking.
+1 Introduction
+In system modeling we distinguish between closed andopen systems [HP85]. In
+a closed system all the nondeterministic choices are internal, and resolved by
+the system. In an open system there are also external nondeterministic choices,
+which are resolved by the environment [Hoa85]. In order to check whether a
+closed system satis¯es a required property, we translate the system into some
+formal model, specify the property with a temporal-logic formula, and check
+formally that the model satis¯es the formula. Hence, the name model checking
+for the veri¯cation methods derived from this viewpoint ([CE81,QS81]).
+In [KV96,KVW01], Kupferman, Vardi, and Wolper studied open ¯nite-state
+systems. In their framework, the open ¯nite-state system is described by a la-
+beled state-transition graph called module , whose set of states is partitioned into
+a set of system states (where the system makes a transition) and a set of envi-
+ronment states (where the environment makes a transition). Given a module M
+describing the system to be veri¯ed, and a temporal logic formula 'specifying
+?Work supported in part by MIUR FIRB Project no. RBAU1P5SS, NSF grants CCR-
+9988322, CCR-0124077, CCR-0311326, CCF-0613889, and ANI-0216467, by BSF
+grant 9800096, and by gift from Intel.
+
+--- Page 2 ---
+2 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+the desired behavior of the system, the problem of model checking a module,
+called module checking , asks whether for all possible environments Msatis¯es
+'. In particular, it might be that the environment does not enable all the exter-
+nal nondeterministic choices. Module checking thus involves not only checking
+that the full computation tree hTM; VMiobtained by unwinding M(which cor-
+responds to the interaction of Mwith a maximal environment) satis¯es the
+speci¯cation ', but also that every tree obtained from it by pruning children of
+environment nodes (this corresponds to the di®erent choices of di®erent environ-
+ments) satisfy '. For example, consider an ATM machine that allows customers
+to deposit money, withdraw money, check balance, etc. The machine is an open
+system and an environment for it is a subset of the set of all possible in¯nite
+lines of customers, each with its own plans. Accordingly, there are many di®er-
+ent possible environments to consider. It is shown in [KV96,KVW01] that for
+formulas in branching time temporal logics, module checking open ¯nite-state
+systems is exponentially harder than model checking closed ¯nite-state systems.
+In [KV97] module checking has been extended to a setting where the en-
+vironment has imperfect information1about the state of the system (see also
+[CH05,CDHR06], for related work regarding imperfect information). In this set-
+ting, every state of the module is a composition of visible andinvisible variables,
+where the latter are hidden from the environment. While a composition of a
+module Mwith an environment with perfect information corresponds to arbi-
+trary disabling of transitions in M, the composition of Mwith an environment
+with imperfect information is such that whenever two computations of the sys-
+tem di®er only in the values of internal variables along them, the disabling of
+transitions along them coincide. For example, in the above ATM machine, a
+person does not know, before he asks for money, whether or not the ATM has
+run out of paper for printing receipts. Thus, the possible behaviors of the en-
+vironment are independent of this missing information. Given an open system
+Mwith a partition of M's variables into visible and invisible, and a temporal
+logic formula ', the module-checking problem with imperfect information asks
+whether 'is satis¯ed by all trees obtained by pruning children of environment
+nodes from hTM; VMi, according to environments whose nondeterministic choices
+are independent of the invisible variables. One of the results shown in [KV97] is
+thatCTL module checking with imperfect information is Exptime -complete.
+In recent years, model checking of pushdown systems has received a lot of
+attention (see for example [Wal96,Wal00,BEM97,EKS03]), largely due to the
+ability of pushdown systems to capture the °ow of procedure calls and returns
+in programs [ABE+05]. Recently, [BMP05] extended these techniques by intro-
+ducing open pushdown systems (with perfect information) that interact with
+their environment. It is shown in [BMP05] that CTL pushdown module checking
+is2Exptime -complete and thus much harder than pushdown model checking.
+Consider again the example of the ATM machine, where the information
+regarding the presence of printing paper is invisible to the customers. Suppose
+1In the literature, the term incomplete information is sometimes used to refer to what
+we call imperfect information.
+
+--- Page 3 ---
+Lecture Notes in Computer Science 3
+also that the ATM machine shows advertisements, and that it works under the
+constraint that the number of advertisements the customer must view, before
+the card can be taken out of the machine, is equal to the number of operations
+the customer performed. The described machine can be modeled as an open
+pushdown system Mwhere control states take care of the operation performed
+by the ATM (interacting with customers), and the pushdown store is used to
+keep track of the advertisements that remain to be shown. Now, suppose that
+we want to verify that in all possible environments, it is always possible for an
+inserted card to be ejected. This requirement can be modeled by the CTL formula
+'=AG(insert-card !EFeject-card ). Since the presence of printing paper
+is invisible to the customers, we have imperfect information about the control
+states of the module. If we allow the ATM to push, after each operation the
+customer makes, an invisible number (possibly zero) of pending advertisements,
+then we also have invisible information in the pushdown store.
+In this paper, we extend pushdown module checking by considering environ-
+ments with imperfect information about the system's state and pushdown store
+content. To this aim, we ¯rst have to de¯ne how a pushdown system keeps part of
+its internal con¯guration invisible to the environment and another part visible.
+In [PR79], a private pushdown store automata is de¯ned to be a Turing machine
+with two tapes: a read only public (visible) one-way input tape, and a possi-
+bly private (invisible) work tape, simulating a pushdown store. Unfortunately,
+their de¯nition is not suitable for our purpose as it allows for only two levels of
+information hiding: either the pushdown store and control state are completely
+visible, or completely invisible. The de¯nition we use instead is an extension
+of the idea used for ¯nite-state systems. Like in the ¯nite case, we assume the
+control states are assignments to boolean control variables , some of which are
+visible and some of which are invisible. Similarly, symbols of the pushdown store
+are assignments to boolean visible and invisible pushdown store variables .
+In [KV97], each state is partitioned into input, output, and invisible variables,
+where the environment supplies the input variables, and the system supplies the
+output and invisible variables. This idea works well for ¯nite state-systems but
+not when we have to deal with imperfect information about the pushdown store.
+Note that a symbol pushed now, in°uences the computation much later, when it
+becomes the top of the pushdown store. Indeed, asking the environment to supply
+as input part of each symbol in the pushdown, is asking it to intimately partic-
+ipate in the internals of the computation, which is less natural. We ¯nd it more
+natural to think of the environment as choosing the possible transitions at certain
+points of the computation. For example, if the environment supplies the current
+reading of a physical sensor, we think of it as disabling all the transitions that are
+irrelevant for this reading. Thus, we model an open pushdown system with im-
+perfect information by partitioning con¯gurations into system and environment
+con¯gurations, and also partitioning states and pushdown store symbols into
+visible and invisible variables, combining features from both [KV96] and [KV97].
+We study the complexity of the pushdown module-checking problem with
+imperfect information, with respect to the branching-time logic CTL. We show
+
+--- Page 4 ---
+4 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+that the problem is undecidable in the general case. We also show that undecid-
+ability relies on hiding information about the pushdown store. Indeed, we prove
+thatCTL pushdown module checking with imperfect information about the in-
+ternal control states, but a visible pushdown store, is decidable and 2Exptime -
+complete. Hence, it is not harder than perfect information CTL pushdown mod-
+ule checking. For the upper bound we use an automata-theoretic approach and
+introduce a new automata model, namely semi-alternating pushdown BÄ uchi tree
+automata (PD-SBT ). These are alternating pushdown BÄ uchi tree automata
+[KPV02] where the universality is not allowed on the pushdown store content.
+That is, two copies of the automaton that read the same input, from two con¯g-
+urations that have the same top of pushdown store, must push the same value
+into the pushdown store. Our algorithm reduces the addressed problem to the
+emptiness problem of PD-SBT. We show that PD-SBT are equivalent to non-
+deterministic pushdown BÄ uchi tree automata, for which the emptiness problem
+can be solved in Exptime [KPV02]. Note that alternating pushdown automata,
+in contrast to the semi-alternating ones, are notequivalent to nondeterministic
+pushdown automata. Indeed, since the emptiness problem of the intersection of
+two context free languages is undecidable [HU79], the emptiness problem of al-
+ternating pushdown automata is undecidable already in the case of ¯nite words.
+2 Preliminaries
+Let¨be a set. An ¨-tree is a pre¯x closed subset Tµ¨¤. The elements of
+Tare called nodes and the empty word "is the root ofT. For v2T, the set
+ofchildren ofv(inT) ischild (T; v) =fv¢x2Tjx2¨g. Given a node
+v=u¢x, with u2¨¤andx2¨, we de¯ne last(v) to be x. We also say that v
+corresponds tox. The complete ¨-tree is the tree ¨¤. For v2T, a (full) path ¼
+ofTfrom vis aminimal set¼µTsuch that v2¼and for each v02¼such that
+child (T; v0)6=;, there is exactly one node in child (T; v0) belonging to ¼. Note
+that every in¯nite word w2¨!can be thought of as an in¯nite path in the tree
+¨¤, namely the path containing all the ¯nite pre¯xes of w. For an alphabet §,
+a§-labeled ¨-tree is a pair hT; Viwhere Tis an ¨¡tree and V:T!§maps
+each node of Tto a symbol in §.
+Anopen system is a system that interacts with its environment and whose be-
+havior depends on this interaction. We consider the case where the environment
+has imperfect information about the system, i.e., when the system has internal
+variables that are not visible to its environment. We describe such a system by
+amodule M=hAP; W s; We; w0; R; L; »=i, where APis a ¯nite set of atomic
+propositions ,Wsis a set of system states , and Weis a set of environment states .
+We assume Ws\We=;, and call W=Ws[Wethe set of M'sstates .w02W
+is the initial state ,RµW£Wis a total transition relation ,L:W!2APis
+a labeling function that maps each state of Mto the set of atomic propositions
+that hold in it, and »=is an equivalence relation on W.
+In order to present a uni¯ed de¯nition that is general enough to handle both
+¯nite-state and in¯nite-state systems, we model the fact that the environment
+has imperfect information about the states of the system by an equivalence
+
+--- Page 5 ---
+Lecture Notes in Computer Science 5
+relation »=. States that are indistinguishable by the environment, because the
+di®erence between them is kept invisible by the system, are equivalent according
+to»=. We write [ W] for the set of equivalence classes of Wunder »=. Since states
+in the same equivalence class are indistinguishable by the environment, from the
+environment's point of view, the states of the system are actually the equivalence
+classes themselves. The equivalence class [ w] ofw2W, is called the visible part
+ofw, since it is in a sense what the environment \sees" of w. We write vis(w)
+instead of [ w], to emphasize this. Note that we can also do the converse. That is,
+given a function vis, whose domain is W, we can de¯ne the equivalence relation
+»=by letting w»=w0i®vis(w) =vis(w0). We can then think of the range of vis
+as the set of the equivalence classes [ W] and associate [ w] with the value vis(w).
+A module Misclosed ifWe=;(meaning that Mdoes not interact with
+any environment) and open otherwise. Since the designation of a state as an
+environment state is obviously known to the environment, we require that for
+every w; w02Wsuch that w»=w0, we have that w2Wei®w02We. Also
+note that if w»=w0, from the environment's point of view, the set of atomic
+propositions that currently hold in wmay just as well be L(w0). We therefore
+de¯ne the labeling, as seen by the environment, as a function visL : [W]!
+22APthat maps the visible part of a state to a set of possible sets of atomic
+propositions: visL([u]) =fL(w)jw2W^w»=ug. If it is always the case that
+w»=w0=)L(w) =L(w0), we say that the atomic propositions are visible.
+Forhw; w0i 2R, we say that w0is asuccessor ofw. The requirement that R
+be total means that every state whas at least one successor. A computation ofM
+is a sequence w0¢w1¢¢¢of states, such that for all i¸0 we have hwi; wi+1i 2R.
+For each w2W, we denote by succ(w) the set (possibly empty) of w's successors.
+When the module Mis in a system state ws, then all successor states are possible
+next states. On the other hand, when Mis in an environment state we, the
+environment decides, based on the visible parts of each successor of we, and
+of the history of the computation so far, to which of the successor states the
+computation can proceed, and to which it can not.
+The set of all (maximal) computations of Mstarting from the initial state w0
+can be described by an AP-labeled W-treehTM; VMicalled a computation tree ,
+which is obtained by unwinding Min the usual way. Each node v=v1¢¢¢vk
+ofhTM; VMidescribes the (partial) computation w0¢v1¢¢¢vkofM, with the
+root"corresponding to w0. The children of vare exactly all nodes of the form
+v1¢¢¢vk¢w, where wranges over all the successors of vkinM. We extend the
+de¯nition of the visfunction to nodes in the natural way. Thus, the visible part
+of a node visvis(v) =vis(v1)¢¢¢vis(vk). The labeling VMof a node vdepends
+on the state it corresponds to (its last state), i.e., VM(v) =L(last(v)). Also, if
+vcorresponds to an environment state, we say that vis an environment node .
+The problem of deciding, for a given CTL formula2'over the set APof
+atomic propositions, whether hTM; VMisatis¯es 'is the usual model checking
+problem (formally denoted M j=') [CE81,QS81]. In model checking, we only
+have to consider the computation tree hTM; VMi, since the module we want to
+2For a de¯nition of the syntax and semantics of CTL see for example [KV96].
+
+--- Page 6 ---
+6 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+check is closed and thus its behavior is not a®ected by the environment. On
+the other hand, whenever we consider an open module, hTM; VMicorresponds
+to a very speci¯c environment: a maximal environment that never restricts the
+set of next states. Therefore, when we examine a branching-time speci¯cation
+'w.r.t. an open module M, the formula 'should hold not only in hTM; VMi,
+but in all the trees obtained by pruning from hTM; VMisubtrees whose roots
+are children (successors) of environment nodes, in accordance with all possible
+environments. It is important to note that in the case of perfect information (i.e.,
+»=is actually the equality relation), every such pruning corresponds to some en-
+vironment; however, in the case of imperfect information, only if the pruning
+is consistent with the partial information available to the environment, will the
+tree correspond to an actual environment. Formally, if two nodes vandv0are
+indistinguishable, i.e., if vis(v) =vis(v0), then a tree in which the subtree rooted
+atvis pruned, but the one rooted at v0is not pruned, does not correspond to any
+environment, and should not be considered. As noted in [KV97], the fact that
+given a pruning of hTM; VMi, a ¯nite automaton cannot decide if that pruning
+corresponds to an actual environment or not, is the main source of di±culty in
+dealing with module checking with imperfect information. Also note that the
+knowledge-based subset construction that is used to transform games of imper-
+fect information into ones of perfect information (see for example [CDHR06]),
+is not applicable in this context, since in general there is no connection between
+the satis¯ability of a branching time formula on the original structure and its
+satis¯ability on the one obtained by the knowledge-based subset construction.
+Recall that whenever Minteracts with an environment », its possible moves
+from environment states depends on the behavior of ». We can think of an
+environment to Mas a strategy »: [W]¤! f> ;?gthat maps a ¯nite history
+sof a computation, as seen by the environment, to either >or?, meaning
+that the environment respectively allows or disallows Mto trace s. We say that
+the tree h[W]¤; »imaintains the strategy applied by », and we call it a strategy
+tree. We denote by M¢»theAP-labeled W-tree induced by the composition
+ofhTM; VMiwith »; that is, the AP-labeled W-tree obtained by pruning from
+hTM; VMisubtrees according to ». Note that by the de¯nition above, »may
+disable all the children of a node v. Since we usually do not want the environment
+to completely block the system, we require that at least one child of each node
+is enabled. In this case, we say that the composition M¢»isdeadlock free .
+To see the interaction of Mwith », let v2TMbe an environment node,
+andv02TMbe one of its children. The subtree rooted in v0is pruned i®
+»(vis(v0)) =?. Every two nodes v1andv2that are indistinguishable according
+to»'s imperfect information have vis(v1) =vis(v2). Also, recall that the des-
+ignation of a state as an environment state is based only on the visible part of
+that state. Thus, if v1is a child of an environment node then so is v2, and either
+both subtrees with roots v1andv2are pruned, or both are not. Note that once
+»(v) =?for some v2[W]¤, we can ignore »(v¢t), for all t2[W]¤. Indeed, once
+the environment disables the transition to a certain node v, it actually disables
+the transitions to all the nodes in the subtree with root v. We can now formally
+
+--- Page 7 ---
+Lecture Notes in Computer Science 7
+de¯ne the interaction of an open module with an environment with imperfect
+information. From now on, unless stated di®erently, we always refer to modules
+that are open, and environments with imperfect information. Given a module
+M, and a strategy tree h[W]¤; »ifor an environment », anAP-labeled W-tree
+hT; Vicorresponds to M¢»i® the following hold:
+{The root of Tcorresponds to w0.
+{Forv2Twith last(v)2Ws, we have child (T; v) =fv¢w1; : : : ; v ¢wng,
+where succ(last(v)) =fw1; : : : ; w ng.
+{Forv2Twith last(v)2We, there exists a nonempty subset fw1; : : : ; w kg
+ofsucc(last(v)) such that child (T; v) =fv¢w1; : : : ; v ¢wkg. Furthermore,
+for all winfw1; : : : ; w kgwe have that »(vis(v¢w)) =>, while for all win
+succ(last(v))n fw1; : : : ; w kgwe have that »(vis(x¢w)) =?.
+{For every node v2T, we have that V(v) =L(last(v)).
+For a module Mand a temporal logic formula over the set AP, we say that M
+reactively satis¯es ', denoted M j=r', ifM¢»satisfy ', for every environment
+»for which M¢»is deadlock free. The problem of deciding whether M j=r'is
+called module checking , and was ¯rst introduced and studied in [KV96,KVW01]
+for ¯nite-state systems with perfect information. The problem was successively
+extended to imperfect information in [KV97]. For CTL formulas it has been
+shown that the complexity of both problems is Exptime -complete3.
+3 Imperfect Information Pushdown Module Checking
+In this section, we extend the notion of module checking with imperfect infor-
+mation to in¯nite-state systems induced by Open Pushdown Systems (OPD ).
+De¯nition 1. AnOPD is a tuple S=hAP; Q; q 0; ¡; [; ±; ¹; Env i, where APis
+a ¯nite set of atomic propositions, Qis the set of ( control )states , and q02Q
+is an initial state . We assume that Qµ2I[Hwhere IandHare disjoint
+¯nite sets of visible andinvisible control variables , respectively. ¡is a ¯nite
+pushdown store alphabet, [62¡is the pushdown store bottom symbol , and we
+use¡[to denote ¡[ f[g. We assume that ¡µ2I¡[H¡where I¡andH¡are
+disjoint ¯nite sets of visible andinvisible pushdown store variables , respectively.
+±µ(Q£¡[)£(Q£¡¤
+[)is a ¯nite transition relation, and ¹:Q£¡[!2AP
+is a labeling function. EnvµQ£¡[is used to specify the set of environment
+con¯gurations . The size jSjofSisjQj+j¡j+j±j, with j±j=P
+((p;°);(q;¯))2±j¯j.
+Acon¯guration ofSis a pair ( q; ®) where qis a control state and ®2¡¤¢[is
+a pushdown store content. We write top(®) for the leftmost symbol of ®and call
+it the top of the pushdown store ®. The OPD moves according to the transition
+relation. Thus, (( p; °);(q; ¯))2±implies that if the OPD is in state pand the
+3Although the complexity of the perfect and imperfect information cases coincide
+in the general case, [KVW01,KV97] show that when the formula is constant the
+imperfect information case is exponentially harder.
+
+--- Page 8 ---
+8 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+top of the pushdown store is °, it can move to state q, pop °and push ¯.
+We assume that if [is popped it gets pushed right back, and that it only gets
+pushed in such cases. Thus, [is always present at the bottom of the pushdown
+store, and nowhere else. Note that we make this assumption also about the
+various pushdown automata we use later. Also note that the possible moves
+of the system, the labeling function, and the designation of con¯gurations as
+environment con¯gurations, are all dependent only on the current control state
+and the top of the pushdown store.
+For a control state q2Q, the visible part of qisvis(q) =q\I. For a push-
+down store symbol °2¡, if°µH¡and°6=;we set vis(°) =", otherwise
+we set vis(°) =°\I¡. By setting vis(°) ="whenever °consists entirely of
+invisible variables, we allow the system to completely hide a push operation (ob-
+viously a corresponding pop will also be invisible). When such a push occurs,
+the environment does not see the symbol ;being pushed, rather, it sees no push
+at all. This is necessary since in many applications what is actually pushed is
+immaterial, and the information to be revealed or hidden is only the depth of the
+pushdown store. The visible part of a pushdown store content s=°0¢¢¢°n¢[
+is de¯ned in the natural way: vis(s) =vis(°0)¢¢¢vis(°n)¢[. The visible part
+of a con¯guration ( q; ®), is thus vis((q; ®)) = ( vis(q); vis(®)). As for modules,
+the designation of a con¯guration of an OPD as an environment con¯guration
+is known to the environment. Thus, we require that for every two con¯gura-
+tions ( q; ®) and ( q0; ®0) such that vis(q; top (®)) = vis(q0; top(®0)), it holds that
+(q; top (®))2Env i® (q0; top(®0))2Env.
+De¯nition 2. AnOPDS=hAP; Q; q 0; ¡; [; ±; ¹; Env iinduces an in¯nite-state
+module MS=hAP; W s; We; w0; R; L; »=i, where:
+{APis a set of atomic propositions;
+{Ws[We=Q£¡¤¢[is the set of con¯gurations;
+{Weis the set of con¯gurations (q; ®)such that (q; top (®))2Env;
+{w0= (q0; [)is the initial con¯guration;
+{Ris a transition relation, where ((q; °¢®);(q0; ¯))2Ri®there exist ((q; °);
+(q0; ¯0))2±such that ¯=¯0¢®;
+{L((q; ®)) =¹(q; top (®))for all (q; ®)2W;
+{For every w; w02W, we have that w»=w0i®vis(w) =vis(w0).
+To describe the interaction of an OPD Swith its environment, we consider
+the interaction of the environment with the induced module MS. Indeed, every
+environment »ofS, can be represented by a strategy tree h[W]¤; »i, and the
+composition MS¢»ofh[W]¤; »iwithhTMS; VMSidescribes all the computations
+ofSallowed by the environment ». We can thus de¯ne the following problem.
+Pushdown module checking problem with imperfect information: Given an
+OPDSand a CTL formula4', decide whether MSj=r', i.e., whether MS¢»
+satisfy ', for every environment »for which MS¢»is deadlock free.
+4The semantics of CTL is usually de¯ned with respect to in¯nite paths, so we assume
+MShas no con¯gurations without successors. However, using a similar technique to
+the one used in [BMP05] our results can be adapted to the situation where terminal
+con¯gurations are also allowed.
+
+--- Page 9 ---
+Lecture Notes in Computer Science 9
+Note that starting with an OPDShaving Env =;(that is, the behavior
+ofSis not a®ected by any environment) the induced module is closed. In this
+case, the problem we address becomes the classical pushdown model checking
+problem , and for CTL speci¯cations it has been studied in [Wal96,Wal00]. Also,
+if the OPD is open ( Env6=;) but there is no invisible information (both Hand
+H¡are empty), the addressed problem is called pushdown module checking with
+perfect information , and it has been studied in [BMP05].
+In the remaining part of this section, we study the pushdown module checking
+problem with imperfect information and show that it is undecidable for CTL
+speci¯cations. In the next section, we show that undecidability relies on the
+system's ability to hide information about the pushdown store. Namely, we prove
+that if we start with an OPD with H¡=;, the problem becomes decidable (even
+ifH6=;), and its complexity is the same as that of pushdown module checking
+with perfect information.
+Undecidability of the pushdown module checking problem with imperfect
+information is obtained by a reduction from the universality problem of non-
+deterministic pushdown automata on ¯nite words ( PDA ), which is undecidable
+[HU79]. That is, given a PDAP, we build an OPDSand a CTL formula ', such
+that the module induced by Sreactively satis¯es 'i®Pis universal.
+Our choice to do a reduction from the universality problem of PDA is not at
+all arbitrary5. It is well known that checking for the universality of a nondeter-
+ministic automaton can be thought of as a game between a protagonist trying
+to prove that the automaton is not universal, and an antagonist claiming that it
+is universal. The universality game is played as follows. The protagonist chooses
+the ¯rst symbol, the antagonist responds with the ¯rst part of the run, the pro-
+tagonist chooses the next symbol, the antagonist extends the run, and so on.
+The protagonist wins if the resulting run is rejecting, and the antagonist wins
+if it is accepting. Note that if the automaton is not universal the protagonist
+has a winning strategy, namely, choosing the letters of a word not accepted by
+the automaton. However, since the automaton is nondeterministic, the converse
+is not true. That is, even if the automaton is universal, the antagonist may not
+have a winning strategy. Also note that (again due to nondeterminism) if the
+protagonist can see the moves of the antagonist, it may force the run to be reject-
+ing even though the word it supplies can be accepted by the automaton. Hence,
+the game is sound but not complete. However, if the protagonist cannot see the
+moves of the antagonist the game becomes sound and complete. Deciding if the
+automaton is not universal can be reduced to deciding whether the protagonist
+has a winning strategy in the corresponding universality game with imperfect
+information. By casting the universality game of PDA to a special instance of
+the pushdown module checking problem with imperfect information, the latter
+is shown to be undecidable. The complete proof can be found in the full version.
+Theorem 1. The pushdown module-checking problem with imperfect informa-
+tion for CTL speci¯cations is undecidable.
+5We thank Martin Lange for a useful discussion on the connection between the proof
+of Theorem 1 and the game interpretation of the universality problem.
+
+--- Page 10 ---
+10 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+It turns out that even if the environment has full information about the
+control states and (surprisingly enough) about which atomic propositions hold
+at each con¯guration the problem remains undecidable. Thus, we have.
+Theorem 2. The imperfect information pushdown module checking problem for
+CTL, with visible control states and atomic propositions, is undecidable.
+4 Module Checking with Visible Pushdown Store
+In this section, we show that pushdown module checking for CTL with full infor-
+mation about the pushdown store content ( H¡=;), but not about the control
+states (when H6=;), is decidable and 2Exptime -complete, matching the com-
+plexity of pushdown module checking with complete information. For the upper
+bound we use an automata-theoretic approach and introduce a new automata
+model, namely semi-alternating pushdown BÄ uchi tree automata (PD-SBT ). Our
+algorithm reduces the addressed problem to the emptiness problem of PD-SBT.
+We show that PD-SBT are equivalent to nondeterministic pushdown BÄ uchi tree
+automata, for which emptiness can be decided in Exptime [KPV02]. The formal
+de¯nition of semi-alternating pushdown tree automata follows.
+Semi-Alternating Pushdown Tree Automata. APD-SBT is a tuple A=
+h§; D; ¡; Q; q 0; [; ±; F iwhere §is a ¯nite input alphabet, Dis a ¯nite set of
+directions ,¡is a ¯nite pushdown store alphabet, Qis a ¯nite set of states, q02Q
+is the initial state, [62¡is the pushdown store bottom symbol, and FµQis a
+BÄ uchi acceptance condition. Moreover, ±is a ¯nite transition relation de¯ned as
+a function ±:Q£§£¡[! B+(D£Q£¡¤
+[), where ¡[=¡[ f[gas usual, and
+B+(D£Q£¡¤
+[) is the set of all ¯nite positive boolean combinations of triples
+(d; q; ¯ ), where dis a direction, qis a state, and ¯is a string of pushdown store
+symbols. We also allow the formulas true andfalse . We write S2±(p; ¾; ° ) to
+denote that Sis a set of tuples ( d; q; ¯ ) that satisfy ±(p; ¾; ° ).
+What makes the automaton semi-alternating is the requirement that for every
+d2D,¾2§,p; p02Q(possibly the same state), and °2¡, if (d; q; ¯ ) appears
+in±(p; ¾; ° ), and ( d; q0; ¯0) appears in ±(p0; ¾; °), then ¯=¯0. That is, two copies
+of the automaton that read the same input, from two con¯gurations that have
+the same top symbol of the pushdown store and proceed in the same direction,
+must push the same value into the pushdown store. In particular, it follows that
+in every run, two copies of the automaton that are reading the same node of
+an input tree have the same pushdown store content. Note that if we remove
+the semi-alternation requirement, the resulting automaton is called alternating
+pushdown BÄ uchi tree automaton (PD-ABT ).
+As an example, for D=f0;1g, having ±(q; ¾; ° ) = ((0 ; q1; ¯1)_(1; q2; ¯2))^
+(1; q1; ¯2) means that when a copy of the automaton that is in a con¯guration
+where the current state is q, and the top of pushdown store is °, reads a node
+in the input tree whose label is ¾, it can proceed in one of two ways. In the
+¯rst case, one copy proceeds in direction 0 to state q1, by replacing °with ¯1,
+
+--- Page 11 ---
+Lecture Notes in Computer Science 11
+and one copy proceeds in direction 1 to state q1, by replacing °with ¯2. In the
+second case, two copies proceed in direction 1, one to state q1and the other to
+state q2, and in both copies °is replaced with ¯2. Hence, _and^in±(q; ¾; ° )
+represent, respectively, choice and concurrency. As a special case of PD-ABT, we
+consider nondeterministic pushdown BÄ uchi tree automata (PD-NBT ) where the
+concurrency feature is not allowed. That is, whenever a PD-NBT visits a node
+xof the input tree, it sends to each successor (direction) of xat most one copy
+of itself. More formally, a PD-NBT is a PD-ABT in which ±is in disjunctive
+normal form, and in each conjunct each direction appears at most once.
+A run of a PD-SBT Aon a§-labeled tree hT; Vi, with T=D¤, is a ( D¤£Q£
+¡¤¢[)-labeledN-treehTr; risuch that the root is labeled with ( "; q0; [) and the
+labels of each node and its successors satisfy the transition relation. Formally, a
+(D¤£Q£¡¤¢[)-labeled tree hTr; riis a run of AonhT; Vii®
+{r(") = ("; q0; [), and
+{for all x2Trsuch that r(x) = (y; p; ° ¢®), there is an n2Nsuch that the
+successors of xare exactly x¢1; : : : x¢n, and for all 1 ·i·nwe have r(x¢i) =
+(y¢di; pi; ¯i¢®) for some f(d1; p1; ¯1); : : : ; (dn; pn; ¯n)g 2±(p; V(y); °).
+For a path ¼µTr, letinfr(¼)µQbe the set of states that appear in the
+labels of in¯nitely many nodes in ¼. For a BÄ uchi condition FµQ, we have that
+¼isaccepting i®infr(¼)\F6=;. A run hTr; riisaccepting i® all its paths are
+accepting. The automaton Aaccepts an input tree hT; Vii® there is an accepting
+run of AoverhT; Vi. The language of A, denoted L(A), is the set of §-labeled
+trees accepted by A. We say that an automaton Ais nonempty i® L(A)6=;.
+Given a PD-SBT A=h§; D; ¡; Q; q 0; [; ±; F i, we de¯ne the size of Aas
+jAj=jQj+j±j, where j±jis the sum of the lengths of the satis¯able (i.e., not
+false ) formulas that appear in ±(q; ¾; ° ) for some q; ¾;and°.
+In [MH84], Miyano and Hayashi describe a translation of alternating BÄ uchi
+automata on words to nondeterministic ones. We now present an extension of
+their translation to show the equivalence of PD-SBT and PD-NBT.
+Lemma 1. LetAbe a PD-SBT with nstates. There is a PD-NBT A0with
+2O(n)states, such that L(A0) =L(A).
+Proof. The automaton A0guesses a subset construction applied to a run of A.
+At a given node xof a run of A0, it keeps in its memory the set of con¯gurations
+in which the various copies of Avisit node xin the guessed run. Since Ais semi-
+alternating, all copies of Athat visit the same node xhave the same pushdown
+store content, and thus can all be remembered using one pushdown store and
+a set of states of A. In order to make sure that every in¯nite path visits states
+inFin¯nitely often, A0keeps track of states that \owe" a visit to F. LetA=
+h§; D; ¡; Q; q 0; [; ±; F i. Then A0=h§; D; ¡; 2Q£2Q;hfq0g;;i; [; ±0;2Q£ f;gi ,
+where ±0is de¯ned as follows. We ¯rst need the following notation. For a set
+SµQ, a letter ¾2§, and a top of pushdown store symbol °2¡, let
+sat(S; ¾; ° ) be the set of subsets of D£Q£¡¤
+[that satisfyV
+q2S±(q; ¾; ° ).
+Also, for two sets OµSµQ, a letter ¾2§, and a top of pushdown store
+
+--- Page 12 ---
+12 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+symbol °2¡, letpair sat(S; O; ¾; ° ) be such that hS0; O0i 2pair sat(S; O; ¾; ° )
+i®S02sat(S; ¾; ° ),O0µS0, and O02sat(O; ¾; ° ). Finally, for a direction
+d2D, we have S0
+d=fsj(d; s; ¯ )2S0for some ¯gandO0
+d=foj(d; o; ¯ )2
+O0for some ¯g. Thus, S0
+dandO0
+dare, respectively, the collections of all states
+that appear in S0andO0along with the direction d. Since Ais semi-alternating,
+for every two triplets ( d; q; ¯ ) and ( d; q0; ¯0) insat(S; ¾; ° ) having the same di-
+rection d, we have that ¯=¯0. Thus, we can de¯ne store (d; ¾; ° ) =¯.
+Now, ±0is de¯ned, for all hS; Oi 22Q£2Q,¾2§, and °2¡, as follows.
+{ifO6=;, then
+±0(hS; Oi; ¾; °) =_
+hS0; O0i 2
+pair sat(S; O; ¾; ° )^
+d2D(d;hS0
+d; O0
+dnFi; store (d; ¾; ° ))
+Thus, when reading ¾, from a con¯guration with a top of pushdown store
+symbol °, the automaton A0sends to a direction d2Dthe set S0
+dof states
+that the di®erent copies of Asend to direction din the guessed run. Each
+such S0
+dis paired with a subset O0
+dofS0
+dof the states that still \owe" a
+visit to F. The key observation is that since Ais semi-alternating, all the
+copies that Asends to direction dreplace °with exactly the same pushdown
+store string, namely, with store (d; ¾; ° ). Hence, the pushdown stores of all
+the copies that Asends to direction dare identical, and A0can keep track
+of them all using the single stack of the copy it send to direction d.
+{ifO=;, then
+±0(hS; Oi; ¾; °) =_
+hS0; O0i 2
+pair sat(S; O; ¾; ° )^
+d2D(d;hS0
+d; S0
+dnFi; store (d; ¾; ° ))
+Thus, when no state \owes" a visit to Fwe know that every path in the
+guessed run of Avisited Fone more time, and the requirement to visit Fis
+reinforced. u t
+We can now show decidability for pushdown module checking for CTL with
+visible pushdown store. The decidability follows from Lemma 1, the fact that
+emptiness of PD-NBT is decidable, and the following theorem.
+Theorem 3. For an OPD SwithH¡=;and a CTL formula 'overS's ato-
+mic propositions, there is a PD-SBT AS;'of size O(jSj¤j 'j), such that L(AS;')
+is the set of strategies »such that MSC»is deadlock free and satis¯es '.
+Proof (Sketch). Essentially, the automaton AS;'we build is an extension of the
+product automaton obtained in the alternating-automata theoretic approach
+forCTL module checking with imperfect information [KV97]. The extension we
+consider here concerns the simulation of the pushdown store of the OPD .
+LetS=hAP; Q; q 0; ¡; [; ±; ¹; Env ibe an OPD, let 'be a CTL formula in
+positive normal form, and let MS=hAP; W s; We; w0; R; L; »=ibe the module
+
+--- Page 13 ---
+Lecture Notes in Computer Science 13
+induced by S. We build an automaton AS;'that accepts f>;?g-labeled trees
+corresponding to strategies », whose composition with MSis deadlock free and
+satisfy '. Intuitively, a run of AS;'on an input strategy tree », proceeds by
+simulating an unwinding of the module MS, pruned at each step according to the
+strategy ». Copies of the automaton simulating nodes in the computation tree of
+MSthat are indistinguishable by the environment are sent to the same direction
+in the input tree. The resulting run tree of AS;'on»is basically a replica of the
+composition MSC», and the fact that it satis¯es the formula 'is checked on
+the °y, by employing in AS;'the usual alternating-automata approach for CTL
+model checking. In the full computation tree of MS, the set of directions is G=
+f(q; ¯)j((p; ®);(q; ¯))2Rfor some p; ®and¯g. Since in Sthe pushdown store
+is completely visible to the environment, the set of directions of the input strategy
+trees is D=f(vis(q); ¯)j((p; ®);(q; ¯))2Rfor some p; ®and¯g. Finally, due
+to the fact that all copies of the automaton sent to direction ( vis(q); ¯) push ¯
+into the pushdown store, the resulting atumaton AS;'is semi-alternating.
+We formally de¯ne AS;'=hf>;?g; D; ¡; Q0; q0
+0; [; ±0; Fi, where
+{Q0= (Q£(cl(')[fp>g)£f8;9g £f pe; psg)[fq0
+0g. States with the compo-
+nent p>are used to check that the composition of MSwith the strategy is
+deadlock free, while states with a component in cl(') check that this compo-
+sition satis¯es '. The components peandpsare used to °ag that a currently
+simulated node, of the computation tree of MS, is a child of an environment
+or a system node, respectively. Clearly, the simulation should respect the
+strategy pruning speci¯cations only if they correspond to children of envi-
+ronment nodes; that is, only if the current state qcontains pe. Every state
+is either in an existential or a universal mode, as speci¯ed by the 8and9
+components. When the automaton is in a universal state ( q; ';8; pe) with a
+pushdown store content ®, it accepts all strategies for which ( q; ®) inMSis
+either pruned or satis¯es '(where p>is satis¯ed i® the root of the strategy
+is labeled >). When the automaton is in an existential state ( q; ';9; pe) with
+a pushdown store content ®, it accepts all strategies for which ( q; ®) inMS
+is not pruned and satis¯es '.
+{The formal de¯nition of ±0:Q0£§£¡[! B+(D£Q0£¡¤
+[) is reported in the
+full version. Here, we just give an example of a transition rule. Consider, a
+transition from the con¯guration ( hp;8XÃ;9; pei; °¢®), where ( p; °)2Env.
+First, if the transition to ( p; °¢®) is disabled (that is, the automaton reads ?),
+then, as the current mode is existential, the run is rejecting. If the transition
+to (p; °¢®) is enabled, then the successors of ( p; °¢®) that are enabled should
+satisfy Ã. Note that all the successors of ( p; °¢®) that are indistinguishable
+by the environment are sent by the automaton to the same direction v. This
+guarantees that either all these successors are enabled by the strategy (in
+case the letter to be read in direction vis>) or all are disabled (in case the
+letter in direction vis?). In addition, since the requirement to satisfy Ã
+concerns only successors of ( p; °¢®) that are enabled, the mode of the new
+states is universal. The copies of AS;'that check the composition with the
+strategy to be deadlock free guarantee that at least one successor of ( p; °¢®)
+
+--- Page 14 ---
+14 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+is enabled. As noted earlier, the enable/disable instructions of the strategy
+are ignored in every con¯guration ( p; °¢®) that is a successor of a system
+con¯guration. Also note that since we assume that no con¯guration in MS
+has no successors, the conjunctions and disjunctions in ±0cannot be empty.
+{F=Q£eU(')£ f9;8g £ f pe; psg, where eU(') is the set of all formulas of
+the form 8Ã1eUÃ2or9Ã1eUÃ2incl(').
+In the full version we prove that AS;'is semi-alternating and that the size
+of±0isO(j±j ¤ j'j). Since jQ0j=O(jQj ¤ j'j), the size of AS;'isO(jSj ¤ j 'j).u t
+We now consider the complexity bounds that follow from our algorithm.
+Theorem 4. CTL pushdown module checking with imperfect information about
+the control states but a visible pushdown store is 2Exptime -complete.
+Proof. The lower bound follows from the known bound for CTL pushdown mod-
+ule checking with perfect information [BMP05]. For the upper bound, Theorem
+3 implies that MSj=r'i® the language of the automaton AS;:'is empty. We
+recall that AS;:'is a PD-SBT of size O(jSj¤j 'j). By Lemma 1, we can obtain a
+PD-NBT Aequivalent to AS;', with an exponential blow-up. By [KPV02], the
+emptiness of Acan be checked in exponential time. Thus, checking the emptiness
+ofAis double-exponential in the sizes of jSjandj'j. u t
+5 Discussion
+We have shown that the pushdown module checking problem with imperfect
+information is undecidable for speci¯cations given in CTL. Moreover, since the
+formula used in the proof of Theorems 1 and 2 is an existential formula, the
+problem is already undecidable for the existential fragment ECTL ofCTL. This
+obviously implies the undecidability of the problem with respect to more expres-
+sive logics such as CTL¤and¹-calculus. Recall that in our setting, whenever we
+push a symbol consisting entirely of invisible variables, the environment does
+not see the push at all. One can think of a variant of the problem where the
+environment does see that a push occurred, but not what was pushed. Thus,
+the depth of the stack is always known to the environment. It is an open ques-
+tion whether this variant of the problem is decidable or not. As good news, we
+also showed that if the pushdown store is visible, the problem is decidable, and
+not harder than perfect information pushdown module checking. An interest-
+ing question is whether this variant of the problem remains decidable also for
+more expressive logics like CTL¤. By using an approach similar to the one used
+forCTL, we can reduce the problem for CTL¤to the emptiness problem of a
+semi-alternating pushdown tree automaton, but with a stronger acceptance con-
+dition, such as the parity condition. We do not know, however, if the emptiness
+problem for such automata is decidable or not. The main source of di±culty is
+that all known methods to remove alternation from parity ¯nite tree automata
+involve a co-determinization step, and thus can not be easily adapted to push-
+down automata. Even in [KV05] where the emptiness problem of alternating
+
+--- Page 15 ---
+Lecture Notes in Computer Science 15
+parity tree automata is reduced to that of nondeterministic automata, without
+a co-determinization step, the correctness proof of the construction does contain
+such a step. Nevertheless, it is our conjecture that despite these di±culties, CTL¤
+pushdown module checking with visible pushdown store is decidable.
+References
+[ABE+05]R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps, and M. Yan-
+nakakis. Analysis of recursive state machines. ACM Trans. Program. Lang.
+Syst., 27(4):786{818, 2005.
+[BEM97] A. Bouajjani, J. Esparza, and O. Maler. Reachability Analysis of Pushdown
+Automata: Application to Model-Checking. In CONCUR'97 , LNCS 1243,
+pages 135{150. Springer-Verlag, 1997.
+[BMP05] L. Bozzelli, A. Murano, and A. Peron. Pushdown module checking. In
+LPAR'05 , LNCS 3835, pages 504{518. Springer-Verlag, 2005.
+[CDHR06] K. Chatterjee, L. Doyen, T. A. Henzinger, and J. Raskin. Algorithms for
+omega-regular games with imperfect information. In CSL'06 , volume 4207
+ofLNCS , pages 287{302. Springer-Verlag, 2006.
+[CE81] E.M. Clarke and E.A. Emerson. Design and veri¯cation of synchroniza-
+tion skeletons using branching time temporal logic. In Logics of Programs
+Workshop , LNCS 131, pages 52{71. Springer-Verlag, 1981.
+[CH05] K. Chatterjee and T. A. Henzinger. Semiperfect-information games. In
+FSTTCS'05 , volume 3821 of LNCS , pages 1{18. Springer-Verlag, 2005.
+[EKS03] J. Esparza, A. Kucera, and S. Schwoon. Model checking LTL with regular
+valuations for pushdown systems. Inf. Comput. , 186(2):355{376, 2003.
+[Hoa85] C.A.R. Hoare. Communicating Sequential Processes . Prentice-Hall, 1985.
+[HP85] D. Harel and A. Pnueli. On the development of reactive systems. In Log-
+ics and Models of Concurrent Systems , volume F-13 of NATO Advanced
+Summer Institutes , pages 477{498. Springer-Verlag, 1985.
+[HU79] J. E. Hopcroft and J. D. Ullman. Introduction to Automata Theory, Lan-
+guages and Computation. Addison-Wesley, 1979.
+[KPV02] O. Kupferman, N. Piterman, and M.Y. Vardi. Pushdown speci¯cations. In
+LPAR'02 , LNCS 2514, pages 262{277. Springer-Verlag, 2002.
+[KV96] O. Kupferman and M.Y. Vardi. Module checking. In CAV'96 , LNCS 1102,
+pages 75{86. Springer-Verlag, 1996.
+[KV97] O. Kupferman and M. Y. Vardi. Module checking revisited. In CAV'96 ,
+LNCS 1254, pages 36{47. Springer-Verlag, 1997.
+[KV05] O. Kupferman and M.Y. Vardi. Safraless decision procedures. In IEEE
+FOCS'05 , pages 531{540, Pittsburgh, October 2005.
+[KVW01] O. Kupferman, M.Y. Vardi, and P. Wolper. Module Checking. Information
+and Computation , 164(2):322{344, 2001.
+[PR79] G. L. Peterson and J. H. Reif. Multiple-person alternation. In FOCS'79 ,
+pages 348 { 363. IEEE Computer Society, 1979.
+[QS81] J.P. Queille and J. Sifakis. Speci¯cation and veri¯cation of concurrent pro-
+grams in Cesar. In Symp. on Programming , LNCS 137, pages 337{351.
+Springer-Verlag, 1981.
+[Wal96] I. Walukiewicz. Pushdown processes: Games and Model Checking. In
+CAV'96 , LNCS 1102, pages 62{74. Springer-Verlag, 1996.
+[Wal00] I. Walukiewicz. Model checking CTL properties of pushdown systems. In
+FSTTCS'00 , LNCS 1974, pages 127{138. Springer-Verlag, 2000.
+
+--- Page 16 ---
+16 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+A De¯nition of CTL
+Computation Tree logic (CTL) was introduced by Emerson and Clarke [CE81]
+as a tool for specifying and verifying concurrent programs. CTL formulas are
+built from a set APof atomic propositions using boolean operators, the linear-
+temporal operators X(\next time") and U(\until"), coupled with the path
+quanti¯ers A(\for all paths") or E(\for some path"). For technical convenience,
+we use the linear-temporal operator eUas a dual of the Uoperator, and write all
+formulas in positive normal form. A formula in positive normal form is a formula
+where negation is applied only to atomic propositions. It can be obtained by
+pushing negation inward using De Morgan's laws and dualities of path quanti¯ers
+and temporal operators. Given a set APof atomic propositions, a CTL formula
+in positive normal form is one of the following:
+{true,false ,por:p, for all p2AP;
+{'1_'2,'1^'2, where '1and'2areCTL formulas;
+{AX' 1,EX' 1,A'1U'2,E'1U'2,A'1eU'2,E'1eU'2, where '1and'2are
+CTL formulas.
+We use the abbreviations F(\eventually") and G(\globally"), as follows:
+EF' =EtrueU',AF' =AtrueU',EG' =EfalseeU', and AG' =AfalseeU'.
+The semantics of CTL is de¯ned with respect to 2AP-labeled trees. Given
+such a tree hT; Vi, and a node x2T, we write ( hT; Vi; x)j='to indicate that
+'holds at node x. If'holds at the root of hT; Viwe say that hT; Visatis¯es
+', and write hT; Vi j='. The relation j= is de¯ned by induction as follows.
+{For all x2Twe have ( hT; Vi; x)j=true and (hT; Vi; x)6j=false ;
+{(hT; Vi; x)j=pforp2AP,i®p2V(x);
+{(hT; Vi; x)j=:'i®(hT; Vi; x)6j=';
+{(hT; Vi; x)j='1^'2i®(hT; Vi; x)j='1and (hT; Vi; x)j='2;
+{(hT; Vi; x)j='1_'2i®(hT; Vi; x)j='1or (hT; Vi; x)j='2;
+{(hT; Vi; x)j=EX' i®there is x02child (T; x) such that ( hT; Vi; x0)j=';
+{(hT; Vi; x)j=AX' i®for all x02child (T; x) we have ( hT; Vi; x0)j=';
+{(hT; Vi; x)j=E'1U'2i®there is a path ¼=x1; x2: : :ofT, with x1=x,
+such that for some i¸1 we have ( hT; Vi; xi)j='2and for all 1 ·j < i, we
+have ( hT; Vi; xj)j='1;
+{(hT; Vi; x)j=A'1U'2i®for all paths ¼=x1; x2: : :ofT, with x1=x,
+there is an i¸1 such that ( hT; Vi; xi)j='2and for all 1 ·j < i , we have
+(hT; Vi; xj)j='1;
+{(hT; Vi; x)j=E'1eU'2i®there is a path ¼=x1; x2: : :ofT, with x1=x,
+such that for all i¸1 if (hT; Vi; xi)j=:'2, then there exists 1 ·j < i such
+that (hT; Vi; xj)j='1;
+{(hT; Vi; x)j=A'1eU'2i®for all paths ¼=x1; x2: : :ofT, with x1=x,
+for all i¸1 if (hT; Vi; xi)j=:'2, then there exists 1 ·j < i such that
+(hT; Vi; xj)j='1.
+The closure cl(') of a CTL formula 'is the set of all sub-formulas of ',
+including 'The size of 'is de¯ned to be the number of elements in cl(').
+
+--- Page 17 ---
+Lecture Notes in Computer Science 17
+B Proofs
+B.1 Proof of Theorem 1
+Proof. Given a PDAP, we build an OPDSand a CTL formula ', such that
+the module induced by Sreactively satis¯es 'i®Pis universal. Let P=
+h§; ¡; Q; q 0; [; ¢; F ibe a PDA on ¯nite words, with an input alphabet §, a
+pushdown store alphabet ¡, a set Qof states, an initial state q0, a bottom of
+pushdown store symbol [, a transition function ¢:Q£§£¡[!2Q£¡¤
+[, and
+a set of accepting states FµQ. We assume without loss of generality that P
+never gets stuck on any input.
+TheOPDSsimulates all the runs of Pon all words in §¤. The states of S
+are pairs of a state in Qand a letter in §. Each transition of Pthat reads a
+letter ¾moves to a state qand does some pushdown store operation, is simulated
+inSby a transition that goes to the state ( q; ¾) and does the same pushdown
+store operation. In order to have in Sin¯nite computations that simulate runs
+ofPon ¯nite words, we allow S, at any point, to end the simulation of a run
+by moving to one of two special states qaccandqrej, depending on whether the
+computation corresponds to an accepting or a rejecting run of P, respectively.
+Once in qaccorqrej, the computation stays there forever. The visible part of a
+con¯guration (( q; ¾); ®) ofS, is just ¾. Thus, looking at a computation of Sthat
+simulates a run of Pon a word ¾1¢¢¢¾n, the environment can only see the letters
+¾1; : : : ; ¾ n. It follows that the environment cannot distinguish between di®erent
+computations of Sthat correspond to runs of Pon the same word. This ensures
+that the environment can not disable some, but not all, of these computations.
+Note that a word w2§¤is accepted by Pi® there is a computation in S,
+corresponding to a run of Ponw, that visits the state qacc. The formula 'will
+check this condition. Formally, let P=h§; ¡; Q; q 0; [; ¢; F ibe a PDA on ¯nite
+words. We build an OPDS=hAP; Q0; q0
+0; ¡0; [; ±; ¹; Env iwhere,
+{AP=§[ f]; Accg, where ]andAccare new symbols not in §(nor in Q).
+{I=§[f]g, and H=Q[fAccg. The set of states Q0isffq; ¾g jq2Q; ¾2
+§g[ff ]g;f]; Accgg. For simplicity, we will identify a set fq; ¾gwith the pair
+(q; ¾), and use the aliases qacc=f]; Accgandqrej=f]g.
+{q0
+0= (q0; ¾0) where ¾0is a letter arbitrarily chosen from §.
+{I¡=;andH¡=¡. The pushdown store alphabet ¡0is formally the subset
+ff°g j°2¡gof 2I¡[H¡. However, we can obviously simplify and set ¡0=¡.
+{±is de¯ned as follows. For all ( p; ¾)2Q£§and°2¡[, we have ((( p; ¾); °);
+((q; ¾0); ¯))2±i® (q; ¯)2¢(p; ¾0; °). Also, ((( p; ¾); °);(qacc; °))2±i®
+p2F, and ((( p; ¾); °);(qrej; °))2±i®p62F. Finally, (( q; °);(q; °))2±for
+q2 fqacc; qrejg.
+{¹is de¯ned as follows. For every ( q; ¾)2Q£§and°2¡[we have that,
+¹((q; ¾); °) =f¾g. Also, ¹(qacc; °) =f]; Accgand¹(qrej; °) =f]g.
+{Env =Q£¡[. That is, Shas only environment con¯gurations.
+LetMS=hAP;;; W; w 0; R; L; »=ibe the module induced by S. Observe
+that by our choice of visible control and pushdown store variables, the set of
+
+--- Page 18 ---
+18 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+equivalence classes [ W] of the con¯gurations of MSisf(¾; [)j¾2§[f]gg. We
+can safely ignore the constant [component of each pair, and think of environment
+strategies as full f>;?g-labeled ( §[ f]g)-trees. We claim that Pis universal
+if and only if MSj=r', where '=EG:]_EFAcc . It is easy to see that the
+sub-formula '1=EG:]is satis¯ed by the tree MSC»i® the strategy »has an
+in¯nite path ¼=v1¢v2¢¢¢such that for every i¸0 we have that viis labeled
+with>, and last(vi)6=]. It is left to show that for all other strategies », the tree
+MSC»satis¯es the sub-formula '2=EFAcc i®Pis universal.
+Given a word w=¾1¢¢¢¾k2§¤, and a run r= (q0; [)¢(q1; ®1)¢¢¢(qk; ®k) of
+Ponw, let¿= (q0
+0; [)¢((q1; ¾1); ®1)¢¢¢((qk; ¾k); ®k) be the ¯nite computation of
+MScorresponding to r. The visible part of ¿isvis(¿) = (¾0; [)¢(¾1; [)¢¢¢(¾k; [).
+Thus, given a strategy », we have that ¿is associated with the node win the
+strategy tree h[W]¤; »i(recall that ( ¾0; [) is associated with the root "). It follows
+that all the nodes in hTMS; VMSicorresponding to runs of Ponware associated
+with the same node of the strategy tree. Hence, a strategy can either enable
+all computations corresponding to runs of Ponw, or disable them all. Note
+that given a run rofPonw, with a corresponding ¯nite computation ¿=
+(q0
+0; [)¢((q1; ¾1); ®1)¢¢¢((qk; ¾k); ®k) ofMSas above, the con¯guration ( qacc; ®k)
+is a successor of (( qk; ¾k); ®k) i®ris an accepting run, and ( qrej; ®k) is a successor
+of ((qk; ¾k); ®k) i® ris a rejecting run. Thus, ¿can be extended to a path
+witnessing the satisfaction of '2i®ris an accepting run of Ponw.
+For every word w=¾1: : : ¾ k2§¤there is a special strategy »wthat enables
+exactly the computations in the module corresponding to all of P's runs on w.
+The strategy »whas all nodes on the path ¾1¢¢¢¾k¢]!marked with >and
+all other nodes marked with ?. It is easy to see that MSC»wis deadlock
+free, that MSC»w6j='1, and that wis accepted by Pi®MSC»wj=
+'2. Hence, to complete the proof, it is su±cient to show that if Pis universal
+then for every other strategy », for which MSC»has a node xwhose label
+contains ], we have that MSC»j='2. Let xbe such a node of minimal
+depth, and let ¿be the father of x. Note that ¿must be of the form ¿=
+(q0
+0; [)¢((q1; ¾1); ®1)¢¢¢((qk; ¾k); ®k). Consider the word w=¾1¢¢¢¾k. Since »
+cannot distinguish between computations corresponding to di®erent runs of P
+onw, the tree MSC»must contain not only ¿, but also the computations
+corresponding to all other runs (if such runs exist) of Ponw. Thus, if Pis
+universal, MSC»contains a path ¼=¿0¢(qacc; ®0
+k)!, where ¿0= (q0
+0; [)¢
+((q0
+1; ¾0
+1); ®0
+1)¢¢¢((q0
+k; ¾0
+k); ®0
+k) is a ¯nite computation (maybe ¿) corresponding
+to an accepting run of Ponw. Since the con¯guration ( qacc; ®0
+k) is labeled with
+f]; Accg, the path ¼is a witness for the satisfaction of '2. u t
+B.2 Proof of Theorem 2
+It is easy to see that we can replace the OPDSused in the proof of Theorem 1
+by an OPD S0with only one state. S0uses as pushdown store alphabet pairs of
+a control state and a pushdown store symbol of S, and can thus remember the
+current control state of Sin its (invisible) top of pushdown store. This implies
+the following corollary to Theorem 1:
+
+--- Page 19 ---
+Lecture Notes in Computer Science 19
+Corollary 1. The pushdown module checking problem with imperfect informa-
+tion is undecidable also when the control states are completely visible.
+We now turn to the case of visible atomic propositions. Observe that al-
+most all the atomic propositions of the OPDSused in the proof of Theorem 1
+are visible. The only violation is that for every ®; ®02¡¤¢[, we have that
+(qacc; ®)´(qrej; ®0), but f]; Accg=L(qacc; ®)6=L(qrej; ®0) =f]g. Since the for-
+mula used in the proof is '=EG:]_EFAcc , keeping the environment in the
+dark as to whether only ]holds, or both ]andAcchold, is crucial. Indeed, if we
+fully expose the atomic propositions, we would make legal the environment »that
+prunes only the computations corresponding to accepting runs of P, with the
+consequence that MSC»6j='even in cases where Pis universal. However, the
+environment's ability to prune is not only limited by the information visible to it,
+but also by the requirement that it does not completely block the system. With
+a slight modi¯cation to the construction of the OPDSused in the proof of Theo-
+rem 1, we can have visible atomic propositions, but reveal the di®erence between
+computations corresponding to accepting and rejecting runs only when it is too
+late for the environment to prune based on that di®erence. This is done by chang-
+ingSin such a way that a simulation ¿= (q0
+0; [)¢((q1; ¾1); ®1)¢¢¢((qk; ¾k); ®k) of
+an accepting run rofPis not ended by moving directly to the sink con¯guration
+(qacc; ®k). Instead, we temporarily move to the con¯guration ( qrej;fpg¢®k). The
+only possible move from ( qrej;fpg ¢®k) is to the con¯guration ( qacc; ®k).
+Formally, we make the following modi¯cations to S. We make the control
+variable Accvisible by setting I=§[ f]; Accg, and H=Q. We add a new
+invisible pushdown store variablep, and derive from it a new pushdown store
+symbol fpg. The de¯nition of the labeling function ¹remains the same, ex-
+cept that it now ranges over the extended pushdown store alphabet. Finally,
+we replace every transition of the form ((( p; ¾); °);(qacc; °)) with the transitions
+(((p; ¾); °);(qrej;fpg ¢°)) and (( qrej;fpg);(qacc; ")). Let ¿and¿0be computa-
+tions of Scorresponding to a rejecting run and an accepting run (respectively)
+ofPon the same word w. The key observation is that the ¯rst point of di®er-
+ence an environment »sees between the path ¼=¿¢(qrej; ®)!and the path
+¼0=¿0¢(qrej;fpg ¢®0)¢(qacc; ®0)!, is at the nodes v=¿¢(qrej; ®)¢(qrej; ®) and
+v0=¿0¢(qrej;fpg ¢®0)¢(qacc; ®0). But by now, it is too late for the environment
+to prune without creating a deadlock in MSC». This is because vis the only
+successor of its father, and so is v0. Combining the above with Corollary 1 we
+obtain the desired proof of Theorem 2.
+B.3 The Automaton in the Proof of Theorem 3
+Here, we formally de¯ne the transition function ±0left to be de¯ned in the proof of
+Theorem 3. For ( p; °¢®)2WandvinD, we de¯ne the set of successors of ( p; °¢®)
+inMS, that have a visible part v, to be s(p; °; v ) =f(q; ¯)j((p; °);(q; ¯))2±
+andvis((q; ¯)) =vg. The transition function ±0:Q0£§£¡[! B+(D£Q0£¡¤
+[)
+is de¯ned as follows. In the rules below, for the sake of succinctness, we consider
+m2 f9;8g £ f pe; psg,h2AP[ ftrue;falseg. Also, given a transition from
+(hp; Ã; m i;>; °), we let px=peif (p; °)2Env andpx=ps, otherwise.
+
+--- Page 20 ---
+20 Benjamin Aminof, Aniello Murano, and Moshe Y. Vardi
+{±0(q0
+0;?; [) =false and
+±0(q0
+0;>; [)=±0(hq0; p>;9; psi;>; [)^±0(hq0; ';9; psi;>; [).
+{For all p; Ã, and °, we have
+±0(hp; Ã;8; pei;?; °) =true and±0(hp; Ã;9; pei;?; °) =false .
+{For all p; Ã, and °, we have
+±0(hp; Ã;8; psi;?; °) =±0(hp; Ã;8; psi;>; °) and
+±0(hp; Ã;9; psi;?; °) =±0(hp; Ã;9; psi;>; °).
+{±0(hp; p>; mi;>; °) = (W
+v2DW
+(q;¯)2s(p;°;v )(v;hq; p>;9; pxi; ¯))^
+(V
+v2DV
+(q;¯)2s(p;°;v )(v;hq; p>;8; pxi; ¯)).
+{±0(hp; h; m i;>; °) =true ifh2¹((p; °)), or h=true.
+{±0(hp; h; m i;>; °) =false ifh62¹((p; °)), or h=false .
+{±0(hp;:h; mi;>; °) =true ifh62¹((p; °)), or h=false .
+{±0(hp;:h; mi;>; °) =false ifh2¹((p; °)), or h=true.
+{±0(hp; Ã1^Ã2; mi;>; °) =±0(hp; Ã1; mi;>; °)^±0(hp; Ã2; mi;>; °).
+{±0(hp; Ã1_Ã2; mi;>; °) =±0(hp; Ã1; mi;>; °)_±0(hp; Ã2; mi;>; °).
+{±0(hp;8XÃ; m i;>; °) = (V
+v2DV
+(q;¯)2s(p;°;v )(v;hq; Ã;8; pxi; ¯)).
+{±0(hp;9XÃ; m i;>; °) = (W
+v2DW
+(q;¯)2s(p;°;v )(v;hq; Ã;9; pxi; ¯)).
+{±0(hp;8Ã1UÃ2; mi;>; °) =±0(hp; Ã2; mi;>; °)_
+(±0(hp; Ã1; mi;>; °)^V
+v2DV
+(q;¯)2s(p;°;v )(v;hq;8Ã1UÃ2;8; pxi; ¯)).
+{±0(hp;9Ã1UÃ2; mi;>; °) =±0(hp; Ã2; mi;>; °)_
+(±0(hp; Ã1; mi;>; °)^W
+v2DW
+(q;¯)2s(p;°;v )(v;hq;9Ã1UÃ2;9; pxi; ¯)).
+{±0(hp;8Ã1eUÃ2; mi;>; °) =±0(hp; Ã2; mi;>; °)^
+(±0(hp; Ã1; mi;>; °)_V
+v2DV
+(q;¯)2s(p;°;v )(v;hq;8Ã1eUÃ2;8; pxi; ¯)).
+{±0(hp;9Ã1eUÃ2; mi;>; °) =±0(hp; Ã2; mi;>; °)^
+(±0(hp; Ã1; mi;>; °)_W
+v2DW
+(q;¯)2s(p;°;v )(v;hq;9Ã1eUÃ2;9; pxi; ¯)).
+We now discuss the size of AS;'. It is easy to see that jQ0j=O(jQj ¤ j'j),
+andj±0j=O(j±j ¤ j'j). Hence, the size of AS;'isO(jSj ¤ j 'j).
+Finally, we show that AS;'is semi-alternating. It is su±cient to show that
+for every ( t; ¯)2D,¾2§,p; p02Q0, and °2¡, if (( t; ¯); p0; ¯0) appears in
+±0(p; ¾; ° ) then ¯=¯0. To see that, notice that (( t; ¯); p0; ¯0) appears in ±0(p; ¾; ° )
+only if ( q; ¯0)2s(p; °;(t; ¯)), for some q2Q. By the de¯nition of s(p; °;(t; ¯))
+we must have that vis(q; ¯0) = ( t; ¯). Since the pushdown store is completely
+visible, we have that vis(q; ¯0) = (vis(q); ¯0), and we are done.

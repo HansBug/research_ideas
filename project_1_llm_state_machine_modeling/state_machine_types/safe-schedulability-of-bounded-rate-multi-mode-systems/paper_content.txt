@@ -1,0 +1,1192 @@
+--- Page 1 ---
+Safe Schedulability of Bounded-Rate Multi-Mode Systems
+Rajeev Alur
+University of Pennsylvania,
+Philadelphia, USA
+alur@seas.upenn.eduVojtˇech Forejt
+Dept. of Computer Science,
+University of Oxford, UK
+vojfor@cs.ox.ac.uk
+Salar Moarref
+University of Pennsylvania,
+Philadelphia, USA
+moarref@seas.upenn.eduAshutosh Trivedi
+Dept. of Computer Sc. & Eng.,
+IIT Bombay, India
+trivedi@cse.iitb.ac.in
+ABSTRACT
+Bounded-rate multi-mode systems ( BMS ) are hybrid sys-
+tems that can switch freely among a nite set of modes, and
+whose dynamics is specied by a nite number of real-valued
+variables with mode-dependent rates that can vary within
+given bounded sets. The schedulability problem for BMS
+is dened as an innite-round game between two players|
+the scheduler and the environment|where in each round the
+scheduler proposes a time and a mode while the environment
+chooses an allowable rate for that mode, and the state of the
+system changes linearly in the direction of the rate vector.
+The goal of the scheduler is to keep the state of the system
+within a pre-specied safe set using a non-Zeno schedule,
+while the goal of the environment is the opposite. Green
+scheduling under uncertainty is a paradigmatic example of
+BMS where a winning strategy of the scheduler corresponds
+to a robust energy-optimal policy. We present an algorithm
+to decide whether the scheduler has a winning strategy from
+an arbitrary starting state, and give an algorithm to com-
+pute such a winning strategy, if it exists. We show that the
+schedulability problem for BMS is co-NP complete in gen-
+eral, but for two variables it is in PTIME. We also study
+the discrete schedulability problem where the environment
+has only nitely many choices of rate vectors in each mode
+and the scheduler can make decisions only at multiples of a
+given clock period, and show it to be EXPTIME-complete.
+Categories and Subject Descriptors
+I.2.8 [ Problem Solving, Control Methods, and Search ]:
+Control Theory, Scheduling; D.4.7 [ Organization and De-
+sign]: Real-time systems and embedded systems
+Keywords
+Multi-Mode Systems; Green Scheduling; Controller Synthe-
+sis; Invariant Sets; Constrained Control; Stability
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+HSCC’13, April 8–11, 2013, Philadelphia, Pennsylvania, USA.
+Copyright 2013 ACM 978-1-4503-1567-8/13/04 ...$10.00.General Terms
+Theory, Design, Algorithms
+1. INTRODUCTION
+There is a growing trend towards multi-mode composi-
+tional design frameworks [10, 15, 11] for the synthesis of
+cyber-physical systems where the desired system is built by
+composing various modes, subsystems, or motion primitives|
+with well-understood performance characteristics|so as to
+satisfy certain higher level control objectives. A notable ex-
+ample of such an approach is green scheduling proposed by
+Nghiem et al. [13, 14] where the goal is to compose dierent
+modes of heating, ventilation, and air-conditioning (HVAC)
+installations in a building so as to keep the temperature
+surrounding each installation in a given comfort zone while
+keeping the peak energy consumption under a given bud-
+get. Under the assumption that the state of the system
+grows linearly in each mode, Nghiem et al. gave a polyno-
+mial algorithm to decide the green schedulability problem.
+Alur, Trivedi, and Wojtczak [2] studied general constant-
+rate multi-mode systems and showed, among others, that
+the result of Nghiem et al. holds for arbitrary multi-mode
+systems with constant rate dynamics as long as the scheduler
+can switch freely among the nite set of modes.
+In this paper we present bounded-rate multi-mode systems
+that generalize constant-rate multi-mode systems by allow-
+ing non-constant mode-dependent rates that are given as
+bounded polytopes. Our motivations to study bounded-rate
+multi-mode schedulability are twofold. First, it allows one to
+model a conservative approximation of green schedulability
+problem in presence of more complex inter-mode dynamics.
+Second motivation is theoretical and it stems from the de-
+sire to characterize decidable problems in context of design
+and analysis of cyber-physical systems. In particular, we
+view a bounded-rate multi-mode system as a two-player ex-
+tension of constant-rate multi-mode system, and show the
+decidability of schedulability game for such systems.
+Before discussing bounded-rate multi-mode system ( BMS )
+in any further detail, let us review the denition, relevant
+results, and limitations of constant-rate multi-mode system
+(CMS). A CMS is specied as a nite set of variables whose
+dynamics in a nite set of modes is given as mode-dependent
+constant rate vector. The schedulability problem for a CMS
+and a bounded convex safety set of states is to decide whether
+there exists an innite sequence (schedule) of modes and
+time durations such that choosing modes for corresponding
+
+--- Page 2 ---
+m1
+m2m12"
+m2
+2"m1"
+m2
+"
+Figure 1: Multi-mode systems with uncertain rates
+time durations in that sequence keeps the system within the
+safety set forever. Moreover such schedule is also required
+to be physically implementable, i.e. the sum of time dura-
+tions must diverge (the standard non-Zeno requirement [8]).
+Alur et al. [2] showed that, for the starting states in the inte-
+rior of the safety set, the necessary and sucient condition
+for safe schedulability is the existence of an assignment of
+dwell times to modes such that the sum of rate vectors of
+various modes scaled by corresponding dwell time is zero.
+Intuitively, if it is possible using the modes to loop back to
+the starting state, i.e. to go to some state other than the
+starting state and then to return to the starting state, then
+the same schedule can be scaled appropriately and repeated
+forever to form a periodic schedule that keeps the system
+inside the interior of any convex safety set while ensuring
+time divergence. On the other hand, if no such assignment
+exists then Farkas' lemma implies the existence of a vector
+such that choosing any mode the system makes a positive
+progress in the direction of that vector, and hence for any
+non-Zeno schedule the system will leave any bounded safety
+set in a nite amount of time. Also, due to constant-rate
+dynamics such condition can be modeled as a linear program
+feasibility problem, yielding a polynomial-time algorithm.
+Example 1.Consider the 2-dimensional CMS shown in
+Figure 1 (left) with two modes m1andm2with rates of the
+variables as ~ r1= (0;1)in modem1and~ r2= (0;1)in
+modem2. It is easy to see that the system is schedulable
+for any starting state (x0;y0)in the interior of any bounded
+convex setSas~ r1+~ r2= (0;0). The safe schedule consists of
+the periodic schedule (m1;t);(m2;t)for a carefully selected
+t2R>0such that (x0;y0) +~ r1tstays inside S.
+However, the schedules constructed in this manner are not
+robust as an arbitrarily small change in the rate can make
+the schedule unsafe as shown in the following example.
+Example 2.Consider a multi-mode system where some
+environment related uctuations [8] cause the rate vectors in
+modesm1andm2to dier from those in Example 1 by an
+arbitrarily small ">0as shown in Figure 1 (center). Here,
+m1can have rate-vectors from f(0+;1) :""g, while
+rate-vectors of m2are fromf(0+;1) :""g. First
+we show that the periodic schedule (m1;t);(m2;t)proposed
+in Example 1 is not safe for any t. Consider the case when
+the rate vector in modes m1andm2are xed to (";1)and
+(";1). Starting from the state (x0;y0)and following the
+periodic schedule (m1;t);(m2;t)forksteps the state of the
+system will be (x0+kt";y 0)afterksteps. Hence it is easy
+to see that for any bounded safety set the state of the system
+will leave the safety set after nitely many steps. In fact, for
+this choice of rate vectors no non-Zeno safe schedule exists
+at all, since by choosing any mode for a positive time the
+system makes a positive progress along the Xaxis.
+We formalize modeling of such multi-mode system under un-
+certainty as bounded-rate multi-mode systems ( BMS ).BMS scan also approximate [5] the eect of more complex non-
+linear, and even time-varying, mode dynamics over a bounded
+safety set. Formally, a BMS is specied as a nite set of vari-
+ables whose dynamics in a nite set of modes is given as a
+mode-dependent bounded convex polytopes of rate vectors.
+We present the schedulability problem on BMS as an innite-
+round zero-sum game between two players, the scheduler and
+the environment ; at each round scheduler chooses a mode
+and a time duration, the environment chooses a rate vector
+from the allowable set of rates for that mode, and the state
+of the system is evolved accordingly. The recipe for select-
+ing their choices, or moves , is formalized in the form of a
+strategy that is a function of the history of the game so far
+to a move of the player. A strategy is called positional if it
+is a function of the current state. We say that the sched-
+uler wins the schedulability game, or has a winning strategy,
+from a given starting state if there is a scheduler strategy
+such that, irrespective of the strategies of the environment,
+the state of the system stays within the safety set and time
+does not converge to any real number. Similarly, we say that
+the environment has a winning strategy if she has a strat-
+egy such that for any strategy of the scheduler the system
+leaves the safety set in a nite amount of time, or the time
+converges to some real number. One of the central results
+of this paper is that the schedulability games on BMS are
+determined , i.e. for each starting state exactly one of the
+player has a winning strategy. Note that the determinacy of
+these games could be proved using more general results on
+determinacy, e.g. [12], however our proof is direct and shows
+the existence of positional winning strategies.
+We distinguish between two kind of strategies of scheduler{
+thestatic strategies , where scheduler can not observe the
+decisions of the environment, and the dynamic strategies ,
+where scheduler can observe the decisions of the environ-
+ment so far before choosing a mode and a time. Our use
+of static vs. dynamic strategies closely corresponds to stan-
+dard open-loop control vs. closed-loop control distinction in
+control theory. Also notice that static strategies correspond
+precisely to schedules, and we often use these two terms in-
+terchangeably. A key challenge in the schedulability analysis
+ofBMS is inadequacy of static strategies as shown below.
+Example 3.Consider the BMS of Figure 1 (right) where
+the rates in mode m1andm2lie inf(0;1 +) : 0"g
+andf(0;(1 +)) : 0"g, respectively. We hint that
+there is no static winning strategy of scheduler in this BMS
+(the formal conditions for the existence of static winning
+strategies will be analyzed later in the paper). Let us as-
+sume, for example, that = (m1;t1);(m2;t2);::: is a static
+non-Zeno winning strategy of the scheduler. Moreover con-
+sider two strategies and0of the environment that dif-
+fer only in mode m1where they propose rates (1;0)and
+(1+";0)respectively. Let %and%0be the sequences of system
+states and player's choices|what we subsequently refer to as
+runs|as the game progresses from a starting state (x0;y0)
+where the environment uses strategy and0, respectively,
+against scheduler's strategy . LetT1(i)andT2(i)be the
+time spent in mode m1andm2, resp., till the i-th round
+in runs%and%0, whileT1andT2be total time spent in
+modem1andm2, resp. The state of the system in the runs
+%and%0afterirounds will be (x0;y0+T1(i)T2(i))and
+(x0;y0+T1(i)T2(i) +T1(i)"). Hence the distance T1(i)"
+between states reached after i-rounds in runs %and%0tends
+toT1"asitends to1. It is easy to see that if is a winning
+
+--- Page 3 ---
+strategy then T1=1; since ifT1<1andT2=1then the sys-
+tem will move in the direction of rates of mode m2, while if
+bothT1andT2are nite then the strategy is not non-Zeno.
+Hence system will eventually leave any bounded safety set,
+contradicting our assumption on being a winning strategy.
+The techniques used for schedulability analysis and sched-
+ule construction for CMS cannot be generalized to BMS since
+in a BMS , the scheduler may not have a strategy to loop
+back to the starting state. In fact, in general scheduler does
+not have a strategy to revisit any state as is clear from Fig-
+ure 1 (right)|here the environment can always choose a rate
+vector in both mode m1andm2to avoid any previously vis-
+ited state. However, from our results on BMS it follows that
+if the scheduler has a winning strategy then he has a strat-
+egy to restrict the future states of the system to a ball of
+arbitrary diameter centered around the starting state.
+In order to solve schedulability game for BMS we ex-
+ploit the following observation1: the scheduler has a win-
+ning strategy, from all the starting states in the interior of
+the safety set S, if and only if there is a polytope PS,
+such that for every vertex vofPthere is a mode m(v) and
+timet(v) such that choosing mode m(v) for timet(v) from
+the vertexv, the linev+~ rt(v) stays within polytope Pfor
+all allowable rates ~ rofm(v). In other words, for any vertex
+ofPthere is a mode and a time duration such that if the
+system evolves with any rate vector of that mode for such
+amount of time, the system stays in P. For a BMSHwe call
+such a polytopeH-closed . We show how such a polytope can
+be constructed for a BMS based on its characteristics. We
+also analyze the complexity of such a construction. The ex-
+istence of anH-closed polytope immediately provides a non-
+Zeno safe dynamic strategy for the scheduler for any start-
+ing state in P: nd the convex coecient ( 1;2;:::;k)
+of the current state xwith respect to the nite set of ver-
+tices (x1;x2;:::;xk) ofPand choose the mode m(xi) for
+timet(xi)ithat maximizes t(xi)i. Then, for some choice
+~ rof the environment for m(xi) the system will progress to
+x0=x+t(xi)i~ r. One can repeat this dynamic strategy from
+the next state x0as the current state. We prove that such
+strategy is both non-Zeno and safe.
+An extreme-rate CMS of aBMSHis obtained by preserv-
+ing the set of modes, and for each mode assigning a rate
+which is a vertex of the available rate-set of that mode. The
+main result of the paper is that an H-closed polytope exists
+for a BMSHi all extreme-rate CMSs ofHare schedula-
+ble. The \only if" direction of the above characterization is
+immediate as if some extreme-rate CMS is not schedulable
+then the environment can x those rate vectors and win the
+schedulability game in the BMS . We show the \if" direction
+by explicitly constructing the H-closed polytope.
+Example 4.Consider the BMSHfrom Figure 1 (right)
+with"= 0:5. The safety set is given as a shaded area in
+Figure 2 (left) and x0= (1;0:5)is the initial state. Ob-
+serve that all extreme-rate combinations are schedulable and
+hence we show a winning strategy. An H-closed polytope
+for this BMS is the line-segment between the points (0;2:5)
+and(0;2:5)(we explain the construction of such a poly-
+tope in Section 3). After translating this line-segment to
+x0and scaling it to t inside the safety set, we will get the
+1Blanchini [3, Theorem 5.2] makes a similar observation to
+design uniformly stable control for uncertain linear systems.(2;2)
+(1;1)
+(1;2) (2;2)m2
+m1x0x1
+x2(1;0:5)
+m1;1
+2
+(1;1
+2):: ::(1;1)
+(m2;5
+6) (m2;1)
+(1;1
+3)(1;1
+4)(1;0)::(1;1
+2)
+Figure 2:H-closed polytope and dynamic strategy
+line-segment connecting x1= (1;1)tox2= (1;2), as
+shown in Figure 2 (left). At vertices x1andx2modesm2
+andm1, respectively, can be used for 1time unit. A win-
+ning strategy of scheduler is to keep the system's state along
+the line segment. Our strategy observes the current state x
+and nds the mode to choose by computing convex coe-
+cient2[0;1]s.t.x=x1+(1)x2. For instance, at state
+x0=1
+2x1+1
+2x2the scheduler can choose any of the modes for
+1
+2time units. Assume that it chooses m1. Based on en-
+vironment's choice the state of system after1
+2time units
+will be in the set f1;0:5 +: 00:5g. The sched-
+uler observes this new state after1
+2time-unit, and chooses
+mode and time accordingly. For example, if the environment
+chooses (0;1:25)and so the next state is x= (1;0:75) =
+1
+12x1+11
+12x2, scheduler can choose mode m2for11
+12time units.
+In Figure 2 (right) we show rst two rounds of the game.
+Since, for any point on our line segment scheduler can choose
+a mode for at least 0:5time unit and stay on the line seg-
+ment, such strategy is both safe and non-Zeno.
+We also extend the above result to decide the winner
+starting from arbitrary states, i.e. including those states
+that lie on the boundary of the safety set. Here we show
+that the existence of a safe scheduler implies the existence
+of a safe scheduler which only allows to move from lower-
+dimensional faces to higher-dimensional ones and not the
+other way around; this allows us to use an algorithm which
+traverses the face lattice of the safety set and analyses each
+face one by one. We also prove co-NP completeness of the
+schedulability problem, showing the hardness by giving a re-
+duction from 3-SAT to the non-schedulability problem. On
+a positive note, we show that if the number of variables is
+two, then the schedulability game can be decided in polyno-
+mial time. This is because in such a case we can prove that
+there is only polynomially many candidates for falsiers we
+need to consider, and hence we can check each of them one
+by one. Finally, we study a discrete version of schedulabil-
+ity games where scheduler can choose time delays only at
+multiples of a given clock period, while the environment can
+choose rate vectors from a nite set. We show that discrete
+schedulability games on BMS are EXPTIME-complete, and
+that the maximal clock period for which scheduler has a win-
+ning strategy can be computed in exponential time. If the
+system is a CMS, we get a PSPACE algorithm, improving
+the result of [2] where only an approximation of the maximal
+clock period for CMS was studied.
+For a review of related work on CMS and green scheduling
+we refer to [14, 13] and [2]. The work closest to this paper
+is that on constrained regulator problem by Blanchini [3].
+This work studies the concept of positively invariant region
+that closely corresponds to our denition of H-closed poly-
+tope, and present conditions for schedulability of more gen-
+eral linear systems. However, [3] does not settle compu-
+
+--- Page 4 ---
+tational complexity of corresponding problem that form the
+core of our results. We refer the reader to [4] for an excellent
+survey on positively invariant sets and their applications in
+controller synthesis. Another closely related work is by Hey-
+mann et al. [8] that considers scheduling problem on BMS
+where rate-vectors are given as upper and lower rate ma-
+trices and the safety set as the entire non-negative orthant.
+The main result of [8] is that the scheduler wins if he wins in
+theCMS of the lower rate matrix, and wins only if he wins in
+theCMS of the upper rate matrix. We study more general
+BMS and safety sets, and characterize necessary and su-
+cient condition for schedulability. Finally, to complete the
+picture, we remark that games on hybrid automata [7, 6],
+that corresponds to BMS with local invariants and guards,
+have undecidable schedulability problem.
+For the lack of space proofs are either sketched or omitted;
+full proofs can be found in the technical report [1].
+2. PROBLEM DEFINITION
+Points and Vectors. LetRbe the set of real numbers.
+We represent the states in our system as points in Rnthat
+is equipped with the standard Euclidean norm kk. We
+denote points in this state space by x;y, vectors by ~ r;~ v, and
+thei-th coordinate of point xand vector~ rbyx(i) and~ r(i),
+respectively. We write ~0 for a vector with all its coordinates
+equal to 0; its dimension is often clear from the context. The
+distancekx;ykbetween points xandyis dened askxyk.
+For two vectors ~ v1;~ v22Rn, we write~ v1~ v2to denote their
+dot product dened asPn
+i=1~ v1(i)~ v2(i).
+Boundedness and Interior. We denote a closed ball of
+radiusd2R0centered at xasBd(x)=fy2Rn:kx;ykdg.
+We say that a set SRnisbounded if there exists d2R0
+such that for all x;y2Swe havekx;ykd. The interior
+of a setS, int(S), is the set of all points x2Sfor which
+there exists d>0 s.t.Bd(x)S.
+Convexity. A pointxis aconvex combination of a nite
+set of points X=fx1;x2;:::;xkgif there are1;2;:::;k2
+[0;1] such thatPk
+i=1i= 1 andx=Pk
+i=1ixi. The convex
+hullofXis then the set of all points that are convex com-
+binations of points in X. We say that SRnisconvex i
+for allx;y2Sand all2[0;1] we have x+ (1)y2S
+and moreover, Sis a convex polytope if it is bounded and
+there exists k2N, a matrix Aof sizeknand a vector
+~b2Rksuch thatx2SiAx~b. We write rows(M) for
+the number of rows in a matrix M, here rows(A) =k.
+A pointxis avertex of a convex polytope Pif it is not a
+convex combination of two distinct (other than x) points in
+P. For a convex polytope Pwe write vert(P) for the nite
+set of points that correspond to the vertices of P. Each
+point inPcan be written as a convex combination of the
+points in vert(P), or in other words, Pis the convex hull of
+vert(P). From standard properties of polytopes, it follows
+that for every convex polytope Pand every vertex cofP,
+there exists a vector ~ vsuch that~ vc=dand~ vx>d for all
+x2Pnfcgfor somed. We call such a vector ~ vasupporting
+hyperplane of the polytope Patc.
+2.1 Multi-Mode Systems
+A multi-mode system is a hybrid system equipped with
+nitely many modes and nitely many real-valued variables .
+A conguration is described by values of the variables, which
+change, as the time elapses, at the rates determined by themodes being used. The choice of rates is nondeterministic,
+which introduces a notion of adversarial behavior. Formally,
+Definition 1 (Multi-Mode Systems). A multi-mode
+system is a tuple H= (M;n;R)where:Mis the nite
+nonempty set of modes ,nis the number of continuous vari-
+ables, andR:M!2Rnis the rate-set function that, for
+each modem2M, gives a set of vectors.
+We often write ~ r2mfor~ r2 R(m) whenRis clear
+from the context. A nite runof a multi-mode system H
+is a nite sequence of states, timed moves and rate vector
+choices%=hx0;(m1;t1);~ r1;x1;:::; (mk;tk);~ rk;xkis.t. for
+all 1ikwe have~ ri2R(mi) andxi=xi1+ti~ ri. For
+such a run%we say that x0is the starting state , whilexkis
+itslast state . An innite run is dened in a similar manner.
+We write Runs and FRuns for the set of innite and nite
+runs ofH, while Runs (x) and FRuns (x) for the set of innite
+and nite runs starting from x.
+An innite runhx0;(m1;t1);~ r1;x1;(m2;t2);~ r2;:::iisZeno
+ifP1
+i=1ti<1. Given a set SRnof safe states, we say
+that a runhx0;(m1;t1);~ r1;x1;(m2;t2);~ r2;:::iisS-safe if for
+alli0 we have that xi2Sandxi+t~ ri+12Sfor all
+t2[0;ti+1], assuming t0= 0. Notice that if Sis a convex
+set andxi2Sfor alli0, then for all i0 and for all
+t2[0;ti+1] we have that xi+t~ ri+12S. The concept
+ofS-safety for nite runs is dened in a similar manner.
+Sometimes we simply call a run safe when the safety set and
+the starting state is clear from the context.
+We formally give the semantics of a multi-mode system H
+as a turn-based two-player game between the players, sched-
+uler and environment , who choose their moves to construct
+a run of the system. The system starts in a given starting
+statex02Rnand at each turn scheduler chooses a timed
+move, a pair ( m;t)2MR>0consisting of a mode and
+a time duration, and the environment chooses a rate vec-
+tor~ r2R(m) and as a result the system changes its state
+fromx0to the state x1=x0+t~ rinttime units following
+the linear trajectory according to the rate vector ~ r. From
+the next state x1the scheduler again chooses a timed move
+and the environment an allowable rate vector, and the game
+continues forever in this fashion. The focus of this paper is
+on safe- schedulability game , where the goal of the scheduler
+is to keep the states of the system within a given safety set
+S, while ensuring that the time diverges (non-Zenoness re-
+quirement). The goal of the environment is the opposite,
+i.e. to visit a state out of the safety set or make the time
+converge to some nite number.
+Given a bounded and convex safety set S, we dene (safe)
+schedulability objective WS
+Safeas the set of S-safe and non-
+Zeno runs ofH. In a schedulability game the winning ob-
+jective of the scheduler is to make sure that the constructed
+run of a system belongs to WS
+Safe, while the goal of the envi-
+ronment is the opposite. The choice selection mechanism of
+the players is typically dened as strategies. A strategyof
+scheduler is function :FRuns!MR0that gives a timed
+move for every history of the game. A strategy of the en-
+vironment is a function :FRuns(MR0)!Rnthat
+chooses an allowable rate for a given history of the game and
+choice of the scheduler. We say that a strategy is positional
+if it suggests the same action for all runs with common last
+state. We write  and  for the set of strategies of the
+scheduler and the environment, respectively.
+Given a starting state x0and a strategy pair ( ;)2
+
+--- Page 5 ---
+we dene the unique run Run(x0;;) starting from x0as
+Run(x0;;) =hx0;(m1;t1);~ r1;x1;(m2;t2);~ r2;:::i
+where for all i1, (mi;ti) =(hx0;(m1;t1);~ r1;x1;:::;xi1i)
+and~ ri=(hx0;(m1;t1);~ r1;x1;:::;xi1;mi;tii) andxi=
+xi1+ti~ ri. The scheduler wins the game if there is 2
+such that for all 2 we get Run(x0;;)2WS
+Safe. Such
+a strategy iswinning . Similarly, the environment wins
+the game if there is 2 such that for all 2 we have
+Run(x0;;)62WS
+Safe. Again,is called winning in this
+case. If a winning strategy for scheduler exists, we say that
+His schedulable for Sandx0(or simply schedulable ifSand
+x0are clear from the context). The following is the main
+algorithmic problem studied in this paper.
+Definition 2 (Schedulability). Given a multi-mode
+systemH, a safety set S, and a starting state x02S, the
+(safe) schedulability problem is to decide whether there ex-
+ists a winning strategy of the scheduler.
+2.2 Bounded-Rate Multi-Mode Systems
+To algorithmically decide schedulability problem, we need
+to restrict the range of Rand the domain of safety set Sin
+a schedulability game on a multi-mode system. The most
+general model that we consider is the bounded-rate multi-
+mode systems ( BMS ) that are multi-mode systems ( M;n;R)
+such thatR(m) is a convex polytope for every m2M. We
+also assume that the safety set Sis specied as a convex
+polytope. In our proofs we often refer to another variant of
+multi-mode systems in which there are only a xed number
+of dierent rates in each mode (i.e. R(m) is nite for all m2
+M). We call such a multi-mode system multi-rate multi-
+mode systems (MMS ). Finally, a special form of MMS are
+constant-rate multi-mode systems (CMS) [2] in whichR(m)
+is a singleton for all m2M. We sometimes use R(m) to
+refer to the unique element of the set R(m) in a CMS. The
+concepts for the schedulability games for BMS andMMS are
+already dened for multi-mode systems. Similar concepts
+also hold for CMS but note that the environment has no
+real choice in this case. For this reason, we can refer to a
+schedulability game on CMS as a one-player game.
+The prime [2] practical motivation for studying CMS was
+to generalize results on green scheduling problem by Nghiem
+et al. [14]. We argue that BMS are a suitable abstraction to
+study green scheduling problem when various rates of tem-
+perature change are either uncertain or follow a complex and
+time-varying dynamics, as shown in the following example.
+Example 5 (Green Scheduling). Consider a build-
+ing with two rooms AandB. HVAC units in each zone can
+be in one of the two modes 0(OFF) and 1(ON). We write
+the mode of the combined system as mi;jto represent the fact
+that rooms AandBare in mode i2f0;1gandj2f0;1g,
+respectively. The rate of temperature change and the energy
+usage for each room is given below.
+Zones ON OFF
+A (temp. change rate/ usage) -2/2 2/1
+B (temp. change/ usage) -2/2 2/1
+Following [2] we assume that the energy cost is equal to en-
+ergy usage if peak energy usage at any given point in time
+is less than or equal to 3units, otherwise energy cost is 10
+times of that standard rate. It follows that to minimize en-
+ergy cost the peak usage, if possible, must not be higher thanm0;0
+m0;1m1;0
+(a) Constant-Ratem0;0
+m0;1m1;0
+(b) Bounded-Ratem0;0
+m0;1m1;0
+(c) Multi-Rate
+Figure 3: Restricted Multi-mode Systems
+3units at any given time. We can model the system as a
+CMS with modes m0;0,m0;1, andm1;0, because these are
+the only ones that have peak usage at most 3. The vari-
+ables of the CMS are the temperature of the rooms, while the
+safety set is the constraint that temperature of both zones
+should be between 65oFto75oF. The existence of a win-
+ning strategy in CMS implies the existence of a switching
+schedule with energy peak demand less than or equal to 4
+units. In Figure 3.(a) we show a graphical representation
+of such CMS with three modes m0;0;m0;1andm1;0and two
+variables (corresponding to the two axes). The rate of the
+variables in mode m0;0is(2;2), in modem0;1is(2;2), and
+in modem1;0is(2;2).
+Now assume that the rate of temperature change in a mode
+is not constant and can vary within a given margin " >0.
+Schedulability problem for such system can best be modeled
+as aBMS as shown in Figure 3.(b) where the polytope of
+possible rate vectors is shown as a shaded region. In Fig-
+ure 3.(c) we show a MMS where variables can only change
+with the extreme rates of the BMS in Figure 3.(b).
+We say that a CMSH= (M;n;R ) is an instance of a
+multi-mode system H= (M;n;R) if for every m2Mwe
+have thatR(m)2 R(m). For example, the CMS shown
+in Figure 3.(a) is an instance of BMS in Figure 3.(b). We
+denote the set of instances of a multi-mode system Hby
+JHK. Notice that for a BMSHthe set JHKof its instances
+is uncountably innite, while for a MMSHthe set JHKis
+nite whose size is exponential in the size of H. We say
+that a MMS (M;n;R0) is the extreme-rate MMS of a BMS
+(M;n;R) ifR0(m) =vert(R(m)). The MMS in Figure 3.(c)
+is the extreme-rate MMS for the BMS in Figure 3.(b) We
+write Ext(H) for the extreme-rate MMS of the BMSH.
+Notice that for every starting state and winning objective
+at most one player can have a winning strategy. We say
+that a game is not determined if no player has a winning
+strategy for some starting state. In the next section we
+give an algorithm to decide the winner in a schedulability
+game for an arbitrary starting state. Since for every starting
+state we can decide the winner, it gives a direct proof of
+determinacy of schedulability games on BMS . Moreover, it
+follows from our results that whenever a player has a winning
+strategy, he has a positional such strategy. These two results
+together yield the rst key results of this paper.
+Theorem 1 (Determinacy). Schedulability games on
+BMS with convex safety polytopes are positionally determined.
+In Section 4 we analyze the complexity of deciding the
+winner in a schedulability game. Using a reduction from
+SAT problem to non-schedulability for a MMS , we prove
+the following main contribution of the paper.
+Theorem 2.Schedulability problems for BMS andMMS
+are co-NP complete.
+
+--- Page 6 ---
+On a positive note, we show that schedulability games can
+be solved in PTIME for BMS andMMS with 2 variables.
+3. SOLVING SCHEDULABILITY GAMES
+In this section we discuss the decidability of the schedu-
+lability problem for BMS . We rst present a solution for the
+case when the starting state is in the interior of a safety set,
+and generalize it to arbitrary starting states in Section 3.2.
+3.1 Starting State in the Interior of Safety Set
+Alur et al. [2] presented a polynomial-time algorithm to
+decide if the scheduler has a winning strategy in a schedu-
+lability game on a CMS for an arbitrary starting state. In
+particular, for starting states in the interior of the safety set,
+they characterized a necessary and sucient condition.
+Theorem 3 ([2]). The scheduler has a winning strat-
+egy in a CMS (M;n;R ), with convex safety set Sand starting
+statex0in the interior of S, i there is ~t2RjMj
+0satisfying:
+jMjX
+i=1R(i)(j)~t(i) = 0 for1jnandjMjX
+i=1~t(i) = 1:(1)
+We call a CMS safe if it satises (1) and we call Hun-
+safe otherwise. The intuition behind Theorem 3 is that the
+scheduler has a winning strategy if and only if it is possi-
+ble to return to the starting state in strictly positive time
+units. From the results of [2] it also follows that whenever a
+winning strategy exists, there is a strategy which does not
+look at a history or even the current state, but only uses
+a bounded counter of size `jMj1 and after a history
+of lengthkmakes a decision only based on the number k
+modulo`. Such strategies are called periodic .
+It is natural to ask whether the approach of [2] can be
+generalized to BMS . Unfortunately, Example 3 shows that
+in aBMS although a winning strategy may exist, it may not
+be possible to return to the initial state, or indeed visit any
+state twice. Another natural question to ask is whether a
+suitable generalization of periodic strategies suce for BMS .
+Static strategies are BMS analog of periodic strategies that
+behave in the same manner irrespective of the choices of the
+environment, i.e. for a static strategy we have that () =
+(0) for all runs =hx0;(m1;t1);~ r1;x1;:::; (mk;tk);~ rk;xki
+and0=hx0;(m1;t1);~ r0
+1;x0
+1;:::; (mk;tk);~ r0
+k);x0
+ki. Static
+strategies are often desirable in the settings where scheduler
+can not observe the state of the system. However, we ob-
+serve [1] that except for the degenerate cases when the BMS
+contains a subset of modes which induce a safe CMS, sched-
+uler can never win a game on BMS using static strategies.
+We saw an example of this phenomenon in the Introductory
+section as Figure 1.(c).
+This negative observations imply that to solve the schedu-
+lability games for BMS one needs to take a dierent ap-
+proach. In the rest of this section, we dene the notion of
+H-closed polytope and show that if such a polytope exists,
+then for any convex set Swe can construct a winning dy-
+namic strategy which takes its decisions only based on the
+last state. We also extend the notion of safety of a CMS to
+BMS . We say that a BMSHissafe if all instances of its
+extreme-rate MMS Ext(H) are safe, i.e. all H2JExt(H)K
+satisfy (1). Finally, we connect (Lemmas 5 and 6) the exis-
+tence ofH-closed polytope with the safety of the BMS .Algorithm 1: Dynamic scheduling algorithm
+Input : BMMSH, starting state x0
+Output : non-Terminating Scheduling Algorithm
+1:= the shortest distance of x0from borders of S;
+2P:=H-closed polytope s.t. PB(x0) andx02P;
+3 foreach c2vert(P)do
+4 foreach modem2Mdo
+5 foreach extreme rate vector ~ r2mdo
+6 t~ r= maxft:c+~ rt2Pg;
+7m= min~ r2mt~ r;
+8m= arg maxm2Mm; c=m;mc=m;
+9 while truedo
+10 Store current state as x;
+11 Find (c0)c2vert(P)wherex=P
+c2vert(P)cc;
+12 Findc= arg maxc2vert(P)cc;
+13 Schedule mode mcforcc;
+Dynamic Scheduling Algorithm. For a BMSHwe
+call a convex polytope PH-closed , if for every vertex of P
+there exists a mode msuch that all the rate vectors of m
+keep the system in P, i.e. for all c2vert(P) there exists
+m2Mand2R>0such that for all ~ r2R(m) we have
+thatc+~ rt2Pfor allt2[0;]. An example of a H-closed
+polytope is given in the Example 4.
+Assume that for any  > 0 andx0we are able to com-
+pute aH-closed polytope which is fully contained in B(x0)
+and contains x0. If this is the case, we can use Algorithm 1
+to compute a dynamic scheduling strategy. The idea of the
+algorithm is to build a H-closed polytope which contains
+the initial state and is fully contained within S, and then
+construct the strategy based on the modes safe at the ver-
+tices of the polytope. The correctness of the algorithm is
+established by the following proposition.
+Proposition 4.If there exists an H-closed polytope and
+it can be eectively computed then Algorithm 1 implements
+a winning dynamic strategy for the scheduler.
+Proof. Assume that there exists an H-closed polytope
+and we have an algorithm to compute it. Observe that the
+strategy is non-Zeno, because ccon line 13 is bounded
+from below by1
+jvert(P)jminc2vert(P)cfor any point of P,
+and care positive by their construction and the denition
+of theH-closed polytope. Next, we need to show that under
+the computed strategy we never leave the convex polytope
+P. For a state xwhich is of the formP
+c2vert(P)cc, the
+successor state will be x0= (P
+c2vert(P)cc) +cc~ r
+where~ ris the rate picked by the environment. We can
+rewritex0as (P
+c2vert(P)nfcgcc)+c(c+~ rc). Since
+c+~ rc2P, we get that x0is a convex combination of
+points inPand hence lies in P.
+ConstructingH-Closed Polytope. We will next show
+how to implement line 2 of Algorithm 1. We give necessary
+and sucient conditions for existence of H-closed polytopes
+in the following two lemmas. The rst lemma shows that an
+H-closed polytope exists if and only if for any hyperplane
+(given by its normal vector ~ v) there exists a mode msuch
+that all its rates stay at one side of the hyperplane.
+Lemma 5.For a BMSH, a statex0and >0, there is a
+H-closed polytope PB(x0)withx02Pif and only if for
+every~ vthere is a mode msuch that~ v~ r0for all~ r2m.
+
+--- Page 7 ---
+m1
+m2 m3
+(a) (b) (c) (d)
+Figure 4: Constructing closed convex polytope
+Proof. Let us x a BMSH= (M;n;R). The proof is in
+two parts. For), assume that the system is schedulable but
+there exists a vector ~ vsuch that for all modes m2Mthere
+is a rate~ rm2mwhere~ v~ rm<0. It implies that if the
+adversary xes the rates ~ rmwhenever the scheduler chooses
+m, then the system moves in the direction of vector ~ v(i.e.
+for allda statexwill be reached such that ~ vx<d ), and
+hence for any bounded safety set and non-Zeno strategy sys-
+tem will leave the safety set. This contradicts with existence
+ofH-closed polytope implying winning scheduler strategy.
+To prove the other direction, let R=f~ r1;:::;~ rNgbe the
+set of rates occurring in modes of the extreme-rate MMS of
+H, i.e.R=fR0(m) : (M;n;R0)2JExt(H)K;m2Mg. We
+claim the following to be the H-closed polytope:
+P:=fx0+DNX
+i=1~ ripijpi2[0;1]g; (2)
+whereD==PN
+i=1k~ rik. Notice that Pis a convex polytope
+since it is a convex hull of points x0+DPN
+i=1~ ripiwhere
+pi2f0;1g. Also, due to our choice of D,PB(x0), and
+x02P. For the sake of contradiction we assume that for
+every~ vthere is a mode msuch that all rates ~ rofmsatisfy
+~ v~ r0, but at least one corner cofPdoes not satisfy the
+dening condition of H-closed polytope, i.e. for all modes i
+there is a rate vector ~ risatisfying
+c+t~ ri62Pfor allt>0 (3)
+Let us x such corner c. By the supporting hyperplane the-
+orem there is a vector ~ vsuch that, for some d:
+~ vc=d (4)
+~ vx > d; for allx2Pnfcg (5)
+i.e.~ vis supporting Ponc. Let us x some mode msuch
+that for all rates ~ rofmwe have~ v~ r0. Notice that this
+exists by the assumption. Let ~ ribe a rate of msatisfying (3).
+By the denition of Pthe pointc, a corner of P, is of
+the formx0+DPN
+j=1~ rjpjfor somepj2[0;1] where
+1jNand~ rj2R. We necessarily have pi= 1, because
+ifpi= 1for some > 0, thenc+D"~ ri2Pfor
+any"and that will contradict with (3). Notice that for
+allk2[0;1] the points yk=x0+DPN
+j=1pk
+j~ rj, where
+pk
+j=pjifj6=iandpk
+j=kotherwise, are all in P. Also
+notice that point y1=cand for each k2[0;1] we have that
+yk=y0+Dk~ ri. In particular, c=y1=y0+D~ ri. It
+follows that cD~ ri=y02P. W.l.o.g. we assume ~ ri6=~0.
+Hence, from (5) we get ~ v(cD~ ri)>d. By rearranging
+we get~ vcD~ v~ ri> d, and because ~ vc=d, we get
+D~ v~ ri<0 which contradicts that ~ v~ ri0.
+Figures 4.(b)-(c) show how to construct H-closed polytope
+from (2) for the BMS in Figure 4.(a), while Figure 4.(d)Algorithm 2: Schedulability for Interior States.
+Input :BMSH,x2Rnand >0
+Output :H-closed polytope Pcontained in B(x) s.t.
+x2P, No if there is no H-closed polytope.
+1 foreach CMSH= (M;n;R )ofJExt(H)Kdo
+2 Check if there is a satisfying assignment for:
+P
+m2MR(m)tm=~0P
+m2Mtm= 1 (6)
+tm0 for allm2M.
+ifno satisfying assignment exists then return NO
+3R:=f~ r1;~ r2;:::;~ rNgbe the set of rate vectors of
+JExt(H)K;
+4 return the polytope given as convex hull of the points
+x+PN
+i=1k~ rikPN
+i=1pi~ riwherepi2f0;1g;
+shows that for every corner of the constructed polytope there
+is a mode that keeps the system inside the polytope.
+The following lemma nally gives an algorithmically check-
+able characterization of existence of H-closed polytope.
+Lemma 6.LetH= (M;n;R)be aBMS . We have that
+for every~ vthere is a mode msuch that~ v~ r0for all
+~ r2mif and only ifHis safe.
+Proof. In one direction, let us assume that ( M;n;R )2
+JExt(H)Kis not safe, and let Q=fR(m)jm2Mg. Then
+~0 is not a convex combination of points in Q, and so by
+supporting hyperplane theorem applied to ~0 and the convex
+hull ofQthere is~ vandd >0 such that ~ vR(m)dfor
+allm2M. SinceR(m)2R(m), this direction of the proof
+is nished. In the other direction, let ~ vbe such that there
+is~ r2R(m) for allm2Msuch that~ v~ r < 0. Then by
+convexity ofR(m) there is~ rm2vert(R(m)) with the same
+properties, and we can create a CMS (M;n;R )2JExt(H)K
+by putting R(m) =~ rm. This CMS is not safe, because for
+any strategy, for a suciently large time bound a point x
+will be reached such that ( ~ v)xis arbitrarily large, and
+hence any convex polytope will be left eventually.
+Combining Proposition 4 with Lemmas 5 and 6 we get the
+following main result.
+Theorem 7.For every BMSHand the starting state in
+the interior of a convex and bounded safety set we have that
+scheduler has a winning strategy if and only if His safe.
+Theorem 7 allows us to devise Algorithm 2 and at the same
+time give its correctness. The reader may have noticed that
+Theorem 7 bears a striking resemblance to Theorem 3 for
+
+--- Page 8 ---
+Algorithm 3: Schedulability For Arbitrary States
+Input :BMSH, a safety set Sgiven by inequalities
+A~ x~b, and a starting state x0.
+Output : Yes, if the scheduler wins, No otherwise.
+1Compute the sequence I=hI1;I2;:::;I`i;
+2Schedulable =;,UnSchedulable =;;
+3 foreach IinIdo
+4 ifI0IandI02UnSchedulable then
+5 UnSchedulable :=UnSchedulable [fIg;
+6 if9m2Mwith only internal rates then
+7 Schedulable :=Schedulable[f(I;?)g;
+8 else
+9 ConstructHI;
+10 ifHIis safe and PIisHI-closed polytope then
+11 Schedulable :=Schedulable[f(I;PI)g;
+12 else UnSchedulable :=UnSchedulable [fIg;
+13 if9I2Schedulable andx0j=SjIthen return Yes;
+14 else return No;
+CMS, since the former boils down to checking safety of ex-
+ponentially many CMS instances. Note, however, that the
+proof here is much more delicate. While in the case of CMS
+satisability of (1) gives immediately a periodic winning
+strategy, for BMS this is not the case: even when every in-
+stance in JExt(H)Kis safe, we cannot immediately see which
+modes should be used by the winning strategy; this requires
+the introduction of H-closed polytopes.
+3.2 General Case
+In this section we present Algorithm 3 that analyses schedu-
+lability of arbitrary starting states in S. Notice that a start-
+ing state on the boundary of the safety polytope may lie
+on various faces (planes, edges etc.) of dierent dimensions.
+The scheduler may have a winning strategy using modes that
+let the system stay on some lower dimension face, or there
+may exists a winning strategy where scheduler rst reaches a
+face of higher dimension where it may have a winning strat-
+egy. Before we describe steps of our algorithm, we need to
+formalize a notion of (open) faces of a convex polytope, a
+concept critical in Algorithm 3.
+LetAxbbe the linear constraints specifying a con-
+vex polytope S. We specify a face of Sby a setI
+f1;:::; rows(A)g. We write xj=SjI, and we say that x
+satisesSjI, if and only if A1;jx(1) +An;jx(n) =bjfor
+allj2I, andA1;jx(1) +An;jx(n)< bjfor allj62I,
+i.e. exactly the inequalities indexed by numbers from Iare
+satised tightly. Note that every point of SsatisesSjIfor
+exactly one I. Although there are potentially uncountably
+many states in every face of S, the following Lemma implies
+that it is sucient to analyze only one state in every face.
+Lemma 8.For a BMS , a convex polytope S, and for all
+facesIofS, either none or all states satisfying SjIare
+schedulable. Moreover, if I0Iand no point satisfying SjI0
+is schedulable, then no point satisfying SjIis schedulable.
+LetI=hI1;I2;:::ibe the sequence of all faces such that
+SjIiis satised by some state, ordered such that if IiIj,
+thenij. We call a mode munusable for Iif there is
+xj=SjIand~ r2R(m) such that x+~ r62Sfor all>0.
+The rate~ rsatisfying this condition is called external . A
+rate~ ris called internal if for anyxsuch thatxj=SjIthereis > 0 andjsuch thatIjIandx+~ r"j=SjIjfor
+all 0< ". For a BMSHand faceIwe dene a BMS
+HI= (M0;n;R0) whereM0contains all modes of Mwhich
+are not unusable for I, andR0(m) is the set of non-internal
+rates ofR(m).
+Theorem 9.For every BMSH, a convex polytope safety
+setS, and a starting state x02S, Algorithm 3 decides
+schedulability problem for H. Moreover, one can construct
+a dynamic winning strategy using the set Schedulable .
+Proof. (Sketch.) LethI1;I2;:::ibe all sets such that
+SjIiis satised by some state, ordered such that if IiIj,
+thenij. Algorithm 3 analyzes the sets Ii, determining
+whether the points satisfying SjIiare schedulable (in which
+case we call Iischedulable), or not. Let us assume that I
+is the rst element of the sequence hI1;I2:::iwhich has not
+been analyzed yet. If there is I0such thatI0IandI0is
+already marked as not schedulable, then by Lemma 8 one
+can immediately mark Ias non-schedulable. If all modes
+are unusable, then no point xsuch thatSjIis schedulable.
+Notice that if there exists an internal rate to face Ijthen it
+must necessarily be the case that Ijis schedulable. If there
+is a modemwhich only has internal rates, there is a winning
+strategyfor the scheduler which starts by picking mand
+a suciently small time interval t. This will make sure that
+after one step a point is reached which is already known to
+be schedulable and scheduler has a winning strategy.
+If none of the previous cases match, the algorithm creates
+aBMSHIand applies Theorem 7 to the system HI. If there
+is aHI-closed polyhedron P, we know that Iis schedula-
+ble and give a winning scheduler's strategy xfor any point
+xj=SjIas follows. Let d > 0 be a number such that for
+anyyj=Ijwherej > i we havekx;yk> d, i.e.dis cho-
+sen so that all points of Scontained in Bd(y) satisfySjI0
+forI0I(this follows from the properties of the sequence
+I1;I2;::: and because Sis a convex polytope). The strat-
+egyxworks as follows. If all points in the history satisfy
+SjI,xmimicsHI;x;d. Otherwise, once a point y6j=SjIis
+reached, the strategy xstarts mimicking y. Note that the
+strategyyis indeed dened by our choice of dand poly-
+topes stored in Schedulable set. Although the strategy we
+obtain in this way may potentially be non-positional, it is a
+mere technicality to turn it into a positional one.
+IfHIis not schedulable for any set and any point, then
+it is easy to see that for no point satisfying SjIthere is a
+schedulable strategy. Indeed, for any strategy , as long
+aspicks the modes from M0, the environment can play a
+counter-strategy showing that HIis not schedulable. When
+any mode from m2MnM0is used by, we have that mis
+unusable and so the environment can pick a rate witnessing
+m's unusability: this will ensure reaching a point outside S.
+Hence, we can mark Ias unschedulable.
+4. COMPLEXITY
+In this section we analyze complexity of the schedulability
+problem for BMS . We begin by showing that in general it
+is co-NP-complete, however it can be solved in polynomial
+time if the system has only two variables.
+4.1 General Case
+Proposition 10.The schedulability problem for BMS and
+convex polytope safety sets is in co-NP.
+
+--- Page 9 ---
+Proof (Sketch). We show that when the answer to the
+problem of schedulability of a point xis No, there is a falsier
+that consists of two components:
+a setIf1;:::; rows(A)gs.t.xj=SjI0forI0I, and
+a rate combination ( ~ rm)m2Msuch that there is a set of
+modes ExternalMwhere every ~ rmform2External
+is external for I; and the rates ~ rmform62External are
+neither external, nor internal, and there is a vector ~ v
+such that~ v~ rm>0 for allm62External .
+Let us rst show that the existence of this falsier implies
+that the answer to the problem is No. Indeed, as long as a
+strategy of a scheduler keeps using modes m62External , the
+environment can pick the rates ~ rm, and a point outside of S
+will be reached under any non-Zeno strategy, because Sis
+bounded. If the strategy of a scheduler picks any mode m2
+External , the environment can win immediately by picking
+the external rate ~ rmand getting outside of S.
+On the other hand, let us suppose that the answer to the
+problem is No, and let I0be such that xj=SjI0. Then
+consider any minimal non-schedulable II0. We put to
+External all modes which are unusable, and for every such
+mode, we pick a rate that witnesses it. Further, there is not
+any mode with only internal modes and the BMSHImust
+be non-schedulable (otherwise Iwould be schedulable, or
+would not be minimal non-schedulable). By Proposition 7
+there is an unsafe instance H= (M0;n;R )2JExt(HI)K.
+SinceM0contains all the modes whose indices are not in
+External , we can pick the rate from this unsafe instance and
+we are nished.
+Proposition 11 (co-NP hardness). The schedulabil-
+ity problem for MMS is co-NP hard.
+Proof (Sketch). The proof for co-NP hardness uses a
+reduction from the classical NP-complete problem 3-SAT.
+For a SAT instance we construct a MMSHsuch that
+is satisable if and only if His not schedulable for any
+starting state and bounded convex safety set. . Consider
+a SAT instance withkclauses and nvariables denoted
+asx1;:::;xn. The corresponding MMSH= (M;n;R) is
+such that its set of modes M=fm1;:::;mkgcorresponds
+to the clauses in , and variables are such that variable i
+corresponds to variable xiof. For each variable xiwe
+dene vectors ~ piand~ nisuch that~ pi(i) = 1,~ ni(i) =1,
+and~ pi(j) =~ ni(j) = 0 ifi6=j. The rate-vector function
+Ris dened such that for each mode mjand for each SAT
+variablexiwe have that ~ pi2R(mj) ifxioccurs positively in
+clausej, and~ ni2R(mj) if the variable xioccurs negatively
+in clausej. The crucial property here is that there is no
+vector that can have a positive dot product with both ~ pi
+and~ ni, which allows us to map unsafe rate combinations to
+satisfying valuations and vice versa.
+The following corollary is immediate.
+Corollary 12 (co-NP hardness result for BMS).
+The schedulability problem for BMS is co-NP hard.
+4.2 BMSwith two variables
+For the special case of BMS with two variables, we show
+that the schedulability problem can be solved eciently.
+Theorem 13.Schedulability problems for BMS with con-
+vex polytope safety sets are in P for systems with 2variables.Algorithm 4: Decide if a two dimension BMS is safe.
+Input :BMSHwith two variables.
+Output : Return Yes, ifHis safe and No otherwise.
+1SetRto the set of extreme rate vectors of H;
+2 foreach ~ r?2Rdo
+3 Set~ uto be a perpendicular vectors to ~ r?;
+4 foreach ~ v2f~ u;~ ugdo
+5 if for eachm2Mthere is~ r2ms.t.~ v~ r>0
+or there isp>0s.t.~ r=p~ r?then return No;
+6 return Yes
+The rest of the section is devoted to the proof of this the-
+orem. The following lemma shows that to check whether a
+set of rate vectors R=f~ r1;:::;~ rkgis unsafe it is sucient to
+check properties of vectors ~ uperpendicular to some vector
+ofR. This observation yields a polynomial time algorithm.
+Lemma 14.LetRbe a set of vectors. There is ~ vsuch
+that~ v~ r > 0for all~ r2Rif and only if there are ~ uand
+~ r?2Rsatisfying~ u~ r?= 0and for all~ r2Reither~ u~ r>0
+or~ r=p~ r?for somep>0.
+Proof (Sketch). To obtain~ vwe keep changing ~ vuntil
+it becomes perpendicular to some vector in R. On the other
+hand,~ vis obtained from ~ uby making a suciently small
+change to~ u.
+Example 6.Consider an unsafe set of rate vectors R=
+f~ r1;~ r2;~ r3;~ r4gshown in the following gure in the left side.
+~ r1
+~ r2~ v~ u
+~ r3~ r4
+~ r1~ r2
+~ r3
+All the rate vectors are on the right side of line x= 0 and
+vector~ vhas strictly positive dot product with all of them. As
+it can be seen in the gure, all the rate vectors are on right-
+hand side of the line passing through ~ r1and there exists ~ u
+perpendicular to ~ r1such that~ v0~ ri0for all~ ri2R.
+Observe that adding a rate vector ~ r5=~ r1toRmakes this
+set of rate vectors safe, and none of rate vectors would satisfy
+the conditions of Lemma 14.
+However, the gure on the right side shows a safe set of
+rate vectors. As is clear to see that no rate vector has the
+others on its one side.
+The following corollary implies that we can use Lemma 14
+to check the safety of a BMS .
+Corollary 15.ABMSHwith two variables is not safe
+if and only if there exists a rate vector ~ r?in one of the modes
+of system and vector ~ vperpendicular to it, such that for all
+modesm2H: (i) there exists ~ r2msuch that~ v~ r>0; or
+(ii)~ v~ r= 0and~ r=p~ r?for somep>0.
+Algorithm 4 checks whether all the combinations are safe
+in polynomial time; it chooses a rate vector ~ r?at each step
+and tries to nd an unsafe combination using the result of
+Corollary 15. Note that for any non-zero vector ~ r?in two di-
+mensions there are only two vectors which we need to check.
+
+--- Page 10 ---
+Although there are innitely many vectors ~ vwhich satisfy
+conditions of Corollary 15, the conditions we are checking
+are preserved if we multiply ~ vby a positive scalar.
+5. DISCRETE SCHEDULABILITY
+In this section we discuss the discrete schedulability prob-
+lem, in which a scheduler can only make decisions at integer
+multiplies of a specied clock period  and the environment
+has nitely many choices of rates. Formally, given a MMS
+H, a closed convex polytope Sas safety set, an initial state
+x02S, the discrete schedulability problem is to decide if
+there exists a winning strategy of the scheduler where the
+time delays are multiples of .
+Theorem 16.Discrete schedulability problem is complete
+for EXPTIME.
+Proof. EXPTIME-membership of the problems is shown
+via discretization of the state space of H. Since the set Sis
+given as a bounded polytope, the size of the discretization
+can be shown to be at most exponential in the size of H
+and , and since the safety games on a nite graph can be
+solved in P, EXPTIME membership follows. The hardness
+is shown by a reduction from the countdown games [9].
+We turn the discrete schedulability problem to an opti-
+mization problem, by asking to nd supremum of all  for
+which the answer to the discrete schedulability problem is
+yes. We prove the following, which also improves a result
+of [2] where only an approximation algorithm was given.
+Theorem 17.Given a MMSH, a closed convex polytope
+Sand an initial state x0, there is an exponential time al-
+gorithm which outputs the maximal for which the answer
+to the discrete schedulability problem is Yes. For a CMS the
+algorithm can be made to run in polynomial space.
+Proof (Sketch). We exploit the fact that as the clock
+period  increases, all the points of the discretization move
+continuously towards innity, except for the initial point.
+This further implies that for  to be maximal, there must
+be a point of the discretization which lies on the boundary of
+S, since otherwise we could increase  by some small num-
+ber, while preserving the existence of a safe scheduler. By
+using a lower bound on  from Section 3 (obtained as a by-
+product of the construction of a dynamic strategy), there are
+only exponentially many candidates for such points, which
+gives us exponentially many candidates for maximal  to
+consider, and we can check each one by Theorem 16. For
+the PSPACE bound we don't enumerate the points, but
+guess them nondeterministically in polynomial space, and
+utilize [2, Theorem 10] instead of Theorem 16.
+6. CONCLUSION
+We investigated systems that comprise nitely many real-
+valued variables whose values evolve linearly based on a rate
+vector determined by strategies of the scheduler and the en-
+vironment. We studied an important schedulability prob-
+lem for these systems, with application to energy scheduling,
+that asks whether scheduler can make sure that the values of
+the variables never leave a given safety set. We showed that
+when the safety set is a closed convex polytope, existence of
+non-Zeno winning strategy for scheduler is decidable for any
+arbitrary starting state. We also showed how to constructsuch a winning strategy. On complexity side, we showed
+that the schedulability problem is co-NP complete in gen-
+eral, but for the special case where the system has only two
+variables, the problem can be decided in polynomial time.
+Future research includes schedulability problem with respect
+to more expressive higher-level control objectives including
+temporal-logic based specication and bounded-rate multi-
+mode systems with reward functions.
+Acknowledgement
+This research was partially supported by NSF award CNS
+1035715 and NSF Expeditions in Computing award CCF
+1138996. Vojtech Forejt was supported by Newton Fellow-
+ship of Royal Society.
+7. REFERENCES
+[1] R. Alur, V. Forejt, S. Moarref, and A. Trivedi. Safe
+schedulability of bounded-rate multi-mode systems.
+Technical report. arXiv:1302.0745 [cs.LO].
+[2] R. Alur, A. Trivedi, and D. Wojtczak. Optimal
+scheduling for constant-rate mulit-mode systems. In
+HSCC , pages 75{84. ACM, 2012.
+[3] F. Blanchini. Constrained control for uncertain linear
+systems. Journal of Optimization Theory and
+Applications , 71:465{484, 1991.
+[4] F. Blanchini. Set invariance in control. Automatica ,
+35(11):1747{1767, 1999.
+[5] T. A. Henzinger. The theory of hybrid automata. In
+LICS , pages 278 {292. IEEE Comp. Soc. Press, 1996.
+[6] T. A. Henzinger, B. Horowitz, and R. Majumdar.
+Rectangular hybrid games. In CONCUR 99 , pages
+320{335. Springer, 1999.
+[7] T. A. Henzinger and P. W. Kopke. Discrete-time
+control for rectangular hybrid automata. TCS,
+221(1-2):369{392, 1999.
+[8] M. Heymann, L. Feng, G. Meyer, and S. Resmerita.
+Analysis of Zeno behaviors in a class of hybrid
+systems. IEEE Tran. on Auto. Ctrl. , 50:376{383, 2005.
+[9] M. Jurdzi nski, J. Sproston, and F. Laroussinie. Model
+checking probabilistic timed automata with one or two
+clocks. Logical Methods in Comp. Sc. , 4(3):12, 2008.
+[10] J. Le Ny and G.J. Pappas. Sequential composition of
+robust controller specications. In Robotics and
+Automation , pages 5190{5195, 2012.
+[11] J. Liu, N. Ozay, U. Topcu, and R. Murray. Switching
+protocol synthesis for temporal logic specications. In
+American Control Conference , pages 727{734, 2012.
+[12] A. Maitra and W. Sudderth. Finitely additive
+stochastic games with Borel measurable payos. Intl.
+Journal of Game Theory , 27(2):257{267, 1998.
+[13] T. X. Nghiem, M. Behl, R. Mangharam, and G. J.
+Pappas. Green scheduling of control systems for peak
+demand reduction. In Decision and Control (CDC)
+and ECC , pages 5131{5136. IEEE, December 2011.
+[14] T. X. Nghiem, M. Behl, G. J. Pappas, and
+R. Mangharam. Green scheduling: Scheduling of
+control systems for peak power reduction. Intl. Green
+Computing Conf. , pages 1{8, July 2011.
+[15] L. T. X. Phan, I. Lee, and O. Sokolsky. Compositional
+analysis of multi-mode systems. In Euromicro Conf.
+on Real-Time Sys. (ECRTS) , pages 6{9. IEEE, 2010.

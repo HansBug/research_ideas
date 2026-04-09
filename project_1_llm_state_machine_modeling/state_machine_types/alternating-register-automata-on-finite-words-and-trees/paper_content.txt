@@ -1,0 +1,2187 @@
+--- Page 1 ---
+Logical Methods in Computer Science
+Vol. 8 (1:22) 2012, pp. 1–43
+www.lmcs-online.orgSubmitted Nov. 5, 2010
+Published Mar. 10, 2012
+Alternating register automata
+on nite data words and trees
+DIEGO FIGUEIRA
+INRIA & ENS Cachan, LSV, France and University of Edinburgh, UK
+e-mail address : dgueira@gmail.com
+Abstract. We study alternating register automata on data words and data trees in re-
+lation to logics. A data word (resp. data tree) is a word (resp. tree) whose every position
+carries a label from a nite alphabet and a data value from an innite domain. We in-
+vestigate one-way automata with alternating control over data words or trees, with one
+register for storing data and comparing them for equality. This is a continuation of the
+study started by Demri, Lazi c and Jurdzi nski.
+From the standpoint of register automata models, this work aims at two objectives:
+(1) simplifying the existent decidability proofs for the emptiness problem for alternating
+register automata; and (2) exhibiting decidable extensions for these models.
+From the logical perspective, we show that (a) in the case of data words, satisability
+of LTL with one register and quantication over data values is decidable; and (b) the
+satisability problem for the so-called forward fragment of XPath onxml documents is
+decidable, even in the presence of DTDs and even of key constraints. The decidability is
+obtained through a reduction to the automata model introduced. This fragment contains
+the child, descendant, next-sibling and following-sibling axes, as well as data equality and
+inequality tests.
+1.Introduction
+In static analysis of databases as in software verication, we frequently nd the need of
+reasoning with innite alphabets . In program verication one may need to decide statically
+whether a program satises some given specication; and the necessity of dealing with in-
+nite alphabets can arise from dierent angles. For example, in the presence of concurrency,
+suppose that an unbounded number of processes run, each one with its process identica-
+tion, and we must deal with properties expressing the interplay between these processes.
+Further, procedures may have parameters and data from some innite domain could be
+1998 ACM Subject Classication: I.7.2, H.2.3, H.2.3.
+Key words and phrases: alternating tree register automata, XML, forward XPath, unranked ordered tree,
+data-tree, innite alphabet.
+This article extends [12], and the results contained here also appeared in [13, Chapters 3 and 6].
+Work supported by the Future and Emerging Technologies (FET) programme within the Seventh Frame-
+work Programme for Research of the European Commission, under the FET-Open grant agreement FOX,
+number FP7-ICT-233599.
+LOGICAL METHODSl IN COMPUTER SCIENCE DOI:10.2168/LMCS-8 (1:22) 2012c D. Figueira
+CC Creative Commons
+
+--- Page 2 ---
+2 D. FIGUEIRA
+exchanged as arguments. On the other hand, in the databases context, static analysis on
+xml and its query languages recurrently needs to take into account not only the labels of
+the nodes, but also the actual data contained in the attributes. It is hence important to
+study formalisms to reason with words or trees that can carry elements from some innite
+domain.
+This work is about decidable alternating register automata models on data words and
+data trees in relation to logics manipulating data. This is a continuation of the investi-
+gation carried out by Demri, Lazi c and Jurdzi nski [8, 24]. A non trivial consequence of
+our contribution on alternating automata is that the satisability problem for the forward
+fragment of XPath onxml documents is decidable.
+We consider two kinds of data models: data words and data trees. A data word (data
+tree) is a nite word (unranked nite tree) whose every position carries a pair of elements:
+a symbol from a nite alphabet and and an element (a datum ) from an innite set (the
+data domain ). We work on nite structures, and all the results we present are relative to
+nite words and trees.
+Over these two models we consider two formalisms: alternating register automata on
+the one hand, and logics on the other. Each automata model is related to a logic, in the
+sense that the satisability of the logic can be reduced to the emptiness of the automata
+model. Both automata models we present (one for data words, the other for data trees) have
+in essence the same behavior. Let us give a more detailed description of these formalisms.
+Automata. The automata model we dene is based on the ARA model (for Alternating
+Register Automata) of [8] in the case of data words, or the ATRA model (for Alternating
+Tree Register Automata) of [24] in the case of data trees. ARA are one-way automata
+with alternating control and one register to store data values for later comparison. ATRA
+correspond to a natural extension of ARA over data trees. The ATRA model can move in
+two directions: to the leftmost child, and/or to the next sibling to the right. Both models
+were shown to have a decidable emptiness problem. The proofs of decidability are based on
+non trivial reductions to a class of decidable counter automata with faulty increments.
+In the present work, decidability of these models is shown by interpreting the seman-
+tics of the automaton in the theory of well-quasi-orderings in terms of a well-structured
+transition system (see [19]). The object of this alternative proof is twofold. On the one
+hand, we propose a direct, unied and self-contained proof of the main decidability results
+of [8, 24]. Whereas in [8, 24] decidability results are shown by reduction to a class of faulty
+counter automata, here we avoid such translation, and show decidability directly interpret-
+ing the congurations of the automata in the theory of well-structured transition systems.
+We stress, however, that the underlying techniques used here are similar to those of [8, 24].
+On the other hand, we further generalize these results. Our proof can be easily extended to
+show the decidability of the nonemptiness problem for two powerful extensions. These ex-
+tensions consist in the following abilities: (a) the automaton can nondeterministically guess
+any data value of the domain and store it in the register; and (b) it can make a certain
+kind of universal quantication over the data values seen along the run of the automaton,
+in particular over the data values seen so far. We name these extensions guess and spread
+respectively. These extensions can be both added to the ARA model or to the ATRA model,
+since our proofs for ARA and ATRA emptiness problems share the same core. We call the
+class of alternating register automata with these extensions as ARA(guess;spread ) in the
+case of data words, or ATRA (guess;spread ) in the case of data trees. We demonstrate that
+
+--- Page 3 ---
+Alternating register automata on nite data words and trees 3
+these extensions are also decidable if the data domain is equipped with a linear order and
+the automata model is extended accordingly. Further, these models are powerful enough to
+decide a large fragment of XPath , and of a temporal logic with registers.
+XPath. This work is originally motivated by the increasing importance of reasoning tasks
+about xml documents. An xml document can be seen as an unranked ordered tree where
+each node carries a label from a nite alphabet and a set of attributes , each with an associated
+datum from some innite domain. A data tree is a simplication of an xml document that
+happens to be equivalent for the problems treated here.
+XPath is arguably the most widely used xml node selecting language, part of XQuery
+and XSLT; it is an open standard and a W3C Recommendation [7]. Static analysis on xml
+languages is crucial for query optimization tasks, consistency checking of xml specica-
+tions, type checking transformations, or many applications on security. Among the most
+important problems are those of query equivalence and query containment. By answering
+these questions we can decide at compile time whether the query contains a contradiction,
+and thus whether the computation of the query on the document can be avoided, or if one
+query can be safely replaced by a simpler one. For logics closed under boolean combina-
+tion, these problems reduce to satisability checking, and hence we focus on this problem.
+Unfortunately, the satisability problem for XPath with data tests is undecidable [20] even
+when the data domain has no structure ( i.e., where the only data relation available is the
+test for equality or inequality). It is then natural to identify and study decidable expressive
+fragments.
+In this work we prove that the forward fragment of XPath has a decidable satisability
+problem by a reduction to the nonemptiness problem of ATRA (guess;spread ). Let us describe
+this logic. Core-XPath [21] is the fragment of XPath that captures all the navigational
+behavior of XPath . It has been well studied and its satisability problem is known to be
+decidable in ExpTime in the presence of DTDs [27]. We consider an extension of this
+language with the possibility to make equality and inequality tests between attributes of
+xml elements. This logic is named Core-Data-XPath in [5], and its satisability problem
+is undecidable [20]. Here we address a large fragment of Core-Data-XPath named `forward
+XPath ', that contains the `child', `descendant', `self-or-descendant', `next-sibling', `following-
+sibling', and `self-or-following-sibling' axes. For economy of space we refer to these axes as
+#,#+,#,!,!+,!respectively. Note that !+and!are interdenable in the presence of
+!, and similarly with #+and#. We then refer to this fragment as XPath (#;#;!;!;=),
+where `=' is to indicate that the logic can express equality or inequality tests between data
+values.
+Although our automata model does not capture forward- XPath in terms of expressive-
+ness, we show that there is a reduction to the nonemptiness problem of ATRA (guess;spread ).
+These automata can recognize any regular language, in particular a DTD, a Relax NG doc-
+ument type, or the core of XML Schema (stripped of functional dependencies). Since we
+show that XPath (#;#;!;!;=) can express unary key constraints, it then follows that sat-
+isability of forward- XPath in the presence of DTDs and key constraints is decidable. This
+settles a natural question left open in [24], where decidability for a restriction of forward-
+XPath was shown. The fragment treated in the cited work is restricted to data tests of
+the formh"=i(orh"6=i), that is, formul that test whether there exists an element
+accessible via the -relation with the same (resp. dierent) data value as the current node
+of evaluation. However, the forward fragment allows unrestricted tests h=iand makes
+
+--- Page 4 ---
+4 D. FIGUEIRA
+the coding into a register automata model highly non trivial. As a consequence, we also
+answer positively the open question raised in [4] on whether the downward fragment of
+XPath in the presence of DTDs is decidable.1
+Temporal logics. ARA(guess;spread ) over data words also yield new decidability results
+on the satisability for some extensions of the temporal logic with one register denoted
+byLTL#(U;X) in [8]. This logic contains a `freeze' operator to store the current datum
+and a `test' operator to test the current datum against the stored one. Our automata
+model captures an extension of this logic with quantication over data values, where we
+can express \ for all data values in the past, 'holds ", or \ there exists a data value in the
+future where 'holds ". Indeed, none of these two types of properties can be expressed in
+the previous formalisms of [8] and [24]. These quantiers may be added to LTL#(U;X) over
+data words without losing decidability. What is more, decidability is preserved if the data
+domain is equipped with a linear order that is accessible by the logic. Also, by a translation
+into ATRA (guess;spread ), these operators can be added to a CTL version of this logic over
+data trees, or to the -calculus treated in [23]2. However, adding the dual of either of these
+operators results in an undecidable logic.
+Contribution. From the standpoint of register automata models, our contributions can
+be summarized as follows.
+We exhibit a unied framework to show decidability for the emptiness problem for alter-
+nating register automata. This proof has the advantage of working both for data words
+and data trees practically unchanged. It is also a simplication of the existing decidability
+proofs.
+We exhibit decidable extensions for these models of automata. These extensions work
+for automata either running over words or trees. For each of these models there are
+consequences on the satisability of some expressive logics.
+From the standpoint of logics, we show the following results.
+In the case of data trees, we show that the satisability problem for the `forward' fragment
+ofXPath with data test equalities and inequalities is decidable, even in the presence of
+DTDs (or any regular language) and unary key constraints. Decidability is shown through
+a reduction to the emptiness problem for ATRA (guess;spread ) on data trees.
+We show that the temporal logic LTL#(U;X) for data words extended with some quan-
+tication over data values is decidable. This result is established thanks to a translation
+from formul to alternating register automata of ARA(guess;spread ).
+1The satisability problem on downward XPath but in the absence of DTDs is shown to be ExpTime -
+complete in [11].
+2This is the conference version of [24].
+
+--- Page 5 ---
+Alternating register automata on nite data words and trees 5
+Related work. The main results presented here rst appeared in the conference paper [12].
+Here we include the full proofs and the analysis for alternating register automata on data
+words (something that was out of the scope of [12]) as well as its relation to temporal logics.
+Also, we show how to proceed in the presence of a linear order, maintaining decidability.
+The results contained here also appear in the thesis [13, Ch. 3 and 6].
+By the lower bounds given in [8], the complexity of the problems we treat in the work
+is very high: non-primitive-recursive. This lower bound is also known to hold for the logics
+we treat here LTL#(U;X) and forward- XPath . In fact, even very simple fragments of LTL#
+and XPath are known to have non-primitive-recursive lower bounds, including the fragment
+of [24] or even much simpler ones without the one-step ` !' axis, as shown in [17]. This is
+the reason why in this work we limit ourselves to decidability / undecidability results.
+The work in [4] investigates the satisability problem for many XPath logics, mostly
+fragments without negation or without data equality tests in the absence of sibling axes.
+Also, in [11] there is a study of the satisability problem for downward XPath fragments
+with and without data equality tests. All these are sub-fragments of forward- XPath , and
+notably, none of these works considers horizontal axes to navigate between siblings. Hence,
+by exploiting the bisimulation invariance property enjoyed by these logics, the complexity
+of the satisability problem is kept relatively low (at most ExpTime ) in the presence of
+data values. However, as already mentioned, when horizontal axes are present most of
+the problems have a non-primitive-recursive complexity. In [20], several fragments with
+horizontal axes are treated. The only fragment with data tests and negation studied there
+is incomparable with the forward fragment, and it is shown to be undecidable. In [18] it
+is shown that the vertical fragment of XPath is decidable in non-primitive-recursive time.
+This is the fragment with both downward andupward axes, but notably no horizontal axes
+(in fact, adding horizontal axes to the vertical fragment results in undecidability).
+The satisability of rst-order logic with two variables and data equality tests is ex-
+plored in [5]. It is shown that FO2with local one-step relations to move around the data tree
+and a data equality test relation is decidable. [5] also shows the decidability of a fragment
+ofXPath (";#; ;!;=) with sibling and upward axes. However, the logic is restricted to
+one-step axes and to data formul of the kind h"=i(or6=), while the fragment we treat
+here cannot move upwards but has transitive axes and unrestricted data tests.
+2.Preliminaries
+Notation. We rst x some basic notation. Let }(C) denote the set of subsets of C, and
+}<1(C) be the set of nite subsets ofC. LetN=f1;2;:::gbe the set of positive integers,
+and let [n]:=fij1ingfor anyn2N. We call N0=N[f0g. We x once and
+for all Dto be any innite domain of data values; for simplicity in our examples we will
+consider D=N0. In general we use letters A,Bfor nite alphabets, the letter Dfor an
+innite alphabet and the letters EandFfor any kind of alphabet. By Ewe denote the set
+of nite sequences over Eand by E!the set of innite sequences over E. We use `' as the
+concatenation operator between sequences. We write jSjto denote the length of S(ifSis
+a sequence), or the cardinality of S(ifSis a set).
+
+--- Page 6 ---
+6 D. FIGUEIRA
+2.1.Finite words. We consider a nite word over Eas a function w: [n]!Efor some
+n2N, and we dene the set of words as Words (E):=f[n]!Ejn2Ng. We write
+pos(w) =f1;:::;ngto denote the set of positions (that is, the domain of w), and we
+dene the size of wasjwj=n. Given w2Words (E) and w02Words (F) with pos(w) =
+pos(w0) =P, we write w
+w02Words (EF) for the word such that pos(w
+w0) =Pand
+(w
+w0)(x) = (w(x);w0(x)). A data word is a word of Words (AD), where Ais a nite
+alphabet of letters and Dis an innite domain. Note that we dene data words as having
+at least one position. This is done for simplicity of the denition of the formalisms we work
+with, and the results contained here also extend to possibly-empty data words and trees.
+We dene the word type as a function typew:pos(w)!fB;Bgthat species whether a
+position has a next element or not. That is, typew(i) =Biff (i+ 1)2pos(w).
+2.2.Unranked ordered nite trees. We dene Trees (E), the set of nite, ordered and
+unranked trees over an alphabet E. Aposition in the context of a tree is an element of
+N. The root's position is the empty string and we note it ` '. The position of any other
+node in the tree is the concatenation of the position of its parent and the node's index in
+the ordered list of siblings. Along this work we use x;y;z;w;v as variables for positions,
+whilei;j;k;l;m;n as variables for numbers. Thus, for example xiis a position which is
+not the root, and that has xas parent position, and there are i1 siblings to the left of
+xi.
+Formally, we dene POS}<1(N) the set of sets of nite tree positions, such that:
+X2POS iff (a)XN;jXj<1; (b) it is prex-closed; and (c) if n(i+ 1)2Xfori2N,
+thenni2X. A tree is a mapping from a set of positions to letters of the alphabet
+Trees (E):=ft:P!EjP2POSg:
+Given a tree t2Trees (E),pos(t) denotes the domain of t, which consists of the set of
+positions of the tree, and alph(t) =Edenotes the alphabet of the tree. From now on, we
+informally write `node' to denote a position xtogether with the value t(x). We dene the
+ancestor partial orderas the prex relation xxyfor everyxy, and the strict version
+as the strict prex relation xxyforjyj>0. Given a tree tandx2pos(t), `tjx'
+denotes the subtree of tat position x. That is, tjx:fyjxy2pos(t)g! alph(t) where
+tjx(y) =t(xy). In the context of a tree t, asiblinghood is a maximal sequence of siblings.
+That is, a sequence of positions x1;:::;xl2pos(t) such that x(l+ 1)62pos(t).
+Given two trees t12Trees (E),t22Trees (F) such that pos(t1) = pos(t2) =P, we
+dene t1
+t2:P!(EF) as (t1
+t2)(x) = (t1(x);t2(x)).
+The set of data trees over a nite alphabet Aand an innite domain Dis dened
+asTrees (AD). Note that every tree t2Trees (AD) can be decomposed into two trees
+a2Trees (A) and d2Trees (D) such that t=a
+d. Figure 1 shows an example of a data
+tree. We dene the tree type as a function typet:pos(t)!fO;OgfB;Bgthat species
+whether a node has children and/or siblings to the right. That is, typet(x):= (a;b) where
+a=Oiffx12pos(t), and where b=Biffx=x0iandx0(i+ 1)2pos(t). The notation
+for the set of data values used in a data tree is
+data(a
+d):=fd(x)jx2pos(d)g:
+We abuse notation and write data(X) to refer to all the elements of Dcontained in X, for
+whatever object Xmay be.
+
+--- Page 7 ---
+Alternating register automata on nite data words and trees 7
+a, 2a, 2b, 2b, 9b, 5b, 3a, 2b, 1b, 2
+Figure 1: A data tree.
+First-child and next-sibling coding. We will make use of the rst-child and next-sibling
+underlying binary tree of an unranked tree t. This is the binary tree whose nodes are the
+same as in t, a nodexis the left child of yifxis the leftmost child of yint, and a node x
+is the right child of yifxis the next sibling to the right of yint. We will sometimes refer
+to this tree by \the fcns coding of t". Let us dene the relation between positions fcns
+such thatxfcnsyifxis the ancestor of yin the rst-child and next-sibling coding of the
+tree, that is, if yis reachable from xby traversing the tree through the operations `go to
+the leftmost child' and `go to the next sibling to the right'.
+2.3.Properties of languages. We use the standard denition of language . Given an
+automaton Aover data words (resp. over data trees), let L(A) denote the set of data words
+(resp. data trees) that have an accepting run on A. We say thatL(A) is the language of
+words (resp. trees) recognized by A. We extend this denition to a class of automata A:
+L(A) =fL(A)jA2Ag, obtaining a class of languages.
+Equivalently, given a formula 'of a logic Lover data words (resp. data trees) we
+denote byL(') the set of words (resp. trees) veried by '. This is also extended to a logic
+L(L) =fL(')j'2Lg.
+We say that a class of automata (resp. a logic) Aisat least as expressive as another
+class (resp. logic) BiffL(B)L(A). If additionally L(B)6=L(A) we say that Ais
+more expressive thanB.
+We say that a class of automata Acaptures a logic Liff there exists a translation
+t:L!Asuch that for every '2Land model ( i.e., a data tree or a data word) m, we
+have that mj='if and only if m2L(t(')).
+2.4.Well-structured transition systems. The main argument for the decidability of
+the emptiness of the automata models studied here is based on the theory of well-quasi-
+orderings. We interpret the automaton's run as a transition system with some good proper-
+ties, and this allows us to obtain an eective procedure for the emptiness problem. This is
+known in the literature as a well-structured transition system (WSTS) (see [19, 1]). Next,
+we reproduce some standard denitions and known results that we will make use of.
+Denition 2.1. For a setS, we dene ( S;) to be a well-quasi-order (wqo) iff `'SS
+is a relation that is reexive, transitive and for every innite sequence w1;w2;:::2S!there
+are two indices i<j such thatwiwj.
+Dickson's Lemma ([10]).LetkNk
+0Nk
+0such that (x1;:::;xk)k(y1;:::;yk)iff
+xiyifor alli2[k]. For allk2N0,(Nk
+0;k)is a well-quasi-order.
+
+--- Page 8 ---
+8 D. FIGUEIRA
+Denition 2.2. Given a quasi-order ( S;) we dene the embedding order as the relation
+vSSsuch thatx1xnvy1ymiff there exist 1i1<< inmwith
+xjyijfor allj2[n].
+Higman's Lemma ([22]).Let(S;)be a well-quasi-order. Let v SSbe the
+embedding order over (S;). Then, (S;v)is a well-quasi-order.
+Corollary 2.3 (of Higman's Lemma) .LetSbe a nite alphabet. Letvbe the subword
+relation over SS(i.e.,xvyifxis the result of removing some (possibly none) positions
+fromy). Then, (S;v)is a well-quasi-order.
+Proof. It suces to realize that vis indeed the embedding order over ( S;=), which is
+trivially a wqosinceSis nite.
+Denition 2.4. Given a transition system ( S;!), andTSwe deneSucc (T):=fa02
+Sj9a2Twitha!a0g, andSuccto its reexive-transitive closure. Given a wqo(S;)
+andTS, we dene the upward closure ofTas"T:=faj9a02T;a0ag, and the
+downward closure as#T:=faj9a02T;aa0g. We say that Tisdownward-closed
+(resp. upward-closed ) iff#T=T(resp."T=T).
+Denition 2.5. We say that a transition system ( S;!) isnitely branching iffSucc (fag)
+is nite for all a2S. IfSucc (fag) is also computable for all a, we say that ( S;!) is
+eective .
+Denition 2.6 (rdc).A transition system ( S;!) isreexive downward compatible
+(orrdcfor short) with respect to a wqo(S;) iff for every a1;a2;a0
+12Ssuch thata0
+1a1
+anda1!a2, there exists a0
+22Ssuch thata0
+2a2and eithera0
+1!a0
+2ora0
+1=a0
+2.
+Our forthcoming decidability results on alternating register automata of Sections 3.2
+and 5.1 will be shown as a consequence of the following propositions.
+Proposition 2.7 ([19, Proposition 5.4]) .If(S;)is a wqo and(S;!)a transition system
+such that (1) it is rdc, (2) it is eective, and (3) is decidable; then for any nite TS
+it is possible to compute a nite set USsuch that"U="Succ(T).
+Lemma 2.8. Given (S;;!)as in Proposition 2.7, a recursive downward-closed set VS,
+and a nite set TS. The problem of whether there exists a2Tandb2Vsuch that
+a!bis decidable.
+Proof. Applying Proposition 2.7, let USnite, with"U="Succ(T). SinceTis nite
+andVis recursive, we can test for every element of b2Uifb2V. On the one hand, if
+there is one such b, then by denition b2"Succ(T), or in other words a!a0bfor
+somea2T,a02Succ(a). But since Vis downward-closed, a02Vand hence the property
+is true. On the other hand, if there is no such binU, it means that there is no such bin
+"Ueither, asVis downward-closed. This means that there is no such binSucc(T) and
+hence that the property is false.
+Denition 2.9 (}).Given an ordering ( S;), we dene the majoring ordering over
+as (}<1(S);}), whereS}S0iff for every a2Sthere isb2S0such thatab.
+Proposition 2.10. If(S;)is a wqo, then the majoring order over (S;)is a wqo.
+
+--- Page 9 ---
+Alternating register automata on nite data words and trees 9
+Proof. The fact that this order is reexive and transitive is immediate from the fact that 
+is a quasi-order. The fact of being a well-quasi-order is a simple consequence of Higman's
+Lemma. Each nite set fa1;:::;angcan be seen as a sequence of elements a1;:::;an, in any
+order. In this context, the embedding order is stricter than the majoring order. In other
+words, ifa1;:::;anva0
+1;:::;a0
+m, thenfa1;:::;ang}fa0
+1;:::;a0
+mg. By Higman's Lemma
+the embedding order over ( S;) is a wqo, implying that the majoring order is as well.
+The following technical Proposition will become useful in Section 5.1 for transferring
+the decidability results obtained for class of automata ARA(guess;spread ) on data words to
+the class ATRA (guess;spread ) on data trees.
+Proposition 2.11. Let;!1SS,};!2}<1(S)}<1(S)where}is
+themajoring order over (S;)and!2is such that ifS ! 2S0then:S=fag[^S,
+S0=fb1;:::;bmg[^Switha!1bifor everyi2[m]. Suppose that (S;)is a wqo which is
+rdcwith respect to!1. Then, (}<1(S);})is a wqo which is rdcwith respect to!2.
+Proof. The fact that ( }<1(S);}) is a wqois given by Proposition 2.10. The rdcproperty
+with respect to!2is simple. Let
+fa0
+1;:::;a0
+`g[S0}fag[S ! 2fb1;:::;bmg[S
+with`0 andS0}S,a0
+iafor alli2[`], anda!1bifor alli2[m]. We show by
+induction on `that there existsS00withfa0
+1;:::;a0
+`g[S0!
+2S00andS00}fb1;:::;bmg[S.
+If`= 0 andahas no pre-image, then S0}S, and the relation is reexive compatible since
+this means thatS0}fb1;:::;bmg[S .
+Suppose now that ` >0. Note that a0
+`aandisrdcwith!1. One possibility is
+that for each a!1bithere is some b0
+isuch thata0
+`!1b0
+iandb0
+ibi. In this case we obtain
+fa0
+1;:::;a0
+`g[S0!2fa0
+1;:::;a0
+`1g [ fb0
+1;:::;b0
+mg[S0
+where
+fa0
+1;:::;a0
+`1g [ (fb0
+1;:::;b0
+mg[S0)}fag [ (fb1;:::;bmg[S )!2fb1;:::;bmg[S
+andfb0
+1;:::;b0
+mg[S0}fb1;:::;bmg[S. We can then apply the inductive hypothesis on `1
+and obtainS00such thatfa0
+1;:::;a0
+`1g[fb0
+1;:::;b0
+mg[S0!
+2S00andS00}fb1;:::;bmg[S.
+Hence,fa0
+1;:::;a0
+`g[S0!
+2S00, obtaining the downward compatibility.
+The only case left to analyze is when, for some a0
+`a!1bithe compatibility is
+reexive, that is, a0
+`bi. In this case we take a reexive compatibility as well, since fa0
+`g[
+S0}fb1;:::;bmg[S. We then apply the inductive hypothesis on fa0
+1;:::;a0
+`1g[fa0
+`g[S0
+in the same way as before.
+Part 1.Data words
+In this rst part, we start our study on data words. In Section 3 we introduce our automata
+model ARA(guess;spread ), and we show that the emptiness problem for these automata
+is decidable. This extends the results of [8]. To prove decidability, we adopt a dierent
+approach than the one of [8] that enables us to show the decidability of some extensions,
+and to simplify the decidability proofs of Part 2, which can be seen as a corollary of this
+proof. In Section 4 we introduce a temporal logic with registers and quantication over
+
+--- Page 10 ---
+10 D. FIGUEIRA
+data values. This logic is shown to have a decidable satisability problem by a reduction
+to the emptiness problem of ARA(guess;spread ) automata.
+3.ARA model
+AnAlternating Register Automaton (ARA) consists in a one-way automaton on data
+words with alternation and oneregister to store and test data. In [8] it was shown that the
+emptiness problem is decidable and non-primitive-recursive. Here, we consider an extension
+ofARA with two operators: spread and guess . We call this model ARA(spread;guess ).
+Denition 3.1. An alternating register automaton of ARA(spread;guess ) is a tuple A=
+hA;Q;qI;isuch that
+Ais a nite alphabet;
+Qis a nite set of states;
+qI2Qis the initial state; and
+:Q! is the transition function, where  is dened by the grammar
+ajaj ?jstore(q)jeqjeqjq^q0jq_q0jBqjguess (q)jspread (q;q0)
+wherea2A;q;q02Q;2fB;Bg.
+This formalism without the guess and spread transitions is equivalent to the automata model
+of [8] on nite data words, where Bis to move to the next position to the right on the data
+word, store(q) stores the current datum in the register and eq(resp. eq) tests that the
+current node's value is (resp. is not) equal to the stored. We call a state q2Qmoving if
+(q) =Bq0for someq02Q.
+As this automaton is one-way, we dene its semantics as a set of `threads' for each
+node that progress synchronously. That is, all threads at a node move one step forward
+simultaneously and then perform some non-moving transitions independently. This is done
+for the sake of simplicity of the formalism, which simplies both the presentation and the
+decidability proof.
+Next we dene a conguration and then we give a notion of a runover a data word w.
+Aconguration is a tuplehi;;; ithat describes the partial state of the execution at
+positioni. The number i2pos(w) is the position in the data word w,=w(i)2ADis
+the current position's letter and datum, and =typew(i) is the word type of the position
+i. Finally, 2}<1(QD) is a nite set of active threads , each thread ( q;d) consisting
+in a stateqand the value dstored in the register. We will always note the set of threads
+of a conguration with the symbol , and we write ( d) =fq2Qj(q;d)2gfor
+d2D, (q) =fd2Dj(q;d)2gforq2Q. ByCarawe denote the set of all
+congurations. Given a set of threads  we write data() :=fdj(q;d)2g, and
+data(hi;;(a;d);i):=fdg[data(). We say that a conguration is moving if for every
+(q;d)2,qis moving.
+To dene a run we rst introduce three transition relations over node congurations : the
+non-moving relation!"and the moving relation!B. We start with!". If the transition
+corresponding to a thread is a store(q), the automaton setsthe register with current data
+value and continues the execution of the thread with state q; if it is eq, the thread accepts
+(and in this case disappears from the conguration) if the current datum is equal to that
+of the register, otherwise the computation for that thread cannot continue. The reader can
+
+--- Page 11 ---
+Alternating register automata on nite data words and trees 11
+!"hi;;(a;d);f(qj;d0)g[i if(q) =q1_q2;j2f1;2g (3.1)
+!"hi;;(a;d);f(q1;d0);(q2;d0)g[i if(q) =q1^q2 (3.2)
+!"hi;;(a;d);f(q0;d)g[i if(q) =store(q0) (3.3)
+!"hi;;(a;d);i if(q) =eqandd=d0(3.4)
+!"hi;;(a;d);i if(q) =eqandd6=d0(3.5)
+!"hi;;(a;d);i if(q) =? and2 (3.6)
+!"hi;;(a;d);i if(q) =bandb=a (3.7)
+!"hi;;(a;d);i if(q) =bandb6=a (3.8)
+Figure 2: Denition of the transition relation !" C araCara, given a conguration
+=hi;;(a;d);f(q;d0)g[i.
+check that the rest of the cases dened in Figure 2 follow the intuition of an alternating
+automaton.
+The cases that follow correspond to our extensions to the model of [8]. The guess
+instruction extends the model with the ability of storing anydatum from the domain D.
+Whenever(q) =guess (q0) is executed, a data value (nondeterministically chosen) is saved
+in the register.
+!"hi;;(a;d);f(q0;e)g[iif(q) =guess (q0);e2D (3.9)
+Note that the store instruction may be simulated with the guess ,eqand^instructions,
+while guess cannot be expressed by the ARA model.
+The ` spread ' instruction is an unconventional operator in the sense that it depends
+on the data of allthreads in the current conguration with a certain state. Whenever
+(q) = spread (q2;q1) is executed, a new thread with state q1and datum dis created for
+each threadhq2;dipresent in the conguration. With this operator we can code a universal
+quantication over all the data values that appeared so far ( i.e., that appeared in smaller
+positions). We demand that this transition may only be applied if all other possible !"
+kind of transitions were already executed. In other words, only spread transitions or moving
+transitions are present in the conguration.
+!"hi;;(a;d);fhq1;dijhq2;di2g[i (3.10)
+iff(q) =spread (q2;q1) and for allh~q;~di2 either(~q) is a spread or a moving instruction.
+We also use a weaker one-argument version of spread .
+!"hi;;(a;d);fhq1;dij9q2:hq2;di2g[i (3.11)
+iff(q) = spread (q1) and for allh~q;~di2 either(~q) is a spread or a moving instruction.
+Notice that the one-argument version of spread can be simulated with the two-argument
+version, and hence we do not include it in the denition of the automaton. Also, note
+that we enforce the spread operation to be executed once all other non-moving transitions
+have been applied, in order to take into account all the data values that may have been
+introduced in these transitions, as a result of guess operations. This behavior simplies the
+reduction from the satisability of forward- XPath we will show later. This reduction will
+only need to use the weak one-argument version of spread .
+
+--- Page 12 ---
+12 D. FIGUEIRA
+The!Btransition advances all threads of the node simultaneously, and is dened, for
+any type02fB;Bgand symbol and with data value 02AD,
+hi;B;;i!Bhi+ 1;0;0;Bi (3.12)
+iff
+(i) for all (q;d)2,(q) is moving; and
+(ii) B=fhq0;dij(q;d)2;(q) =Bq0g.
+Finally, we dene the transition between congurations as :=!B[!".
+Arunover a data word w=a
+dis a nonempty sequence C1Cnwith
+C1=h1;0;0;0iand  0=fhqI;d(1)ig(i.e., the thread consisting in the initial state
+with the rst datum), such that for every j2[n] with Cj=hi;;; i: (1)i2pos(w);
+(2)=w(i); and (3)=typew(i). We say that the run is accepting iffCn=hi;;;;i
+contains an empty set of threads. If for an automaton Awe have thatL(A)6=;we say
+thatAisnonempty .
+3.1.Properties. We show the following two statements
+L(ARA(guess;spread )) is not closed under complementation,
+theARA(guess;spread ) class is more expressive than ARA.
+In fact in the proof below we show the rst one, that implies the second one, given the fact
+that the ARA model is closed under complementation.
+Proposition 3.2 (Expressive power) .
+(a)theARA(guess )class is more expressive than ARA ;
+(b)theARA(spread )class is more expressive than ARA .
+Proof. Letw=a
+dbe a data word. To prove (a), consider the property \ There exists
+a datumdand a position iwith d(i) =d,a(i) =a, and there is no position ji
+with d(j) =d,a(j) =b.". This property can be easily expressed by ARA(guess ). It
+suces to guess the data value dand checks that we can reach an element ( a;d), and
+that for every previous element ( b;d0) we have that d6=d0. We argue that this property
+cannot be expressed by the ARA model. Suppose ad absurdum that it is expressible. This
+means that its negation would also be expressible by ARA (since they are closed under
+complementation). The negation of this property states
+\For every data value d, if there is an element (a;d)
+in the word, then there is a previous element (b;d)."(P1)
+With this kind of property one can code an accepting run of a Minsky machine, whose
+emptiness problem is undecidable. This would prove that ARA(guess ) have an undecidable
+emptiness problem, which is in contradiction with the decidability proof that we will give
+in Section 3.2. Let us see how the reduction works.
+The emptiness problem for Minsky machine is known to be undecidable even with an
+alphabet consisting of one symbol, so we disregard the letters read by the automaton in
+the following description. Consider then a 2-counter alphabet-blind Minsky machine whose
+instructions are of the form ( q;`;q0) with`2finc;dec;ifzerogf 1;2gbeing the operation
+over the counters, and q;q0states from the automaton's set of states Q. A run on this
+automaton is a sequence of applications of transition rules, for example
+(q1;inc1;q2) (q2;inc2;q3) (q3;inc1;q2) (q2;dec1;q1) (q1;dec1;q2) (q2;ifzero 1;q3)
+
+--- Page 13 ---
+Alternating register automata on nite data words and trees 13
+abaaaa≠
+Figure 3: A property not expressible in ARA.
+This run has an associated data word over the alphabet
+Qfinc;dec;ifzerogf 1;2gQ;
+where the corresponding data value of each instruction is used to match increments with
+decrements, for example,
+(q1;inc1;q2) (q2;inc2;q3) (q3;inc1;q2) (q2;dec1;q1) (q1;dec1;q2) (q2;ifzero 1;q3).
+1 2 3 2 1 4
+Using the ARA model we can make sure that (i) all increments have dierent data
+values and all decrements have dierent data values; and (ii) for every ( ;inci;) element
+with data value dthat occurs to the left of a ( ;ifzeroi;), there must be a ( ;deci;) element
+with data value dthat occurs in between. [8] shows how to express these properties using
+ARA. However, properties (i) and (ii) are not enough to make sure that every prex of the
+run ending in a ifzeroiinstruction must have as many increments as decrements of counter
+i. Indeed, there could be more decrements than increments | but not the opposite, thanks
+to (ii).
+The missing condition to verify that the run is correct is: (iii) for every decrement there
+exists a previous increment with the same data value. In fact, we can see that property (P1)
+can express condition (iii): we only need to change aby a decrement transition in the
+coding, and bby an increment transition of the same counter. But then, assuming that
+property (P1) can be expressed by ARA(guess ), the emptiness problem for ARA(guess ) is
+undecidable. This is absurd, as the emptiness problem is decidable, as we will show later
+on in Theorem 3.5.
+Using a similar reasoning as before, we show (b): the ARA(spread ) class is more ex-
+pressive than ARA. Consider the property: \ There exists a position ilabeledbsuch that
+d(i)6=d(j)for allj <i witha(j) =a." as depicted in Figure 3. Let us see how this can be
+coded into ARA(spread ). Assuming q0is the initial state, the transitions should reect that
+every datum with label aseen along the run is saved with a state qa, and that this state is
+in charge of propagating this datum. Then, we guess a position labeled with band check
+that all these stored values under qaare dierent from the current one. For succinctness we
+write the transitions as positive boolean combinations of the basic operations.
+(q0) = (b^spread (qa;q1))_
+(a_store(qa))^Bq0
+;
+(q1) =eq;  (qa) = ( B?_Bqa):
+This property cannot be expressed by the ARA model. Were it expressible, then its negation
+\for every element bthere exists a previous one
+labeledawith the same data value "(P2)
+would also be. Just as before we can use property (P2) to express condition (iii), and force
+that for every decrement in a coding of a Minsky machine there exists a corresponding
+previous increment. This leads to a contradiction by proving that the emptiness problem
+forARA(spread ) is undecidable.
+
+--- Page 14 ---
+14 D. FIGUEIRA
+Corollary 3.3. ARA(guess ),ARA(spread )and ARA(guess;spread )are not closed under com-
+plementation.
+Proof. If they were closed under complementation, then we could express some of the prop-
+erties described in the proof of Proposition 3.2, resulting in an undecidable model, which is
+in contradiction with Theorem 3.5.
+We then have the following properties of the automata model.
+Proposition 3.4 (Boolean operations) .The classL(ARA(spread;guess ))has the following
+properties:
+(i)it is closed under union,
+(ii)it is closed under intersection,
+(iii) it is not closed under complementation.
+Proof sketch. Items (i) and (ii) are straightforward if we notice that the rst argument of
+spread ensures that this transition is always relative to the states of one of the automata
+being under intersection or union. Item (iii) follows from Corollary 3.3.
+3.2.Emptiness problem. This section is dedicated to show the following theorem.
+Theorem 3.5. The emptiness problem for ARA(guess;spread )is decidable.
+As already mentioned, decidability for ARA was proved in [8]. Here we propose an
+alternative approach that simplies the proof of decidability of the two extensions spread
+and guess .
+The proof goes as follows. We will dene a wqo-overCaraand show that (Cara;-) is
+rdcwith respect to(Lemma 3.10). Note that strictly speaking is an innite-branching
+transition system as !Bmay take anyvalue from the innite set D, and!"can also guess
+any value. However, it can trivially be restricted to an eective nitely branching one.
+Then, by Lemma 2.8, ( Cara;) has a computable upward-closed reachability set, and this
+implies that the emptiness problem of ARA(guess;spread ) is decidable.
+Since our model of automata only cares about equality or inequality of data values, it
+is convenient to work modulo renaming of data values.
+Denition 3.6 ().We say that two congurations ;02Caraareequivalent (notation
+0) if there is a bijection f:data()!data(0) such that f() =0, wheref() stands
+for the replacement of every data value dbyf(d) in.
+Denition 3.7 ().We rst dene the relation ( Cara;) such that
+hi;;; i  hi0;0;0;0i
+iff=0,=0, and 0.
+Notice that by the denition above we are `abstracting away' the information concerning
+the position i. We nally dene -to bemodulo.
+Denition 3.8 (-).We dene-0iff there is000with0.
+The following lemma follows from the denitions.
+Lemma 3.9. (Cara;-)is a well-quasi-order.
+
+--- Page 15 ---
+Alternating register automata on nite data words and trees 15
+Proof. The fact that-is aquasi-order (i.e., reexive and transitive) is immediate from its
+denition. To show that it is a well-quasi-order, suppose we have an innite sequence of
+congurations 123. It is easy to see that it contains an innite subsequence 123
+such that all its elements are of the form hi;0;(a0;d);iwith
+0anda0xed, and
+(d) =C0xed,
+This is because we can see each of these elements as a nite coloring , and apply the pigeon-
+hole principle on the innite set figi.
+Consider then the function g:}(Q)!N0, such that g(S) =jfdjS= (d)gj
+(we can think of gas a tuple of ( N0)}(Q)). Assume the relation -ydened as -y0
+iffg(S)g0(S) for allS. By Dickson's Lemma -yis a wqo, and then there are two
+i=hi0;0;(a0;di);ii,j=hj0;0;(a0;dj);ji,i < j such that  i-yj. For each
+SQ, there exists an injective mapping fS:fdji(d) =Sg!fdjj(d) =Sgsuch
+thatfS(di) =dj, as the latter set is bigger than the former by -y. We dene the injection
+f:data(i)!data(j) as the (disjoint) union of all fS's. The union is disjoint since for
+every data value dand set of threads , there is a unique set Ssuch thatd2g(S). We
+then have that if(i)j. Hence,i-j.
+The core of this proof is centered in the following lemma.
+Lemma 3.10. (Cara;)isrdcwith respect to (Cara;-).
+Proof. We shall show that for all ;;02Carasuch thatand0-, there is0
+such that0-and either00or0=0. Since by denition of -we work modulo
+, we can further assume that 0without any loss of generality. The proof is a simple
+case analysis of the denitions for . All cases are treated alike, here we present the most
+representative. Suppose rst that !", then one of the denition conditions of !"must
+apply.
+If Eq. (3.4) of the denition of !"(Fig. 2) applies, let
+=hi;;(a;d);f(q;d)g[i!"=hi;;(a;d);i
+with(q) = eq. Let0=hi0;;(a;d);0i. If (q;d)20, we can then apply the same
+!"-transition obtaining 0!"0. If there is no such ( q;d), we can safely take
+0=0and check that 0.
+If Eq. (3.3) applies, let
+=hi;;(a;d);f(q;d0)g[i!"=hi;;(a;d);f(q0;d)g[i
+with!"and(q) =store(q0). Again let 0containing ( q;d0)20. In this case we
+can apply the same !"-transition arriving to 0where0. Otherwise, if ( q;d0)620, we
+take0=0and then0.
+If a guess is performed (Eq. (3.9)), let
+=hi;;(a;d);f(q;d0)g[i!"=hi;;(a;d);f(q0;e)g[i
+with(q) = guess (q0). Let0=hi0;;(a;d);0i. Suppose there is ( q;d0)20, then
+we then take a guess transition from 0obtaining some 0by guessing eand hence0.
+Otherwise, if ( q;d0)620, we take0=0and check that 0.
+Finally, if a spread is performed (Eq. (3.10)), let
+=hi;;;f(q;d0)g[i!"=hi;;;f(q1;d)j(q2;d)2g[i
+
+--- Page 16 ---
+16 D. FIGUEIRA
+with(q) = spread (q2;q1). Let0=hi0;;; 0iand suppose there is ( q;d0)20
+(otherwise0=0works). We then take a spread instruction 0!"0and see that 0,
+because any ( q1;e) in0generated by the spread must come from ( q2;e) of0, and hence
+there is some ( q2;e) in; now by the spread applied on , (q1;d0) is in.
+The remaining cases of !"are only easier.
+Finally, there can be a `moving' application of . Suppose that we have
+=hi;B;(a;d);i!B=hi+ 1;1;(a1;d1);1i:
+Let0=hi0;B;(a;d);0i. If0is such that 0, the relation is trivially compatible.
+Otherwise, we shall prove that there is 0such that00and0-. Condition i of
+!B(i.e., that all states are moving) holds for 0, because all the states present in 0are
+also in(by denition of) where the condition must hold. Then, we can apply the !B
+transition to 0and obtain 0of the formhi0+ 1;1;(a1;d1);0
+1i. Notice that we are taking
+1,a1andd1exactly as in , and that 0
+1is completely determined by the !Btransition
+from 0. We only need to check that 0. Take any ( q;d0)20
+1. There must be some
+(q0;d0)20with(q0) =Bq. Since 0, we also have ( q;d)21. Hence, 0
+11and
+then0.
+We just showed that ( Cara;) is rdcwith respect to ( Cara;-). The only missing
+ingredient to have decidability is the following, which is trivial.
+Lemma 3.11. The set of accepting congurations of Carais downward closed with respect
+to-.
+We writeCara=to the set of congurations modulo , by keeping one representative
+for every equivalence class. Note that the transition system ( Cara=;) is eective. This is
+just a consequence of the fact that the -image of any conguration has only a nite number
+of congurations modulo , and representatives for every class are computable. Hence,
+we have that (Cara=;-;) verify conditions (1) and (2) from Proposition 2.7. Finally,
+condition (3) holds since ( Cara;-) is computable. We can then apply Lemma 2.8, obtaining
+that for a given A2ARA(guess;spread ), testing wether there exists a nal conguration 
+and an element in
+fh1;;(a;d0);f(qI;d0)gij2fB;Bg;a2Ag
+|for any xed d0| such that 0(for some0) is decidable. Thus, we can decide
+the emptiness problem and Theorem 3.5 follows.
+3.3.Ordered data. We show here that the previous decidability result holds even if we
+add order to the data domain. Let ( D;<) be a linear order, like for example the reals or
+the natural numbers with the standard ordering. Let us replace the instructions eqand eq
+with
+(q):=:::jtest(>)jtest(<)jtest(=)jtest(6=)
+and let us call this model of automata ARA(guess;spread;<). The semantics is as expected.
+test(<) veries that the data value of the current position is less than the data value in the
+register, test(>) that is greater, and test(=) (resp. test(6=)) that both are (resp. are not)
+
+--- Page 17 ---
+Alternating register automata on nite data words and trees 17
+equal. We modify accordingly !", for=hi;;(a;d);f(q;d0)g[i.
+!"hi;;(a;d);iif(q) =test(<) andd<d0(3.13)
+!"hi;;(a;d);iif(q) =test(>) andd>d0(3.14)
+!"hi;;(a;d);iif(q) =test(=) andd=d0(3.15)
+!"hi;;(a;d);iif(q) =test(6=) andd6=d0(3.16)
+All the remaining denitions are preserved. We can show that the emptiness problem for
+this extended model of automata is still decidable.
+Theorem 3.12. The emptiness problem for ARA(guess;spread;<)is decidable.
+As in the proof in the previous Section 3.2, we show that there is a wqo< <CaraCara
+that is rdcwith respect to, such that the set of nal states is < <-downward closed.
+However, we need to be more careful when showing that we can always work modulo an
+equivalence relation.
+Denition 3.13. A function fis an order-preserving bijection onDDiff it is a
+bijection on D, and furthermore for every fd;d0gD, ifd<d0thenf(d)<f(d0).
+The following Lemma is straightforward from the denition just seen.
+Lemma 3.14. LetDD,jDj<1. There exists an order-preserving bijection fonD
+such that
+for everyfd;d0gDsuch thatd<d0there exists ~dsuch thatf(d)<~d<f (d0),
+for everyd2Dthere exists ~dsuch thatf(d)<~d, and there exists ~dsuch that ~d<f (d).
+Denition 3.15 (ord).Let;0be two congurations. We dene ord0ifff() =0
+for some order-preserving bijection fondata().
+Remark 3.16.If0then there exists ^d2Dsuch thatf^dg[data()data(0). This is
+a simple consequence of the denition of .
+Let us dene a version of that works modulo ord, and let us call it ord.
+Denition 3.17. Let1;2be two congurations. We dene 1ord2iff0
+10
+2for
+some0
+1ord1and0
+2ord2.
+In the previous section, when we had that was simply a bijection and we could not
+test any linear order <, it was clear that we could work modulo . However, here we are
+working modulo a more complex relation ord. In the next lemma we show that working
+withor working withordis equivalent.
+Lemma 3.18. If1ordordn, then0
+10
+n, with0
+iordifor everyi.
+Proof. The casen= 1 is trivial. Otherwise, if n>1, we have 1ordordn1ord
+n. Then, by inductive hypothesis, we obtain 0
+10
+n1and00
+n100
+nwith
+0
+iordifor everyi2f1;:::;n1g, and00
+jordjfor everyj2fn1;ng. Letgbe the
+witnessing bijection such that g(00
+n1) =0
+n1, and let us assume that f^dg[data(00
+n1)
+data(00
+n) by Remark 3.16.
+Letfbe an order-preserving bijection onS
+in1data(0
+i) as in Lemma 3.14. We can
+then pick a data value ~dsuch that
+for everyd>^dwithd2data(00
+n1),f(g(d))>~d, and
+
+--- Page 18 ---
+18 D. FIGUEIRA
+for everyd<^dwithd2data(00
+n1),f(g(d))<~d.
+Leth:= (gf)[^d7!~d]. We then have
+h(00
+n1)h(00
+n),
+f(0
+1)f(0
+n1),
+f(0
+n1) =h(00
+n1).
+In other words, f(0
+1)f(0
+n1)h(00
+n), withh(00
+n)ordnandf(0
+i)ordifor
+everyin1.
+Now that we proved that we can work modulo ord, we show that we can decide if
+we can reach an accepting conguration by means of ord, by introducing some suitable
+ordering< <and showing the following lemmas.
+Lemma 3.19. (Cara;< <)is a well-quasi-order.
+Lemma 3.20. (Cara;< <)isrdcwith respect toord.
+Lemma 3.21. The set of accepting congurations of Carais downward closed with respect
+to< <.
+We next dene the order < <and show that the aforementioned lemmas are valid. In
+the same spirit as before, < <is dened asmoduloord.
+Denition 3.22 (< <).1< < 2iff0
+10
+2for some0
+1ord1and0
+2ord2.
+To prove Lemma 3.19, given a conguration =hi0;;(a;d);i, with data() =fd1<
+<dngwe dene
+abs(di) = (dj)[f?jdj=dgQ[f?g
+abs() =abs(d1);:::; abs(dn)2(}(Q[f?g))
+where?62Qis to denote that the data value is the one of the current conguration.
+Proof of Lemma 3.19. This is a consequence of Higman's Lemma stated as in Corollary 2.3.
+As stated above, we can see each conguration = (i;;(a;d);) as a word over ( }(Q[
+f?g)). As shown in Lemma 3.9 if there is an innite sequence, there is an innite sub-
+sequence1;2;:::, with the same type and lettera. Then for the innite sequence
+abs(1);abs(2);:::, Corollary 2.3 tells us that there are i < j such that abs(i) is a sub-
+string of abs(j). This implies that they are in the < <relation.
+Proof of Lemma 3.20. Note that although < <is a more restricted wqo, for all the non-
+moving cases in which the register is not modied (that is, all except guess ,spread , and store),
+the!"transition continues to be rdc. This is because for any  < <!0,=hi;;; i
+and0=hi0;0;0;0iare similar in the following sense. Firstly data() = data(0), and
+moreover the only dierence between and0is that 0is the result of removing some
+thread (q;d) from  and inserting another one ( q0;d) with the same data value d. This
+kind of operation is compatible, since can perform the same operation !"0on the
+data valued0, supposing that d0is the preimage of dgiven by the < <ordering. In this case,
+0< <0. Otherwise, if there is no preimage of d, then < <0. The compatibility of spread
+is shown equivalently.
+Regarding the store instruction, we see that the operation consists in removing some
+(q;d) from  and inserting some ( q0;d0) withd0the datum of the current conguration.
+
+--- Page 19 ---
+Alternating register automata on nite data words and trees 19
+This is downwards compatible since can perform the same operation on the conguration's
+data value, which is necessarily the preimage of d0.
+For the remaining two cases ( guess andB) we rely on the premise that we work modulo
+ord. The idea is that we can always assume that we have enough data values to choose from
+in between the existing ones. That is, for every pair of data values d<d0in a conguration,
+there is always one in between. We can always assume this since otherwise we can apply a
+bijection as the one described by Lemma 3.14 to obtain this property. Thus, at each point
+where we need to guess a data value (as a consequence of a guess (q) or aBqinstruction) we
+will have no problem in performing a symmetric action, preserving the embedding relation.
+More concretely, suppose the execution of a transition (q) = guess (q0) on a thread
+(q;dj) of conguration with data() =fd1<< dngguesses a data value dwith
+di<d<di+1. Then, for any conguration  < < with data() =fe1<<emgand the
+property just described, there must be an order-preserving injection f:data()!data()
+withf(). Ifcontains a thread ( q;ej0) withf(ej0) =djthe operation is simulated by
+guessing a data value esuch thate>e`for alle`such thatf(e`)diande<ekfor allek
+such thatf(ek)>di. Such data value eexists as explained before. The rdccompatibility
+of a(q) =Bq0instruction is shown in an analogous fashion.
+Proof of Lemma 3.21. Given that < <is a subset of-, and that by Lemma 3.11 the set of
+accepting congurations is --downward closed, it follows that this set is also < <-downward
+closed.
+Finally, we should note that ( Cara=ord;ord) is also nitely branching and eective.
+As in the proof of Section 3.2, by Lemmas 3.19, 3.20 and 3.21 we have that all the conditions
+of Proposition 2.7 are met and by Lemma 2.8 we conclude that the emptiness problem for
+ARA(guess;spread;<) is decidable.
+Remark 3.23.Notice that this proof works independently of the particular ordering of
+(D;<). It could be dense or discrete, contain accumulation points, be open or closed, etc.
+In some sense, this automata model is blind to these kind of properties. If there is an
+accepting run on ( D;<) then there is an accepting run on ( D;<0) for any linear order <0.
+Open question 3.24. It is perhaps possible that these results can be extended to prove
+decidability when (D;<)is a tree-like partial order , this time making use of Kruskal's tree
+theorem [25]instead of Higman's Lemma. We leave this issue as an open question.
+Remark 3.25 (constants) .One can also extend this model with a nite number of constants
+fc1;:::;cngD. In this case, we extend the transitions with the possibility of testing that
+the data value stored in the register is (or is not) equal to ci, for every i. In the proof, it
+suces to modify ordto take into account every constant ci. In this case we dene that
+ordifff() =0for some order-preserving bijection fondata()[fc1;:::;cngsuch
+thatf(ci) =cifor everyi. In this case Lemma 3.14 does not hold anymore, as there could be
+nitely many elements in between two constants. This is however an easily surmountable
+obstacle, by adapting Lemma 3.14 to work separately on the n+ 1 intervals dened by
+c1;:::;cn. Suppose c1<< cn. Without any loss of generality we can assume that
+betweenciandci+1there are innitely many data values, or none (we can always add some
+constants to ensure this). Then, for every innite interval [ ci;ci+1], we will have a lemma
+like Lemma 3.14 that we can apply separately.
+
+--- Page 20 ---
+20 D. FIGUEIRA
+3.4.Timed automata. Our investigation on register automata also yields new results on
+the class of timed automata. An alternating 1-clock timed automaton is an automaton that
+runs over timed words . A timed word is a nite sequence of events . Each event carries
+a symbol from a nite alphabet and a timestamp indicating the quantity of time elapsed
+from the rst event of the word. A timed word can hence be seen as a data word over the
+rational numbers, whose data values are strictly increasing. The automaton has alternating
+control and contains one clock to measure the lapse of time between two events (that is,
+the dierence between the data of two positions of the data word). It can reset the clock,
+or test whether the clock contains a number equal, less or greater than a constant, from
+some nite set of constants. For more details on this automaton we refer the reader to [3].
+Register automata over ordered domains have a strong connection with timed automata.
+The work in [16] shows that the problems of nonemptiness, language inclusion, language
+equivalence and universality are equivalent|modulo an ExpTime reduction|for timed au-
+tomata and register automata over a linear order. That is, any of these problems for register
+automata can be reduced to the same problem on timed automata, preserving the number
+of registers equal to the number of clocks, and the mode of computation (nondeterministic,
+alternating). And in turn, any of these problems for timed automata can also be reduced
+to a similar problem on register automata over a linear order. We argue that this is also
+true when the automata are equipped with guess and spread .
+Consider an extension of 1-clock alternating timed automata, with spread and guess ,
+where
+the operator spread (q;q0) works in the same way as for register automata, duplicating all
+threads with state qas threads with state q0, and
+the guess (q) operator resets the clock to any value, non deterministically chosen, and
+continues the execution with state q.
+The coding technique of [16] can be adapted to deal with the guessing of a clock (the spread
+operator being trivially compatible), and one can show the following statement.
+Remark 3.26.The emptiness problem for alternating 1-clock timed automata extended with
+guess and spread reduces to the emptiness problem for the class ARA(guess;spread;<).
+Hence, by Remark 3.26 cum Theorem 3.12 we obtain the following.
+Remark 3.27.The emptiness problem for alternating 1-clock timed automata extended with
+guess and spread is decidable.
+3.5.A note on complexity. Although the ARA(guess;spread ) and ARA(guess;spread;<)
+classes have both non-primitive-recursive complexity, we must remark that the decision pro-
+cedure for the latter has much higher complexity. While the former can be roughly bounded
+by the Ackermann function applied to the number of states, the complexity of the decision
+procedure we give for ARA(guess;spread;<) majorizes every multiply-recursive function (in
+particular, Ackermann's). In some sense this is a consequence of relying on Higman's Lemma
+instead of Dickson's Lemma for the termination arguments of our algorithm.
+More precisely, it can be seen that the emptiness problem for ARA(guess;spread;<)
+sits in the class F!!in the Fast Growing Hierarchy [26]|an extension of the Grzegorczyk
+Hierarchy for non-primitive-recursive functions|by a reduction to the emptiness problem
+
+--- Page 21 ---
+Alternating register automata on nite data words and trees 21
+for timed one clock automata (see x3.4), which are known to be in this class.3However, the
+emptiness problem for ARA(guess;spread ) belongs to F!in the hierarchy. The lower bound
+follows by a reduction from Incrementing Counter Automata [8], which are hard for F!
+[28, 15]. The upper bound is a consequence of using a saturation algorithm with a wqothat
+is the component-wise order of the coordinates of a vector of natural numbers in a controlled
+way. The proof that it belongs to F!goes similarly as for Incrementing Counter Automata
+(see [15,x7.2]). We do not know whether the emptiness problem for ARA(guess;spread;<)
+is also in F!.
+4.LTL with registers
+The logic LTL#(U;X) is a logic for data words that corresponds to the extension of the
+Linear-time Temporal Logic LTL(U;X) on data words, with the ability to use one register
+for storing a data value for later comparisons, studied in [8, 9]. It contains the next ( X)
+and until ( U) temporal operators to navigate the data word, and two extra operators. The
+freeze operator#'permits to store the current datum in the register and continue the
+evaluation of the formula '. The operator"tests whether the current data value is equal
+to the one stored in the register.
+As it was shown in [8], if we allow more than one register to store data values, satis-
+ability of LTL#(U;X) becomes undecidable. We will then focus on the language that uses
+only oneregister. We study an extension of this language with a restricted form of quan-
+tication over data values. We will actually add twosorts of quantication. On the one
+hand, the operators 8#
+and9#
+quantify universally or existentially over all the data values
+occurring before the current point of evaluation. Similarly, 8#
+and9#
+quantify over the
+future elements on the data word. For our convenience and without any loss of generality,
+we will work in Negation Normal Form ( nnf), and we use Uto denote the dual operator of
+U, and similarly for X. Sentences of LTL#
+nnf(U;U;X;X;O), whereOf8#
+;9#
+;8#
+;9#
+gare
+dened as follows,
+'::=aj :aj " j :" j # 'jX'jX'jU(';')jU(';')jop'j'^'j'_'
+whereais a symbol from a nite alphabet A, and op2O. For economy of space we write
+LTL#
+nnf(F;O) to denote this logic. In this notation, Fis to mark that we have all the forward
+modalities: U;U;X;X. Notice that the future modality can be dened F':=U(';>) and
+its dual G'as the nnfof:F:'.
+Figure 4 shows the denition of the satisfaction relation j=. For example, in this logic
+we can express properties like \ for everyaelement there is a future belement with the same
+data value " as G(:a_#(F(b^"))). We say that 'satises w=a
+d, written wj=', if
+w;1j=d(1)'.
+4.1.Satisability problem. This section is dedicated to the satisability problem for
+LTL#
+nnf(F;8#
+;9#
+). But rst let us show that 9#
+and8#
+result in an undecidable logic.
+Theorem 4.1. Let9#
+<be the operator9#
+restricted only to the data values occurring strictly
+before the current point of evaluation. Then, on nite data words:
+3The emptiness problem for timed one clock automata can be at the same time reduced to that of Lossy
+Channel Machines [2], which are known to be `complete' for this class, i.e., inF!!nF<!!(see [6]).
+
+--- Page 22 ---
+22 D. FIGUEIRA
+(w;i)j=daiffa(i) =a
+(w;i)j=d"iffd=d(i)
+(w;i)j=d#'iff ( w;i)j=d(i)'
+(w;i)j=dU('; ) iff for some ij2pos(w) and for all ik<j
+we have ( w;j)j=d'and (w;k)j=d
+(w;i)j=dX'iffi+ 12pos(w) and ( w;i+ 1)j=d'
+(w;i)j=d9#
+'iff there exists ij2pos(w) such that ( w;i)j=d(j)'
+(w;i)j=d8#
+'iff for all 1jiwe have ( w;i)j=d(j)'
+Figure 4: Semantics of LTL#(U;U;X;X;9#
+;8#
+) for a data word w=a
+dandi2pos(w).
+(1)satisability of LTL#
+nnf(F;G;9#
+<)is undecidable; and
+(2)satisability of LTL#
+nnf(F;G;8#
+)is undecidable.
+Proof. We prove (1) and (2) by reduction of the halting problem for Minsky machines.
+We show that these logics can code an accepting run of a 2-counter Minsky machine as in
+Proposition 3.2. Indeed, we show that the same kind of properties are expressible in this
+logic. To prove this, we build upon some previous results [17] showing that LTL#
+nnf(F;G)
+can code conditions (i) and (ii) of the proof of Proposition 3.2. Here we show that both
+LTL#
+nnf(F;G;9#
+<) and LTL#
+nnf(F;G;8#
+) can express condition (iii), ensuring that for every
+decrement ( deci) there is a previous increment ( inci) with the same data value. Let us see
+how to code this.
+(1) The LTL#
+nnf(F;G;9#
+<) formula
+G(deci!9#
+<")
+states that the data value of every decrement must notbe new, and in the context of
+this coding this means that it must have been introduced by an increment instruction.
+(2) The LTL#
+nnf(F;G;8#
+) formula
+8#
+(F(deci^")!F(inci^"))
+evaluated at the rst element of the data word expresses that for every data value:
+if there is a decrement with value d, then there is an increment with value d. It is
+then easy to ensure that they appear in the correct order (rst the increment, then the
+decrement).
+The addition of any of these conditions to the coding of [17] results in a coding of an n-
+counter Minsky machine, whose emptiness problem is undecidable.
+Corollary 4.2. The satisability problem for both LTL#
+nnf(F;9#
+)and LTL#
+nnf(F;8#
+)are
+undecidable.
+Proof. The property of item (1) in the proof of Theorem 4.1 can be equally coded in
+LTL#
+nnf(F;9#
+) as G(X(deci)!9#
+(X")). The undecidability of LTL#
+nnf(F;8#
+) follows di-
+rectly from Theorem 4.1, item (2).
+
+--- Page 23 ---
+Alternating register automata on nite data words and trees 23
+We now turn to our decidability result. We show that LTL#
+nnf(F;8#
+;9#
+) has a decidable
+satisability problem by a translation to ARA(guess;spread ).
+The translation to code LTL#
+nnf(F;8#
+;9#
+) into ARA(guess;spread ) is standard, and fol-
+lows same lines as [8]4(which at the same time follows the translation from LTL#(U;X) to
+alternating nite automata). We then obtain the following result.
+Proposition 4.3. ARA(guess;spread )captures LTL#
+nnf(F;9#
+;8#
+).
+From Proposition 4.3 and Theorem 3.5 it will follow the main result, stated next.
+Theorem 4.4. The satisability problem for LTL#
+nnf(F;9#
+;8#
+)is decidable.
+We now show how to make the translation to ARA(guess;spread ) in order to obtain our
+decidability result.
+Proof of Proposition 4.3. Let2LTL#
+nnf(F;8#
+;9#
+). We show that for every formula 2
+LTL#
+nnf(F;8#
+;9#
+) there exists a computable ARA(spread;guess )Asuch that for every data
+word w,
+wsatisesiffAaccepts w.
+In the construction of A', we rst make sure to maintain all the data values seen so
+far as threads of the conguration. We can do this by having 3 special states q1;q2;qsavein
+A, deningq1as the initial state, and as follows.
+(q1) =store(q2)^q(q2) = ( B?_Bq1)^qsave(qsave) =B?_Bqsave
+Now we can assume that at any point of the run, we maintain the data values of all
+the previous elements of the data word as threads ( qsave;d). Note that these threads are
+maintained until the last element of the data word, at which point the test B? is satised
+and they are accepted.
+Now we show how to dene A. We proceed by induction on jj. If=aor:a, we
+simply dene the set of states as Q=fq1;q2;qsave;qgand(q) =aor(q) = a((q1),
+(q2) and(qsave) are dened as above). If =# (or=",=:") we dene it as
+follows. We add one new state qto the set of states of A , we extend the denition of
+with(q) = store(q ) (or(q) = eq(q ),(q) = eq(q )), and we redene (q1) with
+(q1) = store(q2)^q. If=F ,=G , or=U( ; 0), it is easy to dene (q)
+from the denition of A andA 0, perhaps adding some new states. On the other hand, if
+'= ^ 0or'= _ 0, it is also straightforward as it corresponds to the alternation and
+nondeterminism of the automaton.
+Suppose now that =8#
+ . We dene AasA with the extra state qand we
+dene(q) = spread (qsave;q )^#q . This ensures that at the moment of execution of
+this instruction, all the previous data values in the data word will be taken into account,
+including the current one.
+Finally, if=9#
+ , we build AfromA in the same fashion as before, adding new
+statesq;q0
+;q00
+, dening(q) =guess (q0
+),(q0
+) =q ^q00
+,(q00
+) =eq_Bq00
+. Note that q00
+
+checks that the guessed data value appears somewhere in a future position of the word.
+4Note that this logic already contains LTL#(U;X).
+
+--- Page 24 ---
+24 D. FIGUEIRA
+(w;i)j=d">iffd>d(i)
+(w;i)j=d"<iffd<d(i)
+Figure 5: Semantics for the operators ">,"<for a data word w=a
+dandi2pos(w).
+Moreover, we argue that these extensions add expressive power.
+Proposition 4.5. On nite data words:
+(i)The logic LTL#
+nnf(F;8#
+)is more expressive than LTL#
+nnf(F);
+(ii)The logic LTL#
+nnf(F;9#
+)is more expressive than LTL#
+nnf(F).
+Proof. This is a consequence of LTL#
+nnf(F) being closed under negation and Theorem 4.1.
+Ad absurdum, if one of these logics were as expressive as LTL#
+nnf(F), then it would be closed
+under negation, and then we could express conditions (1) or (2) of the proof of Theorem 4.1
+and hence obtain that LTL#
+nnf(F) is undecidable. But this leads to a contradiction since by
+Theorem 4.4 LTL#
+nnf(F) is decidable.
+Remark 4.6.The translation of Proposition 4.3 is far from using all the expressive power
+ofspread . In fact, we can consider a binary operator 8#
+('; ) dened
+w;ij=d8#
+('; ) iff for alljisuch that w;jj=d(j) , we have w;ij=d(j)'.
+with 2LTL#
+nnf(F). This operator can be coded into ARA(guess;spread ), using the same
+technique as in Proposition 4.3. The only dierence is that instead of `saving' every data
+value inqsave, we use several states qsave( ). Intuitively, only the data values that verify the
+test# are stored in qsave( ). Then, a formula 8#
+('; ) is translated as spread (qsave( );q').
+4.2.Ordered data. If we consider a linear order over Das done in Section 3.3, we can
+consider LTL#
+nnf(F;9#
+;8#
+) with richer tests
+'::=">j "<j:::
+that access to the linear order and compare the data values for = ;<;> . The semantics are
+extended accordingly, as in Figure 5. Let us call this logic ord-LTL#
+nnf(F;9#
+;8#
+). The
+translation from ord-LTL#
+nnf(F;9#
+;8#
+) to ARA(guess;spread;<) as dened in Section 3.3 is
+straightforward. Thus we obtain the following result.
+Proposition 4.7. The satisability problem for ord- LTL#
+nnf(F;9#
+;8#
+)is decidable.
+Part 2.Data trees
+The second part of this work deals with logics and automata for data trees . In Section 5,
+we extend the model ARA(guess;spread ) to the new model ATRA (guess;spread ) that runs
+over data trees (instead of data words). The decidability of the emptiness follows easily
+from the decidability result shown for ARA(guess;spread ). As in the case of data trees, this
+model allows to show the decidability of a logic.
+
+--- Page 25 ---
+Alternating register automata on nite data words and trees 25
+In Section 6 we introduce `forward XPath ', a logic for xml documents. The satis-
+ability problem for this logic will follow by a reduction to the emptiness problem of
+ATRA (guess;spread ). This reduction is not as easy as that of the rst part, since XPath
+is closed under negation and our automata model is not closed under complementation.
+Indeed, ATRA (guess;spread ) and forward XPath have incomparable expressive power.
+5.ATRA model
+Herein, we introduce the class of Alternating Tree Register Automata by slightly adapting
+the denition for alternating (word) register automata. This model is essentially the same
+automaton presented in Part 1, that works on a (unranked, ordered) data tree instead of
+a data word. The only dierence is that instead of having one instruction Bthat means
+`move to the next position', we have two instructions BandOmeaning `move to the next
+sibling to the right' and `move to the leftmost child'. This class of automata is known as
+ATRA (guess;spread ). This model of computation will enable us to show decidability of a
+large fragment of XPath .
+AnAlternating Tree Register Automaton (ATRA ) consists in a top-down tree
+walking automaton with alternating control and oneregister to store and test data. [24]
+shows that its emptiness problem is decidable and non-primitive-recursive. Here, as in the
+Part 1, we consider an extension with the operators spread and guess . We call this model
+ATRA (spread;guess ).
+Denition 5.1. An alternating tree register automaton of ATRA (spread;guess ) is a tuple
+A=hA;Q;qI;isuch that Ais a nite alphabet; Qis a nite set of states; qI2Qis the
+initial state; and :Q! is the transition function, where  is dened by the grammar
+ajaj ?jstore(q)jeqjeqjq^q0jq_q0jOqjBqjguess (q)jspread (q;q0)
+wherea2A;q;q02Q;2fO;O;B;Bg.
+We only focus on the dierences with respect to the ARA class.OandBare to move
+to the leftmost child or to the next sibling to the right of the current position, and as before
+`?' tests the current type of the position of the tree. For example, using O? we test that
+we are in a leaf node, and by B? that the node has a sibling to its right. store(q),eqand
+eqwork in the same way as in the ARA model. We say that a state q2Qismoving if
+(q) =Bq0or(q) =Oq0for someq02Q.
+We dene two sorts of congurations: node congurations and treecongurations. In
+this context a node conguration is a tuplehx;;; ithat describes the partial state
+of the execution at a position xof the tree. x2pos(t) is the current position in the tree
+t,=t(x)2ADis the current node's symbol and datum, and =typet(x) is the tree
+type ofx. As before, 2}<1(QD) is a nite collection of execution threads. Natra
+is the set of all node congurations. A tree conguration is just a nite set of node
+congurations, like fh;;; i;h1211;0;0;0i;:::g. We callTatra=}<1(Natra) the set
+of all tree congurations.
+We dene the non-moving relation!"over node congurations just as in page 10. As
+a dierence with the ARA mode, we have two types of moving relations. The rst-child
+relation!O, to move to the leftmost child, and the next-sibling relation!Bto move to the
+next sibling to the right.
+
+--- Page 26 ---
+26 D. FIGUEIRA
+The!Oand!Bare dened, for any 12fO;O;B;Bg,;12AD,h2fB;Bg,
+v2fO;Og, as follows
+hx;(O;h);;i!Ohx1;1;1;Oi; (5.1)
+hxi;(v;B);;i!Bhx(i+ 1);1;1;Bi (5.2)
+iff (i) the conguration is `moving' ( i.e., all the threads ( q;d) contained in  are of the form
+(q) =Oq0or(q) =Bq0); and (ii) for2fO;Bg, =f(q0;d)j(q;d)2;(q) =q0g.
+Let!:=!"[!O[! BN atraN atra. Note that through !we obtain a run
+over a branch of the tree (if we think about the underlying binary tree according to the
+rst-child and next-sibling relations). In order to maintain all information about the run
+over all branches we need to lift this relation to tree congurations. We dene the transition
+between tree congurations that we write . This corresponds to applying a `non-moving'
+!"to a node conguration, or to apply a `moving' !O,!B, or both to a node conguration
+according to its type. That is, we dene S1S2iff one of the following conditions holds:
+(1)S1=fg[S0,S2=fg[S0,!";
+(2)S1=fg[S0,S2=fg[S0,=hx;(O;B);;i,!O;
+(3)S1=fg[S0,S2=fg[S0,=hx;(O;B);;i,!B;
+(4)S1=fg[S0,S2=f1;2g[S0,=hx;(O;B);;i,!O1,!B2.
+Arun over a data tree t=a
+dis a nonempty sequence S1Snwith
+S1=fh;0;0;0igand  0=f(qI;d())g(i.e., the thread consisting in the initial state
+with the root's datum), such that for every i2[n] andhx;;; i2Si: (1)x2pos(t); (2)
+=t(x); and (3)=typet(x). As before, we say that the run is accepting if
+Snfhx;;;;ijhx;;;;i2N atrag:
+Note that the transition relation that denes the run replaces a node conguration in
+a given position by one or two node congurations in children positions of the fcns coding.
+Therefor the following holds.
+Remark 5.2.Every run is such that any of its tree congurations never contains two node
+congurations in a descendant/ancestor relation of the fcns coding.
+The ATRA model is closed under all boolean operations [24]. However, the extensions
+introduced guess and spread , while adding expressive power, are not closed under comple-
+mentation as a trade-o for decidability. It is not surprising that the same properties as for
+the case of data words apply here.
+Proposition 5.3. ATRA (spread;guess )models have the following properties:
+(i)they are closed under union,
+(ii)they are closed under intersection,
+(iii) they are not closed under complementation.
+Example 5.4. We show an example of the expressiveness that guess adds to ATRA . Al-
+though as a corollary of Proposition 3.2 we have that the ATRA (guess;spread ) class is more
+expressive than ATRA , we give an example that inherently uses the tree structure of the
+model. We force that the node at position 2 and the node at position 1 1 of a data tree
+to have the same data value without any further data constraints. Note that this datum
+does not necessarily has to appear at some common ancestor of these nodes. Consider the
+
+--- Page 27 ---
+Alternating register automata on nite data words and trees 27
+a, 1a, 1a, 2a, 2a, 1a, 1a, 3a, 2
+Figure 6: Two indistinguishable data trees for ATRA .
+ATRA (guess ) dened over A=fagwith
+(q0) =guess (q1);  (q1) =Oq2;  (q2) =q3^q4;
+(q3) =Oq5;  (q4) =Bq5;  (q5) =eq:
+For the data trees of Figure 6, any ATRA either accepts both, or rejects both. This is
+because when a thread is at position 1, and performs a moving operation splitting into two
+threads, one at position 1 1, the other at position 2, none of these congurations contain
+the data value 2. Otherwise, the automaton should have read the data value 2, which is not
+the case. But then, we see that the continuation of the run from the node conguration at
+position 2 and at position 1 are isomorphic independently of which data values we choose
+(either the data 2 and 3, or the data 2 and 2). Hence, both trees are accepted or rejected.
+However, the ATRA (guess ) we just built distinguishes them, as it can introduce the data
+value 2 in the conguration, without the need of reading it from the tree. Equivalently, the
+property of \there are two leaves with the same data values" is expressible in ARA(guess )
+and not in ARA.
+5.1.Emptiness problem. We show that the emptiness problem for this model is decid-
+able, reusing the results of Part 1. We remind the reader that the decidability of the
+emptiness of ATRA was proved in [24]. Here we extend the approach used for ARA and
+show the decidability of the two extensions spread and guess .
+Theorem 5.5. The emptiness problem of ATRA (guess;spread )is decidable.
+Proof. The proof goes as follows. We will reuse the wqo-used in Section 3.2, which here
+is dened over the node congurations . The only dierence being that to use -overNatra
+we work with treetypes instead of word types. Since !Band!Oare analogous, by the
+same proof as in Lemma 3.10 we obtain the following.
+Lemma 5.6. (Natra;!)isrdcwith respect to (Natra;-).
+We now lift this result to tree congurations . We instantiate Proposition 2.11 by taking
+!1as!,as-, and taking}the majoring order over ( Natra;-). We take!2to be
+as it veries the hypothesis demanded in the Lemma. As a result we obtain the following.
+Lemma 5.7. (Tatra;)isrdcwith respect to (Tatra;}).
+Hence, condition (1) of Proposition 2.7 is met. Let us write for the equivalence
+relation overTatra such thatSS0iffS}S0andS0}S. Similarly as for Part 1,
+we have that (Tatra=;) is nitely branching and eective. That is, the -image of
+any conguration has only a nite number of congurations up to isomorphism of the data
+values contained (remember that only equality between data values matters), and repre-
+sentatives for every class are computable. Hence, we have that ( Tatra=;;}) veries
+
+--- Page 28 ---
+28 D. FIGUEIRA
+condition (2) of Proposition 2.7. Finally, condition (3) holds as ( Tatra=;}) is a wqo(by
+Proposition 2.10) that is a computable relation. We conclude the proof by the following
+obvious statement.
+Lemma 5.8. The set of accepting tree congurations is downwards closed with respect to
+}.
+Hence, by Lemma 2.8, we conclude as before that the emptiness problem for the class
+ATRA (guess;spread ) is decidable.
+6.Forward-XPath
+We consider a navigational fragment of XPath 1:0 with data equality and inequality. In
+particular this logic is here dened over data trees . However, an xml document may typically
+have not onedata value per node, but a set of attributes , each carrying a data value. This
+is not a problem since every attribute of an xml element can be encoded as a child node
+in a data tree labeled by the attribute's name ( cf.Section 6.3). Thus, all the decidability
+results hold also for XPath with attributes over xml documents.
+Let us dene a simplied syntax for this logic. XPath is a two-sorted language, with path
+expressions ( ;;::: ) and node expressions ( '; ;::: ). We write XPath (O;=) to denote
+the data-aware fragment with the set of axes Of#;#;!;!; ; ;";"g. It is dened
+by mutual recursion as follows,
+; ::=oj[']jj[ o 2O[f"g
+'; ::=aj :'j'_ j'^ j hi j h=i j h6=ia2A
+where Ais a nite alphabet. A formula ofXPath (O;=) is either a node expression or a path
+expression. We dene the `forward' set of axes as F:=f#;#;!;!g, and consequently the
+fragment `forward- XPath ' as XPath (F;=). We also refer by XPath"(F;=) to the fragment
+considered in [24] where data tests are of the restricted form h"=iorh"6=i.5
+There have been eorts to extend XPath to have the full expressivity of MSO, e.g.
+by adding a least x-point operator ( cf.[29, Sect. 4.2]), but these logics generally lack
+clarity and simplicity. However, a form of recursion can be added by means of the Kleene
+star, which allows us to take the transitive closure of any path expression. Although in
+general this is not enough to already have MSO [30], it does give an intuitive language
+with a counting ability. By regXPath (O;=) we refer to the enriched language where path
+expressions are extended by allowing the Kleene star on anypath expression.
+; ::=oj[']jj[jo2O[f"g
+Lettbe a data tree. The semantics of XPath is dened as the set of elements (in the
+case of node expressions) or pairs of elements (in the case of path expressions) selected by
+the expression. The data aware expressions are the cases h=iandh6=i. The formal
+denition of its semantics is in Figure 7. We write tj='to denote [ [ '] ]t6=;, and in this
+case we say that tsatises'.
+Example 6.1. In the model of Figure 1 on page 7,
+[ [h#[b^h#[b]6=#[b]i]i] ]t=f;1;12g:
+5[24] refers to XPath"(F;=) as `forward XPath '. Here, `forward XPath ' is the unrestricted fragment
+XPath (F;=), as we believe is more appropriate.
+
+--- Page 29 ---
+Alternating register automata on nite data words and trees 29
+[ ["] ]t=f(x;x)jx2pos(t)g [ [#] ]t=f(x;xi)jxi2pos(t)g
+[ [[] ]t= [ [] ]t[[ [] ]t[ [!] ]t=f(xi;x(i+ 1))jx(i+ 1)2pos(t)g
+[ ['^ ] ]t= [ ['] ]t\[ [ ] ]t[ [] ]t= the reexive transitive closure of [ [ ] ]t
+[ [a] ]t=fx2pos(t)ja(x) =ag [ [] ]t=f(x;z)jthere exists ysuch that
+[ [:'] ]t=pos(t)n[ ['] ]t(x;y)2[ [] ]t;(y;z)2[ [] ]tg
+[ [hi] ]t=fx2pos(t)j9y:(x;y)2[ [] ]tg [ [[']] ]t=f(x;x)jx2[ ['] ]tg
+[ [h=i] ]t=fx2pos(t)j9y;z:(x;y)2[ [] ]t;[ [h6=i] ]t=fx2pos(t)j9y;z:(x;y)2[ [] ]t;
+(x;z)2[ [] ]t;d(y) =d(z)g (x;z)2[ [] ]t;d(y)6=d(z)g
+Figure 7: Semantics of regXPath (F;=) for a data tree t=a
+d.
+We dene sub(') to denote the set of all substrings of 'which are formul, psub('):=
+fj2sub(');is a path expression g, and nsub('):=f j 2sub('); is a node
+expressiong.
+6.1.Key constraints. It is worth noting that XPath (F;=) |contrary to XPath"(F;=)|
+can express unary key constraints . That is, whether for some symbol a, all thea-elements
+in the tree have dierent data values.
+Lemma 6.2. For everya2Aletkey(a)be the property over a data tree t=a
+d:
+\For every two dierent positions x;x02pos(t)of the tree, if a(x) =a(x0) =a, then
+d(x)6=d(x0)." Then,key(a)is expressible in XPath (F;=)for anya.
+Proof. It is easy to see that the negation of this property can be tested by rst guessing the
+closest common ancestor of two dierent a-elements with equal datum in the underlying
+rst-child next-sibling binary tree. At this node, we verify the presence of two a-nodes
+with equal datum, one accessible with a \ #" relation and the other with a compound
+\!+#" relation (hence the nodes are dierent). The expressibility of the property then
+follows from the logic being closed under negation. The reader can check that the following
+formula expresses the property
+key(a):h#[h"[a] =#+[a]i_h#[a] =!+#[a]i]i
+where `#+' = `##' and `!+' = `!!'.
+Note that while ATRA cannot express, for instance, that there are two dierent nodes
+with the same data value, ATRA (guess ) can express it. But on the other hand, ATRA (guess;spread )
+cannot express the negation of the property.
+Lemma 6.3. The class ATRA (guess;spread )cannot express the property \all the data values
+of the data tree are dierent".
+Proof. Ad absurdum, suppose that there exists an automaton Aexpressing the property,
+and letQbe its set of states. Notice that for any accepting run of minimal length there
+are no more that f(jQj) consecutive -transitions ( i.e.,transitions that are red by an
+underlying!transition on node congurations), for some xed function f.
+
+--- Page 30 ---
+30 D. FIGUEIRA
+Consider a data tree twith
+pos(t) =fg[f 1;2;3;:::;Ng[f 11;111;:::; 1111|{z}
+Ntimesg
+forN= 2f(jQj) + 4. That is, the root of the tree has Nchildren, and the rst child has a
+long branch with Nnodes. All positions of thave dierent data values, and they all carry
+the same label, say a.
+Consider a minimal accepting run of Aont,S1Sn. Let Sibe the rst tree
+conguration containing a node conguration with position 2. That is, the rst conguration
+after the second moving transition. Since there are at most 2 f(jQj) non-moving transitions
+before Siin the run, we have that i2f(jQj)+2. In particular, this means that Sicannot
+contain more than 2 f(jQj) + 2 dierent data values. Therefore, there is a position x
+with 2xNand a position ywithy1 such that neither d(x) ord(y) are in
+data(Si). (Remember that by denition of t,d(x)6=d(y).) This is because there are
+N1 = 2f(jQj) + 3 dierent possible data values of xand fory.
+Consider t0as the result of replacing d(x) byd(y) int. Clearly, t0does not have the
+property \all the data values of the data tree are dierent". Now, consider the run obtained
+as the result of replacing d(x) byd(y) inS1;:::;Sn. Note that this is still a run, and it is
+still accepting. Therefore Aaccepts tand thus Adoes not express the property.
+6.2.Satisability problem. This section is mainly dedicated to the decidability of the
+satisability problem for XPath (F;=), known as `forward- XPath '. This is proved by a re-
+duction to the emptiness problem of the automata model ATRA (guess;spread ) introduced
+in Section 5.
+[24] shows that ATRA captures the fragment XPath"(F;=). It is immediate to see that
+ATRA can also easily capture the Kleene star operator on any path formula, obtaining decid-
+ability of regXPath"(F;=). However, these decidability results cannot be further generalized
+to the full unrestricted forward fragment XPath (F;=) as ATRA is not powerful enough to
+capture the full expressivity of the logic. Indeed, while XPath (F;=) can express that all the
+data values of the leaves are dierent, ATRA (guess;spread ) cannot (Lemma 6.3). Although
+ATRA (guess;spread ) cannot capture XPath (F;=), in the sequel we show that there exists a
+reduction from the satisability of regXPath (F;=) to the emptiness of ATRA (guess;spread ),
+and hence that the former problem is decidable. This result settles an open question regard-
+ing the decidability of the satisability problem for the forward- XPath fragment XPath (F;=).
+The main results that will be shown in Section 6.4 are the following.
+Theorem 6.4. Satisability of regXPath (F;=)in the presence of DTDs (or any regular
+language) and unary key constraints is decidable, non-primitive-recursive.
+And hence the next corollary follows from the logic being closed under boolean opera-
+tions.
+Corollary 6.5. The query containment and the query equivalence problems are decidable
+forXPath (F;=).
+Moreover, these decidability results hold for regXPath (F;=) and even for two extensions:
+a navigational extension with upward axes (in Section 6.5), and
+a generalization of the data tests that can be performed (in Section 6.6).
+
+--- Page 31 ---
+Alternating register automata on nite data words and trees 31
+a, 0b, 0c, 0<a>    <b @att1="4" @att2="6">        <c @att1="2"/>    </b></a>att1, 4att1, 2att2, 6XMLdata-tree
+Figure 8: From XML documents to data-trees.
+6.3.Data trees and XML documents. Although our main motivation for working with
+trees is related to static analysis of logics for xml documents, we work with data trees ,
+being a simpler formalism to work with, from where results can be transferred to the class
+ofxml documents. We discuss briey how all the results we give on XPath over data trees,
+also hold for the class of xml documents.
+While a data tree has onedata value for each node, an xml document may have several
+attributes at a node, each with a data value. However, every attribute of an xml element
+can be encoded as a child node in a data tree labeled by the attribute's name, as in Figure 8.
+This coding can be enforced by the formalisms we present below, and we can thus transfer
+all the decidability results to the class of xml documents. In fact, it suces to demand
+that all the attribute symbols can only occur at the leaves of the data tree and to interpret
+attribute expressions like `@ attrib1 ' ofXPath formul as child path expressions ` #[attrib1 ]'.
+6.4.Decidability of forward XPath. This section is devoted to the proof of the following
+statement.
+Proposition 6.6. For every2regXPath (F;=)there is a computable ATRA (guess;spread )
+automaton Asuch that Ais nonempty iff is satisable.
+Markedly, the ATRA (guess;spread ) class does not capture regXPath (F;=). However,
+given a formula , it is possible to construct an automaton that tests a property that
+guarantees the existence of a data tree verifying .
+Disjoint values property. To show the above proposition, we need to work with runs
+with the disjoint values property as stated next.
+Denition 6.7. A run S1Snon a data tree thas the disjoint values property
+if for every xi2pos(t) andamoving node conguration of the run with position xi,
+then
+data(tjxi)\[
+xj2pos(t)
+j>idata(tjxj)data():
+Figure 9 illustrates this property.
+The proof of Proposition 6.6 can be sketched as follows:
+(1) We show that for every nonempty automaton A2ATRA (guess;spread ) there is an
+accepting run on a data tree with the disjoint values property.
+(2) We give an eective translation from an arbitrary forward XPath formulato an
+ATRA (guess;spread ) automaton Asuch that
+
+--- Page 32 ---
+32 D. FIGUEIRA
+x·i
+Figure 9: The disjoint values property states that for every position xi, the intersection of
+the grey zones is present in the last conguration for xiappearing in the run.
+any tree accepted by a run of the automaton Awith the disjoint values property
+veries the XPath formula, and
+any tree veried by the formula is accepted by a run of the automaton Awith the
+disjoint values property.
+We start by proving the disjoint values property normal form.
+Proposition 6.8. For any nonempty automaton A2ATRA (guess;spread )there exists an
+accepting run over some data tree with the disjoint values property.
+Proof. Given any accepting run S1Snon a data tree t=a
+d, we show how
+to modify the run and the tree in order to satisfy the disjoint values property. We only
+need to replace some of the data values, so that the resulting tree and accepting run will
+be essentially the same.
+The idea is as follows. For a given position xkof the tree, we consider the moving
+node conguration of the run at position xk, and we replace all the data values from tjxk
+by fresh ones except for those present in the node conguration, obtaining a new data tree
+t0. We also make the same replacement of data values for all node congurations in the run
+of nodes below xk. Thus, we end up with a modied data tree t0and accepting run that
+satisfy the disjoint values property at xk. That is, such that
+data(t0jxk)\[
+xj2pos(t)
+j>kdata(t0jxj)data(xk)
+wherexkis the moving node conguration at position xkof the run. If we repeat this
+procedure for all nodes of the tree, we obtain a run and tree with the disjoint values property.
+Next, we formalize this transformation.
+Take anyxk2pos(t), and letxk2Sifor someibe such that xkis a moving node
+conguration with position xk. Consider any injective function
+f:data(tjxk)ndata(xk)!Dndata(t)
+and let ^f:data(tjxk)!Dbe such that ^f(d) =difd2data(xk), or ^f(d) =f(d) otherwise.
+Note that ^fis injective. Let us consider then S0
+1;:::;S0
+nwhere S0
+jconsists in replacing every
+node conguration 2Sjwithh(), where6
+h() =(^f() ifhas a position yxk
+ otherwise.
+6By^f() we denote the replacement of every data value dby^f(d) in.
+
+--- Page 33 ---
+Alternating register automata on nite data words and trees 33
+Take t0to be the data tree that results from the replacement in tof every data value of a
+positionyxkby^f(d(y)).
+Claim 1.
+data(t0jxk)\[
+xj2pos(t)
+j>kdata(t0jxj)data(xk):
+Proof. The only dierence between tandt0is in the data values below xk. Any node yof
+t0which is below xkcontains a data value ^f(d(y)) such that
+^f(d(y)) is in data(xk), or
+^f(d(y)) is not in data(t), and therefore it is not inS
+xj2pos(t)
+j>kdata(t0jxj).
+Claim 2. S0
+1S0
+nis an accepting run of Aovert0.
+Proof. Take any leaf ywhich is rightmost ( i.e., with no siblings to its right) and consider the
+sequence of node congurations 12S1;:::;n2Snthat are ancestors of yin the rst-child
+next-sibling underlying tree structure. There is exactly one conguration in each Sidue
+to Remark 5.2. This is the `sub-run' that leads to y: for every i;i+1eitheri=i+1or
+i!i+1. Let0
+j=h(j) for allj2[n].
+Ifyxk, take`to be the last index such that `=xk(there must be one). Note that
+0
+j=^f(j) for every ` < jn. The sequence 0
+`+12S0
+`+1;:::;0
+n2S0
+nis isomorphic,
+modulo renaming of data values, to `+1;:::;nsince ^fis injective. We then have that
+0
+1;:::;0
+`;:::0
+nis a correct run on node congurations, since
+0
+1;:::;0
+`is equal to1;:::;`(it is not modied by h),
+0
+`+1;:::;0
+nis isomorphic to `+1;:::;n(we apply an injection ^fto every data value),
+and
+the pair (0
+`;0
+`+1) is isomorphic to ( `;`+1), as
+0
+`=f(xk) =xk=`,
+0
+`+1=^f(`+1) is isomorphic to `+1, and
+data(0
+`)\data(0
+`+1) =data(`)\data(`+1) since ^fis the identity on data(`), and
+does not send any data value from Dndata(`) to data(`).
+Ify6xk, then nothing was modied: 0
+1=12S1;:::;0
+n=n2Sn.
+In any case, we have that 0
+1;:::;0
+nis a correct run on node congurations. This means
+that the modied data values are innocuous for the run. As the structure of the run is
+not changed, this implies that S0
+1S0
+nis an accepting run (that veries the disjoint
+values property for xkby the previous Claim).
+If we perform the same procedure for every position of the tree, we end up with an
+accepting run and tree with the disjoint values property.
+We dene a translation from regXPath (F;=) formul to ATRA (guess;spread ). Letbe
+aregXPath (F;=) formula and let Abe the corresponding ATRA (guess;spread ) automaton
+dened by the translation. We show that (i) if a data tree tis accepted by Aby a run
+verifying the disjoint values property, then tj=, and in turn (ii) if tj=, then tis accepted
+byA. Thus, by the disjoint values normal form (Proposition 6.8) we obtain our main result
+
+--- Page 34 ---
+34 D. FIGUEIRA
+of Proposition 6.6, which by decidability of ATRA (guess;spread ) (Theorem 5.5) implies that
+the satisability problem for regXPath (F;=) is decidable.
+Normal form. For succinctness and simplicity of the translation, we assume that is in
+a normal form such that the #-axis is interpreted as the leftmost child. To obtain this
+normal form, it suces to replace every appearance of ` #' by `#!'. Also, we assume that
+every data test subformula of the form h=iorh6=iis such that =",=#, or
+=!for some, and idem for . This will simplify the translation and the proofs for
+correctness. It is easy to see that every expression h=ican be eectively transformed
+into a disjunction of formul of the aforementioned form.
+The translation. Letbe a regXPath (F;=) node expression of the above form in negation
+normal form ( nnffor short). Let tbe a data tree and let z0fcnsznbe two positions of t
+at distance n2N0such that, if z06=zn,
+z0fcnsz1fcnsfcnszn1fcnszn
+for somez1;:::;zn1, we dene str(z0;zn)2A
+to be the string a1S1an1Sn1where
+aiis either!or#depending on the relation between zi1andzi, andSi=f 2nsub()j
+zi2[ [ ] ]tg. Ifn= 0, thenstr(z0;z0) =. Note that str(z0;zn) does not take into account
+z0, since we are working under the normal form where no path subformul makes tests on
+the node where they start. For every path expression 2psub(), consider a deterministic
+complete nite automaton Hover the alphabet A= 2nsub()[f#;!gwhich corresponds
+to that regular expression, in the sense that the following claim holds.
+Claim 3. For every2psub(), andxfcnsy, we have that Hacceptsstr(x;y)if, and
+only if, (x;y)2[ [] ]t.
+We assume the following names of its components: H=hA;;Q;0;Fi, where
+QN0is the nite set of states and 0 2Qis the initial state. We assume that Qis
+partitioned into moving and testing states, such that in every accepting run the states of
+the run alternate between moving and testing states, starting in the moving state 0.
+We next show how to translate into an ATRA (guess;spread ) automaton A. For the
+sake of readability we dene the transitions as positive boolean combinations of _and^over
+the set of basic tests and states. Any of these |take for instance (q) = ( store(q1)^Oq2)_
+(q3^a)| can be rewritten into an equivalent ATRA with at most one boolean connector
+per transition (as in Denition 5.1) in polynomial time. The most important cases are those
+relative to the following data tests:
+(1)h=i (2)h6=i (3):h=i (4):h6=i
+We dene the ATRA (guess;spread ) automaton
+A:=hA;Q;(jj);i
+with
+Q:=f(j'j);(jj)~
+i;(jj)~
+test;i;(jj)~
+F;(j;j)~
+i;j;(j;j)~
+test;i;jj'2nsub:();
+;2psub:();~2f=;6=;:=;:6=g;i2Q;j2Qg
+where op:is the smallest superset of opclosed under negation under nnf,i.e., if'2op:()
+then nnf(:')2op:() (where nnfis dened as shown in Table 1). The idea is that a state
+
+--- Page 35 ---
+Alternating register automata on nite data words and trees 35
+nnf('^ ):=nnf(')^nnf( ) nnf('_ ):=nnf(')_nnf( )
+nnf(:('^ )):=nnf(:')_nnf(: ) nnf(:('_ )):=nnf(:')^nnf(: )
+nnf():=nnf()nnf() nnf([']):= [nnf(')]
+nnf():= (nnf())nnf(o):=o o2F
+nnf(h~i):=hnnf()~nnf()i nnf(:h~i):=:hnnf()~nnf()i
+nnf(a):=a nnf(:a):=:a
+nnf(::'):=nnf(') nnf(hi):=hnnf()i
+Table 1: Denition of the Negation Normal Form for XPath .
+(j'j) veries the formula '. A state (jj)=
+i(resp. (jj)6=
+i) veries that there is a forward path
+in the tree ending at a node with the same (resp. dierent) data value as the one in the
+register, such that there exists a partial run of Hover such path that starts in a moving
+stateiand ends in a nal state. Similarly, a state ( jj)=
+test;ior (jj)6=
+test;iveries the same when
+iis a testing state. A state ( j;j)=
+i;j(resp. (j;j)6=
+i;j) veries that there are twopaths ending
+in two nodes with the same (resp. one equal, the other dierent) data value as that of the
+register; such that one path has a partial accepting run of Hstarting in a moving state i,
+and the other has a partial accepting run of Hstarting in a moving state j. A state like
+(jj)=
+Fis simply to mark that the run of Hon a path has ended, and the only remaining
+task is to test for equality of the data value with respect to the register. Finally, a state
+(jj):=
+0(resp. (jj):6=
+0) veries that every node reachable by has dierent (resp. equal)
+data than the register, and similar for the other universal states of the form ( jj):
+. We
+rst take care of the boolean connectors and the simplest tests.
+((jaj)):=a((j'_ j)):= (j'j)_(j j)((j:aj)):= a((j'^ j)):= (j'j)^(j j)
+First, we dene the transitions associated to each H, fori2Q;CQ;~2f=;6=g.
+Here, (jj)Fholds at the endpoint of a path matching .
+((jj)~
+i):=O(jj)~
+test;(#;i)_B(jj)~
+test;(!;i)__
+i2F(jj)~
+F
+((jj)~
+test;i):=_
+Snsub()
+(jj)~
+(S;i)^^
+'2S(j'j)
+Next, we focus only on the data-aware test formul, since the tests hiand:hiare
+interpreted as the equivalent formul h=iand:h=irespectively. Using the guess
+operator, we can easily dene the cases corresponding to the data test cases (1) and (2) as
+follows.
+((j=j)):=guess ((j;j)=)((j;j)=):= (jj)=
+0^(jj)=
+0((jj)=
+F):=eq
+((j6=j)):=guess ((j;j)6=)((j;j)6=):= (jj)=
+0^(jj)6=
+0((jj)6=
+F):=eq
+The test case (4) involves also an existential quantication over data values. In fact,
+:h6=imeans that either
+(i) there are no nodes reachable by ,
+(ii) there are no nodes reachable by , or
+
+--- Page 36 ---
+36 D. FIGUEIRA
+(iii) there exists a data value dsuch that both
+(a) all elements reachable by have datum d, and
+(b) all elements reachable by have datum d.
+((j:6=j)):= (j:hij)_(j:hij)_guess ((j;j):6=)
+((j;j):6=):= (jj):6=
+0^(jj):6=
+0((jj):6=
+F):=eq((jj):=
+F):=eq
+((jj):~
+i):= (O?_O(jj):~
+test;(#;i))^(B?_B(jj):~
+test;(!;i))^nal
+where 'stands for nnf(:') and nal =(
+(jj):~
+Fifi2F,
+true otherwise.
+((jj):~
+test;i):=^
+Snsub()
+(jj):~
+(S;i)^^
+'2S(j'j)
+The dicult part is the translation of the data test case (3). The main reason for this
+diculty is the fact that ATRA (guess;spread ) automata do not have the expressivity to make
+these kinds of tests. An expression :h=iforces the set of data values reachable by an
+-path and the set of those reachable by a -path to be disjoint. We show that nonetheless
+the automaton can test for a condition that is equivalent to :h=iif we assume that the
+run and tree have the disjoint values property.
+Example 6.9. As an example, suppose that =:h#=!iis to be checked for
+satisability. One obvious answer would be to test separately and. If both tests
+succeed, one can then build a model satisfying out of the two witnessing trees by making
+sure they have disjoint sets of values. Otherwise, is clearly unsatisable. Suppose now
+that we have ='^:h#=!i, where'is any formula with no data tests of type (3).
+One could build the automaton for 'and then ask for \ spread ( (j#j):=
+0_(j!j):=
+0)" in the
+automaton. This corresponds to the property \ for every data value dtaken into account
+by the automaton (as a result of the translation of '), either all elements reachable by 
+do not have datum d, or all elements reachable by do not have datum d". If'contains
+ah0=0iformula, this translates to a guessing of a witnessing data value d. Then, the
+use of spread takes care of this particular data value, and indeed of all other data values
+that were guessed to satisfy similar demands. In other words, it is notbecause of dthat
+:h#=!iwill be falsied. But then, the disjoint values property ensures that no pair
+of nodes accessible by andshare the same datum. This is the main idea we encode
+next.
+We dene((j:h=ij)):= (j;j):=
+0;0. Given:h=i, the automaton systematically
+looks for the closest common ancestor of every pair ( x;y) of nodes accessible by and
+respectively, and tests, for every data value dpresent in the node conguration, that either
+(1) all data values accessible by the remaining path of are dierent from d, or (2) all data
+
+--- Page 37 ---
+Alternating register automata on nite data words and trees 37
+values accessible by the remaining path of are dierent from d.
+((j;j):=
+i;j):=spread
+(jj):=
+i_(jj):=
+j
+^(O?_O(j;j):=
+test;(#;i);(#;j))^(B?_B(j;j):=
+test;(!;i);(!;j))
+^nal^nal
+where nal=(
+store((jj):=
+j) ifi2F,
+true otherwise,
+and nal=(
+store((jj):=
+i) ifj2F,
+true otherwise.
+((j;j):=
+test;i;j):=^
+Snsub()
+(j;j):=
+(S;i);(S;j)^^
+'2S(j'j)
+The rst line of ((j;j):=
+i;j) corresponds to the tests (1) and (2) above, and the third
+line corresponds to the cases where xfcnsyandyfcnsx.
+Next we show the correctness of this translation. We say that Ahas an accepting run
+from a thread ( q;d) ontjxif there is a sequence of tree congurations S1Snsuch
+thatS1is at position xand contains ( q;d), andSnis accepting. We say that there is a
+dvp-run ifS1Snhas the disjoint values property.
+Lemma 6.10. For any data tree t,
+())iftj=thenAaccepts twith a dvp-run, and
+(()ifAaccepts twith a dvp-run, then tj=.
+Proof. Lett=a
+d. We show that for every subformula '2sub() and position x2pos(t),
+iftjxj='thenAhas an accepting dvp-run from (( j'j);d) ontjxfor anyd2D. (y)
+And conversely,
+ifAhas an accepting dvp-run from (( j'j);d) ontjxfor somed2D, then tjxj='. (z)
+We suppose that is in nnf. We proceed by induction on the lexicographic order of
+(f(x);j'j), wheref(x) is the length of a maximal path from xto a leaf in the fcns coding
+(roughly, the height of tjx). The base cases when '=aor'=:aare easy. Suppose then
+that the proposition is true for all position yfcnsx, and for all  2sub(),j j<j'jat
+positionx. The cases '='1^'2or'='1_'2are straightforward from the inductive
+hypothesis. The following claim also follows from the inductive hypothesis.
+Claim 4. For any path subformula ofpsub(), andyfcnsx0,
+(a)if(x;y)2[ [] ]tthen there is an accepting dvp-run from ((jj)=
+0;d(y))ontjx,
+(b)if there is an accepting dvp-run from ((jj)=
+0;d)ontjx, then (x;y)2[ [] ]tfor somey
+such that d(y) =d,
+(c)if(x;y)2[ [] ]t, there is an accepting dvp-run from ((jj)6=
+0;d)withd6=d(y)ontjx,
+(d)if there is an accepting dvp-run from ((jj)6=
+0;d)ontjx, then (x;y)2[ [] ]tfor somey
+withd6=d(y).
+Proof. By induction, suppose that Claim 4 holds for all ;x0;ysuch that ( f(x0);jj)<lex
+(f(x);j'j). As a consequence of the inductive hypothesis on ( y), for all positions zwith
+xfcnszfcnsy, and for every subformula  2nsub(), ifz2[ [ ] ]tthen there is an
+accepting dvp-run of Afrom ((j j);d) ontjzfor anyd2D.
+
+--- Page 38 ---
+38 D. FIGUEIRA
+(a) Suppose rst that ( x;y)2[ [] ]t. Therefore, Hacceptsstr(x;y) by Claim 3. Further,
+suppose that S2Ais the (2i)-th element of str(x;y), and that zis the position of the
+i-th element in the path between xandyof the fcns coding. For any  2Swe have that
+z2[ [ ] ]t, and applying the inductive hypothesis on ( y) we have that there is an accepting
+dvp-run from ((j j);d) ontjz. Hence, by denition of the transition of ( jj)=
+0, we have that
+there is an accepting dvp-run from (( jj)=
+0;d0) ontjxif we taked0=d(y).
+(b) For any zwithxfcnszfcnsy, if there is an accepting dvp-run from (( j j);d) ontjz,
+by inductive hypothesis on ( z), we have that z2[ [ ] ]t. Therefore, if there is an accepting
+dvp-run from ((jj)=;d) ontjx, by the denition of the transition relation there must be some
+yfcnsxsuch thatstr(x;y) is accepted byHand further d(y) =d. Hence, (x;y)2[ [] ]t.
+An identical reasoning applies to show (c) and (d).
+()) Suppose that tjxj='. We focus on the data test cases. If '=h=i, then
+((j'j)) = guess ((j;j)=). Since((j;j)=) = (jj)=
+0^(jj)=
+0, we then have that for any data
+valued, there is an accepting run from (( j'j);d) ontjxif there exists a data value d02D
+such that ((jj)=
+0;d0) and ((jj)=
+0;d0) have accepting dvp-runs. Since tjxj=h=i, there
+must be two positions yandy0belowxsuch that d(y) =d(y0) where (x;y)2[ [] ]tand
+(x;y0)2[ [] ]t. By Claim 4.a there are accepting dvp-runs from (( jj)=
+0;d0) and ((jj)=
+0;d0)
+ontjx. These two dvp-runs can be simply combined to build an accepting dvp-run from
+((j'j);d). The case '=h6=iis similar, using Claims 4.a and 4.c.
+If'=:h=i, then tjxis such that for every pair of paths ending in some positions
+y;y0, if the paths satisfy andrespectively, then d(y)6=d(y0). Since(:h=i) =
+(j;j):=, we show that there is an accepting run from (( j;j):=;d), for anyd2D. Using
+the inductive hypothesis on all the nodes below x(as we did in Claim 4), note that every
+time that the automaton has an accepting dvp-run from (( j j);d) atxfor somed2D, then
+x2[ [ ] ]t. By denition of the transition relation on ( j;j):=, this means that a sucient
+condition for the automaton to have an accepting dvp-run from (( j;j):=;d) is: for every
+nodezfcnsx, if the states of H;Hare respectively i;jafter reading str(x;z), then
+there is an accepting dvp-run from ( spread
+(jj):=
+i_(jj):=
+j
+;d) ontjz. To simplify the
+argument, we can assume that the conguration contains allthe data values of the tree and
+therefore that opspread takes into account all possible data values (this is not a necessary
+condition, but certainly a sucient one to have an accepting dvp-run). Also using the
+inductive hypothesis, there is an accepting dvp-run from (( jj):=
+i;d0) ontjzif for every node
+z0fcnszsuch thatHtakes the state ito a nal state after reading str(z;z0), we have
+d(z0)6=d0. Therefore, there is an accepting dvp-run from spread
+(jj):=
+i_(jj):=
+j
+if for every
+data valued0and nodesy;y0that complete the paths, it cannot be that d0=d(y) =d(y0).
+This is true, since tjxj=:h=i. On the other hand, note that by the same reason, for
+every node z0such that (z;z0)2[ [] ]t, there are accepting dvp-runs for (( jj):=
+i;d(z0)) and
+for ( store((jj):=
+i);d0) fromz0(and respectively swapping and). Thus, by combining
+all the accepting dvp-runs from ( spread
+(jj):=
+i_(jj):=
+j
+;d) for every such z, we obtain an
+accepting dvp-run from (( j'j);d) ontjx.
+Finally, if'=:h6=i, then((j'j)) = (j:hij)_(j:hij)_guess ((j;j):6=). Since
+x2[ ['] ]t, we have that either (i), (ii), or (iii) (on page 36) holds for tjx. The rst two
+conditions correspond to the properties for which :hiand:hiare satised, which are
+equivalent to:h=iand:h=i. By the case already shown, this means that
+(j:h=ij) or (j:h=ij) have accepting dvp-runs on tjxrespectively. Since the denition
+
+--- Page 39 ---
+Alternating register automata on nite data words and trees 39
+of (j:h=ij) and (j:hij) (idem with ) are treated identically by the automaton, (( j'j);d)
+has an accepting dvp-run on tjx.
+We now show that the third condition corresponds to having an accepting dvp-run from
+(guess ((j;j):66=);d) ontjxfor any data value d. By denition of , there is an accepting dvp-
+run if there is a data value d0such that there are accepting dvp-runs from (( jj):6=
+0;d0) and
+((jj):6=
+0;d0). By applying the inductive hypothesis on all positions below xand subformulas
+ofnsub(), we have the following, for D
+x=fd(y)j(x;y)2[ [] ]tg,D
+x=fd(y)j(x;y)2
+[ [] ]tg.
+Claim 5. For anye62D
+x, there is an accepting dvp-run from ((jj):=;e)ontjx. IfD
+x=
+feg, there is an accepting dvp-run from ((jj):6=;e)ontjx. Idem for andD
+x.
+Note that since tjxj=:h6=i, condition (i) corresponds to D
+x=;, condition (ii) to
+D
+x=;, and condition (iii) to D
+x=D
+x=feg. Therefore, if condition (iii) holds, there are
+accepting dvp-runs from (( jj):6=;e) and ((jj):6=;e), and hence also from ( guess ((j;j):66=);d)
+for anyd, by guessing the data value e. Thus, there is an accepting dvp-run from (( j'j);d)
+if conditions (i), (ii) or (iii) hold. Therefore, there is an accepting dvp-run from (( j'j);d) on
+tjx.
+(() Consider an accepting dvp-run S1Snfrom ((j'j);d) ontjx. We show that
+tjxj='.
+If'=h=i, by denition of the automaton guesses a data value dand creates
+a thread ((j;j)=;d), which means that there is an accepting dvp-run from (( j;j)=;d).
+Then, there are accepting dvp-runs from (( jj)=;d) and ((jj)=;d). By Claim 4.a, there must
+be two nodes y;zsuch that ( x;y)2[ [] ] and (x;z)2[ [] ] withd=d(z) =d(y). Hence,
+tjxj='. The case '=h6=iis treated in a similar way.
+If'=:h=i, suppose ad absurdum that there is a data value dand two positions
+y;zsuch that ( x;y)2[ [] ]tand (x;z)2[ [] ]t, and d(y) =d(z) =d. Letz0be the closest
+common ancestor of y;zin the fcns coding. Since there is an accepting dvp-run from
+(j;j):=, there must be some states i0;j0assumed byHandHafter reading str(x;z0),
+such that the following holds.
+Claim 6. There is a moving conguration Srcontaining (j;j):=
+i0;j0with position z0such
+that
+ifz0=y, then ((jj):=
+i0;d(y))is in someSs,s>r , with position z0,
+ifz0=z, then ((jj):=
+j0;d(z))is in someSs,s>r , with position z0,
+for every data value dofSr,((jj):=;d)i0or((jj):=;d)j0are in someSs,s > r , with
+positionz0.
+Hence, by Claim 6 there must be a conguration Srwith position z0, wherez0is the common
+ancestor of yandzin the fcns coding, such that for all data values d0ofSrit is not true
+thatd(x) =d(y) =d0. But by the fact that this is a dvp-run, this means that there cannot
+beanydata value d00such that d(y) =d(z) =d00. In particular, d, and thus we have a
+contradiction. Then, tjxj='. The cases of yfcnszorzfcnsyare only easier.
+Finally, if '=:h6=i, then Amust have an accepting dvp-run on tjxfrom
+((j:hij);d), ((j:hij);d), or ((j;j):6=
+0;0;d) for somed2D. In the rst two cases this means
+that [ [hi] ]tjx=;or [ [hi] ]tjx=;(by reduction to the case :h=ialready treated) and
+hence that tj='. In the latter case, by denition of , all positions ywhose paths from x
+satisfyorare such that d(y) =d. This implies that t6j=h6=i, and hence tj='.
+
+--- Page 40 ---
+40 D. FIGUEIRA
+Lemma 6.10 together with Proposition 6.8 concludes the proof of Proposition 6.6. We
+then have that Theorem 6.4 holds.
+Proof of Theorem 6.4. By Proposition 6.6, satisability of regXPath (F;=) is reducible to
+the nonemptiness problem for ATRA (guess;spread ). On the other hand, we remark that
+ATRA (guess;spread ) automata can encode any regular tree language |in particular a DTD,
+the core of XML Schema, or Relax NG| and are closed under intersection by Proposi-
+tion 5.3. Also, the logic can express any unary key constraint as stated in Lemma 6.2.
+Hence, by Theorem 5.5 the decidability follows.
+Extensions
+We consider some operators that can be added to regXPath (F;=) preserving the decidability
+of the satisability problem. For each of these operators, we will see that they can be
+coded as a ATRA (guess;spread ) automaton, following the same lines of the translation in
+Section 6.4.
+6.5.Allowing upward axes. Here we explore one possible decidable extension to the
+logic regXPath (F;=), whose decidability can be reduced to that of ATRA (guess;spread ). In
+this extension we can make use of upward (") and leftward ( ) axes to navigate the tree
+in a restricted way. We can test, for example, that all the ancestors of a given node labeled
+withahave the same data value as all the descendants labeled with b, with the formula
+:h"[a]6=#[b]i, but we cannot test its negation.
+LetregXPathB(F;=) be the fragment of regXPath (F[B;=) where B:=f";"; ; g
+dened by the grammar
+'; ::=:ajaj'^ j'_ jhfijhbij
+hf~fij:hf~fij:hb=fij:hb6=fi
+with~2f=;6=g;a2A, and
+f;f::= [']jffjf[fjofj(f)o2f#;!;"g;
+b;b::= [']jbbjb[bjobj(b)o2f"; ;"g:
+We must note that regXPathB(F;=) contains regXPath (F;B), that is, the full data-unaware
+fragment of XPath . We also remark that it is notclosed under negation. Indeed, we cannot
+express the negation of \there exists an asuch that all its ancestors labeled bhave dierent
+data value" which is expressed by #[a^:h"[b] ="i]. As shown in Proposition 3.2, if the
+negation of this property were expressible, then its satisability would be undecidable. It
+is not hard to see that we can decide the satisability problem for this fragment.
+Consider the data test expressions of the types
+:hb=fi and:hb6=fi
+wheref2regXPath (F;=) andb2regXPath (B). We can decide the satisfaction of these
+kinds of expressions by means of spread (;), using carefully its rst parameter to select the
+desired threads from which to collect the data values we are interested in. Intuitively, along
+the dvp-run we throw threads that save the current data value and try out all possible ways
+to verifyr
+b2regXPath (F;=), where ( )rstands for the reverse of the regular expression.
+Let the automaton arrive with a thread (( jbj);d) whenever r
+bis veried. This signals
+
+--- Page 41 ---
+Alternating register automata on nite data words and trees 41
+that there is a backwards path from the current node in the relation bthat arrives at a
+node with data value d. Hence, at any given position, the instruction spread ((jbj);(jfj):~)
+translates correctly the expression :hb~fi. Furthermore, bneed not be necessarily in
+regXPath (B), as its intermediate node tests can be formul from regXPath (F;=). We then
+obtain the following result.
+Remark 6.11.Satisability for regXPathB(F;=) under key constraints and DTDs is decid-
+able.
+6.6.Allowing stronger data tests. Consider the property \ there are three descendant
+nodes labeled a,bandcwith the same data value ". That is, there exists some data
+valuedsuch that there are three nodes accessible by #[a],#[b] and#[c] respectively, all
+carrying the datum d. Let us denote the fact that they have the same or dierent datum by
+introducing the symbols ` ' and `6', and appending it at the end of the path. Then in this
+case we write that the elements must satisfy #[a],#[b], and#[c]. We then introduce
+the node expression ff1s1;:::;nsnggwhereiis a path expression and si2f;6gfor all
+i2[1::n]. Semantically, it is a node expression that denotes all the tree positions xfrom
+which we can access npositionsx1;:::;xnsuch that there exists d2Dwhere for all i2[n]
+the following holds: ( x;xi)2[ [i] ]; ifsi=thend(xi) =d; and ifsi=6thend(xi)6=d.
+Note that now we can express h=iasff;ggandh6=iasff;6gg. Let us call
+regXPath+(F;=) to regXPath (F;=) extended with the construction just explained. This is a
+more expressive formalism since the rst mentioned property |or, to give another example,
+ff#[a];#[b];#[a]6;#[b]6gg| is not expressible in regXPath (F;=).
+We argue that satisability for this extension can be decided in the same way as for
+regXPath (F;=). It is straightforward to see that positive appearances can easily be trans-
+lated with the help of the guess operator. On the other hand, for negative appearances, like
+:ff1s1;:::;nsngg, we proceed in the same way as we did for regXPath (F;=). The only
+dierence being that in this case the automaton will simulate the simultaneous evaluation of
+thenexpressions and calculate all possible congurations of the closest common ancestors
+of the endpoints, performing a spread at each of these intermediate points.
+Remark 6.12.Satisability of regXPath+(F;=) under key constraints and DTDs is decidable.
+7.Concluding remarks
+We presented a simplied framework to work with one-way alternating register automata on
+data words and trees, enabling the possibility to easily show decidability of new operators
+by proving that they preserve the downward compatibility of a well-structured transition
+system. It would be interesting to hence investigate more decidable extensions, to study
+the expressiveness limits of decidable logics and automata for data trees.
+Also, this work argues in favor of exploring computational models that although they
+might be not closed under all boolean operations, can serve to show decidability of logics
+closed under negation |such as forward- XPath | or expressive natural extensions of existing
+logics |such as LTL#
+nnf(F;9#
+;8#
+).
+We nally mention that even though XPath (#;#;!;!;=) (i.e., forward- XPath ) has a
+non-primitive-recursive complexity, the results of [14] suggest that it seems plausible that
+
+--- Page 42 ---
+42 D. FIGUEIRA
+XPath (#;#;!;=) or even XPath (#;#;!; ;=) are decidable in elementary time (see [14,
+Conjecture 1]).
+References
+[1] Parosh Aziz Abdulla, K arlis Cer ans, Bengt Jonsson, and Yih-Kuen Tsay. General decidability theorems
+for innite-state systems. In Annual IEEE Symposium on Logic in Computer Science (LICS'96) , pages
+313{321, 1996.
+[2] Parosh Aziz Abdulla, Johann Deneux, Jo el Ouaknine, and James Worrell. Decidability and complexity
+results for timed automata via channel machines. In International Colloquium on Automata, Languages
+and Programming (ICALP'05) , pages 1089{1101, 2005.
+[3] Rajeev Alur and David L. Dill. A theory of timed automata. Theoretical Computer Science , 126:183{235,
+1994.
+[4] Michael Benedikt, Wenfei Fan, and Floris Geerts. XPath satisability in the presence of DTDs. Journal
+of the ACM , 55(2):1{79, 2008.
+[5] Miko laj Boja nczyk, Anca Muscholl, Thomas Schwentick, and Luc Segoun. Two-variable logic on data
+trees and XML reasoning. Journal of the ACM , 56(3):1{48, 2009.
+[6] Pierre Chambart and Philippe Schnoebelen. The ordinal recursive complexity of lossy channel systems.
+InAnnual IEEE Symposium on Logic in Computer Science (LICS'08) , pages 205{216. IEEE Computer
+Society Press, 2008.
+[7] James Clark and Steve DeRose. XML path language (XPath). Website, 1999. W3C Recommendation.
+http://www.w3.org/TR/xpath .
+[8] St ephane Demri and Ranko Lazi c. LTL with the freeze quantier and register automata. ACM Trans-
+actions on Computational Logic , 10(3), 2009.
+[9] St ephane Demri, Ranko Lazi c, and David Nowak. On the freeze quantier in constraint LTL: Decidabil-
+ity and complexity. In International Symposium on Temporal Representation and Reasoning (TIME'05) ,
+pages 113{121. IEEE Computer Society Press, 2005.
+[10] Leonard E. Dickson. Finiteness of the odd perfect and primitive abundant numbers with n distinct
+prime factors. The American Journal of Mathematics , 35(4):413{422, 1913.
+[11] Diego Figueira. Satisability of downward XPath with data equality tests. In ACM Symposium on
+Principles of Database Systems (PODS'09) , pages 197{206. ACM Press, 2009.
+[12] Diego Figueira. Forward-XPath and extended register automata on data-trees. In International Con-
+ference on Database Theory (ICDT'10) . ACM Press, 2010.
+[13] Diego Figueira. Reasoning on Words and Trees with Data . Ph.D. thesis, Laboratoire Sp ecication et
+V erication, ENS Cachan, France, December 2010.
+[14] Diego Figueira. A decidable two-way logic on data words. In Annual IEEE Symposium on Logic in
+Computer Science (LICS'11) . IEEE Computer Society Press, 2011.
+[15] Diego Figueira, Santiago Figueira, Sylvain Schmitz, and Philippe Schnoebelen. Ackermannian and
+primitive-recursive bounds with Dickson's lemma. In Annual IEEE Symposium on Logic in Computer
+Science (LICS'11) . IEEE Computer Society Press, 2011.
+[16] Diego Figueira, Piotr Hofman, and S lawomir Lasota. Relating timed and register automata. In Inter-
+national Workshop on Expressiveness in Concurrency (EXPRESS'10) , 2010.
+[17] Diego Figueira and Luc Segoun. Future-looking logics on data words and trees. In International Sym-
+posium on Mathematical Foundations of Computer Science (MFCS'09) , volume 5734 of LNCS , pages
+331{343. Springer, 2009.
+[18] Diego Figueira and Luc Segoun. Bottom-up automata on data trees and vertical XPath. In Interna-
+tional Symposium on Theoretical Aspects of Computer Science (STACS'11) . Springer, 2011.
+[19] Alain Finkel and Philippe Schnoebelen. Well-structured transition systems everywhere! Theoretical
+Computer Science , 256(1-2):63{92, 2001.
+[20] Floris Geerts and Wenfei Fan. Satisability of XPath queries with sibling axes. In International Sym-
+posium on Database Programming Languages (DBPL'05) , volume 3774 of Lecture Notes in Computer
+Science , pages 122{137. Springer, 2005.
+[21] Georg Gottlob, Christoph Koch, and Reinhard Pichler. Ecient algorithms for processing XPath
+queries. ACM Transactions on Database Systems , 30(2):444{491, 2005.
+
+--- Page 43 ---
+Alternating register automata on nite data words and trees 43
+[22] Graham Higman. Ordering by divisibility in abstract algebras. Proceedings of the London Mathematical
+Society (3) , 2(7):326{336, 1952.
+[23] Marcin Jurdzi nski and Ranko Lazi c. Alternation-free modal mu-calculus for data trees. In Annual IEEE
+Symposium on Logic in Computer Science (LICS'07) , pages 131{140. IEEE Computer Society Press,
+2007.
+[24] Marcin Jurdzi nski and Ranko Lazi c. Alternating automata on data trees and XPath satisability. ACM
+Transactions on Computational Logic , 12(3):19, 2011.
+[25] Joseph B. Kruskal. Well-quasi-ordering, the tree theorem, and Vazsonyi's conjecture. Transactions of
+the American Mathematical Society , 95(2):210{225, 1960.
+[26] M.H. L ob and S.S. Wainer. Hierarchies of number theoretic functions, I. Archiv f ur Mathematische Logik
+und Grundlagenforschung , 13:39{51, 1970.
+[27] Maarten Marx. XPath with conditional axis relations. In International Conference on Extending Data-
+base Technology (EDBT'04) , volume 2992 of Lecture Notes in Computer Science , pages 477{494.
+Springer, 2004.
+[28] Philippe Schnoebelen. Revisiting Ackermann-hardness for lossy counter machines and reset Petri nets.
+InInternational Symposium on Mathematical Foundations of Computer Science (MFCS'10) , volume
+6281 of Lecture Notes in Computer Science , pages 616{628. Springer, 2010.
+[29] Balder ten Cate. The expressivity of XPath with transitive closure. In ACM Symposium on Principles
+of Database Systems (PODS'06) , pages 328{337. ACM Press, 2006.
+[30] Balder ten Cate and Luc Segoun. XPath, transitive closure logic, and nested tree walking automata.
+InACM Symposium on Principles of Database Systems (PODS'08) , pages 251{260. ACM Press, 2008.
+This work is licensed under the Creative Commons Attribution-NoDerivs License. To view
+a copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+letter to Creative Commons, 171 Second St, Suite 300, San Francisco, CA 94105, USA, or
+Eisenacher Strasse 2, 10777 Berlin, Germany

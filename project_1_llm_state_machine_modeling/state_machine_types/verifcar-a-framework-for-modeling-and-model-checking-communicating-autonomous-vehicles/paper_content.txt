@@ -1,0 +1,1300 @@
+--- Page 1 ---
+HAL Id: hal-02133680
+https://hal.science/hal-02133680v1
+Submitted on 12 Nov 2019
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+VerifCar: a framework for modeling and model checking
+communicating autonomous vehicles
+Johan Arcile, Raymond Devillers, Hanna Klaudel
+To cite this version:
+Johan Arcile, Raymond Devillers, Hanna Klaudel. VerifCar: a framework for modeling and model checking
+communicating autonomous vehicles. Autonomous Agents and Multi-Agent Systems, 2019, 33 (3), pp.353–
+381. ⟨10.1007/s10458-019-09409-x⟩. ⟨hal-02133680⟩
+
+--- Page 2 ---
+VERIF CAR: A framework for modeling and model
+checking communicating autonomous vehicles
+Johan Arcile1, Raymond Devillers2, and Hanna Klaudel1
+1IBISC, Univ Evry, Université Paris-Saclay, 91025 Evry, France,
+{johan.arcile,hanna.klaudel}@univ-evry.fr
+2ULB, Bruxelles, Belgium, rdevil@ulb.ac.be
+Abstract This paper presents a framework, called V ERIF CAR, devoted to the
+validation of decision policies of communicating autonomous vehicles (CA Vs).
+The approach focuses on the formal modeling of CA Vs by means of timed auto-
+mata, allowing a formal and exhaustive analysis of the behaviors of vehicles.
+VERIF CARsupports a parametric modeling of CA V systems as a network of
+timed automata tailored for veriﬁcation and limiting the well-known state space
+explosion. As an illustration, V ERIF CARis applied to check robustness and ef-
+ﬁciency, as well as to asses the impact of communication delays on the decision
+algorithms of CA Vs, on well chosen case studies representing real-life critical
+situations.
+Keywords: Timed Automata, Formal Veriﬁcation, Model Checking, Communicating
+Autonomous Vehicles
+1 Introduction
+Autonomous vehicles are rational sophisticated entities (sometimes called agents ) that,
+as the term already suggests, act autonomously across open and distributed environ-
+ments. They may have different perceptions of the environment because of the informa-
+tion they possess, and differing interests in terms of the goal to be accomplished. Inter-
+vehicle communications affect perceptions and, in turn, individual decisions and be-
+haviors. A system of communicating autonomous vehicles (CA V system) is then both
+a multi–agent system [32] and a real-time system [2]. More precisely, a CA V system
+is a network of vehicles that communicate with their neighbors to fulﬁll a goal as fast
+as possible while complying to the trafﬁc laws and avoiding crashes. Moreover, the
+correctness of such a system also requires to respect a set of time constraints.
+Through some level of abstraction, computer simulations enable one to model the
+behavior of vehicles in a chosen environment so that various kinds of scenarios may be
+studied [6,28,33]. However, when vehicles present non-deterministic behaviors, simu-
+lation tools are generally not exhaustive since each simulation corresponds to a single
+path in the graph of all the possible behaviors. This is especially true in the context of
+communicating agents, where agents interact during non-deterministic time intervals,
+adding a new kind of non-determinism to the usual one, offering various possible ac-
+tions at some point. It is therefore appealing to formally verify the core CA V behaviors
+in order to be conﬁdent in the integration of autonomous vehicles into the road trafﬁc.
+
+--- Page 3 ---
+2 Johan Arcile et al.
+Formal modeling and veriﬁcation of CA V systems require not only the deﬁnition
+of both the vehicle states and the road (the environment) but also a speciﬁcation of
+interactions between vehicles and an expressive query language to check properties.
+Ideally, the resulting model of a CA V system should be accurate enough to capture the
+spatial and time aspects of the original system and should also provide a formal basis for
+the veriﬁcation of properties like robustness to faults, effectiveness of maneuvers or the
+impossibility of collisions (safety), and for the calibration and assessment of decision
+policies. The language for stating properties should be expressive enough for the needs
+and appropriate for applying automatic veriﬁcation techniques and tools.
+A widely used automatic technique for system veriﬁcation is model checking [10].
+It provides algorithmic means for determining whether an abstract model – represent-
+ing a hardware/software/mixed project (in our case a CA V system) – satisﬁes a formal
+speciﬁcation (property) expressed as a temporal logic formula. Moreover, if the prop-
+erty does not hold, the method usually identiﬁes a counterexample run that shows the/a
+source of the problem.
+The main objective of this paper is to present a way to perform formal modeling and
+model checking of CA V systems, focusing on the impact of various types of commu-
+nications on vehicles’ safety and trafﬁc ﬂuidity. More speciﬁcally, we present a frame-
+work, called V ERIF CAR, composed of a scalable model of a CA V system optimized for
+formal veriﬁcation together with a method of calculating indicators allowing to evaluate
+the quality of a given autonomous vehicle decision policy. The framework is designed
+in particular to be exhaustive on the non-determinism induced by the latency, commu-
+nication delays and concurrency features. To show the usefulness of our approach, we
+present various examples of impacts the communications may have on safety, efﬁciency
+or trafﬁc ﬂuidity.
+The underlying modeling formalism that we use in V ERIF CARto specify the be-
+havior of CA Vs is a model of Timed Automata [2], which is a standard supported by
+several veriﬁcation tools, e.g., the model checker U PPAAL [29]. The timed automata
+formalism is the most well-established model for the speciﬁcation and veriﬁcation of
+distributed real-time system designs. Among many advantages, it allows:
+–to create a clear and concise abstract model of the considered CA V systems;
+–to assess the robustness of a vehicle decision policy through a fault injection; and
+–to apply model checking algorithms and tools, in particular the algorithms designed
+for timed properties expressed in the temporal logic TCTL [1].
+To the best of our knowledge, this kind of formal approach does not seem to have
+been exploited up to now, except in our recent conference communication [4], of which
+the present paper is an extended and improved version.
+The structure of the paper is as follows: Sections 1 and 2 introduce the motivation
+and objectives of this paper, and connect them with the related work in the ﬁeld. Sec-
+tion 3 deﬁnes our CA V systems at an abstraction level adapted to our issues. Section 4
+introduces our framework V ERIF CARas a parametric network of timed automata syn-
+chronizing through broadcast inter-vehicle communications. Two more elaborate com-
+munication schemes (negotiations and communications via road infrastructure) are also
+considered. Section 5 recalls brieﬂy the temporal logic used in our framework and the
+veriﬁcation process, including the indicators chosen for the veriﬁcation purposes and
+
+--- Page 4 ---
+VERIF CARmodel checking of communicating autonomous vehicles 3
+the way they can be computed during model checking. Section 6 justiﬁes our choices
+of parameters and variables to describe the system, together with a discretization re-
+quired for veriﬁcation, allowing the reduction of the resulting state space according to
+a desired precision. Section 7 shows several examples of how V ERIF CARmay be used
+to study the behavior of autonomous vehicles in presence of inter-vehicle communica-
+tions, with or without some forms of negotiation or vehicle-infrastructure communica-
+tions. It includes a discussion on how a practitioner should use V ERIF CAR. Section 8
+concludes the paper by summarizing the contributions and highlights possible exten-
+sions of V ERIF CARallowing to ease its usage and to tackle more complex problems.
+Finally, an appendix details some algorithm evoked in the text.
+2 Related work
+The decision policies of CA Vs can potentially impact safety, trafﬁc ﬂuidity and energy
+consumption. They often rely in practice on trajectory planning algorithms studied in
+3D simulation, often in conjunction with on-road experiments [19,21,15,23,16]. While
+the reliability of such systems is a key concern of policy-makers [17], the formal veri-
+ﬁcation of decision policies of CA Vs appears to be under-explored.
+Among the approaches dealing with formal veriﬁcation in the context of autonom-
+ous vehicles, some use timed models, which seem suitable for studying non-determinism
+induced by message delays and latency in vehicles’ communications. This is the case
+for example in [14], which aims at verifying the functional layer of mobile robots, i.e.,
+the low-level layer which interacts directly with sensors and actuators and transmits
+information to the decision layer. For this reason, it does not need to model several
+agents evolving in a given environment. Another example is [18], which addresses the
+soundness of vehicle platooning (enabling vehicles to travel as a group on the roads).
+It focuses on properties of the vehicle platoon, for instance, correct joining and leav-
+ing, and considers the representation of vehicles relatively to the platoon. Both these
+approaches focus on speciﬁc properties and their optimized models are not complete
+enough for our needs.
+In [25] hybrid systems are used to model autonomous vehicles. With this form-
+alism, combining both continuous state variables and discrete operating modes, their
+model achieves a realistic representation of vehicles physics, similar to those which
+may be found in simulations (slip angle, yaw rate, etc.). However, such a realism leads
+to low performances during the veriﬁcation phase, as shown in the presented case study.
+Indeed, for a system with only two vehicles and a single one applying a decision policy
+generating limited non-determinism ( npaths for ntime steps) and the absence of com-
+munications between vehicles, the model checker dReach [20] already takes a few
+minutes for a full exploration of the state space.
+Another work, concerning train controllers modeled by hybrid systems [26], pro-
+poses a similar representation of agents, taking into account their velocity and acceler-
+ation in order to model a realistic physical movement. Here, communications between
+trains are possible, but the state explosion phenomenon is even more present, since a
+simple case with two trains takes more than half an hour to give results.
+
+--- Page 5 ---
+4 Johan Arcile et al.
+The closest work to ours seems to be [27], involving robots evolving in a two dimen-
+sional grid and modeled with a formalism based on timed automata. The mobile robots
+are represented as agents evolving in a physical environment but at a very high level
+of abstraction and only basic actions can be performed (such as moving to an adjacent
+cell). In particular, the model does not include velocity or acceleration values, which
+are crucial for the realism of vehicles on a road. Furthermore, agents cannot commu-
+nicate with each other, making it impossible to study the non-determinism induced by
+communications on a CA V system.
+3 General view of a CA V system
+The systems of CA Vs we consider are composed of several lanes forming a portion of a
+motorway on which several vehicles can move in the same direction, each one realizing
+some goal. Each vehicle is deﬁned by a set of constants such as its length or braking
+capacities. We assume that the vehicles are provided with various perception sensors
+allowing to observe the behavior of their neighbors. As our approach focuses on the im-
+pact of communications on decisions, we assume these sensors are perfect, in the sense
+that the information obtained from them is always accurate and immediate. Vehicles are
+also able to communicate and receive pieces of information, which are not directly ob-
+servable, such as the planned lane change of the other vehicles. These communications
+are timed in order to realistically represent the delays between emissions and receptions
+of data. The behavior of each vehicle consists in repeating endlessly, at its own constant
+frequency:
+–a computation allowing to make a decision on the immediate action to be performed
+(i.e., execution of the decision algorithm) in the form of an acceleration (speed
+increase, braking, no change) and a direction (left, right, no change), followed by
+–the communication of its intention (in the form of the trajectory it wishes to follow)
+to all vehicles able to receive this information. Received information coming from
+the other vehicles is stored in the database of the vehicle and used when running
+the decision algorithm.
+The road. In our framework, we consider a road section composed of one or more
+unidirectional lanes the vehicles move on, and we store at any time the coordinates
+(position) of each vehicle on it. The current position (x;y)(as well as the initial one) is
+expressed as the distance from the beginning of the road section ( x) and from one of the
+road borders ( y). Due to veriﬁcation purposes requiring discrete value domains, these
+distances are expressed using discrete values, but precise enough to satisfactorily model
+the vehicle progression on the road (see Section 6 for more details on the discretization
+aspects). As a consequence, the position of a vehicle is a point on a two-dimensional
+orthogonal grid on which the longitudinal and lateral gaps between adjacent points may
+be different.
+The vehicles. Each vehicle is approximated on this orthogonal grid by a rectangle with
+a given length and width, centered on its position (x;y)as illustrated in Fig. 1. Its state
+
+--- Page 6 ---
+VERIF CARmodel checking of communicating autonomous vehicles 5
+Figure 1. A portion of a road discretised in x-coordinate with a granularity Gran xand in y-
+coordinate with Gran ywith a moving vehicle on position (x;y).
+is thus described by a record containing its position (the rectangle’s center), its cur-
+rent longitudinal and lateral speeds, its longitudinal acceleration (in a given range from
+negative to positive values) and its knowledge about other vehicles (for example in the
+form of timed trajectories). Note that the types3of these variables are critical and have
+to be chosen with care as they directly impact both the size of the state space and the
+modeling precision. This topic will be discussed in Section 6. Since we are not aiming
+at checking the control of vehicles ( i.e., the module responsible for producing a traject-
+ory according to the decision choices), we abstract from the physical laws involved in a
+maneuver such as rotation or inertia. Hence, the rectangle representing the vehicle never
+rotates and the direction change is applied directly on the lateral speed value. In other
+words, turning the steering wheel impacts the speed value that will make the rectangle
+move on the yaxis, while its longitudinal speed still makes it move on the xaxis.
+The decision. The vehicle decision algorithm follows a given decision policy. The latter
+may deﬁne in particular parameters such as safety distances to be respected in function
+of the speed. In our experiments, we use a policy common to all vehicles, but this
+limitation may easily be dropped. In order to make a decision, the algorithm takes into
+account its own state information including what it knows about its neighborhood (for
+example, a representation of timed trajectories of other vehicles) as well as its own route
+(goal). A route of the vehicle is deﬁned as a sequence of positions the vehicle has to
+reach. More precisely, we consider a sequence of sets of positions to be reached, with
+the requirement to reach at least one position of each set. These sets may contain several
+adjacent lateral positions at the same distance from the origin. Concretely, it allows one
+to deﬁne the route as a parameter that will impact the decision choices according to the
+exit the vehicle wants to take.
+Environment update At a constant frequency, the longitudinal speed and position of
+each vehicle is updated according respectively to the acceleration of the vehicle and
+3A type corresponds here to a range of integers
+
+--- Page 7 ---
+6 Johan Arcile et al.
+longitudinal and lateral speeds. We call that process the environment update, as it up-
+dates the state of all agents on the system simultaneously. The environment update fre-
+quency should be higher than the frequency of the decision algorithm of each vehicle.
+This is useful in order to avoid that there is no update between two decisions of the
+same vehicle, which would mean the ﬁrst one had no impact on the state of the vehicle.
+In general, in order to represent the actions of the vehicles in a realistic way, the envir-
+onment update frequency should be as high as possible. However, the size of the state
+space grows exponentially with the increase of this frequency.
+Timed trajectories. The decision algorithm aims at predicting future conﬂicts between
+vehicles, and choosing the most suitable maneuver regarding their needs. We provide
+for this purpose predicted trajectories but other speciﬁc algorithms might be used.
+The predicted trajectories of vehicles are timed abstractions represented as sequences
+of positions the vehicle will reach at some dates up to some time horizon (typically
+10 s), as shown in Fig. 2. They are meant to represent the intention of a vehicle at a
+given moment and can be communicated to other vehicles. In order to optimize memory
+space, these trajectories are never stored but they are computed on demand from the in-
+formation of a vehicle and their neighbors, which has to be as compact as possible. To
+do so, we encode these trajectories with two variables with a limited range of possible
+values:
+–The lane the vehicle is currently aiming at.
+–The time delay planned by the decision algorithm before starting a lane change (if
+any).
+The latter delay is expressed using a gap and a maximum duration. For instance, a gap of
+100ms and a maximum duration of 5 seconds for the time delay would give 51 possible
+values ([0.0,0.1,...,4.9,5.0]) for the time delay variable. To indicate the next lane change,
+this yields 103 possibilities: 51 possibilities for a left change, 51 for a right change and
+1 for no lane change.
+Figure 2. A two lanes road section where a vehicle (dashed rectangle) is centered in (4;2)and its
+predicted timed trajectory (6;2);(8;2);(10;3);(12;4);(15;5);(18;5);(21;5)for seven next time
+periods is shown by gray dots (the progression in xvaries in function of the speed).
+In the real life, the predicted trajectories would of course be much more accurate but,
+as in our modeling the timed precision of the environment depends on the environment
+
+--- Page 8 ---
+VERIF CARmodel checking of communicating autonomous vehicles 7
+update frequency, it is of no use to represent states which could never be observed,
+neither by the vehicles nor by the environment. As a consequence, we base our timed
+trajectories on the environment update frequency.
+Cooperation aspects. As we aim to model cooperative vehicles, in addition to the
+vehicle-to-vehicle information exchange, we propose to study two other forms of com-
+munications that are likely to be used in the future for CA Vs: negotiation and infra-
+structure-based decision. These aspects are novel with respect to our previous work [4].
+Negotiation is modeled as a distributed algorithm in which agents can interact with
+each other, each agent trying to impact other agents for its personal beneﬁt. Typically,
+it can be the case that a vehicle “requests” another one to wait for some time before
+doing an action in order to minimize the negative impact that this action may have on
+the safety and/or ﬂuidity of the trafﬁc. The decision algorithms take into account such
+information using broadcast communications.
+Infrastructure-based decision consists in using terminals along the road, which ob-
+serve the moves and intentions of vehicles, compute and send orders to vehicles, con-
+trolling trafﬁc in a centralized way. Here, such terminals are modeled in the same way
+as the vehicles, i.e., as agents which receive data broadcasted by vehicles and compute
+the orders to be sent at a given frequency.
+Note that we designed a decision algorithm for CA V systems with several variants,
+with and without taking into account the above cooperation aspects. We needed them
+in order to illustrate our approach, make various experiments, and show how easily our
+modeling choices allow to modify the environment of the system. However, it must be
+understood that the present paper focuses on the modeling of such systems, to show
+how to assess the robustness of a given decision policy, but does not have any ambition
+to present and promote a concrete and efﬁcient decision algorithm.
+4VERIF CAR: a timed automata based framework for CA Vs
+Communication delays between emission and reception of data might be one of the
+most critical and yet unpredictable parameters in the context of CA Vs. Our objective
+is to make it possible to study the non-determinism induced by such communication
+delays. The timed automata formalism provides an efﬁcient way to model such sys-
+tems, leading to several tools that have proved their usability for veriﬁcation, such as
+UPPAAL [29].
+We present in this section our framework, called V ERIF CAR, implementing the
+modeling ideas introduced in the previous section, using the timed automata formal-
+ism. The model will be expressed as a network (a set) of timed automata synchronizing
+using broadcast communications. The states of each automaton are called locations.
+One may travel between locations following a timed schedule constrained by the la-
+bels of the visited locations and those of the crossed transitions (arcs). Some locations
+are urgent, meaning that the time may not evolve when the corresponding automaton
+is there. To express timed information, special variables called clocks evolving with
+time are introduced. They can be reset and can be used in Boolean formulas deﬁning
+invariants on locations or guards on transitions.
+
+--- Page 9 ---
+8 Johan Arcile et al.
+The functioning of the automata is as usual, i.e., each automaton starts from its
+initial conﬁguration (initial location and all clock values equal to zero), it may stay in
+a location when its invariant (a predicate labeling the location) is true, and a transition
+may occur when its guard (a predicate labeling the transition) is valid (and so is the
+invariant of the destination location).
+Invariants and guards may use constants (usually in the form of parameters) and
+variables, either being global or speciﬁc to an automaton (like a component of a vector
+indexed for example by a vehicle i).
+All clocks are assumed to progress together. A broadcast channel khas an emitter,
+denoted k!, and a receptor, denoted k?, each one associated with at least one transition.
+When a transition with an emitter is crossed, all available transitions in the network
+with a reception on the same channel must be crossed simultaneously (meaning that no
+other actions can happen in between and clocks value cannot change).
+4.1 VERIF CARcomponents and their roles
+Letnbe the number of agents in our system. Our model thus comprises n+1 automata:
+the environment automaton A0, and the agents automata Aifor 1in. Agents can
+be either communicating vehicles or a communicating infrastructure (typically a set of
+road side units). Besides a set of constant parameters, the data structure of the model is
+encoded as a set of sub-structures, each of them modeling the state of a single vehicle.
+All the variables that must be known about that particular vehicle (position, speed,
+knowledge about the environment, etc.) are members of such a sub-structure. Note that
+in the timed automata formalism, the variables need to be integer numbers. Along with
+this data structure, we deﬁne n+1 clocks Ci, for 0in, and a broadcast channel k.
+We also consider three functions :
+–update (), which updates the state of all agents, i.e., their longitudinal and lateral
+position, speed and acceleration;
+–decision (i), which computes the next acceleration and direction to be applied for
+agent i;
+–communicate (i), which sends information about agent iintentions to other agents.
+The templates of the V ERIF CARmodel are then depicted in Fig. 3.
+Agent automaton Ai(for 1in) is associated with clock Ci. The role of this
+automaton is to trigger both the decision of agent iand the communication of this agent
+to other agents. It is composed of three locations s0,s1ands2. Location s0is the ini-
+tial one: it is an urgent location (meaning that it must be left as soon as possible) and
+has an outgoing transition to s1, which sets Cito its initial value (deﬁned as a para-
+meter of the agent). Location s1is associated with an invariant Cifreqiwhere freqi
+is a parameter deﬁning the time interval between two decisions for agent i. There is a
+transition from s1tos2with a guard Cifreqi, which triggers the function decision (i)
+and resets Ci. This allows for the decision to occur exactly every freqitime units. The
+transition is also associated with the broadcast channel receptor k?, whose role will be
+explained later. Location s2is associated with an invariant CiMIN _comm _delay iand
+has an outgoing transition to s1with a guard CiMAX _comm _delay i, which triggers
+
+--- Page 10 ---
+VERIF CARmodel checking of communicating autonomous vehicles 9
+s0 s1C0S
+update ()
+C0S
+C0:=0;update ();k!C0<S^C1freq1
+k!C0<S^Vn1
+i=1Ci<freqi^Cnfreqn
+k!
+...
+A0
+s0 s1Cifreqi
+s2CiMIN _comm _delay i
+Ci:=init_clock i Cif req i;k?
+Ci:=0;decision (i)
+CiMAX _comm _delay i
+communicate (i)Ai
+Figure 3. VERIF CAR: timed automata templates A0(for the environment) and Ai(for the agent i).
+The initial locations are urgent and have double borders.
+the function communicate (i), where [MIN _comm _delay i;MAX _comm _delay i]is the
+non-deterministic time interval between data emission and reception by other agents.
+This model allows to reuse a single clock for two timed operations (decision and com-
+munication). However, it requires that freqiis greater or equal to MAX _comm _delay i.
+This should not be an issue since latency delays in vehicle-to-vehicle protocols are ex-
+pected to be less than 100ms [31,8,7] while decision modules cited in the literature
+often use a 10Hz frequency [13,22]. Note that the automaton is the same for vehicles
+and infrastructures, but the data structure and the actions performed by decision and
+communication are different.
+Automaton A0is associated with clock C0. Its role is to update on a regular time
+basis (given as parameter S) the state of all agents. It is composed of two locations
+s0(initial) and s1. Location s0is an urgent location and has an outgoing transition to
+s1, which triggers the function update (). This is used to make the ﬁrst update that
+initializes the state of all agents. Location s1is associated with an invariant C0S
+and has a looping transition with a guard C0S, which triggers the function update ()
+and performs a reset of clock C0. This allows for the regular update of the system’s
+
+--- Page 11 ---
+10 Johan Arcile et al.
+state. This transition is also associated with the broadcast channel emitter k!. As the
+update emulates the continuous movement of objects, it should always have priority
+on all decision transitions available at the same time4. Otherwise, it would create paths
+in the state space, which only exist because of the loss of information due to the used
+abstractions. The role of the broadcast channel kis to deal with a form of irrelevant
+non-determinism: all transitions triggering the decision process are associated with a
+broadcast channel receptor k? so that, in case of concurrency, the update always has to
+be triggered ﬁrst.
+Furthermore, thanks to the nature of the broadcast channel we use, all decision pro-
+cesses available in the same time unit will be triggered simultaneously, avoiding useless
+intermediary states in the system with local non-determinism without any impact on the
+system. Indeed, the decision made by an agent iis known by other agents only after i
+communicates, or by seeing the behavior change, which occurs after the update fol-
+lowing the decision. Therefore, the order in which competing transitions triggering the
+decision process are executed is irrelevant.
+These transitions must now wait for k! to be triggered, but are not necessarily syn-
+chronized with the update sampling deﬁned by S. A solution to this issue would be to
+add on A0a looping transition on s1with a guard C0<S^Wn
+i=1Cifreqithat triggers
+k!. However, the disjunction operatorWis not supported by the tool we use. To emulate
+this behavior without introducing useless non-determinism, we added on A0one loop-
+ing transition per agent (hence nloops), so that for each i2[1;n]there is a transition
+from s1tos1with a guard C0<S^Vi1
+j=1Cj<freqj^Cifreqithat triggers k!. This
+particular modeling can be seen as a binary decision diagram. Indeed, if at least one
+agent can perform its action, there exists i2[1;n]such that decision (i)is available and
+8j2[1;i1]decision (j)is not. Therefore, only one transition in A0is available at any
+moment, which induces a deterministic progression with this automaton.
+5VERIF CARchecking objectives and methodology
+In order to use the chosen model checking tool for the V ERIF CARmodel, the queries
+must be expressed in the computational tree logic (CTL) [12]. CTL queries are formed
+of pairs of path quantiﬁers AorE(for Always and Exists, respectively) and path op-
+erators GorF(for Globally and Finally, respectively). For instance, formula EF p
+(respectively AF p ) means that there exists at least one state satisfying property pon
+at least one path (respectively on all paths) starting from the initial state, where pis an
+atomic formula or an implementation of a (even complex) Boolean function. For ex-
+ample, to check if there is a possibility that vehicle ireaches eventually lane number 2,
+one may use a query of the form EF vehicle [i]:lane=2.
+5.1 Indicators for the analysis
+As already mentioned, the goal of V ERIF CARis to make it possible to assess and com-
+pare decision algorithms for CA Vs with respect to properties such as safety, efﬁciency,
+4It only occurs for decision transitions, not for communication ones, for which actions are
+independent of the vehicles’ state, and therefore of the update function.
+
+--- Page 12 ---
+VERIF CARmodel checking of communicating autonomous vehicles 11
+Figure 4. Illustration of overlaps for x-axis (top) and y-axis (bottom). Faster vehicle A is in dark
+gray while vehicle B is in light gray. The positions of the vehicles are shown at some chosen
+dates, indicated in top left corner for A and top right corner for B. Dashed areas corresponds to
+the overlap zones.
+comfort or fairness. Here we provide a set of CTL queries to be used in our experi-
+ments, presented in the next section, and we shall try to generalize them in order to get
+an automated methodology.
+Each of the mentioned aspects will be checked with various indicators. To check the
+safety aspect, we propose a Time-to-Collision indicator (TTC), which gives, for a given
+time tand two vehicles, the time before collision if both vehicles keep moving at the
+same constant speed. TTC is a commonly used indicator in the literature [30,24] when
+assessing safety for vehicles on a single lane. Here, we adapt it to a two-dimensional
+space.
+For two moving points on an axis, the instant tmeetwhen they coincide is given by
+their present distance divided by the difference of their speeds. The algorithm comput-
+ing the TTC we developed for our framework generalizes this idea for two vehicles of
+some size moving without rotation on a two dimensional grid: see Appendix A.
+When a vehicle is followed at some distance by a faster one, for both longitudinal
+and lateral directions ( i.e., on the xandyaxes), we may deﬁne a time interval [tmeet;tmeet]
+corresponding to the overlap of the two vehicles: tmeetis the instant where the closest
+extremities (on the considered direction) coincide, and tmeetis the same for the most
+distant extremities. The TTC is then obtained by comparing the time intervals obtained
+for both directions:
+
+--- Page 13 ---
+12 Johan Arcile et al.
+–If the two resulting time intervals are non-empty and intersect, the left border of
+this intersection yields the TTC value. If that TTC value is zero, it means there is a
+collision presently occurring between the vehicles.
+–If there is no intersection between these intervals, there is no possible collision
+presently expected, and by convention the TTC value is considered inﬁnite.
+As an example, consider the situation shown in Figure 4. Initially, vehicle A is
+in position (3,6) with a longitudinal speed value of 5 and a lateral speed value of -2,
+while vehicle B is in position (4,2) with a longitudinal speed value of 3 and a lateral
+speed value of 0. The vehicles lengths and widths have a value of 2 units. The time
+overlap on the x-axis is [0:5;1:5]while the time overlap on the y-axis is [1;3]. The
+intersection of these intervals ( [1;1:5]) is the time window where vehicles overlap on
+the two dimensional environment, see Figure 5. The left border value gives the TTC (in
+this case TTC =1).
+Figure 5. Illustration of TTC computation based on longitudinal and lateral time intervals.
+When one considers a whole trajectory, one can compute the smallest TTC, and
+when considering all the trajectories, one gets a minimal and a maximal value for this
+smallest TTC. The complexity of that computation is in constant time, which is very
+interesting with respect to our concern to reduce the computation time.
+Efﬁciency, comfort or fairness can be checked through indicators such as travel
+time, deceleration or waiting time. One can chose to check either extrema, mean value,
+or covariance between agents for such indicators. In general, it is possible to use in our
+framework any of the usual indicators used in the literature, such as the ones depicted
+in [9] (e.g. waiting time, fuel consumption, loss time, etc.).
+5.2 Analysis methodology
+Since we study complex scenarios involving non-determinism, different executions will
+often lead to different states. Therefore, we should not consider a single value for a given
+indicator but a set of possible values.
+For each execution, there is a smallest value for some indicator indic . We call
+indic minthe set of those smallest values (each for one execution). Let kdf=inf(indic min)
+
+--- Page 14 ---
+VERIF CARmodel checking of communicating autonomous vehicles 13
+andk0df=sup(indic min), then kis the smallest possible value that satisﬁes
+QEF
+min(k)df=EF indick
+andk0is the smallest possible value that satisﬁes
+QAF
+min(k0)df=AF indick0:
+It means EF indick1 and AF indick01 must be false.
+Similarly, we call indic maxthe set of the greatest values of indic for the various
+possible executions. Let kdf=inf(indic max)andk0df=sup(indic max), then nis the smallest
+possible value that satisﬁes
+QAF
+max(k)df=AF indick
+andmis the greatest possible value that satisﬁes
+QEF
+max(k0)df=EF indick0:
+It means AF indick+1 and EF indick0+1 must be false.
+To ﬁnd these extrema, we use the classical dichotomy algorithm in conjunction with
+model checking queries. Let Q(n)be either QEF
+min(n)orQAF
+min(n)and[i;j]be the range
+of possible values for n. Algorithm 1 describes the procedure to determine the smallest
+possible value that satisﬁes Q(n). The maximal number of queries needed to ﬁnd this
+value is log2(ji).
+IfQ(n)is either QEF
+max(n)orQAF
+max(n), we use the same algorithm while adding a
+negation to the condition: if(:Q(u+v
+2))and return uinstead of v.
+Algorithm 1 Computation of the minimal value of indicator indic for which Q(n)is
+true.[i;j]is the range of possible values for n, with i<j. It is assumed that Qis mono-
+tonic, that Q(j)is true and Q(i)is not.
+u i
+v j
+while u6=v1do
+ifQ(u+v
+2)then
+v u+v
+2
+else
+u u+v
+2
+end if
+end while
+return v
+In addition to these numerical indicators, arrival orders of vehicles can give addi-
+tional information on their behaviors. We deﬁne a Boolean function denoted before (x;y)
+taking two vehicles xandyas arguments and evaluating to true on a state if xhas
+reached the end of the road and yhas not. To ﬁnd all the possible arrival orders, we
+check for every pair of vehicles AandBthe following queries: EF before (A;B)and
+EF before (B;A). For each pair we have three possible results on the couple of queries:
+
+--- Page 15 ---
+14 Johan Arcile et al.
+–Both are true, Aarrives ﬁrst in some executions and Barrives ﬁrst in others.
+–Only one query is true, the order never changes for the pair in all possible execu-
+tions.
+–None is true, both vehicles always reach the end of the road at the same time unit.
+Thanks to these simple reachability queries, we manage to have a picture of the possible
+behaviors that may occur. In some cases of highly non-deterministic behaviors, further
+investigation might be useful to check arrival orders between more than two vehicles.
+This case will be illustrated in Section 7.3.
+6 Modeling choices, calibration and precision
+In order the framework to be usable in practice, it is necessary to maintain a balance
+between the realism of the representation and the efﬁciency of the model checking. That
+implies having the smallest possible state space while losing the least amount of inform-
+ation. Since the available tools that are able to formally verify such systems can only
+handle integer data structures (basically: parameters, variables and arrays), we have
+to propose a satisfactory discretization for the various physical quantities describing
+the vehicles’ behaviors. Indeed, the complexity of the veriﬁcation procedures rapidly
+increases with the range of these integer variables, while the accuracy of the models
+requests an adequate granularity.
+Our discrete representation of the state of vehicles will thus be encoded with the
+following discrete variables:
+–its (longitudinal and lateral) positions xandy,
+–its forward speed vwith the corresponding forward acceleration a,
+–and the direction of the vehicle D2f 1;0;1g, corresponding respectively to a
+lateral move to the right, no change and to the left.
+With the exception of D, we will denote by Gran a,Gran v,Gran x,Gran ythe granularity
+of these quantities, i.e., the gap between two consecutive values (this allows to normal-
+ize the data as integers), and by N(with the corresponding subscripts) the size of the
+needed data structure, called a range .
+The updates of the forward speed and position values after a period are expressed by
+the usual formulas. However, as our objective is to be able to efﬁciently perform model
+checking, we need our modeling to be parametric, making it possible to preserve an
+adequate balance between the size of the state space to be analyzed and the desired level
+of realism. The latter directly depends on the period at which the system is observed,
+called the sample . Thus, the following parameters and constants will be used to describe
+the system:
+–Sis the sample period, in seconds (written as s);
+–Lis the length and Ris the width of the road segment, in meters (written as m);
+–Vminis the min and Vmaxis the max value of (longitudinal) speed expressed in meters
+per second (written as m/s);
+–Aminis the min and Amaxis the max value of acceleration expressed in meters per
+second squared (written as m/s2);
+
+--- Page 16 ---
+VERIF CARmodel checking of communicating autonomous vehicles 15
+–Gran ais the granularity of the acceleration expressed in meters per second squared;
+–Wis the lateral speed during a lane change, expressed in meters per second.
+As a consequence, the acceleration range is then Na=1+ (AmaxAmin)=Gran a,
+assuming that 0 is one of the possible accelerations and that Amax=Gran aas well as
+Amin=Gran aare integers. The acceleration is then expressed as a=AGran a, the lon-
+gitudinal speed as v=VGran v, the longitudinal position as x=XGran x, and the
+lateral position as y=YGran y, where A,V,X,Yare integers (normalized variables
+without dimensions). The interest of introducing those dimensionless variables will be
+to simplify the formulas for state updatings, when granularities are chosen adequately.
+Then, the granularities and ranges for the longitudinal and lateral positions and
+speeds may be computed, as well as their normalized updates after one sample S:
+For the longitudinal speed, the update after one sample is
+v0=v+aS:
+In normalized variables this gives V0=V+(ASGran a)=Gran vfor a given granularity
+Gran v, and V0=V+Aif we take the granularity Gran v=Gran aS. The main advantage
+of the latter is that it does not introduce new losses and simpliﬁes the formula. The
+resulting range is Nv=1+ (VmaxVmin)=(Gran aS), where we use a ceiling function
+if the division does not provide an integer.
+For the longitudinal position, the update after one sample is
+x0=x+vS+aS2=2:
+For a given granularity Gx, this leads in normalized variables to X0=X+ ((VS
+Gran v) + (AS2=2Gran a))=Gx=X+ (2V+A)(Gran aS2=2)=Gx. In order to avoid
+additional losses, we should choose the granularity Gx=Gran aS2=2, which yields
+X0=X+2V+A. However this granularity will usually be uselessly small (for in-
+stance, if Gran a=1 and S=101, we get a granularity of 5 mm), leading to a huge
+range. In order to avoid a state space explosion during the veriﬁcation process, we shall
+thus approximate xwith a precision of Gran x=pGx, with an adequate parameter
+p. Hence, the normalized update of xbecomes X0=X+ (2V+A)=p(rounded) and
+the corresponding range is Nx=L=Gran x. In order to choose a suitable p, we may
+observe that Gran xis the maximal longitudinal loss of precision we may face during a
+sample. Hence, we may introduce the normalized maximal loss of precision5during one
+second Norm x=Gran x=S=pGran v=2. The value of Norm xmay be ﬁxed independ-
+ently from the constants of the system and we get the corresponding Gran x=Norm xS
+andp=2Norm x=Gran v.
+For the lateral position update after one sample we have
+y0=y+WSD
+with a corresponding granularity Gran y=WSsince Wis a constant (the lateral speed
+when there is a lateral move) and the direction of the vehicle D2f 1;0;1g, corres-
+ponding respectively to a lateral move to the right, no change and to the left. The range
+5Actually twice the loss of precision, thanks to rounding.
+
+--- Page 17 ---
+16 Johan Arcile et al.
+of the direction is thus ND=3, while the range of the lateral position is Ny=R=Gran y.
+In the normalized variables, this becomes Y0=Y+D.
+The size of the state space due to the variables is then obtained by multiplying
+all the above ranges, for each vehicle, hence it behaves like O(an), where nis the
+number of vehicles and a=NaNvNxNDNy. Clocks also take part to the state
+space, so that the size of the full state space is obtained by multiplying the above by an
+additional exponential, which relies in an intricate way on the number of intersections
+and differences of the various time intervals (some may be reduced to a single value)
+occurring in the guards andinvariants of the system, as detailed in [3].
+Fortunately, the formal tools do not necessarily construct the whole state space to
+analyze such systems. Of course, the complexity of the veriﬁcation procedures also
+depends on the degree of non-determinism present in the speciﬁcation and the difﬁculty
+to solve the queries.
+7 Analysis of CA V systems with VERIF CAR.
+In this section, we will illustrate the process of studying the decisions of CA Vs with
+VERIF CAR. We focus on two non-deterministic scenarios, which are well suited to ex-
+hibit how communication parameters (and especially temporal ones) are involved in the
+behavior of the vehicles. First, we point out the impact of communication delays on
+the non-determinism of the system, i.e., delays between the broadcast and the recep-
+tion. Then, by injecting faults in the operation of emitters and receptors, we study the
+robustness of a given decision policy facing such failures. Finally, we compare three
+decision policies: using only vehicle-to-vehicle communications, using negotiation and
+using communications via intelligent road infrastructures, for safety and efﬁciency, i.e.,
+the time that the vehicles need to reach their goal.
+The results of our experiments, obtained using the queries introduced in Section 5,
+are reported in the tables below with the following meaning:
+–The arrival order between two vehicles tells which one arrives ﬁrst. In case of non-
+determinism, this may give a better insight on the vehicles behaviors than travel
+times alone, as this shows if a vehicle is able or not to overtake another one.
+–The travel times of a vehicle ( i.e., the instant when the vehicle leaves the road por-
+tion) show the minimal and maximal possible values for all the possible scenarios.
+–The worst TTC for two vehicles is the minimal time-to-collision value for some
+trace. For all the possible traces starting from the same initial state, a minimal and
+a maximal value of the worst TTC are computed. The minimal one corresponds to
+the most dangerous scenario and the maximal one to the safest scenario.
+The scenarios we use in the experiments involve three vehicles evolving on a three-
+lane motorway section of L=500 m long and R=10:5 m large with two lanes (left
+and right) and a junction lane which starts at the beginning of the section, joins the
+right lane after 200 m and ends 200 m later. The constraints deﬁning the velocity of
+the vehicles are Vmin=0 m/s and Vmax=40 m/s (= 144 km/h); Amin=5 m/s2and
+Amax=3 m/s2, and W=1 m/s. We ﬁx Gran a=1 m/s2and the environment sample
+S=0:1 s (10 Hz). Such an Sallows to monitor the system’s behavior in a satisfactory
+
+--- Page 18 ---
+VERIF CARmodel checking of communicating autonomous vehicles 17
+way and such a Gran ayields a sufﬁcient number of acceleration choices for the decision
+algorithms of vehicles. One may notice that it is a wise choice as it also leads to good
+integer divisions in the formulas we expressed in Section 6. With such parameters and
+the granularity guaranteeing no further loss of information, i.e.,Gx=0:005 m, the
+complexity of the data structure per vehicle is of the order of 1011and it becomes
+(1011)3for our 3 cars scenario, which might be problematic for the veriﬁcation tools.
+We then ﬁx a reasonable normalized accuracy Norm x=1 (meaning the loss of precision
+on the longitudinal position of the vehicle in one second is always less than 1 meter,
+down to 0.5 meters thanks to rounding) and get p=2q=Gran v=20. Therefore, the
+granularity on xbecomes Gran x=pGx=0:1 m and this approximation allows to
+divide the state space by p3=8000 while not signiﬁcantly impacting the behavior of
+the model.
+7.1 Decision algorithm
+The objective of our decision algorithm is that a vehicle follows its route as fast as
+possible while complying to the code rules and avoiding collisions with other vehicles.
+The decision algorithm is local ( i.e., each vehicle runs its decision on its own) and takes
+as an input the global knowledge the vehicle possesses on itself and on other vehicles.
+It computes timed trajectories of its neighbors, allowing in turn to compute as an output
+its own new acceleration and direction. The algorithm has to avoid future collisions
+with vehicles in front of the vehicle, but not behind it as long as there is no immediate
+danger (the vehicles in front have priority with respect to the ones behind). The expected
+emergent behavior is that vehicles adapt to the actions of those who precede them.
+Algorithm 2 proposes a high level version of the main decision function where
+[MinAcc ;MaxAcc ]are all possible acceleration values, [1;NbLanes ]are all possible
+lanes and [0;MaxDelay ]are all possible delay values. The decision function tries to
+ﬁnd a suitable trajectory with the following objectives (by order of priority):
+–going as fast as possible,
+–being as close as possible to the lane deﬁned by its route,
+–delaying as little as possible its direction changes
+Intuitively, a non-zero delay means that the vehicle needs to change lane, but its best
+option is to do it later: the decision is thus to go straight until the next decision is taken.
+The full implementation, together with all source material, can be found at https:
+//forge.ibisc.univ-evry.fr/jarcile/VerifCar/ . This algorithm has
+been implemented for the case studies and is given for a better understanding of the
+present section, but should not be considered as one of our main contributions: our goal
+is to illustrate the methodology, not to promote a clever decision making algorithm.
+7.2 Impact of vehicle-to-vehicle communication on the behavior of CA Vs
+In this section, we focus on a decision process not involving cooperation (without nego-
+tiation nor infrastructure). Thus, each vehicle broadcasts its planned trajectory without
+trying to impact explicitly the behaviors of the other vehicles. Of course, it also receives
+the information from its neighbors and uses it in its decision process.
+
+--- Page 19 ---
+18 Johan Arcile et al.
+Algorithm 2 High level pseudo-code for the decision function
+Compute the set of timed trajectories of vehicles in front
+Deﬁne the lane Lto reach w.r.t. the route
+forAcceleration MaxAcc toMinAcc do
+forLane2[1;NbLanes ], starting from Land exploring the neighborhood of Ldo
+forDelay 0toMaxDelay do
+ifChosen behavior does not generate conﬂict with vehicles in front then
+ifDelay =0 (Waiting not needed) then
+Deﬁne Direction w.r.t. the chosen Lane
+else
+Direction 0 (Vehicle goes straight because it is waiting)
+end if
+Return new Acceleration andDirection values
+end if
+end for
+end for
+end for
+Emergency behavior
+We use Scenario 1, in which initially vehicle A is on the right lane at position 50 m
+with a speed of 20 m/s, vehicle B is on right lane at position 0m with a speed of 35 m/s
+and vehicle C is on the junction lane at position 20 m with a speed of 28.2 m/s. All the
+vehicles aim to reach the right lane at the end of the road portion, cf. Figure 6.
+Figure 6. Initial position and possible trajectories of CA Vs in Scenario 1.
+We assume that vehicle-to-vehicle communications in the default case take between
+30ms and 40ms. All the decisions of vehicles have an activation frequency of 10 Hz. In
+order to avoid unrealistic synchronous behaviors of vehicles, the clocks of agents A, B
+and C are initialized respectively to 0 ms, 30 ms and 70 ms. This kind of lag between
+clocks (which is a real life situation where vehicles do not synchronize their clocks)
+induces non-determinism as a vehicle might take a decision after or before receiving
+a critical information. Note that since all vehicles have the same decision activation
+frequency, a scenario where clocks would be initialized with the same value would
+have a deterministic behavior, as the reception of data would always happen between
+
+--- Page 20 ---
+VERIF CARmodel checking of communicating autonomous vehicles 19
+two given decisions, no matter the moment it happened in the communication delay
+interval.
+IndicatorVariant of communication delay
+[30;40]ms [40;40]ms [0;90]ms
+Arrival orderAvsB B B B
+AvsC C C C
+BvsC BjC B BjC
+Travel time [s]A (13:1;13:2)(13:1;13:1)(13:0;13:2)
+B (12:7;13:0)(12:7;12:7)(12:7;13:0)
+C (12:6;12:8)(12:8;12:8)(12:6;12:8)
+Worst TTC [s]AandB (1:03;2:90)(2:90;2:90)(1:03;2:90)
+AandC (¥;¥) (¥;¥) (2:80;¥)
+B and C (1:50;¥) (¥;¥) (1:50;¥)
+Full state space exploration [s] 11 4 53
+Table 1. Comparison of arrival order, travel time and TTC in Scenario 1 for three variants of
+communication delay intervals. For arrival order, XvsYin column 2 indicates that we check
+who between XandYis faster, while the winner is indicated in columns 3-5. For travel time and
+TTC, the pairs in columns 3-5 correspond to the resulting inf and sup values.
+Impact of communication delays In Table 1, one can see the differences on Scenario 1
+when using various time intervals for the communication delays. The full state space
+exploration indicates the time corresponding to build and fully explore the state space
+once, i.e., for a single U PPAAL run. Some indicators such as Travel time or Worst TTC
+require dichotomy searches, and so several U PPAAL runs, however the number of such
+runs does not rely on the size of the state space and is generally small. Furthermore,
+the state space is memorized and not all runs need to fully explore it. For example, the
+computation of the travel time (which is the most costly of the indicators we considered,
+in terms of computation time) takes about 45 s to obtain the inf and sup values of the
+travel time when the full exploration time equals 11 s; similarly, it is about 180 s when
+the full exploration time equals 53 s, corresponding roughly to the same magnitude
+(factor 4).
+The default case, where the communication delay is in [30,40] ms, illustrates a non-
+deterministic behavior since several indicators show different possible values, meaning
+there exists different paths leading to different results. By comparing the travel time
+values, we can see that travel time for A is always longer than for B or C, meaning it
+will always be behind the other two at the end of the road. This is conﬁrmed by the
+arrival order indicator. The inf Travel time value for B is between the inf and sup travel
+time values of C. However, the inf and sup values for B are greater than respectively
+
+--- Page 21 ---
+20 Johan Arcile et al.
+the inf and sup values for C. Therefore, it could be the case that B is always behind C.
+This can be checked thanks to the arrival order between B and C, which indicates that
+there exist paths where B is before C at the end of the road and some paths where it is
+the opposite. Finally the worst TTC value gives us indications about safety (an ¥value
+means there was never any danger of collision, otherwise a low value means we were
+close to a collision). It is useful when analyzing the impact of decision parameters, or
+comparing decision policies.
+Here, in addition to the default case, we check two variants of the communication
+delays: one where we reduce the interval to [40,40] ms (deterministic delays), and one
+where we extend it to [0,90]ms. As expected, all the inf and sup values obtained when
+we reduce the interval are bounded by the values for the default case, whereas when
+we extend the interval, all the values for the default case are bounded by the new inf
+and sup values. This is consistent with the time needed to fully explore the resulting
+state space, which increases proportionally to the interval, as indicated by the last row.
+More precisely, the [40,40] ms interval seems to result on a deterministic scenario with
+only one path. It is worth to be mentioned that using a single possible delay value
+greatly reduces the non-determinism, but does not necessarily suppress it. Actually,
+there might still be states where there is concurrency between actions. For instance, if
+both a communication and a decision are available at the same time, the order in which
+the actions are performed may lead to different states.
+IndicatorA’s receptor disabled B’s receptor disabled
+LSD=0:5m LSD=1m LSD=0:5m LSD=1m
+Arrival orderAvsB B B B B
+AvsC C C C C
+BvsC C C BjC BjC
+Travel time [s]A (13:3;13:3)(13:4;13:4)(13:3;13:3)(13:3;13:3)
+B (13:0;13:0)(13:0;13:0)(12:7;12:9)(12:7;12:9)
+C (12:6;12:6)(12:6;12:6)(12:6;13:0)(12:6;13:0)
+Worst TTC [s]AandB (3:00;3:00)(3:00;3:00)(0:00;0:00)(2:80;2:80)
+AandC (¥;¥) (¥;¥) (2:86;¥) (5:04;¥)
+BandC (1:50;1:50)(1:50;1:50) (0:15;¥) (0:40;1:35)
+Full state space exploration [s] 5 5 10 11
+Table 2. Comparison of arrival order, travel time and TTC on Scenario 1 with disabled commu-
+nication receptors and variations of lateral safety distance (LSD). The other notations are as in
+Table 1.
+Assessing robustness of decision through fault injection Table 2 and Table 3 show
+the results of model checking with fault injection, by disabling the receptor or the emit-
+ter, respectively, on one of the vehicles. Note that the vehicle sensors are still working,
+meaning the vehicle gets all other perceptible information (such as position, speed,
+
+--- Page 22 ---
+VERIF CARmodel checking of communicating autonomous vehicles 21
+IndicatorA’s emitter disabled B’s emitter disabled
+LSD=0.5 m LSD=1 m LSD=0.5 m LSD=1 m LSD=1.6 m
+Arrival orderAvsB B B B B A
+AvsC A A C C A
+BvsC B B BjC BjC B
+Travel time [s]A (13:3;13:3)(13:3;13:3)(13:4;13:4)(13:4;13:4)(13:0;13:0)
+B (12:7;12:7)(12:7;12:7)(12:7;13:1)(12:7;13:1)(13:1;13:1)
+C (13:5;13:5)(13:5;13:5)(12:6;12:8)(12:6;12:8)(13:4;13:4)
+Worst TTC [s]AandB (0:00;0:00)(2:80;2:80)(0:30;0:30)(2:09;3:00)(1:50;1:50)
+AandC (2:06;2:06)(2:06;2:06) (¥;¥) (¥;¥) (2:22;2:22)
+BandC (¥;¥) (¥;¥) (0:00;¥) (0:00;¥)(4:30;4:30)
+Full state space exploration [s] 6 6 12 12 10
+Table 3. Comparison of arrival order, travel time and TTC on Scenario 1 with disabled commu-
+nication emitters and variations on the length of lateral safety distance (LSD). The notations are
+as in Table 1.
+acceleration, etc...) of other vehicles. The non-perceptible information concerns the in-
+tention of the vehicles (their planned trajectories).
+When we disable the receptor on vehicle A, the behavior seems deterministic, with
+C always being ﬁrst at the end of the road. When we disable the receptor on vehicle B,
+the behavior is close to the default case; however one can observe that the worst TTC
+between A and B becomes 0 :0 s meaning that there is a collision between these two
+vehicles. Also, a state where worst TTC between B and C is 0 :15 s can be reached,
+indicating a serious danger. It may be due to the lack of information vehicle B has on
+other vehicles intention when doing its overtaking. To force B to be more careful, we
+increase the lateral safety distance (LSD) in the decision process (initially at 0.5m) to
+1m. This is intended to increase safety at the expense of efﬁciency. In the case of the
+disabled receptor on vehicle A, one can indeed see there is a slight loss of efﬁciency
+(vehicle A now takes slightly longer to reach the end of the road). In the case of the
+disabled receptor on vehicle B, we do not observe a loss of efﬁciency, but an overall
+increase of the minimal worst TTC value, including the null ones.
+The same checks are performed while disabling the data emitter instead of the
+receptor. When disabling the emitter on vehicle A, we observe a collision between
+vehicles A and B, which no longer occurs with the LSD of 1 m. When disabling the
+emitter on vehicle B, we get a worst TTC of (0:00;¥), meaning there is both a path
+leading to a collision between vehicles B and C, and another one without any danger.
+The increase of LSD to 1 m does not prevent the collision. This motivates us to search
+the minimal increase of LSD needed to deal with this collision. To do so we proceeded
+by dichotomy, like for other indicators. As a result we obtained that we need a minimum
+LSD of 1 :6m, which does avoid collision but at the cost of a great loss of efﬁciency.
+Indeed, in that scenario, one can observe that none of the vehicles can now overtake
+vehicle A (the slow one), leading to the worst overall efﬁciency in our results.
+
+--- Page 23 ---
+22 Johan Arcile et al.
+7.3 Impact of cooperation on the behavior of vehicles
+In this section, we study the decision policy implementing the forms of cooperation
+deﬁned in Section 3, namely negotiation and infrastructure. We ﬁrst describe how they
+have been implemented.
+Implementation of negotiations In this case, each vehicle will try to negotiate whenever
+its wished trajectory is in conﬂict with the predicted trajectory of some other vehicle
+and whenever that vehicle is changing lane. Basically, it happens when a slower vehicle
+changes lane in front of another one. To keep the state space as small as possible, the re-
+quest for negotiation (or its absence) is simply indicated by broadcasting a Boolean vari-
+able. When the targeted vehicle receives the information, it delays its intention (stop-
+ping its maneuver for a while) if this delay does not impact the maneuver it is actually
+performing and allows the faster vehicle to overtake it. The objective is that none of
+the vehicles should slow down. And indeed, if we consider Algorithm 2, the vehicle
+initiates the negotiation after getting new acceleration and direction values, while the
+target vehicle computes the decision regarding the request, after having found a safe
+trajectory for itself.
+Implementation of infrastructures The road terminal in our infrastructure-based de-
+cision performs the following actions at a ﬁxed frequency: First, it computes the pre-
+dicted and wished trajectories for all vehicles, using the information received from the
+broadcasted data. Then, it identiﬁes conﬂicts between vehicles, i.e., situations where
+the predicted timed trajectory of a vehicle is in conﬂict with the wished trajectory of
+another one. Then, it decides which actions should be applied to each vehicle in order
+to maximize the sum of the accelerations of the vehicles. Finally, the terminal sends
+to each chosen vehicle the corresponding orders. The impact on Algorithm 2 is that,
+instead of trying to be as close as possible to the maximal acceleration and to the dir-
+ection matching the route of the vehicle, it now tries to be as close as possible to the
+acceleration and direction values sent by the terminal.
+Testing scenario Our aim is to compare the above decision policies, namely:
+–the base variant of decision without negotiation nor infrastructure (and without
+fault),
+–the variant using negotiation;
+–the variant using an intelligent road infrastructure.
+We will use for that the Scenario 2 (cf. Figure 7) which is as follows. Initially, vehicle
+A is on the right lane at position 0 m with a speed of 30 m/s, vehicle B is on the left lane
+at position 30 m with a speed of 15 m/s and vehicle C is on the junction lane at position
+40 m with a speed of 20 m/s. They all aim to be on the right lane at the end of the road
+portion.
+We assume that communications from the terminal to other agents take between 50
+ms and 100 ms and communications from vehicles to other agents take between 30 ms
+
+--- Page 24 ---
+VERIF CARmodel checking of communicating autonomous vehicles 23
+Figure 7. Initial position and possible trajectories of CA Vs in Scenario 2.
+and 40 ms. The terminal decision has an activation frequency of 2 Hz and its clock is
+initialized at 0 ms. The decision of each vehicle has an activation frequency of 10 Hz.
+We also consider two variants, where the agent clocks are given different initial values.
+In initialization variant 1, clocks of agents A, B and C are initialized respectively after
+70 ms, 30 ms and 0 ms, while in initialization variant 2, clocks of agents A, B and C
+are initialized respectively at 0 ms, 30 ms and 70 ms.
+ScenarioInit. variant 1 Init. variant 2
+Base Negotiation Infrastructure Default case Negotiation Infrastructure
+Arrival orderAvsB B AjB A B A A
+AvsC C AjC A C AjC A
+BvsC C C C C C C
+Travel timeA (14:6;14:6)(13:0;15:9)(13:2;13:3)(14:6;14:6)(13:0;13:6)(13:2;13:4)
+B (14:4;14:4)(14:4;14:4)(14:4;14:4)(14:4;14:4)(14:4;14:4)(14:4;14:4)
+C (13:2;13:2)(13:2;13:2)(13:8;13:8)(13:2;13:2)(13:2;13:2)(13:8;13:8)
+Worst TTCAandB (0:90;0:90)(0:00;1:56)(1:40;1:44)(0:95;0:95) (0:60;¥) (1:36;1:41)
+A and C (¥;¥) (1:14;¥) (¥;¥) (¥;¥) (1:14;¥) (¥;¥)
+B and C (¥;¥) (¥;¥) (¥;¥) (¥;¥) (¥;¥) (¥;¥)
+Full state space exploration [s] 5 379 27 3 299 36
+Table 4. Comparison of arrival order, travel time and TTC for default case decision, decision with
+negotiation and decision with infrastructure on the two initialization variants of Scenario 2.
+Table 4 shows the results obtained for Scenario 2. First, let us consider initialization
+variant 1. Our default case decision policy seems to lead to a deterministic behavior,
+where C manages to reach the right lane ahead of vehicle B while A has to brake to
+avoid a collision with vehicle B. This can be conﬁrmed by looking at the worst TTC
+between A and B, which is less than 1 second. When adding the negotiation aspect,
+one can observe a change in the behavior, which is now non-deterministic. While the
+travel times for B and C have not changed and are all the same (a unique value) for
+all possibles executions, this is no longer the case for A, for which the minimal travel
+time is now shorter than for other vehicles while its maximal travel time has increased.
+The arrival orders give us the information that vehicle A can sometimes arrive ahead
+of B (respectively C), sometimes not. This information is not sufﬁcient to get a perfect
+picture of the possible scenarios. As C always arrives before B, one can be sure that
+
+--- Page 25 ---
+24 Johan Arcile et al.
+arrival orders, where A arrives as the ﬁrst or the last are possible. However, to know if
+A can arrive between B and C one should check the following property: before (C;A)!
+before (B;A), which means6that when A is not ﬁrst, it must be last, and therefore a case
+where it arrives between the two other vehicles is not possible. Here, the above property
+is false, and the model checker is able to give us traces where vehicle A arrives between
+C and B.
+Concerning safety, one can see that the worst TTC between A and B can be zero,
+meaning that there are possible scenarios. with a collision between these two vehicles.
+The potential gain in overall travel time is thus paid here by a lack of safety.
+Finally, when using an infrastructure-based decision policy, one can observe that
+vehicle A always arrives ﬁrst and vehicle C manages to reach the right lane ahead of
+vehicle B, as previously. The comparison between the travel times shows us that with
+the infrastructure, the efﬁciency is not as good as with negotiation in the best case
+(vehicle A and C being slower), however the non-determinism is not signiﬁcant (unlike
+with negotiation where there exists a possibility of collision) and the worst TTC is even
+better than for the default case decision policy.
+Looking at the results obtained with initialization variant 2, one can see there are
+almost no differences for default case and infrastructure based decision policies. How-
+ever, in this scenario, the negotiation does not lead to collision anymore. Vehicle B now
+always arrives as the last, vehicle A and C being either ﬁrst or second. The worst TTC
+is smaller than for the default case but we gain in overall efﬁciency.
+Considering the state space exploration time, one can see that the non-determinism
+induced by negotiation in this particular example can lead to a huge time increase (about
+a hundred times longer) when compared to our default case. Note that this is not due to
+the negotiation itself but to the non-determinism. Finally, infrastructure-based decision,
+despite showing a deterministic behavior, takes longer than the default case for the state
+space exploration (about 10 times longer). This is due to the fact that the road infrastruc-
+ture is implemented as yet another agent, which impacts the size of the resulting state
+space. As one can see, the time needed to perform the veriﬁcation process is however
+maintained quite short thanks to our modeling choices.
+7.4 Limitations and parameter management
+Through several additional experiments, we also evaluated the impact of our main para-
+meters on the computation time of U PPAAL . To study this impact, we measured the
+full exploration time while varying several scenarios with non-deterministic behaviors.
+Overall results are given in Table 5. The environmental parameters, such as the length
+of the road portion, the size of the variables used for timed trajectories or to represent
+vehicles behaviors, show a linear impact on the computation time, even with complex
+scenarios. This is also true for the normalized maximal loss of precision Norm x. For
+instance, for a scenario with a full exploration time of more than 20 minutes when no
+further approximation is performed7the use of a value Norm x=1 m/s allows to reduce
+6The operator!, called "leads to", supported by the UPPAAL model checker is equivalent to
+AG(:before (C;A)_AF before (B;A)).
+7i.e., when Norm x=Gran v=2: in this example Norm x=0:05 m/s.
+
+--- Page 26 ---
+VERIF CARmodel checking of communicating autonomous vehicles 25
+this time to about 6 minutes. These results indicate that we can increase the accuracy of
+the modeled environment with limited cost.
+In contrast, we are limited in the degree of realism, especially for scenarios in-
+volving a lot of non-determinism, where variations on the sampling period Sand de-
+cision frequency show an exponential impact on the computation time. In particular,
+since the frequency induced by the sampling period is required to be smaller than or
+equal to any other frequency in the system, the use of a given decision frequency im-
+plies to scale accordingly the sampling period. Therefore, increasing the decision fre-
+quency of vehicles in a system can lead to a state space explosion. However, it is still
+possible to manage to go up to 20 Hz with a reasonable computation time (a few hours)
+for complex scenarios involving a lot of non determinism, which as discussed in Sec-
+tion 4 is enough for decision modules mentioned in the literature. For simpler scenarios,
+however, a higher decision frequency can be used.
+Norm x[m/s] Gran a[m/s2]L[m] Delay range S[s] freqii2[1;n][Hz]
+Value 0:50:10:050:50:20:17501000 100 500 0:050:020:0120 33:3
+Time [s] 1111 11 161752 15 18 14 31 16 58 9045 166
+Norm x[m/s] Gran a[m/s2] S[s] freqii2[1;n][Hz]
+Value 0:50:10:050:5 0:2 0:050:03 20
+Time [m] 11:115:620:69:118:219:0113:6 500:3
+Table 5. Top: Full exploration time (in seconds) for Scenario 1 with altered parameters. For com-
+parison, the full exploration of the default case takes 11 seconds. Bottom: Full exploration time
+(in minutes) for initialization variant 1 of Scenario 2 using negotiation, with altered parameters.
+For comparison, the full exploration of the default case takes 6.3 minutes.
+Finally, it must be observed that the number of vehicles does not necessarily impact
+the computation time: it is the resulting non-determinism of the evolutions that does,
+much more than the increased number of variables. This is illustrated in Table 6, where
+vehicles have been added to the previously studied cases, with various random position
+and speed values. A look at the smallest exploration times indicates that the increasing
+size of the data structure seems to have a linear impact on the system. On the other hand,
+one can see that the generated state space can be drastically different between systems
+with the same number of vehicles but with different initial parameters.
+Note that the maximum reasonable number of vehicles is therefore mainly case-
+related. Indeed, adding vehicles can sometimes reduce the non-determinism of the sys-
+tem and sometimes increase it. This result in particular indicates that our framework
+could hardly support erratic human-like drivers ( i.e.decision algorithm with random
+choices) but is well suited for checking interaction behaviors between autonomous
+vehicles characterized by well-deﬁned decision protocols.
+To study the behavior resulting from the use of a given decision algorithm, one
+should implement it within the U PPAAL language, which only supports discrete vari-
+
+--- Page 27 ---
+26 Johan Arcile et al.
+Scenario 1 Scenario 2 (negotiation) Init. variant 1
+Number of added vehicles 12345 1 2
+Smallest Time [s] 1324304052 347 505
+Longest Time [s] 1750151142167 817 1798
+Table 6. Full exploration time for Scenario 1 and variant 1 of Scenario 2 using negotiation, while
+vehicles are added with random initial position and speed values. A few random initializations
+are performed each time and the smallest and longest observed exploration times are given.
+ables. Therefore, scaling variables and the use of rounding on divisions is recommended
+to avoid or at least reduce error accumulations. Also, if there are variables needed for
+the decision or communication protocol, they should be added in the data structure.
+Their ranges must be deﬁned, and it is recommended to keep those ranges as small as
+possible. The main limitation arises from "time-sensible" parameters, mainly the fre-
+quency of decision making, which can hardly exceed 20 Hz. However, as mentioned
+previously in Section 4, this limitation seems fair enough to model most of the decision
+protocols described in the literature. Concerning calibration, we need to ﬁnd a balance
+between the precision on the longitudinal position ( i.e., the normalized maximal loss
+of precision parameter, Norm x) and the frequency of the updates. The former allows to
+decrease the computation times at a cost in precision and the latter to gain accuracy on
+the system’s monitoring at the cost of increasing computation times. In order to estim-
+ate an acceptable loss of precision, one may ﬁrst proceed by simulation, which can also
+be done with U PPAAL . One may study a given indicator using several Norm xvalues,
+then compare them to the result obtained with the Norm xthat guarantees no loss of in-
+formation ( i.e., with p=1 if we refer to section 6). The user has to choose the greatest
+Norm xfor which the observed error is still acceptable (this may require an expertise in
+the domain).
+Finally, we summarize all the assumptions and abstractions that are inherent to
+VERIF CAR:
+–Sensors are perfect (accurate and immediate);
+–Decision is taken on a constant accurate frequency;
+–Communication latency occurs in a deﬁned and ﬁnite time interval;
+–Frequency of decision for a given vehicle is greater or equal to the maximal com-
+munication latency for the same vehicle;
+–Physical laws are simpliﬁed (rotation, friction, inertia do not exist);
+–Environment is ﬂat (only two dimensions are considered).
+8 Conclusion
+We presented V ERIF CAR, a framework based on timed automata and dedicated to mod-
+eling and verifying CA Vs. V ERIF CARis suitable for studying the behavior of CA Vs at a
+rather high level of abstraction and addresses questions of safety, efﬁciency and robust-
+ness with a speciﬁc focus on the impact of latencies, communication delays and failures
+
+--- Page 28 ---
+VERIF CARmodel checking of communicating autonomous vehicles 27
+on the behavior of CA Vs. It is particularly well adapted for the exhaustive analysis of
+critical situations involving a few number of vehicles, such as overtaking, insertion
+lanes, crossroads or trafﬁc roundabouts.
+VERIF CARbuilds on general concepts borrowed from [4] to model such systems
+of CA Vs but brings several novel ideas and improvements. First, it implements a totally
+different timed automata model, using broadcast synchronizations instead of hand-
+shake, which greatly simpliﬁes the automata and contributes to speed up the veriﬁc-
+ation processes. Thanks to suitable discretization and approximations, the exhaustive
+techniques of model checking can be used while limiting the state explosion phenom-
+ena. Next, it supports two additional forms of cooperation: negotiations between CA Vs
+and communications with an intelligent road infrastructure. Finally, it provides pertin-
+ent indicators for the analysis of behaviors, together with a computation methodology
+using model checking. As shown in a companion paper [5], this method can be used
+jointly with simulations, contributing to give more insight on the studied systems.
+As an illustration, we applied V ERIF CARto assess and compare decision policies
+for CA V systems on well chosen scenarios. To do so we implemented decision al-
+gorithms (including negotiations and infrastructure), computed the associated indic-
+ators and discussed the obtained results. We also checked the robustness through faulty
+environments, pointing out vulnerabilities and thus illustrating how V ERIF CARcould
+be used to detect and thwart those vulnerabilities. All source material is available at
+https://forge.ibisc.univ-evry.fr/jarcile/VerifCar/ .
+As a future work, we plan to implement interfaces for V ERIF CARin order to allow
+an automated generation of models and indicators. Also, in order to verify more com-
+plex situations (with more vehicles, more complex road conﬁgurations, more involved
+interactions, etc) while facing successfully the classical explosion problems, we could
+consider abstraction techniques (like in [11]) and dedicated veriﬁcation algorithms to
+reduce the computation time.
+Finally, we plan to check if the techniques we developed to perform efﬁcient model-
+ing and model checking may be transposed to other application domains, different from
+CA V systems.
+References
+1. R. Alur, C. Courcoubetis, and D. Dill. Model checking in dense real-time. Information and
+Computation , 104(1):2–34, 1993.
+2. R. Alur and D. Dill. Automata for modelling real-time systems. In Proceedings of the
+International Colloquium on Automata, Languages and Programming (ICALP’90) , volume
+443 of LNCS , pages 322–335. Springer-Verlag, 1990.
+3. R. Alur and D. Dill. A theory of timed automata. Theoretical computer science , 126(2):183–
+235, 1994.
+4. J. Arcile, R. Devillers, H. Klaudel, W. Klaudel, and B. Wo´ zna-Szcze ´sniak. Modeling
+and checking robustness of communicating autonomous vehicles. In Sigeru Omatu, Sara
+Rodríguez, Gabriel Villarrubia, Pedro Faria, Paweł Sitek, and Javier Prieto, editors, Distrib-
+uted Computing and Artiﬁcial Intelligence, 14th International Conference , pages 173–180.
+Springer International Publishing, 2018.
+
+--- Page 29 ---
+28 Johan Arcile et al.
+5. J. Arcile, J. Sobieraj, H. Klaudel, and G. Hutzler. Combination of simulation and model-
+checking for the analysis of autonomous vehicles’ behaviors: a case study. In Multi-Agent
+Systems and Agreement Technologies . Springer International Publishing, 2018.
+6. F. Bai and H. Krishnan. Reliability analysis of DSRC wireless communication for vehicle
+safety applications. In IEEE Intelligent Transportation Systems Conference , pages 355–362,
+Sept 2006.
+7. K. Bilstrup, E. Uhlemann, E. G. Strom, and U. Bilstrup. Evaluation of the ieee 802.11p mac
+method for vehicle-to-vehicle communication. In IEEE Vehicular Technology Conference ,
+pages 1–5, Sept 2008.
+8. S. Biswas, R. Tatchikou, and F. Dion. Vehicle-to-vehicle wireless communication protocols
+for enhancing highway trafﬁc safety. IEEE Communications Magazine , 44(1):74–82, Jan
+2006.
+9. R. J. Blokpoel, D. Krajzewicz, and R. Nippold. Unambiguous metrics for evaluation of trafﬁc
+networks. In IEEE Intelligent Transportation Systems Conference , pages 1277–1282, Sept
+2010.
+10. E. M. Clarke, O. Grumberg, and D. Peled. Model Checking . MIT Press, 1999.
+11. R. Devillers and H. Klaudel. Abstraction strategies for computing travelling or looping
+durations in networks of timed automata. In Martin Fränzle and Nicolas Markey, editors,
+14th International Conference, FORMATS 2016, Proceedings , volume 9884 of LNCS , pages
+140–156. Springer, 2016.
+12. E. Allen Emerson. Handbook of theoretical computer science (vol. b). chapter Temporal and
+Modal Logic, pages 995–1072. MIT Press, Cambridge, MA, USA, 1990.
+13. C. Urmson et al. Autonomous driving in urban environments: Boss and the urban chal-
+lenge. Journal of Field Robotics Special Issue on the 2007 DARPA Urban Challenge, Part I ,
+25(8):425–466, June 2008.
+14. M. Foughali, B. Berthomieu, S. Dal Zilio, F. Ingrand, and A. Mallet. Model Checking Real-
+Time Properties on the Functional Layer of Autonomous Robots. In International Confer-
+ence on Formal Engineering Methods (ICFEM 2016) , Tokyo, Japan, November 2016.
+15. A. Furda and L. Vlacic. Enabling safe autonomous driving in real-world city trafﬁc us-
+ing multiple criteria decision making. IEEE Intelligent Transportation Systems Magazine ,
+3(1):4–17, Spring 2011.
+16. S. Glaser, B. Vanholme, S. Mammar, D. Gruyer, and L. Nouveliere. Maneuver-based traject-
+ory planning for highly autonomous vehicles on real road with trafﬁc and driver interaction.
+IEEE Transactions on Intelligent Transportation Systems , 11(3):589–606, Sept 2010.
+17. K.D. Stanley P. Sorensen C. Samaras J.M. Anderson, N. Kalra and T. A. Oluwatola.
+Autonomous Vehicle Technology. A Guide for Policymakers . Research Reports. RAND Cor-
+poration, 2016. ISBN: 978-0-8330-8398-2.
+18. M. Kamali, L. A. Dennis, O. McAree, M. Fisher, and S. M. Veres. Formal veriﬁcation of
+autonomous vehicle platooning. Science of Computer Programming , 148:88 – 106, 2017.
+Special issue on Automated Veriﬁcation of Critical Systems (A V oCS 2015).
+19. C. Katrakazas, M. Quddus, W.-H. Chen, and L. Deka. Real-time motion planning methods
+for autonomous on-road driving: State-of-the-art and future research directions. Transporta-
+tion Research Part C: Emerging Technologies , 60:416 – 442, 2015.
+20. S. Kong, S. Gao, W. Chen, and E. Clarke. dreach: d-reachability analysis for hybrid systems.
+In Christel Baier and Cesare Tinelli, editors, Tools and Algorithms for the Construction and
+Analysis of Systems , pages 200–205, Berlin, Heidelberg, 2015. Springer Berlin Heidelberg.
+21. Y . Kuwata, J. Teo, G. Fiore, S. Karaman, E. Frazzoli, and J. P. How. Real-time motion
+planning with applications to autonomous urban driving. IEEE Transactions on Control
+Systems Technology , 17(5):1105–1118, Sept 2009.
+
+--- Page 30 ---
+VERIF CARmodel checking of communicating autonomous vehicles 29
+22. J. Levinson and S. Thrun. Robust vehicle localization in urban environments using probab-
+ilistic maps. In IEEE International Conference on Robotics and Automation , pages 4372–
+4378, May 2010.
+23. M. Likhachev and D. Ferguson. Planning long dynamically feasible maneuvers for autonom-
+ous vehicles. The International Journal of Robotics Research , 28(8):933–945, 2009.
+24. M. Minderhoud and P. Bovy. Extended time-to-collision measures for road trafﬁc safety
+assessment. Accident Analysis & Prevention , 33(1):89 – 97, 2001.
+25. M. O’Kelly, H. Abbas, and R. Mangharam. APEX : Autonomous vehicle plan veriﬁcation
+and execution. In SAE World Congress , 2016.
+26. A. Platzer and J.-D. Quesel. European train control system: A case study in formal veri-
+ﬁcation. In Karin Breitman and Ana Cavalcanti, editors, Formal Methods and Software
+Engineering , pages 246–265, Berlin, Heidelberg, 2009. Springer Berlin Heidelberg.
+27. M. M. Quottrup, T. Bak, and R. I. Zamanabadi. Multi-robot planning : a timed automata ap-
+proach. In IEEE International Conference on Robotics and Automation, 2004. Proceedings.
+ICRA ’04. 2004 , volume 5, pages 4417–4422 V ol.5, April 2004.
+28. M. Treiber and A. Kesting. Trajectory and Floating-Car Data , pages 7–12. Springer Berlin
+Heidelberg, Berlin, Heidelberg, 2013.
+29. Uppaal. http://www.uppaal.org/ .
+30. K. V ogel. A comparison of headway and time to collision as safety indicators. Accident
+Analysis & Prevention , 35(3):427 – 433, 2003.
+31. T. L. Willke, P. Tientrakool, and N. F. Maxemchuk. A survey of inter-vehicle communica-
+tion protocols and their applications. IEEE Communications Surveys Tutorials , 11(2):3–20,
+Second 2009.
+32. M. Wooldridge. An introduction to multi-agent systems - Second Edition . John Wiley &
+Sons, 2009.
+33. S. Zhang, W. Deng, Q. Zhao, H. Sun, and B. Litkouhi. Dynamic trajectory planning for
+vehicle autonomous driving. In IEEE International Conference on Systems, Man, and Cy-
+bernetics , pages 4161–4166, Oct 2013.
+A TTC Algorithm
+Algorithm 3 formalizes the computation of the TTC value used in our experiments.
+pxi(respectively pyi) is the longitudinal (respectively lateral) position of vehicle i, and
+Long (respectively Lat) is the longitudinal (respectively lateral) gap below which there
+is a collision. Similarly, vxi(respectively vyi) is the longitudinal speed (respectively
+lateral speed) value of vehicle i.Long andLatdepend on each vehicle length and width:
+typically, as the position is centered on the vehicle, Long will be the mean of the length
+of the two vehicles, while Latwill be the mean of the width of the two vehicles.
+This algorithm consists in computing the starting time Xinand the ending time Xout
+of the longitudinal time overlap (respectively YinandYoutfor the lateral time overlap).
+If no overlapping (either longitudinal or lateral) is ever going to occur, the starting
+time will be given the value ¥and the ending time will be set to 0. Afterwards, the
+computation of TTC is performed by returning the smallest value in the intersection
+between longitudinal and lateral time overlaps.
+
+--- Page 31 ---
+30 Johan Arcile et al.
+Algorithm 3 Computes TTC between vehicles A and B
+{Computation of Xin}
+if(pxbpxaandvxb<vxa)or(pxapxbandvxa<vxb)then
+Xin=jpxbpxajLong
+jvxavxbj{A and B getting closer to each other}
+else ifjpxbpxaj<Long then
+Xin=0 {Already overlapping}
+else
+Xin=¥ {Will never overlap}
+end if
+{Computation of Xout}
+if(pxbpxaandvxb<vxa)or(pxapxbandvxa<vxb)then
+Xout=jpxbpxaj+Long
+jvxavxbj{A and B getting closer to each other}
+else if vxa6=vxbthen
+Xout=jjpxbpxajLongj
+jvxavxbj{A and B moving away from each other}
+else ifjpxbpxaj<Long then
+Xout=¥ {Already overlapping}
+else
+Xout=0 {Will never overlap}
+end if
+{Computation of Yin}
+ifpybpyaandvyb<vyathen
+Yin=pybpyaLat
+vyavyb{B on the left of A, getting closer to each other}
+else if pyapybandvya<vybthen
+Yin=pyapybLat
+vybvya{A on the left of B, getting closer to each other}
+else ifjpybpyaj<Latthen
+Yin=0 {Already overlapping}
+else
+Yin=¥ {Will never overlap}
+end if
+{Computation of Yout}
+ifpybpyaandvyb<vyathen
+Yout=pybpya+Lat
+vyavyb{B on the left of A, getting closer to each other}
+else if pybpyaandvya6=vybthen
+Yout=pybpyaLat
+vyavyb{B on the left of A, moving away from each other}
+else if pyapybandvya<vybthen
+Yout=pyapyb+Lat
+vybvya{A on the left of B, getting closer to each other}
+else if vya6=vybthen
+Yout=pyapybLat
+vybvya{A on the left of B, moving away from each other}
+else ifjpybpyaj<Latthen
+Yout=¥ {Already overlapping}
+else
+Yout=0 {Will never overlap}
+end if
+{Computation of TTC}
+ifXinYinandYinXoutthen
+return Yin {Lateral time overlap starting during longitudinal time overlap}
+else if YinXinandXinYoutthen
+return Xin {Longitudinal time overlap starting during lateral time overlap}
+else
+return ¥ {No intersection between time overlaps}
+end if

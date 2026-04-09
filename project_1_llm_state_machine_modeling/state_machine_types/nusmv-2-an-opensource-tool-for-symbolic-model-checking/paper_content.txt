@@ -1,0 +1,326 @@
+--- Page 1 ---
+NuSMV 2: An OpenSource Tool
+for Symbolic Model Checking
+Alessandro Cimatti1, Edmund Clarke2, Enrico Giunchiglia3,
+Fausto Giunchiglia4, Marco Pistore1,M a r c oR o v e r i1,
+Roberto Sebastiani4, and Armando Tacchella3
+1ITC-IRST
+Via Sommarive 18, 38050 Trento, Italy
+{cimatti,pistore,roveri }@irst.itc.it
+2Carnegie Mellon University
+5000 Forbes Avenue, Pittsburgh (PA), USA
+emc@cs.cmu.edu
+3DIST – Universit` ad iG e n o v a
+Viale Causa 13, 16145 Genova, Italy
+{enrico,tac }@mrg.dist.unige.it
+4Universit`ad iT r e n t o
+Via Sommarive 14, 38050 Trento, Italy
+{fausto,rseba }@science.unitn.it
+1 Introduction
+This paper describes version 2 ofthe NuSMV tool. NuSMV is a symbolic model
+checker originated from the reengineering, reimplementation and extension of
+SMV , the original BDD-based model checker developed at CMU [
+15
+]. The Nu-
+SMV project aims at the development ofa state-of -the-art symbolic model
+checker, designed to be applicable in technology transfer projects: it is a well
+structured, open, ﬂexible and documented platform for model checking, and is
+robust and close to industrial systems standards [
+6
+].
+The ﬁrst version of NuSMV, referred with NuSMV1 in the following, ba-
+sically implements BDD-based symbolic model checking. The new version ofNuSMV (NuSMV2 in the following) inherits all the functionalities of the previ-
+ous version, and extend them in several directions. The main novelty in NuSMV2
+is the integration ofmodel checking techniques based on propositional satisﬁa-bility (SAT) [
+4
+]. SAT-based model checking is currently enjoying a substantial
+success in several industrial ﬁelds (see, e.g., [
+10
+], but also [
+5
+]), and opens up new
+research directions. BDD-based and SAT-based model checking are often able tosolve diﬀerent classes ofproblems, and can theref ore be seen as complementary
+techniques.
+Starting from NuSMV2, we are also adopting a new development and license
+model. NuSMV2 is distributed with an OpenSource license [
+17
+], that allows
+anyone interested to freely use the tool and to participate in its development.
+The aim ofthe NuSMV OpenSource project is to provide to the model check-
+ing community a common platform for the research, the implementation, and
+D. Brinksma and K. G. Larsen (Eds.): CAV 2002, LNCS 2404, pp. 359– 364 , 2002.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2002
+
+--- Page 2 ---
+360 Alessandro Cimatti et al.
+the comparison ofnew symbolic model checking techniques. NuSMV2 has been
+released in November 2001. Since then, the NuSMV team has received codecontributions for diﬀerent parts of the system. Several research institutes and
+commercial companies have express interest in collaborating to the development
+ofNuSMV.
+In this paper we describe the goals ofthe NuSMV OpenSource project (Sec-
+tion
+2
+), we give an overview ofthe system (Section
+3
+), and we end with some
+concluding remarks (Section
+4
+). Further information on NuSMV can be found
+at
+http://nusmv.irst.itc.it/
+.
+2 The NuSMV Open Source Project
+Enormous progress has been carried out over the last decade in the applicabilityofsymbolic model checking to practical veriﬁcation problems. However, most ofthe state-of-the-art model checkers are proprietary. Moreover, several important
+techniques have been implemented only in prototype tools and have not been
+further maintained or developed (see e.g., the very nice results described in [
+8
+]).
+This is a clear disadvantage in terms ofscientiﬁc progress, and is slowing downthe introduction ofmodel checking in non-traditional application domains.
+With the OpenSource model [
+17
+], a whole community participates in the
+development ofa sof tware systems, with a distributed team and independentpeer review. This may result in a rapid systems evolution, and in increased soft-ware quality and reliability. The OpenSource model has boosted the take-up of
+notable software systems, such as Linux and Apache. With the NuSMV Open-
+Source project, we would like to reach the same goals within the model check-
+ing community, providing a publicly available state-of-the-art symbolic model
+checker, and opening to anybody interested in the development ofthe tool.
+NuSMV2 is distributed under GNU Lesser General Public License 2.1 (LGPL
+in brief; see [
+14
+]). This license grants full right to use and modify a program,
+for research and commercial applications, stand-alone or as part of a largersoftware system. On the other hand, this license is “copyleft”: any improvement
+to NuSMV should be made freely available, under the terms of the LGPL. In
+this way, we achieve the goals of allowing for a free usage of NuSMV and to
+guarantee that the extensions become available to the whole community.
+3 Overview of NuSMV2
+In order to integrate SAT-based and BDD-based model checking, a major archi-
+tectural redesign was carried out in NuSMV2, with the goal ofmaking as manyfunctionalities as possible independent of the actual model checking engine used.
+This allows for the eﬀective integration of the new SAT-based engine, and opens
+up towards the implementation ofother model checking procedures. A high level
+description ofthe internal structure ofNuSMV2 is given in Figure
+1
+.
+
+--- Page 3 ---
+NuSMV 2: An OpenSource Tool for Symbolic Model Checking 361
+DIMACS
+PRINTER
+BDD PACKAGEBDD-BASED
+- fair CTL model checking
+- LTL model checking
+Mfb(Pfb
+i)Pfb
+1...Pfb
+nMfbMfPf
+1...Pf
+n
+Mfb(Pfb
+i)|=KPfb.cnf
+- CNF conversionRBC ENGINETRACE MANIPULATION SIMULATION
+BOUNDED
+MODELSAT solver 2SAT solver NFLATTENINGP1...P n M
+BOOLEAN ENCODING
+CONE OF INFLUENCEBDD-BASED
+MODEL
+CONSTRUCTION
+Mfb(Pfb
+i)|=KPfb.dimacsDifferent Sat Solver Interfaces
+SIM
+SAT SOLVERVERIFICATION
+- reachability
+- quantitative analysis
+CHECKINGfor scalar propositions- build boolean functions-e n c o d es c a l a rv a r sRECONSTRUCTIONTRACE
+Fig. 1. The internal structure ofNuSMV2
+NuSMV is able to process ﬁles written in an extension ofthe SMV language.
+In this language, it is possible to describe ﬁnite state machines by means ofdec-
+laration and instantiation mechanisms for modules and processes, corresponding
+to synchronous and asynchronous composition, and to express a set ofrequire-
+ments in CTL and LTL. NuSMV can work batch or interactively, with a textualinteraction shell.
+AnSMV ﬁle is processed in several phases. The ﬁrst phases require to ana-
+lyze the input ﬁle, in order to construct an internal representation ofthe system.
+NuSMV2 neatly separates the input language in diﬀerent layers, ofincreasing
+complexity, that are incrementally eliminated. The construction starts from themodular description ofa model Mand ofa set ofproperties P
+1,...,P n. The ﬁrst
+step, called ﬂattening , performs the instantiation of module types, thus creating
+modules and processes, and produces a synchronous, ﬂat model Mf,w h e r ee a c h
+variable is given an absolute name. The second step, called boolean encoding ,
+maps a ﬂat model into a boolean model Mfb, thus eliminating scalar variables.
+This second step takes into account the whole SMV language, including the en-
+coding ofbounded integers, and all the set-theoretic and arithmetic f unctions
+and predicates. It is possible to print out the diﬀerent levels ofthe input ﬁle, thususing NuSMV2 as a ﬂattener. The same reduction steps are applied to the prop-
+erties P
+i, thus obtaining the corresponding ﬂattened boolean versions Pfb
+i.I n
+addition, by means ofthe cone of inﬂuence reduction [
+2
+], it is possible to restrict
+the analysis ofeach property to the relevant parts ofthe model Mfb(Pfb
+i). This
+reduction can be extremely eﬀective in tackling the state explosion problem.
+
+--- Page 4 ---
+362 Alessandro Cimatti et al.
+The preprocessing is carried out independently from the model checking en-
+gine to be used for veriﬁcation. After this, the user can choose whether to apply
+BDD -based or SAT-based model checking. In the case of BDD -based model
+checking, a BDD -based representation ofthe Finite State Machine (FSM) is
+constructed. In this step, diﬀerent partitioning methods and strategies [
+18
+]c a n
+be used. Then, diﬀerent forms of BDD-based veriﬁcation can be applied: reach-
+ability analysis, fair CTL model checking, LTL model checking via reduction toCTL model checking, computation ofquantitative characteristics ofthe model.
+In the case ofSAT-based model checking, NuSMV2 constructs an internal
+representation ofthe model based on a simpliﬁed version of Reduced Boolean
+Circuit (RBC), a representation mechanism for propositional formulae. Then, it
+is possible to perform SAT-based bounded model checking ofLTL f ormulae [
+4
+].
+Given a bound on the length ofthe counterexample, a LTL model checking
+problem is encoded into a SAT problem. Ifa propositional model is f ound, it
+corresponds to a counterexample ofthe original model checking problem. Nu-SMV2 represents each SAT problem as an RBC, that is then converted in CNF
+format and given in input to the internal SAT solver. Alternatively, the SAT
+problems can be printed out in the standard DIMACS format, thus allowing for
+the stand-alone use ofother SAT solvers. With respect to the tableau construc-
+tion in [
+4
+], enhancements have been carried out that can signiﬁcantly improve
+the performances of the SAT solver [
+7
+]. In bounded model checking, NuSMV2
+enters a loop, interleaving problem generation and solution attempt via a call to
+the SAT solver, and iterates until a solution is found or the speciﬁed maximumbound is reached.
+NuSMV2 uses SIM [
+13
+] as the internal SAT solver. SIM is a SAT solver based
+on the Davis-Logemann-Loveland procedure. The features provided by SIM canproduce dramatic speed-ups in the overall performances of the SAT checker, and
+thus ofthe whole system (see e.g., [
+19
+,
+10
+] for a discussion). It is currently under
+development a generic interface to SAT solvers to allow for the use of new stateofthe art SAT solvers like e.g. CHAFF [
+16
+].
+The diﬀerent properties that are checked on a FSM are handled and shown
+to the user by a property manager, that is independent ofthe model checking en-gine used for the veriﬁcation. This means that it is possible for the user to decide
+what solution method to adopt for each property. Furthermore, the counterex-ample traces being generated by both model checking modules are presented
+and stored into a unique format. Similarly, the user can simulate the behavior
+ofthe speciﬁed system, by generating traces either interactively or randomly.
+Simulation can be carried out both via BDD-based or SAT-based techniques.
+4 Concluding Remarks
+NuSMV is a robust, well structured and ﬂexible platform for symbolic model
+checking, designed to be applicable in technology transfer projects. In this paper,we have shown how BDD-based and SAT-based model checking are integrated
+in the new version ofNuSMV, that signiﬁcantly extends the previous version.
+
+--- Page 5 ---
+NuSMV 2: An OpenSource Tool for Symbolic Model Checking 363
+In particular, we have discussed the functionalities and the architecture of Nu-
+SMV2, that integrates SAT-based state ofthe art veriﬁcation techniques, isable to work as a problem ﬂattener in DIMACS format, and tackles the state
+explosion with cone ofinﬂuence reduction. In the f uture, we plan to investigate
+a tighter integration between BDD-based and SAT-based technologies. The new
+internal architecture also opens up the possibility to integrate diﬀerent boolean
+encodings (e.g. [
+8
+]) and veriﬁcation engines (e.g. [
+1
+], allowing for Bounded Model
+Checking ofTimed Automata.)
+NuSMV2 has been used as the starting framework for the implementation
+and the evaluation ofnew veriﬁcation techniques (see, e.g., [
+9
+] in this volume).
+It has also been used as the veriﬁcation engine for tools in diﬀerent application
+areas, ranging from the formal validation of software requirements [
+12
+], to the
+veriﬁcation ofStateChart models [
+11
+], to automated task planning [
+3
+]. Several
+ofthese applications have required the development ofnew f unctionalities and
+improvements to NuSMV2. The code for these extensions is currently beingincluded in the mainstream NuSMV2 distribution.
+References
+1. G. Audemard, P. Bertoli, A. Cimatti, A. Kornilowicz, and R. Sebastiani. A SAT
+based approach for solving formulas over boolean and linear mathematical propo-
+sitions. In Proc. of CADE’02 , 2002.
+363
+2. S. Berezin, S. Campos, and E. M. Clarke. Compositional reasoning in model
+checking. In Proc. COMPOS , 1997.
+361
+3. P. Bertoli, A. Cimatti, M. Pistore, M. Roveri, and P. Traverso. MBP: a Model
+BasedPlanner. In Proc. of the IJCAI’01 Workshop on Planning under Uncertainty
+and Incomplete Information , Seattle, August 2001.
+363
+4. A. Biere, A. Cimatti, E. M. Clarke, and Y. Zhu. Symbolic model checking without
+BDDs. In Proc. of the Fifth International Conference on Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS’99) , 1999.
+359
+,
+362
+5. A. Bor¨ alv. A Fully Automated Approach for Proving Safety Properties in Inter-
+locking Software Using Automatic Theorem-Proving. In S. Gnesi and D. Latella,
+editors, Proc. of the Second International ERCIM FMICS , Pisa, Italy, July 1997.
+359
+6. A.Cimatti,E.M.Clarke,F.Giunchiglia,andM.Roveri. NuSMV:anewsymbolic
+model checker. International Journal on Software Tools for Technology Transfer
+(STTT), 2(4), March 2000.
+359
+7. A. Cimatti, M. Pistore, M. Roveri, and R. Sebastiani. Improving the Encoding of
+LTL Model Checking into SAT. In Proc. WMCAI 2002 , number 2294 in LNCS,
+pages 182–195, 2002.
+362
+8. E. Clarke and X. Zhao. Word Level Symbolic Model Checking: A New Approach
+for Verifying Arithmetic Circuits. Technical Report CMU-CS-95-161, School of
+Computer Science, Carnegie Mellon University, Pittsburgh, PA 15213-3891, USA,
+May 1995.
+360
+,
+363
+9. E. M. Clarke, A. Gupta, J. Kukula, and O. Strichman. Sat based abstraction-
+reﬁnement using ILP and machine learning techniques. In Proc. of Conference on
+Computer-Aided Veriﬁcation (CAV’02) , LNCS, 2002. To appear in this volume.
+363
+
+--- Page 6 ---
+364 Alessandro Cimatti et al.
+10. F. Copty, L. Fix, E. Giunchiglia, G. Kamhi, A. Tacchella, and M. Vardi. Beneﬁts
+of bounded model checking at an industrial setting. In Proc. of CAV 2001 ,L N C S ,
+pages 436–453, 2001.
+359
+,
+362
+11. R. Eshuis and R. Wieringa. Veriﬁcation support for workﬂow design with UML
+activity graphs. In Proc. of ICSE , 2002. To appear.
+363
+12. A. Fuxman, M. Pistore, J. Mylopoulos, , and P. Traverso. Model checking early
+requirements speciﬁcations in Tropos. In Proc. of the Fifth IEEE International
+Symposium on Requirements Engineering (RE’01) , Toronto, August 2001.
+363
+13. E. Giunchiglia, M. Maratea, A. Tacchella, and D. Zambonin. Evaluating search
+heuristics and optimization techniques in propositional satisﬁability. In Proc. of
+IJCAR 2001 , volume 2083 of LNCS, pages 347–363. Springer, 2001.
+362
+14. The GnuLesser General Pu blic License:
+http://www.fsf.org/licenses/lgpl.html
+.
+360
+15. K. L. McMillan. Symbolic Model Checking . Kluwer Academic Publ., 1993.
+359
+16. M. Moskewicz, C. Madigan, Y. Zhao, L. Zhang, and S. Malik. Chaﬀ: Engineering
+an Eﬃcient SAT Solver. In Proc. of the 39th Design Automation Conference , June
+2001.
+362
+17. The Open Source Organization.
+http://www.opensource.org
+.
+359
+,
+360
+18. R. K. Ranjan, A. Aziz, B. Plessier, C. Pixley, and R. K. Brayton. Eﬃcient BDD
+algorithms for FSM synthesis and veriﬁcation. In Proc. IEEE/ACM International
+Workshop on Logic Synthesis , Lake Tahoe (NV), May 1995.
+362
+19. O. Shtrichman. Tuning SAT checkers for bounded model-checking. In Proc. 12th
+International Computer Aided Veriﬁcation Conference (CAV’00) , 2000.
+362

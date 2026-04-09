@@ -1,0 +1,321 @@
+--- Page 1 ---
+Woﬂan 2.0
+A Petri-net-based Workﬂow Diagnosis Tool
+H.M.W. Verbeek and W.M.P. van der Aalst
+Department of Technology Management, Eindhoven University of Technology,
+the Netherlands
+fH.M.W.Verbeek, W.M.P.v.d.Aalst g@tm.tue.nl
+Abstract. Workﬂow management technology promises a ﬂexible solution facil-
+itating the easy creation of new business processes and modiﬁcation of existing
+ones.Unfortunately,mostoftoday’sworkﬂowproductsallowforerroneouspro-
+cessestobeputinproduction:theseproductslackproperveriﬁcationmechanisms
+in their process-deﬁnition tools for the created or modiﬁed processes. This paper
+presentstheworkﬂowdiagnosistoolWoﬂan,whichﬁllsthisgap.UsingPetri-net
+based techniques, Woﬂan diagnoses process deﬁnitions before they are put into
+production. These process deﬁnitions can be imported from commercial work-
+ﬂow products. Furthermore, Woﬂan guides the modeler of a workﬂow process
+deﬁnition towards ﬁnding and correcting possible errors.
+1 Introduction
+Today’sworkﬂowmanagementsystemsareillsuitedtodealingwithfrequentchanges:
+there are hardly any checks to assure some minimal level of correctness on the process
+[Aal98,AH00].Evenasimplechangelikeaddingataskcancauseseriousproblemslike
+deadlockorlivelock.Asaresult,anerroneousprocessdeﬁnitionmaybetakenintopro-
+duction as a workﬂow, causing dramatic problems for the organization. Therefore, it is
+importanttoverifythecorrectnessofaprocessdeﬁnitionbeforeitbecomesoperational.
+The role of veriﬁcation becomes even more important as many enterprises are making
+TotalQualityManagement(TQM)oneoftheirfocalpoints.Forexample,anISO9000
+certiﬁcation and compliance forces companies to document business processes and to
+meetself-imposedqualitygoals[ IC96].Clearly,veriﬁcationoftheseprocessdeﬁnitions
+can be used to ensure certainlevels of quality.
+The tool Woﬂan was built in response to the need for a workﬂow veriﬁcation tool.
+Right from the start, threerequirements have been imposed on the tool:
+1.Woﬂan should be independentof the process deﬁnition tool used by the modeler.
+2.Woﬂan should be able to handle complex process deﬁnitions (up to hundreds of
+tasks).
+3.Woﬂan should give the modeler to-the-point diagnostic information to ﬁnd and
+repair errors.
+Based on these requirements, we decided to use Petri nets because they are a univer-
+salmodelinglanguagewithasolidmathematicalfoundation,areclosetodiagramming
+
+--- Page 2 ---
+techniquesusedinpractice,andhaveefﬁcientanalysistechniquesthatarealreadyavail-
+able.TheprimarygoaloftheWoﬂantoolistoverifyaprocessdeﬁnition,i.e.,tocheck
+whetheraprocessdeﬁnitionisaworkﬂowprocessdeﬁnitionthatsatisﬁestheso-called
+soundness property [ Aal97,Aal98].
+Workﬂow process deﬁnition Aprocessdeﬁnitioniscalleda workﬂow processdeﬁni-
+tion if it has a single start condition (indicating the arrival of a new case), a single
+end condition (indicating the completion of a case) and if all tasks contribute to
+completing a newly-arrived case.
+Soundness property Aworkﬂowprocessdeﬁnitioniscalledsoundifitisalwayspos-
+sible to complete a case (i.e., if it is always possible to reach the end condition), if
+completion is always proper (i.e., if no references to the case are left behind when
+it reaches the end condition),and if every task can be executed in some way.
+In case the process deﬁnition is not a workﬂow process deﬁnition that satisﬁes the
+soundnessproperty,Woﬂan’sdiagnosticinformationguidesthedevelopertowardsﬁnd-
+ing and correcting the errors.
+First,weexplaintheterminologyusedinthispaper.Second,wedescribethearchi-
+tectureofthetool.Third,wediscussthepropertiesusedbythetooltodecidewhetherit
+isasoundworkﬂowprocessdeﬁnition.Fourth,weintroducethediagnosisprocessthat
+helps the developer in ﬁnding and correcting the errors. Fifth, we discuss a number of
+import- and export ﬁlters from third party (WFMS, BPR) tools that increase Woﬂan’s
+usefulness, using a diagnosis process deﬁnition as example. Sixth, we diagnose and
+correcttheﬂaweddiagnosisprocessdeﬁnition.Last,weconcludewithconclusionsand
+future work.
+2 Terminology
+The terminology used in this paper is based on the terminology used by the WfMC
+[WFM96]. However, to avoid confusion within the Petri-net community, we use the
+termcondition insteadof transition todescribeplaces.Table 1showsthemappingfrom
+the workﬂow terms [ WFM96] used in this paper to Petri-net related terms. For some
+non-standard terms a briefexplanation is given.
+Short-circuited net In [Aal97] it has been shown that a workﬂow net is sound if and
+only if that net extended with an extra transition (called EXTENSION in Woﬂan) from
+the sink place(s) to the source place(s) is bounded and live. This extended net is called
+the short-circuited net.
+In the remainder of this paper, we want to avoid mentioning the short-circuited net
+overandoveragain.Forthisreason,somepropertiesofaprocessdeﬁnitionaredeﬁned
+(seeTable 1)ontheshort-circuitedP/Tnet,whileothersaredeﬁnedontheoriginalP/T
+net.
+Restrictedcoverabilitygraph Arestrictedcoverabilitygraph(RCG)isacoverability
+graph (CG) except for the fact that inﬁnite states are not expanded during construction
+of the RCG. Like a CG, an RCG is not uniquely deﬁned if the net is unbounded. If no
+inﬁnite states exist, an RCGequals the occurrence graph (OG) [ VBA99].
+
+--- Page 3 ---
+Workﬂow Petri net
+Process deﬁnition P/T net
+Workﬂow process deﬁnition Workﬂow (WF) net [ Aal97,Aal98]
+Condition Place
+Task Transition
+Start condition Source place
+End condition Sink place
+Useless task or condition Strongly unconnected nodes in the short-circuited net
+Thread of control S-component in short-circuited net projected to places
+Uniform invariant P-invariant in short-circuited net containing only weights 0
+and 1
+Weighted invariant P-invariant in the short-circuited net containing only semi-
+positive weights
+Proper condition Bounded place in minimal coverability graph (MCG,
+[Fin93]) of short-circuited net
+Improper scenario Unbounded sequence in restricted coverability graph (RCG,
+[VBA99]) of short-circuited net
+Live task Live transition in RCG of short-circuited net
+Dead task Dead transition in MCG of short-circuited net
+Deadlock scenario Non-live sequence in RCG of short-circuited net
+Confusion Non-free-choice cluster [ DE95] in short-circuited net
+AND-OR mismatch TP-handle [ EN94] in short-circuited net
+OR-AND mismatch PT-handle [ EN94] in short-circuited net
+Table 1.Mapping from workﬂow termsto Petri-net terms
+Sequence Asequenceisaﬁringsequenceofminimallength(e.g.,pathsinthe(R)CG)
+such that states with a given property become unavoidable (fairness etc. assumed). It is
+minimalinthesensethatuptothelast-but-onetransitioninthesequence(e.g.,thelast-
+but-one state in the path) the property is avoidable: the last transition in the sequence
+(e.g., the last edge in the RCG)makes the property unavoidable.
+3 Architecture
+The core of Woﬂan consists of Petri-net-based analysis routines. Using these routines,
+Woﬂan can verify the soundness of a given process deﬁnition. This soundness prop-
+erty is the minimal requirement any workﬂow process deﬁnition should satisfy. Be-
+cause soundness is equivalent to the boundedness and liveness of the short-circuited
+WF net [Aal97], it can be veriﬁed using standard Petri-net techniques. Although it is
+possible to verify the soundness property for many process deﬁnitions in polynomial
+time, Woﬂan uses the general approach by constructing a minimal and/or restricted
+coverability graph. The diagnosis of the process deﬁnition is also partly based on these
+constructed CG’s. The Woﬂantool contains a number of modules:
+1.One GUI module ( wofapp),
+2.Oneanalysismodule( wofdll)forloading,verifyinganddiagnosingprocessdef-
+initions, and
+
+--- Page 4 ---
+3.Threeconversionmodules( scr2tpn ,wil2tpn ,andgwd2tpn )forprocessdef-
+initions from commercial products (Cosa [ SL98], Meteor [ SKM], resp. Staffware
+[Sta97].
+The GUI- and conversion modules are implemented in the main executable (called
+wofapp.exe ). To support the use of Woﬂan as a back-end tool, the analysis mod-
+ule is implemented in a separateDLL ( wofdll.dll ).
+4 Properties
+Soundnessofaworkﬂowprocessdeﬁnitionisequivalenttothatdeﬁnitionbeingproper
+and live, i.e., all conditions must be proper and all tasks must be live. Therefore, to
+decide soundness, Woﬂan computes whether all conditions are proper and all tasks are
+live. Preceding these two properties, Woﬂan has to decide whether or not the process
+deﬁnition is indeed a workﬂow process deﬁnition.
+4.1 Workﬂow
+Thedeﬁnitionofaworkﬂowprocessdeﬁnitionisstraightforward:itshouldbeaprocess
+deﬁnition with exactly one start condition, exactly one end condition, and no useless
+tasksorconditions.Becausethesepropertiesareofastructuralnatureanddonotrequire
+the construction of an MCG,RCG or OG, they are relative easy to check.
+4.2 Properness
+Properness of conditions can be decided using the conventional method, i.e., by gener-
+ating the net’s MCG etc. However, because of its complexity, we would like to avoid
+thisifpossible.Fortunately,therearealternativesthatarelessexpensivefromacompu-
+tational point of view: all conditions covered by threads of control, uniform invariants
+orweightedinvariantsareproper.Becauseathreadofcontrolisalsoauniforminvariant
+and a uniform invariant is also a weighted invariant, we have ordered these alternatives
+from more desirable to lessdesirable.
+Threadsofcontrol Fromtheworkﬂowpointofview,threadsofcontrolareverydesir-
+able.Aworkﬂowcasetypicallyconsistsofanumberofdocuments.Eachdocumenthas
+itsownroutethroughtheworkﬂow.Athreadofcontrolcoincideswithsuchadocument
+route.So,ifthreadsofcontrolcoveraworkﬂowprocessdeﬁnition,theneachworkﬂow
+case can be split into a number of documents such that each condition can be linked to
+some(possiblyall)ofthesedocuments.Ifthereisnotsuchacover,theuncoveredcon-
+ditionscannotbelinkedtoanydocument.Asaresult,foraworkﬂowprocessdeﬁnition
+tobesound,bothconfusionsandmismatcheshavetobepresent[ VBA99].Apparently,
+these constructions are vital to ‘cure’ the net from these uncovered conditions. This
+soundness-related property is called interim soundness : a process deﬁnition containing
+uncovered conditions is called interim sound if and only if it contains confusions and
+mismatches.
+
+--- Page 5 ---
+Diagnostic properties If a deﬁnition contains improper conditions, Woﬂan computes
+someadditionalpropertiesthatcanhelpﬁndingandcorrectingthepropernessproblem:
+AND-ORmismatches(theyendangerproperness),confusions,andimproperscenarios.
+4.3 Liveness
+Suppose we have a process deﬁnition that can be covered by invariants (i.e., that con-
+tains no improper conditions), that can not be covered by threads of control, and that
+has either no confusions or no mismatches. For such a deﬁnition we can conclude that
+it is unsound, i.e., it containsnon-live tasks.
+Likewise, suppose we have a process deﬁnition containing no improper conditions
+andforwhichwehavedetectedsubstatesduringtheconstructionoftheMCG.Areach-
+ablemarkings M1isasubstateofanotherreachablemarking M2iffM1<M 2.Atthis
+point, we can conclude thatfrom M1the extra task EXTENSION is dead.
+Otherwise, Woﬂan has no method yet to decide liveness without generating the
+OG. Note that generating this OG is only possible if the process deﬁnition contains no
+improper conditions.
+Diagnostic properties If a deﬁnition contains non-live tasks, Woﬂan computes some
+additional properties that can help ﬁnding and correcting the liveness problem: OR-
+AND mismatches (they endanger liveness), confusions, dead tasks, and deadlock sce-
+narios.
+5 Diagnosis
+Based on practical experiences with earlier versions of Woﬂan we have developed a
+methodfordetectingerrorsinaworkﬂowprocess.ThismethodissupportedbyWoﬂan
+2.0 and uses the diagnosis process shown in Figure 1. The diagnosis process can either
+be executed in-succession or step-by-step. In the latter case, dialogs are used to com-
+municatewiththeuser.First,wegivethediagnosisprocess.Second,weexplainoneof
+the dialogs in detail, using the diagnosis process as shown before as example. Last, we
+explain the general view in detail, using again the diagnosis process itself. Please note
+that Figure 1is used both as a meta-model describing the functionality of Woﬂan and
+as a concrete example of aworkﬂow process.
+5.1 Process
+Because of the fact that we need the OG (and therefore a workﬂow process deﬁnition
+containingnoimproperconditions)fordecidingliveness,itisobvioustodecideitonly
+if the workﬂow process deﬁnition has been proven to contain only proper conditions.
+Becausetheworkﬂowpropertiesareeasytocheck,Woﬂanstartswiththem.Asaresult,
+the main steps in the diagnosticprocess are:
+1.Decide workﬂow,
+2.Decide properness, and
+
+--- Page 6 ---
+Fig.1.Diagnosis process, modeledusing Protos [ Pal97]
+
+--- Page 7 ---
+3.Decide liveness.
+If some step fails, there is not much use in continuing with the next step. The modeler
+of the process deﬁnition ﬁrsthas to correct the errors present.
+Figure1shows a graphical representation of the diagnosis process deﬁnition. Note
+that in some cases the diagnosis process may be continued when unsoundness of the
+process deﬁnition has been detected. The reason for this is to collect more diagnostic
+information.
+5.2 Dialogs
+The diagnosis process uses a series of dialogs to guide the user step-by-step through
+theprocess.Dependingonthediagnosticresults,eitheranextdialogispresentedorthe
+process is ﬁnished ( end of diagnosis ). Properties that are likely to be of interest
+to the modeler are automatically unfolded. As running example, we take the diagnosis
+process deﬁnition as shown in Figure 1and show the dialog concerning the thread of
+control cover.
+Threadofcontrolcover? ThedialogasshowninFigure 2showsthat,usingprevious
+dialogs, Woﬂan has concluded that the diagnosis process deﬁnition is a workﬂow pro-
+cess deﬁnition, but that no threads of control exist. As a result, the 20 conditions of the
+diagnosis process deﬁnitionare listed.
+Fig.2.Example ”Thread of controlcover?” dialog
+5.3 Diagnosis view
+The diagnosis view shows all properties of the process deﬁnition in a tree-like manner.
+At the root, the name of the process deﬁnition ﬁle is shown. This root node has two
+
+--- Page 8 ---
+child nodes: the upper for the diagnosis results, the lower for the diagnostic properties.
+The diagnosis results node shows in brief the results on the main properties (workﬂow,
+safeness,liveness,soundness).Thediagnosticpropertiesnodecombinesthediagnostic
+information from all dialogs.
+Fig.3.Example diagnosis view
+6 Links to third-party software
+Woﬂan embeds three ﬁltersto import third party process deﬁnition ﬁles:
+1.For Cosa [ SL98] script ﬁles ( *.scr),
+2.For Meteor [ SKM] workﬂow ﬁles ( *.wil), and
+3.For Staffware [ Sta97] (*.xfr) ﬁles.
+Furthermore,theBPRtoolProtos[ Pal97]comeswithanadditionalWoﬂanexportﬁlter,
+which uses Cosa script ﬁles as an intermediate format. Each embedded ﬁlter shows the
+results(whichcouldbeerrormessages)oftheimportprocessinadialog.Forreadabil-
+ity’s sake the comments are colored gray, the keywords green, and error messages red.
+The dialog as shown in Figure 4results from the diagnosis process deﬁnition (see
+Figure1)thatwasdesignedusingProtos,exportedtoWoﬂan(i.e.,toaCosascriptﬁle)
+and imported by Woﬂan’s Cosa import ﬁlter. Note that the Cosa import ﬁlter automati-
+callyaddedastartcondition( GLOBAL START),anendcondition( GLOBAL END),and
+a token in the start conditionrepresenting a newly-arrived case.
+
+--- Page 9 ---
+Fig.4.Example import ﬁlter dialog
+7 Example
+Apparently,thediagnosisprocessdeﬁnitionfromFigure 1isunsound.Inthiscase,par-
+ticularly the dead tasks are of interest. Note that the short-circuiting task EXTENSION
+isdead.Asaresult,alltasksarenon-live.Thetask EXTENSION canonlybedeadiftask
+endofdiagnosis is dead, which is dead because it acts as an AND-join instead
+of an OR-join. Protos’ export ﬁlter and Woﬂan’s import ﬁlter allow to have this prop-
+erty changed in Protos, both ﬁlters can handle a task which acts as an OR-join (split)
+insteadofasanAND-join(split).AfterchangingthispropertyinProtos,exportingitto
+WoﬂanandimportingtheresultingCosascriptﬁle,thediagnosisprocessappearstobe
+a sound workﬂow process deﬁnition. Although this error seems trivial, taking a work-
+ﬂow with such a ﬂawed process deﬁnition into production will result in much irritation
+andagony:preventionisbetterthancure.Alsonotethatrealworldexamplesarenotas
+straightforward as the workﬂow process deﬁnition shown in Figure 1.
+8 Conclusions and future work
+For several commercial WFMS/BPR products, Woﬂan can be used to verify a process
+deﬁnition, checking both syntactic (cf. Section 4.1) and behavioral (cf. Sections 4.2
+and4.3) properties. By using Woﬂan and its state-of-the-art techniques it is possible to
+prevent that an unsound workﬂow is taken into production.
+In the nearby future we hope to extend Woﬂan with two more features: transition
+invariants and visualization.
+Asoundworkﬂow process deﬁnition is covered by non-negative transition invari-
+ants.Iftheprocessdeﬁnitionissafe,ataskthatisnotcoveredbytheseinvariantscannot
+be live. In a next version of Woﬂan we hope to use this property to avoid the use of the
+OG, if possible.
+We also would like to visualize the diagnosis results in some intuitive way, us-
+ing Petri nets of course. If possible, we even want to visualize these results in the
+
+--- Page 10 ---
+WFMS/BPR tool the modeler is using. To support this use of Woﬂan as a back-end
+tool, we separated the analysistechniques from the rest of the tool.
+Woﬂan can be downloaded from[ VA].
+9 Acknowledgements
+The authors wish to thank Twan Basten and Hajo Reijers for their fruitful remarks and
+suggestions.
+References
+Aal97. W.M.P. van der Aalst. Veriﬁcation of Workﬂow Nets. In P. Az ´ema and G. Balbo, edi-
+tors,ApplicationandTheoryofPetriNets1997,Proceedings ,volume1248of Lecture
+Notes in Computer Science , pages 407–426, Toulouse, France, June 1997. Springer,
+Berlin, Germany, 1997.
+Aal98. W.M.P. van der Aalst. The Application of Petri Nets to Workﬂow Management. The
+Journal of Circuits, Systems and Computers , 8(1):21–66, 1998.
+AH00. W.M.P. van der Aalst and A.H.M. ter Hofstede. Veriﬁcation of Workﬂow Task Struc-
+tures: A Petri-net-based Approach. Information Systems , To appear, 2000.
+DE95. J. Desel and J. Esparza. Free Choice Petri Nets , volume 40 of Cambridge Tracts in
+Theoretical Computer Science . Cambridge University Press, Cambridge, UK, 1995.
+EN94. J. Esparza and M. Nielsen. Decidability Issues for Petri Nets - a Survey. Journal of
+Information Processing and Cybernetics , 30(3):210–242, 1994.
+Fin93. A. Finkel. The Minimal Coverability Graph for Petri Nets. In G. Rozenberg, editor,
+AdvancesinPetriNets1993 ,volume674of LectureNotesinComputerScience ,pages
+210–243. Springer, Berlin, Germany, 1993.
+IC96. R.R.A. Issa and R.F. Cox. Using Process Modeling and Workﬂow Integration to gain
+(ISO 9000) Certiﬁcation in Construction. In CIB W89 Beijing International Confer-
+ence on Construction, Modernization, and Education , Beijing, China, 1996.
+Pal97. Pallas Athena. Protos User Manual . Pallas Athena BV, Plasmolen, The Netherlands,
+1997.
+SKM. A. Sheth, K. Kochut, and J. Miller. Large Scale Distributed In-
+formation Systems (LSDIS) laboratory, METEOR project page.
+http://lsdis.cs.uga.edu/proj/meteor/meteor.html.
+SL98. Software-Ley. COSA User Manual . Software-Ley GmbH, Pullheim, Germany, 1998.
+Sta97. Staffware. Staffware 97 / GWD User Manual . Staffware Plc, Berkshire, UK, 1997.
+VA. H.M.W. Verbeek and W.M.P. van der Aalst. Woﬂan Home Page.
+http://www.win.tue.nl/˜woﬂan.
+VBA99. H.M.W. Verbeek, T. Basten, and W.M.P. van der Aalst. Diagnosing Workﬂow Pro-
+cessesusingWoﬂan. ComputingScienceReport99/02,EindhovenUniversityofTech-
+nology, Eindhoven, The Netherlands, 1999.
+WFM96. WFMC. Workﬂow Management Coalition Terminology and Glossary (WFMC-TC-
+1011). Technical report, Workﬂow Management Coalition, Brussels, 1996.

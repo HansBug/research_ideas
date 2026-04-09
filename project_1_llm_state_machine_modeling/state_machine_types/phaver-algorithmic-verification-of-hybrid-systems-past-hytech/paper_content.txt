@@ -1,0 +1,1640 @@
+--- Page 1 ---
+Software Tools for Technology Transfer manuscript No.
+(will be inserted by the editor)
+PHAVer: Algorithmic Veriﬁcation of Hybrid Systems past
+HyTech⋆
+Goran Frehse
+VERIMAG,
+2, ave de Vignate, 38610 Gieres, France, e-mail: goran.frehse@imag.fr ,
+WWW home page: http://www-verimag.imag.fr/~frehse
+Received: June 20, 2006 / Revised version: date
+Abstract. In 1995, HyTech broke new ground as a po-
+tentially powerful tool for verifying hybrid systems –
+yet its appicability remains limited to relatively sim-
+ple systems. We address the main problems of HyTech
+with PHAVer, a new tool for the exact veriﬁcation of
+safety properties of hybrid systems with piecewise con-
+stant bounds on the derivatives. Aﬃne dynamics are
+handled by on-the-ﬂy overapproximation, partitioning
+the state space based on user-deﬁnable constraints and
+the dynamics of the system. PHAVer features exact arith-
+metic in a robust implementation that, based on the
+Parma Polyhedra Library, supports arbitrarily large num-
+bers. To manage the complexity of the polyhedral com-
+putations, we propose methods to conservatively limit
+the number of bits and constraints of polyhedra. Exper-
+imental results for a navigation benchmark and a tunnel
+diode circuit show the eﬀectiveness of the approach.
+Key words: hybrid systems – veriﬁcation – tools – poly-
+hedra
+1 Introduction
+Systems with interacting discrete as well as continuous
+dynamics, so-called hybrid systems, are known to be no-
+toriously complex to analyze. Their algorithmic veriﬁca-
+tion remains a challenging problem, from a theoretical
+point of view because of decidability problems, and from
+the implementation side because the slightest numerical
+errors can void the results. We present PHAVer (Polyhe-
+dral Hybrid Automaton Veriﬁer), a veriﬁcation tool that
+⋆A preliminary version of this paper appeared in the Proceed-
+ings of Hybrid Systems: Computation and Control (HSCC 2005) ,
+Lecture Notes in Computer Science 3414, Springer-Verlag, 2 005,
+pp. 258–273.aims at overcoming the limitations of predecessors such
+as as HyTech [1]. Although PHAVer uses in principle
+the same algorithm as HyTech we not merely present
+a new implementation of known algorithms, but pro-
+pose heuristics to overcome inherent and fundamental
+problems of reachability computations, namely excessive
+complexity, slow convergence and loss of accuracy due to
+overapproximations. As a result, we are able to analyze
+systems previously beyond the reach of veriﬁcation tools.
+In this paper we consider the reachability problem,
+i.e., computing the set of reachable states of a system or
+a conservative overapproximation thereof. While reach-
+ability is a relatively simple property in the context of
+veriﬁcation, more complex safety or bounded liveness
+properties can be formulated as reachability problems
+by adding monitoring components to the system [2].
+Computations in PHAVer are based on linear hybrid au-
+tomata (LHA) [3], which are deﬁned by linear predicates
+and piecewise constant bounds on the derivatives. They
+stand out from other classes of hybrid automata because
+there are known algorithms for computing exact reacha-
+bility over an inﬁnite time horizon [4]. PHAVer is based
+on such reachability algorithms for LHA, but can also
+compute conservative overapproximations for hybrid au-
+tomata with more complex dynamics thanks to an on-
+the-ﬂy implementation of phase-portrait approximation
+[5]. In practise, reachability computations face three fun -
+damental problems: excessive complexity, slow conver-
+gence and insuﬃcient accuracy. The complexity of the
+set of reachable states can be prohibitively large. In ad-
+dition to the state explosion problem, well-known from
+the domain of discrete systems, one has to deal with ex-
+pensive polyhedral computations whose complexity in-
+creases, often exponentially, with each iteration of the
+analysis. Inevitably, one has to resort to overapproxima-
+tions for all but the most simple problems. Although ter-
+mination is not guaranteed in general, it may be induced
+by overapproximation. However, convergence might be
+
+--- Page 2 ---
+2 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid S ystems past HyTech
+prohibitively slow, and overapproximations may have a
+positive or negative eﬀect that is hard to predict. Over-
+approximations are essential to handle complexity and
+convergence problems, but they forcibly decrease the ac-
+curacy of the results. E.g., the obtained set of reachable
+states might contain forbidden states that are not actu-
+ally reachable by the system.
+In applications, complexity and convergence prob-
+lems manifest themselves in terms of computation time,
+memory consumption and degradation of accuracy, and
+the challenge is to ﬁnd an acceptable trade-oﬀ between
+them. We propose the following heuristics to enable such
+a trade-oﬀ. We manage the complexity of polyhedral
+computations by imposing a limit on the number of bits
+and constraints in polyhedral representations, overap-
+proximating them in a manner that is guaranteed to
+be conservative. These overapproximations immediately
+imply termination if the invariants of the hybrid automa-
+ton are bounded. However, they may lead to severe con-
+vergence problems, which we counter by applying them
+only when triggered by a given complexity threshold.
+Experimental results indicate that the proposed overap-
+proximations are suﬃciently accurate in practical appli-
+cations.
+In addition to the reachability algorithm, PHAVer
+includes a separate engine for computing simulation re-
+lations between hybrid automata. It can be used to verify
+equivalence or reﬁnement between diﬀerent models, and
+in assume-guarantee-style proofs. The reader is referred
+to [6,7] for a description of the approach and some ex-
+perimental results. Using PHAVer, we successfully ver-
+iﬁed analog and mixed-signal circuits that were previ-
+ously beyond the reach of veriﬁcation tools, see [8,9].
+PHAVer has been used by others to verify safety proper-
+ties of hybrid Chi speciﬁcations [10], and to verify a type
+of stability of hybrid systems [11]. It was also used in
+abstraction-reﬁnement schemes based on rectangular au-
+tomata [12] and based on LHA [9]. A performance com-
+parison between PHAVer and HSOLVER in [13] turned
+out in PHAVer’s favor.
+Hybrid Automata Our hybrid automata are based on
+the classic model in [14]. We added a distinction between
+input and output variables, comparability and compata-
+bility deﬁnitions from [15]. In addition, we adopted from
+[3] that the set of variables may be diﬀerent for each au-
+tomaton in a composition, and there is a set of initial
+states.
+From HyTech to PHAVer In 1995, Henzinger et al. pre-
+sented the tool HyTech [1]. It features a powerful input
+language permitting to specify ﬁxed-point algorithms
+based on post- and pre-operators, but suﬀers from a
+major ﬂaw: It uses exact arithmetic with a data struc-
+ture of limited digits, which can quickly lead to over-
+ﬂow errors. It was successfully used to analyze a num-
+ber of relatively small examples [16,17,18,19,20,21], butthe overﬂow problem prohibits any application to more
+complex systems. Nonetheless, the numerous valuable
+experiences with HyTech have spawned important sug-
+gestions for improvement [17], most of which we incor-
+porated in PHAVer. The basic operations in PHAVer,
+i.e., discrete and timed post-operators based on poly-
+hedral computations, are identical to those in HyTech,
+and use exact arithmetic with unlimited precision. Our
+implementation is immune to overﬂow errors thanks to
+its use of the Parma Polyhedra Library (PPL) [22] and
+the GNU Multiple Precision Arithmetic Library (GMP)
+[23], which can handle computations with hundreds of
+thousands of bits on a standard PC. The ﬁrst HyTech
+prototype was implemented in Mathematica and did not
+have any numerical restrictions, but it was also 50–1000
+times slower than the later version written in C++ [24].
+Overapproximating Dynamics The on-the-ﬂy overapprox-
+imation in PHAVer is a variation of the phase-portrait
+approximation from [5]. It diﬀers in that the invariants
+of the partitioned locations do not have an open cover,
+because we split along hyperplanes and the invariants
+only overlap on the plane. It has been shown in [12]
+that this is valid for aﬃne dynamics. Similar variants
+of partitiong the state space are used throughout liter-
+ature, e.g., in [25,26], although we’re not aware of any
+work using the angular spread of the derivatives. Ear-
+lier attempts to improve over HyTech include the use of
+interval arithmetic [27], which can quickly lead to pro-
+hibitively large overapproximations. Recently, interval
+arithmetic was combined with abstraction reﬁnement in
+a tool called HSOLVER, which can deal conservatively
+with nonlinear dynamics [28]. For a survey of veriﬁcation
+tools for hybrid automata, see [29].
+Managing complexity In the context of timed systems,
+zones are rounded in [30] by dropping constraints or
+rounding to a constant lower bound. An algorithm spe-
+cialized on rectangular automata was proposed in [31]
+and implemented based on the HyTech engine. It is able
+to use a limited number of bits through component-wise
+conservative rounding of the coeﬃcients. However, the
+rectangular over-approximation can become prohibitively
+large. An improvement was proposed in [32] by allow-
+ing arbitrary convex polyhedra. It also incorporates a
+strategy to reduce the number of bits by component-wise
+overapproximation, but is based on a vertice represen-
+tation of polyhedra and its complexity is exponential in
+the number of variables. For the simpliﬁcation of poly-
+hedra it has been suggested to use bounding boxes or
+oriented rectangular hulls [33]. Instead, we propose to
+simply drop the least signiﬁcant of the constraints, as
+this seems a good compromise in terms of accuracy and
+speed.
+In the next section we introduce the hybrid automa-
+ton model used in PHAVer. In Sect. 3 we present the
+reachability analysis algorithm and its on-the-ﬂy over-
+
+--- Page 3 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 3
+approximation of aﬃne dynamics. Experimental results
+are provided for a navigation benchmark. Methods to
+manage the complexity of polyhedra by limiting the bits
+and constraints are proposed in Sect., 4, and illustrated
+with a tunnel diode circuit. We draw some conclusions
+in Sect. 5.
+2 Hybrid Automata with Controlled Variables
+Hybrid automata [34] are widely recognized as an intu-
+itive and expressive modeling paradigm for hybrid sys-
+tems. Out of several diﬀerent deﬁnitions present in liter-
+ature we choose a slight variation of the hybrid automata
+in [14] because they admit compositional reasoning. To
+reason about equivalence between automata in a practi-
+cal manner, we enrich them with a distinction between
+input and output variables, as in [15], although we forego
+such a distinction between synchronization labels for the
+sake of simplicity.
+Preliminaries Given a set X={x1, . . . , x n}of vari-
+ables, a valuation is a function v:X→R. We use
+˙Xto denote the set {˙x1, . . . ,˙xn}of dotted variables,
+andX/primeto denote the set {x/prime
+1, . . ., x/prime
+n}of primed vari-
+ables. Let V(X) denote the set of valuations over X.
+Theprojection ofvisv↓¯X={x→v(x)|x∈¯X}. The
+embedding of a set U⊆V(X) into variables ¯X⊇Xis
+U|¯X={v∈V(¯X)|v↓X∈U}. When a valuation uoverX
+and a valuation vover¯Xagree, i.e.,u↓X∩¯X=v↓X∩¯X, we
+useu/unionsqvto denote the valuation wdeﬁned by w↓X=u
+andw↓¯X=v. Arithmetic operations on valuations are
+deﬁned in the straightforward way. An activity overX
+is a function f:R≥0→V(X). Let Acts(X) denote the
+set of activities over X. The derivative ˙fof an activ-
+ityfis an activity over ˙X, deﬁned analogously to the
+derivative in Rn. The extension of operators from valu-
+ations to activities is done pointwise. Let const X(Y) =
+{(v, v/prime)|v, v/prime∈V(X), v↓Y=v/prime↓Y}.
+Ahybrid automaton H= (Loc,(X, O, C ),Lab,Edg,
+Flow,Inv,Init) consists of the following:
+–A set X={x1, . . ., x n}of continuous, real-valued
+variables . They are divided into controlled variables
+Candinput variables I=X\C, and a subset Oof
+Cis designated as the output variables.
+–A set Locoflocations . Astate is a pair ( l, v) of a
+location land a valuation v, which attributes a value
+to each of the variables.
+–A setLabofsynchronization labels including the stut-
+ter label τ.
+–A setEdgoftransitions that describe instantaneous
+changes of location, in the course of which variables
+may change their values. Each transition ( l, a, µ, l/prime)∈
+Edghas asource location l, atarget location l/prime. It is
+associated with a synchronization label aand with a
+jump relation µthat relates values of variables before
+the transition to values they take after the transition.The projection of the jump relation to the variables
+before the transition describes for which variable val-
+ues the transition is enabled; this is often referred
+to as a guard. Each location lhas a self-loop stutter
+transition (l, τ,const X(C), l) that lets the input vari-
+ables change arbitrarily within the invariant, while
+the controlled variables remain constant.
+–A mapping Flow attributes to each location a set
+of valuations over the variables and their derivatives,
+which determines how variables can change over time.
+–A set of states Invcalled invariant . All behavior is
+constrained to the invariant at all times. In this paper
+we consider only invariants that are convex in each
+location.
+–A setIniofinitial states , contained in the invariants,
+from which all behavior of the automaton originates.
+Alinear constraint over a set of variables Xhas the form
+/summationdisplay
+iαixi+β ⊿/triangleleft0, (1)
+where αiandβare integer constants and ⊿/triangleleftis a sign ⊿/triangleleftis
+either <or≤. Aconvex linear predicate is a conjunction
+of linear constraints. We write ˙X={˙x1, . . . ,˙xn}to de-
+note derivatives, and using X/prime={x/prime
+1, . . ., x/prime
+n}describe
+a relation R∈X×Xwith a predicate over X∪X/prime. In
+aLinear Hybrid Automaton (LHA) [3], invariants and
+initial states are given by linear predicates over X, ﬂow
+predicates by convex linear predicates over ˙X, and jump
+relations by linear predicates over X∪X/prime. PHAVer can
+handle aﬃne hybrid automata , which are deﬁned like
+LHA except that ﬂows may be given by linear constraints
+overX∪˙X. The use of inequalities in ﬂow predicates
+allows us to model dynamics of the form ˙ x=Ax+b
+with the elements of Aandbgiven by intervals.1Note
+that LHA can model discrete-time dynamics of the form
+xk+1=Axk+bby updating the variables in transitions
+with a jump relation x/prime
+i=/summationtext
+jaijxj+bi.
+Complex systems can be constructed in a modular
+fashion using parallel composition . Our hybrid automata
+arecompositional with respect to reachability properties
+[7], which means that a state that is not reachable in
+a given automaton Hwill also not be reachable in a
+composition of Hwith any other automaton. This allows
+one to analyze isolated subsystems and conclude that
+any non-reachability property found will also hold in the
+entire system. We use the standard deﬁnition of parallel
+composition:
+Deﬁnition 1 (Parallel Composition). [14] Hybrid
+automata H1, H2arecompatible ifC1∩C2=∅,X1∩C2⊆
+O2andX2∩C1⊆O1. Theparallel composition of com-
+patible hybrid automata H1, H2is the hybrid automaton
+Hwith
+1In literature, aﬃne hybrid automata are sometimes also re-
+ferred to as a linear hybrid automata, e.g., in [35], which may lead
+to confusion with LHA.
+
+--- Page 4 ---
+4 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid S ystems past HyTech
+–Loc=Loc1×Loc2,
+–X=X1∪X2,C=C1∪C2,O=O1∪O2,Lab=
+Lab1∪Lab2
+–((l1, l2), a, µ,(l/prime
+2, l/prime
+2))∈Edgiﬀ
+–(l1, a1, µ1, l/prime
+1)∈Edg1and (l2, a2, µ2, l/prime
+2)∈Edg2
+–either a=a1=a2, ora=a1/∈Lab2anda2=τ,
+ora1=τanda=a2/∈Lab1,
+–µ={(v, v/prime)|(v↓Xi, v/prime↓Xi)∈µi};
+–Flow(l1, l2) =Flow 1(l1)|X∪˙X∩Flow 2(l2)|X∪˙X;
+–Inv(l1, l2) =Inv1(l1)|X∩Inv2(l2)|X;
+–Init(l1, l2) =Init1(l1)|X∩Init2(l2)|X.
+Example 1. Consider the model of a timing based mutual-
+exclusion protocol shown in Fig. 1, adapted from [4]. In
+every location lofPi, there is a transition ( l, τ, µ, l ) with
+µ={(v, v/prime)|v(xi) =v/prime(xi), v(k), v/prime(k)∈R}(omitted
+from the ﬁgure). Variables stay constant in transitions
+unless there is an explicit assignement. The system is
+considered safeif there are never two or more processes
+in the critical section at the same time. It is a compo-
+sitional adaptation of the model given in [4], and pa-
+rameterized to nprocesses with time constants cianddi
+that represent the minimal, respectively maximal, skew
+of their clocks. The processes Pihave a controlled vari-
+ablexito model their local clock and an input variable k
+that models a semaphore. Because none of the processes
+controls k, it is modeled separately in an automaton S
+we call a shared variable model .Shaskas a controlled
+variable and ﬁxes its derivative to zero. It gives the pro-
+cesses access to kby synchronizing on transitions labeled
+withsetiorrelease i. It has no restrictions on the jump
+relations of these transitions, and thus allows the pro-
+cesses to change kto an arbitrary value.
+Semantics The behavior of a hybrid automaton is based
+on two types of transitions: Discrete transitions are man-
+ifestations of the transitions in Edg, and change the lo-
+cation and variables instantaneously. Timed transitions
+describe the change of the variables over time with an
+admissible activity. An activity f(t)∈Acts(X) is called
+admissible over an interval [0 , δ] in a location lifδ= 0,
+or∀t,0≤t≤δ:f(t)∈Inv(l), f(t)/unionsq˙f(t)∈Flow(l).
+In weak runs, we consider τ-transitions unobservable as
+long as they do not change the variables.
+Deﬁnition 2 (Run, Reachability). For a given hy-
+brid automaton H, there is a discrete transition σ=
+pδ,a− − →p/primewithsource and target states p, p/primeand label a∈
+Labiﬀp, p/prime∈Invand there is a transition loc(p)a,µ− − → H
+loc(p/prime) with ( val(p),val(p/prime))∈µ. There is a timed tran-
+sition σ=pδ,f− − →p/primewithduration δ∈R≥0and ac-
+tivity foverXcalled witness iﬀp, p/prime∈Inv, and f
+is diﬀerentiable and admissible over [0 , δ] inloc(p) and
+f(0) =val(p). Arunof a hybrid automaton His a ﬁnite
+or inﬁnite sequence
+σ=p0δ0,f0,a0− − − − − → p1δ1,f1,a1− − − − − → . . .δn−1,fn−1,an−1− − − − − − − − − − → pnsuch that for all i≥0piδi,fi− − − → (loc(pi), fi(δi))ai− →pi+1.
+A state p/primeisreachable if there exists a run σwithp0∈
+Initandpn=p/prime.
+3 Reachability Analysis in PHAVer
+We compute the set of reachable states as the ﬁxed-point
+of two Post-operators, which yield the image states of
+discrete, respectively timed, transitions. If the ﬂow in
+a location is aﬃne, it is overapproximated with LHA-
+dynamics, i.e., with constant bounds on the derivatives.
+The accuracy of this overapproximation depends on the
+size of the invariant, so locations are partitioned on the
+ﬂy depending on several criteria. We give an overview of
+our algorithm, and then provide detailed descriptions of
+the operations involved.
+The implementation in PHAVer processes a shared
+passed and waiting list as shown in Fig.2. First, the lo-
+cations of the initial states are partitioned, time elapse i s
+applied, and they are put on the passed and waiting list.
+In the main loop, a set of states is taken from the wait-
+ing list, and the successor states of discrete transitions
+are computed. Then the locations of these successors are
+partitioned, and in each partition the dynamics are over-
+approximated with LHA-dynamics. The set of succes-
+sors is subjected to complexity management, which may
+overapproximate it with a set of lower complexity. Time
+elapse is applied to this new set, and it is added to the
+passed list. The new states, i.e., those that were not pre-
+viously on the passed list, are put onto the waiting list.
+The loop repeats until the waiting list is empty.
+Remark 1. Note that to be sound, time elapse must be
+applied after any overapproximation, such as convex hull
+or complexity management, unless the overapproxima-
+tion is guaranteed to be invariant with respect to time
+elapse.
+The basic algorithm, shown on the left side of Fig.2,
+is similar to the one used in HyTech, and summarized
+in the next section. Partitioning, overapproximation and
+complexity management are speciﬁc to PHAVer, and will
+be discussed in detail in the remainder of the paper.
+3.1 Reachability of LHA
+We summarize the standard reachability algorithm from
+[4,36] for LHA using polyhedra. To compute the set of
+reachable states, one repeatedly computes the successors
+of timed and discrete transitions. Let
+Post t(P) ={p/prime|∃δ, f, p ∈P:pδ,f− − →p/prime}
+be the set of timed successors and
+Post d(P) ={p/prime|∃a, p∈P:pa− →p/prime}
+
+--- Page 5 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 5
+idle
+ci≤˙xi≤diwait
+xi≤a
+ci≤˙xi≤dicheck
+ci≤˙xi≤dicritical
+ci≤˙xi≤distart i
+k= 0
+x/prime
+i= 0seti
+k/prime=i
+x/prime
+i= 0enter i
+k=i
+xi≥b
+release i
+k/prime= 0abort i
+k/negationslash=i
+xi≥b
+(a) Process Pialways
+˙k= 0set1
+k/prime∈R
+...
+setn
+k/prime∈Rrelease 1
+k/prime∈R
+...
+release n
+k/prime∈R
+τ
+k/prime=k
+(b) Shared variable model S
+Fig. 1. Compositional model of timing based mutual-exclusion prot ocol in [4]
+Fig. 2. Reachability algorithm in PHAVer
+be the set of discrete successors. The set of reachable
+states, denoted by Reach , is the smallest ﬁxed-point of
+the sequence given by P0=Initand
+Pk+1=Post d(Post t(Pk)). (2)
+We recall the basic deﬁnitions and operations on poly-
+hedra, and use them to deﬁne the post-operators for
+LHA.
+Deﬁnition 3. Aconvex polyhedron Sis a set in Rnthat
+can be represented as the conjunction of a ﬁnite number
+of linear constraints, i.e.,
+S={x|/logicalanddisplay
+iaT
+ix ⊿/triangleleftibi}, (3)
+where ai∈Rn,bi∈Rand⊿/trianglelefti∈ {<,≤}. This is re-
+ferred to as the constraint representation of the polyhe-
+dron. Strict inequalities aT
+ix < b ican be replaced with
+nonstrict inequalities aT
+ix+ε≤biby introducing an
+auxiliary variable εthat may take an arbitrary positivevalue [36]. In the following, we will therefore only con-
+sider nonstrict inequalities, which deﬁne closed polyhe-
+dra. Alternatively, a polyhedron can be described by a
+generator representation (V, R) as the convex hull of a
+ﬁnite set V⊆Rnofvertices and a ﬁnite set R⊆Rnof
+rays, i.e.,
+S={/summationdisplay
+vi∈Vλivi+/summationdisplay
+ri∈Rµiri|λi, µi≥0,/summationdisplay
+iλi= 1}.(4)
+One may switch between constraint and generator rep-
+resentations, although at a potentially exponential cost.
+Some operations are easier in constraint form, e.g., inter-
+section, while others are easier in generator form, e.g.,
+testing for emptiness. Therefore modern polyhedral li-
+braries, such as the PPL, keep both represenations in
+what is referred to as the double description method . Pro-
+jection and embedding operators are easily implemented
+in constraint form by removing elements or adding zeros
+to the vectors ai.
+Recall that in a discrete transition ( l, a, µ, l/prime)∈Edg,
+the jump relation µis a predicate over X∪X/prime, where
+the primed variables specify the new values after the
+transition. The discrete successors of a set of states P
+are
+Post d(P) =/uniondisplay
+(l,a,µ,l/prime)∈Edgl/prime×
+/parenleftBig/parenleftBig
+P(l)|X∪X/prime∩µ/parenrightBig/arrowbt
+X/prime→X∩Inv(l/prime)/parenrightBig
+,(5)
+where ↓X/prime→Xdenotes that we project onto the primed
+variables X/prime, and rename the variables as unprimed. The
+timed successor operator is slightly more involved. For
+LHA with convex invariants there is an activity from one
+state in location lto another iﬀ they are connected by
+a straight line whose derivative is in Flow(l) [4]. This
+allows one to replace the passage of time by simple ex-
+istential quantiﬁcation as follows. Let S/arrownortheastFbe deﬁned
+as
+S/arrownortheastF={v/prime|∃δ∈R≥0, w∈F, v∈S:v/prime=v+wδ}.
+(6)
+
+--- Page 6 ---
+6 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid S ystems past HyTech
+(a) Derivatives (b) States
+Fig. 3. Time elapse for LHA
+This operation is easily implemented using the genera-
+tor representation [36]. Let ( V, R) be the generator rep-
+resentation of S, and ( V/prime, R/prime) that of F. Then S/arrownortheastF=
+(V, R∪V/prime∪R/prime). For convex invariants, the timed suc-
+cessors are then given by
+Post t(P) =/uniondisplay
+l∈loc(P)l×(P(l)/arrownortheastFlow(l))∩Inv(l).(7)
+Example 2. Consider the mutual exclusion protocol from
+Ex. 1 for two processes, with a= 3,c1=c2= 1,d1= 3,
+d2= 2. We compute the time elapse for the set S=
+{x1=x2= 0}, with both processes in location wait. The
+ﬂow in the location is given by F=Flow((wait,wait)) =
+{1≤˙x1≤3∧1≤˙x2≤2}, which translates in gener-
+ator form to F= ({(1,1),(3,1),(3,2),(1,2)},{}), see
+Fig. 3(a). To apply the time elapse, the vertices of F
+in the derivative space are reinterpreted as rays in the
+state space, shown as dashed arrows in Fig. 3(b). These
+rays are added to the generator representation of S=
+({(0,0)},{}) and we obtain
+S/arrownortheastF= ({(0,0},{(1,1),(3,1),(3,2),(1,2)}).
+Finally, one has to restrict the time elapse to the invari-
+antInv((wait,wait)) ={x1≤3, x2≤3}. The resulting
+setPost t((wait,wait)×S) = (S/arrownortheastF)∩Inv((wait,wait))
+is shown in Fig. 3(b).
+Remark 2. The time elapse operator implemented in the
+PPL (v0.9) computes the smallest convex set containing
+S/arrownortheastF. Strictly speaking, this is an overapproximation
+as the actual set may be nonconvex. Consider S={x=
+0∧y= 0}andF={y >0}. Then S/arrownortheastF={(x=
+0∧y= 0)∨y >0}, while the PPL returns S/arrownortheastPPLF=
+{y≥0}.
+In the following example we compare the performance of
+HyTech and PHAVer. The results indicate that the over-
+head introduced by using a multiprecision number rep-
+resentation is compensated by the eﬃciency of the PPL,
+and improvements such as the shared passed and wait-
+ing list. The comparison is limited to simple parameters
+and systems to avoid overﬂow problems with HyTech.Example 3. Consider the mutual exclusion protocol from
+Ex. 1 for nprocesses, with a= 1,b= 4,ci= 1,di= 2.
+The experimental results are shown for MEX1 with n=
+1 to MEX5 with n= 5 in Table 1, as well as parametric
+versions MEXP1–4 in which the allowed range of aand
+bis computed. In these instances, PHAVer outperforms
+HyTech for nontrivial systems. The downside is its mem-
+ory consumption, which is about twice that of HyTech.
+In the instance of a parametric analysis of an audio pro-
+tocol AUDSP from [37], HyTech outperforms PHAVer.
+The experiments in this paper were carried out on a
+Pentium IV, 3.2 GHz with 1 GB RAM running Linux.
+3.2 Overapproximation of Dynamics
+To deal with non-LHA dynamics, we apply a simple vari-
+ant of phase-portrait approximation [5]. This method uti-
+lizes the fact that overapproximating any of the sets that
+deﬁne an automaton, in particular Flow, results in an
+overapproximation of its behavior. We can therefore ap-
+ply our reachability algorithm to any hybrid automaton
+by overapproximating it with LHA-style sets, and obtain
+a conservative overapproximation of its reachable states.
+Because the accuracy of the overapproximation depends
+on the size of the invariant, the locations are adequatly
+partitioned before applying this transformation, as will
+be discussed in the next section.
+Currently, this is implemented for aﬃne dynamics,
+which have the form M˙x=Ax+b, or more precisely a
+relaxed version thereof that may consist of inequalities.
+We describe two methods for overapproximating them
+with LHA-dynamics, i.e., for obtaining constant bounds
+on the derivatives in the form of linear constraints. In
+the following, we consider Flow to be given as relaxed
+aﬃne dynamics , i.e., a conjunction of constraints
+aT
+i˙x+ ˆaT
+ix ⊿/triangleleftibi, (8)
+where ai,ˆai∈Zn,bi∈Z,⊿/trianglelefti∈ {<,≤,=},i= 1, . . ., m .
+Projection Given a set of states Sthat constrains the
+possible values of x, we can obtain bounds on the deriva-
+tives by intersecting FlowwithSand projecting onto the
+derivatives:
+Flow pr(S) =/parenleftBig
+Flow∩S|X∪˙X/parenrightBig/arrowbt˙X. (9)
+We may always choose S=Inv, but further reﬁnement
+is possible, as discussed below. PHAVer’s default time
+elapse operator is obtained by substituting (9) for the
+ﬂow in (7):
+Post t,pr(P) =/uniondisplay
+l∈loc(P)l×(P(l)/arrownortheastFlow pr(Inv(l))∩Inv(l).
+(10)
+When Flow is given as a conjunction of constraints of
+the form (8) and Sis given by linear constraints, (9)
+involves only standard operations on polyhedra in the
+
+--- Page 7 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 7
+Table 1. Tool performance, HyTech vs. PHAVer
+HyTech PHAVer Reachable Set
+Instance Time [s] Mem. [MB] Iter. Time [s] Mem. [MB] Iter. Loc . Poly.
+MEX2 0.0 3.1 7 0.1 5.2 9 13 21
+MEX3 0.7 6.0 17 1.0 10.3 15 39 139
+MEX4 17.5 28.8 23 10.0 58.6 21 113 1169
+MEX5 928.3 437.8 29 238.9 814.5 27 323 12001
+MEX2P 0.1 4.5 12 0.2 5.9 9 16 37
+MEX3P 10.5 27.4 23 2.9 17.9 19 64 564
+MEX4P 2999.0 1660.6 34 114.0 443.1 29 256 12408
+AUDSP 8.8 62.7 39 20.1 143.6 39 193 5849
+space of X∪˙X, and is therefore straightforward to imple-
+ment. Sometimes, Flow pr(S) can be prohibitively com-
+plex, e.g., when Sis iteratively reﬁned, as discussed be-
+low, or in abstraction-reﬁnement schemes such as the
+one in [9]. If this is the case, the following solution may
+be advantageous.
+Constraint-Based The following approach has the ad-
+vantage that it results in the same number of constraints
+asFlow, independent on how complex the invariant or
+other restrictions might be. We assume that equalities
+in (8) are modeled using conjuncts of pairs of inequali-
+ties. We transform each constraint (8) into a linear con-
+straint over ˙Xby ﬁnding a lower bound on ˆ aT
+ix. If no
+such bound exists, we drop the constraint entirely.
+Given a set of states Sthat constrains the possible
+values of x, let
+p/q= inf
+x∈SˆaT
+ix, p, q ∈Z. (11)
+If the inﬁmum exists, the set of ˙ xthat satisfy (8) is con-
+tained in the set deﬁned by aT
+i˙x ⊿/triangleleftibi−p/q. Multiplying
+both sides with qyields the LHA-style constraint
+qaT
+i˙x ⊿/triangleleftiqbi−p. (12)
+LetFlow con(S) be obtained from Flow(S) by replacing
+each constraint of the form (8) by its corresponding con-
+straint (12) if the inﬁmum in (11) exists, and otherwise
+removing the constraint.
+A one-to-one correspondence of the original and the
+LHA-style constraints allows the user to specify the type
+of constraints he wishes to obtain on the dynamics. E.g.,
+let the dynamics be given by ˙ x=f(x, y)∧˙y=g(x, y),f
+andgbeing aﬃne functions. Specifying the constraints
+in this form in PHAVer results in rectangular LHA-style
+constraints, i.e., of the form ˙ x∈[., .]∧˙y∈[., .]. Oc-
+tagonal constraints, i.e., of the form ˙ x∈[., .]∧˙y∈
+[., .]∧˙x−˙y∈[., .]∧˙x+ ˙y∈[., .] can be obtained by
+specifying ˙ x=f(x, y)∧˙y=g(x, y)∧˙x−˙y=f(x, y)−
+g(x, y)∧˙x+ ˙y=f(x, y)+g(x, y). Octagonal constraints
+are useful because they preserve some of the correlationFig. 4. Overapproximating aﬃne dynamics with LHA dynamics
+between variables, and thus may lead to drastically im-
+proved accuracy.
+As the following example shows, the constraint based
+overapproximation can be very inaccurate, and does not
+even have to be tight, i.e., touch the original set.
+Example 4. LetInv(l) ={xl≤x≤xu}andFlow(l) =
+{˙x≤ax+bu,˙x≤ −ax+b,˙x≥ax+bl}as shown in Fig. 4.
+With projection we obtain Flow pr(l) ={axl+bl≤˙x≤
+(b−bu)/(2a)}. In the constraint-based approach, we com-
+pute the inﬁmum for each constraint separately, obtain-
+ingFlow con(l) ={axl+bl≤˙x≤ −axl+b}. As Fig. 4 il-
+lustrates, the overapproximation of the constraint-based
+approach can be considerable.
+Iterative Reﬁnement The set of states Scontaining all
+possible values of xis initially chosen to be the invariant.
+Flow pr(Inv), respectively Flow con(Inv), the yields the
+set of all derivatives possible inside this invariant, whic h
+is independent from the set that is actually reachable.
+We can further reﬁne the set of derivatives – and the set
+of reachable states – by restricting Sto the set of states
+that are reachable with Flow pr(Inv), possibly reiterat-
+ing the process until convergence. This yields the follow-
+ing ﬁxed-point computation for the operator Post t(P),
+where Post0
+t,pr=P:
+Postk+1
+t,pr=/uniondisplay
+l∈loc(P)l×(P(l)/arrownortheastFlow pr(Postk
+t,pr))∩Inv(l).
+(13)
+
+--- Page 8 ---
+8 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid S ystems past HyTech
+Note that Post1
+t,pr=Post t,pr(P). We denote the ﬁxed-
+point of the above sequence as Post∞
+t,pr(P), and the cor-
+responding result of the constraint-based operator with
+Post∞
+t,con(P). The following example shall illustrate the
+qualitative diﬀerence that a single iteration of (13) can
+make.
+Example 5.2Consider Flow(l) ={˙x=y∧˙y= 0}and
+Inv‘(l) ={−1≤y≤1}. With Flow pr(Inv) =l× {˙x∈
+[−1,1],˙y= 0}, the timed successors of a set of states
+P=l× {x= 0∧y= 1}arePost t,pr(P) =l× {y= 1}.
+The overapproximation of Flow withFlow prresults in
+negative values of xbeing reachable, even though ˙ x=
+y= 1. Applying the ﬁxed-point computation (13), we
+obtain using Post1
+t,pr=Post t,prandFlow pr(Post1
+t,pr) =
+l×{˙x= 1,˙y= 0}the ﬁxed-point Post2
+t,pr(P) =l×{x≥
+0∧y= 1}, which is equal to the actual reachable set
+Post t(P).
+In practise, only the ﬁrst 2–3 iterations yield a signiﬁcant
+improvement, so PHAVer limits the number of iterations
+to a user-deﬁned value.
+3.3 Partitioning Locations
+When the dynamics are overapproximated as in the pre-
+vious section, the error depends on the size of the in-
+variant of the location. We partition each invariant into
+suﬃciently small parts with a recursive splitting oper-
+ator. Each splitting cuts the invariant in two along a
+hyperplane, and replaces the original location with two
+copies, each assigned a part of the original invariant. The
+hyperplanes for splitting are chosen from a user-deﬁned
+set. The splitting recursion terminates if the size of the
+invariant or the spread of the derivatives fall below a
+given threshhold. By using small enough partitions, one
+is able to approximate the behavior of the original hybrid
+automaton arbitrarily close [5]. Note that this requires
+the introduction of the derivatives as auxiliary variables ,
+as will be discussed at the end of this section.
+The splitting of a location consists of duplicating the
+location, including incoming and outgoing transitions as
+well as ﬂow, invariant and initial states. The invariants
+of the location duplicates may be restricted to subsets
+as long as they cover the original invariants. Formally,
+this corresponds to the following operation:
+Deﬁnition 4 (Invariant split). (modiﬁed from [5]3)
+AsplitSfor a hybrid automaton Hmaps each location
+lto a ﬁnite set {Sl
+1, . . . ,Sl
+k}of sets of valuations over X
+such that there exists a ﬁnite cover Ol={Ol
+1, . . . , Ol
+k}
+ofInv(l) with Sl
+i=Inv(l)∩Ol
+ifori= 1, . . ., k . Thesplit
+ofHalong Sis the hybrid automaton split(H,S) =
+(LocS,(X, C, O ),Lab,EdgS,Flow S,InvS,InitS) with
+2Many thanks to R. J. M. Theunissen for originating the ex-
+ample.
+3We do not require the cover to be open.–LocS={(l, S)|l∈Loc, S∈ S(l)},
+–EdgS={((l, S), a, µ,(l/prime, S/prime))|(l, a, µ, l/prime)∈Edg},
+–Flow S((l, S)) =Flow(l),
+–InvS((l, S)) =Inv(l)∩S, and
+–InitS((l, S)) =Init(l)∩S.
+The behavior of the split automaton HSis identical, i.e.,
+bisimilar, to the behavior of the original automaton if the
+cover Ois open [5], or the dynamics are aﬃne [12].
+Recall that a hyperplane his deﬁned by an equation
+aT
+hx=bh, where the normal vector ahdetermines its
+direction and the inhomogeneous term bhits position.
+Let the slack ofhin a location lbe deﬁned by
+∆(ah) = sup
+x∈Inv(l)aT
+hx−inf
+x∈Inv(l)aT
+hx.
+In PHAVer, we recursively split one location lat a time
+along a hyperplane aT
+hx=bh, i.e., we apply an invari-
+ant split with Sl
+1={aT
+hx≤bh},Sl
+2={aT
+hx≥bh}.
+Note that only reachable locations are split. The user
+provides a list of candidate normal vectors ah,itogether
+with a minimum and maximum value for the slack of
+each hyperplane:
+Cand ={(ah,1, ∆min,1, ∆max,1), . . . ,
+(ah,m, ∆min,m, ∆max,m )}.
+This allows the user to include expert knowledge by
+choosing planes and location sizes suitable for the sys-
+tem. A trivial choice for the hyperplanes are the direc-
+tions of the axes. Let Pbe the set of reachable states at
+the time of the splitting. The position bhof the hyper-
+plane is chosen to be the center of the location, i.e.,
+bh= ( sup
+x∈Inv(l)aT
+hx+ inf
+x∈Inv(l)aT
+hx)/2,
+if both supremum and inﬁmum exist. Otherwise, let
+bh=∆min+ sup
+x∈PaT
+hx,orbh=−∆min+ inf
+x∈PaT
+hx,
+depending on which lies inside the invariant. In related
+work, a method for positioning of the hyperplane based
+on optimizing the set of derivatives was proposed in [12].
+In each split, the best hyperplane is chosen accord-
+ing to a number of criteria. We provide an overview of
+the criteria, followed by a detailed description of the se-
+lection process. In principle, each location is split un-
+til the slack of every candidate hyperplane hisatisﬁes
+∆(ah,i)≤∆min,i. We account for the dynamics of the
+system using the spatial angle that is spanned by the
+derivatives in a location. Let the spread of a set of valu-
+ations Xbe
+∢(X) = inf
+x,y∈XxTy/|x||y|.
+The spread of the derivatives in a location l, constrained
+to the states Sis then
+∢deriv(l, S) =∢((Flow(l)∩S|X∪˙X)↓˙X).
+
+--- Page 9 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 9
+The spread of the derivatives is used in two ways: The
+partitioning of a location is stopped once the spread is
+smaller than a given minimum ∢min, and the constraints
+are sorted according to the spread of the derivatives in
+the location after the splitting. The slack ∆max,imay be
+speciﬁed to split at least to that slack without regard to
+∢min.
+For each splitting, the candidate hyperplanes aT
+hx=
+bhare sorted according to the following criteria:
+1. slack
+c1=/braceleftbigg
+∆(ah)/∆min,h if∆(ah)> ∆ min,h,
+∞ otherwise.
+2. reachable states only on one side
+c2=/braceleftbigg1 if∃x, x/prime∈P:aTx < b ∧aTx/prime> b
+0 otherwise.
+3. spread of the derivatives (discard constraint if a min-
+imum spread ∢minis reached and the slack is smaller
+than∆max,h)
+c3=
+
+−∢deriv(l, Inv) if∢deriv(l, Inv)≥∢min
+∨∆(ah)> ∆ max,h,
+∞ otherwise.
+4. derivative spread after the constraint is applied
+c4=−max{∢deriv(l,{(l, x)∈Inv|aT
+hx≤bh}),
+∢deriv(l,{(l, x)∈Inv|aT
+hx≥bh})}.
+By default, the candidate hyperplanes are sorted by eval-
+uating the tuple ( c1, c2, c3) lexicographically. The best
+one is chosen that does not have a criterion evaluating to
+∞. If no such hyperplane exists, the splitting recursion
+terminates. Note that c3can be deactivated by speci-
+fying ∢min= 1. When c4is activated, the sorting is
+according to ( c4, c1, c2, c3).
+According to [5], the overapproximation of a hybrid
+automaton Hwith a linear hybrid automaton can be ar-
+bitrarily close to the original if the partition size is cho-
+sen suﬃciently small. However, the splitting method in
+[5] relies on splitting not only the invariant, but also the
+ﬂow predicate. This is necessary to approximate the ﬂow
+aribtrarily close: Consider, e.g., a nonconvex ﬂow. Any
+overapproximation by a convex ﬂow will contain the con-
+vex hull no matter how small the invariant is partitioned,
+and can consequently not be arbitrarily close. When
+splitting the invariant is not suﬃcient, one may intro-
+duce the derivatives as auxiliary variables to implement
+the method of [5] by invariant split. Let Y={y1, . . ., y n}
+be the auxiliary variables representing the derivatives.
+The transformed automaton is H/prime= (Loc,(X∪Y, C∪
+Y, O),Lab,Edg/prime,Flow/prime,Inv/prime,Init/prime), where
+–Edg/prime={(l, a, µ/prime, l/prime)|(l, a, µ, l/prime)∈→,
+µ/prime=µ|X∪Y∪X/prime∪Y/prime},
+–Flow/prime(l) =Flow(l)|X∪˙X∪Y∪˙Y∩ {/logicalandtext
+i=1,...,n˙xi=yi},–Inv/prime(l) =Inv(l)|X∪Y, and
+–Init/prime(l) =Init(l)|X∪Y.
+The auxiliary variables are not restricted in transitions,
+invariants or initial states, and their derivatives are not
+restricted in the ﬂow. They do not modify the behavior of
+the hybrid automaton except for the constraint ˙ xi=yi
+in the ﬂow, which has no eﬀect on ˙ xisince yiis un-
+restricted. However, splitting the invariant will now also
+split the derivatives, therefore implementing the method
+in [5].
+3.4 Example: Navigation Benchmark
+We illustrate the reachability analysis of PHAVer with a
+navigation benchmark proposed in [38]. It models an ob-
+ject moving in a plane, and it must be shown that a set of
+bad states is not reachable, and that a set of target states
+is eventually reached. It is a challenging 4-dimensional
+system because of two integrators (turning velocity into
+position), whose marginal stability contributes to the ac-
+cumulation of errors.
+The dynamics of the object is deﬁned by “dersired”,
+or equilibrium, velocities that depend on its position in
+a map. The set of desired velocities is given by vd(i) =
+(sin(iπ/4), cos(iπ/4))T,i= 0, . . .,7, where iis attributed
+to each unit square in the plane by a given map M. A
+special symbol Adenotes the set of target states, and B
+denotes the set of forbidden states for the object. We
+veriﬁed that the forbidden states are not reachable for
+the instances shown in Fig. 5, whose maps are given by:
+MNAV01 −03=
+B2 4
+2 3 4
+2 2A
+, MNAV04 =
+B2 4
+2 2 4
+1 1A
+.
+The dynamics of the state vector ( x1, x2, v1, v2)Tare
+given by
+/parenleftbigg˙x
+˙v/parenrightbigg
+=/parenleftbigg0I
+0A/parenrightbigg /parenleftbiggx
+v/parenrightbigg
+−/parenleftbigg0
+A/parenrightbigg /parenleftbigg0
+vd(i)/parenrightbigg
+,
+A=/parenleftbigg−1.2 0.1
+0.1−1.2/parenrightbigg
+.
+The initial states for for NAV01–NAV03 are deﬁned by
+x0∈[2,3]×[1,2], for NAV04 by x0∈[0,1]×[0,1], and
+v0,NAV01 ∈[−0.3,0.3]×[−0.3,0],
+v0,NAV02 ∈[−0.3,0.3]×[−0.3,0.3],
+v0,NAV03 ∈[−0.4,0.4]×[−0.4,0.4],
+v0,NAV04 ∈[0.1,0.5]×[0.05,0.25].
+As splitting constraints we use
+Cand ={(v1, δ1,∞),(v2, δ2,∞)},
+where appropriate δiwere established by some trial-and-
+error runs, and ( c1) as splitting criterion. Note that x1,
+x2need not be partitioned, since they depend only on
+
+--- Page 10 ---
+10 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Systems past HyTech
+Table 2. PHAVer performance, navigation benchmark
+Automaton Reachable Set
+Instance Time [s] Mem. [MB] Iter. Checks Loc. Trans. Loc. Pol y. Con. Bits
+NAV01 8.7 29.0 11 386 72 1123 45 386 20 62
+NAV02 14.5 38.2 10 803 72 1126 45 803 20 33
+NAV03 14.4 38.0 10 795 72 1126 45 795 20 33
+NAV04 13.6 47.6 8 562 122 2057 85 562 18 32
+v. The other analysis parameters were left at their de-
+fault setting. While we need to specify bounds for the
+analysis region, we can handle the unbounded case by
+checking that the reachable state space is strictly con-
+tained in the analysis region. All instances shown were
+obtained with a-priori bounds of [ −2,2] on the velocities,
+and the reachable velocities remained within an interval
+[−1.1,1.1], which conﬁrms our a-priori bounds as valid.
+Figure 5 shows the set of reachable states computed by
+PHAVer as a result. For the instances NAV01–NAV04,
+the analysis was fairly straightforward, with δi= 1.
+Higher instances require a much higher level of accu-
+racy, and lead to large numbers of polyhedra. Applying a
+convex hull overapproximation would remedy this prob-
+lem, but without complexity management the analysis
+did not terminate. We present results after introduc-
+ing comlpexity mananagement in the next section. In
+comparison, for a predicate abstraction tool the follow-
+ing times were reported in [39]: For NAV01–NAV03 34 s,
+153s(68MB) and 152 s(180MB), respectively, on a Sun
+Enterprise 3000 (4 x 250 MHz UltraSPARC) with 1 GB
+RAM. In [13] it is reported that HSOLVER was not able
+to show safety of instances similar to NAV01–NAV03.
+4 Managing the Complexity of Polyhedra
+In exact ﬁxed-point computations with polyhedra, the
+size of numbers in the formula as well as the number
+of constraints typically increases unless the structure of
+the hybrid system imposes boundaries, e.g., with resets
+or invariants. To keep the complexity manageable, we
+propose to simplify polyhedra in a strictly conservative
+fashion by limiting the number of bits, i.e., the size of
+coeﬃcients, and the number of constraints. While show-
+ing good performance in practice, both methods have
+the disadvantage that the approximation error may be
+unbounded, and is not localized. In practice, both sim-
+pliﬁcations are applied when the number of bits or con-
+straints exceeds a given threshold that is signiﬁcantly
+higher than the reduction level. The resulting hystere-
+sis between exact computations and overapproximations
+gives cyclic dependencies time to stabilize.4.1 Limiting the Number of Bits
+We consider a convex polyhedron in constraint repre-
+sentation, i.e., given as the conjunction of constraints
+aT
+ix ⊿/triangleleftibi, where aiis a vector of the coeﬃcients aij∈Z,
+i= 1, . . ., m ,j= 1, . . ., n ,⊿/trianglelefti∈ {<,≤}, and inhomoge-
+neous coeﬃcients bi∈Z. We assume that the aijandbi
+have no common factor and that there are no redundant
+constraints. Note that we usually do not simplify equal-
+ities to preserve the aﬃne dimension, i.e., the inhabited
+subspace, of the polyhedron, but they can be simpli-
+ﬁed by converting each equality into the conjunction of
+two inequalities. The goal is to ﬁnd, with as little over-
+approximation as possible, a new constraint αT
+ix ⊿/triangleleftiβi
+that contains all solutions of aT
+ix ⊿/triangleleftibi, and whose coeﬃ-
+cients αij, βihave less than zbits, i.e., |αij|,|βi| ≤2z−1.
+Our approach is to reduce scale down the aij, and
+then ﬁnd a βithat makes the constraint conservative.
+There is no a-priori estimate of how large βiwill have to
+be, so we obtain an initial estimate of a scaling factor,
+and reduce it if it results in a βithat is too large. Be-
+cause the new coeﬃcients need to be integers, we need to
+account for rounding errors. We can represent the new
+coeﬃcients as
+αij=faij+rij,
+βi=fbi+ri,
+with a scaling factor f >0, rounding errors rij,|rij| ≤
+0.5 and an unbounded error rifor the inhomogeneous
+term. In this representation, our goal is to ﬁnd a scaling
+factor fthat is close to 1 and results in a small error
+ri. There is no a-priori bound on ribecause it depends
+on the new direction αiand the other constraints that
+deﬁne the polyhedron.
+We obtain an initial estimate of fbased on the as-
+sumption that βiis close to fbi, say the closest integer.
+Since βimust be rounded upwards to guarantee conser-
+vativeness, we get |ri| ≤1 as an optimistic estimate.
+This gives us the following upper bounds for f:
+f≤(2z−3/2)/|aij|,and (14)
+f≤(2z−2)/|bi|. (15)
+To predict the eﬀects of rounding on the new coeﬃcients
+is diﬃcult and would lead to a mixed integer linear pro-
+gram. We employ a heuristic algorithm, shown in Fig. 6.
+
+--- Page 11 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 11
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2(a) NAV01
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2(b) NAV02
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2(c) NAV03
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2
+0.00.51.01.52.02.53.00.00.51.01.52.02.53.0
+x1x2(d) NAV04
+Fig. 5. Reachable states in the x1, x2-plane (initial states darkest)procedure LimitConstraintBits
+Input: Polyhedron as a set of constraints
+P={aT
+kx ⊿ /triangleleft kbk|k= 1, . . . , m },
+index ito constraint to be limited,
+desired number of bits z
+Output: new constraint αT
+ix ⊿ /triangleleft ibi
+success :=false;
+f:= min {(2z−3/2)/|aij|,(2z−2)/|bi| |j= 1, . . . , n };
+while ¬success do
+forj= 1, . . . , n doαij:=round (faij)od;
+q:= inf
+x∈PαT
+ix;
+ifαi= 0orq=−∞then abort ﬁ;
+βi:=ceil(q);
+if|βi| ≤2z−1thensuccess :=true
+elsef:=min{f/2−3/(4|aij|),(2z−2)/|
+βi| |j= 1, . . . , n }ﬁ;
+od.
+Fig. 6. Limiting the number of bits of a constraint
+Fig. 7. Limiting the number of bits of a constraint
+Letround (x) be a function that returns the next inte-
+ger between xand zero, and ceil(x) be a function that
+rounds to the next larger integer. First, we estimate f
+based on (14),(15), then we compute a new βiusing lin-
+ear programming. If βihas more than zbit, we decrease
+fand start over. The procedure is repeated until all
+αij= 0, in which case the problem is infeasible. Note
+that even if it is feasible, the new polyhedron may not
+be bounded because the reduced constraints may be par-
+allel. Figure 7 illustrates the basic scheme. The normal
+vector aiof the constraint, shown in (a), is approximated
+byαi, as shown in (b). Linear programming yields the
+inhomogeneous term qthat makes the constraint tan-
+gent to the polyhedron, as in (c). Rounding of qyields
+βi, and the polyhedron outlined in (d).
+
+--- Page 12 ---
+12 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Systems past HyTech
+4.2 Limiting the Number of Constraints
+A set of symbolic states is described by a linear pred-
+icate, the convex sub-predicates of which deﬁne con-
+vex polyhedra, which in turn are described by a set of
+constraints. The number of constraints usually increases
+with the number of iterations of a ﬁxpoint computation,
+which forces us to limit this number to remain within a
+computationally feasible complexity. This reduction has
+been implemented in literature by means of, e.g., bound-
+ing boxes [40], or oriented rectangular hulls [33]. Instead ,
+we propose to simply drop the least signiﬁcant of the
+constraints, as this seems a good compromise in terms of
+accuracy and speed. In addition, the constraints in our
+applications are, as a whole, invariant with respect to
+the ﬁxpoint computation. This invariance has a greater
+chance of being preserved as good as possible if we keep
+constraints instead of drawing up an entirely new set. As
+with limiting the number of bits, we usually chose to not
+limit equalities in order to preserve the aﬃne dimension
+of the polyhedron. If an equality is to be limited, it must
+be replaced by two inequalities.
+We measure the signiﬁcance of a constraint based on
+a criterion critthat measures the the diﬀerence between
+the polyhedron with and without the constraint. Let P
+be a set of linear constraints describing a convex poly-
+hedron, and P\i=P\ {aT
+ix ⊿/triangleleft ibi}be the polyhedron
+without it’s ith constraint. Then the diﬀerence between
+the points contained PandP\iis the polyhedron P¬i=
+P\i∪{−aT
+ix⊿/trianglelefti−bi}, where ( ⊿/trianglelefti,⊿/trianglelefti)∈ {(<,≤),(≤, <)},
+obtained by simply replacing the ith constraint with its
+complement. It has less non-redundant constraints than
+Pand is therefore preferable in the formulations below.
+We consider three methods:
+1. volumetric: Let V(P) be the volume of the points
+contained in P. Then crit=V(P\i)−V(P) =V(P¬i).
+Requires P¬ito be bounded.
+2. slack: Let bmax= max xaT
+ixs.t.x∈P¬i. Then
+crit= (bmax−bi)/||ai||, i.e., the distance, measured
+in the direction of the constraint, between the points
+farthest apart in P¬i. Requires P¬ito be bounded
+in the direction of ai.
+3. angle: crit=−max j/negationslash=iaT
+jai. Measures the negative
+cosine of the closest angle between the normal vector
+of the ith constraint and all others.
+Our goal is to select the zmost important out of m
+original constraints. It would be prohibitively expensive
+to examine all/parenleftbigm
+z/parenrightbig
+possible combinations of constraints.
+Instead, we consider two heuristics:
+1. deconstruction: Starting from the entire set of con-
+straints, drop the m−zconstraints with the least
+eﬀect according to crit.
+2. reconstruction: Starting from an empty set of con-
+straints, add the zconstraints with the greatest eﬀect
+according to crit.The criteria based on volume and slack require the initial
+polyhedron to be bounded, for which one could use, e.g.,
+the invariant of the location. The following example shall
+illustrate the diﬀerence between volumetric and angle
+criteria, and its potential unboundedness.
+Example 6. Consider the polyhedron shown in Fig. 8(a).
+It has 6 constraints A–F, whose angles with the neigh-
+bors are noted in the graph. In a volume based decon-
+struction with 5 constraints, constraint A is removed
+since that causes the smallest change in volume. The re-
+sulting polyhedron is shown hashed in Fig. 8(b). The an-
+gle based reconstruction with 5 constraints results in the
+shaded polyhedron in Fig. 8(b), where the constraints
+are labeled in the order they are chosen: First, an arbi-
+trary initial constraint is chosen, say constraint C. The
+second choice is the constraint that has the largest an-
+gle with C, i.e., that is most opposed to it. In this case,
+this is constraint F, since it has an angle of 180◦with
+C. The third choice is the one that is most opposed to
+both C and F, here constraint B because it has an angle
+of 90◦with both C and F. The fourth constraint is A,
+with minimum angles of 45◦, and the ﬁfth is Dwith a
+minimum angle of 30◦. Figure 8(c) shows the reduction
+to 4 constraints. Here the angle based method results in
+an unbounded polyhedron because constraint D is not
+chosen. An algorithm should take this possibility into
+account and test for boundedness.
+The construction method with an angle criterion was
+the fastest in our experiments. The angle calculations
+can be sped up by using a look-up table α(i, j) that maps
+an angle to every pair of constraints. This yields an al-
+gorithm of complexity O(nm2+m3), shown in Fig. 9,
+where Cis the set of candidate constraints and His
+the set of chosen constraints. It includes a test that pre-
+serves the boundedness of P.His initialized with the
+set of equalities, which are not reduced to preserve the
+aﬃne dimension of the polyhedron, and an arbitrary ini-
+tial constraint. Here we choose the one with the small-
+est coeﬃcients. In a while-loop, the constraint is chosen
+based on the best of the worst-cases, i.e., the smallest
+angle with the constraints in H. Since aT
+jaiis the co-
+sine of the angle, choosing the smallest angle translates
+into maximizing aT
+jai. The constraint is added to Hand
+removed from the candidates C, and the procedures is
+repeated until |H| ≥zand the boundedness of Pimplies
+boundedness of H. This algorithm is in our implemen-
+tation ∼1000×faster than a slack based deconstruction
+for limiting 400 constraints down to 32 in 4 dimensions.
+The following example shall illustrate that complex-
+ity management is useful to induce termination, and
+that the constraint-based overapproximation of dynam-
+ics may be preferable when a projection-based overap-
+proximation leads to prohibitively complex sets of states.
+Still, the relationship between overapproximation method ,
+complexity and quick convergence is not a trivial one.
+
+--- Page 13 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 13
+(a) Original with 6 constraints
+(b) Reduced to 5 constraints
+(c) Reduced to 4 constraints
+Fig. 8. Example for limiting the number of constraints by vol-
+umetric deconstruction (hashed) and angle based reconstru ction
+(shaded)
+procedure LimitConstraintsByAngle
+Input: Polyhedron Pas a set of constraints
+aT
+ix ⊿ /triangleleft ibi,i= 1, . . . , m ,
+desired number of constraints z
+Output: Polyhedron H
+fori= 1, . . . , m ,j= 1, . . . , m ,j > ido
+α(i, j) :=aT
+iaj
+od;
+H:={aT
+kx ⊿ /triangleleft kbk|k= argmink(max j|akj|)}∪
+{aT
+ix ⊿ /triangleleft ibi|⊿ /trianglelefti∈ {=}};
+C:=P\H;
+while (|C|>0∧(|H|< z∨
+(bounded (P)∧ ¬bounded (H)))do
+j= argminj(max iα(i, j))s.t.
+aT
+ix ⊿ /triangleleft ibi∈H, aT
+jx ⊿ /triangleleft jbj∈C;
+H:=H∪ {aT
+jx ⊿ /triangleleft jbj};
+C:=C\ {aT
+jx ⊿ /triangleleft jbj}
+od.
+Fig. 9. Reconstructing a polyhedron with a limited number of
+constraints by angle prioritizationExample 7. Consider the navigation benchmark given
+in Sect. 3.4. Instances NAV01–NAV04 can be analyzed
+without complexity management, but the computed reach-
+able set consists of a large number of polyhedra. This
+can be remedied by including a convex hull operation
+in the successor computation, for each location individ-
+ually. This computation, however, does not terminate
+as the solution converges towards nonrational numbers.
+Limiting the number of bits remedies this problem, as
+the results in Table 3 show. The constraints were lim-
+ited to 24 bits, with a triggering threshold of 300, and to
+48 constraints with a threshold of 96. This reduction cut
+the computation time and memory in half, and reduced
+the number of polyehdra by almost a factor of 20. This
+should allow us to analyze instances of the navigation
+benchmark that are larger. The analysis of NAV07, how-
+ever, does not ﬁnish within reasonable time. The com-
+puted polyhedra consist of up to 944 constraints at 311
+bits. This is a result of using the projection based over-
+approximation of the aﬃne dynamics, which has the po-
+tential to drastically increase number of constraints. If
+instead we use the constraint based overapproximation
+with constraints in the direction of v1andv2, see NAV07
+in the bottom half of Table 3, the analysis successfully
+terminates after 25 s, using less than 40 constraints in
+most interations. On the other hand, NAV04 does not
+terminate when using constraint based overapproxima-
+tion, and requires a smaller partition size to show that
+the forbidden states are not reachable.
+4.3 Example: Tunnel-Diode Oscillator Circuit
+We present experimental results for a tunnel-diode oscil-
+lator circuit taken from [26] with the parameters used in
+[41]. We model the current ILthrough the inductor and
+the voltage drop Vdof a tunnel diode in parallel with
+the capacitor of a serial RLC circuit, which are in stable
+oscillation for the given parameters. The state equations
+are given by
+˙Vd= 1/C(−Id(Vd) +IL), (16)
+˙IL= 1/L(−Vd−1/G·IL+Vin), (17)
+where C= 1pF,L= 1µH,G= 5mΩ−1,Vin= 0.3V,
+and the diode current
+Id=
+
+6.01V3
+d−0.992V2
+d+ 0.0545Vd
+ifVd≤0.055,
+0.0692V3
+d−0.0421V2
+d+ 0.004Vd+ 8.96·10−4
+if 0.055≤Vd≤0.35,
+0.263V3
+d−0.277V2
+d+ 0.0968Vd−0.0112
+if 0.35≤Vd.
+Following the procedure outlined in the previous section,
+a piecewise aﬃne envelope was constructed for the tun-
+nel diode characteristic Id(V). We choose 32 intervals
+for the range Vd∈[−0.1,0.6] to yield suﬃcient accu-
+racy and so obtain a piecewise aﬃne model for (16). It
+
+--- Page 14 ---
+14 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Systems past HyTech
+Table 3. PHAVer performance, navigation benchmark with convex hull overapproximations and complexity management
+Automaton Reachable Set
+Instance Time [s] Mem. [MB] Iter. Checks Loc. Trans. Loc. Pol y. Con. Bits
+Projection-based overapproximation of dynamics
+NAV01 5.2 25.6 22 185 70 1090 43 43 30 308
+NAV02 6.4 25.6 20 230 72 1126 45 45 42 282
+NAV03 6.5 25.6 20 232 72 1126 45 45 48 290
+NAV04 6.7 25.9 52 330 72 1116 54 54 18 32
+NAV07a>250k ∼100.0 >11k >738k 224 4283 224 224 994 311
+Constraint-based overapproximation of dynamics
+NAV01 4.6 24.0 7 135 72 1126 45 45 16 33
+NAV02 4.7 26.2 6 137 72 1126 45 45 16 37
+NAV03 4.8 26.2 6 137 72 1126 45 45 16 40
+NAV04b>1k ∼75.0 >100 >5k 220 4350 124 124 777 340
+NAV07 24.9 85.5 32 898 220 4211 192 192 95 369
+ano termination, computation aborted
+bforbidden states only unreachable when partition size redu ced from δi= 1 to δi= 0.5
+is modeled as a hybrid automaton with Vdas an output-
+andILas an input-variable, and consists of 32 locations,
+one for each interval. Equation (17) is aﬃne, and is mod-
+eled as a hybrid automaton with Vdas an input and a
+single location. Both models are composed and analyzed
+in PHAVer. Figure 10(a) shows the computed reachable
+states for initial states given by Vd∈[0.42V,0.52V],
+IL= 0.6mA. It also shows the invariants (dashed) gener-
+ated by the partitioning algorithm using the constraints
+Cand ={(Vd,0.7/128,∞), (IL,1.5/128,∞)}, i.e., max.
+128 partitions in both directions, and splitting criterion
+(c3, c1) with ∢min= 0.99. The analysis with PHAVer
+takes 17 .1sand 68 .0MB RAM, with the largest coeﬃ-
+cient taking up 2508 bits and at most 5 constraints per
+polyhedron.
+We now obtain bounds on the cycle time of the os-
+cillator by composing the circuit model with a monitor
+automaton. The cycle time is the maximum time it takes
+any state to cross the threshold I= 0.6µA, V > 0.25V
+twice. For the clocked circuit, the number of bits and
+constraints grows rapidly and a more precise analysis,
+such as shown in Fig. 10(b) is only possible with limits
+on both. We compare the unlimited and limited analy-
+sis for constraint candidates Cand ={(Vd,0.7/64,∞),
+(IL,1.5/64,∞)}and using convex hull overapproxima-
+tions for the ﬂows. The bits are limited to 24 when
+a threshold of 300 bits is reached, and the constraints
+to 32 with a threshold of 200. Figures 11(a) and 11(b)
+show a polynomial increase in the number of constraints,
+and an exponential increase of the number of bits in
+the new polyhedra found at each iteration. The anal-
+ysis takes 1412 s (381 MB) when unlimited, and 90 s
+(132 MB) when limited and yields the reachable states
+shown in Fig. 10(b). The bounds for on the cycle time are
+[12.75,14.90]µswhen unlimited. The relative error of the
+limited analysis is 0.006% for the lower bound and 0.08%for the upper bound. At a more than ﬁfteenfold increase
+in speed, the overapproximation is negligible and results
+in a cycle time estimate that is practically identical. Note
+that a comparison was only possible at the lowest level
+of accuracy. Higher accuracy can not be achieved at all
+without limiting due to an drastic increase in computa-
+tion time.
+In comparison with CheckMate [41], PHAVer is able
+to analyze the circuit at higher accuracy, and obtains
+results for parameters where CheckMate does not [8].
+5 Conclusions
+PHAVer, a new tool for verifying safety properties of
+linear hybrid automata, provides inﬁnite precision arith-
+metic in a robust implementation, on-the-ﬂy overapprox-
+imation of aﬃne dynamics, and supports compositional
+and assume/guarantee-reasoning. To manage the com-
+plexity of the underlying polyhedral computations, we
+propose heuristics to conservatively overapproximate pol y-
+hedra by limiting the number of bits and constraints. Ex-
+perimental results for a navigation benchmark and a tun-
+nel diode circuit demonstrate the eﬀectiveness of the ap-
+proach, with PHAVer outperforming other current ver-
+iﬁcation tools. The results indicate that the beneﬁts of
+exact polyhedral computations, such as exact containe-
+ment testing, can outweigh the costs incurred by the
+indispensible complexity management. Future research
+will focus on accelerating convergence and termination,
+e.g., using widening [36], and using the transition topol-
+ogy to improve the search algorithm. PHAVer is available
+athttp://www.cs.ru.nl/~goranf/ .
+Acknowledgements. The author is most grateful for the nu-
+merous inspiring discussions with Prof. Bruce Krogh, whose
+
+--- Page 15 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 15
+−0.1 0.00.10.20.30.40.50.6−0.20.00.20.40.60.81.01.2
+Voltage Vd [V]Current IL [mA]
+−0.1 0.00.10.20.30.40.50.6−0.20.00.20.40.60.81.01.2
+Voltage Vd [V]Current IL [mA]
+(a)Vd-IL-Plane, invariants dashed
+(b)VdandILover time
+Fig. 10. Reachable states of Tunnel Diode Circuit
+insightful guidance was indispensable in this work, and to
+Prof. Frits W. Vaandrager and Prof. Sebastian Engell for
+their generous support and supervision. This research was
+supported in part by the US ARO contract no. DAAD19-
+01-1-0485, the US NSF contract no. CCR-0121547, and the
+Semiconductor Research Corporation under task ID 1028.001 .
+Special thanks go to R.J.M. Theunissen, Gabriela Marin,
+Laurent Doyen, Li Hong and Scott Little for bug reports and
+helpful suggestions, and to Flavio Lerda for his invaluable
+compilation scripts. Finally, a big thanks goes to the PPL
+development team and in particular to Roberto Bagnara for
+his wonderful help.(a) Number of bits
+(b) Number of constraints
+Fig. 11. Clocked Tunnel Diode Circuit, exact (dashed) and with
+limits on bits and constraints (solid)
+References
+1. Thomas A. Henzinger, Pei-Hsin Ho, and Howard Wong-
+Toi. HYTECH: A model checker for hybrid systems. Int.
+Journal on Software Tools for Technology Transfer , 1(1–
+2):110–122, December 1997.
+2. Moshe Y. Vardi and Pierre Wolper. An automata-
+theoretic approach to automatic program veriﬁcation
+(preliminary report). In LICS, pages 332–344. IEEE
+Computer Society, 1986.
+3. Thomas A. Henzinger. The theory of hybrid automata.
+InProc. 11th Annual IEEE Symposium on Logic in Com-
+puter Science, LICS’96, New Brunswick, New Jersey, 27-
+30 July 1996 , pages 278–292. IEEE Computer Society
+Press, 1996. An extended version appeared in Veriﬁ-
+cation of Digital and Hybrid Systems (M.K. Inan, R.P.
+Kurshan, eds.), NATO ASI Series F: Computer and Sys-
+tems Sciences, Vol. 170, Springer-Verlag, 2000, pp. 265-
+292.
+4. Rajeev Alur, Thomas A. Henzinger, and Pei-Hsin Ho.
+Automatic symbolic veriﬁcation of embedded systems.
+IEEE Transactions on Software Engineering , 22:181–
+201, 1996. A preliminary version appeared in the Pro-
+ceedings of the 14th Annual Real-Time Systems Sympo-
+
+--- Page 16 ---
+16 Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Systems past HyTech
+sium (RTSS), IEEE Computer Society Press, 1993, pp.
+2-11.
+5. Thomas A. Henzinger, Pei-Hsin Ho, and Howard Wong-
+Toi. Algorithmic analysis of nonlinear hybrid systems.
+IEEE Transactions on Automatic Control , 43(4):540–
+554, 1998.
+6. Goran Frehse, Zhi Han, and Bruce H. Krogh. Assume-
+guarantee reasoning for hybrid i/o-automata by over-
+approximation of continuous interaction. In Proc. 43rd
+IEEE Conf. Decision and Control (CDC’04), December
+14–17, 2004, Atlantis, Bahamas , 2004.
+7. Goran Frehse. Compositional Veriﬁcation of Hybrid
+Systems Using Simulation Relations . PhD the-
+sis, Radboud University Nijmegen, 2005. available at
+http://webdoc.ubn.ru.nl/mono/f/frehse_g/compveofh.p df.
+8. Goran Frehse, Bruce H. Krogh, Rob A. Rutenbar, and
+Oded Maler. Time domain veriﬁcation of oscillator cir-
+cuit properties. 153(3):9–22, 2006.
+9. G. Frehse, B. H. Krogh, and R. A. Rutenbar. Verify-
+ing analog oscillator circuits using forward/backward re-
+ﬁnement. In Proceedings of the 9th Conference on De-
+sign, Automation and Test in Europe (DATE 06) . ACM
+SIGDA, Munich, Germany, 2006.
+10. D.A. van Beek, K.L. Man, M.A. Reniers, J.E. Rooda,
+and R.R.H. Schiﬀelers. Formal veriﬁcation of chi mod-
+els using phaver. In I. Troch and F. Breitenecker, edi-
+tors,Proc. MathMod 2006, Vienna , ARGESIM Reports,
+February 2006.
+11. Andreas Podelski and Silke Wagner. Model checking of
+hybrid systems: From reachability towards stability. In
+Jo˜ ao P. Hespanha and Ashish Tiwari, editors, HSCC ,
+volume 3927 of Lecture Notes in Computer Science , pages
+507–521. Springer, 2006.
+12. Laurent Doyen, Thomas A. Henzinger, and Jean-
+Fran¸ cois Raskin. Automatic rectangular reﬁnement of
+aﬃne hybrid systems. In Proc. FORMATS’05 , volume
+3829 of LNCS , pages 144–161. Springer, 2005.
+13. I. Ben Makhlouf and S. Kowalewski. An evaluation of two
+recent reachability analysis tools for hybrid systems. In
+Proc. IFAC Conf. Analysis and Design of Hybrid Systems
+(ADHS’06) , 2006.
+14. Rajeev Alur, Costas Courcoubetis, Nicolas Halbwachs,
+Thomas A. Henzinger, Pei-Hsin Ho, Xavier Nicollin, Al-
+fredo Olivero, Joseph Sifakis, and Sergio Yovine. The
+algorithmic analysis of hybrid systems. Theoretical Com-
+puter Science , 138(1):3–34, 1995. A preliminary version
+appeared in the Proceedings of the 11th International
+Conference on Analysis and Optimization of Systems:
+Discrete-Event Systems (ICAOS), Lecture Notes in Con-
+trol and Information Sciences 199, Springer-Verlag, 1994,
+pp. 331-351.
+15. Nancy A. Lynch, Roberto Segala, and Frits W. Vaan-
+drager. Hybrid I/O automata. Information and Compu-
+tation , 185(1):105–157, 2003. URL http://www.cs.kun.
+nl/ita/publications/papers/fvaan/HIOA.html .
+16. Darren D. Cofer, Eric Engstrom, Robert P. Gold-
+man, David J. Musliner, and Steve Vestal. Applica-
+tions of model checking at Honeywell Laboratories. In
+Matthew B. Dwyer, editor, Model Checking Software, 8th
+International SPIN Workshop, Toronto, Canada, May
+19-20, 2001, Proceedings , volume 2057 of LNCS , pages
+296–303. Springer, 2001.17. Thomas A. Henzinger, Joerg Preussig, and Howard
+Wong-Toi. Some lessons from the hytech experience.
+InProceedings of the 40th Annual Conference on Deci-
+sion and Control (CDC’01) , pages pp. 2887–2892. IEEE
+Press, 2001.
+18. Stefan Kowalewski, Olaf Stursberg, Martin Fritz, Holge r
+Graf, Ingo Hoﬀmann, Joerg Preussig, Manuel Remelhe,
+Silke Simon, and Heinz Treseler. A case study in tool-
+aided analysis of discretely controlled continuous sys-
+tems: The two tanks problem. In Panos J. Antsak-
+lis, Wolf Kohn, Michael D. Lemmon, Anil Nerode, and
+Shankar Sastry, editors, Hybrid Systems V , volume 1567
+ofLNCS , pages 163–185. Springer, 1999.
+19. Claire Tomlin. Veriﬁcation of an air traﬃc manage-
+ment protocol using hytech. Course Project for EE290A,
+taught by Prof. T. A. Henzinger, Spring 1996, Depart-
+ment of Electrical Engineering and Computer Sciences,
+University of California at Berkeley, 1996.
+20. Thomas A. Henzinger and Howard Wong-Toi. Using
+HyTech to synthesize control parameters for a steam
+boiler. In Formal Methods for Industrial Applications:
+Specifying and Programming the Steam Boiler Control ,
+number 1165 in LNCS, pages 265–282. Springer Verlag,
+1996.
+21. Olaf Mller and Thomas Stauner. Modelling and veriﬁca-
+tion using linear hybrid automata - a case study. Mathe-
+matical and Computer Modelling of Dynamical Systems ,
+6(1):71–89, 2000.
+22. Roberto Bagnara, Elisa Ricci, Enea Zaﬀanella, and Patri -
+cia M. Hill. Possibly not closed convex polyhedra and the
+Parma Polyhedra Library. In Manuel V. Hermenegildo
+and German Puebla, editors, Static Analysis: Proc. of
+the 9th Int. Symposium , volume 2477 of LNCS , pages
+213–229. Springer, Madrid, Spain, 2002.
+23. Torbj¨ orn Granlund and Kevin Ryde. The GNU Mul-
+tiple Precision arithmetic library version 4.0, 2001.
+http://www.swox.com/gmp/ .
+24. T. A. Henzinger, Pei-Hsin Ho, and H. Wong-Toi.
+HYTECH: the next generation. In Proceedings of the
+16th IEEE Real-Time Systems Symposium (RTSS ’95) ,
+page 56. IEEE Computer Society, 1995.
+25. Olaf Stursberg and Stefan Kowalewski. Approximating
+switched continuous systems by rectangular automata.
+InProc. 5th European Control Conference, Karlsruhe ,
+1999.
+26. Walter Hartong, Lars Hedrich, and Erich Barke. On dis-
+crete modeling and model checking for nonlinear analog
+systems. In Ed Brinksma and Kim Guldstrand Larsen,
+editors, Computer Aided Veriﬁcation, 14th International
+Conference, CAV 2002,Copenhagen, Denmark, July 27-
+31, 2002, Proceedings , volume 2404 of LNCS , pages 401–
+413. Springer, 2002.
+27. Thomas A. Henzinger, Benjamin Horowitz, Rupak Ma-
+jumdar, and Howard Wong-Toi. Beyond HYTECH: Hy-
+brid systems analysis using interval numerical methods.
+In Nancy A. Lynch and Bruce H. Krogh, editors, Hybrid
+Systems: Computation and Control, Third International
+Workshop, HSCC 2000, Pittsburgh, PA, USA, March 23-
+25, 2000, Proceedings , volume 1790 of LNCS , pages 130–
+144. Springer, 2000.
+28. Stefan Ratschan and Zhikun She. Safety veriﬁcation of
+hybrid systems by constraint propagation based abstrac-
+tion reﬁnement. In Manfred Morari and Lothar Thiele,
+
+--- Page 17 ---
+Goran Frehse: PHAVer: Algorithmic Veriﬁcation of Hybrid Sy stems past HyTech 17
+editors, Proc. of the 8th International Workshop on Hy-
+brid Systems: Computation and Control , number 3414 in
+LNCS, pages 573–589. Springer, 2005.
+29. B. I. Silva, O. Stursberg, B. H. Krogh, and S. Engell.
+An assessment of the current status of algorithmic ap-
+proaches to the veriﬁcation of hybrid systems. In Proc.
+40th Conference on Decision and Control (CDC’01) , De-
+cember 2001.
+30. Howard Wong-Toi. Symbolic approximations for verify-
+ing real-time systems, December 1994.
+31. J¨ org Preußig, Stephan Kowalewski, Howard Wong-Toi,
+and Thomas A. Henzinger. An algorithm for the ap-
+proximative analysis of rectangular automata. In Pro-
+ceedings of the Fifth International Symposium on For-
+mal Techniques in Real-Time and Fault-Tolerant Sys-
+tems (FTRTFT) , number 1486 in LNCS, pages 228–240.
+Springer-Verlag, 1998.
+32. J¨ org Preußig. Formale ¨Uberpr¨ ufung der Korrektheit von
+Steuerungen mittels rektangul¨ arer Automaten . PhD the-
+sis, Schriftenreihe des Lehrstuhls f¨ ur Anlagensteuerung -
+stechnik Band 4/2000, Universit¨ at Dortmund, Shaker
+Verlag, 2000. (in German).
+33. Olaf Stursberg and Bruce H. Krogh. Eﬃcient represen-
+tation and computation of reachable sets for hybrid sys-
+tems. In Oded Maler and Amir Pnueli, editors, Hybrid
+Systems: Computation and Control, 6th International
+Workshop, HSCC 2003 Prague, Czech Republic, April 3-
+5, 2003, Proceedings , volume 2623 of LNCS , pages 482–
+497. Springer, 2003.
+34. Rajeev Alur, Costas Courcoubetis, Thomas A. Hen-
+zinger, and Pei-Hsin Ho. Hybrid automata: An algorith-
+mic approach to the speciﬁcation and veriﬁcation of hy-
+brid systems. In Robert L. Grossman, Anil Nerode, An-
+ders P. Ravn, and Hans Rischel, editors, Hybrid Systems ,
+volume 736 of LNCS , pages 209–229. Springer, 1993.
+35. Gerardo Laﬀerriere, George J. Pappas, and Sergio
+Yovine. Symbolic reachability computation for families
+of linear vector ﬁelds. Journal of Symbolic Computation ,
+32:231–253, 2001.
+36. Nicolas Halbwachs, Yann-Erick Proy, and Patrick
+Roumanoﬀ. Veriﬁcation of real-time systems using linear
+relation analysis. Formal Methods in System Design: An
+International Journal , 11(2):157–185, August 1997.
+37. Pei-Hsin Ho and Howard Wong-Toi. Automated anal-
+ysis of an audio control protocol. In Proc. Conf.
+on Computer-Aided Veriﬁcation , volume 939 of LNCS ,
+pages 381–394. Springer, Liege, Belgium, 1995.
+38. Ansgar Fehnker and Franjo Ivancic. Benchmarks for hy-
+brid systems veriﬁcation. In Rajeev Alur and George J.
+Pappas, editors, Hybrid Systems: Computation and Con-
+trol, 7th International Workshop, HSCC 2004, Philadel-
+phia, PA, USA, March 25-27, 2004, Proceedings , volume
+2993 of LNCS , pages 326–341. Springer, 2004.
+39. Franjo Ivancic. Modeling and Analysis of Hybrid Sys-
+tems. PhD thesis, University of Pennsylvania, Philadel-
+phia, PA, December 2003.
+40. Alberto Bemporad and Manfred Morari. Veriﬁcation
+of hybrid systems via mathematical programming. In
+Frits W. Vaandrager and Jan H. van Schuppen, edi-
+tors,Hybrid Systems: Computation and Control, Sec-
+ond International Workshop, HSCC’99, Berg en Dal,
+The Netherlands, March 29-31, 1999, Proceedings , vol-
+ume 1569 of LNCS , pages 31–45. Springer, 1999.41. Smriti Gupta, Bruce H. Krogh, and Rob A. Rutenbar.
+Towards formal veriﬁcation of analog designs. In Proc.
+IEEE Intl. Conf. on Computer-Aided Design (ICCAD-
+2004), Nov. 7–11, 2004, San Jose CA (USA) , 2004.

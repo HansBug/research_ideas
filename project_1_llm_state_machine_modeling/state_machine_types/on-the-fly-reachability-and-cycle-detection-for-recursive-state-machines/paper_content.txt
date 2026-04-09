@@ -1,0 +1,749 @@
+--- Page 1 ---
+On-the-Fly Reachability and Cycle Detection for
+Recursive State Machines⋆
+Rajeev Alur1, Swarat Chaudhuri1, Kousha Etessami2, and P. Madhusudan3
+1University of Pennsylvania, USA
+2University of Edinburgh, UK
+3University of Illinois at Urbana-Champaign, USA
+Abstract. Searching the state space of a system using enumerative
+and on-the-ﬂy depth-ﬁrst traversal is an established technique for model
+checking ﬁnite-state systems. In this paper, we propose algorithms for
+on-the-ﬂy exploration of recursive state machines, or equivalently push-
+down systems, which are suited for modeling the behavior of procedural
+programs. We present algorithms for reachability (is a bad state reach-
+able?) as well as for fair cycle detection (is there a reachable cycle with
+progress?). We also report on an implementation of these algorithms to
+check safety and liveness properties of recursive boolean programs, and
+its performance on existing benchmarks.
+1 Introduction
+Recursive state machines (RSM) can model control ﬂow in typical sequential im-
+perative programming languages with recursive procedure calls, and are equiva-
+lent to pushdown systems [1]. Even though the state-space of an RSM is inﬁnite
+due to recursion, model checking problems for RSMs are decidable [6, 7, 15, 12,
+1, 5].Extended RSMs (ERSM) augment RSMs with global and local variables
+that can be tested and updated along the edges of the control structure. Con-
+temporary tools for software veriﬁcation employ abstraction to automatically
+extract ERSMs from code written in languages such as C, and then use ERSM
+model checking algorithms to check temporal requirements [4,17]. The complex-
+ity of the key analysis problems for ERSMs, such as reachability, is polynomial
+in the number of states [12, 1], where a state needs to encode the control location
+and the values of all the global and in-scope local variables. To cope with the
+state-space explosion due to the variables, existing implementations of ERSM
+model checkers such as Bebop [3] and Moped [12] use symbolic encoding using
+automata and binary decision diagrams. In this paper, we propose on-the-ﬂy
+explicit-state search algorithms as a viable alternative.
+An on-the-ﬂy algorithm explores the reachable states starting from initial
+states by computing the successors of a state only when needed, typically using
+⋆This research was partially supported by ARO URI award DAAD19-01-1-0473, and
+NSF awards ITR/SY 0121431 and CCR-0306382.
+N. Halbwachs and L. Zuck (Eds.): TACAS 2005, LNCS 3440, pp. 61–76, 2005.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2005
+
+--- Page 2 ---
+62 R. Alur et al.
+depth-ﬁrst traversal, and terminates as soon as it ﬁnds a counterexample to the
+property being veriﬁed. While the eﬀectiveness of this technique is limited by
+the number of states that can be stored and processed, it has its own advan-
+tages over the symbolic approach. The guards and updates on an edge can be
+complex, and can even include calls to library functions. It does not require an
+a priori encoding of the states, and hence, can support complex and unbounded
+data types and dynamic creation of data. Early termination allows discovery
+of shallow bugs rapidly. Finally, the performance is more predictable as more
+states are guaranteed to be searched with an increase in the available memory
+and time. Consequently, tools such as Spin [18] and Murϕ[10] that rely on
+on-the-ﬂy explicit-state search algorithms have been very eﬀective for classical
+model checking problems. More recent tools like Zing [2] and Bandera [8] are
+also explicit-state, support complex data types, concurrency, and recursion, but
+do not oﬀer any termination guarantees.
+We ﬁrst consider the reachability problem for ERSMs: starting from an initial
+state, can control reach one of the target locations along some execution of the
+ERSM? Our algorithm combines on-the-ﬂy traversal of extended state machines
+with early termination used in explicit-state model checkers and a summarization
+algorithm used in interprocedural data-ﬂow analysis [20].
+We build on our reachability algorithm to arrive at a novel solution to the
+fair cycle detection problem for ERSMs: starting from an initial state, is there
+an execution of the ERSM that visits one of the target locations inﬁnitely often?
+This fair cycle detection problem is central to the algorithmic veriﬁcation of live-
+ness requirements. The known solution to this problem is most naturally viewed
+in two phases [1]. In the ﬁrst phase, all the summary edges are computed, and
+the second phase reduces to fair cycle detection in an ordinary graph containing
+these summary edges. Since we desire an on-the-ﬂy solution with the possibility
+of early termination, we do not want to compute all the summary edges ﬁrst,
+and wish to interleave the two phases. We can view this problem as fair cycle
+detection in a graph (second phase) in which the edges, namely, the summary
+edges discovered by the ﬁrst phase, are inserted dynamically. For on-the-ﬂy fair
+cycle detection in ordinary graphs, tools such as Spinemploy the so-called nested
+depth-ﬁrst-search algorithm [9], but this algorithm relies on the ordering of states
+in a depth-ﬁrst traversal, which fails if we allow dynamic insertion of (summary)
+edges. In the proposed solution, we use a path-based algorithm for computing
+the strongly-connected-components (SCC) of a graph [16]. Every time the ﬁrst
+phase discovers a summary transition, the SCC discovery algorithm processes
+the newly reachable states. As a new SCC is discovered, early termination is
+possible if it contains a state with the target location or a summary transition
+representing a path through such a state, and if not, all vertices in the SCC can
+be collapsed to a single vertex for eﬃciency. Cycle detection (but not faircycle
+detection) is interesting in program analysis in the context of points-to analysis
+and cycle detection in dynamic graphs has been studied [19, 14].
+For analysis of worst-case time bounds, let us assume that the ERSM has k
+components, has no variables and has total size n(control locations plus tran-
+
+--- Page 3 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 63
+sitions). Then, the time bounds for non-on-the-ﬂy explicit-state algorithms for
+reachability and fair cycle detection are O(n) [1], while the symbolic algorithms
+for reachability and fair cycle detection are O(n2) [13]. The newly proposed reach-
+ability algorithm is O(n) and the new fair cycle detection algorithm is O(kn).
+To test the performance of the proposed algorithms, we implemented them
+in the tool Vera . The ERSM model is described in an input language that ex-
+tends the boolean programs of Bebop [3] with additional types such as bounded
+integers. The speciﬁcations can be written as monitors, and the tool performs
+on-the-ﬂy reachability and fair cycle detection on the product of the model and
+the monitor. The regression test suite of Slam contains boolean programs ob-
+tained from abstractions of real-world C code [4], and while Vera performs
+well on examples that contain a bug, it performs poorly compared to symbolic
+checkers such as Moped [12] when forced to search the entire space. On exam-
+ples such as Quicksort from Moped ’s benchmarks that need manipulation of
+integer variables, Vera performs signiﬁcantly better than Moped . Finally, we
+manually abstracted a Linux driver code in which Metal had found a double
+locking error using static analysis [11]. Vera performs well on this example, and
+can also prove the liveness requirement that “every lock should eventually be
+released.”
+2 Extended Recursive State Machines
+In this section, we introduce the formalism of extended recursive state machines
+(ERSMs). We start with the language we use to specify guarded commands.
+Expressions and Assignments. Let us have a set Tof types and a domain
+Dtassociated with each type t∈T. In particular, we allow a boolean type with
+the domain {T,F}.L e t Vbe a ﬁnite set of variables where each variable is
+associated with a type, and let Expr(V) be a set of typed expressions. We refer
+to the set of expressions of boolean type as BoolExp (V).
+Aninterpretation ofVis a map σ:v∈V/mapsto→d∈Dt, where vis of type
+t. Every interpretation can be extended to a unique semantic map σ:expr ∈
+Expr /mapsto→d∈Dt, where expris of type t.
+Anassignment overVhas the form [ x1,x2,...,x l]: =[exp1,exp 2,...,e xp l],
+where xj∈Vare distinct variables, and for all j,exp j∈Expr(V)i sa ne x -
+pression of the same type as xj. We refer to the set of assignments over Vas
+Assgn (V). The semantics of assignments are deﬁned over pairs ( σ1,σ2) of inter-
+pretations of V. Given an assignment αof the above form, we say σ2=α(σ1)
+if (1) σ2(xj)=σ1(expj) for all xj, and (2) σ1(y)=σ2(y) for all variables
+y∈V\{x1,x2,...,x l}.
+Syntax of ERSMs. Anextended recursive state machine (ERSM) Ais a tu-
+ple/angbracketleftG,γ in,p,(A1,A2,...,A k)/angbracketright,where Gis a ﬁnite set of global variables, γin
+is aninitial interpretation of G,p∈{1,...,k }is the index of the initial com-
+ponent, and each component state machine Ai=/angbracketleftLi,Ii,Oi,λiin,Ni,eni,exi,δi/angbracketright
+consists of
+
+--- Page 4 ---
+64 R. Alur et al.
+–a ﬁnite set Liof local variables, a set Ii⊆Liof input variables, and a set
+Oi⊆Liof output variables. The sets IiandOiare totally ordered, the j-th
+variables in these orders being given by Ii(j)a n d Oi(j) respectively. Also,
+we require that Ip=∅;
+–aninitial interpretation λiinofLi;
+–a ﬁnite set Niof nodes;
+–two special nodes eni,exi∈Ni, known respectively as the entry node and
+theexit node ;1
+–As e t δiofedges, where an edge can be one of two forms:
+•Internal edge: A tuple ( u,v,g,α ). Here uandvare nodes in Ni,g∈
+BoolExp (G∪Li)i sa guard on the edge, and α∈Assgn (G∪Li)i sa n
+assignment. Intuitively, such an edge will be taken only if the guard g
+is true, and if it is taken, the assignments will be applied to the current
+variables. The set of internal edges in component iis denoted by δI
+i.
+•Call edge: A tuple ( u,v,g,m, in,out). Here uandvare nodes in Ni,
+g∈BoolExp (G∪Li) is an edge guard, m∈{1,2,...,k }is the index
+of the called component, and in∈Lr
+iandout∈Lq
+i,f o rr=|Im|and
+q=|Om|, are two lists of local variables. Intuitively, inis the list of
+parameters passed to the call, and outis the list of variables where the
+outputs of the call are stored on return from the call. We require that
+all variables in outare distinct.
+The set of call edges in component iis denoted by δC
+i. The function
+Yi:δC
+i→{1,2,...,k }maps call edges to indices of the components
+they call, so that, for a call edge esuch as above, Yi(e)=m.
+We assume that entry nodes enido not have incoming edges and exit nodes
+exido not have outgoing edges. /intersectionsq /unionsq
+We designate the component Apas the initial component . This component,
+where runs of Abegin, models the “main” procedure in procedural programs.
+Example: Figure 1 shows a sample ERSM with one global variable a, and com-
+ponents A1andA2. Component A1has an input variable i, and an output
+variable x. Component A2, also the initial component, has no inputs and one
+local/output variable y. All variables are of boolean type, and initially, we have
+a=F,x=T,a n d y=T.
+In the diagram, an internal edge ( u,v,g,α ) is drawn as a solid arrow from
+node uto node vannotated by ( g⇒α) (we will omit the guard gand the
+assignment αif, respectively, gis always true and the assignment αis empty). A
+call edge ( u,v,g,m, in,out) is a dashed arrow annotated by ( g⇒out:=m(in))
+(we omit outif it is empty, and leave out the guard gif it is trivially true).
+1The usual deﬁnition of RSMs [1] allows components to have multiple entry and exit
+nodes. In this paper, we model entries and exits by input and output variables, so
+it suﬃces to let each component have one entry and one exit node.
+
+--- Page 5 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 65
+A1A2
+bool i
+bool y:=T bool x:=Ten1n1n2ex1
+en2n3
+n5 n6n4
+ex2
+bool a:=Fx=F
+i=T[x] :=2()
+[a] := 2()y =T−> [y:=F] 
+a=F −> [y:=T]n7 n8  [a:=T][y]:= 1([y])
+Fig. 1. A sample ERSM
+Semantics of ERSMs. ERSMs model procedural programs written in C-like
+imperative languages and resemble the latter in operational semantics. Compo-
+nents, nodes, internal edges, and call edges in ERSMs respectively model proce-
+dures, control locations, intraprocedural control ﬂow, and procedure invocations
+in procedural programs, and conﬁgurations andrunsof ERSMs are the equiv-
+alents of program states and program executions. A conﬁguration of an ERSM
+consists of a call stack, a current node, and a current interpretation of the global
+and in-scope local variables. The transition relation on conﬁgurations has three
+kinds of transitions: internal steps ,calls,a n dreturns . At an internal step, control
+follows an internal edge, reaches a new node, and applies the assignments on the
+edge to the variables in scope, the stack remaining unaﬀected. During a call, a
+call edge and the current interpretation of the local variables in scope are pushed
+onto the call stack, control reaches the entry node of the called component, and
+a new set of local variables are initialized. At a return, we pop a calling context
+oﬀ the stack, reinstate the popped local variables (after adjusting for possible
+output values), and proceed to the node to which the popped call edge leads.
+We now formally deﬁne the conﬁguration space Qof an ERSM A.Aconﬁgu-
+ration ofAis a tuple ψ=/angbracketleftγ,stack,u,λ/angbracketright, where γis an interpretation of G,a n d
+stack is either of the form /angbracketleft(e1,λ1),(e2,λ2),...,(er,λr)/angbracketrightor the empty list. Here,
+e1,e2,...,e rare call edges of A,λ1is an interpretation of Lp,e1is a call edge
+inAp, and, for every i>1,λiis an interpretation of Lcandeiis a call edge in
+Ac, where c=Y(ei−1). Finally, uis a node in Njandλis an interpretation of
+Lj, where jequals pifstack is empty, and Y(er) otherwise.
+In a conﬁguration of the above form, we deﬁne the node uto be the current
+nodeinψ. We refer to this node as Currnode (ψ).
+We need some more notation before we can deﬁne the transition relation on
+these conﬁgurations. Let σ1andσ2be interpretations of disjoint sets of variables
+V1andV2. Then σ1/unionsqσ2is the interpretation of ( V1∪V2) that agrees with σ1
+andσ2on variables from V1andV2respectively.
+Now let l1∈Uq
+1andl2∈Uq
+2be two lists of variables such that U1∩U2=∅
+and members of l2are all distinct. Let us also have interpretations σ1andσ2of
+U1andU2respectively. Then τ=borrowValues (σ2,l2,σ1,l1) is an interpretation
+
+--- Page 6 ---
+66 R. Alur et al.
+ofU2obtained by (1) setting τ(l2(i)) =σ1(l1(i)) for all i, and (2) for all other
+v, setting τ(v)=σ2(v). Intuitively, borrowValues replaces the values of those
+variables in σ2that occur in l2,t h e i-th variable in l2getting the value that
+interpretation σ1gives to the i-th variable in l1.
+The global transition relation ∆of an ERSM is then deﬁned as follows. Let
+ψ=/angbracketleftγ,stack,u,λ/angbracketrightbe a conﬁguration with u∈Nj. Then ( ψ,ψ/prime)∈∆iﬀ one of
+the following sets of conditions holds:
+1. Internal step
+(a) (u,u/prime,g,α)∈δI
+jfor a node u/primeofAj,
+(b)γ/unionsqλsatisﬁes g,a n d
+(c)ψ/prime=/angbracketleftγ/prime,stack,u/prime,λ/prime/angbracketright, where γ/prime/unionsqλ/prime=α(γ/unionsqλ).
+2. Call
+(a)e=(u,u/prime,g,m,in m,out m)∈δC
+jfor a node u/primeofAj,
+(b)γ/unionsqλsatisﬁes g,a n d
+(c)ψ/prime=/angbracketleftγ,/angbracketleftstack, (e,λ)/angbracketright,enm,λ/prime/angbracketright/angbracketright, where λ/prime=borrowValues (λmin,Im,
+λ,inm).
+3. Return
+(a)uis the exit node exjofAj,
+(b)stack is of the form /angbracketleftstack/prime,(er,λr)/angbracketright
+(c)er=(v,u/prime,g,j,in j,out j) for some v,u/prime,g,inj,a n d outj,a n d
+(d)ψ/prime=/angbracketleftγ,stack/prime,u/prime,λ/prime/angbracketright/angbracketright, where λ/prime=borrowValues (λr,out j,λ,O j).
+Note that the conﬁgurations Qand the transition relation ∆deﬁne an or-
+dinary (and in general inﬁnite) transition system TA.ArunofAis a (ﬁnite or
+inﬁnite) sequence ρ=ψ0ψ1ψ2..., where ψ0=/angbracketleftγin,⊥,enp,λpin/angbracketright(⊥being the
+empty stack sequence), and for all i,ψi∈Qand (ψi,ψi+1)∈∆. The semantics
+ofAare deﬁned by its set of runs.
+Given an ERSM A, we are interested in two central algorithmic questions:
+1.Reachability : Given an ERSM Aand a set of target nodes TofA,d o e s A
+have a run ρ=ψ0ψ1ψ2...such that Currnode (ψj)∈Tfor some j?
+2.Fair cycle detection : Given an ERSM Aand a set Rofrepeating nodes ofA,
+doesAhave a run ρ=ψ0ψ1ψ2...such that Currnode (ψj)∈Rforinﬁnitely
+many j∈N?
+In this paper, we present two algorithms that search the set of local states
+enumeratively to solve these problems. These algorithms diﬀer from previous
+work in two important respects:
+1.On-the-ﬂy search: We generate states “on demand”, as we explore the state
+space, and only store the visited states.
+2.Early termination: Our algorithms terminate as soon as a reachability wit-
+ness or a cycle containing a repeating state occurs in the visited state space.
+Consequently, our algorithms do not necessarily have to generate the entire
+state space in order to terminate.
+
+--- Page 7 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 67
+3 Reachability
+We now describe an on-the-ﬂy, early-terminating algorithm to check if a given
+setTof target nodes is reachable in an ERSM A.
+Astate of an ERSM Ais a tuple of the form s=/angbracketleftv,γ,λ /angbracketright, where vis a
+node, and γandλare interpretations of global and local variables. Note that a
+state is diﬀerent from a conﬁguration in that it does not include the stack. An
+entry state for component Aiis a state s=/angbracketleftv,γ,λ /angbracketrightwhere v=eni. Likewise,
+s=/angbracketleftv,γ,λ /angbracketrightis anexit state ifv=exi.Asummary is a pair ( sen,sex), where sen
+is an entry state and sexis an exit state in the same component.
+Let us now deﬁne a state graph Scorresponding to A. The vertices of Sare
+the states of Aand the set of transitions of Sis the smallest set Eof transitions
+satisfying the following conditions:
+- Internal Transitions. Lets=/angbracketleftu,γ,λ /angbracketrightbe a state. If Aihas an internal edge
+(u,v,g,α ) and the interpretation γ/unionsqλsatisﬁes g, then Ehas a internal
+transition ( s,s/prime), where s/prime=/angbracketleftv,γ/prime,λ/prime/angbracketright, where γ/prime/unionsqλ/prime=α(γ/unionsqλ).
+- Call and Summary Transitions. Lets=/angbracketleftu,γ,λ /angbracketrightbe a state. Assume Ai
+has a call edge ( u,v,g,m,in m,out m) and the interpretation γ/unionsqλsatisﬁes g.
+Letsen=/angbracketleftenm,γ,λ en/angbracketright, where λen=borrowValues (λmin,Im,λ,inm). Then
+(s,sen) is a call transition in E.
+Ifsex=/angbracketleftexm,γ/prime,λex/angbracketrightis some exit state in Amandsexis reachable from sen
+using only internal and summary transitions, then ( s,s/prime)i sasummary tran-
+sition inEwhere s/prime=/angbracketleftv,γ/prime,λ/prime/angbracketrightandλ/prime=borrowValues (λ,out m,λex,Om).
+For a set of repeating nodes R, let us also deﬁne SR, which is deﬁned exactly
+asSis deﬁned above except that summary transitions can be of two kinds,
+fairornot fair . When a summary transition is added, it is set to be fair if the
+run from sentosexgoes through a state involving Ror uses a fair summary
+transition.
+The key to checking reachability and cycles in an ERSM is given by the
+following lemma:
+Lemma 1 ([1]). LetAbe an ERSM and let Sbe its associated state-graph. For
+a given set of target nodes T,Tis reachable in Aiﬀ there is a node of the form
+(u,γ,λ )withu∈Treachable in S. Similarly, given a set of repeating nodes R,
+there is run of Athat visits Rinﬁnitely often iﬀ there is a path in SRthat visits
+the set {(u,γ,λ )|u∈R}inﬁnitely often or uses fair summary edges inﬁnitely
+often.
+Note that if local and global variables are ﬁnite-domain, then Sis ﬁnite
+as well, and the above lemma shows checking reachability and fair cycles are
+decidable. We refer to the subgraph of Sinduced by the nodes belonging to
+Ai, i.e. nodes of the form ( u,γ,λ ) where u∈Ni,a sSi; the graphs Sicontain
+only internal and summary transitions. Our reachability algorithm explores S
+on-the-ﬂy looking for a state of the form ( u,γ,λ ), where u∈T. It can be in
+fact viewed as an interleaving of kseparate depth-ﬁrst searches, the i-th search
+taking place in the transition system Si.
+
+--- Page 8 ---
+68 R. Alur et al.
+Reachability (s, sen)
+1Visited ←Visited ∪{(s, sen)}
+2ifCurrnode (s)∈T
+3 then print (“Target reached”) ; break
+4ifsis an exit state in component i
+5 then VisitedExits [i, sen]←VisitedExits [i, sen]∪{s}
+6 for(s/prime,s/prime
+en)∈VisitedCalls [i, sen]
+7 dosret=GetReturnState (s/prime,s)
+8 if(sret,s/prime
+en)/∈Visited
+9 then Reachability (sret,s/prime
+en)
+10 else for e∈EdgesI(s)
+11 do if ssatisﬁes guard of e
+12 then s/prime←Apply (e, s)
+13 if(s/prime,sen)/∈Visited
+14 then Reachability (s/prime,sen)
+15 fore∈EdgesC(s)
+16 do if ssatisﬁes guard of e
+17 then m←Y(e);s/prime←GetEntryState (e, s)
+18 VisitedCalls [m, s/prime]←VisitedCalls [m, s/prime]∪{(s, sen)}
+19 if(s/prime,sen)/∈Visited
+20 then Reachability (s/prime,sen)
+21 else for sex∈VisitedExits [Y(e),s/prime]
+22 dosret=GetReturnState (s, sex)
+23 if(sret,sen))/∈Visited
+24 then Reachability (sret,sen)
+Fig. 2. On-the-ﬂy reachability in ERSMs
+Our search begins from the initial state /angbracketleftenp,γin,λpin/angbracketright, in the initial compo-
+nentAp. The search proceeds depth-ﬁrst following edges in Ap. If, during this
+search, we are at a state s1inSpand ﬁnd a call edge calling component Aq,
+we would need to search along a summary transition in Sp. To discover this
+transition, however, we would need to know the reachability relation between
+the corresponding entry and exit states in Aq, and to compute this relation, we
+must search Sq.
+The crux of the algorithm is to view Spas anincompletely speciﬁed transition
+system and suspend the search in Spwhen such a situation occurs. Given s1and
+the call edge in question, we can compute the entry state s2inSqreached follow-
+ing the corresponding call transition. If s2has not been visited so far, we search
+Sqstarting from s2; if a search from s2has previously been started, we simply
+suspend searching and wait for future “updates”. As we learn more about reach-
+ability between entry and exit states in Sq, we may add corresponding summary
+transitions in Spand resume the search in Sp. If all local searches terminate,
+then we have explored all of the reachable part of S, and can terminate.
+Figure 2 describes the algorithm more formally. Given a state s=/angbracketleftv,γ,λ /angbracketright,
+we refer to the set of internal and call edges going out of vasEdgesI(s)a n d
+EdgesC(s) respectively. If the variables in ssatisfy the guard gon an internal
+
+--- Page 9 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 69
+edgee, the function Apply (e,s) returns the state s/primeto which the corresponding
+internal transition leads. If ssatisﬁes the guard gon a call edge e, the function
+GetEntryState (e,s) returns the entry state s/primethat is the target of the corre-
+sponding call transition. Finally, suppose sis an exit state in component Am
+ands/primeis a state with a call transition to component Am; also suppose there ex-
+ists a summary transition ( s/prime,s/prime/prime) corresponding to s/prime,eands. Then the function
+GetReturnState (s/prime,s) returns the state s/prime/prime.
+The function Reachability has two inputs: a state sin component Aiand
+an entry state sen. The pair of states ( s,sen) forms a context ifsis reachable
+fromsen. The set VisitedCalls [i,sen] stores the set of “calling contexts”: contexts
+(s/prime,s/prime
+en) where control switched to component Aiand entry state sen. Then, if
+an exit state sexinAiis reachable from state sen, a summary transition between
+states s/primeands/prime/prime=GetReturnState (s/prime,sex) has been discovered.
+To solve the reachability problem, we call Reachability (sinit,sinit), where
+sinit=/angbracketleftenp,γin,λpin/angbracketright. Termination of this algorithm is guaranteed if the set
+of states reachable from the initial states is ﬁnite; one such special case is when
+all types are ﬁnite-domain. We omit the detailed proof of correctness.
+Theorem 1. LetAbe an ERSM, Tbe a set of target nodes, and sinit=
+/angbracketleftenp,γin,λpin/angbracketright. Then if the algorithm Reachability (sinit,sinit)halts, it prints
+“Target reached” iﬀ there is a run of Athat reaches a conﬁguration ψwith
+Currnode (ψ)∈T. Moreover, if the set of states reachable from seninSis ﬁ-
+nite, then Reachability (sinit,sinit)is guaranteed to halt. /intersectionsq /unionsq
+This algorithm has some of the nicer, “on-the-ﬂy” properties of DFS. We
+start with an initial state, only store the “visited” state space, make a switch to
+a diﬀerent component only when a call edge requires it, and, even when such a
+switch is made, “discover” entry states only when necessary. Moreover, we can
+terminate as soon as we encounter a target state.
+Ifs/prime
+enis an entry state of Sireachable in Sands/primeis reachable from s/prime
+en
+using edges in Sionly, then when calling Reachability (sinit,sinit), the recursive
+procedure Reachability (s/prime,s/prime
+en) will be called at most once. This observation leads
+to the following complexity of the reachability algorithm in terms of the number
+of discovered states and transitions in S:
+Theorem 2. Let Reachability terminate on a given ERSM A.L e tnandmbe
+the number of states and edges in the explored part of S.L e tβbe a bound on
+the maximum number of reachable entry or exit states in any component Si.
+Then Reachability (sinit,sinit)takes O(mβ+nβ2)time to terminate and space
+O(nβ). /intersectionsq /unionsq
+4 Fair Cycle Detection
+Let us ﬁx an ERSM Aand a set of repeating nodes RofA.L e t SRbe the
+associated state-graph of AandRas deﬁned in the previous section. In this
+section, we present an on-the-ﬂy fair cycle detection algorithm for ERSMs that
+
+--- Page 10 ---
+70 R. Alur et al.
+searches the transition system SRfor a cycle containing a repeating state or a fair
+summary edge. If the domains of the types are ﬁnite, Lemma 1 guarantees that
+Ahas a run visiting inﬁnitely many repeating states if and only if such a cycle
+exists. Our core idea is to view SRas an incomplete transition system to which
+edges are added dynamically, and to use an online cycle detection algorithm for
+dynamically presented graphs to ﬁnd such a cycle.
+The following are a few ways in which this can be implemented:
+–The most naive algorithm would be to search the state-space of Ausing
+Reachability , postponing cycle detection until we know all states and
+transitions in SR. At that point, we may detect cycles in SRusing an al-
+gorithm (such as nested DFS [9]) for cycle detection in ﬁnite graphs. This
+algorithm, however, is inherently a two-phase algorithm and does not have
+the early termination property.
+–Another possibility is to adapt the nested DFS algorithm [9] to a setting
+where summary transitions are dynamically presented and early termination
+is required. This turns out to be diﬃcult. The problem is that in the nested
+DFS algorithm, the secondary search follows the DFS order computed by the
+primary search: if sands/primeare two states such that sis an ancestor of s/primein
+the primary DFS tree, the secondary search from s/primemust terminate before
+the secondary search from smay start. However, in our context, we may
+discover a summary transition from s/prime(that can possibly introduce cycles)
+while searching a diﬀerent branch of the primary DFS tree rooted at s.
+A conceivable way of adapting this algorithm to our setting would be to start
+a new instance of Reachability each time we reach a repeating state sr,
+to check if sris reachable from itself. However, the time complexity of such
+an algorithm would be NFtimes the size of SR, where NFis the number
+of repeating states; note that due to data interpretations, NFcan be very
+large.
+–A third option, which is what we follow, is to maintain strongly connected
+components (SCCs) in SRdynamically using an incremental algorithm. We
+terminate, reporting a cycle, as soon as the explored part of SRstarts con-
+taining a non-trivial SCC with a repeating state or a fair summary transition
+in it. However, linear time incremental algorithms for maintaining SCCs are
+not known. While we could use heuristically tuned online algorithms such as
+in [19], we have chosen instead to use an adaptation of Gabow’s algorithm
+as it uses simpler data-structures.
+Our algorithm Fair-Cycle-Detect consists of two subroutines: one ex-
+plores the state space of the ERSM and discovers new transitions in SR(includ-
+ing summary transitions), while the other updates the SCCs in the discovered
+graph. The former algorithm is essentially the algorithm Reachability of the
+previous section while the latter is an adaptation of a path-based DFS algorithm
+by Gabow [16] that ﬁnds SCCs in a graph.
+Gabow’s algorithm ﬁnds SCCs in a graph via a DFS on it. As soon as a
+back edge is identiﬁed, it contracts the cycle formed by it into an SCC, and,
+ﬁnally, outputs the SCCs in a topological order. This algorithm has an early
+
+--- Page 11 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 71
+termination property, because if an SCC introduced by a back edge contains a
+repeating state or a fair summary transition, we can terminate immediately.
+Let us now describe an optimization that changes the structure of our algo-
+rithm. Since Gabow’s algorithm essentially explores its graph using a depth-ﬁrst
+search and the state-space exploration of the ERSM done by Reachability is
+also essentially a DFS, these two can be combined easily. However, in Reach-
+ability , when a new summary is discovered, the control shifts to the returns
+corresponding to this summary, which can be in an entirely diﬀerent part of the
+graph. Since such a ‘jump’ requires us to restart our SCC algorithm, we prefer
+to process the summary transitions later, after the current DFS is over.
+Consequently, our search-space exploration algorithm is the same as Reach-
+ability , except that when a summary is discovered, the returns corresponding
+to it are not pursued and instead the new summary transitions are recorded in a
+setSumm . The dynamic SCC algorithm processes these transitions and updates
+the SCCs. When the exploration stops (or the current search phase ends), we
+add the summary transitions in Summ and run the dynamic SCC algorithm once
+more to eﬀect the changes. Then we call the exploration algorithm again and
+ask it to proceed from the return states corresponding to the newly discovered
+summary transitions in Summ . We terminate, concluding that there is no fair
+cycle, if no new summary is found at the end of a search phase. Figure 3 and
+Figure 4 give the pseudocode of the entire algorithm Fair-Cycle-Detect .
+SCC-search explores the transition system SRrecursively, feeding every
+new transition to the procedure Update-SCCs , which uses two stacks [16] to
+update the data structures it uses to remember the SCCs, and halts if the new
+transition introduces a fair cycle. To perform this update, it may have to do a
+DFS on the graph of discovered SCCs; however, since the edges fed to it in a
+phase are in DFS order, it only needs one cache of “visited” SCCs per phase.
+While backtracking from the search, the procedure Create-component ,
+which marks an SCC to be used in the next phase, is called. Finally, the procedure
+Collapse-SCCs takes in a set of summary edges found in the previous search
+phase (fair summaries are kept track of using a special bit b) and updates the
+current graph Gof SCCs with them, terminating if it ﬁnds a fair cycle.
+The correctness of this algorithm is guaranteed by the following theorem:
+Theorem 3. Given an ERSM A,as e t Rof repeating nodes, and the entry
+statesinit=/angbracketleftenp,γin,λpin/angbracketright, if the algorithm Fair-Cycle-Detect halts, then
+it prints “Fair cycle found” iﬀ there is a run of Athat has inﬁnitely many
+conﬁgurations ψ/primewith Currnode (ψ/prime)∈R. Furthermore, if the state-graph SR
+corresponding to Ais ﬁnite, then Fair-Cycle-Detect always halts. /intersectionsq /unionsq
+Recall that in every search phase, we need to perform a search on the graph
+of SCCs. The total number of search phases in Fair-Cycle-Detect is bounded
+by the number of possible summaries in SR.L e t Nbe the maximum, over all
+component graphs Si, of the number of pairs ( sen,sex), where sexis an exit state
+inSiand is reachable from entry state senofSi. Then SRcan have at most kN
+search phases, where kis the number of components in A. Hence, we have:
+
+--- Page 12 ---
+72 R. Alur et al.
+Fair-Cycle-detect ()
+1graph G←({sin},∅);Visited ←∅;Sin={(sin,sin,(sin∈R))}
+2repeat
+3 Summ ←∅;Initialize-SCC-Update ()
+4 for(s, sen,b)∈Sin
+5 doSCC-Search (s, sen,b)
+6 Collapse-SCCs (Summ )
+7 ifCollapse-SCCs ﬁnds a fair nontrivial SCC
+8 then print (“Fair cycle found”) ; break
+9 Sin←{(sret,s/prime,b):∃s.(s/prime
+en,(s, sret),b)∈Summ }
+10 until Summ =∅
+11 print (“No fair cycle”)
+Fig. 3. Fair cycle detection algorithm
+SCC-Search (s, sen,b)
+1Visited ←Visited ∪{(s, sen,b)}
+2ifsis an exit state in component i
+3 then VisitedExits [i, sen]←VisitedExits [i, sen]∪{(s, b)}
+4 for(s/prime,s/prime
+en,b/prime)∈VisitedCalls [i, sen]
+5 dosret=GetReturnState (s/prime,s);bret=b∨b/prime∨(sret∈R)
+6 if(sret,s/prime
+en,bret)/∈Visited
+7 then Summ ←Summ ∪{((s/prime,sret),s/prime
+en,bret)}
+8 else for e∈EdgesI(s)
+9 do if ssatisﬁes guard of e
+10 then s/prime←Apply (e, s);b/prime=b∨(s/prime∈R);Update-SCCs (s, s/prime,b/prime);
+11 ifUpdate-SCCs ﬁnds a fair nontrivial SCC
+12 then print (“Fair cycle found”) ; break
+13 if(s/prime,sen,b/prime)/∈Visited
+14 then SCC-Search (s/prime,sen,b/prime)
+15 fore∈EdgesC(s)
+16 do if ssatisﬁes guard of e
+17 then m←Y(e);s/prime←GetEntryState (e, s);
+18 b/prime=(s/prime∈R);Update-SCCs (s, s/prime,b/prime)
+19 VisitedCalls [m, s/prime]←VisitedCalls [m, s/prime]∪{(s, sen,b)}
+20 if(s/prime,sen,b/prime)/∈Visited
+21 then SCC-Search (s/prime,sen,b/prime)
+22 else for (sex,bex)∈VisitedExits [Y(e),s/prime]
+23 dosret=GetReturnState (s, sex)
+24 bret=bex∨b/prime∨(sret∈R)
+25 if(sret,sen,bret)/∈Visited
+26 then SCC-Search (sret,sen,bret)
+27Create-Component ()
+Fig. 4. Procedure SCC-Search
+Theorem 4. LetAbe an ERSM, Rbe a set of repeating nodes and SRbe the
+associated state graph. Let nandmbe the number of states and edges, βbe
+
+--- Page 13 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 73
+a bound on the maximum number of reachable entry states andreachable exit
+states in any Si, in the reachable part of SR.T h e n Fair-Cycle-Detect takes
+O(kN(mβ+nβ2))time to terminate and uses space O(nβ2+m). /intersectionsq /unionsq
+Note that Nis bounded by β2. While Fair-Cycle-Detect does not run
+in time linear in the size of SR, it has the early-termination property and some
+“on-the-ﬂy” properties.
+5Vera
+Vera is a Java implementation of the algorithms for reachability and fair cycle
+detection presented in this paper. In this section, we highlight its main features
+and compare it with Moped [13], a popular BDD-based LTL model checker for
+pushdown systems.
+Input Language. Boolean programs , introduced in [3] and used in the Slam
+veriﬁcation process [4], are abstractions of imperative programs that retain most
+of the control structures available in a C-like language but only allow variables
+and expressions of boolean type. These abstractions permit procedure calls with
+call-by-value parameter passing and recursion; procedures can return vectors
+of expressions. Global and local declarations of variables are permitted. Allowed
+statements include parallel assignment (where a list of variables may be assigned
+in parallel, either by a list of expressions or by a vector returned by a proce-
+dure), “goto” jumps, “if-else” branches, and “while” loops. Non-determinism is
+permitted both in branches and loops.
+Vera accepts boolean programs as inputs; it also admits a bounded-integer
+data type and arithmetic expressions on variables declared as such. These ab-
+stractions are translated into ERSMs internally before the algorithms for reach-
+ability and fair cycle detection are applied.
+Specifying Properties. One way to specify target (or repeating) nodes in
+Vera is to list a set of target (or repeating) labels along with the input. Any
+control location marked by such a label translates into a target or repeating
+node. The target (repeating) set may also be speciﬁed by a monitor .
+Amonitor , in our context, is a ﬁnite automaton Mwith edges labeled by
+guards on global and local variables in A, and a set of states identiﬁed as target
+states. The deﬁnition of the product PofMandAis standard: a conﬁguration
+ofPconsists of a conﬁguration of Aand the current state of M, and progress
+along a monitor is allowed only if the current variables satisfy the guard on
+it. A target (or repeating) node in Pis one where the current state of Mis a
+target. Given a monitor and the ERSM underlying an input program, Vera can
+perform reachability (cycle) analysis for the product ERSM P.
+5.1 Experiments
+Slam Regression Testing Examples. We ran Vera on the regression test
+suite for Slam: a collection of 64 C programs which, after abstraction in Slam,
+
+--- Page 14 ---
+74 R. Alur et al.
+Example Lines Globals Locals Reachable Visited Vera time(s) Moped time (s)
+n-mutex1 439 3 13 Yes 274 0.06 0.04
+p-mutex33 460 6 21 Yes 702 0.21 0.14
+n-i2o-simple 347 2 3 Yes 94 0.08 0.01
+n-list-22 305 0 15 Yes 316 0.07 0.02
+p-mutex34 466 6 21 No 14144 6.17 0.08
+p-farray 306 0 8 No 1304 0.18 0.01
+p-nbebop-test 239 0 16 No 75524 151.85 0.04
+p-srdriver 1454 10 36 No - - 0.29
+Fig. 5. Experiments on the Slam regression test suite
+NVera runtime(s) Vera visited states Moped runtime(s) Moped BDD nodes
+4 0.08 95 0.16 40880
+6 0.08 95 4.01 1.91×105
+8 0.08 95 260.35 2.12×106
+10 0.10 95 - -
+32 0.15 95 - -
+Fig. 6. Buggy quicksort
+give boolean programs whose lengths range between 80 and 1450 lines. In each
+case, the query was: is the control location labeled as SLIC ERROR reachable?
+The experiments were run on a machine with 2GB of RAM and two 1.4 GHz
+CPUs. Measurements on a few representative examples are tabulated in Figure 5.
+The ﬁrst three columns show the number of lines of code, the number of global
+variables, and the maximum number of local variables in a procedure (recall that
+the number of ERSM states is exponential in the last two parameters). The next
+column gives the answer to the query. The next two columns give the number
+of visited states at termination, and total runtime in seconds. The ﬁnal column
+shows the runtime of the Moped model checker on the same example.
+In the ﬁrst four examples, where the target set is reachable, Vera seems to
+ﬁnd a reachability witness easily. In the next four cases, where it has to gen-
+erate the entire reachable state space, it performs much worse than Moped .
+Particularly, in the last case, where there there may be as many as 10 unini-
+tialized globals and 36 uninitialized locals in any procedure, the state space is
+too large for our procedure to terminate. On the other hand, in examples such
+asp-mutex34 where Vera works better, there are complex conditions on edges
+but the number of uninitialized variables is not very high.
+Quicksort. Among the examples that come with Moped is an abstraction of
+a buggy quicksort routine ( quicksort error.pds ). The routine has two non-
+deterministically chosen integer inputs and can run into an inﬁnite loop for some
+inputvalues.Whilethereexistsashortwitnesstothiserror,itisbynomeanstrivial.
+We use Moped andVera to ﬁnd this witness. To do this in Vera , we write
+a simple monitor and run the fair cycle detection module. We ﬁnd that Vera ’s
+
+--- Page 15 ---
+On-the-Fly Reachability and Cycle Detection for Recursive State Machines 75
+early termination capability lets it identify a cycle very fast, even when inputs
+have large ranges and, consequently, the set of reachable states is very large.
+The symbolic algorithm for Moped , however, becomes prohibitively expensive
+as the number of bits in an integer ( N) is increases, and does not terminate for
+N= 10 or above (see Figure 6).
+We also compared Vera andMoped on a trivial reachability property:
+whether the program has some terminating run. Vera identiﬁes a witness im-
+mediately, whereas in Moped , an eﬀect similar to Figure 6 is observed.
+Abstraction of a Linux Driver. Finally, we ran Vera ’s reachability and
+cycle detection algorithms on a manual abstraction of the Perle Specialix RIO
+driver for Linux. This driver, 1100 lines long and previously identiﬁed as buggy
+by the Stanford metacompilation project [11], contains a double locking error.
+We abstract it manually into a 220-line Vera input ﬁle, keeping the basic con-
+trol structure intact, modeling locks and process id-s by Vera variables, and
+replacing many of the control-ﬂow conditions by nondeterminism. We write sim-
+ple monitors to answer the following questions:
+(1) Is there an execution where the same lock is acquired twice in a row?
+(2) Is every lock that is acquired also released?
+In the former case, there exists a reachability witness to an error state. For 4-bit
+integers, Vera detects the error in 0.18s after visiting 15 states (this ﬁgure stays
+more or less the same even as the size of the integer type is made larger). In the
+second case, our abstraction satisﬁes the property, and Vera has to generate
+the entire state space before it terminates. Because of a few uninitialized integer
+variables, this space is quite large. For N= 2, it takes 50.92s. For higher values
+ofN,Vera does not terminate.
+6 Conclusions
+Wehavepresentedalgorithmsforon-the-ﬂyreachabilityandfaircycledetectionfor
+extended recursive state machines. Algorithmically, on-the-ﬂy detection of cycles
+deserves further exploration. It is closely related to the problem of dynamic data
+structures for graphs where insertions are allowed, and queries check existence
+of cycles containing repeating nodes. It is open whether the worst-case quadratic
+bound of our cycle-detection algorithms can be improved. It would be interesting
+toknowwhetheronlineSCCalgorithmsareessentialtodetectfaircyclesinERSMs
+on-the-ﬂy, i.e. whether faster algorithms for on-the-ﬂy traversal of ERSMs would
+necessarilyimplyfasteronlinealgorithmsforcycledetection.Ourimplementationin
+Vera and experimentation support the hypothesis that on-the-ﬂy model checking
+is a viable, and sometimes more eﬀective, alternative to symbolic checkers for
+verifying ERSMs. Future work will focus on optimizations, alternative strategies
+for cycle detection, and applications to program analysis problems.
+Acknowledgements. We thank Mihalis Yannakakis for useful discussions, Sri-
+ram Rajamani and Stefan Schwoon for the Slam regression test suite, and an
+anonymous referee for several relevant references in program analysis.
+
+--- Page 16 ---
+76 R. Alur et al.
+References
+1. R. Alur, K. Etessami, and M. Yannakakis. Analysis of recursive state machines.
+InProc. Computer-Aided Veriﬁcation , LNCS 2102: 207–220, 2001.
+2. T. Andrews, S. Qadeer, S.K. Rajamani, J. Rehof, and Y. Xie. Zing: A model
+checker for concurrent software. In Proc. CAV’04 , LNCS 3114: 484–487, 2004.
+3. T. Ball and S. Rajamani. Bebop: A symbolic model checker for boolean programs.
+InSPIN Workshop on Model Checking of Software , LNCS 1885: 113–130, 2000.
+4. T. Ball and S. Rajamani. The SLAM toolkit. In Proc. CAV’01 , LNCS 2102, 2001.
+5. M. Benedikt, P. Godefroid, and T. Reps. Model checking of unrestricted hierar-
+chical state machines. In Proc. ICALP ’01 , LNCS 2076: 652–666, 2001.
+6. A. Boujjani, J. Esparza, and O. Maler. Reachability analysis of pushdown au-
+tomata: Applications to model checking. In CONCUR’97 , LNCS 1243, 1997.
+7. O. Burkart and B. Steﬀen. Model checking the full modal mu-calculus for inﬁnite
+sequential processes. Theoretical Computer Science , 221:251–270, 1999.
+8. J.C. Corbett, M.B. Dwyer, J. Hatcliﬀ, S. Laubach, C.S. Pasareanu, Robby, and
+H. Zheng. Bandera: Extracting ﬁnite-state models from Java source code. In Proc.
+of Intl. Conf. on Software Engg. , pages 439–448. 2000.
+9. C. Courcoubetis, M.Y. Vardi, P. Wolper, and M. Yannakakis. Memory eﬃcient
+algorithms for the veriﬁcation of temporal properties. Formal Methods in System
+Design , 1:275–288, 1992.
+10. D.L. Dill, A.J. Drexler, A.J. Hu, and C.H. Yang. Protocol veriﬁcation as a hard-
+ware design aid. In IEEE International Conference on Computer Design: VLSI in
+Computers and Processors , pages 522–525, 1992.
+11. D. Engler, B. Chelf, A. Chou, and S. Hallem. Checking system rules using system-
+speciﬁc, programmer-written compiler extensions. In Proc. 4th USENIX OSDI ,
+pages 1–16, 2000.
+12. J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Eﬃcient algorithms for
+model checking pushdown systems. In Computer Aided Veriﬁcation, 12th Interna-
+tional Conference , LNCS 1855, pages 232–247. Springer, 2000.
+13. J. Esparza and S. Schwoon. A BDD-based model checker for recursive programs.
+Lecture Notes in Computer Science , 2102:324+, 2001.
+14. M. F¨ ahndrich, J.S. Foster, Z. Su, and A. Aiken. Partial online cycle elimination in
+inclusion constraint graphs. Proc. PLDI ’98 , pages 85–96, 1998.
+15. A. Finkel, B. Willems, and P. Wolper. A direct symbolic approach to model
+checking pushdown systems. In Proc. Workshop on Veriﬁcation of Inﬁnite State
+Systems , volume 9 of Electronic Notes in Theor. Comp. Sci. Elsevier, 1997.
+16. H. Gabow. Path-based depth-ﬁrst search for strong and biconnected components.
+Inf. Process. Lett. , 74(3-4):107–114, 2000.
+17. T.A. Henzinger, R. Jhala, R. Majumdar, G.C. Necula, G. Sutre, and W. Weimer.
+Temporal-safety proofs for systems code. In CAV 02: Proc. of 14th Conf. on
+Computer Aided Veriﬁcation , LNCS 2404, pages 526–538, 2002.
+18. G.J. Holzmann. The model checker SPIN. IEEE Transactions on Software Engi-
+neering , 23(5):279–295, 1997.
+19. D.J. Pearce, P.H.J. Kelly, and C. Hankin. Online cycle detection and diﬀerence
+propagation for pointer analysis. Software Quality Journal , 12(4):311–337, 2004.
+20. T. Reps, S. Horwitz, and M. Sagiv. Precise interprocedural dataﬂow analysis via
+graph reachability. POPL ’95 , pages 49–61, 1995.

@@ -1,0 +1,1308 @@
+--- Page 1 ---
+Int J Softw Tools Technol Transfer (2013) 15:211–228
+DOI 10.1007/s10009-012-0245-y
+EUROSYS
+Timed-automata based schedulability analysis for distributed
+ﬁrm real-time systems: a case study
+Thi Thieu Hoa Le ·Luigi Palopoli ·
+Roberto Passerone ·Yusi Ramadian
+Published online: 6 July 2012
+© Springer-Verlag 2012
+Abstract The growing level of complexity of modern
+embedded systems, which are increasingly distributed andheterogeneous, calls for new design approaches able to rec-
+oncile mathematical rigour with ﬂexibility, user-friendliness
+and scalability. In the last few years, Timed Automata (TA)have emerged as a very promising formalism for the availabil-
+ity of very effective veriﬁcation tools. However, their adop-
+tion in the industrial community is still slow. The reluctanceof industrial practitioners is partly motivated by persistent
+concerns on the ease of use of this formalism, on the sca-
+lability of the veriﬁcation process and on the quality of thefeedback that the designer receives. In this paper, we discussthese issues by showing the application of the TA formalism
+on a case study of industrial complexity. We expose the gen-
+erality of the approach, the efﬁciency of state of the art tools,but also the limitations in the semantics and in dealing with
+free design parameters.
+Keywords Embedded systems ·Timed automata ·
+Real-time scheduling
+1 Introduction
+In recent years, the complexity of embedded systems (ES) has
+risen to unexpected levels. The once elementary and strictly
+dedicated machines have now evolved into ﬂexible and net-worked systems, made of a large set of heterogeneous com-ponents. In this context, the adjective “heterogeneous” spans
+a wide range of possible meanings. Modern embedded sys-
+tems are heterogeneous in the way they process data and react
+T. T. H. Le ·L. Palopoli ( B)·R. Passerone ·Y. R a m a d i a n
+DISI, University of Trento, Trento, Italye-mail: palopoli@disi.unitn.itto events (synchronously or asynchronously), in the different
+network protocols that they use, in the different schedulingpolicies they share resources by and in the different degrees
+of criticality of their timing requirements (soft, hard, ﬁrm).
+The different combinations of these features create a varietyof design issues that are currently addressed by a variety of
+different methods. While no silver bullet yet exists to manage
+the complexity of ES design, researchers and industrial prac-titioners aim for approaches that can claim a sufﬁcient level
+of generality to be applicable in most contexts of practical
+relevance.
+The real-time scheduling analysis (RTSA) [ 1] has gained
+an undisputed popularity in the past few years for the efﬁ-
+ciency and the intuitiveness of the techniques it proposes.
+However, it suffers from important limitations. First, it isstrongly focused on particular families of scheduling algo-
+rithms (priority based) and of computation models (periodic
+activations). Second, it only addresses temporal propertiesof the tasks, which are simply modelled as activities requir-
+ing computation or communication time. Unfortunately, the
+correctness of ES encompasses both functional and non-functional aspects, and the two are not always easy to separateout. Third, the RTSA is necessarily based on worst case sce-
+narios that are not necessarily likely to occur. This often leads
+to over-provisioning resource allocations, hardly an accept-able choice in many cases.
+Very different in nature are the approaches based on timed
+automata [ 2]. By using these abstractions, designers can
+create descriptions of the different components at varying
+levels of detail. What is more, they can investigate proper-
+ties of different kind (functional, non-functional and com-binations thereof) using such advanced veriﬁcation tools asUPPAAL [ 3]. As promising as they may seem, the approaches
+based on timed automata have so far encountered a lukewarm
+reception among designers. Some of their most important
+123
+
+--- Page 2 ---
+212 T. T. H. Le et al.
+concerns are on the ability of the TA formalism to express a
+complex system, on their user friendliness, on the scalabili-ty of veriﬁcation and synthesis methods, and on the quality
+of the feedback that the designer receives. The ﬁrst concern
+includes two different points: (1) is the TA semantics power-ful enough to capture systems of industrial complexity? (2)is the TA formalism offered by modelling tools user friendly
+enough to be used by non specialists? The second concern
+comes from the bad reputation of formal methods when theyare applied to large systems (the curse of dimensionality).
+The third one is on the richness of the information that are
+received from the tool across the different design iterations.An ES is often associated with different parameters whose
+value is unknown (or partially known) upfront. Some of them
+correspond to design choices and are under the control of thedesigner (e.g., the bit-rate of a channel, or the complexity ofan algorithm), some others model an uncertain knowledge of
+the system and of its environment (e.g., the inter-arrival time
+between two user requests). The information of the range ofparameters that correspond to feasible design choices (where
+“feasible” means “complying with some required proper-
+ties”) is in this setting a very valuable one for the designer.Indeed, it can guide him/her in the selection of the design
+parameters that attain the desired project trade-offs and/or to
+evaluate the robustness of a candidate design.
+In this paper, we explore these issues taking inspiration
+from an industrial case-study. The complexity of the case-
+study is sufﬁcient for it to qualify as a realistic design sce-
+nario. The system is distributed, and the different activities(tasks) share resources of different kind. The scheduling solu-
+tions adopted for the different resources are different (FIFO
+for some, priority based for others). The properties the sys-tem is required to respect regard both its correct functional-
+ity (ﬁll level of buffers) and its temporal behaviour (viola-
+tion of deadlines). Interestingly, the temporal properties arelinked with the functional behaviour of the system. The tem-poral properties refer to a global notion of time, whilst their
+enforcement depends on a local clock. So a synchronisation
+procedure has to be executed by the system, and the com-pliance with the real-time constraints depends on its correct
+execution. Finally, the correct execution of the systems cru-
+cially depends on some design parameters. These featurescould make our system a very hard match for standard real-
+time analysis. The purpose of this paper is to show how the
+system can instead be modelled using timed automata andanalysed with a state of the art tool for TA veriﬁcation (UP-PAAL). We aim at exposing the difﬁculty of the process, the
+pitfalls of the TA semantics, the scalability and the quality of
+the feedback to the designer.
+The paper is organised as follows. In Sect. 2we offer
+a description of the problem, highlighting the properties of
+interest and the design parameters. In Sect. 3, we discuss how
+to model the system, using a high level variant of the TA for-Fig. 1 Heterogeneous communication system (HCS)
+malism. The model is cast into the TA formalism used by
+the UPPAAL veriﬁcation tool in Sect. 4. In Sect. 5,w es h o w
+the execution of different veriﬁcation tasks, recording theirtiming performance and discussing the role of design param-
+eters. In Sect. 6we discuss the related work and in Sect. 7,
+we state our conclusions and discuss future work directions.
+2 Problem description
+The Heterogeneous Communication System (HCS) is used in
+commercial aircrafts to distribute music and audio announce-ments to the main cabin. This is done by streaming a ﬂow of
+audio packets from a server to a set of terminal devices, each
+one serving a passenger. Therefore, the HCS consists of aserver, a network and a number of devices. The architecture
+of the HCS is described in detail in a technical report [ 4]. For
+the purposes of this paper, it is useful to provide a quick over-view. The scheme of the architecture is depicted in Fig. 1.T h e
+different components (which are in the order of hundreds) are
+interconnected through a set of homogeneous networks andexchange a large number of packets for communication, con-trol and monitoring. The gateway and routing functionalities
+are implemented by special purpose components, deﬁned
+Network Access Controllers (NACs), which are arranged ina daisy chain topology.
+2.1 Applications running in the HCS
+The primary purpose of the HCS is to stream audio packets
+from the server to the devices. The audio streaming applica-tion requires a periodic packet delivery every P
+atime units
+(tus) from the server to the devices. Every packet has to be
+played back at a time instant tplay, which is recorded in the
+packet upon its creation. An excessive delay accumulated
+along the path from server to device results in the impos-
+sibility to comply with this constraint (as detailed below).Besides, the devices are required to reproduce the packets
+123
+
+--- Page 3 ---
+Schedulability analysis for distributed RTS 213
+Fig. 2 PTP messages exchanged between master and slave clock to achieve time synchronisation (Courtesy IEEE Standard 1588)
+at the same instant, to avoid echoing effects along the cabin.
+For these reasons an accurate synchronisation between serverand devices, and between each device is an imperative
+requirement.
+This is obtained by applying the Precision Time Proto-
+col (PTP) [ 5]. The task implementing the PTP protocol is
+itself periodic with period P
+s. Figure 2depicts the message
+sequence required to synchronise the device (slave) clockwith the server (master) clock using PTP. We will illus-
+trate the idea of PTP under the assumption that the rela-
+tion between the clocks of Master and slaves are given by
+T
+Slave=TMaster+O, where Ois an unknown offset. The
+synchronisation procedure is executed iteratively. At the start
+of each iteration, the Master sends a Sync packet and records
+the exact time Tm1when the packet is transmitted. This infor-
+mation is recorded and sent to the slave in a subsequent Fol-
+low_Up packet. The slave receives this information at time
+Ts1=Tm1+O+D, (1)where Dis the transmission delay. The slave replies by send-
+ing aDelay_Req packet at time Ts2. The master receives
+this packet at time
+Tm2=Ts2−O+D, (2)
+which is recorded and sent back to the slave in a
+Delay_Resp packet. The slave may therefore compute D
+andOby the simple formula:
+D=Tm2−Tm1+Ts1−Ts2
+2(3)
+O=Ts1−Tm1−D=Ts1−Tm1−Tm2+Ts2
+2(4)
+This iteration has to be repeated to control the drift between
+the clocks, which can change in time due to changes in theenvironment. This description applies to the case of Mas-
+ter and Slave being connected to the same network. In this
+case, the delay Drelates only to the “physical” transmission
+and can easily be assumed to be the same in both directions.
+123
+
+--- Page 4 ---
+214 T. T. H. Le et al.
+Fig. 3 Block diagram of the end-to-end information ﬂow between server and device in the HCS
+(a)
+(b)
+Fig. 4 Time-line of the end-to-end delays incurred by a packet. aServer to device communication, bdevice to server communication
+In our topology (see Fig. 1), there are sub-networks con-
+nected through the NACs. The scheduling delays incurredby a packet along its travel make the delays accumulatedin the two directions very different. This problem has to be
+managed at the scheduling level, as discussed next.
+2.2 Scheduling
+A more detailed scheme of the HCS representing the end-to-
+end information ﬂow between the server and one device is
+reported in Fig. 3.
+Consider a packet sent by the sever to a device. The time-
+line reporting the different delays incurred along the way is
+reported in the top half of Fig. 4. After the send request, the
+packet is inserted into an output buffer, and it waits until itis scheduled for transmission. The position in the buffer is
+related to the packet priority. When the packet reaches the
+top of the buffer, it can be scheduled for transmission onthe medium, which is itself managed by a scheduler. The
+scheduling discipline used for the medium is priority based
+and non-preemptive: on-going packet transmissions are notinterrupted regardless of the priority of the packet being trans-
+mitted. Therefore, the scheduling delay accumulated by the
+packet awaiting transmission is related to the presence ofhigher priority transmission requests from other devices, andto possible ongoing transmissions. When the packet wins
+the competition for the medium, it can be transmitted and itincurs a transmission delay L
+m. For the sake of simplicity we
+will consider this transmission time to be the same for all the
+packets. After the transmission, the packet is placed into the
+input buffer of the NAC, which is managed using a FIFO pol-icy. When the packet reaches the top position of the buffer, it
+can be processed by the NAC. This phase introduces an addi-
+tional scheduling delay due to the fact that the NAC managesseveral input and output buffers. Also in this case, the pol-
+icy is priority based and non-preemptive. After the packet
+gains control of the NAC, the processing time required is L
+n
+(assumed equal for all packets). This sequence of actions is
+repeated as many times as required to traverse the chain until
+the packet reaches the NAC connected to the device. Similar
+considerations apply to the inverse direction (bottom half ofthe Fig. 4).
+As mentioned earlier, the network is used for two different
+packet streams: the PTP and the audio stream. Both streamsare triggered by periodic activations (with period P
+sandPa
+respectively). As far as the scheduling priority is concerned,
+the packets used by the PTP have, in our setting, a higherpriority than the ones used for the audio stream. The rea-sons for this choice are twofold. First, the presence of a drift
+between the clocks can, at least to a ﬁrst approximation, be
+123
+
+--- Page 5 ---
+Schedulability analysis for distributed RTS 215
+neglected if the difference between Tm1,Tm2,Ts1andTs2
+remains moderate. This translates into a requirement that the
+transmissions of the different packet in the PTP execution
+remain close to each other. The second and more important
+reason is that the use of high priority packets for the PTPallows us to keep in check the scheduling delays. This waythe transmission delays in the two directions (Eqs. ( 1) and
+(2)) are likely to be very similar to each other.
+To summarise, the transmission priorities of PTP packets
+includingSync (S),Follow_Up (F),Delay_Req (DQ)
+andDelay_Resp (DP) are assumed to be higher than that
+of audio packets ( A) as follows:
+PR
+S>PRF>PRDP>PRDQ>PRA,
+where PRXdenotes the data priority of packet X.
+2.3 Temporal properties
+A prominent role in the HCS is played by the buffers, which
+are located in different parts of the system, as shown in Fig. 3.
+For example, the server has an output buffer where outgo-
+ing packets await transmission while the medium is busy.
+The NACs have two buffers to contain incoming or outgo-ing packets. All these buffers have ﬁnite length. Therefore, a
+ﬁrst property of interest is whether or not any of such buffers
+overruns during the operation of the HCS .
+To simplify the model, we have assumed that the server
+responds in a negligible time to a Delay_Req packet.
+Therefore, we will not consider the overrun property for the
+input buffer of the server. The property will be veriﬁed forthe buffers located on the NAC and for the output buffer of
+the server.
+The second property that we will verify is on the correct
+delivery of the audio packet. If the k
+thaudio packet is gen-
+erated at time t(k), it has to be played back at time t(k)
+play.T h e
+end-to-end response time R=t(k)
+play−t(k)is ﬁxed at design
+time. This requirement corresponds to setting a deadline for
+the chain of computation initiated by the creation of a newaudio sample: in order for the packet to be processed and
+the sound sample to be played back, the sum of all the delay
+component detailed in Sect. 2.2has to be smaller than R.
+If this temporal constraint is violated the sample is dropped.The existence of a scheduling solution that makes for the sat-
+isfaction a deadline is said schedulability . We will consider
+two possible ﬂavours of the schedulability property: hard-real time schedulability and ﬁrm real-time schedulability. A
+system is said hard real-time schedulable if all deadlines are
+always met. In contrast a ﬁrm real-time system is one forwhich deadlines can occasionally be missed. In particular, we
+will apply the notion of (m,k)-ﬁrm constraints [ 6]: the task
+is permitted to miss mdeadlines in every group of k. Con-
+sidering ﬁrm real-time constraints allows us to reduce thedegree of conservativeness of the analysis: we trade occa-
+sional and controlled anomalies for a better utilisation ofthe system resource, a very frequent choice in multimedia
+systems.
+In the systems outlined above, two quantities can be con-
+sidered as design parameters: the latencies L
+mandLn. Such
+quantities are related to the packet size and to the channel
+bit-rate. Hence two types of system veriﬁcation are possible:
+– Veriﬁcation with ground parameters,
+– parametric veriﬁcation.
+By veriﬁcation with ground parameters, we mean that, for a
+given choice of parameters LmandLn, we want to know if
+the system respects the schedulability properties (either hard
+or ﬁrm) and if the buffers do not overrun. By parametric ver-iﬁcation, we mean that we look for all possible choices of
+L
+mandLnsuch that the above properties are satisﬁed.
+3 System model
+We present in this section our complete model following the
+modelling conventions given below.
+3.1 Modelling conventions
+In the following, we will make use of the notation of timed
+automata [ 2]. Similarly to a regular automaton, a timed
+automaton has a ﬁnite set of states or locations Llinked
+by transitions or edges. The automaton also includes a set of
+clocks X cand a set of state variables Xs. Transitions are char-
+acterised by an action label, a guard and an update expression,while states are characterised by an invariant. A transition
+can be taken in response to the presence of a synchronising
+label of the same name in another automaton of the system,when the guard evaluates to true, and, in that case, the value
+of the variables are updated according to the update expres-
+sion.ν!is used to denote a sending action and ν? a receiving
+action. Together ( ν!,ν?) is a synchronisation between two
+automata. An edge is usually referred to as a synchronising
+transition if there is a synchronising label on it or an inter-
+naltransition (denoted by τ) if there is no such label. Urgent
+locations are marked with a Uletter, meaning that time elapse
+is not allowed when the automaton is staying in one of these
+locations. A transition must be taken if the invariant of thestate becomes false. The semantics of a timed automaton is
+regulated by a global notion of continuous time. While the
+automaton resides in a state, the value of the clock variablesgrows linearly with time, and can be reset only upon the exe-
+cution of an update expression on a transition. The value of
+state variables can instead be changed only as a result of anupdate expression when a transition is taken. The updated
+123
+
+--- Page 6 ---
+216 T. T. H. Le et al.
+c<=P_s c<=P_sc<=P_s
+c==O_s
+synch!c<=O_s
+followUp!syncRls!
+syncRls!
+ready_s=true,
+c=0
+pkt_f.t=clk_s−e_s*Lm,
+ready_s=falseready_s=true,
+c=0c==P_s
+(a)
+pkt.type==4delayRsp!
+dpRls!pktFrMdm?
+ready_dp=trueready_dp=false
+pkt_dp.ID=pkt.ID, 
+pkt_dp.t=clk_s
+(b)
+Fig. 5 PTP implementation on server
+values for clocks and variables are effective after the transi-
+tion is taken.
+A run (or trace) of a timed automaton is a sequence of
+states and transitions compatible with the structure of the
+automaton. When taking the composition of two automata,their transitions must synchronise on the labels and the vari-ables according to rules that depend on the speciﬁc timed
+automata model. Synchronisations are classiﬁed into regular
+and broadcast synchronisations and are discussed in moredetails in Sect. 3.6.
+Our model is composed of 12 timed automata described
+below.
+3.2 Server
+The server runs various applications including the PTP
+implementation and audio generation. The PTP is performed
+periodically on the server by broadcasting S- and F-mes-
+sages to end devices every P
+swith a possible non-zero off-
+setOs(shown in Fig. 5a), and by replying to a DQ from a
+device with a DP(shown in Fig. 5b). Variables candclks
+are periodic clocks (reset after every Ps) and server clock
+(never reset) whose drifting rate w.r.t. the real time is es(i.e.,
+c=clks=es×creal). In the sequel sections, cwill always
+denote a clock.
+The readiness of a packet Xis indicated by setting a bool-
+ean variable ready xtotrue upon an X-release or false upon
+its delivery to the medium. Similarly, a composite variable
+pktxdenotes the content of a packet X. Such a variable
+has three members: (i) type=1/2/3/4/5 to indicate thataudRls!c=0
+c=0c==O_ac==P_a
+audRls!
+c<=O_a c<=P_a
+(a)size>bufLen
+Erroraudio!audRls?
+audPop()audPush()
+(b)
+Fig. 6 Periodic audio generation and buffering. aAudio generation, b
+audio buffering
+X=S/F/DP/DQ/Arespectively, (ii) tto denote the time
+at which Amust be played by devices (i.e., pkta.t), or Sis
+sent (i.e., pkt f.t),1orDQis received (i.e., pktdp.t), (iii) ID
+to record the device identity in case the packet is a DQ or
+DP. Only some assignments of these members are shown in
+the ﬁgure, others are omitted for the sake of brevity (e.g.,
+pkt f.type=2).
+The periodic audio release and buffering2are shown
+respectively in Fig. 6a and b where audPush ()andaudPop ()
+represent respectively the buffer push and pop operations of
+audio messages. The audio stream is characterised by the
+offset Oafor the ﬁrst release (transition from initial state to
+the second state), and is then periodic afterwards (self tran-
+sition on the second state). Each A-packet is time-stamped
+with the time it has to be played at devices and are placed ina waiting-for-transmission buffer. The interval between twoconsecutive audio times to play is assumed to be P
+a.
+The buffer push3and pop operations are shown in Pro-
+cedure 1and2, respectively. When a buffer over-run occurs
+(size>bu f Len ), the buffer automaton goes to the Error
+state.
+Procedure 1 : audPush()
+1: buffer[tail] = tplay
+2:tplay=tplay+Pa
+3: tail = next(tail)
+4: size = size+15:pkt
+a.t= buffer[head]
+6:ready adef=(size>0)
+3.3 Devices
+To model the PTP implementation on a device, two automata
+are devoted to observing the PTP stream and recording the
+sending/arriving time of Sint1/t2 (Fig. 7a) and DQint3/t4
+1The delivery of an S-packet is conﬁrmed at the end of the transmis-
+sion, hence the delivery time is clks−es×Lm.
+2We consider bounded First-In-First-Out buffers with ﬁnite storage
+memory and implement them as circular buffers.
+3Initially, tplay=Oa+Drelwhere Drelis the audio relative deadline.
+123
+
+--- Page 7 ---
+Schedulability analysis for distributed RTS 217
+Procedure 2 : audPop()
+1:ifsize>0then
+2: head = next(head)3: size = size-14: pkt
+a.t= buffer[head]
+5:end if
+6:ready adef=(size>0)
+pkt.type==1
+pkt.type==2
+pktToDv?pktToDv?
+t1=pkt.tt2=clk_d
+(a)pkt.type==2
+pkt.type==3 && 
+pkt.ID==dvID
+dqRls!
+delayReq!pktToDv?pktToDv?
+t4=pkt.t,
+off=t2+t3−t1−pkt.tn_dq+=1
+t3=clk_d−e_d*Ln,
+pkt_dq.ID=dvID, n_dq−=1
+(b)
+t_play>=clk_d−off/2Errort_play<clk_d−off/2pkt.type==5
+pktToDv?t_play=pkt.t
+(c)
+t_play>=clk_d−off/2!dlmissed &&
+t_play<clk_d−off/2
+Errordlmissed &&
+t_play<clk_d−off/2pkt.type==5
+pktToDv?
+dlmissed=falsedlmissed=true
+t_play=pkt.t
+(d)
+Fig. 7 PTP implementation and audio deadline veriﬁer on end devices
+(Fig. 7b) for the offset calculation between server and device
+clocks as shown in Procedure 3. The device clock clkdis also
+a drifting clock with rate edandt2,t3 are measured w.r.t. this
+clock clkd.
+Every device has its own identity denoted by a positive
+dvIDwhich is used to indicate the source of a DQ. As illus-
+trated in Fig. 1, a NAC can be associated to many devices.
+Thus, there can be many DQs available simultaneously and
+ndq, which is a shared variable between the NAC and all of
+its associated devices, is used to record the presence of theseDQs. For simplicity, the NAC is assumed to resolve the con-
+tention by selecting randomly a DQ. The device that sends
+itsDQ successfully to the NAC can then switch to waiting
+the corresponding DPfrom the server.Procedure 3 : Offset calculation
+1:clkd=clks+of f d
+2:delay =(t2−of f d)−t1
+3:delay =t4−(t3−of f d)
+4: 2of f d=t2+t3−t1−t4
+5:of f=t2+t3−t1−t4,w h e r e of f=2of f d
+6:
+7:of f 0=0
+8:clk0=clkd−of f 0/2
+9:
+10:of f/prime
+1=(t2−of f 0/2)+(t3−of f 0/2)−t1−t4
+11:of f 1=of f 0+of f/prime
+1=t2+t3−t1−t4
+12:clk1=clk0−of f/prime
+1/2=clkd−of f 1/2
+13: ...
+14:of f n=of f 0+n/summationtext
+1of f/prime
+i=t2+t3−t1−t4
+15:clkn=clkn−1−of f/prime
+n/2=clkd−of f n/2
+Figure 7c describes the activities of an audio-hard-dead-
+line checker implemented on a device. Upon receiving an
+audio packet, its time-to-play tplayparameter is retrieved and
+checked with the current time of the device clock. If the clockhas already passed this t
+play, the automaton goes to the Error
+state. For soft-deadline constraints, the automaton can be
+modiﬁed to tolerate some deadline misses. For example, incase two consecutive audio deadline misses are allowed, an
+additional boolean variable dlmissed can be used to indicate
+whether the previous deadline was missed as in Fig. 7d.
+3.4 Network medium
+The network medium is responsible for data transmission into
+subnets which must take place whenever any data is available,
+unless the medium is currently busy. In this heterogeneous
+system, the data priority ( PR)i sa s s u m e da sf o l l o w s :
+PR
+S>PRF>PRDP>PRDQ>PRA
+The data of highest priority (denoted by token in Fig. 8)
+is transmitted ﬁrst and others have to back-off and wait fortheir turn. The network transmission is done after L
+m(tus)
+and the data is forwarded to the NACs which then pass it onto
+subnets.
+Variables pktxandready x(X/negationslash=DQ) are shared between
+the medium and server components of the model. Particu-
+larly, pktaandready a, denoting the head and positive size of
+the audio buffer, are updated in Procedures 1and2. Likewise,
+variables pktdqandready dq, shared between the medium and
+associated DQ-sources, denote the winning DQand positive
+number of DQs waiting for a transmission (i.e., ready dqdef=
+(ndq>0)).
+3.5 Network access controllers (NACs)
+NACs are responsible for data routing from the server into
+subnets and vice versa as shown in Fig. 9c. In addition,
+123
+
+--- Page 8 ---
+218 T. T. H. Le et al.
+Fig. 8 Network medium
+c==0 && 
+token>3c==0 && 
+token>4
+c==Lm && token==2c==0
+c==Lm && token==1
+c<=Lmready_s!ready_s && !ready_f && !ready_dp && !ready_dq && !ready_a
+c==Lm && token==3
+c==Lm && token==5c==Lm && token==4!ready_s && ready_f
+dpRls?
+dqRls?
+audRls?synch? syncRls?
+audio?delayRsp?
+delayReq?syncRls?
+dpRls?
+followUp?dqRls?
+pktFrMdm!
+pkt=pkt_f, 
+ready_f=false, c=0
+pkt=pkt_dp, c=0
+pkt=pkt_dq, c=0token=1token=4
+token=3
+token=5,c=0token=4token=5
+pkt=pkt_a, c=0token=1token=3
+token=2!ready_s && !ready_f && ready_dp
+token=1,c=0 token=0 pkt=pkt_s, ready_f=true, c=0
+token=3,c=0
+token=4,c=0!ready_s && !ready_f && !ready_dp && !ready_dq && ready_a
+!ready_s && !ready_f && !ready_dp && ready_dq
+size>bufLen
+Errorpkt_in.type!=4
+pktFrBuf!pktToBuf?
+pktPop()pktPush()
+(a)size>bufLenpkt.type==4size>0
+delayReq!
+dqRls!dqToBuf?
+n_dq+=1,
+dpPush()pkt_dq.ID=headEle,
+n_dq−=1,dpPop()
+Error
+(b)
+c==0 && 
+pkt_in.type!=4c==0 && 
+token>4
+c==Ln && token!=4 pkt_in.type!=4!ready_in && !ready_out
+c==Ln && token==4ready_in && head_ib.type<4ready_in && !ready_out && head_ib.type>4
+pktFrBuf?
+dqRls?pktToNAC?
+c<=Ln
+delayReq?pktToNAC?dqRls?
+pktFrNAC!token=4
+pkt=pkt_dq, c=0tkUpdate()
+token=4,c=0token=4
+token=head_ib.typetoken=head_ib.typeready_out && (!ready_in || head_ib.type>4)
+token=0 tkUpdate(),
+c=0pkt=head_ib, c=0
+(c)
+Fig. 9 Input buffer, output buffer and NAC
+NACs can perform data encoding/decoding on the data pass-
+ing through it which takes Ln(tus). Because only one packet
+can be processed at a time, NACs must be capable of buffer-ing data. In this model, NACs are assumed to have two typesof buffer: input buffer for data from the server to devices
+(i.e., S,F,DP,A) and output buffers for DQfrom devices to
+the server. These buffers are depicted in Fig. 9a and b. The
+definitions of the push and pop operations for these buffers
+are similar to those given for the audio buffer in Sect. 3.2.
+As the network medium (or NAC) can be associated to
+many NACs, there are also many NAC output buffers con-
+tending for a DQ-transmission. The contention is resolved in
+a manner similar to that presented in Sect. 3.3. Here, headEle
+stands for the head element of the output buffer and pkt
+denotes the packet currently processed by its associated NAC.
+Also similar to the transmission mechanism of the med-
+ium, a NAC always processes the data of highest priority.Deciding which data to process is based on the availability
+of data from the server and DQs from devices. Such informa-
+tion is available from variables head
+ibandready in, which
+denote the head and positive size of its input buffer and vari-
+ables pktdq,ready out(shared between a NAC and its associ-
+atedDQ-sources) which denote the winning DQand positive
+number of DQs still queuing for their turn (i.e., ready outdef=
+(ndq>0)).
+3.6 Synchronisation and transmission modelling
+mechanism
+A synchronisation can be either regular or broadcast.
+Regular synchronisations require both sending and receiving
+123
+
+--- Page 9 ---
+Schedulability analysis for distributed RTS 219
+actions to happen simultaneously while the sending action
+can always happen (provided that the guard is satisﬁed) in abroadcast synchronisation, no matter if any receiving actions
+are enabled. The receiving actions that are enabled will syn-
+chronise.
+The transmission mechanism is modelled by shared vari-
+ables and broadcast synchronisations. The transmission
+arbiters implemented inside the transmitters (e.g., network
+medium, NACs) must have the ability to select the data ofhighest priority among available data for transmission at two
+points of time as follows.
+– When a transmitter is idle (i.e., staying in the initial
+location and no data is available as ready
+i=fa l s e
+where i∈{s,f,dp,dq,a,in,out}), it waits for any
+broadcast sending actions ( syncRls !,dpRls !,dqRls !,
+audRls !) to happen and synchronises with those enabled
+at the same time in a random sequential order with no
+time elapse in between. For example, let Os=Oa=0
+so initially two broadcast sending actions are enabled:
+syncRls !,audRls !and two packets SandAwaiting to be
+transmitted through the network medium. The synchron-ising order can be either: audRls ,syncRls orsyncRls ,
+audRls . No matter what order is chosen, the arbiter guar-
+antees to transmit the highest priority data ﬁrst, which in
+this example is S. This is because the value of token is
+set to 1 in either synchronising orders.
+– When a transmitter has just ﬁnished its current transmis-
+sion (i.e., after pkt Fr Mdm ?o rpkt Fr N AC ? is taken), it
+waits for the arbiter decision on the next transmission and
+takes an internal transition accordingly. The transmission
+decision is based on the information given by variables
+ready
+iand the data priority in .type . All broadcast send-
+ing actions to the transmitter happening before an inter-
+nal transition is taken can change variables ready iand
+.type , thereby possibly affecting the arbiter transmission
+decision. Otherwise, the transmitter will synchronise with
+them in a random sequential order as described above.
+It is possible to model the arbiter transmission decision by
+using interleaving semantics , which requires the number of
+internal transitions and synchronisations executed in parallelto be at most 1. So, transitions which are enabled at the sametime are taken sequentially without time elapse in between.
+In the modelling environment where interleaving semantics
+is not supported, the model requires minor modiﬁcation. Thatis, all broadcast synchronisations are made regular by add-
+ing dummy receiving actions to ensure that the transmitter
+can always synchronise with a broadcast sending source inwhatever state. As the transmitter cannot do multiple syn-
+chronisations simultaneously, they will have to be taken in
+a random sequential order as desired. Figure 10shows an
+example of adding dummy receiving actions to the mediumc<=Lmc>0
+syncRls? syncRls? syncRls?
+Fig. 10 Add dummy transitions to make syncRls a regular synchro-
+nisation
+Fig. 11 Packet streams in simple HCS
+Table 1 System instantiation
+for a simple exampleName Template
+P1S 5a
+P2S 5b
+aSdr 6a
+aBuf 6b
+P1d1 7a
+P2d1 7b
+aRecvd1 7c
+mdm 8
+iBuf n1 9a
+oBuf n1 9b
+n1 9c
+automaton in Fig. 8to make syncRls a regular synchronisa-
+tion.
+3.7 Example
+Consider a simple system that consists of a server, a network
+medium, a NAC, a device and whose ﬂows of PTP and audiomessages are depicted in Fig. 11. To represent such a system,
+11 automata whose templates are described in Figs. 5,6,7,
+8,9c are needed. For the sake of convenience in explana-
+tion and reasoning, these automata are named as shown in
+Table 1.
+Table 2summarises all the synchronisations (regular and
+broadcast) between the automata. An action is denoted by
+Automaton .Label, for example P1
+s.synch! indicates the
+S-sending action of the automaton in Fig. 5a. Table 3provides
+a summary of all the variables shared between the automata
+123
+
+--- Page 10 ---
+220 T. T. H. Le et al.
+Table 2 Synchronisations between automata
+Type Name Sending action Receiving action(s)
+Regular synch P1s.synch! mdm .synch?
+Regular followUp P1s.followUp! mdm .followUp?
+Regular delayRsp P2s.delayRsp! mdm .delayRsp?
+Regular dqToMdm oBuf n1.delayReq! mdm .delayReq?
+Regular dqToN1 P2d1.delayReq! n1.delayReq?
+Regular audio aBuf .audio! mdm .audio?
+Regular pktFrIBufN1 iBuf n1.pktFrBuf! n1.pktFrBuf?
+Broadcast syncRls P1s.syncRls! mdm .syncRls?
+Broadcast dpRls P2s.dpRls! mdm .dpRls?
+Broadcast dqRlsToN1 P2d1.dqRls! n1.dqRls?
+Broadcast dqRlsToMdm oBuf n1.dqRls! mdm .dqRls?
+Broadcast audRls aSdr .audRls! aBuf .audRls?
+mdm .audRls?
+Broadcast pktFrMdm mdm .pktFrMdm! P2s.pktFrMdm?
+iBuf n1.pktToBuf?
+n1.pktToNAC?
+Broadcast pktFrN1 n1.pktFrNAC! P1d1.pktToDv?
+P2d1.pktToDv?
+aRecvd1.pktToDv?
+oBuf n1.dqToBuf?
+Table 3 Shared variables between automata
+Global name Corresponding local names
+t1d1 P1d1.t1,P2d1.t1
+t2d1 P1d1.t2,P2d1.t2
+Ln P2d1.Ln,n1.Ln
+Lm P1s.Lm,mdm.Lm
+n_dqn1 P2d1.ndq,n1.ndq
+n_dqm oBuf n1.ndq,mdm.ndq
+of f d1 P2d1.of f,aRecvd1.of f
+pkts P1s.pkts,mdm.pkts
+pkta aBuf.pkta,mdm.pkta
+pktm mdm.pkt,P2s.pkt
+iBuf n1.pkt_in,n1.pkt_in
+pktn1 n1.pkt,P1d1.pkt,P2d1.pkt
+aRecvd1.pkt,oBuf n1.pkt
+pktdp P2s.pktdp,mdm.pktdp
+pkt_dqm oBuf n1.pktdq,mdm.pktdq
+pkt_dqn1 P2d1.pktdq,n1.pktdq
+head _ibn1 iBuf n1.head _ib,n1.head _ib
+ready s P1s.ready s,mdm.ready s
+ready a aBuf.ready a,mdm.ready a
+ready dp P2s.ready dp,mdm.ready dp
+ready dq oBuf n1.ready dq,mdm.ready dq
+ready _inn1 iBuf n1.ready _in,n1.ready _in
+ready _outn1 P2d1.ready _out,n1.ready _outTable 4 Packets sent with synchronisations
+Global name Synchronisations
+pkts P1s.synch!, mdm .synch?
+pkta aBuf .audio!, mdm .audio?
+pktm mdm .pktFrMdm!, P2s.pktFrMdm?
+iBuf n1.pktToBuf?, n1.pktToNAC?
+pktn1 n1.pktFrNAC!, P1d1.pktToDv?, P2d1.pktToDv?
+aRecvd1.pktToDv?, oBuf n1.dqToBuf
+pktdp P2s.delayRsp!, mdm .delayRsp?
+pkt_dqm oBuf n1.delayReq!, mdm .delayReq?
+pkt_dqn1 P2d1.delayReq!, n1.delayReq?
+head _ibn1 iBuf n1.pktFrBuf!, n1.pktFrBuf?
+and Table 4shows which packet is sent in which synchroni-
+sation. For each of the automata that share a variable, it hasa copy and a local name for that variable. The semantics for
+a shared variable with local copies is that whenever a local
+copy is changed, it is immediately effective on the globalvariable, i.e., it is also changed.
+Since we accept the convention that updating clocks and
+variables are only effective after the edge is taken, there seemsto exist a semantic problem in retrieving the correct infor-mation of a DQ sent from oBuf
+n1tomdm (or from P2d1
+ton1). Because oBuf n1.pkt_dq(orP2d1.pkt_dq), which
+represents that DQ, is updated only after the synchronisa-
+tion{oBuf n1.delayReq!, mdm .delayReq? }(or{P2d1.delay-
+Req!, n1.delayReq? }) happens, any read operation on the
+variable during or before the synchronisation will not getthe expected value, e.g., reading and assigning this variable
+tomdm.pktin action mdm.delayReq? (or n1.pktin action
+n1.delayReq?) in the model. However, this turns out not to be
+so problematic when some particular modelling construct isexploited. For example, in UPPAAL, the update expressions
+in a sending action are executed before the update expres-
+sions on a corresponding receiving action, so the problemdissolves. In another modelling languages like NuSMV [ 7]
+which does not adopt such convention, variables are updated
+by specifying their next value with the keyword next .S ot h e
+problem is also solved by specifying:
+next(mdm.pkt)=next(mdm.pkt_dq)
+Consider an example where P
+s=8,Pa=2,Os=Oa=
+0,Lm=Ln=1,es=ed1=1 (clocks do not drift) and
+audio relative deadline Drel=2. Then the deadline of the
+ﬁrst A, which is 2, is violated as shown by the following
+transition sequence:
+α=syncRls ,audRls ,1,
+synch ,pktFrMdm ,mdm.τ,1,
+audRls ,followUp ,pktFrMdm ,mdm.τ,
+123
+
+--- Page 11 ---
+Schedulability analysis for distributed RTS 221
+pktFrIBufN1 ,pktFrN1 ,n1.τ,1
+audio,pktFrMdm ,mdm.τ,
+pktFrIBufN1 ,pktFrN1 ,n1.τ,dqRlsToN1 ,1
+audRls ,audio,pktFrMdm ,mdm.τ,
+dqToN1 ,pktFrN1 ,n1.τ,dqRlsToMdm ,1
+dqToMdm ,pktFrMdm ,mdm.τ,
+pktFrIBufN1 ,pktFrN1 ,aRecv.τ
+3.8 Modelling requirements for HCS
+To model a real-time system with clock synchronisation like
+HCS, we need a modelling language that can express dif-
+ferent timed requirements and allow manipulating clocks.
+Other requirements including shared variables, broadcastchannels and interleaving semantics certainly ease the mod-
+elling effort but are not mandatory because there are always
+other modelling alternatives for them.
+UPPAAL, which is a mature modelling languages, can
+provide very efﬁcient veriﬁcations and analyses on temporal
+properties of a system modelled in terms of timed automata.While it supports all the optional modelling requirements forHCS, it does not allow direct clock manipulations. We defer
+the discussion on this limitation of UPPAAL to the next sec-
+tion where we describe how to model HCS in UPPAAL.Therefore, with UPPAAL the mandatory modelling require-
+ments for HCS stated earlier can only be satisﬁed partially.
+4 UPPAAL model for HCS
+Procedure 4 : Integer subtraction
+Require: a time point (ti,di),
+an offset to be subtracted away of f
+Ensure: (t,d)is the subtraction result
+1:t=ti−of f
+2:d=di
+3:ift<0then
+4: t=t+Lday
+5: d=1−d
+6:else if t>Ldaythen
+7: t=t−Lday
+8: d=1−d
+9:end if
+We have modelled HCS in UPPAAL [ 3] because the
+optimised real-time model checker integrated in the UP-
+PAAL modelling environment allows the temporal proper-
+ties of the system to be efﬁciently veriﬁed and analysed. Thepseudo model presented in Sect. 3is translated to UPPAAL
+with some modiﬁcations on modelling and capturing spe-
+ciﬁc instants of time. Such modiﬁcations are not trivial asUPPAAL generally does not support all expression involvingProcedure 5 : Delay Calculation
+Require: two time points (t1,d1)and(t2,d2)
+Ensure: delay is the difference between two time points
+1:ifd1==d2then
+2: delay =t2−t1
+3:else
+4: delay =t2+Lday−t1
+5:end if
+c==u
+c<=utick!
+d_i=(t_i+1>=L_day) ^ d_i,
+t_i=(t_i+1) % L_day, 
+c=0
+Fig. 12 Integer clock
+clocks. For instance, reading a clock and assigning its value
+to a variable are impossible in UPPAAL since only integer
+variables are supported there. Access to clocks, however, isessential to the PTP implementation on both the server and
+devices.
+One approach is to try to use integer clocks and intro-
+duce the variables t
+iwhose values are the integer parts of the
+clock values. The idea is to compute an upper bound uand
+increase tiwhenever a clock reaches u. Specifically, given
+c=e×crealthen u=⌊1/e⌋is the clock bound at which c
+must be reset to 0 and tiis increased by 1. In addition, ucan
+be measured more ﬁnely by taking up to ndigits after the dec-
+imal point of 1 /e. For example, e=0.95 so u=⌊1/0.95⌋=
+⌊1.052⌋= 1 or better u=⌊103/0.95⌋= 1,052.
+As every integer variable will ﬁnally overﬂow if it keeps
+increasing, it is necessary to introduce the notion of date,
+which we split into an odd and an even date, so that tican be
+reset to 0 whenever it reaches the duration of day, denoted
+byLday. An additional variable di, whose value is either 0
+(even date) or 1 (odd date), is used to remember the currentdate of the integer clock. The use of integer clocks gives rise
+to additional considerations and complications:
+– An additional automaton is speciﬁed to model the inte-
+ger clocks. Figure 12shows a UPPAAL template of such
+automaton. Here, ^ and % denote the bitwise XOR andmodulo operator respectively. Moreover, the transition
+tick!must always happen before any reading attempt on
+integer clocks, thus it must be modelled as a broadcastchannel and be given a higher priority than other transi-
+tions.
+– Invariants on a periodic clock clike c/lessorequalslantP
+smust be
+multiplied by their upper bound u, e.g., c/lessorequalslantu×Ps.
+– Consider a subtraction involving clock clike(c−
+of f). To turn this into an integer subtraction, ti,diare
+introduced as described above and the integer subtrac-
+123
+
+--- Page 12 ---
+222 T. T. H. Le et al.
+tion stored in t,das in Procedure 4. Similar expressions
+involving clocks can be found in Figs. 5a and 7, e.g.,
+pkt f.t=clks−es×Lm.
+– An essential part of the PTP is to record precisely the
+sending/arriving time of S(orDQ)i n t1/t2(ort3/t4)
+respectively. Because all clocks are now integer, also thesending/arriving date is recorded in d
+1/d2(ord3/d4).
+Computing the difference between the sending and arriv-
+ing time is not straightforward as there is no way to knowhow many days have elapsed between these two dates,
+especially when the server and device clocks have differ-
+ent drifting rates. For example:
+e
+s=0.50→us=⌊1/0.50⌋= 2
+ed=0.25→ud=⌊1/0.25⌋= 4
+Therefore when the device integer clock reaches its bound
+the second/fourth/eighth time, etc., the server clock hits
+its bound the fourth/eight/sixteenth time, etc. respectivelyand the date variables for both clocks are 0. If the driftingrates are constrained to be exactly the same and L
+dayto
+be greater than the worst delay of any packet in HCS,
+then the difference between (t1,d1)and(t2,d2)can be
+measured as in Procedure 5.
+– The veriﬁcation of audio deadlines encounters a similar
+problem because the deadlines are checked w.r.t. integerdevice clocks. When the drifting rates are the same and
+L
+dayis much greater than both the worst delay of any
+packet in the system and the device offset of f ncalcu-
+lated in Procedure 3, then audio deadlines can be veriﬁed
+according to Procedure 6.L e t(tp,dp)denote an audio
+time-to-play or deadline and (ti,di)denote the time at
+which a device receives the packet without consideringthe offset information. Then, (t
+g,dg)or the time at which
+the packet was generated by the server can be calculated
+by subtracting away the audio relative deadline Drelfrom
+(tp,dp)(line 1). Likewise, the subtraction involving of f n
+(line 2) computes the actual arrival time of the packet. The
+deadline veriﬁcation is based on comparing the receipttime without (t
+i,di)and with (tarr,darr)considering the
+offset information against the deadline (tp,dp). For exam-
+ple, when (di== dp)∧(ti/lessorequalslanttp)(line 3), it means the
+actual dates are coincident and the deadline may be notbe due yet because D
+rel/lessmuchLdayand the worst delay is
+less than Lday. Then, a positive offset (i.e., of f n/greaterorequalslant0)
+means the actual arrival time is even earlier and so thedeadline is respected (lines 4–5). A negative offset may
+not violate the deadline as long as the actual arrival time
+is still earlier than the deadline (lines 4–5). Otherwise,the deadline is violated (lines 6–8).Procedure 6 : Audio Deadline Veriﬁcation
+Require: offset of f nfrom Procedure 3,
+deadline (tp,dp),
+without-offset receipt time (ti,di)
+Ensure: check ∈{violated, satisﬁed }
+1:(tg,dg)=(tp,dp)−Drel
+2:(tarr,darr)=(ti,di)−of f n/2
+3:if(di==dp)∧(ti/lessorequalslanttp)then
+4: if(of f n/greaterorequalslant0)∨(darr==dp∧tarr/lessorequalslanttp)then
+5: check = satisﬁed6: else
+7: check = violated8: end if
+9:else if (d
+i==dp)∧(ti>tp)then
+10: if(of f n/lessorequalslant0)∨(darr==dp∧tarr>tp)then
+11: check = violated12: else
+13: check = satisﬁed14: end if
+15:else if (d
+i!=dp)∧(dp==dg)then
+16: if(of f n/lessorequalslant0)∨(darr!=dp)∨(tarr>tp)then
+17: check = violated18: else
+19: check = satisﬁed20: end if
+21:else if (d
+i!=dp)∧(dp!=dg)then
+22: if(of f n/greaterorequalslant0)∨(darr!=dp)∨(tarr/lessorequalslanttp)then
+23: check = satisﬁed24: else
+25: check = violated26: end if
+27:end if
+5 Analysis of ground parameters
+The UPPAAL model for HCS is a network of 13 timed auto-
+mata of which 11 automata are described in Figs. 5,6,7,8,
+9c with further modiﬁcations for capturing clock values as
+detailed in Sect. 4, and 2 additional automata to model the
+integer server/device clock.
+We have performed veriﬁcation and analyses on the cor-
+rect functioning of HCS (i.e., audio deadlines are satisﬁedw.r.t. a hard or ﬁrm constraint and buffer overruns do not
+occur) under a diverse set of parameter settings. We present
+in this section the experimental results for a simple instanti-ation of HCS whose structure and connection are depicted in
+Fig. 11. We have chosen as free parameters the latency L
+m
+andLn. A point (Lm,Ln)is considered feasible if it does
+not drive the network of automata to any Error location. The
+values of the ﬁxed parameters are as follows:
+Ps=40,Pa=10,Os=Oa=0,Drel=10,
+Lday=1000,bu f len=10,es=ed1=1
+As discussed in Sect. 4, to ensure the correctness of the com-
+parisons between integer clocks, it is necessary to enforcethe following constraints:
+123
+
+--- Page 13 ---
+Schedulability analysis for distributed RTS 223
+ 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln
+ 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln
+ 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln LnLnLn(a) 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln
+Lm 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln
+Lm 0 2 4 6 8 10
+ 0  2  4  6  8  10Ln
+Lm LmLmLm
+(b)
+ 0  0 10 20 30 40 50
+ 10  20  30  40  50Ln
+Lm 0 10 20 30 40 50
+ 10  20  30  40  50Ln
+LmLn
+Lm 0 10 20 30 40 50
+ 0  10  20  30  40  50 0 10 20 30 40 50
+ 0  10  20  30  40  50
+LmLmLm
+Fig. 13 Point-wise veriﬁcation result on buffer-overrun ( box), deadline violation ( times ) w.r.t hard constraint ( a,c) and soft constraint ( b,d),
+correct functioning ( plus).cZoomed region between 0 and 5 in a.dZoomed region between 0 and 5 in b
+– drifting rates are exactly the same
+–Lday>of f>−Lday
+–Lday>delayworst
+The ﬁrst constraint is respected because in our experiment
+es=ed1=1, meaning clocks do not drift. The satisfac-
+tion of the second constraint is conﬁrmed by the UPPAALchecker. The last constraint can be veriﬁed by using the worstdelay for an A-packet approximated in the following formula,
+since A-packets have the lowest priority:
+delay
+A
+worst/similarequal10×Pa+10×Ln+(10×Pa/Ps+1)×Ln.
+where:
+–1 0 ×Pais the time period after which the packet must be
+delivered, otherwise a buffer overrun occurs because thebuffer can contain at most 10 packets ( bu f
+len=10).
+–1 0 ×Lnis the delay the packet might have to experience
+if it is inserted at the end of the NAC input queue and sohas to wait for the other 9 packets to be processed.–1 0 ×P
+a/Ps+1 is the number of S-packets released until
+the packet is delivered to the network and since there is
+only one device in this experiment, it is also the number
+ofDQ-packets that are sent upon receiving S-packets.
+–(10×Pa/Ps+1)×Lnis the delay the packet may expe-
+rience when the DQs are processed while the packet is
+queuing for its turn.
+Moreover, to prevent deadlock in Fig. 5a, we need to enforce
+a further constraint of Ps≥3×Lm. This is because the Sync
+period must complete sending a pair of SandFwhich takes
+2Lmand the Smay have to wait for the network medium
+to become free which takes 1 Lm. We have carried the ver-
+iﬁcation in a point-wise manner. The parameters of interest(i.e., L
+mandLn) are grounded to different values between
+0 and 10 (a value of 10 is chosen to respect the constraint
+on deadlock prevention). Figure 13a and b show the result of
+the veriﬁcation.
+In Fig. 13, points marked with /squareresult in buffer over-
+runs while points marked with ×do not, but instead vio-
+late a hard or soft deadline constraint. Feasible points which
+123
+
+--- Page 14 ---
+224 T. T. H. Le et al.
+Fig. 14 Variation of latency
+can ensure the correct functioning of the system are marked
+with +. A closer look at the region in Fig. 13a, b where
+only a hard/soft deadline constraint is violated or satisﬁed
+is shown in Fig. 13c/d where the square regions between
+0 and 5 are zoomed in. This zooming operation essentially
+means performing a ﬁner granularity on the free parame-
+tersLmandLn. Since UPPAAL supports only integer vari-
+ables, ﬁner granularities can be obtained by performing a
+z-multiplication. That is, ﬁxed timing parameters (includ-
+ingPs,Pa,Os,Oa,Drel,Lday) and the vertex coordinates
+of the square region are multiplied by 10zwhere z/greaterorequalslant1
+denoting the number of digits after the decimal point of Lm
+and Ln. For example, the feasibility veriﬁcation on point
+Lm=5,Ln=5 is enabled in Fig. 13c, d where the 1-multi-
+plication is performed while it is not in Fig. 13a, b since Lm
+andLncannot take on real values like 0.5. The choice of zcertainly depends on the largest integer value that UPPAAL
+can represent and therefore cannot grow arbitrarily large.
+In particular, Fig. 13d shows the non-monotonic behav-
+iour of HCS under a soft constraint of audio deadlines. For
+example, at Lm=3, the system respects the constraint for
+0.1/lessorequalslantLn/lessorequalslant1.6. When Lngrows larger, i.e., 1 .7/lessorequalslantLn,
+the constraint is violated until Lngoes beyond 2.0 when it is
+satisﬁed again and remains so as long as Ln/lessorequalslant3.4.
+Figures 15,16,17explain graphically the reasons for such
+non-monotonic behaviour w.r.t. the variation of Lnin the
+intervals [t1,t2]equal to [0.1, 1.6] or [1.7, 2] or [2.1, 3.4].
+The variation of Lnfrom t1tot2causes the latency of a
+packet to vary as well, which in turn causes the variation in
+the latency of the packet transmitted right after it. We use a
+horizontal bar to denote a latency and depict the variation inlatency by two such bars, each of which corresponds to L
+n
+being at the starting/end point of the interval in which it var-
+ies. The two bars may partially overlap as shown in Fig. 14a,
+b) or be separate as in Fig. 14c. In Fig. 14, the starting/end
+points of the two bars are t/t+t1andt/prime/t/prime+t2.
+Figure 15a and b show the packet stream during the ﬁrst
+two audio periods for 0 .1/lessorequalslantLn/lessorequalslant1.6.S,FandApackets are
+delivered to the medium at time 0, 3 and 6 respectively. They
+are then forwarded to the NAC at time 3, 6 and 9 respec-
+tively. As Lnchanges from 0.1 to 1.6, the release time of
+aDQ-packet changes from 6.1 to 7.6 upon receiving the
+F-packet and the starting time of the DQ transmission
+through the medium changes from 9 to 9.2. Note that the
+medium was busy ﬁnishing the ﬁrst A-transmission before
+time 9. Upon receiving the DQ-packet, the server replies with
+aDPat time ranging from 12 to 12.2 w.r.t. the variation of
+Lnbetween 0.1 and 1.6.
+(a)
+(b) 
+Fig. 15 Packet streams in HCS during the ﬁrst two audio period. aPacket transmission scheme of the NAC for Lm=3a n d0 .1/lessorequalslantLn/lessorequalslant1.6.
+bPacket transmission scheme of the NAC for Lm=3a n d0 .1/lessorequalslantLn/lessorequalslant1.6
+123
+
+--- Page 15 ---
+Schedulability analysis for distributed RTS 225
+(a)
+(b)
+Fig. 16 Packet streams in HCS during the ﬁrst two audio periods. aPacket transmission scheme of the medium for Lm=3a n d1 .7/lessorequalslantLn/lessorequalslant2.0.
+bPacket transmission scheme of the NAC for Lm=3a n d1 .7/lessorequalslantLn/lessorequalslant2.0
+(a)
+(b)
+Fig. 17 Packet streams in HCS during the ﬁrst two audio periods. aPacket transmission scheme of the medium for Lm=3a n d2 .1/lessorequalslantLn/lessorequalslant3.4.
+bPacket transmission scheme of the NLC for Lm=3a n d2 .1/lessorequalslantLn/lessorequalslant3.4
+The arriving time of the ﬁrst A-packet also varies with Ln,
+i.e., it goes from 9.1 to 10.6. Since Drel=10, it is possible that
+the ﬁrst A-deadline is not respected. The second A-released
+at time 10 is transmitted through the medium at time ranging
+from 15 to 15.2 and so its arriving time ranges from 18 to 19.6
+which is less than 20. As can be seen clearly from the ﬁg-ures, the delays of the SandDQpackets are the same, hence
+of f
+n=0 and the second A-deadline is satisﬁed. From time
+20–40, two other A-packets are generated and transmitted
+through the idle network without further delays from pack-ets of higher priorities. Those A-deadlines are also satisﬁed
+and this transmission scheme is repeated at time 40, 80, etc.For 1.7/lessorequalslantL
+n/lessorequalslant2.0, the transmission scheme looks simi-
+larly as in Fig. 16a and b. However, since the arriving time of
+the ﬁrst Avaries in the interval of [11.1,12] and the second
+Ain [20.1,21], two consecutive deadline misses certainly
+happen and so the soft deadline constraint is violated.
+When Lngrows larger than 2.0, i.e., 2 .1/lessorequalslantLn/lessorequalslant3.4, the
+NAC processes the DQ-packet longer than previous cases.
+The DQ is forwarded to the medium at time ranging from
+10.2 to 13.2 and so has to wait for the second A-packet, which
+was created at time 10 and took the transmission token, tocomplete its transmission. In this case, the second Agets
+transmitted before the DQ and arrives at the device before
+123
+
+--- Page 16 ---
+226 T. T. H. Le et al.
+Table 5 Analysis time in minutes (mins) under a hard/ﬁrm audio deadline constraint with a coarse/ﬁne granularity
+Constraint type Granularity Range Figure Veriﬁed points Total analysis Average analysis
+time (min) time (min)
+Hard Coarse 0–10 13a 100 445 4.5
+Firm Coarse 0–10 13b 100 440 4.4
+Hard Fine 0–5 13c2 ,500 250 0.1
+Firm Fine 0–5 13d2 ,500 260 0.1
+theDPbetween time 15.1 and 20. Since the offset initially
+is zero and changed upon receiving the DP, the second DQ
+deadline is satisﬁed (Fig. 17a, b).
+Finally, as soon as Lngoes beyond 3.5, i.e., 3 .5/lessorequalslantLn/lessorequalslant
+5.0, the arriving time of the second Agoes beyond 20 and
+causes the soft deadline constraint to be violated.
+Table 5shows the total analysis time taken to analyse HCS
+operating under a hard or soft constraint on audio deadline
+and with a coarse or ﬁne granularity. The analysis is per-formed on 10 ×10=100 points in a coarse-grained param-
+eter setting with the parameters ranging from 0 to 10 time
+units. For the ﬁne-grained parameter setting, the grid is made
+of 50 ×50=2,500 points while the parameters vary in
+the smaller 0–5 time units range. The ﬁne-grained analy-
+sis results in a much lower average time per point, and an
+overall lower total run-time. This is because the analysis isrestricted to a region with smaller values of the latency, which
+result in a smaller time for UPPAAL to converge (ﬁnd an
+error trace or establish the feasibility of the system). If wespanned the whole range with ﬁne granularity, the computa-tion time would easily become unaffordable. A coarse gran-
+ularity should therefore be used to study large variations,
+while smaller regions can be analysed more ﬁnely.
+Given the ﬁgures in Table 5, we can make the follow-
+ing concluding remarks. First, the system seems to have an
+acceptable performance when the veriﬁcation is carried outwith ground parameters (a few minutes to carry out the veriﬁ-
+cation). Clearly, the performance worsens significantly when
+the complexity of the system grows (e.g., by inserting moreNACs), but it remains within acceptable bounds for realisticsizes of the problem. Second, the exploration of the param-
+eter space is cost affordable for a coarse granularity, but the
+non monotonic behaviour of the system could very easilylead to wrong conclusions. Third, a more exhaustive analy-
+sis (with a ﬁner granularity) provides better guarantees and
+enables the designer to gain insight in the system behaviour.However, the cost of this analysis remains very high for a
+sufﬁciently large span of the parameters.
+6 Related work
+There are several methodologies that have been developed
+in the literature to address various issues in the analysis ofreal-time embedded systems. In our speciﬁc case, we are
+interested in determining timing properties of a complex sys-
+tem over a range of different parameters and, in particular,in computing an area of safe operation. This problem can be
+approached using formal analytical exhaustive methods or
+semi-formal simulation-based methods, and may take intoaccount worst case or average case (under a certain statis-
+tics) behaviour.
+One class of methodologies is based on the analytical rep-
+resentation of the timing characteristics of the system througha set of upper and lower bound functions on the rate of
+activity, or on the availability of computing resources. One
+example of this approach is Modular Performance Analysis(MPA) [ 8,9]. In MPA, tasks and input events are character-
+ised in terms of the maximum and minimum activation or
+arrival rate over any interval length through a pair of func-tions. Computing platforms are represented in a similar way
+by modeling the least and largest amount of computation
+that can be supported in any time interval, and by selectinga policy for scheduling the input service requests. Analyti-cal methods can be used through RTC-toolbox, a tool that
+implements the MPA methodology, to compute the arrival
+rate of output events, and the residual computation resourcesavailable under the chosen scheduling policy. These data
+can be used to determine the performance of the system,
+including end-to-end delays and buffer sizes [ 10]. Because
+of the degree of abstraction, this method is fast, but is lim-
+ited by the relative expressive power of the model, which,
+for instance, is unable to support computation units whosebehaviour depends on some state. To overcome this limita-tion, a recent evolution of MPA allows state-based scheduling
+policies to be modeled as timed automata, which are inte-
+grated into the system by translating the arrival rate informa-tion into generating (for the input) and observer (for the out-
+put) automata [ 11,12]. The use of this variant has, of course,
+an impact on the running time of the analysis. The methodthat we present in this work stands on the automata side of
+the spectrum, and offers higher accuracy in the representation
+(not just lower and upper bounds) and higher ﬂexibility. Onespeciﬁc advantage of the direct use of automata is the abilityto specify any behavioural property by employing appropri-
+ate error states, and is therefore more expressive than MPA.
+In our case study, for instance, it was important to faithfully
+123
+
+--- Page 17 ---
+Schedulability analysis for distributed RTS 227
+model the time synchronisation algorithm, since the clock
+drift directly affects the correctness of the system. In addi-tion, the formal analysis conducted in UPPAAL is able to
+provide a witness error trace when a particular choice of the
+values of the parameters make the system unable to satisfythe required property, offering a valuable tool to qualitativelyunderstand how to optimise the system. The downside is a
+much larger execution time.
+Hierarchical event streams, used in the SymTA/S tool,
+are an alternative way of representing task activation pat-
+terns analytically [ 13]. The SymTA/S tool implements a vari-
+ety of schedulability analysis techniques, based on eventstreams, and offers a number of scheduling algorithms to
+be selected in constructing an architecture platform for the
+system. The approach was successfully applied to analys-ing systems using binary search on the parameter space [ 14].
+The analysis is fast, and the results comparable to what can be
+obtained using MPA. Likewise, the same arguments regard-
+ing ﬂexibility apply, prompting us to use the direct automata-based speciﬁcation.
+Exhaustive and analytical methods are typically oriented
+towards considering the worst, or sometimes best, casebehaviour of the system. An alternative approach is to con-
+sider the average case, under some statistics of the input pat-
+terns. A particularly interesting method is statistical model
+checking , which allows the designer to determine the proba-
+bility that a certain property is satisﬁed. The model checking
+algorithm is computationally intensive, so that for large sys-
+tems it is necessary to compute an abstraction. This has beenachieved on an extended version of our case study using simu-
+lation-based methods [ 15] to analyse the behaviour of a large
+deployment of devices (in the order of a hundred) to providea stochastic abstraction. In particular, the system has been
+modeled in the BIP framework [ 16] as a network of simpli-
+ﬁed timed atomic components, in a way similar to our presentwork (our model, in fact, derives in its simplest form fromthe BIP model). The method consists in selecting a particular
+pair of server and device, and simulating the entire system
+while concurrently measuring the timing behaviour of thedata packets exchanged by the selected pair. These data are
+collected into a statistical model which is limited to the pair,
+but which accounts for the interaction with the other applica-tions on the system and the effects of resource sharing (such
+as the network links). In other words, the statistical model
+depends on the context of use. Not surprisingly, the resultsare highly dependent on the particular device that is pairedwith the server. The statistical model checking technique is
+ﬁnally used on the context-dependent model to establish the
+probability that the desired properties are satisﬁed. While theapproach is based on formal methods, the correctness of the
+results cannot be guaranteed because the model is derived
+by a ﬁnite number of simulations. However, techniques havebeen developed to estimate and bound the probability of mak-ing an error. In contrast to the statistical approach, the method
+presented in this work focuses on the worst-case behaviour.The advantage is that the results are guaranteed to be cor-
+rect. To relax the requirements that all deadlines are met, we
+have developed alternative models, where the error state thatidentiﬁes a missed deadline is not reached unless two pack-ets in a row are lost. Similar models can be constructed to
+account for different average case behaviours, depending on
+the particular application under study.
+An approach similar to ours, and from which we have
+taken inspiration, was proposed by Amnell et al. [ 17] with
+the tool TIMES. In TIMES, task activation are represented asﬁnite automata, and appropriate schedulers can be selected to
+verify the schedulability of the system according to a sched-
+uling policy and a set of worst case execution times and dead-lines. The technique uses UPPAAL as an underlying engine.As opposed to TIMES, our approach is more generic since
+we are interested in analysing more than just schedulabil-
+ity in a potentially distributed settings. We therefore workdirectly at the level of the UPPAAL model to achieve the
+desired ﬂexibility and expressiveness.
+In our earlier work, we have shown how to analyse the
+parameter space of a similar system using exhaustive tech-
+niques based on bounded model checking [ 18]. While con-
+ceptually applicable to the extended model presented in thiswork, the computational complexity makes the approachimpractical. Our current research is geared towards combin-
+ing the method described in this paper with bounded model
+checking to achieve an efﬁcient and exhaustive search of thecontinuous parameter space.
+7 Discussion and conclusions
+We have presented a case study, a modelling methodology
+and the analysis over a space of parameters of an industrialheterogeneous communication system. The system is charac-
+terised by complexity in terms of structure, and also in terms
+of functional and non-functional constraints, which must becarefully veriﬁed to assess the robustness of an implemen-
+tation. To this end, we have studied the behaviour of the
+system over changing values of the parameters, to explorethe regions of feasibility and their extension. Our approachis semi-formal. While we exhaustively analyse the property
+of the system for every point in a grid of the parameters,
+we do not study the behaviour of the system between thesepoints. One could take a binary search-like approach to ﬁnd
+the boundaries where the system changes from feasible to
+unfeasible. This may or may not work, depending on thesystem. In our case, for instance, the observed non-mono-
+tonic behaviour breaks a binary search algorithm and may
+lead to conservative or, in the worst case, optimistic answerswhere unfeasible points are classiﬁed as feasible. We have
+123
+
+--- Page 18 ---
+228 T. T. H. Le et al.
+also discussed alternative approaches, which can be used to
+trade off faster exploration with model expressiveness.
+A fully parametric approach based on formal methods is
+desirable. Formal methods guarantee completeness (when
+the problem is decidable). By fully parametric we mean amethod that accounts for parameters natively in their con-tinuous space, and that understands their semantics. In our
+previous work, we have proposed a technique based on a
+symbolic representation of the timed automata and theirparameters using NuSMV and tools for solving Satisﬁability
+Modulo Theory (SMT) problems [ 18,19]. Instead of explor-
+ing points one by one, the method would symbolically searchfor an unfeasible point, and then generalise this point to a
+region by taking advantage of the boolean structure of the
+unfeasible trace that leads to the error state. The successiveapplication of this technique eventually covers the unfeasibleregion. This method is not affected by non-monotonicity, and
+is decidable for certain classes of systems. The downside of
+the approach is a considerable computational complexity thatmakes the technique impractical in all but the simplest cases.
+The problem lies primarily in the search of a new unfeasi-
+ble point and the trace that leads to the error state, whilethe process of generalisation of the trace is typically rather
+efﬁcient. For this reason, one approach that we are experi-
+menting with is to randomly search for unsatisﬁable pointsusing UPPAAL, which is relatively fast. Once one is found,the point is symbolically generalised to a region bounded by
+a polyhedron (linear constraints) and is added to the unfeasi-
+ble set. The combination of the explicit method in UPPAAL,and the implicit method with NuSMV proves very effective,
+and is able to drastically reduce the run-time. The combined
+use of different tools has, however, some disadvantages. Inour case, one has to ensure that the semantics of the model is
+preserved when moving from one tool to another. This is not
+always simple, as in UPPAAL clock values can only be storedin integer variables, while they can be stored in real variablesin NuSMV . Synchronisations must also be dealt with care-
+fully to make sure that the semantics of composition matches.
+The results that we have obtained with a simpliﬁed versionof the model presented in this paper are encouraging. A fully
+automated ﬂow is under investigation and development to
+properly manage models of higher complexity. Our researchis particularly oriented towards the use of higher level lan-
+guages, such as Hydi [ 20], to derive an equivalent representa-
+tion in the different tools that matches the original semantics.
+References
+1. Liu, J.W.S.W.: Real-Time Systems, 1st edn. Prentice Hall,
+PTR, Upper Saddle River (2000)
+2. Alur, R., Dill, D.L.: A theory of timed automata. Theor. Comput.
+Sci126(2), 183–235 (1994)3. Larsen, K.G., Pettersson, P., Yi, W.: Uppaal in a nutshell Int. J.
+Softw. Tools Technol. Transf. 1, 134–152 (1997)
+4. EADS Innovation Works: Case study on distributed heterogeneous
+communication systems (hcs), Germany. http://www.combest.eu/
+home/?link=Application1 (2009)
+5. IEEE Standard 1588–2002: A precision clock synchronization pro-
+tocol for networked measurement and control systems. November(2002)
+6. Ramanathan, P.: Overload management in real-time control appli-
+cations using (m, k)-ﬁrm guarantee. Parallel Distrib. Syst. IEEETrans. 10(6), 549–559 (1999)
+7. Cimatti, A., Clarke, E., Giunchiglia, F., Roveri, M.: Nusmv: a new
+symbolic model veriﬁer. pp. 495–499. Springer, Berlin (1999)
+8. Wandeler, E., Thiele, L., Verhoef, M., Lieverse, P.: System archi-
+tecture evaluation using modular performance analysis: a casestudy. STTT 8(6), 649–667 (2006)
+9. Thiele, L., Chakraborty, S., Naedele, M.: Real-time calculus for
+scheduling hard real-time systems. Proc. Intl. Symposium Circ.Syst. 4, 101–104 (2000)
+10. Suppiger, U., Perathoner, S., Lampka, K., Thiele, L.: Modular per-
+formance analysis of large-scale distributed embedded systems: anindustrial case study. Computer Engineering and Networks Labo-
+ratory, ETH Zurich, TIK Report 330, November (2010)
+11. Lampka, K., Perathoner, S., Thiele, L.: Analytic real-time analysis
+and timed automata: a hybrid method for analyzing embedded real-time systems. In: EMSOFT’09: Proceedings of the 7th ACM inter-national conference on embedded software, pp. 107–116. ACM,New York, NY , USA (2009)
+12. Lampka, K., Perathoner, S., Thiele, L.: Analytic real-time analysis
+and timed automata: A hybrid methodology for the performanceanalysis of embedded real-time systems. Des. Autom. Embed.Syst. 14(3), 193–227 (2010)
+13. Henia, R., Hamann, A., Jersak, M., Racu, R., Richter, K.,
+Ernst, R.: System level performance analysis-the SymTA/Sapproach. IEEE Proc Comput. Digit. Tech. 152(2), 148–166 (2005)
+14. Racu, R., Jersak. M., Ernst, R.: Applying sensitivity analysis in
+real-time distributed systems. In: RTAS ’05: Proceedings of the11th IEEE real time on embedded technology and applicationssymposium, pp. 160–169. IEEE Computer Society, Washington,DC, USA (2005)
+15. Basu, A., Bensalem, S., Bozga, M., Caillaud, B., Delahaye, B.,
+Legay, A.: Statistical abstraction and model-checking of large het-erogeneous systems. In: Hatcliff, J., Zucca, E. (eds.) Formal tech-niques for distributed systems, Joint 12th IFIP WG 6.1 internationalconference, FMOODS 2010 and 30th IFIP WG 6.1 internationalconference, FORTE 2010, Amsterdam, The Netherlands, June 7–9, 2010. Proceedings, ser. Lecture notes in computer science, vol.
+6117, pp. 32–46. Springer, Berlin (2010)
+16. Basu, A., Bozga, M., Sifakis, J.: Modeling heterogeneous real-time
+systems in BIP. In: SEFM06, pp. 3–12. Pune, India, September(2006)
+17. Amnell, T., Fersman, E., Mokrushin, L., Pettersson, P., Yi, W.:
+TIMES: a tool for schedulability analysis and code generation ofreal-time systems. In: FORMATS, pp. 60–72 (2003)
+18. Le, T.T.H., Palopoli, L., Passerone, R., Ramadian, Y ., Cimatti, A.:
+Parametric analysis of distributed ﬁrm real-time systems: a casestudy. In: Proceedings of the 15th IEEE international conferenceon emerging technologies and factory automation (ETFA10), pp.1–8. Bilbao, Spain, September 13–16 (2010)
+19. Cimatti, A., Palopoli, L., Ramadian, Y .: Symbolic computation of
+schedulability regions using parametric timed automata. In: Real-Time Systems Symposium, pp. 80–89. Dec 3 (2008)
+20. Cimatti, A., Mover, S., Tonetta, S.: Hydi: A language for symbolic
+hybrid systems with discrete interaction. In: EUROMICRO-SEAA,pp. 275–278 (2011)
+123

@@ -1,0 +1,793 @@
+--- Page 1 ---
+Automata for Analysing Service Contracts?
+Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+fbasile,degano,giangi g@di.unipi.it
+Dipartimento di Informatica, Universit `a di Pisa, Italy
+Abstract. A novel approach to the formal description of service contracts is pre-
+sented in terms of automata. We focus on the basic property of guaranteeing that
+in the multi-party composition of principals each individual gets his requests sat-
+isﬁed, so that the overall composition reaches its goal. Depending on whether
+requests are satisﬁed synchronously or asynchronously, we construct an orches-
+trator that at static time either yields composed services enjoying the required
+properties or detects the individuals responsible for possible violations. To do
+that in the asynchronous case we resort to techniques from Operational Research.
+1 Introduction
+Service composition is the fundamental part of the service-oriented approach. Often,
+the computational capabilities offered by a coarse-grained service are implemented tak-
+ing advantage of multiple, ﬁner-grained and loosely-coupled services. APIs for service
+composition (orchestration and choreography) are an integral part of service-based sys-
+tems. Different languages have been proposed for orchestrating Web Services, the most
+popular among which is BPEL [23]. However, several crucial issues naturally arise,
+e.g. the usage of resources, the guarantees on the results provided, the correctness of
+the whole business process in a variety of different operational environments.
+Service orchestrations rely on the notion of service contract which speciﬁes what
+a service is going to offer and what in turn it requires. In order to serve its client, the
+orchestrator deﬁnes the duties and responsibilities for each of the different services
+he calls. This contract agreement is obviously based on the contracts of the involved
+services, and ensures that all the duties are properly kept. The orchestrator can then pro-
+ceed to organise the overall service composition and to propose the resulting contract to
+its own clients. This process is called contract composition . Contract composition as-
+sumes that none of the involved service violates its contract, i.e. that contract agreement
+is fulﬁlled, in which case so does the orchestration. Furthermore, a failing service con-
+tract can cause the orchestrator to breach the contract with its clients. Thus reaching the
+agreement among the services is the essential ingredient in designing orchestrations.
+The main question addressed by our research is twofold. First, we aim at develop-
+ing techniques capable of determining a correct contract composition by considering
+the individual service contracts and their overall satisfaction within an orchestration.
+Second, we propose a rigorous formal technique, suitable to be automated, to compose
+?This work has been partially supported by the MIUR project Security Horizons and IST-FP7-
+FET open-IP project ASCENS
+
+--- Page 2 ---
+2 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+contracts. Previous work have tackled similar issues. We only mention a few that use
+thel-calculus [4, 5, 8], process calculi [14, 15, 1], non-classical logics [7].
+Here, we introduce an automata-based model for contracts called contract automata
+(CA), that are a special kind of ﬁnite state automata endowed with two composition op-
+erators, involving many parties and reﬂecting two different orchestration policies. One
+operation joins a service to an existing orchestration with no reconﬁguration; the second
+requires a global adaptive re-orchestration of all the services involved. We also deﬁne
+properties of CA that guarantee a group of contracts to agree under all circumstances.
+The ﬁrst one is called agreement and considers the case when all the requests made
+are synchronously matched in pair by the offers, and thus satisﬁed; we also synthe-
+sise a suitable orchestrator to enforce contract composition to adhere to this behaviour.
+The second property, weak agreement , is more liberal, in that requests can be asyn-
+chronously matched, and an offer can be delivered even before a corresponding request.
+We also establish conditions ensuring that a group of contracts agree in some spe-
+ciﬁc cases (they admit agreement or weak agreement). We develop static techniques to
+detect which individual in a contract is liable , i.e. the responsibles for leading a con-
+tract composition into a failing state; as a matter of fact, our notion slightly differs form
+other versions of liability [6], mainly because we do not admit the possibility of redeem
+from culpability. While ﬁnding the individuals liable for a violation of agreement is not
+hard (inspecting the automaton plus a little calculation sufﬁce), things become much
+more intricate when we consider weak agreement, that has a clear interpretation as a
+context-sensitive language. For the synchronous case, we offer a method for composing
+contract and detecting liability, that is inspired by so-called controllers of the Control
+Theory [12]. Instead, we check weak agreement and detect liability in an original man-
+ner by resorting to optimization techniques borrowed from Operational Research. In
+particular, we show that these notions are naturally handled in terms of optimization of
+network ﬂows. The intuitive idea is that the problem of service composition is rendered
+as a ﬂow itinerary in the networks, that is automatically constructed from the contract
+automata resulting from service composition.
+Because of space limitation, all the proofs of our results are omitted and can be
+found in [9].
+2 The Model
+This section formally introduces the notion of contract automata. We start with some
+notation and preliminary deﬁnitions. Let S=R[O[fgbe the alphabet of actions
+partitioned in requests R=fa;b;c;:::gandoffersO=fa;b;c;:::gwhere R\O=/0,
+and62R[Ois a distinguished element representing the idleaction. We deﬁne the
+involution co():S7!Ssuch that co(R) =O;co(O) =R;co() =.
+Let~v= (v1;:::;vn)be a vector of rank n =rv1, then ~videnotes the i-th element.
+We write ~v1~v2:::~vmfor the concatenation of mvectors ~vi. The alphabet of a CA consists
+of vectors, each element of which records the activity of a single participant in the
+contract. In a vector there is either a single offer or a single request, or there is a pair
+of complementary request-offer that match; all the other elements of the vector contain
+
+--- Page 3 ---
+Automata for Analysing Service Contracts 3
+the symbol , meaning that the corresponding individuals stay idle. In the following let
+mdenote a vector of rank m, all components of which are .
+Deﬁnition 1 (Actions). Given a vector ~a2Sn, if
+–~a=n1an2;n1;n20, then ~a is a request ifa2R, and is an offer ifa2O
+–~a=n1an2co(a)n3;n1;n2;n30, then ~a is a match , where a2R[O.
+We deﬁne ~a. /~b iff~a is an offer and ~b is a request or vice versa with ~ai=co(~bj)6=
+and r a=rb;for two indexes i ;jra(note that . /is an equivalence relation).
+Deﬁnition 2 (Observable).
+Let w =~a1:::~anbe a sequence of vectors, and let ebe the empty one, then its observable
+is given by the partial function Obs (w)2R[O[ftgwhere:
+Obs(e) =e Obs(~aw0) =
+~aiObs(w0)if8j6=i:~aj=;(~a is a offer/request)
+tObs(w0) (~a is a match )
+From now onwards we will only consider strings wsuch that Obs(w)is deﬁned.
+Deﬁnition 3 (Contract Automata). Assume as given a ﬁnite set of states Q=fq1;q2;:::g.
+Then a contract automaton (CA)Aof rank n is a tuple hQ;~q0;Ar;Ao;T;Fi, where
+–Q=Q1:::QnQn
+–~q02Q is the initial state
+–ArR;AoOare ﬁnite sets of actions
+–FQ is the set of ﬁnal states
+–TQAQ is the set of transitions, where A (Ar[Ao[fg)nand if
+(~q;~a;~q0)2T then:~a is either a request or an offer or a match;
+if~ai=then it must be ~qi=~q0i
+Aprincipal is a contract automaton of rank 1 such that Ar\co(Ao) =/0.
+A step (w;~q)!(w0;~q0)occurs iff w =~aw0;w02Aand(~q;~a;~q0)2T .
+The language of AisL(A) =fwj(w;~q0)!(e;~q);~q2Fgwhere!is the reﬂexive,
+transitive closure of !.
+Example 1. Figure 1 shows three CAs. The automa A1may be understood as producing
+a certain number of resources through one or more offers resand it terminates with the
+request sig. The contract A2starts by sending the signal sigand then collects resources
+produced by A1. The contract A3represents the CA where A1andA2interact. We have
+thatA1;A2are of rank 1 while A3is of rank 2.
+Contract automata can be composed, by making the cartesian product of their states
+and of the labels of the joined transitions, with the additional possibility of labels record-
+ing matching request-offer, as it happens for A3in Figure 1.
+We introduce two different operators for composing contract automata. Both prod-
+ucts interleave all the transitions of their operands. We only force a synchronization to
+happen when two contract automata are ready on their respective request/offer action.
+These operators represent two different policies of orchestration. The ﬁrst operator, 
+,
+
+--- Page 4 ---
+4 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+q01 start q11sigres
+q02 start q12sigres
+q01;q02 start q11;q12(sig;sig)(res;) (;res)
+Fig. 1: Three contract automata: from left A1;A2, andA3
+considers the case when a service Sjoins a group of services already clustered as a single
+orchestrated service S0. In this case Scan only accept the still available offers (requests,
+respectively) of S0and vice versa. In other words, Scannot interact with the individual
+components of the orchestration S0, but only with S0as a whole. This is not the case
+with the second operation of composition, , that puts instead all the components of S
+at the same level of those of S0. Any matching request-offer of either contract can be
+split, and the offers and requests, that become available again, can be re-combined with
+complementary actions. This second operation of composition turns out to satisfactorily
+model business processes in dynamically changing environments.
+Deﬁnition 4 (Product). LetAi=hQi;~q0i;Ar
+i;Ao
+i;Ti;Fii;i21:::n be CA of rank r i. The
+productN
+i21:::nAiis the CAhQ;~q0;Ar;Ao;T;Fiof rank m =åi21:::nri, where:
+–Q=Q1:::Qn;where ~q0=~q1
+0:::~qn
+0
+–Ar=S
+i21nAr
+i;Ao=S
+i21nAo
+i
+–F=f~q1:::~qnj~q1:::~qn2Q;~qi2Fi;i21:::ng
+–T is the least subset of Q AQ s.t. (~q;~c;~q0)2T iff, letting ~q=~q1:::~qn2Q,
+either there are 1i<jn s.t. (~qi;~ai;~q0
+i)2Ti,(~qj;~aj;~q0
+j)2Tj,~ai. /~ajand8
+<
+:~c=u~aiv~ajzwith u =r1+:::+ri1;v=ri+1+:::+rj1;j~cj=m
+and
+~q0=~q1:::~qi1~q0
+i~qi+1::: ~qj1~q0
+j~qj+1:::~qn
+or~c=u~aivwith u =r1+:::+ri1, v=ri+1+:::+rn, and
+~q0=~q1:::~qi1~q0
+i~qi+1:::~qnwhen (~qi;~ai;~q0
+i)2Tiand for all j6=i and
+(~qj;~aj;~q0
+j)2Tjit does not hold that ~ai. /~aj.
+There is an obvious way of retrieving the principals involved in a composition.
+Deﬁnition 5 (Projection). LetA=hQ;~q0;Ar;Ao;T;Fibe a contract automaton of
+rank n, then Õi(A) =hÕi(Q);~qi0;Õi(Ar);Õi(Ao);Õi(T);Õi(F)iwhere:
+i
+Õ(Q) =f~qij~q2Qgi
+Õ(F) =f~qij~q2Fgi
+Õ(Ar) =faja2Ar;(q;a;q0)2i
+Õ(T)g
+i
+Õ(T) =f(~qi;~ai;~q0i)j(~q;~a;~q0)2T^~ai6=gi
+Õ(Ao) =faja2Ao;(q;a;q0)2i
+Õ(T)g
+Consider the CAs of Figure 1, we have A1=Õ1(A3)andA2=Õ2(A3).
+Property 1 (Product Decomposition). LetA1;:::;Anbe a set of principal contract au-
+tomata, then Õi(N
+j21:::nAj) =Ai.
+
+--- Page 5 ---
+Automata for Analysing Service Contracts 5
+q01 start q11toyq02 start q12toyq03 start q13toy
+q01;q02;q03 start q11;q12;q03
+q01;q02;q13 q11;q12;q13(toy;toy;)
+(;;toy) (;;toy)
+(toy;toy;)q01;q02;q03 start q11;q02;q13
+q01;q12;q03 q11;q12;q13(toy;;toy)
+(;toy;) (toy;;toy)
+(;toy;)q01;q02;q03 start q11;q12;q03
+q11;q02;q13 q11;q12;q13(toy;toy;)
+(toy;;toy) (;;toy)
+(;toy;)
+Fig. 2: From left to right and top-down: the contract automata of Alice, Bob and Eve, the contract
+automata (Alice
+Bob)
+Eve,(Alice
+Eve)
+BobandAliceBobEve.
+Deﬁnition 6 (A-Product). LetA1;A2be two contract automata of rank n and m, and
+let I=fÕi(A1)j0<ing[fÕj(A2)j0<jmg. The a-product of A1andA2is
+A1A2=N
+Ai2IAi
+From now on we assume that every contract automaton Aof rank rA>1 is composed
+by principal contract automata using the operations of product and a-product.
+Note that if A;A0are principal contract automata, then A
+A0=AA0. E.g. in
+Figure 1, we have that A3=A1
+A2=A1A2.
+Both compositions are commutative, up to suitable rearrangement of the vectors of
+actions, and is associative, while 
+is not.
+Proposition 1. The following properties hold:
+–9A1;A2;A3:(A1
+A2)
+A36=A1
+(A2
+A3)
+–8A1;A2;A3:(A1A2)A3=A1(A2A3)
+Example 2. In Figure 2 Alice offers a toy while Bob and Eve perform the same request
+for the toy of Alice. In the product (Alice
+Bob)
+Evethe toy is assigned to Bob who
+ﬁrst enters in the composition with Alice, no matter if Eve performs the same move.
+Equally, in the product (Alice
+Eve)
+Bob the toy is assigned to Eve. In the last row
+we have the a-product A1(A2A3) = (A1A2)A3which represents a dynamic
+orchestration: no matter if Eve or Bob enters ﬁrst the composition with Alice, the toy
+will be assigned to the ﬁrst participant who makes the move.
+3 Enforcing Agreement
+Anagreement between different contracts exists only when the ﬁnal states of the prod-
+uct are reachable from the initial state by strings only made of match and offer actions.
+Our agreement resembles the notion of compliance of [14, 15]. Since we use vectors
+of actions as labels, it is easy to track every action performed by each participant, and
+to ﬁnd who is liable in a bad interaction. Our goal is to enforce the behaviour of partic-
+ipants so that they only follow the traces of the automaton which lead to agreement.
+We now introduce the notion of agreement as a property of the language recognised
+by a CA; an auxiliary deﬁnition helps.
+
+--- Page 6 ---
+6 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+Deﬁnition 7 (Agreement). A word accepted by a CA is in agreement if it belongs to
+the set
+A=fw2(Sn)jObs(w)2(O[ftg);n>1g
+Example 3. The automa A3in Figure 1 has a word in agreement: Obs((res;)(sig;sig)) =
+rest2A, and one not: Obs((sig;sig)(;res)) =tres62A.
+Note that the set Acan be seen as a safety property, where the set of bad preﬁxes of A
+contains those strings ending with a trailing request, i.e. fw~ajw2A;Obs(~a)2Rg.
+Deﬁnition 8 (Safety). A contract automaton Aissafe ifL(A)A, otherwise it is
+unsafe . Additionally, if L(A)\A6=/0thenAadmits agreement .
+Example 4. The contract automaton A3of Figure 1 is unsafe, but it admits agreement
+sinceL(A3)\A= (res;)(sig;sig). The contract automaton Alice
+Bobof Figure 2
+is safe since L(Alice
+Bob) = ( toy;toy)A.
+We now introduce a technique for driving a safe composition of contracts, in the
+style of the Supervisory Control for Discrete Event Systems [12]. These are automata,
+where accepting states represent successful termination of a task, while forbidden states
+are those that should not be traversed in “good” computations. Generally, the purpose
+is then to synthesize a controller that enforces this property. Here, we devise a way of
+synthesising an orchestration that leads to safely composed contracts. Also we assume
+that all the actions are controllable and observable, so the theory guarantees that a most
+permissive controller exists that never blocks a good computation. Furthermore we as-
+sume that a request leads to a forbidden state. Finally, the behaviours that we want to
+enforce upon Aare exactly those words belonging to A\L(A). In order to effectively
+build such a controller, we introduce below the notion of hanged state, i.e. a state from
+which no ﬁnal state can be reached.
+Deﬁnition 9 (Controller). LetAandKbe contract automata, we call Kcontroller of
+AiffL(K)A\L(A).
+Kis amost permissive controller (mpc) iff8K0controller of Ait isL(K0)L(K).
+Proposition 2. LetKbe a mpc of the CA A, thenL(K) =A\L(A).
+Deﬁnition 10 (Hanged state). LetA=hQ;~q0;Ar;Ao;T;Fibe a CA, then ~q2Q is
+hanged , and belongs to the set Hanged (A), if given ~qf2F;@w:(w;~q)!(e; ~qf).
+Deﬁnition 11 (Building the mpc).
+LetA=hQ;~q0;Ar;Ao;T;Fibe a CA, K1=hQ;~q0;Ar;Ao;Tn(ft2Tjt is a request
+transitiong;Fiand deﬁne
+KA=hQnHanged (K1);~q0;Ar;Ao;TK1nf(~q;a;~q0)jf~q;~q0g\Hanged (K1)6=/0g;Fi
+Proposition 3 (MPC). The controller KAof Deﬁnition 11 is the mpc of the CA A.
+
+--- Page 7 ---
+Automata for Analysing Service Contracts 7
+q01;q02 start q11;q12 q21;q22
+q41;q42 q51;q52q21;q32(sell;sell) (bike;bike)
+(toy;toy)(;pay)
+(cancel ;cancel )
+(pay;pay)q01;q02 start q11;q12
+q41;q42 q51;q52(sell;sell)
+(toy;toy)
+(cancel ;cancel )
+(pay;pay)
+Fig. 3: In the left part the CA A; in the right one its most permissive controller KA
+Example 5. In Figure 3 we have a simple selling scenario involving two parties Alice
+and Bob, who is willing to pay the toy, only. We ﬁrst compute the auxiliary set K1that
+does not contain the transition ((q21;q22);(;pay);(q21;q32))because it represents a
+request of the second participant which is not fulﬁlled. As a consequence, some states
+become hanged: Hanged (K1) =f(q21;q22);(q21;q32)g. By removing them, we even-
+tually obtain the mpc controller of A. Indeed this transition represents a request of the
+second participant which is not fulﬁlled. Once the request is removed, some hanged
+states are generated, in particular we have Hanged (K1) =f(q21;q22);(q21;q32)g. By
+removing the hanged states and corresponding transition the mpc KAof is obtained.
+Property 2. LetAbe a contract automaton and let KAbe its mpc. If L(KA) =L(A)
+thenAis safe, otherwise if L(KA)L(A)thenAis unsafe.
+Additionally, if L(KA)6=/0, then Aadmits agreement.
+We introduce now a novel notion of liability , that characterises those participants
+potentially responsible of the divergence from the expected behaviour. The liable par-
+ticipants are those who perform the ﬁrst transition in a run, that is not possible in the
+most permissive controller. As noticed above, after this step is done, a successful state
+cannot be reached any longer, and so the participants who performed it will be blamed.
+(Note in passing that hanged states play a crucial role here: just removing the request
+transitions from Awould result in a CA language equivalent to the mpc, but detecting
+liable participants would be much more intricate).
+Deﬁnition 12 (Liability). LetAbe a CA and KAbe the mpc of Deﬁnition 11; let !A
+and!KAbe steps performed by AandKA, resp.; let (v~aw;~q0)!
+KA(~aw;~q)be a run
+such that (~aw;~q)!A(w;~q0)and(~aw;~q)6!KA(w;~q0). The participants Pi(A)such that
+~ai6=;i21:::rAareliable for v~a and belong to Liable (A;v~a).
+The set of liable participants in Ais Liable (A) =fij9w:i2Liable (A;w)g.
+Example 6. In Figure 3 we have Liable (A) =f1;2g, hence both Alice and Bob are
+possibly liable, because the match transition with label (bike;bike)can be performed,
+that leads to a violation of the agreement.
+Proposition 4. A CAAis safe iff Liable (A) =/0.
+Note that the set Liable (A)is easily computable as follows.
+Lemma 1. LetAbe a CA and KAbe its mpc as in Deﬁnition 11, then
+Liable (A) =fij(~q;~a;~q0)2TA;~ai6=;~q2QKA;~q062QKAg
+
+--- Page 8 ---
+8 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+Some properties of 
+andfollow, that enable us to predict under which conditions
+a composition is safe without actually computing it.
+We ﬁrst introduce the notions of collaborative and competitive contracts. Intuitively,
+two contracts are collaborative if some requests of one meet the offers of the other, and
+arecompetitive if both can satisfy the same request.
+Deﬁnition 13 (Competitive, Collaborative).
+The pair of CA A1=hQ1;q01;Ar
+1;Ao
+1;T1;F1iandA2=hQ2;q02;Ar
+2;Ao
+2;T2;F2iare
+–competitive if Ao
+1\Ao
+2\co(Ar
+1[Ar
+2)6=/0
+–collaborative if(Ao
+1\co(Ar
+2))[(co(Ar
+1)\Ao
+2)6=/0.
+The offers shared by A1andA2areAo
+1\Ao
+2, while all their requests are Ar
+1[Ar
+2. If
+there is an offer provided by both participants that is matched by a request of one of
+the two CAs, that is Ao
+1\Ao
+2\co(Ar
+1[Ar
+2)6=/0, then the CAs are competitive . Note that
+competitive andcollaborative are not mutually exclusive, as formally proved below.
+Moreover if two contract automata are non-competitive then all their match actions are
+preserved in the composition, indeed we have A1A2=A1
+A2.
+Example 7. The CAs Alice;Bob
+Eve in Figure 2 are collaborative and not competi-
+tive, indeed there is a match on the toy action but no participant interferes in this match.
+In Example 8 the pair A1;A2is competitive since A2interferes with A1on the toy offer.
+The next theorem says that the composition of safe non-competitive contracts prevents
+all participants from harmful interactions, unlike the case of safe competitive contracts.
+In other words, when A1andA2are safe, no participants will be found liable in A1
+A2
+(i.e.Liable (A1
+A2) =/0), and the same happens for A1A2if the two are also non-
+competitive (i.e. Liable (A1A2) =/0).
+Theorem 1. If two CA A1andA2are
+1. competitive then they are collaborative,
+2. safe then A1
+A2is safe ;A1A2admits agreement,
+3. non-collaborative, and one or both unsafe, then A1
+A2;A1A2are unsafe,
+4. safe and non-competitive, then A1A2is safe.
+Example 8. We feel free to present contract automata through a sort of extended regular
+expressions. So, let A1=toy+bike
+toy+bike andA2=toy. Both contracts are safe,
+but competitive, and A1A2is unsafe because (;toy;toy)(bike;;)2L(A).
+4 Weak Agreement
+The literature considers many different types of agreement, including one where actions
+are taken on credit if in the future the obligations will be honoured. This last notion is
+introduced for accepting as good those compositions of contracts where all the requests
+are matched by offers, but an agreement is not reached due to lack of synchronous match
+actions. This is a common scenario in contract composition, where each participant
+requires its requests to be satisﬁed before providing the corresponding offers. This kind
+of agreement has been faced using a variety of formal techniques as Process Algebras,
+Petri Nets, non classical Logics, Event Structures [7, 3, 2, 6]. A simple example follows.
+
+--- Page 9 ---
+Automata for Analysing Service Contracts 9
+q1 start q2a=b
+sig
+q0
+1 start q0
+2siga=b
+q1;q0
+1 start q2;q0
+2(sig;sig)(a;)=(b;) (;a)=(;b)
+Fig. 4: From left to right: A4;A5, andA4
+A5
+Example 9. Suppose Alice and Bob want to share a bike and a toy, but neither trusts
+the other. Before providing their offer they ﬁrst ask for the complementary request. As
+regular expressions: Alice =toy:bike andBob=bike:toy. Their composition is: Alice
+Bob= (toy;)(bike;bike)(;toy)+(;bike)(toy;toy)(bike;). In both possible runs the
+contracts fail on exchanging the bike or the toy, hence L(Alice
+Bob)\A=/0and the
+composition does not admit agreement.
+The circularity in the requests/offers is solved by weakening the notion of agreement,
+allowing a request to be performed on credit if in the future a complementary offer will
+occur. We will say that a contract automaton admits weak agreement if there exists a
+run in which every request can be paired with the corresponding offer, allowing asyn-
+chronous matches between requests and offers. Of course, agreement is a proper subset
+of weak agreement. As for agreement, we have an auxiliary deﬁnition.
+Deﬁnition 14 (Weak Agreement). A word accepted by a CA of rank n >1is in weak
+agreement if it belongs to W=fw2(Sn)jjwj=m;9a function f :[1::m]![1::m]
+total and injective on the requests of w, and such that f (i) =j only if ~ai. /~ajg.
+Example 10. Consider A3in Figure 1, whose run (res;)(sig;sig)(;res)is inWbut
+not inA, while (res;)(sig;sig)(;res)(;res)62W.
+Deﬁnition 15 (Weak Safety). A contract automaton Aisweakly safe ifL(A)W,
+otherwise is weakly unsafe. If L(A)\W6=/0thenAadmits weak agreement .
+Example 11. In Example 9 we have L(Alice
+Bob)W, hence the composition of
+Alice andBobis weakly safe.
+The following is an analogous of Theorem 1.
+Theorem 2. LetA1;A2be two CA, then if A1;A2are
+1. weakly safe then A1
+A2is weakly safe, A1A2admits weak agreement
+2. non-collaborative and one or both unsafe, then A1
+A2;A1A2are weakly unsafe
+3. safe and non-competitive, then A1A2is weakly safe.
+The example below shows that weak agreement is not a context-free notion, in lan-
+guage theoretical sense; rather it is context-sensitive. Therefore, we cannot deﬁne a
+controller for weak agreement in terms of CA.
+Example 12. LetA4,A5andA4
+A5be the automata in Figure 4, then we have that
+L=W\L(A4
+A5)6=/0is not context-free. Consider the following regular language
+L0=f(a;)(b;)(sig;sig)(;a)(;b)g. We have that L\L0is not context-free (by
+pumping lemma), and since L0is regular Lis not context-free.
+
+--- Page 10 ---
+10 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+~q0 start ~q1 ~q2 ~q3~q4 ~q5
+(b;b)(a;a)
+(b;b)
+(a;a) (;c)(c;)
+(b;b)
+(;a)~q0 start
+~q1~q2 ~q3 ~q4
+~q5 ~q6
+~q7~q9
+~q8~q10
+(r;r)(;b)
+(t;)(t;t)
+(;c)(b;) (e;e)
+(t;) (b;)
+(b;b)(;c)(;t)(e;e)
+~q0 start ~q1 ~q2a b
+cd
+Fig. 5: Top left: a product of two CA; top right a booking service; bottom: a principal CA.
+Theorem 3. Wis a context-sensitive language, but not context-free.
+The language Wismildly context-sensitive, and checking membership can be done
+through two way deterministic pushdown automata (2DPDA) in O(n2log(n))time and
+O(n)space [18]. A 2DPDA is a push-down automaton with a read-only input tape
+readable backward and forward. To check whether w2Wwe scroll the input tape twice
+for each action: the ﬁrst time all the requests of the selected action are pushed and then,
+the second time we scroll the tape, when an offer of the same action is encountered we
+pop a request from the stack. At the end if the stack is empty the string wis inW.
+In general, it is undecidable deciding whether a regular language Lis included in
+a context-sensitive one, as well as checking emptiness of the intersection of a regular
+language with a context-sensitive one. In our case, however, these problems are decid-
+able and so we can check whether a contract automaton Ais weakly safe, or whether it
+admits weak agreement.
+The technique we propose amounts to ﬁnd optimal solutions of network ﬂow prob-
+lems [19]. We ﬁrst ﬁx some useful notation. Assume as given a CA A, with a single
+ﬁnal state ~qf6=~q0(this condition can easily be met, by slightly manipulating a CA with
+many ﬁnal states); assume the requests and the transitions of Abe enumerated, i.e. Ar=
+faiji2Il=f1;2;:::; lggandT=ft1;:::; tng; letFS(~q) =f(~q;~a;~q0)j(~q;~a;~q0)2Tgbe
+theforward star of a node ~q, and let BS(~q) =f(~q0;~a;~q)j(~q0;~a;~q)2Tgbe its backward
+star. For each transition tiwe introduce the ﬂow variables xti2N, and z~q
+ti2Rwhere
+~q2Q;~q6=~q0. Now we deﬁne the following set F~s;~dofﬂow constraints , an element of
+which ~x= (xt1;:::; xtn)2F~s;~ddeﬁnes runs from the source state ~sto the target state ~d;
+as an abbreviation, we will write FxforF~q0;~qf. The intuition is that each variable xtirep-
+resents how many times the transition tiis traversed in the runs deﬁned by ~x. A simple
+example follows; hereafter we identify a transition by its source and target states.
+Example 13. Figure 5 (right) shows a simple service of booking. The contract of the
+client requires to book a room ( r), including breakfast ( b) and a transport service, by
+car (c) or taxi ( t); ﬁnally it sends a signal of termination ( e); brieﬂy C=r:b:(c+t):e. The
+hotel offers a room, breakfast and taxi: H=r:t:b:e. The composition C
+Hhas four
+complete traces: w1= (r;r)(;b)(t;t)(b;)(e;e),w2= (r;r)(;b)(;c)(t;)(b;)(e;e),
+
+--- Page 11 ---
+Automata for Analysing Service Contracts 11
+w3= (r;r)(t;)(b;b)(;t)(e;e),w4= (r;r)(t;) (b;b)(;c)(e;e). We now detail the
+ﬂows associated with each trace giving the set of variables with value 1, all the others
+having value 0, because there are no loops. For w1:fx~q0;~q1;x~q1;~q2;x~q2;~q3;x~q3;~q4;x~q4;~q10;g;
+forw2:fx~q0;~q1;x~q1;~q2;x~q2;~q5;x~q5;~q6;x~q6;~q9;x~q9;~q10g; for w3:fx~q0;~q1;x~q1;~q7;x~q7;~q8;x~q8;~q4;
+x~q4;~q10g; and for w4:fx~q0;~q1;x~q1;~q7;x~q7;~q8;x~q8;~q9;x~q9;~q10g:
+As a matter of fact, a ﬂow ~xmay represent many runs that have the same balance of
+requests/offers for each action occurring therein. As an example, consider the CA at the
+bottom of Figure 5 and the ﬂow x~q0;~q1=3;x~q1;~q2=2;x~q2;~q0=x~q1;~q0=1 that represents
+both w1=acabdab andw2=abdacab .
+The deﬁnition of F~s;~dfollows. The auxiliary variables z~q
+tioccurring there represent
+jQj1 auxiliary ﬂows and make sure that ~xrepresent valid runs, i.e. there are no dis-
+connected cycles with positive ﬂow; a more detailed discussion on them is in Example
+14 below. Note also that the values of z~q
+tiarenotintegers, and so we are deﬁning Mixed
+Integer Linear Programming problems that have efﬁcient solutions [19].
+F~s;~d=f(xt1;:::; xtn)j8~q:(å
+ti2BS(~q)xtiå
+ti2FS(~q)xti) =8
+<
+:1 if~q=~s
+0 if ~q6=~s;~d
+1 if ~q=~d
+8~q6=~s;ti:0z~q
+tixti;
+8~q6=~s;8~q0:(å
+ti2BS(~q0)z~q
+tiå
+ti2FS(~q0)z~q
+ti) =8
+<
+:p~qif~q0=~s
+0 if ~q06=~s;~q
+p~qif~q0=~qwhere
+p~q=1 ifåti2FS(~q)xti>0
+0otherwiseg
+We eventually deﬁne a set of variables ai
+tjfor each action and each transition, that
+take the value -1 for requests, 1 for offers, and 0 otherwise; they help counting the
+difference between offers and requests of an action in a ﬂow.
+8tj= (~q;~a;~q0)2T;8i2Il:ai
+tj=8
+<
+:1 if Obs(~a) =ai
+1 ifObs(~a) =ai
+0otherwise
+Example 14. Figure 5 (left) depicts the contract A
+B, where A=a:c:b+b:(b:c:b+a)
+andB=a:b:a+b:(b:b:a+a:c). To check whether there exists a run recognizing a trace
+wwith less or equal requests than the offers (for each action) we solve åtjai
+tjxtj0,
+for~x2Fx.
+We now discuss the role of the auxiliary variables z~q
+ti. As said, they are used to
+ensure that the solutions considered represent valid runs. Consider the following as-
+signment to ~x:x~q0;~q1=x~q1;~q2=x~q2;~q3=1;x~q4;~q41, and null everywhere else. It does
+not represent valid runs, because the transition (~q4;(c;);~q4)cannot be ﬁred in a run
+that only takes transitions with non-null value in ~x. Note that the constraints on ~xare
+
+--- Page 12 ---
+12 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+satisﬁed (e.g. we have åtj2FS(~q4)xtj=åtj2BS(~q4)xtj). Indeed, the constraints on the aux-
+iliary z~q
+tiare introduced for checking if a node is reachable from the initial state on
+a run deﬁned by the ﬂow ~x; note that their value being not integer is immaterial for
+checking that. The assignment above is not valid since for z~q4we have 0z~q4
+(~q0;~q4)
+x(~q0;~q4)=0;0z~q4
+(~q1;~q4)x(~q1;~q4)=0;0z~q4
+(~q4;~q5)x(~q4;~q5)=0;hence åtj2BS(~q4)z~q4tj=
+z~q4
+(~q4;~q4);åtj2FS(~q4)z~q4tj=z~q4
+(~q4;~q4)and we have åtj2BS(~q4)z~q4tjåtj2FS(~q4)z~q4tj=06=1.
+Finally, note in passing that there are no valid ﬂows ~x2Fxfor this problem.
+Our main results follow.
+Theorem 4. Let~v be a binary vector. Then a CA Aisweakly safe iffming0where:
+å
+i2Ilviå
+tj2Tai
+tjxtjgå
+i2Ilvi=18i2Il:vi2f0;1g(xt1:::xtn)2Fxg2R
+The minimum value of gselects the trace and the action afor which the difference
+between the number of offers and requests is the minimal achievable from A. If this
+difference is non negative, there will always be enough offers matching the requests,
+and so Awill never generate a trace not in W:Aisweakly safe , otherwise it is not.
+Example 15. Consider again Example 13 and let a1=r,a2=b,a3=t,a4=c,a5=e.
+Ifv1=1, for each ﬂow ~x2Fx, we have that åtja1
+tjxtj=0 (for i6=1, we have vi=0).
+This means that the request of a room is always satisﬁed. Similarly for breakfast and
+the termination signal e. Ifv3=1, for the ﬂow representing the traces w1;w3we have
+åtja3
+tjxtj=0, while for the ﬂow representing the traces w2;w4the result is 1. Also in
+this case the requests are satisﬁed. Instead, when v4=1, for the ﬂow representing the
+traces w1;w4we have åtja4
+tjxtj=0, but for the ﬂow representing w2;w3, the result is
+1. Hence ming=1, and the CA H
+Cis not weak safe , indeed we have w2;w362W.
+Theorem 5. The CA Aadmits weak agreement iff :
+maxg0and8i2Il:å
+tj2Tai
+tjxtjg(xt1:::xtn)2Fxg2R
+The maximum value of gin Theorem 5 selects the trace wthat maximizes the least
+difference between offers and requests of an action in w. If this value is non negative,
+then there exists a trace wsuch that for all the actions in it, the offers are more or as
+many the requests. In this case, Aadmits weak agreement; otherwise it does not.
+Example 16. In Example 13, maxg=1 for the ﬂows representing the traces w2;w3
+and maxg=0 for those of the traces w1;w4, that will be part of the solution and are
+indeed in weak agreement. Consequently, H
+Cadmits weak agreement .
+We deﬁne now the weakly liable participants: those who perform the ﬁrst transition
+tof a run such that after tit is not possible any more to obtain a trace in W, i.e. leading
+to traces w2L(A)nWthat can not be extended to ww02L(A)\W.
+
+--- Page 13 ---
+Automata for Analysing Service Contracts 13
+Deﬁnition 16. LetAbe a CA and let w =w1~aw2such that w2L(A)nW;8w0:ww062
+L(A)\W;8w3:w1~aw362L(A)\Wand9w4:w1w42L(A)\W. The participants
+Pi(A)such that ~ai6=areweakly liable and are denoted with i 2WLiable (A;w1~a).
+Let WLiable (A) =fij9w such that i2WLiable (A;w)gbe the set of all potentially
+weakly liable participants in A.
+For computing the set WLiable (A)we optimize a network ﬂow problem for a transi-
+tiontto check if there exists a trace win which treveals some weakly liable participants.
+By solving this problem for all transitions we obtain the set WLiable (A).
+Theorem 6. The participant Pi(A)of a CA Aisweakly liable if and only if there exists
+a transition t= (~qs;~a;~qt),~ai6=, andgt<0, where
+gt=minff(~x)j~x2F~q0;~qs; ~y2F~qs;~qf;8i2Il:å
+tj2Tai
+tj(xtj+ytj)0g
+f(~x) =maxfgj~u2F~qt;~qf;8i2Il:å
+tj2Tai
+tj(xtj+utj)+ai
+tg;g2Rg
+Intuitively, the ﬂow deﬁned above is split into three parts: the ﬂow ~xgoes from ~q0
+to~qs, the ﬂow ~ygoes from ~qsto~qf, and the ﬂow ~ugoes from ~qtto~qf.
+The function ftakes in input the ﬂow ~xand selects a ﬂow ~usuch that by concate-
+nating ~xand~uthrough twe obtain a trace w, where the least difference between offers
+and requests is maximized for an action in w. Using the same argument of Theorem 5,
+if the value computed is negative, then there not exists a ﬂow ~uthat composed with ~x
+selects traces in weak agreement.
+Finally gtyields the minimal result of f(~x), provided that there exists a ﬂow ~y, that
+combined with ~xrepresents only traces in weak agreement. If gt<0 then the transition t
+identiﬁes some weakly liable participants. Indeed the ﬂow ~xrepresents the traces wsuch
+that (1)9w1, represented by ~y, with ww12L(A)\Wand (2)8w2, represented by ~u,
+with w~aw22L(A)nW. Note that if a ﬂow ~xreveals some weakly liable participants,
+the minimization carried on by gtguarantees that the relevant transition tis found.
+Example 17. In Figure 5 (right), the transitions (~q2;(;c);~q5);(~q8;(;c);~q9)reveal the
+participant 2 weakly liable . Indeed from ~q2the trace (r;r)(;b)can be extended to one
+in weak agreement, while (r;r)(;b)(;c)cannot. Also the trace (r;r)(t;)(b;b)can
+be extended to one in weak agreement while (r;r)(t;)(b;b)(;c)cannot.
+For the transition (~q2;(;c);~q5)we have the trace (r;r)(;b)for the ﬂow ~xand
+(t;t)(b;)(e;e)for the ﬂow ~y, and we have8i2Il:åt2Tai
+t(xt+yt)0. Note that if we
+select as ﬂow ~ythe trace (;c)(t;)(b;)(e;e)then the constraints 8i2Il:åtj2Tai
+tj(xtj+
+ytj)0 are not satisﬁed for the action a4=c. For the ﬂow ~uthe only possible trace is
+(t;)(b;)(e;e), and maxg=1=g(~q2;(;c);~q5)sinceåtj2Ta4
+tj(xtj+utj)+(1) =1.
+For the transition (~q8;(;c);~q9)the ﬂow ~xselects the trace (r;r)(t;)(b;b), the ﬂow
+~yselects the trace (;t)(e;e), since the other possible trace, that is (;c)(e;e), does not
+respect the constraints for the action a4. Finally, for the ﬂow ~uwe have the trace (e;e),
+and as the previous case maxg=1=g(~q8;(;c);~q9).
+
+--- Page 14 ---
+14 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+5 Conclusions and related work
+We have introduced an original approach to contract composition for services. In our
+proposal contract composition is handled formally by taking advantage of the novel
+class of Contract Automata and of their compositional operators. The algebra of Con-
+tract Automata allows one to compose services according to two different notions of
+orchestrations: one when a participant joins an existing orchestration without a global
+reconﬁguration, and the other when a global adaptive re-orchestration is required. We
+have deﬁned notions that illustrate when a composition of contracts enjoys interesting
+properties, namely agreement and safety, both in the case when requests are satisﬁed by
+offers synchronously and asynchronously. Furthermore, a notion of liability has been
+put forward. A liable participant is the service leading the contract composition into
+a failing state. Key results of the paper prove the correctness of our approach by tak-
+ing advantage of optimization techniques borrowed from Operational Research. Using
+them, we efﬁciently ﬁnd the optimal solutions of the ﬂow in the network automatically
+derived from contract automata. An interesting topic to investigate concerns whether
+and how our results and techniques can be used to deﬁne choreographies of services
+and their properties, in particular liability.
+A main advantage of our framework is that it supports development of automatic
+veriﬁcation tools for checking and verifying properties of contract composition. The
+formal treatment of contract composition in terms of optimal solutions of network ﬂows
+paves the way of exploiting efﬁcient optimization algorithms. We plan to develop such
+veriﬁcation tools.
+Related work The problem of formalizing contracts for service oriented computing,
+specifying and verifying the properties of a good composition received a lot of atten-
+tion. In [14, 1] behavioural contracts are expressed via suitable process algebras, where
+the interactions between services are modelled via I/O actions. Two different choice op-
+erators, namely internal and external, describe how two services interact. The internal
+choice requires the other party to be able to synchronize with all the possible branches.
+This approach is extended to a multi party version by exploiting the p-calculus in [15].
+The above papers focus on formalising the notion of progress of interactions. In our
+model, the internal choice is represented as a branching of requests. Also, we consider
+stronger properties than theirs: with agreement/weak agreement we require that all the
+requests of the contracts are satisﬁed, while for the property of progress it sufﬁces that
+a subset of contracts meets their requests.
+An extension of Intuitionistic Logic called Propositional Contract Logic (PCL) [7]
+has been proposed for modelling contracts with circular offers/requests. A new operator
+called contractual implication is introduced for dealing with actions taken on credit, if
+in the future the obligations will be honoured. Our notion of weak agreement is quite
+similar, and we also have a decision procedure to check if a contract automaton admits
+weak agreement.
+Processes and contracts are two separate entities in [6], unlike ours. A process can
+fulﬁl its duty by obeying its contract or it behaves dishonestly and becomes culpable
+— and become honest again by performing later on the prescribed actions. We also do
+
+--- Page 15 ---
+Automata for Analysing Service Contracts 15
+not assume participants to be honest, and our notion of liability is slightly different. It
+is inspired by Control Theory [12] and expressed in language-theoretic terms.
+Session types are studied, among others, in [13, 20] where global types represent
+a formal speciﬁcation of a choreography of services in terms of their interactions. The
+projection of a safe global type to its components yields a safe local type , which is a
+term of a process algebra similar to [14]. From given safe local types, a choreography
+is synthesized, as a safe global type in [22]. In [16] local types are proved to correspond
+to communicating machines (CM) [11], that are ﬁnite state automata similar to ours.
+The main difference between the two is that CM interact through FIFO buffers, hence
+a participant can receive an input only if it was previously enqueued, while CA can
+offer/request on credit. However, under mild conditions, CA and CM can be proved
+equivalent [10], so establishing a ﬁrst bridge between orchestration and choreography.
+Acknowledgements We are indebted with Giancarlo Bigi and Emilio Tuosto for many
+enlightening discussions.
+References
+1. Acciai, L., Boreale, M., Zavattaro, G.: Behavioural contracts with request-response opera-
+tions. Sci. Comput. Program. 78(2), 248–267 (2013)
+2. Bartoletti, M., Cimoli, T., Pinna, G.M.: Lending Petri nets and contracts. In: Arbab, F., Sir-
+jani, M. (eds.) FSEN. LNCS, vol. 8161, pp. 66–82. Springer (2013)
+3. Bartoletti, M., Cimoli, T., Zunino, R.: A theory of agreements and protection. In: Basin,
+D.A., Mitchell, J.C. (eds.) POST. LNCS, vol. 7796, pp. 186–205. Springer (2013)
+4. Bartoletti, M., Degano, P., Ferrari, G.L.: Planning and verifying service composition. Journal
+of Computer Security 17(5), 799–837 (2009)
+5. Bartoletti, M., Degano, P., Ferrari, G.L., Zunino, R.: Call-by-contract for service discovery,
+orchestration and recovery. In: Wirsing, M., H ¨olzl, M.M. (eds.) Results of the SENSORIA
+Project, LNCS, vol. 6582, pp. 232–261. Springer (2011)
+6. Bartoletti, M., Tuosto, E., Zunino, R.: Contract-oriented computing in co2. Sci. Ann. Comp.
+Sci. 22(1), 5–60 (2012)
+7. Bartoletti, M., Zunino, R.: A logic for contracts. In: Cherubini, A., Coppo, M., Persiano, G.
+(eds.) ICTCS. pp. 34–37 (2009)
+8. Basile, D., Degano, P., Ferrari, G.L.: Secure and unfailing services. In: Malyshkin, V . (ed.)
+PaCT. LNCS, vol. 7979, pp. 167–181. Springer (2013)
+9. Basile, D., Degano, P., Ferrari, G.L., Tuosto, E.: Contract automata for services. Extended
+version: http://www.di.unipi.it/ ˜basile/TGC14.pdf
+10. Basile, D., Degano, P., Ferrari, G.L., Tuosto, E.: From orchestration to choreography through
+Contract Automata. In: ICE (2014), to appear
+11. Brand, D., Zaﬁropulo, P.: On communicating ﬁnite-state machines. J. ACM 30(2), 323–342
+(1983)
+12. Cassandras, C.G., Lafortune, S.: Introduction to Discrete Event Systems. Springer-Verlag
+New York, Inc., Secaucus, NJ, USA (2006)
+13. Castagna, G., Dezani-Ciancaglini, M., Padovani, L.: On global types and multi-party session.
+Logical Methods in Computer Science 8(1) (2012)
+14. Castagna, G., Gesbert, N., Padovani, L.: A theory of contracts for web services. ACM Trans.
+Program. Lang. Syst. 31(5) (2009)
+
+--- Page 16 ---
+16 Davide Basile, Pierpaolo Degano, and Gian-Luigi Ferrari
+15. Castagna, G., Padovani, L.: Contracts for mobile processes. In: Bravetti, M., Zavattaro, G.
+(eds.) CONCUR. LNCS, vol. 5710, pp. 211–228. Springer (2009)
+16. Deni ´elou, P.M., Yoshida, N.: Multiparty compatibility in communicating automata: Charac-
+terisation and synthesis of global session types. In: Fomin, F.V ., Freivalds, R., Kwiatkowska,
+M.Z., Peleg, D. (eds.) ICALP (2). LNCS, vol. 7966, pp. 174–186. Springer (2013)
+17. Gischer, J.L.: Shufﬂe languages, Petri nets, and context-sensitive grammars. Commun. ACM
+24(9), 597–605 (1981)
+18. Gray, J., Harrison, M.A., Ibarra, O.H.: Two-way pushdown automata. Information and Con-
+trol 11(1/2), 30–70 (1967)
+19. Hemmecke, R., Koppe, M., Lee, J., Weismantel, R.: Nonlinear integer programming. In:
+Junger, M., Liebling, T.M., Naddef, D., Nemhauser, G.L., Pulleyblank, W.R., Reinelt, G.,
+Rinaldi, G., Wolsey, L.A. (eds.) 50 Years of Integer Programming 1958-2008, pp. 561–618.
+Springer Berlin Heidelberg (2010)
+20. Honda, K., Yoshida, N., Carbone, M.: Multiparty asynchronous session types. In: Necula,
+G.C., Wadler, P. (eds.) POPL. pp. 273–284. ACM (2008)
+21. Kuroda, S.Y .: Classes of languages and linear-bounded automata. Information and Control
+7(2), 207–223 (1964)
+22. Lange, J., Tuosto, E.: Synthesising choreographies from local session types. In: Koutny, M.,
+Ulidowski, I. (eds.) CONCUR. LNCS, vol. 7454, pp. 225–239. Springer (2012)
+23. OASIS-Technical-Committee: OASIS WSBPEL TC, Web services business process execu-
+tion language version 2.0 (2007), technical Report, OASIS, available at http://docs.oasis-
+open.org/wsbpel/2.0/OS/wsbpel-v2.0-OS.html

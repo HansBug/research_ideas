@@ -1,0 +1,1537 @@
+--- Page 1 ---
+arXiv:cs/0110010v1  [cs.LO]  2 Oct 2001Pushdown TimedAutomata:
+a Binary Reachability Characterization
+and SafetyVeriﬁcation⋆
+ZheDang
+School of ElectricalEngineering andComputer Science
+Washington StateUniversity
+Pullman,WA 99164, USA
+zdang@eecs.wsu.edu
+Abstract. We consider pushdown timed automata (PTAs) that are timed au -
+tomata(withdenseclocks)augmentedwithapushdownstack. Aconﬁgurationof
+aPTAincludes acontrolstate,dense clockvalues andastack word.Byusingthe
+patterntechnique, we give a decidable characterization of thebinary reachability
+(i.e., the set of all pairs of conﬁgurations such that one can reach the other) of
+a PTA. Since a timed automaton can be treated as a PTA without t he pushdown
+stack, wecanshow thatthe binaryreachabilityof atimedaut omaton isdeﬁnable
+in the additive theory of reals and integers. The results can be used to verify a
+class of properties containing linear relations over both d ense variables and un-
+bounded discrete variables. Theproperties previously cou ld notbe veriﬁedusing
+theclassicregiontechnique norexpressedbytimedtempora llogicsfortimedau-
+tomata and CTL∗for pushdown systems. The results are also extended to other
+generalizations of timedautomata.
+1 Introduction
+Atimedautomaton[3]canbeconsideredasaﬁniteautomatona ugmentedwithanum-
+ber of dense (either real or rational) clocks. Clocks can be r eset or progress at rate
+1 depending upon the truth values of a number of clock constra ints in the form of
+clock regions (i.e., comparisons of a clock or the differenc e of two clocks against an
+integer constant). Due to their ability to model and analyze a wide range of real-time
+systems, timed automata have been extensively studied in re cent years (see [1,35] for
+recentsurveys).Inparticular,byusingthestandardregio ntechnique,ithasbeenshown
+that region reachability for timed automata is decidable [3 ]. This fundamental result
+and the technique help researchers, both theoretically and practically, in formulating
+various timed temporal logics [2,4,5,6,27,32,33,34] and d eveloping veriﬁcation tools
+[11,26,30].
+Region reachability is useful but has intrinsic limitation s. In many real-world ap-
+plications [14], we might also want to know whether a timed au tomaton satisﬁes a
+⋆A short version [18] of this paper appears in the Proceedings of the 13th International Con-
+ference on Computer-aided Veriﬁcation (CAV’01), Lecture Notes in Computer Science 2102,
+pp. 506-517, Springer.
+
+--- Page 2 ---
+2
+non-regionproperty,e.g.,
+x1−2x2+x′
+3> x′
+1+4x′
+2−3x3
+holdswheneverclockvalues (x1,x2,x3)can reach (x′
+1,x′
+2,x′
+3). Recently,Comonand
+Jurski [16] have shown that the binary reachability of a time d automaton is deﬁnable
+in the additivetheoryof realsaugmentedwith an integralpr edicatethattells whethera
+term is an integer, by ﬂattening a timed automaton into a real -valued counter machine
+without nested cycles [15]. The result immediately paves th e way for automatic veri-
+ﬁcation of a class of non-regionpropertiesthat previously were not possible using the
+regiontechnique.
+On the other hand, a strictly more powerful system, called a pushdown timed au-
+tomaton(PTA), can be obtained by augmenting a timed automaton with a pushdown
+stack.PTAsareparticularlyinterestingbecausetheycont ainbothdenseclocksandun-
+boundeddiscretestructures.Theycanbe usedto study,fori nstance,a timedversionof
+pushdownprocesses[9,23]orreal-timeprogramswithproce durecalls.Aconﬁguration
+of a PTA is a tuple of a controlstate, dense clock values, and a stack word. The binary
+reachability of a PTA is the set of all pairs of conﬁgurations such that one can reach
+the other. Comon and Jurski’s result for timed automata insp ires us to look for a sim-
+ilar result for PTAs. Is there a decidable binary reachabili ty characterization for PTAs
+suchthataclassofnon-regionpropertiescanbeveriﬁed?Th emainresultinthispaper
+answersthisquestionpositively.
+Thereareseveralpotentialwaystoapproachthequestion.T heﬁrst straightforward
+approach would be to treat a PTA as a Cartesian product of a tim ed automaton and a
+pushdown automaton. In this way, the binary reachability of a PTA can be formulated
+by simply combining Comon and Jurski’s result and the fact th at pushdown automata
+accept context-freelanguages.Obviously,this is wrong,s ince stack operationsdepend
+onclockvaluesandthuscannotbesimplyseparated.Theseco ndapproachistoclosely
+lookattheﬂatteningtechniqueofComonandJurski’stoseew hetherthetechniquecan
+beadaptedbyaddingapushdownstack.However,thesecondap proachhasaninherent
+difﬁculty: the ﬂattening technique, as pointed out in their paper, destroys the structure
+oftheoriginaltimedautomaton,andthus,the sequencesofs tackoperationscannotbe
+maintainedafterﬂattening.
+Veryrecently,thequestionhasbeenansweredpositively,b utonlyforinteger-valued
+clocks (i.e., for discrete PTAs). It has been shown in [19] th at the binary reachability
+of a discrete PTA can be accepted by a nondeterministic pushd own automaton aug-
+mented with reversal-bounded counters (NPCA), whose empti ness problem is known
+tobedecidable[28].However,asfarasdenseclocksareconc erned,theautomata-based
+technique used in [19] does not apply. The reason is that trad itional automata theories
+do not provide tools to deal with machines containing both re al-valued counters (for
+denseclocks)andunboundeddiscretedatastructures.
+In order to handle dense clocks, we introduce a new technique , called the pattern
+technique, by separating a dense clock into an integral part and a fractional part. Con-
+sidera pair (v0,v1)oftwotuplesofclockvalues.We deﬁne(seeSection3fordeta ils)
+an ordering, called the pattern of (v0,v1), on the fractional parts of v0andv1. The
+deﬁnitionguaranteesthatthereareonlyaﬁnitenumberofdi stinctpatterns.Anequiva-
+lent relation “ ≈” is deﬁned such that (v0,v1)≈(v′
+0,v′
+1)iffv0andv′
+0(v1andv′
+1will
+
+--- Page 3 ---
+3
+also)havethesameintegralparts,andboth (v0,v1)and(v′
+0,v′
+1)havethesamepattern.
+The “≈” essentially deﬁnes an equivalent relation with a countabl e number of equiv-
+alent classes such that the integral parts of v0andv1together with the pattern of the
+fractional parts of v0andv1determine the equivalent class of (v0,v1). A good prop-
+erty of “≈” is that it preserves the binary reachability: v0can reach v1by a sequence
+of transitions iff v′
+0can reach v′
+1by the (almost) same sequence of transitions, when-
+ever(v0,v1)≈(v′
+0,v′
+1).Therefore,thefractionalpartscanbeabstractedawayfro mthe
+dense clocks by using a pattern. In this way, by preserving th e (almost) same control
+structure, a PTA can be transformed into a discrete transiti on system (called a pattern
+graph)containingdiscreteclocks(fortheintegralpartso fthedenseclocks)andaﬁnite
+variableoverpatterns.Bytranslatingapatternbacktoare lationoverthefractionalparts
+oftheclocks,thedecidablebinaryreachabilitycharacter izationofthepatterngraphde-
+rives the decidable characterization (namely, (D+NPCA)-deﬁnable) for the PTA,
+since therelationisdeﬁnableinthe additivetheoryof real s.With thischaracterization,
+it can be shown that the particular class of safety propertie s that contain mixed linear
+relationsoverbothdensevariables(e.g.,clockvalues)an ddiscretevariables(e.g.,word
+counts)canbeautomaticallyveriﬁedforPTAs. Forinstance ,
+whenever conﬁguration αcan reach conﬁguration β,αx1+ 2βx2−αx2>
+#a(αw)−#b(βw)holds.
+can be veriﬁed, where αx1is the dense value for clock x1inα,#a(αw)is the num-
+ber of symbols ain the stack word of α. The results can be easily extended to PTAs
+augmented with reversal-boundedcounters. In particular, we can show that the binary
+reachabilityofa timedautomatonisdeﬁnablein theﬁrst-or deradditivetheoryoverre-
+als and integers with ≥and+, i.e.,(R,N,+,≥,0). Essentially, for timed automata,
+Comon and Jurski’s characterization (the additive theory o f reals augmented with an
+integral predicate) is equivalent to ours (the additive the ory of reals and integers). The
+additivetheoryoverrealsandintegersisdecidable,forin stance,bytheBuchi-automata
+baseddecisionprocedurepresentedin[12].
+Fractional orderings are an effective way to abstract the fr actional parts of dense
+clocks.Theideaofusingfractionalorderingscanbetraced backtothepioneeringwork
+ofAlurandDill ininventingtheregiontechnique[3].Essen tially,theregiontechnique
+makes a ﬁnite partition of the clock space such that clock val ues in the same region
+give the same answer to each clock constraint in the system (i .e., the automaton of
+interest). Comon and Jurski [16] notice that Alur and Dill’s partition is too coarse in
+establishing the binary reachability of a timed automata. T hey move one step further
+by bringing in the clock values before a transition was made. But Comon and Jurski’s
+partition is still ﬁnite, since their partition, though ﬁne r than Alur and Dill’s, is still
+based on answers to all the clock constraints (there are ﬁnit ely many of them) in the
+system. In this paper, ≈deduces an inﬁnitepartition of both the initial values v0and
+the currentvalues v1ofthe clocks.Essentially,this partitionis based onanswe rsto all
+clock constraints (not just the ones in the system). That is, ≈is ﬁner than Comon and
+Jurski’s partition as well as Alur and Dill’s. This is why the ﬂattening technique [16]
+destroysthetransitionstructureofatimedautomatonbutt hetechniquepresentedinthis
+paper is able to preserve the transition structure. A class o f Pushdown Timed Systems
+
+--- Page 4 ---
+4
+was discussed in [10]. However, that paper focuses on region reachability instead of
+binaryreachability.
+This paper is organizedas follows. Section 2 reviews a numbe r of deﬁnitions and,
+in particular, deﬁnes a decidable formalism in which the bin ary reachability of PTAs
+are expressed. Section 3 and Section 4 give the deﬁnition of p atterns and show the
+correctnessofusingpatternsasanabstractionforfractio nalclockvalues.Section5and
+Section6 deﬁnePTAs andshowthatthe patterngraphofa PTA ha sa decidablebinary
+reachability characterization. Section 7 states the main r esults of the paper. In Section
+8,wepointoutthattheresultsinthispapercanbeextendedt omanyotherinﬁnitestate
+machinemodelsaugmentedwithdenseclocks.
+2 Preliminaries
+A nondeterministicmulticounterautomaton is a nondetermi nisticautomaton with a ﬁ-
+nite number of states, a one-way input tape, and a ﬁnite numbe r of integer counters.
+Each countercan be incrementedby 1, decrementedby 1, or sta y unchanged.Besides,
+a counter can be tested against 0. It is well-known that count er machines with two
+counters have an undecidablehalting problem, and obviousl y the undecidability holds
+formachinesaugmentedwithapushdownstack.Thus,wehavet orestrictthebehaviors
+of the counters. One such restriction is to limit the number o f reversals a counter can
+make.A counteris n-reversal-bounded if it changesmodebetweennondecreasingand
+nonincreasingatmost ntimes.Forinstance,thefollowingsequenceofcountervalu es:
+0,0,1,1,2,2,3,3,4,4,3,2,1,1,1,1,···
+demonstratesonlyonecounterreversal.Acounteris reversal-bounded ifitisn-reversal-
+bounded for some ﬁxed number nindependent of computations. A reversal-bounded
+nondeterministicmulticounterautomaton(NCA) isanondeterministicmulticounterau-
+tomatoninwhicheachcounterisreversal-bounded.A reversal-boundednondeterminis-
+ticpushdownmulticounterautomaton(NPCA) isanNCAaugmentedwithapushdown
+stack. In addition to counter operations, an NPCA can pop the top symbol from the
+stack or push a word onto the top of the stack. It is known that t he emptiness prob-
+lem (i.e., whether a machine accepts some words?) for NPCAs ( and hence NCAs) is
+decidable.
+Lemma 1. The emptiness problem for reversal-bounded nondeterminis tic pushdown
+multicounterautomataisdecidable.[28]
+When an automaton does not have an input tape, we call it a mach ine. In this case,
+we are interested in the behaviors generated by the machine r ather than the language
+acceptedbytheautomaton.We shalluseNPCM (resp.NCM)tost andforNCPA (resp.
+NCA) withoutaninputtape.
+LetNbe integers, D=Q(rationals) or R(reals),Γbe an alphabet. We use N+
+andD+to denote non-negativevalues in NandD, respectively. Each value v∈D+
+can beuniquelyexpressedasthe sum of ⌈v⌉+⌊v⌋, where⌈v⌉ ∈Nis the integralpart
+ofv, and0≤ ⌊v⌋<1is the fractional part of v. Adense variable is a variable over
+
+--- Page 5 ---
+5
+D.Anintegervariable isavariableover N.Awordvariable isavariableover Γ∗.Let
+m≥1.Foreach 1≤i≤m,weusexi,yi,andwitodenoteadensevariable,aninteger
+variable, and a word variable, respectively. We use #a(wi)to denote a count variable
+representingthenumberofsymbol a∈Γinwi. Alinearterm tisdeﬁnedasfollows:
+t::=n|xi|yi|#a(wi)|t−t|t+t,
+wheren∈N,a∈Γand1≤i≤m. Amixedlinearrelation lis deﬁnedasfollows:
+l::=t >0|t= 0|tdiscretemod n= 0| ¬l|l∧l,
+wheretis a linear term, 0/n⌉}ationslash=n∈N, andtdiscreteis a linearterm notcontainingdense
+variables.Noticethatamixedlinearrelationcouldcontai ndensevariables,integervari-
+ables and word count variables. A dense linear relation is a mixed linear relation that
+contains dense variables only. A discrete linear relation is a mixed linear relation that
+doesnotcontaindensevariables.Obviously,anydiscretel inearrelationisaPresburger
+formulaoverintegervariablesandwordcountvariables.
+Eachintegercanberepresentedasaunarystring,e.g.,stri ng“00000”(resp.“11111”)
+forinteger +5(resp.−5).Inthisway,atupleofintegersandwordscanbeencodedasa
+stringbyconcatenatingtheunaryrepresentationsofeachi ntegerandeachofthewords,
+with a separator #/n⌉}ationslash∈Γ. For instance, (2,−4,w)is encodedas string “ 00#1111# w”.
+Consider a predicate Hoverinteger variablesand word variables.The domainof His
+the set of tuples of integersand words that satisfy H. Under the encoding,the domain
+ofHcanbetreatedasasetofstrings,i.e.,alanguage.Apredica teHoverintegervari-
+ablesand wordvariablesis an NPCA predicate (orsimply NPCA) if there is an NPCA
+acceptingthedomainof H.A(D+NPCA)-formula fisdeﬁnedasfollows:
+f::=ldense∧H|ldense∨H|f∨f,
+whereldenseis a dense linear relation and His an NPCA predicate. Therefore, a
+(D+NPCA)formula is a ﬁnite disjunction of formulas in the form of ldense∧H
+orldense∨H, wheredense variables(containedonly in each ldense) anddiscrete vari-
+ables(containedonlyineach H)areseparated.Let p,q,r≥0.Apredicate Aontuples
+inDp×Nq×(Γ∗)ris(D+NPCA)-deﬁnable ifthereisa (D+NPCA)-formula
+fwithpdensevariables, p+qintegervariables,and rwordvariables,suchthat,forall
+x1,···,xpinD, forally1,···,yqinN,andforall w1,···,wrinΓ∗,
+(x1,···,xp,y1,···,yq,w1,···,wr)∈A
+ifff(⌊x1⌋,···,⌊xp⌋,⌈x1⌉,···,⌈xp⌉,y1,···,yq,w1,···,wr)holds.
+Lemma 2. (1). Both ldiscrete∧Handldiscrete∨Hare NPCA predicates, if ldiscrete
+isadiscrete linearrelationand His anNPCA predicate.
+(2).NPCApredicatesareclosedunderexistentialquantiﬁc ations(overintegervari-
+ablesandword variables).
+(3).IfAis(D+NPCA)-deﬁnableand lisamixedlinearrelation,thenboth l∧A
+andl∨Aare(D+NPCA)-deﬁnable.
+(4). The emptiness (or satisﬁability) problem for (D+NPCA)-deﬁnable predi-
+catesis decidable.
+
+--- Page 6 ---
+6
+Proof.(1).ldiscreteis a Presburger formula. (The domain of) ldiscretecan therefore
+be accepted by a deterministic NCA [28]. Hence, ldiscrete∧Handldiscrete∨Hcan
+be accepted by NPCAs by “intersecting” and “joining” the det erministic NCA and the
+NPCA thataccepts H,respectively.
+(2).LetHbeanNPCApredicatecontainingvariable z(eitheranintegervariableor
+awordvariable).Assume HisacceptedbyNPCA M.AnNPCA M′canbeconstructed
+to accept ∃zHby guessing each symbol in the encodingof z(on the input tape of M)
+andsimulating M.
+(3).Weﬁrstshowthatanymixedlinearrelation lisdeﬁnablebya separately mixed
+linearrelation l′(i.e.,l′is a Booleancombinationof denselinearrelationsanddiscr ete
+linearrelations.So, l′doesnothaveatermcontainingbothdensevariablesanddisc rete
+variables.).Thatis,forall x1,···,xp∈D,y1,···,yq∈N,
+l(x1,···,xp,y1,···,yq)iffl′(⌊x1⌋,···,⌊xp⌋,⌈x1⌉,···,⌈xp⌉,y1,···,yq).
+Instead of givinga lengthyproof,we look at an exampleof l:x1−x2+y1>2. This
+canberewrittenas: ⌈x1⌉−⌈x2⌉+y1−2+⌊x1⌋−⌊x2⌋>0.Term⌊x1⌋−⌊x2⌋isthe
+onlypartcontainingdensevariables.Since ⌊x1⌋−⌊x2⌋isbounded,separatingcasesfor
+this term being at (and between) -1, 0, 1 will give a separatel y mixed linear relation l′.
+Thisseparationidea can be appliedforanymixedlinear rela tionl.IfAis deﬁnableby
+a(D+NPCA)-formulaf,thenl∧A(resp.l∨A)isdeﬁnableby l′∧f(resp.l′∨f).
+Byre-organizingthedenselinearrelations(in l′andf)andthediscretelinearrelations
+(inl′)suchthatthediscretelinearrelationsaregroupedwithth eNPCApredicatesin f,
+l′∧fandl′∨fcanbemade (D+NPCA)-formulasusingLemma2(1).
+(4). The emptiness problem for ldense∧Handldense∨His decidable, noticing
+that the emptiness for ldense, which is expressible in the additive theory of reals (or
+rationals), is decidable, and the emptiness of NPCA predica teHis decidable (Lemma
+1). Therefore,the emptinessof any (D+NPCA)formulas,as well as, from Lemma
+2(3),any (D+NPCA)-deﬁnablepredicates,isdecidable.
+3 ClockPatterns andTheir Changes
+A dense clock is simply a dense variable taking non-negative values in D+. Now we
+ﬁx ak >0and consider k+ 1clocksx=x0,···,xk. For technical reasons, x0is
+an auxiliary clock indicating the current time now. LetK={0,···,k}, andK+=
+{1,···,k}. A subset K′ofKis abused as a set of clocks; i.e., we say xi∈K′if
+i∈K′. A(clock) valuation vis a function K→D+that assigns a value in D+to
+each clock in K. Adiscrete (clock) valuation uis a function K→N+that assigns a
+valueinN+toeachclockin K.Foreachvaluation vandδ∈D+,⌈v⌉,⌊v⌋andv+δ
+are valuationssatisfying ⌈v⌉(i) =⌈v(i)⌉,⌊v⌋(i) =⌊v(i)⌋and(v+δ)(i) =v(i)+δ
+foreachi∈K.Therelativerepresentation /hatwidevofavaluation visavaluationsatisfying:
+–⌈/hatwidev⌉=⌈v⌉,
+–⌊/hatwidev⌋(0) =⌊1−⌊v⌋(0)⌋,
+–⌊/hatwidev⌋(i) =⌊⌊v⌋(i)+⌊/hatwidev⌋(0)⌋, foreach i∈K+.
+A valuation v0isinitialiftheauxiliaryclock x0hasvalue0in v0.
+
+--- Page 7 ---
+7
+Example1. Letk= 4andv1= (4.296,1.732,1.414,5.289,3.732).It can be calcu-
+lated that /hatwidev1= (4.704,1.436,1.118,5.993,3.436).Letv2=v1+.268 = (4 .564,2,
+1.682,5.557,4). Then,/hatwidev2= (4.436,2.436,1.118,5.993,4.436).It is noticed that all
+thefractionalparts(exceptfor /hatwiderv1(0)and/hatwiderv2(0))arethesamein /hatwidev1and/hatwidev2.Itiseasyto
+show thata clockprogress(i.e., x0,···,xkprogressby the sameamountsuchas .268)
+will not changethe fractionalpartsof clockvalues(forclo cksx1,···,xk) in a relative
+representation.
+3.1 ClockPatterns
+We distinguish two disjoint sets, K0={00,···,k0}andK1={01,···,k1}, of in-
+dices.Apatternηis asequence
+p0,···,pn,
+forsome 0≤n <2(k+1), ofnonemptyanddisjointsubsetsof K0∪K1suchthat
+–00∈p0and
+–∪0≤i≤npi=K0∪K1.
+In pattern η,piis called the i-position. A pair of valuations (v0,v1)isinitialized if
+v0is initial. The pattern of (v0,v1)characterizes the fractional ordering between ele-
+ments in ⌊/hatwiderv0⌋and⌊/hatwiderv1⌋(whereK0is for indices of v0andK1is for indices of v1).
+Formally,an initializedpair (v0,v1)haspattern η=p0,···,pn, written(v0,v1)∈η,
+or[(v0,v1)] =η, if, for each 0≤m,m′≤n, eachb,b′∈ {0,1},and each i,i′∈K,
+ib∈pmandi′b′∈pm′implythat
+⌊/hatwidervb⌋(i) =⌊/hatwidervb′⌋(i′) (resp.<)iffm=m′(resp.m < m′).
+Though this deﬁnition of a pattern is quite complex, a patter n can be easily visualized
+afterlookingat thefollowingexample.
+Example2. Consider v1in Example 1 and an initial valuation v0= (0,3.118,5.118,
+2,1.876).Sincev0isinitial, /hatwiderv0=v0.Thefractionalpartsof v0andv1,intherelative
+representation, can be put on a big circle representing the i nterval[0,1)as shown in
+Figure1.Eachfractionalvalue ⌊/hatwiderv0⌋(i)forv0isrepresentedbyanoval;eachfractional
+value⌊/hatwiderv1⌋(i)forv1is represented by a box. The pattern of (v0,v1)can be drawn by
+collectingclockwisely(fromthe top,i.e., /hatwiderv0(0) = 0)theindices(superscriptedwith 0,
+e.g.,30for/hatwiderv0(3))foreachcomponentin /hatwiderv0andtheindices(superscriptedwith1,e.g.,
+31for/hatwiderv1(3)) foreachcomponentin /hatwiderv1; i.e.,thepatternis
+η=p0,···,p5
+withp0={00,30},p1={10,20,21},p2={11,41},p3={01},p4={40},p5=
+{31}.
+Thereare at most 26(k+1)2distinct patterns. Let Φdenotethe set of all the patterns
+(for the ﬁxed k). A pattern is initialif it is the pattern of (v0,v0)for some initial
+valuation v0. Ifηis the pattern of (v0,v1), we use init(η)to denote the pattern of
+
+--- Page 8 ---
+8
+.0
+.118
+.436.704.876.993 v_0(1),v_0(2),v_1(2)
+v_1(0)v_0(4)v_1(3)v_0(0),v_0(3)
+v_1(1), v_1(4)
+Fig.1.A graphical representation of the fractional parts of v0andv1in a relative
+representation in Example 2. That is, ⌊/hatwiderv0⌋= (0,.118,.118,0,.876)and⌊/hatwiderv1⌋=
+(.704,.436,.118,.993,.436)as in Example2 and 1. Ovalsare forcomponentsin ⌊/hatwiderv0⌋
+and boxes are for components in ⌊/hatwiderv1⌋. For instance, the oval labeled by /hatwiderv0(4)corre-
+spondsto ⌊/hatwiderv0⌋(4) =.876.
+(v0,v0).init(η)isuniqueforeach η.Giventwoinitializedpairs (v1
+0,v1)and(v2
+0,v2),
+we write (v1
+0,v1)≈(v2
+0,v2), if(v1
+0,v1)and(v2
+0,v2)have the same pattern, and have
+the same integralparts(i.e., ⌈v1
+0⌉=⌈v2
+0⌉,⌈v1⌉=⌈v2⌉). The followinglemma can be
+observed.
+Lemma 3. Foranytwoinitializedpairs (v1
+0,v1)and(v2
+0,v2)with(v1
+0,v1)≈(v2
+0,v2),
+thefollowingstatementshold:
+(1).thepatternof (v1
+0,v1)isinitialiff ⌊v1⌋=⌊v1
+0⌋,
+(2).v1isinitial(i.e., v1(0) = 0)iffv2isinitial,
+(3).v1=v1
+0iffv2=v2
+0.
+A valuation v1has pattern ηif there is an initial v0such that (v0,v1)has pattern
+η.v1may have a number of patterns, by different choices of v0. A pattern of v1tells
+thetruthvaluesofallthe fractionalorderings ⌊v1⌋(i)#⌊v1⌋(j)and⌊v1⌋(i)#0(where
+#standsfor <,>,≤,≥,=.),foralli,j∈K+, asshowninthefollowinglemma.
+Lemma 4. Letη=p0,···,pnbeapatternof avaluation v. Assume 01∈piforsome
+0≤i≤n.Then,forany m1andm2(with0≤m1,m2≤n),forany j1andj2inK+
+(withj1
+1∈pm1andj1
+2∈pm2),the followingstatementshold.
+(1).⌊v⌋(j1)>⌊v⌋(j2)iff oneof thefollowingconditionsholds:
+m1< i≤m2,
+m2< m1< i,
+i≤m2< m1.
+(2).⌊v⌋(j1) =⌊v⌋(j2)iffm1=m2.
+(3).⌊v⌋(j1)>0iffm1/n⌉}ationslash=i.
+
+--- Page 9 ---
+9
+(4).⌊v⌋(j1) = 0iffm1=i.
+Proof.Directlyfromthe deﬁnitionofapattern.
+Recall01∈K1stands for the index for the value of clock x0(representing now)
+inv1. Letη=p0,···,pnbe a pattern. piisthenow-position ofηif01∈pi. A pattern
+ηisregulated if the now-positionof ηisp0. Note that the pattern of an initialized pair
+(v0,v1)is regulated if and only if the auxiliary clock x0takes an integral value in v1
+(i.e.,⌊v1⌋(0) = 0). A pattern is a merge-pattern if the now-position is a singleton set
+(i.e.,01is the only element). A pattern is a split-pattern if it is not a merge-pattern,
+i.e., the now-position contains more than one element. (“Me rge” and “split” will be
+made clear in a moment.)Obviously,a regulatedpattern is al ways a split-pattern.This
+is because the now-position of a regulated pattern, which is p0, contains at least two
+elements 00and01.
+3.2 ClockProgresses
+Foreach0< δ∈D+,v+δistheresultofaclockprogressfrom vbyanamountof δ.
+Howdoesa patternchangeaccordingtothe progress?Let usﬁr st lookatan example.
+Example3. Consider v1,v2(=v1+.268) in Example 1, and v0in Example 2. In
+Example2,we indicatedthatthepattern η1of(v0,v1)is
+{00,30},{10,20,21},{11,41},{01},{40},{31}.
+Similarstepscanbefollowedtoshowthat thepattern η2of(v0,v2)is
+{00,30},{10,20,21},{11,41,01},{40},{31}.
+A helpful way to see the relationship between η1andη2is by looking at Figure 1.
+Holdingtheboxlabeledby /hatwiderv1(0)(forthecurrenttime)andslidingcounter-clockwisely
+along the big circle for an amount of .268will stop at the box labeled by /hatwiderv1(1)and
+/hatwiderv1(4).Thus,thepattern η2(aftersliding)isexactly η1(beforesliding)exceptthat 01in
+the3-positionin η1ismergedintothe 2-positionin η2.Noticethat η1isamerge-pattern
+and the resulting η2is a split-pattern. The integral parts ⌈v1⌉(1)and⌈v1⌉(4)change
+to⌈v2⌉(1) =⌈v1⌉(1) + 1and⌈v2⌉(4) =⌈v1⌉(4)+ 1. But all the other components
+of⌈v1⌉do not change. The reason is that, after merging 01with11and41inη2, the
+fractionalparts ⌊v2⌋(1)and⌊v2⌋(4)are“rounded”(i.e.,become0).Whatifwefurther
+make a clock progressfrom v2for an amountof δ′=.12? The resulting pattern η3of
+(v0,v3)withv3=v2+δ′istheresultofsplitting 01fromthe2-position {11,41,01}.
+Thatis,η3is
+{00,30},{10,20,21},{01},{11,41},{40},{31},
+which is a merge-patternagain. This process of merging and s plitting can be formally
+deﬁnedasthefollowingfunction next.
+Function next:Φ×(N+)k+1→Φ×(N+)k+1describes how a pattern changes
+upona clockprogress.Givenanydiscrete valuation uandpattern η=p0,···,pnwith
+thenow-positionbeing piforsome i,next(η,u)isdeﬁnedto be (η′,u′)suchthat,
+
+--- Page 10 ---
+10
+–(thecasewhen ηisamerge-pattern)if i >0and|pi|= 1(thatis,thenow-position
+pi={01}),thenη′is
+p0,···,pi−1∪{01},pi+1,···,pn
+(that is,η′is the result of merging the now-position to the previous pos ition), and
+foreachj∈K+,ifj1∈pi−1,thenu′(j) =u(j)+1elseu′(j) =u(j).Besides,
+ifi= 1(i.e.,thenow-positionismergedto p0;inthiscase, η′isaregulatedpattern),
+thenu′(0) =u(0)+1elseu′(0) =u(0),
+–(the case when ηis a split pattern) if i≥0and|pi|>1, thenη′is the result of
+splitting01fromthenow-position.Thatis,if i >0,η′is
+p0,···,pi−1,{01},pi−{01},pi+1,···,pn.
+However,if i= 0,η′is
+p0−{01},p1,···,pn,{01}.
+Ineithercase, u′=u.
+Ifnext(η,u) = (η′,u′), (1).η′is calledthe next pattern of η, writtenNext(η), (2).
+∆η∈ {0,1}k+1is called the increment vector ofηwith∆η=u′−u. Obviously,
+Next(η)/n⌉}ationslash=ηandNext(·)istotal and1-1.
+To betterunderstand Next(·), we visualizepattern ηas a circle shownin Figure 2.
+Applications of Next(·)can be regarded as moving the index 01along the circle, by
+performingmerge-operations(Figure2 (a)) and split-oper ations(Figure 2 (b))alterna-
+tively. After enough number of applications of Next(·),01will return to the original
+now-position after moving through the entire circle. That i s, for each pattern η, there
+is a smallest positive integer msuch that Nextm(η) =η; i.e.,η0,···,ηmsatisﬁes
+η0=ηm=η,andNext(ηi) =ηi+1foreach0≤i < m.Moreprecisely,bylookingat
+Figure2,if ηisamerge-pattern, m= 2n;ifηisasplit-pattern, m= 2(n+1).Further-
+more, elements η0,···,ηm−1are distinct. The sequence η0,···,ηmis called a pattern
+ring.Thepatternringisuniqueforeachﬁxed η0.Noticethat nextm(η,u) = (η,u+1)
+foreachu.Sincethenextpattern Next(η)isamerge-pattern(resp.split-pattern)if ηis
+asplit-pattern(resp.merge-pattern),onapatternring,m erge-patternsandsplit-patterns
+appearalternately.
+Fix any initialized pair (v0,v)and0< δ∈D+. Assume the patterns of (v0,v)
+and(v0,v+δ)areηandη′, respectively.We say vhasnopattern changefor δif, for
+all0≤δ′≤δ,(v0,v+δ′)has the same pattern. We say vhas one pattern change
+forδifNext(η) =η′and, for all 0< δ′< δ,(v0,v+δ′)has pattern η, or, for all
+0< δ′< δ,(v0,v+δ′)has pattern η′. The following lemma on the correctness of
+nextcanbeobserved.
+Lemma 5. For any initialized pair (v0,v)and any0< δ∈D+, the following state-
+mentsare equivalent:
+(1).next([(v0,v)],⌈v⌉) = ([(v0,v+δ)],⌈v+δ⌉),
+(2).vhasonepatternchangefor δ.
+
+--- Page 11 ---
+11
+p0
+p1
+p2
+.
+.
+.pn
+...
+pi-1now-position
+pi+1merge 
+now-position
+pi+1pi-1 U  {0^1}p2p1p0
+pn
+.
+.
+..
+.
+.
+now-positionpi = {0^1}
+pi-1p2p1p0
+pn
+.
+.
+..
+.
+pi+1 pisplitp0
+p1
+p2
+pi-1
+pi+1...pn
+now-position
+{0^1}
+pi-{0^1}(a)
+(b)
+Fig.2.A graphical representation of a pattern η=p0,···,pn. Operator Next(·)has
+the same effect as moving the now-position counter-clockwi sely.In case (a), the now-
+position is mergedto the previousposition. In case (b),ind ex01is split fromthe now-
+position.
+Wesayvhasnpatternchangesfor δwithn≥1,iftherearepositive δ1,···,δnin
+D+withΣ1≤i≤nδi=δsuch that v+Σ1≤i≤jδihas one pattern change for δj+1, for
+eachj= 0,···,n−1.Itisnoticedthatforany δ≤1,vhasatmost mpatternchanges,
+wheremis the lengthof the pattern ringstarting fromthe pattern ηof(v0,v). Thism
+isuniformlyboundedby 4(k+1).
+Lemma 6. Foranyinitializedpair (v0,v)andanyδ∈D+,(1)vhasatmost 4(k+1)
+pattern changesfor δifδ≤1, (2)vhasat least one pattern changefor δifδ≥1, (3)
+ifvhasnopatternchangefor δthen⌈v⌉=⌈v+δ⌉.
+3.3 ClockResets
+In addition to clock progresses, clock resets are the other f orm of clock behaviors.Let
+r⊆K+be(asetof) clockresets .v↓rdenotestheresultofresettingeachclock xi∈r
+(i.e.,i∈r). Thatis,foreach i∈K,
+(v↓r)(i) =/braceleftbigg0ifi∈r
+v(i)otherwise.
+Example4. Consider v0andv1given in Example 2 and Example 1. Assume r=
+{4}.Bydeﬁnition, v1↓r= (4.296,1.732,1.414,5.289,0).Itcanbecalculatedthatthe
+relative representation of v1↓ris(4.704,1.436,1.118,5.993,0.704). The pattern of
+(v0,v1↓r)can be ﬁgured out again by looking at Figure 1. The reset of clo ckx4can
+
+--- Page 12 ---
+12
+beconceptuallyregardedasmovingthelabel /hatwiderv1(4)fromtheboxof /hatwiderv1(1)and/hatwiderv1(4)to
+theboxof /hatwiderv1(0)(thecurrenttime).Therefore,thepatternafterthereset c hangesfrom
+{00,30},{10,20,21},{11,41},{01},{40},{31}
+of(v0,v1)to
+{00,30},{10,20,21},{11},{01,41},{40},{31}
+of(v0,v1↓r)bymoving 41intothepositioncontaining 01.
+Functions resetr:Φ×(N+)k+1→Φ×(N+)k+1forr⊆K+describe how
+a pattern changes after clock resets. Given any discrete val uationuand any pattern
+η=p0,···,pnwiththenow-positionbeing piforsomei,resetr(η,u)isdeﬁnedtobe
+(η′,u′)suchthat,
+–η′isp0−r1,···,pi−1−r1,pi∪r1,pi+1−r1,···,pn−r1, wherer1={j1:
+j∈r} ⊆K1. Therefore, η′is the result of bringing every index in r1into the
+now-position.Notice that some of pm−r1may be empty after movingindices in
+r1out ofpm, form/n⌉}ationslash=i. In this case, these empty elements are removed from η′
+(toguaranteethat η′iswell deﬁned.),
+–foreachj∈K,ifj∈r, thenu′(j) = 0elseu′(j) =u(j).
+Ifresetr(η,u) = (η′,u′),η′is written as Resetr(η). Note that Resetr(η)is unique
+for eachηandr, and is independent of u. The following lemma states that resetis
+correct.
+Lemma 7. Foranyinitializedpair (v0,v)andanyr⊆K+,
+resetr([(v0,v)],⌈v⌉) = ([(v0,v↓r)],⌈v↓r⌉).
+4 ClockConstraints and Patterns
+Anatomic clock constraint (over clocks x1,···,xk, excluding x0) is a formula in the
+form ofxi−xj#dorxi#dwhere0≤d∈N+and#stands for <,>,≤,≥,=. A
+clock constraint cis a Boolean combination of atomic clock constraints. Let Cbe the
+set of all clock constraint (over clocks x1,···,xk). We say v∈cif clock valuation v
+(forx0,···,xk)satisﬁes clockconstraint c.
+Anyclock constraint ccan be written as a Booleancombination I(c)of clockcon-
+straints over discrete clocks ⌈x1⌉,···,⌈xk⌉and fractional orderings ⌊xi⌋#⌊xj⌋and
+⌊xi⌋#0.Forinstance, xi−xj< disequivalentto: ⌈xi⌉−⌈xj⌉< d,or,⌈xi⌉−⌈xj⌉=d
+and⌊xi⌋<⌊xj⌋.xi> dis equivalentto: ⌈xi⌉> d, or,⌈xi⌉=dand⌊xi⌋>0. There-
+fore, testing v∈cis equivalent to testing ⌈v⌉and the fractional orderings on ⌊v⌋
+satisfying I(c).
+Assumevhas a pattern η=p0,···,pn. A fractional orderingon ⌊v⌋is equivalent
+toaBooleanconditionon η,asshowninLemma4.Whenever ηisﬁxed,eachfractional
+orderingin I(c)has a speciﬁc truth value (either 0 or 1). In this case, we use I(c)η, or
+simplycη, to denote the result of replacing fractional orderings in I(c)by the truth
+valuesgivenby η.cη, withoutcontainingfractionalorderings,isjusta clockc onstraint
+
+--- Page 13 ---
+13
+(over discrete clocks). Notice that the pattern space Φis ﬁnite, therefore, v∈cis
+equivalentto/logicalordisplay
+η∈Φ(vhaspattern η∧⌈v⌉ ∈cη).
+Hence, the truth value of v∈conly depends on a pattern of vand the integral parts
+ofv. These observations conclude the following results. In par ticular, Lemma 8 (2)
+indicates that it is sufﬁcient to test the two end points v∈candv+δ∈cin order to
+makesurethat cisconsistentlysatisﬁedoneach v+δ′,0≤δ′≤δ,iffromvtov+δ,
+thereisat mostonepatternchange.
+Lemma 8. (1). For any initialized pair (v0,v), any pattern η∈Φ, if(v0,v)has pat-
+ternη,then,foranyclockconstraint c∈ C,v∈ciff⌈v⌉ ∈cη.
+(2). For any initialized pair (v0,v)and any0< δ∈D+, ifvhas at most one
+patternchangefor δ,then,foranyclockconstraint c∈ C,
+∀0≤δ′≤δ(v+δ′∈c)iffv∈candv+δ∈c.
+(3). For any initialized pairs (v1
+0,v1)and(v2
+0,v2), if(v1
+0,v1)≈(v2
+0,v2), then, for
+anyc∈ C,v1∈ciffv2∈c.
+Proof.(1) is from the observationsmade beforethis lemma in this se ction. (2) is from
+(1)andLemma5.(3)isdirectlyfrom(1).
+Now,we considertwoinitializedpairs (v1
+0,v1)and(v2
+0,v2)suchthat
+(v1
+0,v1)≈(v2
+0,v2).
+That is, from the deﬁnition of ≈,v1
+0(resp.v1) has the same integral parts as v2
+0(resp.
+v2).Besides,thetwopairshavethesamepattern.FromLemma8( 3),anytest c∈ Cwill
+not tell the differencebetween v1andv2. Assume v1can be reachedfroma valuation
+v1via a clock progress by an amount of δ1, i.e.,v1+δ1=v1. We would like to
+know whether v2can be reached from some valuation v2also via a clock progress
+but probably by a slightly different amount of δ2such that (v1
+0,v1)and(v2
+0,v2)are
+still equivalent( ≈). We also expect that for any test c, if during the progress of v1,
+cis consistently satisﬁed, then so is cfor the progress of v2. The following lemma
+concludesthatthese,aswellastheparallelcaseforclockr esets,canbedone.Thisresult
+canbeusedlatertoshowthatif v1isreachedfrom v1
+0byasequenceoftransitionsthat
+repeatedlyperformclockprogressesandclockresets,then v2canbealsoreachedfrom
+v2
+0viaa verysimilarsequencesuchthat notest ccandistinguishthe twosequences.
+Lemma 9. Foranyinitializedpairs (v1
+0,v1)and(v2
+0,v2)with(v1
+0,v1)≈(v2
+0,v2),
+(1). for any 0≤δ1∈D+, for any clock valuation v1, ifv1+δ1=v1, then there
+exist0≤δ2∈D+andclockvaluation v2suchthat
+(1.1).v2+δ2=v2and(v1
+0,v1)≈(v2
+0,v2),
+(1.2).v1isinitial iff v2isinitial,
+v1=v1
+0iffv2=v2
+0,and
+foranyc∈ C,v1∈c(resp.v1∈c)iffv2∈c(resp.v2∈c),
+
+--- Page 14 ---
+14
+(1.3). for any clock constraint c∈ C,∀0≤δ′≤δ1(v1+δ∈c)iff∀0≤δ′≤
+δ2(v2+δ∈c).
+(2). for any r⊆K+, for any clock valuation v1, ifv1↓r=v1, then there exists a
+valuation v2suchthat
+(2.1).v2↓r=v2and(v1
+0,v1)≈(v2
+0,v2),
+(2.2).same as(1.2).
+Proof.(1). Assume δ1is “small”, i.e., from v1tov1=v1+δ1, there is at most one
+patternchange.Let η=p0,···,pnbethepatternfor (v2
+0,v2)(and,hence,for (v1
+0,v1)).
+Assume01∈pifor some i. Ifδ1causes no pattern change for v1, then simply take
+δ2= 0. Ifδ1causes one pattern change for v1, then we put (v2
+0,v2)on a circle (e.g.
+Figure1).If ηisasplit-pattern(i.e., |pi|>1),thenweseparateanewbox(onlylabeled
+by⌊/hatwiderv2⌋(0))fromtheoriginalboxlabeledby ⌊/hatwiderv2⌋(0)andslidethenewboxbackwards
+(i.e., clockwisely) for a small positive amount (taken as δ2) without hitting any box or
+oval. Ifηis a merge-pattern (i.e., |pi|= 1), then we slide the box labeled by ⌊/hatwiderv2⌋(0)
+(thisistheonlylabel)backwards(i.e.,clockwisely)fora positiveamount(takenas δ2)
+until a box or an oval is hit. Take v2=v2−δ2. Obviously, (v1
+0,v1)≈(v2
+0,v2). It can
+becheckedthat(1.2)and(1.3)holdusingLemma8andLemma3.
+Any larger δ1that causes multiple pattern changes for v1can be split into a ﬁnite
+(Lemma6)sequenceofsmall δ’sthatcausesexactlyonepatternchange.Inthiscase, δ2
+canbecalculatedbyworkingoneachsmall δ(thelast oneﬁrst)asinthe aboveproof.
+(2).Thecasewhen r=∅isobvious.Assume rcontainsonlyoneelement j∈K+.
+Assumeηis the pattern of (v1
+0,v1). A desired v2is picked as follows. The integral
+parts ofv2are exactly those of v1; i.e.,⌈v2⌉=⌈v1⌉. The fractional parts of v2are
+exactlythoseof v2,exceptthat,intherelativerepresentation, ⌊/hatwiderv2⌋(j)maybedifferent
+from⌊/hatwiderv2⌋(j). Then what is ⌊/hatwiderv2⌋(j)? It is chosen such that the pattern of (v2
+0,v2)is
+η. For instance, if ⌊/hatwiderv1⌋(j)equals to, say, ⌊/hatwiderv1⌋(j1)(resp.⌊/hatwiderv1
+0⌋(j1)), for some j1, then
+⌊/hatwiderv2⌋(j)is picked as ⌊/hatwiderv2⌋(j1)(resp.⌊/hatwiderv2
+0⌋(j1)). If⌊/hatwiderv1⌋(j)lies strictly between, say,
+⌊/hatwiderv1⌋(j1)(or,⌊/hatwiderv1
+0⌋(j1)) and⌊/hatwiderv1⌋(j2)(or,⌊/hatwiderv1
+0⌋(j2)), for some j1andj2, such that no
+othercomponentin ⌊/hatwiderv1⌋and⌊/hatwiderv1
+0⌋lies strictly betweenthese two values, then ⌊/hatwiderv2⌋(j)
+is picked as any value lies strictly between ⌊/hatwiderv2⌋(j1)(or,⌊/hatwiderv2
+0⌋(j1)) and⌊/hatwiderv2⌋(j2)(or,
+⌊/hatwiderv2
+0⌋(j2)) accordingly. Since (v1
+0,v1)≈(v2
+0,v2), we can show ⌊/hatwiderv2⌋(j)can always be
+picked.Thechoiceof ⌊/hatwiderv2⌋(j)guaranteesthatthepatternof (v1
+0,v1)isthesameasthe
+patternof (v2
+0,v2). Therestofconditionsin(2)canbecheckedeasily.
+Forthecasewhen rcontainsmorethanoneelement,theaboveproofcanbegener-
+alizedbyresettingclocksin ronebyone.
+5 Pushdown Timed Automata
+Apushdowntimedautomaton (PTA)Aisatuple
+/an}⌊ra⌋k⌉tl⌉{tS,{x1,···,xk},Inv,R,Γ,PD /an}⌊ra⌋k⌉tri}ht,
+where
+
+--- Page 15 ---
+15
+–Sisaﬁnite set of states,
+–x1,···,xkare (dense)clocks,
+–Inv:S→ Cassignsaclockconstraintoverclocks x1,···,xk,calledan invariant,
+to eachstate,
+–R:S×S→ C ×2{x1,···,xk}assigns a clock constraint over clocks x1,···,xk,
+called areset condition , and a subset of clocks, called clock resets, to a (directed)
+edgeinS×S,
+–Γis thestack alphabet .PD:S×S→Γ×Γ∗assigns a pair (a,γ)witha∈Γ
+andγ∈Γ∗, called a stack operation , to each edge in S×S. A stack operation
+(a,γ)replacesthetopsymbol aofthe stackwitha string(possiblyempty)in Γ∗.
+Atimedautomaton isa PTAwithoutthepushdownstack.
+The semantics of Ais deﬁned as follows. A conﬁguration is a triple (s,v,w)of a
+states, aclockvaluation vonx0,···,xk(wherex0is theauxiliaryclock),andastack
+wordw∈Γ∗.(s1,v1,w1)→A(s2,v2,w2)denotes a one-step transition ofAif one
+ofthefollowingconditionsis satisﬁed:
+–(aprogresstransition )s1=s2,w1=w2,and∃0< δ∈D+,v2=v1+δandfor
+allδ′satisfying 0≤δ′≤δ,v1+δ′∈Inv(s1).Thatis,aprogresstransitionmakes
+alltheclockssynchronouslyprogressbyamount δ >0,duringwhichtheinvariant
+isconsistentlysatisﬁed,while thestate andthe stackcont entremainunchanged.
+–(areset transition )v1∈Inv(s1)∧c,v1↓r=v2∈Inv(s2), andw1=aw,w2=
+γwfor some w∈Γ∗, whereR(s1,s2) = (c,r)for some clock constraint cand
+clock resets r, andPD(s1,s2) = (a,γ)for some stack symbol a∈Γand string
+γ∈Γ∗. That is, a reset transition, by moving from state s1to states2, resets
+every clock in rto 0 and keeps all the other clocks unchanged. The stack conte nt
+is modiﬁed according to the stack operation (a,γ)given on edge (s1,s2). Clock
+values beforethe transition satisfy the invariant Inv(s1)and the reset condition c;
+clockvaluesafterthe transitionsatisfy theinvariant Inv(s2).1
+We write →∗
+Ato be the transitive closure of →A. Given two valuations v1
+0andv1,
+two states s0ands1, and two stack words w0andw1, assume the auxiliary clock x0
+starts from 0, i.e., v1
+0is initial. The followingresult is surprising.It states th at, forany
+initialized pair (v2
+0,v2)with(v1
+0,v1)≈(v2
+0,v2),(s0,v1
+0,w0)→∗
+A(s1,v1,w1)if and
+onlyif(s0,v2
+0,w0)→∗
+A(s1,v2,w1).Thisresultimpliesthat,fromthedeﬁnitionof ≈,
+foranyﬁxed s0,s1,w0andw1,thepatternof (⌊v1
+0⌋,⌊v1⌋)(insteadoftheactualvalues
+1Areader mightwonder whywedon’thaveastackoperationfora progress transition.Thatis,
+a statescan also be assigned with a stack operation (a,γ)such that each progress transition
+by an amount δ >0on statesalso modiﬁes the stack content according to (a,γ). However,
+this progress transition can be treated as a sequence of thre e transitions: a progress transition
+(without a stack operation) by δ1>0, a clock reset transition (by adding a dummy clock)
+performingstackoperation (a,γ),followedbyaprogresstransition(withoutastackoperati on)
+byδ2>0,whenever δ=δ1+δ2.AtranslationcanbeworkedoutbyexpressinganyPTAwith
+a stack operation for each progress transition by a PTA deﬁne d in this paper. Since we focus
+ontheclock/stackbehaviorsofaPTA,insteadofthe ω-languageacceptedbyit,inputsymbols
+arenotconsideredinourdeﬁnition.(Theinputtoatimedaut omatonisalwaysone-way. Thus,
+input symbols can always be built intostates.)
+
+--- Page 16 ---
+16
+of⌊v1
+0⌋and⌊v1⌋), the integral values ⌈v1
+0⌉, and the integral values ⌈v1⌉are sufﬁcient
+todeterminewhether (s0,v1
+0,w0)canreach (s1,v1,w1)inA.
+Lemma 10. LetAbeaPTA.Foranystates s0ands1,anytwoinitialclockvaluations
+v1
+0andv2
+0,anytwoclockvaluations v1andv2,andanytwostackwords w0andw1,if
+(v1
+0,v1)≈(v2
+0,v2), then,
+(s0,v1
+0,w0)→∗
+A(s1,v1,w1)iff(s0,v2
+0,w0)→∗
+A(s1,v2,w1).
+Proof.Lemma 9 and Lemma 8 already give the result, but for →Ainstead of →∗
+A,
+noticing that Lemma 8 guarantees that tests (and obviously s tack operations) are con-
+sistent in (s0,v1
+0,w0)→A(s1,v1,w1)and in(s0,v2
+0,w0)→A(s1,v2,w1).An in-
+duction (on the length of →∗
+A) can be used to show the lemma, by working from
+(s1,v1,w1)backto(s0,v1
+0,w0).
+Example5. ItisthetimetoshowanexampletoconvincethereaderthatLe mma10in-
+deedworks.Consideratimedautomaton AshowninFigure3.Let v1
+0= (0,4.98,2.52),
+s1
+s2
+x1-x2>2
+/\  x2<5x2-x1>4
+/\  x1<3x1-x2<3
+{x1}
+Fig.3.Anexampletimedautomaton A.
+v1
+3= (5.36,2.89,7.88).(s1,v1
+0)→∗
+A(s2,v1
+3)is witnessed by: (s1,v1
+0)→A(progress
+by2.47ats1)(s1,v1
+1)→A(resetx1and transit to s2)(s2,v1
+2)→A(progressby 2.89
+ats2)(s2,v1
+3).Takeanewpair v2
+0= (0,4.89,2.11),v2
+3= (5.28,2.77,7.39).Itiseasy
+to check (v1
+0,v1
+3)≈(v2
+0,v2
+3). From Lemma 10, (s1,v2
+0)→∗
+A(s2,v2
+3). Indeed, this is
+witnessedby (s1,v2
+0)→A(progressby 2.51ats1)(s1,v2
+1)→A(resetx1andtransitto
+s2)(s2,v2
+2)→A(progress by 2.77ats2)(s2,v2
+3).These two witnesses differ slightly
+(2.47and2.89,vs.2.51and2.77).We choose 2.77and2.51bylookingattheﬁrstwit-
+nessbackwardly.That is, v2
+2ispickedsuch that (v2
+0,v2
+2)≈(v1
+0,v1
+2). Then,v2
+1ispicked
+such that (v2
+0,v2
+1)≈(v1
+0,v1
+1). The existence of v2
+2andv2
+1is guaranteed by Lemma 9.
+Finally, according to Lemma 9 again, v2
+1is able to go back to v2
+0. This is because v1
+1
+goesbackto v1
+0througha one-steptransitionand v1
+0isinitial.
+Now,weexpress →∗
+Ainaformtreatingtheintegralpartsandthefractionalpart sof
+clock valuesseparately.For any pattern η∈Φ, anydiscrete valuations u0andu1, and
+anystack words w0andw1, deﬁne(s0,u0,w0)→∗
+A,η(s1,u1,w1)tobe
+∃v0∃v1(v0(0) = 0∧⌈v0⌉=u0∧⌈v1⌉=u1
+∧(v0,v1)∈η∧(s0,v0,w0)→∗
+A(s1,v1,w1)).
+
+--- Page 17 ---
+17
+Lemma 11. LetAbe a PTA. For any states s0ands1, any initialized pair (v0,v1),
+andanystack words w0andw1,(s0,v0,w0)→∗
+A(s1,v1,w1)iff
+/logicalordisplay
+η∈Φ((⌊v0⌋,⌊v1⌋)∈η∧(s0,⌈v0⌉,w0)→∗
+A,η(s1,⌈v1⌉,w1)).
+Proof.(⇒) isimmediate.
+(⇐) uses the following observation (from the deﬁnition of →∗
+A,ηand Lemma 10):
+for any pattern η,(⌊v0⌋,⌊v1⌋)∈η∧(s0,⌈v0⌉,w0)→∗
+A,η(s1,⌈v1⌉,w1)implies
+(⌊v0⌋,⌊v1⌋)∈η∧(s0,⌈v0⌉+⌊v0⌋,w0)→∗
+A(s1,⌈v1⌉+⌊v1⌋,w1).
+Once we give a characterization of →∗
+A,η, Lemma 11 immediately gives a char-
+acterization for →∗
+A. Fortunately, the characterization of →∗
+A,ηis a decidable one, as
+shownin thenextsection.
+6 The Pattern Graphofa Timed PushdownAutomaton
+LetA=/an}⌊ra⌋k⌉tl⌉{tS,{x1,···,xk},Inv,R,Γ,PD /an}⌊ra⌋k⌉tri}htbe a PTA speciﬁed in the previoussection.
+Thepatterngraph GofAisa tuple
+/an}⌊ra⌋k⌉tl⌉{tS×Φ,{y0,···,yk},E,Γ/an}⌊ra⌋k⌉tri}ht
+where
+–Sisthestatesin A,
+–Φisthe set ofallpatterns.A nodeis anelementin S×Φ,
+–Discrete clocks y0,···,ykare theintegralpartsoftheclocks x0,···,xkinA,
+–Eis a ﬁnite set of (directed) edgesthat connect between nodes. An edge can be
+aprogress edge, astayedge, or a resetedge. A progress edge corresponds to
+progress transitions in Athat cause one pattern change. A stay edge corresponds
+to progress transitions in Athat cause no pattern change. Since a progress transi-
+tion can cause no pattern change only from a merge-pattern,a stay edge connects
+a merge-pattern to itself. A reset edge corresponds to a rese t transition in A. For-
+mally,aprogressedge es,η,η′thatconnectsnode (s,η)tonode(s,η′)isintheform
+of/an}⌊ra⌋k⌉tl⌉{t(s,η),c,(s,η′)/an}⌊ra⌋k⌉tri}htsuch that c=Inv(s),η′=Next(η)(thusη/n⌉}ationslash=η′). A stay
+edgees,η,η, withηbeing a merge-pattern, that connects node (s,η)to itself is in
+the form of /an}⌊ra⌋k⌉tl⌉{t(s,η),c,(s,η)/an}⌊ra⌋k⌉tri}htsuch that c=Inv(s). A reset edge es,s′,r,(a,γ)that
+connectsnode (s,η)tonode(s′,η′)isin theformof
+/an}⌊ra⌋k⌉tl⌉{t(s,η),c,r,a,γ, (s′,η′)/an}⌊ra⌋k⌉tri}ht
+whereR(s,s′) = (c,r)andPD(s,s′) = (a,γ).Eis the set of all progressedges,
+stay edges,andresetedgeswrt A.Obviously, Eisﬁnite.
+A conﬁgurationof Gis a tuple (s,η,u,w)of states∈S, patternη∈Φ, discrete
+valuation u∈(N+)k+1and stack word w∈Γ∗.(s,η,u,w)→e(s′,η′,u′,w′)de-
+notesaone-steptransition throughedge eofGifthefollowingconditionsaresatisﬁed:
+
+--- Page 18 ---
+18
+–ifeis a progressedge,then etakes the form /an}⌊ra⌋k⌉tl⌉{t(s,η),c,(s,η′)/an}⌊ra⌋k⌉tri}htands′=s,u∈cη,
+u′∈cη′,next(η,u) = (η′,u′)andw=w′. Herecηandcη′are called the pre-
+andthepost-(progress)tests onedgee, respectively.
+–ifeis a stay edge, then etakes the form /an}⌊ra⌋k⌉tl⌉{t(s,η),c,(s,η)/an}⌊ra⌋k⌉tri}htands=s′,u∈cη,u=
+u′,η=η′andw=w′.Herecηiscalledthe pre-andthepost-(stay)tests onedge
+e.
+–ifeis a reset edge, then etakes the form /an}⌊ra⌋k⌉tl⌉{t(s,η),c,r,a,γ, (s′,η′)/an}⌊ra⌋k⌉tri}htandu∈(c∧
+Inv(s))η,u′∈Inv(s′)η′
+,resetr(η,u) = (η′,u′)andw=aw′′,w′=γw′′
+for some w′′∈Γ∗(i.e.,wchanges to w′according to the stack operation). Here
+(c∧Inv(s))ηandInv(s′)η′
+are called the pre-and thepost- (reset) tests on edge
+e,respectively.
+We write (s,η,u,w)→G(s′,η′,u′,w′)if(s,η,u,w)→e(s′,η′,u′,w′)for some e.
+Thebinaryreachability →∗
+GofGisthetransitiveclosureof →G.
+Thepatterngraph Gsimulates Ainawaythattheintegralpartsofthedenseclocks
+arekeptbutthefractionalpartsareabstractedasapattern .Edgesin Gindicatehowthe
+pattern and the discrete clocks change when a clock progress or a clock reset occurs
+inA. However, a progress transition in Acould cause more than one pattern change.
+In this case, this big progresstransition is treated as a seq uenceof small progresstran-
+sitions such that each causes one pattern change (and theref ore, each small progress
+transition in Acan be simulated by a progress edge in G). We ﬁrst show that the bi-
+nary reachability →∗
+GofGis NPCA. Observe that discrete clocks y0,···,ykare the
+integralvaluesofdenseclocks x0,···,xk.Eventhoughthedenseclocksprogresssyn-
+chronously,the discrete clocks may not be synchronous(i.e ., that one discrete clock is
+incremented by 1 does not necessarily cause allthe other discrete clocks incremented
+bythesameamount.).Theproofhastwoparts.Intheﬁrstpart oftheproof,atechnique
+isusedtotranslate y0,···,ykintoanotherarrayofdiscreteclocksthataresynchronous.
+In the second part of the proof, Gcan be treated as a discrete PTA [19] by replacing
+y0,···,ykwiththesynchronousdiscreteclocks.Therefore,Lemma12i sobtainedfrom
+thefact [19] thatthebinaryreachabilityofdiscretePTAis NPCA.2
+Lemma 12. For any PTA A, the binary reachability →∗
+Gof the pattern graph GofA
+is NPCA. In particular, if Ais a timed automaton, then the binary reachability →∗
+Gis
+Presburger.
+Proof.Westartwithatechniquethatmakesdiscreteclocks y0,···,yk(i.e.,theintegral
+partsofdenseclocks)synchronousonanypathof G.
+Apatternorderinggraph Pisadirectedgraphon Φ.Foreach(ordered)pair (η,η′)
+inΦ×Φ,(η,η′)is a progress edge, written η→pη′, ifNext(η) =η′. In this case,
+we say the edge has label p(stands for “progress”) and η′is called the p-successor of
+η.(η,η′)is a reset edge with r⊆K+, writtenη→rη′, ifResetr(η) =η′. In this
+case,wesaytheedgehaslabel randη′iscalledthe r-successor ofη.Anedgecanhave
+multiplelabels.
+2For the purpose of this paper, we assume in Lemma 12 →∗
+Gis restricted in such a way that η
+is a regulated pattern whenever (s,η,u,w)→∗
+G(s′,η′,u′,w′). This isbecause the auxiliary
+clockx0inAstarts from 0.
+
+--- Page 19 ---
+19
+ApathτonPisa sequenceofedges
+η0→l1··· →lmηm
+such that each liis a label (either por somer⊆K+).j∈K+is reset on path τif
+j∈li⊆K+for some 1≤i≤m. Pathτis ap-pathif each edge on the path is a
+progressedge; i.e., label liispfor all1≤i≤m. Pathτis aregulated path ifη0is a
+regulatedpattern. Path τis ap-ringofη0ifτis ap-path,and η0,···,ηmis the pattern
+ringofη0.
+Now we augment Pwith counters y(=y0,···,yk) taking values in (N+)k+1.
+Values of counters ychange along a path in P. For each progress edge η→pη′,
+countersychange to y′as follows: y′:=y+∆η(recall∆ηis the increment vector
+forη), consistent to the deﬁnitionthat next(η,y) = (η′,y+∆η). For each reset edge
+η→rη′, counters ychange to y′as follows: y′:=y↓r, consistent to the deﬁnition
+thatresetr(η,y) = (η′,y↓r). For ap-pathτ=η0,···,ηm,∆τ=Σ0≤i≤m−1∆ηiis
+the net increment for counters yafter walking throughthe path. In particular, ∆τ=1
+foreachp-ringτ.
+Aprogressedge η→pη′isadd-1ifη′isaregulatedpattern.A pathis shortif it is
+aregulatedpathand,it doesnotcontainanadd- 1edgeorit containsanadd- 1edgebut
+onlyattheendofthepath.Apathis add-1ifitisashortpathcontaininganadd- 1edge.
+By deﬁnition,an add- 1path startsandendswith regulatedpatternsandeach patter nin
+betweenalongthepathisnotaregulatedpattern.Thefollow inglemmaisdirectlyfrom
+thedeﬁnitionsof resetandnext.
+Lemma 13. Foranypath τ, (1).ifτisashortpath,thenforeach i∈K+thatisreset
+onτ,yihas value 0 at the end of τ, (2). ifτis an add- 1path, then for each i∈K+
+thatisnotreset on τ,yihasprogressedbyexactly 1attheendof τ.
+When walking along a path in P, a counter in yis always nondecreasing except
+sometimes it resets. However, counters yare not synchronous: that one counter’s ad-
+vancing by 1 at some progress edge does not always cause allthe other counters to
+advancebythe sameamount.
+Nowwearegoingtoshowthat,onanyregulatedpath, ycanbesimulatedbyasetof
+synchronouscounters z=z0,···,zk. The ideasare as follows.Let τbe anyregulated
+path ofP.τthen can be concatenatedby segments: a numberof add- 1paths followed
+by a short path.We introducean incrementvector ∆∈ {0,1}k+1to denotehowmuch
+a counter in yprogresses on a segment. Besides, we use I⊆K+to remember the
+indicesi∈K+thatarereset oneachsegment.Assumecounters ywalkthrough τand
+change counter values from utou′. Then, in the simulation, counters zstarts from u
+with∆=0andI=∅. After walking through τ(while updating ∆andIalong the
+path),counters zhavevaluessatisfying u′= (z+∆)↓I.Thesimulationisdeﬁnedby
+thefollowingtranslation.Foreachprogressedge η→pη′,theinstruction y′:=y+∆η
+isreplacedby:
+–ifη′is a regulated pattern (hence the edge is an add- 1edge), i.e., the end of the
+currentsegment,then z′:= (z+1)↓I(synchronousprogressfollowedbyresets);
+I′:=∅;∆′:=0;
+
+--- Page 20 ---
+20
+–else,z′:=z;I′:=I;∆′:=∆+∆η.
+Foreachresetedge η→rη′, theinstruction y′:=y↓risreplacedby:
+–z′:=z↓r;∆′:=∆↓r;I′:=I∪r.
+Obviously zaresynchronous.Thecorrectnessofthealgorithmisstated asfollows.
+Claim.Foranyregulatedpath τ,y= (z+∆)↓Iat theendof τ.
+Proof.Given a regulated path τ. Sinceτcan be split into a number of segments as
+mentioned before, and by looking at the translation, at the e nd of each add- 1path,
+∆=0andI=∅(i.e.,theinitialvaluesfor ∆andI).Therefore,itsufﬁcestoshowthe
+claim for a segment, i.e., a short path τ, by induction on the length of τ. Notice that,
+fromthetranslation, Istandsforthesetofindicesthathasbeenresetontheshortp ath;
+∆stands for the increment that has been made on the short path f or counters y. The
+relationship between Iand∆is established in Lemma 13, which will be used in the
+proof.
+Case 1.Theclaimtriviallyholdsfor τwithlength1.
+Case 2. Assume the claim holds for short paths with length ≤m. Now consider a
+shortpathwithlength m+1.Thispathcanbewrittenasashortpath τfollowedbyan
+edgeeof(η,η′). Note that,by theinductionhypothesis, y= (z+∆)↓Iatη(theend
+ofτ).Nowwearegoingtoshow y′= (z′+∆′)↓I′whereprimedvaluesarefornode
+η′.
+Case 2.1. If edge eis a progress edge and η′is a regulated pattern, then, from the
+translation, z′= (z+1)↓I,I′=∅,∆′=0, Therefore,
+y′=y+∆η=(induction)
+(z+∆)↓I+∆η=(Lemma13(1))
+(z+∆+∆η)↓I=(Lemma13(2))
+(z+1)↓I=z′=(sinceI′=∅,∆′=0)
+(z′+∆′)↓I′.
+Case 2.2.Iftheedgeis a progressedgeand η′is nota regulatedpattern,then,from
+thetranslation, z′=z,I′=I,and∆′=∆+∆η.Therefore,
+y′=y+∆η=(induction)
+(z+∆)↓I+∆η=(Lemma13(1))
+(z+∆+∆η)↓I=(sinceI′=I, and∆′=∆+∆η)
+(z′+∆′)↓I′.
+Case 2.3.Ifthe edgeis a reset edge η→rη′, then,fromthe translation, z′=z↓r,
+∆′=∆↓r,andI′=I∪r. Therefore,
+y′=y↓r=(induction)
+(z+∆)↓I↓r=
+(z′+∆′)↓I′.
+Hence,theclaim holds.
+Now we continue the proof of Lemma 12. Let Gbe the pattern graph of a timed
+automaton A. A pathin Gwitnessing
+(s,η,u,w)→∗
+G(s′,η′,u′,w′)
+
+--- Page 21 ---
+21
+(withηbeingaregulatedpattern)betweentwoconﬁgurationscorre spondstoaregulated
+path (by properly adding stack operations) in the pattern or dering graph P. In above,
+we havedemonstrateda techniquesuch that counters y=y0,···,ykcan be simulated
+by synchronous counters z=z0,···,zkusing an increment vector ∆∈ {0,1}k+1
+and a reset set I⊆K+. The relationship between yandzisy= (z+∆)↓I.
+Tests inG(including all the pre- and post- (progress, stay and reset) tests) are in the
+form of Boolean combinations of yi−yj#d,yi#dwithi,j∈K+andd∈N+
+(Section 4). Since there are only a ﬁnite number of choices fo rIand∆, these tests
+can be accordingly translated to tests on z0,···,zk, using the relationship y= (z+
+∆)↓I. Observe that the translated tests are still in the form of Bo olean combinations
+ofzi−zj#d,zi#dwithi,j∈K+and with probably larger or smaller d. Sincez
+are synchronous, G, withysimulated by z, is a discrete PTA [19]. In that paper,these
+synchronizeddiscreteclocks zcanbefurthertranslatedintoreversal-boundedcounters.
+Hence,the binaryreachabilityof a discrete PTA is NPCA as sh ownin [19]. Therefore,
+the lemmafollowsbytranslatingbackfrom ztoyusingy= (z+∆)↓Iat the initial
+andattheendofthesimulation(thisrequiresonlyaﬁnitenu mberofcounterreversals).
+Thus,→∗
+GisNPCA.
+Inparticular,when Ais a timedautomaton, G, withysimulatedby z, is a discrete
+timedautomaton[19].Usingthefact[19]thatthebinaryrea chabilityofadiscretetimed
+automatonisPresburger, →∗
+GisalsoPresburgerafterthe translationfrom zbacktoy.
+Thefollowinglemmastates that Gfaithfullysimulates Awhenthe fractionalparts
+ofdenseclocksareabstractedawaybyapattern.
+Lemma 14. LetAbe a PTA with pattern graph G. For any states s0ands1inS, any
+patternη∈Φ, any stack words w0andw1inΓ∗, and any discrete valuation pairs
+(u0,u1)withu0(0) = 0,we have,
+(s0,u0,w0)→∗
+A,η(s1,u1,w1)iff(s0,init(η),u0,w0)→∗
+G(s1,η,u1,w1).
+Proof.Fix anystates s0,s1∈S,anypattern η∈Φ, anystackwords w0andw1inΓ∗,
+andanydiscretevaluationpairs (u0,u1)withu0(0) = 0.
+(⇒). By the deﬁnition of (s0,u0,w0)→∗
+A,η(s1,u1,w1), there exists an initialized
+pair(v0,v1)suchthat
+–(v0,v1)haspattern η,
+–⌈v0⌉=u0,⌈v1⌉=u1,
+–(s0,v0,w0)→∗
+A(s1,v1,w1).
+In order to show that (s0,[(v0,v0)],⌈v0⌉,w0)→∗
+G(s1,[(v0,v1)],⌈v1⌉,w1)(notice
+thatinit(η) = [(v0,v0)]), it sufﬁces to show that each one-step transition in Acan
+be simulated by →∗
+Gproperly: for any valuations v,v′, any states sands′, and any
+stack words wandw′, if(s,v,w)→A(s′,v′,w′)then(s,[(v0,v)],⌈v⌉,w)→∗
+G
+(s′,[(v0,v′)],⌈v′⌉,w′).
+Case1.Foranyvaluation vandstates,consideraprogresstransitionin A,(s,v,w)
+→A(s,v+δ,w′),δ >0,suchthat (bydeﬁnition) w=w′,and∀0≤δ′≤δ,v+δ′∈
+Inv(s). Letη0be the patternof (v0,v). Ifvhasnopattern changefor δ, thenη0must
+
+--- Page 22 ---
+22
+be a merge-pattern. This progress transition in Acan therefore be simply simulated
+by the stay edge in Gat states. If, however, vhas at least one pattern change for δ,
+then assume the p-ring ofη0isη0,···,ηm=η0. This progress transition in Acan
+be simulated by the following path consisting of progress ed ges inG: looping along
+thep-ring for⌈δ⌉times on state sinG, followed by a preﬁx of the p-ring ended with
+the pattern ηi, for some i, of(v0,v+δ). From Lemma 5 and Lemma 6, it can be
+established (s,η0,⌈v⌉,w)→∗
+G(s,ηi,⌈v+δ⌉,w)throughthe path in G, noticing that
+tests forInv(s)are consistent in AandG(Lemma 8), and the stack word does not
+changeforprogresstransitionsin both AandG.
+Case 2. Foranyvaluation vandstates sands′, considera reset transition (s,v,w)
+→A(s′,v↓r,w′)inAsuchthat(bydeﬁnition) w=aw′′,w′=γw′′forsomew′′with
+PD(s,s′) = (a,γ),R(s,s′) = (c,r)andv∈Inv(s)∧c,v↓r∈Inv(s′). Assume
+thepatternof (v0,v)isη0andthepatternof (v0,v↓r)isη′
+0.Thisresettransitionin A
+corresponds to the reset edge in G:/an}⌊ra⌋k⌉tl⌉{t(s,η0),c,r,a,γ, (s′,η′
+0)/an}⌊ra⌋k⌉tri}ht. From Lemma 7, it can
+be established (s,η0,⌈v⌉,w)→∗
+G(s′,η′
+0,⌈v↓r⌉,w′)through this edge, noticing that
+tests forInv(s)∧candInv(s′)are consistent in AandG(Lemma 8), and the stack
+operationsarethesamein AandG.
+(⇐).Suppose (s0,init(η),u0,w0)→∗
+G(s1,η,u1,w1). We wouldlike toshow
+(s0,u0,w0)→∗
+A,η(s1,u1,w1).
+Pick any initial valuation v0such that (v0,v0)has pattern init(η)and⌈v0⌉=u0.
+Suppose(s0,η0,u0,w0)→e1··· →em(sm,ηm,um,wm)is a path (in G) witnessing
+(s0,init(η),u0,w0)→∗
+G(s1,η,u1,w1)throughedges e1,···,emsuchthat
+(s0,η0,u0,w0) = (s0,init(η),u0,w0)
+and
+(sm,ηm,um,wm) = (s1,η,u1,w1).
+A pathin A
+(s0,v0,w0)→t1··· →tm(sm,vm,wm)
+is constructed as follows, where v0=v0and each transition tiinAcorresponds to
+each edge eiinG. Fromi= 1tom, eacheibelongs to one of the following three
+cases:
+Case 1.eiisa progressedgein G. In thiscase, next(ηi−1,ui−1) = (ηi,ui),wi=
+wi−1, andsi−1=si. We pick tito be a progress transition (at state si−1) inAfrom
+vi−1withanamountof δthatcausesexactlyonepatternchange(Lemma6andLemma
+5). Takevi=vi−1+δ. Notice that both the progressedge and the progresstransit ion
+donotchangethestackcontent,i.e., wi=wi−1.
+Case 2.eiisa stay edgein G. Inthiscase, ηi−1=ηimust bea merge-patternwith
+wi=wi−1and andsi−1=si. We pick tito be a progresstransition (at state si−1) in
+Afromvi−1with an amountof δthat causes no pattern change (Lemma6). Similarly
+toCase 1, wi=wi−1.
+Case 3.eiis a reset edge from state si−1to statesiwith clock resets rinG, then
+tiis the reset transition fromstate si−1to statesiwith clock resets rinA. Notice that
+
+--- Page 23 ---
+23
+botheiandtihave the same stack operation.Take vi=vi−1↓randwiis the result
+ofthestack operationon wi−1.
+Noticethat,foreach i= 1···m,
+–(v0,vi)haspattern ηi,
+–⌈vi⌉=ui.
+This can be shown using Lemma 5 for Case 1, Lemma 6 for Case 2, an d Lemma 7 for
+Case 3. Therefore, this constructed path of Akeeps the exactly the same patterns and
+integral parts of clocks as well as the stack word as in the pat h forG. From Lemma 8,
+clock tests (and obviously the stack operations) are consis tent between the path in G
+andthe constructedpath in A. Hence,(s0,u0,w0)→∗
+A,η(s1,u1,w1)since, bytaking
+v1=vm,
+–(v0,v1)haspattern η,
+–⌈v0⌉=u0,⌈v1⌉=u1,
+–(s0,v0,w0)→∗
+A(s1,v1,w1).
+Now, we conclude this section by claiming that →∗
+A,ηis NPCA by combining
+Lemma12andLemma14.
+Lemma 15. ForanyPTA Aandanyﬁxedpattern η∈Φ,→∗
+A,ηisNPCA.Inparticular,
+ifAisatimed automaton,then →∗
+A,ηisPresburger.
+7 A Decidable Binary Reachability Characterization and
+Automatic Veriﬁcation
+RecallthatPTA Aactuallyhasclocks x1,···,xk.x0istheauxiliaryclock.The binary
+reachability ❀∗B
+AofAistheset oftuples
+/an}⌊ra⌋k⌉tl⌉{ts,v1,···,vk,w,s′,v′
+1,···,v′
+k,w′/an}⌊ra⌋k⌉tri}ht
+suchthatthereexist v0= 0,v′
+0∈D+satisfying
+(s,v0,···,vk,w)❀∗
+A(s′,v′
+0,···,v′
+k,w′).
+Themaintheoremofthispapergivesadecidablecharacteriz ationforthebinaryreach-
+abilityasfollows.
+Theorem1. The binary reachability ❀∗B
+Aof a PTA Ais(D+NPCA)-deﬁnable.
+In particular, if Ais a timed automaton, then the binary reachability ❀∗B
+Acan be
+expressedin theadditivetheoryofreals(orrationals)and integers.
+Proof.FromLemma11, ❀∗B
+Aisdeﬁnablebythefollowingformula:
+∃u′
+0∈N+∃v′
+0∈/hatwidestD+(/logicalordisplay
+η∈Φ((0,v1,···,vk),(v′
+0,···,v′
+k))∈η∧
+
+--- Page 24 ---
+24
+(s,(0,u1,···,uk),w)❀∗
+A,η(s′,(u′
+0,···,u′
+k),w′))
+onintegervariables s,u1,···,uk,s′,u′
+1,···,u′
+k(overN+),anddensevariables v1,···,
+vk,v′
+1,···,v′
+k(over/hatwidestD+=D+∩[0,1)),andonwordvariables wandw′.Thisformula
+isequivalentto
+/logicalordisplay
+η∈ΦPD+
+η(v1,···,vk,v′
+1,···,v′
+k)∧QN
+η(s,u1,···,uk,w,s′,u′
+1,···,u′
+k,w′)
+wherePD+
+η(v1,···,vk,v′
+1,···,v′
+k)standsfor
+∃v′
+0∈/hatwidestD+(((0,v1,···,vk),(v′
+0,···,v′
+k))∈η)
+andQN
+η(s,u1,···,uk,w,s′,u′
+1,···,u′
+k,w′)standsfor
+∃u′
+0((s,(0,u1,···,uk),w)❀∗
+A,η(s′,(u′
+0,···,u′
+k),w′)).
+Fromthedeﬁnitionofpatterns, PD+
+η,aftereliminatingtheexistentialquantiﬁcation,is
+adenselinearrelation.Ontheotherhand, QN
+η(aftereliminatingtheexistentialquantiﬁ-
+cation, from Lemma 15 and Lemma 2) is NPCA. Therefore, ❀∗B
+Ais(D+NPCA)-
+deﬁnable.
+In particular, if Ais a timed automaton, ❀∗B
+Ais(D+NPCA)-deﬁnable by a
+formula in the additive theory of reals (or rationals) and in tegers. Hence, ❀∗B
+Aitself
+canbeexpressedinthe sametheory.
+The importance of the above characterization for ❀∗B
+Ais that, from Lemma 2, the
+emptiness of (D+NPCA)-deﬁnable predicates is decidable. From Theorem 1 and
+Lemma2 (3)(4),wehave,
+Theorem2. The emptiness of l∩❀∗B
+Awith respect to a PTA Afor any mixed linear
+relationlisdecidable.
+The emptiness of l∩❀∗B
+Ais called a mixed linear property ofA. Many interesting
+safetyproperties(ortheirnegations)forPTAscanbeexpre ssedasamixedlinearprop-
+erty. For instance, considerthe followingpropertyof a PTA Awith three dense clocks
+x1,x2andx3:
+“for any two conﬁgurations αandβwithα❀∗B
+Aβ, if the differencebetween βx3
+(thevalueofclock x3inβ)andαx1+αx2(thesumofclocks x1andx2inα)isgreater
+than the difference between #a(αw)(the number of symbol aappearing in the stack
+word inα) and#b(βw)(the number of symbol bappearing in the stack word in β),
+then#a(αw)−2#b(βw)isgreaterthan5.”
+Thenegationofthispropertycanbeexpressedasthe emptine ssof
+(s,x1,x2,x3,w)❀∗B
+A(s′,x′
+1,x′
+2,x′
+3,w′)∧l
+wherelis the negation of a mixed linear relation (hence litself is also a mixed linear
+relation):
+x′
+3−(x1+x2)>#a(w)−#b(w′)→#a(w)−2#b(w′)>5.
+
+--- Page 25 ---
+25
+Thus, from Theorem 2, this property can be automatically ver iﬁed. We need to point
+outthat
+–x′
+3−(x1+x2)>#a(w)−#b(w′)is a linear relation on both dense variables
+and discrete variables. Thus, this property can not be veriﬁ ed by using the decid-
+able characterization for discrete PTAs [19], where only in teger-valued clocks are
+considered.
+–Even without clocks, #a(w)−2#b(w′)>5expresses a non-regularset of stack
+wordpairs.Therefore,thispropertycannotbeveriﬁedbyth emodel-checkingpro-
+ceduresforpushdownsystems[9,23].
+–Evenwithoutthepushdownstack, x′
+3−(x1+x2)>0(bytaking #a(w)−#b(w′)
+as a constant such as 0) is not a clock region, therefore, the c lassical region-based
+techniquescannotverifythisproperty.Thisisalso pointe doutin [16].
+–With both dense clocks and the pushdown stack, this property can not be veriﬁed
+byusingtheregion-basedtechniquesforTimedPushdownSys tems[10].
+WhenAis a timed automaton, by Theorem 1, the binary reachability ❀∗B
+Acan be
+expressed in the additive theory of reals (or rationals) and integers. Notice that our
+characterizationis essentially equivalentto the one give nby Comonand Jurski [16] in
+which❀∗B
+Acanbeexpressedintheadditivetheoryofrealsaugmentedwi thapredicate
+tellingwhethera termis aninteger.Because theadditiveth eoryofrealsandintegersis
+decidable[8,12],we have,
+Theorem3. The truth valuefor any closed formulaexpressible in the (ﬁr st-order)ad-
+ditive theory of reals (or rationals) augmented with a predi cate❀∗B
+Afor a timed au-
+tomatonAisdecidable.(alsoshownin[16])
+For instance, consider the following property for a timed au tomatonAwith two real
+clocks:
+“there are states sands′such that, for any x1,x2,x′
+2, there exists x′
+1such that if
+(s,x1,x2)canreach (s′,x′
+1,x′
+2)inA, thenx1−x2> x′
+1−x′
+2.”
+It canbeexpressedas
+∃s,s′∀x1,x2,x′
+2∃x′
+1((s,x1,x2)❀∗B
+A(s′,x′
+1,x′
+2)→x1−x2> x′
+1−x′
+2),
+andthuscanbeveriﬁedaccordingto Theorem3.
+8 Conclusions, Discussionsand Future Work
+In this paper, we consider PTAs that are timed automata augme nted with a pushdown
+stack. A conﬁguration of a PTA includes a control state, ﬁnit ely many dense clock
+values and a stack word. By introducing the concept of a clock pattern and using an
+automata-theoreticapproach,wegiveadecidablecharacte rizationofthebinaryreacha-
+bilityofaPTA.SinceatimedautomatoncanbetreatedasaPTA withoutthepushdown
+stack,wecanshowthatthebinaryreachabilityofatimedaut omatonisdeﬁnableinthe
+additive theoryof reals and integers. The results can be use d to verifya class of safety
+
+--- Page 26 ---
+26
+propertiescontaininglinearrelationsoverbothdensevar iablesandunboundeddiscrete
+variables.
+A PTA studied here can be regardedas the timed version of a pus hdown machine.
+Carefully looking at the proofs of the decidable binary reac hability characterization,
+we ﬁnd out that the underlying untimed machine (e.g., the pus hdown machine) is not
+essential. We can replaceit with manyother kindsofmachine sandthe resultingtimed
+system still has a decidable binary reachability character ization. We will summarize
+someofthesemachinesinthissection.
+Considera classofmachines X.We useXCMtodenotemachinesin Xaugmented
+withreversal-boundedcounters.We arelookingatthebinar yreachabilitycharacteriza-
+tion of the timed version of machines in X. The characterization is established in the
+previoussections when Xrepresentspushdownmachines. In the proofs, a dense clock
+is separated into a fractional part and an integral part. The fractional parts of dense
+clocksare abstractedas a patternand the integralparts are translated into synchronous
+discrete clocks, which are further translated into reversa l-bounded counters [19]. The
+result of the translation is the underlyinguntimed machine inXaugmented with these
+reversal-boundedcounters,i.e.,a machinein XCM. Supposeaclassofautomata Yac-
+cept the binary reachability of machines in XCM. In the case of Xbeing pushdown
+machines, XCMrepresents NPCMs and Ycan be chosen as NPCAs (it is known that
+the binaryreachability of NPCMs can be accepted by NPCAs [19 ].). The fact that this
+Y(i.e., NPCA) satisﬁes Lemma 2 is the only condition we need in order to obtain
+the decidablereachability characterizationin Theorem 1. Deﬁnitions like NPCA pred-
+icates and (D+NPCA)-deﬁnability can be accordingly modiﬁed into Ypredicates
+and(D+Y)-deﬁnabilityonce Yisclear.Theabovediscussionsgivethefollowingresult.
+Theorem4. LetYbe a class of automata, Xbe a class of machinesand XCMbe the
+classofmachinesin Xaugmentedwithreversal-boundedcounters.If,foreachmac hine
+inXCM, anautomatonin Ycanbeconstructedthatacceptsthebinaryreachabilityof
+themachine,andLemma2holds(replacingNPCAwith Y),thenthebinaryreachability
+ofthe timedversionof Xis(D+Y)-deﬁnable.
+Notice that Lemma 2 (4) requires that the emptiness problem f orYin Theorem 4
+be decidable. Theorem 2 can be immediately followed from The orem 4 for the timed
+versionof X.
+Accordingto Theorem 4, the timed version of the following ma chinesXhas a de-
+cidable (D+Y)-deﬁnable characterization for binary reachability by pr operly choosing
+Y:
+–NPCM. Here Y=NPCA;
+–NCM with an unrestricted counter. Notice that the counter is a special case of a
+pushdownstack (whenthestackalphabetisunary).Here, Y=NPCA;
+–Finite-crossing NCM [28] (i.e., NCM augmented with a ﬁnite- crossing read-only
+worktape. The head on the worktape is two-way, but for each ce ll of the tape, the
+head crosses only a bounded number of times.). Here, Yis ﬁnite-crossing NCAs
+[28]that areNCM augmentedwitha ﬁnite-crossinginputtape .
+–Reversal-boundedmultipushdownmachines[17]thataremul tipushdownmachines
+[13]augmentedwithreversal-boundedcounters.Here, Yisreversal-boundedmul-
+tipushdownautomata[17].
+
+--- Page 27 ---
+27
+LetXbe a class of machines. The pattern technique tells us that, f or a decidable
+binary reachability characterization of the timed version ofX, the density of clocks
+(andevenclocksthemselves)isnotthe keyissue. Thisisbec ause,usingthetechnique,
+thesedenseclockscanbereducedtoreversal-boundedinteg ercounters.Thekeyissueis
+whetherXanditsreversal-boundedversion XCMhavea decidablebinaryreachability
+characterization(i.e., the binary reachability can be acc epted by a class Yof automata
+with a decidable emptiness problem). In particular, when th e binary reachability of X
+iseffectivelysemilinear(andhencethebinaryreachabili tyisdecidable),inmostcases,
+the binary reachability of XCMis also effectively semilinear. Such Xincludes all the
+machines mentioned above. In this case, once we can show the u ntimed machines in
+Xhave a decidable binary reachability characterization, we are getting really close to
+the decidablecharacterizationfor their timed version. Bu t, we do have exceptions.For
+instance,consider Xto beaﬁnite state machinewitha two-wayreadonlyworktape. X
+has a decidable binary reachability characterization (wit nessed by two-way multitape
+ﬁnite automata). However, augmenting Xwith reversal-bounded counters makes the
+binaryreachabilityundecidable.Thepitfallhereisthata two-waytapemakesreversal-
+boundedcounterstoo powerful.In fact, the emptinessprobl emis undecidablefor two-
+way automata augmented with reversal-bounded counters. In the case when there is
+onlyonereversal-boundedcounter,theemptinessproblemi sdecidableifthemachines
+aredeterministic.Thenondeterministiccase isstill open [29].
+In practice, augmenting timed automata with other unbounde d data structures al-
+lowsustostudymorecomplexreal-timeapplications.Forin stance,thedecidablechar-
+acterizationofPTAsmakesitpossibletoimplementatoolve rifyingrecursivereal-time
+programs containing ﬁnite-state variables against safety properties containing linear
+constraints overdense clocks and stack word counts. This to ol will be a good comple-
+menttoavailabletoolsforrecursiveﬁnitestate programs( forregularsafetyproperties,
+e.g., termination) [22,7]. On the other hand, for the existi ng tools analyzing real-time
+systems (such as UPPAAL [30] and its extensions [31], TREX [3 1], HyTECH [26],
+Kronos[11]),thetraditionalregion-basedtechniqueused inthetoolsmaybeenhanced
+with thepatterntechnique.Doingthismakesit possiblefor the toolsto verifycomplex
+timing requirements that may not be in the form of clock regio ns. The results in this
+papercanalsobeusedtoimplementamodel-checkerforasubs etofthereal-timespec-
+iﬁcation language ASTRAL [14]. The subset includes history -independent ASTRAL
+speciﬁcationscontainingbothdenseclocksandunboundedd iscretecontrolvariables.
+As mentioned in this section, the timed version of NPCM (i.e. , PTAs further aug-
+mented with reversal-bounded counters) also has a decidabl e characterization. This
+timed model has many important applications. For instance, a real-time recursive pro-
+gram (containing unbounded integer variables) can be autom atically debugged using
+thereversal-boundedapproximation(i.e.,assignarevers al-boundtothevariables).Ad-
+ditionally,a freecounter(i.e.,an unrestrictedcounter) isa special case for a pushdown
+stack(whenthestackalphabetisunary).Therefore,thismo delcanalsobeusedtospec-
+ify real-time systems containing a free counter and many rev ersal-bounded counters.
+It seems that “reversal-bounded counters” appear unnatura l and therefore their appli-
+cations in practice are remote. However, a non-decreasing c ounter is also a reversal-
+boundedcounter (with zero reversal-bound).This kind of co unters have a lot of appli-
+
+--- Page 28 ---
+28
+cations.Forinstance,anon-decreasingcountercanbeused tocountdigitaltimeelapse,
+the number of external events, the number of a particular bra nch taken by a nonde-
+terministic program (this is important, when fairness is ta ken into account), etc. For
+instance, consider a timed automaton with input symbols (i. e., a transition is triggered
+by an externalevent as well as the enablingcondition).We us e#ato denote the num-
+ber of event aoccurred so far. The enabling condition of a transition, bes ides clock
+constraints,mayalsoincludecomparisonsofthecounts #aagainstanintegerconstant
+and comparisonsof one speciﬁc linear term T(on all#a) against an integer constant.
+Forinstance,a transitionmaylooklikethis(inpseudo-cod e):
+s: if event( a) andx2−x1>10and#b>21and2#c−3#b<5,
+then progress(); goto s′
+wherex1andx2aredenseclocks.Noticethatcomparisonsofthelinearterm 2#c−3#b
+againstan integerconstantmay show upin othertransitions .But thisterm is uniquein
+theautomaton:acomparisonlike 4#a−3#b>8thatinvolvesadifferentterm 4#a−
+3#bcannotbeusedintheenablingconditionsoftheautomaton.T histimedautomaton
+is a standard timed automaton augmented with reversal-boun ded counters #a(which
+arenon-decreasing)andafreecounter(representingtheli nearterm 2#c−3#b).Hence,
+thefollowingpropertycanbeautomaticallyveriﬁed:
+“Itis alwaystrue thatwhenever x1−7#b+3x2>2#aholds,x1must begreater
+#c−#a.”
+Afutureresearchissue isto investigatewhetherthedecida bleresults[21] forPres-
+burger liveness of discrete timed automata can be extended t o timed automata (with
+dense clocks) using the technique in this paper. We are also g oing to look at the pos-
+sibility of extending the approximation approaches for par ameterized discrete timed
+automata[20]tothedenseclocks.Thisisparticularlyinte resting,sincethereachability
+set presented in [20] is not necessarily semilinear. Anothe r issue is on the complexity
+analysisofthedecisionprocedurepresentedinthispaper. However,thecomplexityfor
+the emptiness problem of NPCAs is still unknown, though it is believed that it can be
+derivedalongGurariandIbarra[24].
+The author would like to thank H. Comon and O. H. Ibarra for dis cussions on the
+topic of dense timed pushdown automata during CAV’00 in Chic ago, B. Boigelot, P.
+SanPietroandJ.Suforrecentdiscussionson[12],J.Nelson ,F.SheldonandG.Xiefor
+readinganearlierdraftofthispaper.ThanksalsogotoT.Bu ltan,H.Comon,J.Esparza
+and K. Larsen for commentson the short versionof this paperp resentedin CAV’01in
+Paris.
+References
+1. R.Alur, “Timed automata” ,CAV’99, LNCS1633, pp. 8-22
+2. R.Alur,C.Courcoibetis,andD.Dill, “Model-checking indenserealtime,” Informationand
+Computation ,104(1993) 2-34
+3. R.AlurandD.Dill, “Atheoryoftimedautomata,” TheoreticalComputerScience ,126(1994)
+183-236
+4. R. Alur, T. Feder, and T. A. Henzinger, “The beneﬁts of relaxing punctuality,” J. ACM,43
+(1996) 116-146
+
+--- Page 29 ---
+29
+5. R. Alur, T. A. Henzinger, “Real-time logics: complexity and expressiveness,” Information
+and Computation ,104(1993) 35-77
+6. R.Alur,T. A.Henzinger, “A reallytemporal logic,” J.ACM,41(1994) 181-204
+7. T.BallandS.K.Rajamani, “Bebop:asymbolicmodel-checker forBooleanprograms,” Spin
+Workshop’00 , LNCS1885, pp. 113-130.
+8. J.R.Buchi, “Onadecisionmethodinrestrictedsecondorderarithmetic ,”Proceedingsofthe
+International Congress on Logic, Method, and Philosophy of Sciences, Stanford University
+Press,pp. 1-12, 1962
+9. A. Bouajjani, J. Esparza, and O. Maler, “Reachability Analysis of Pushdown Automata:
+ApplicationtoModel-Checking,” ,CONCUR’97 ,LNCS1243, pp. 135-150
+10. A. Bouajjani, R. Echahed, and R. Robbana, “On the automatic veriﬁcation of systems with
+continuous variables andunbounded discrete data structur es,”Hybrid System II ,LNCS999,
+1995, pp. 64-85
+11. M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S . Yovine, “Kronos: A model-
+checking tool for real-time systems,” CAV’98, LNCS1427, pp. 546-550
+12. B. Boigelot, S. Rassart and P. Wolper, “On the expressiveness of real and integer arithmetic
+automata,” ICALP’98 ,LNCS1443, pp. 152-163
+13. A.Cherubini,L.Breveglieri,C.Citrini,andS.CrespiR eghizzi.“Multi-push-downlanguages
+and grammars,” International Journal of Foundations of Computer Science, 7(3): 253-291,
+1996
+14. A. Coen-Porisini, C. Ghezzi and R. Kemmerer, “Speciﬁcation of real-time systems using
+ASTRAL,” IEEETransactions onSoftware Engineering ,23(1997) 572-598
+15. H. Comon and Y. Jurski, “Multiple counters automata, safety analysis and Presburg er arith-
+metic,”CAV’98, LNCS1427, pp. 268-279.
+16. H. Comon and Y. Jurski, “Timed automata and the theory of real numbers,” CONCUR’99 ,
+LNCS1664, pp. 242-257
+17. Z. Dang, “Debugging and veriﬁcationof inﬁnite state real-time syst ems,”PhD Dissertation,
+Universityof California,Santa Barbara, August 2000
+18. Z. Dang, “Binary reachability analysis of pushdown timed automata w ith dense clocks,”
+CAV’01,LNCS2102, pp. 506-517
+19. Z. Dang, O. H. Ibarra, T. Bultan, R. A. Kemmerer, and J. Su, “Binary reachability analysis
+of discrete pushdown timedautomata,” CAV’00,LNCS1855, pp. 69-84
+20. Z. Dang, O. H. Ibarra and R. A. Kemmerer, “Decidable approximations on generalized and
+parameterized discrete timedautomata,” COCOON’01 ,LNCS2108, pp. 529-539
+21. Z. Dang, P. San Pietro and R. A. Kemmerer, “On Presburger liveness of discrete timed au-
+tomata,”STACS’01 ,LNCS2010, pp. 132-143
+22. J.EsparzaandS.Schwoon, “ABDD-basedmodel-checker forrecursiveprograms,” CAV’01,
+LNCS2102, pp. 324-336
+23. A. Finkel, B. Willemsand P.Wolper, “A direct symbolic approach tomodel checking push-
+down systems,” INFINITY’97 .
+24. E. Gurari and O. Ibarra, “The complexity of decision problems for ﬁnite-turn multic ounter
+machines,” J. Computer andSystem Sciences ,22(1981) 220-229
+25. T. A. Henzinger, Z. Manna, and A. Pnueli, “What good are digital clocks?,” ICALP’92 ,
+LNCS623, pp. 545-558
+26. T. A. Henzinger and Pei-Hsin Ho, “HyTech: the Cornell hybrid technology tool,” Hybrid
+Systems II ,LNCS999, pp. 265-294
+27. T. A. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine. “Symbolic model checking for real-
+timesystems,” Information and Computation ,111(1994) 193-244
+28. O. H. Ibarra, “Reversal-bounded multicounter machines and their decisi on problems,” J.
+ACM,25(1978) 116-133
+
+--- Page 30 ---
+30
+29. O. H. Ibarra, T. Jiang, N. Tran and H. Wang, “New decidabil ity results concerning two-way
+counter machines,” SIAM J. Comput., 24(1995) 123-137
+30. K. G. Larsen, P. Pattersson, and W. Yi, “UPPAAL in a nutshell,” International Journal on
+Software Toolsfor Technology Transfer ,1(1997): 134-152
+31. K. G. Larsen, G. Behrmann, Ed Brinksma, A. Fehnker, T. Hun e, P. Pettersson, and J.
+Romijn,“Ascheapaspossible:efﬁcientcost-optimalreachability forpricedtimedautomata,”
+CAV’01,LNCS2102, pp. 493-505
+32. F. Laroussinie, K. G. Larsen, and C. Weise, “From timed automata to logic - and back,”
+MFCS’95 , LNCS969, pp. 529-539
+33. J.RaskinandP.Schobben, “Stateclocklogic:adecidable real-timelogic,” HART’97 ,LNCS
+1201, pp. 33-47
+34. T. Wilke, “Specifying timed state sequences in powerful decidable lo gics and timed au-
+tomata,”LNCS863, pp. 694-715, 1994
+35. S.Yovine, “Model checking timed automata,” Embedded Systems’98 , LNCS1494, pp. 114-
+152

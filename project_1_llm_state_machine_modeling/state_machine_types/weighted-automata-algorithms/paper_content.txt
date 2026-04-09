@@ -1,0 +1,2053 @@
+--- Page 1 ---
+Weighted Automata Algorithms
+Mehryar Mohri1,2
+1Courant Institute of Mathematical Sciences
+251 Mercer Street, New York, NY 10012
+mohri@cims.nyu.edu
+2Google Research
+76 Ninth Avenue, New York, NY 10011
+mohri@google.com
+This chapter presents several fundamental algorithms for w eighted automata
+and transducers. While the mathematical counterparts of we ighted trans-
+ducers, rational power series , have been extensively studied in the past
+[22, 54, 13, 36], several essential weighted transducer alg orithms, e.g., com-
+position, determinization, minimization, have been devis ed only in the last
+decade [38, 43], in part motivated by novel applications in s peech recogni-
+tion, speech synthesis, machine translation, other areas o f natural language
+processing, image processing, optical character recognit ion, and more recently
+machine learning.
+These algorithms can be viewed as the generalization to the w eighted
+transducer case of the standard algorithms for unweighted a cceptors. However,
+this generalization is often not straightforward and has re quired a number of
+speciﬁc studies either because the old schema could not be ap plied in the
+presence of weights and a novel technique was required, as in the case of
+composition [50, 46], or because of the analysis of the condi tions of application
+of an algorithm as in the case of determinization [38, 3].
+The chapter favors a presentation of weighted automata and t ransducers
+in terms of graphs, the natural concepts for an algorithmic d escription and
+complexity analysis. Also, while power series lead to more c oncise and rigorous
+proofs in most cases [36], proofs related to questions of amb iguity naturally
+require the introduction of paths and reasoning on graph con cepts.
+1 Preliminaries
+This section introduces the deﬁnitions and notation relate d toweighted ﬁnite-
+state transducers , weighted transducers for short, and weighted automata .
+
+--- Page 2 ---
+2 Mehryar Mohri
+Semiring Set⊕⊗01
+Boolean {0,1}∨∧01
+Probability R+∪{+∞} +×01
+Log R∪{−∞ ,+∞}⊕log++∞0
+Tropical R∪{−∞ ,+∞}min++∞0
+Table 1. Semiring examples. ⊕logis deﬁned by: x⊕logy=−log(e−x+e−y).
+1.1 Semirings
+For various operations to be well-deﬁned, the weight set ass ociated to a
+weighted transducer must have the structure of a semiring (see [20]). A system
+(S,⊕,⊗,0,1) is a semiring if (S,⊕,0) is a commutative monoid with identity
+element 0, (S,⊗,1) is a monoid with identity element 1,⊗distributes over⊕,
+and0 is an annihilator for ⊗: for all a∈S, a⊗0 =0⊗a=0. Thus, a semiring
+is a ring that may lack negation.
+Table 1 lists several semirings. In addition to the Boolean s emiring, and the
+probability semiring used to combine probabilities, two se mirings often used
+in applications are the log semiring , which is isomorphic to the probability
+semiring via the negative-log morphism, and the tropical semiring , which is
+derived from the log semiring using the Viterbi approximation . In the following
+deﬁnitions, Swill be used to denote a semiring.
+A semiring is said to be commutative when the multiplicative operation
+⊗is commutative. The semirings listed in Table 1 are all commu tative. It is
+said to be idempotent ifx⊕x=xfor all x∈S. The Boolean semiring and
+the tropical semiring are idempotent.
+1.2 Weighted Transducers and Automata
+Given an alphabet Σ, we will denote by |x|the length of a string x∈Σ∗
+and by ǫtheempty string for which|ǫ|= 0. The mirror image of a string
+x=x1···xnis the string xR=xnxn−1···x1.
+Finite-state transducers are ﬁnite automata in which each transition is
+augmented with an output label in addition to the familiar in put label [12,
+22, 54, 36]. Output labels are concatenated along a path to fo rm an output
+sequence and similarly with input labels. Weighted transducers are ﬁnite-state
+transducers in which each transition carries some weight in addition to the
+input and output labels [54, 36, 52]. The weights are element s of a semiring
+(S,⊕,⊗,0,1).
+The⊗-operation is used to compute the weight of a path by ⊗-multiplying
+the weights of the transitions along that path. The ⊕-operation computes the
+weight of a pair of input and output strings ( x, y) by⊕-summing the weights
+of the paths labeled with ( x, y). The following gives a formal deﬁnition of
+weighted transducers.
+
+--- Page 3 ---
+Algorithms 3
+0 1/.1a:b/.22
+b:ε/.3a:ε/.1
+b:a/.43/.2ε:ε/.5ε:b/.7
+a:b/.10 1/.1a/.22
+b/.3a/.1
+b/.43/.2ε/.5ε/.7
+a/.1
+(a) (b)
+Fig. 1. (a) Example of a weighted transducer Tover the probability semiring.
+(b) Example of a weighted automaton Aover the probability semiring. Acan be
+obtained from Tby removing output labels. A bold circle indicates an initia l state
+with initial weight 1 and a double-circle a ﬁnal state. A ﬁnal state q’s weight ρ(q) is
+indicated after the slash symbol representing the state num ber.
+Deﬁnition 1. Aweighted transducer Tover a semiring (S,⊕,⊗,0,1)is an
+8-tuple T= (Σ, ∆, Q, I, F, E, λ, ρ )where Σis a ﬁnite input alphabet, ∆a
+ﬁnite output alphabet, Qis a ﬁnite set of states, I⊆Qthe set of initial
+states, F⊆Qthe set of ﬁnal states, Ea ﬁnite multiset3of transitions, which
+are elements of Q×(Σ∪{ǫ})×(∆∪{ǫ})×S×Q,λ:I→San initial weight
+function, and ρ:F→Sa ﬁnal weight function mapping FtoS.
+For a state q∈Q, we will denote by E[q] the outgoing transitions of qand
+more generally by E[Q′], the outgoing transitions of all states qin a subset
+of states Q′⊆Q. Anǫ-transition is a transition with both input and output
+label equal to ǫ.
+A path πof a transducer is an element of E∗with consecutive transitions.
+We denote by p[π] its origin or previous state and by n[π] its destination or
+next state. A cycle πis a path with p[π] =n[π]. An ǫ-cycle is a cycle with
+both input and output label equal to ǫ. We also denote by
+•P(Q1, Q2), the set of all paths from a subset Q1⊆Qto a subset Q2⊆Q.
+•P(Q1, x, Q 2) the subset of all paths of P(Q1, Q2) with input label x.
+•P(Q1, x, y, Q 2) the subset of all paths of P(Q1, x, Q 2) with output label y.
+A path in P(I, F) is said to be accepting orsuccessful . The weight of a path π
+obtained by⊗-multiplying the weights of its constituent transitions is denoted
+byw[π]. For any transducer T, we denote by T−1itsinverse , that is the
+transducer obtained from Tby swapping the input and output label of each
+transition.
+A transducer Tis said to be regulated if the output weight associated by
+Tto any pair of strings ( x, y)∈Σ∗×∆∗deﬁned as:
+3Thus, there can be two transitions from state pto state qwith the same input
+and output label, and even the same weight. In practice, this is avoided by keep-
+ing only one such transition whose weight is the ⊕-sum of the weights of the
+original redundant transitions. We will denote by ⊎the standard join operation
+of multisets as in {1,2}⊎{1,3}={1,1,2,3}.
+
+--- Page 4 ---
+4 Mehryar Mohri
+T(x, y) =/circleplusdisplay
+π∈P(I,x,y,F )λ(p[π])⊗w[π]⊗ρ(n[π]) (1)
+is an element of Sand its deﬁnition does not depend on the order of the terms
+in the⊕-sum. T(x, y) is deﬁned to be 0 when P(I, x, y, F ) =∅.4Note that in
+the absence of ǫ-cycles, the set of accepting paths P(I, x, y, F ) is ﬁnite for any
+(x, y)∈Σ∗×∆∗and thus Tis regulated. Also, as we shall see later, in some
+semirings, such as the four semirings of Table 1, all weighte d transducers are
+regulated. The weighted transducers we will be considering in this chapter
+will be regulated. Figure 1(a) shows an example of a weighted transducer.
+While our deﬁnition allows for multiple initial states with initial weights,
+in all our examples there will be a unique initial state with i nitial weight 1 and
+thus that weight is not indicated in ﬁgures. Since any weight ed transducer can
+be represented by an equivalent one with this property, this does not represent
+a real limitation.
+A state q∈Qis said to be non-accessible (non-coaccessible ) when there is
+no path from Itoq(resp. from qtoF). Non-accessible and non-coaccessible
+states are called useless states . They can be removed using a connection (or
+trimming) algorithm in linear time without aﬀecting the wei ghtTassociates
+to any pair. A transducer with no useless state is said to be trim.
+A transducer is said to be unambiguous if for any string x∈Σ∗it admits
+at most one accepting path with input label x. It is said to be deterministic or
+sequential if it has at most one initial state and at any state no two outgo ing
+transitions share the same input label.
+Aweighted automaton Acan be deﬁned as a weighted transducer with
+identical input and output labels, for any transition. Thus , only string pairs
+of the form ( x, x) can have a non-zero weight by A, which is why the weight
+associated by Ato (x, x) is abusively denoted by A(x) and identiﬁed with
+theweight associated by Atox. Similarly, in the graph representation of
+weighted automata, the output (or input) label is omitted. F igure 1(b) shows
+an example of a weighted automaton. The language accepted by Ais the one
+accepted by the unweighted automaton obtained by ignoring i ts weights and
+is denoted by L(A).
+Note that (unweighted) ﬁnite automata [51] can be viewed as w eighted
+automata over the Boolean semiring and, similarly, (unweig hted) ﬁnite-state
+transducers [22, 54, 12, 36] as weighted transducers deﬁned over the Boolean
+semiring.
+4Our deﬁnition of regulated transducers is more general that the standard one
+which assumes that transducers do not have cycles with input or output ǫ[54, 36,
+52]. The usual deﬁnition leads to a simpler presentation but it rules out weighted
+transducers that are crucial in applications or that can be o btained as a result of
+application of various algorithms.
+
+--- Page 5 ---
+Algorithms 5
+2 Shortest-distance algorithms
+Shortest-paths problems are familiar problems in computer science and math-
+ematics. In these problems, edge weights may represent dist ances, costs, or
+any other real-valued quantity that can be added along a path , and that one
+may wish to minimize. Thus, edge weights are real numbers and the speciﬁc
+operations used are addition to compute the weight of a path a nd minimum
+to select the best path weight.
+This section introduces a generalization of this problem to the case where
+the operations are those of a semiring. These problems turn o ut to be crucial
+in the design of several algorithms such as ǫ-removal or pushing and in many
+other contexts. Diﬀerent algorithmic solutions will be pre sented depending on
+the semiring properties.
+We will consider directed graphs G= (Q, E, w ) over a semiring S, where
+Qis a set of vertices, Ea set of edges, and w:E→Sthe edge weight function
+which we can extend to any path π=e1. . .e kbyw[π] =/circlemultiplytextk
+i=1w[ei].
+2.1 All-Pairs Shortest-Distance Problems
+The general all-pairs shortest-distance algorithm descri bed in this section is
+deﬁned for any complete semiring .5
+Complete Semirings
+A semiring ( S,⊕,⊗,0,1) is said to be complete if for any index set Iand any
+family ( ai)i∈Iof elements of S,/circleplustext
+i∈Iaiis an element of Swhose deﬁnition
+does not depend on the order of the terms in the ⊕-sum and that has the
+following properties [22, 20]:
+/circleplusdisplay
+i∈Iai=0 if card( I) = 0 (2)
+/circleplusdisplay
+i∈Iai=ai if card( I) = 1 (3)
+/circleplusdisplay
+i∈Iai=/circleplusdisplay
+j∈J/parenleftbig/circleplusdisplay
+i∈Ijai/parenrightbig
+for any disjoint partition I=/uniondisplay
+j∈JIj(4)
+a⊗/parenleftbig/circleplusdisplay
+i∈Iai/parenrightbig
+=/circleplusdisplay
+i∈I/parenleftbig
+a⊗ai/parenrightbig
+for any a∈S(5)
+/parenleftbig/circleplusdisplay
+i∈Iai/parenrightbig
+⊗a=/circleplusdisplay
+i∈I/parenleftbig
+ai⊗a/parenrightbig
+for any a∈S. (6)
+5The algorithm applies in fact more generally to any closed semiring as deﬁned
+in [41], which, unlike the deﬁnition given by [17], does not r equire idempotence.
+Note that the earlier deﬁnition of closed semirings given by Aho et al. [1] is not
+axiomatically correct (see [37, 26]). Any complete semirin g is a closed semiring.
+
+--- Page 6 ---
+6 Mehryar Mohri
+A straightforward consequence of these axioms is that in a co mplete semiring
+the identity/parenleftbig/circleplustext
+i∈Iai/parenrightbig/parenleftbig/circleplustext
+j∈Jbj/parenrightbig
+=/circleplustext
+(i,j)∈I×J/parenleftbig
+ai⊗bj/parenrightbig
+holds for any two
+families ( ai)i∈Iand (bj)j∈Jof elements of S. Note that in a complete semiring
+all weighted transducers are regulated since all inﬁnite su ms are elements of
+S.
+A complete semiring Sis astarsemiring [20], that is a semiring that
+can be augmented with an internal unary closure operation∗deﬁned by
+a∗=/circleplustext∞
+n=0anfor any a∈S.6Furthermore, associativity, commutativity,
+and distributivity apply to these inﬁnite sums.
+TheBoolean semiring ({0,1},∨,∧,0,1) with a∗= 1 for a∈ {0,1},
+and the tropical semiring (R+∪{+∞},min,+,+∞,0), with a∗= 0 for
+alla∈R+∪{+∞}, implicitly used in shortest-paths problems, are fa-
+miliar examples of complete semirings. The more general tro pical semiring
+(R∪{−∞ ,+∞},min,+,+∞,0) with
+a∗=/braceleftBigg
+0 if a∈R+;
+−∞ otherwise ,(7)
+and (+∞) +(−∞) = (−∞)+ (+∞) = +∞, also deﬁnes a complete semiring.
+Note that the family of complete semirings includes non-ide mpotent semirings
+such as the probability semiring ( R+∪{+∞},+,×,0,1) with the closure
+operation deﬁned by
+a∗=
+
+1
+1−aif 0≤a <1;
++∞ otherwise .(8)
+The log semiring ( R+∪{−∞ ,+∞},⊕log,+,+∞,0) which is isomorphic to
+the probability semiring is also a non-idempotent complete semiring with
+a∗=/braceleftBigg
+log(1−a) if 0≤a <1;
+−∞ otherwise .(9)
+Thelattice semiring (L,∨,∧,⊥,⊤) where Lis a complete and distributive
+lattice with inﬁmum ⊥and supremum⊤is a complete semiring with a∗=⊤
+for all a∈L, when it veriﬁes properties (5) and (6) [20]. Thus, all weigh ted
+transducers are regulated in the semirings just examined.
+All-Pairs Shortest-Distance Algorithm
+For a complete semiring, we can deﬁne the distance orshortest-distance from
+vertex pto vertex qinG= (Q, E, w ) by
+6Thus, with the terminology of [20], it is a complete starsemiring . All complete
+starsemirings are Conway semirings [20].
+
+--- Page 7 ---
+Algorithms 7
+d[p, q] =/circleplusdisplay
+π∈P(p,q)w[π], (10)
+where the⊕-sum runs over the set of all paths from ptoq. This deﬁnition
+coincides with the classical deﬁnition of shortest-distan ce where the weights
+are summed along the path and where the shortest path is sough t for the
+tropical semiring ( R+∪{+∞},min,+,+∞,0). The general all-pair shortest-
+distance problem is that of computing the shortest distances d[p, q] for all pairs
+(p, q) with p, q∈Q.
+This problem can be solved by computing the closure of the mat rix
+M= (Mpq)∈S|Q|×|Q|deﬁned by Mpq=⊕e∈E∩P(p,q)w[e] for all p, q∈Q.
+Indeed, using the semiring operations in matrix multiplica tion [20], for n∈N,
+the coeﬃcient Mn
+pqofMngives the⊕-sum of the weights of all paths of
+length at most nfromptoq. For idempotent semirings such as the tropical
+semiring for which 1⊕x=1 for all x∈S, only simple paths (paths with
+no cycle) need to be considered in the computation of the shor test distances
+and thus M∗=M|Q|−1. Using the standard repeated squaring technique
+[17],M|Q|−1can be computed in time Θ(|Q|3(T⊕+T⊗)log|Q|), where T⊕
+denotes the computational cost of the ⊕operation, and T⊗that of the⊗op-
+eration. There exists however a more eﬃcient method for comp uting all-pairs
+shortest-distances for all complete semirings based on a ge neralization of the
+Floyd-Warshall algorithm.7
+The Floyd-Warshall algorithm [25, 57] originally designed for the Boolean
+semiring can be generalized to compute all-pair shortest-d istances in all com-
+plete semirings. Figure 2 gives the pseudocode of an in-plac e implementation
+of the algorithm where d[i, j] corresponds to the tentative shortest distance
+from vertex ito vertex j. Lines 1-3 initialize each distance d[i, j] to the sum of
+the weights of the transitions between iandj. By convention, the ⊕-sum is 0 if
+iandjare not adjacent. The loops of lines 4-11 update the tentativ e shortest-
+distances in a way that is similar to the steps of the standard Floyd-Warshall
+algorithm but using operations of an arbitrary complete sem iring.
+LetT∗denote the cost of the closure operation.
+Theorem 2. LetG= (Q, E, w )be a weighted directed graph over a com-
+plete semiring S. Then, the algorithm Gen-All-Pairs computes the shortest-
+distances d[i, j]between all pairs of vertices (i, j)ofGin time Θ(|Q|3(T⊕+
+T⊗+T∗))and space Θ(|Q|2).
+Proof. LetPk(i, j) denote the set of paths from itojwith all intermediate
+vertices within{1, . . ., k}. For any i, j∈Q, k∈{0}∪Q, letdk
+ijbe the sum
+of all paths from itojwith all intermediate vertices within {1, . . ., k}:dk
+ij=/circleplustext
+w∈Pk(i,j)w[π]. Since the semiring is complete, dk
+ijis well-deﬁned and in S.
+7´Esik and Kuich also gave a cubic-time algorithm for computin gM∗for all Conway
+semirings (see [20] for the deﬁnition), which include complete semiri ngs [23].
+
+--- Page 8 ---
+8 Mehryar Mohri
+Gen-All-Pairs (G)
+1fori←1to|Q|do
+2 forj←1to|Q|do
+3 d[i, j]←M
+e∈E∩P(i,j)w[e]
+4fork←1to|Q|do
+5 fori←1to|Q|, i/ne}ationslash=kdo
+6 forj←1to|Q|, j/ne}ationslash=kdo
+7 d[i, j]←d[i, j]⊕(d[i, k]⊗d[k, k]∗⊗d[k, j])
+8 fori←1to|Q|, i/ne}ationslash=kdo
+9 d[k, i]←d[k, k]∗⊗d[k, i]
+10 d[i, k]←d[i, k]⊗d[k, k]∗
+11 d[k, k]←d[k, k]∗
+Fig. 2. Generic all-pairs shortest-distance algorithm.
+Letπbe a path in Pk(i, j). It is either a path from itojwith all interme-
+diate vertices within {1, . . ., k−1}or it can be decomposed into a path from
+itokwith all intermediate vertices within {1, . . ., k−1}, followed by any
+number of cycles at kwith all intermediate vertices in {1, . . ., k−1}, followed
+by a path from ktojwith all intermediate vertices within {1, . . ., k−1}.
+Thus, for all i, j, k∈Q,
+Pk(i, j) =Pk−1(i, j)∪(Pk−1(i, k)(Pk−1(k, k))∗Pk−1(k, j)).(11)
+By deﬁnition, a path in Pk−1(i, j) does not go through k, thus:
+Pk−1(i, j)∩(Pk−1(i, k)(Pk−1(k, k))∗Pk−1(k, j)) =∅. (12)
+Thus, even if Sis not idempotent, dk
+ijcan be decomposed, for all i, j, k∈Q,
+as
+dk
+ij=dk−1
+i,j⊕(dk−1
+ik⊗(dk−1
+kk)∗⊗dk−1
+kj). (13)
+This identity leads directly to an algorithm for computing a ll-pairs shortest
+distances using a triple-indexed array. An in-place implem entation of the al-
+gorithm limits the space used to that of a single |Q|×|Q|-matrix (Figure 2)
+and thus the space complexity of the algorithm to O(|Q|2). The cubic-time
+complexity follows directly the deﬁnition of the algorithm . ⊓ ⊔
+The eﬃciency of the algorithm can be improved for graphs Gwith relatively
+small strongly connected components (SCCs) by decomposing Ginto its SCCs,
+which can be done in linear time, then running Gen-All-Pairs on each SCC.
+TheGen-All-Pairs algorithm is useful in a variety of applications. With
+the Boolean semiring, it can be used to compute the transitiv e closure of any
+vertex of a graph and then coincides with the classical Floyd -Warshall algo-
+rithm [25, 57]. With the tropical semiring, the algorithm ca n compute the all-
+pairs shortest distances in the classical case including fo r graphs with negative
+
+--- Page 9 ---
+Algorithms 9
+cycles using the general topical semiring ( R∪{−∞ ,+∞},min,+,+∞,0). The
+algorithm of [28] based on Dijkstra’s algorithm and that of B ellman-Ford has
+a better time complexity for graphs with real-valued weight s,O(|Q|2log|Q|+
+|Q||E|), but it cannot be used with graphs that have a negative cycle .Gen-
+All-Pairs can also be used to compute the minimum spanning tree of a di-
+rected graph using the complete semiring ( R∪{−∞ ,∞},min,max,∞,−∞)
+[17]. Finally, it is also useful for computing the epsilon-r emoval of a weighted
+automaton in the general case of complete semirings [40] whe re Johnson’s al-
+gorithm does not apply, which is the main motivation for our p resentation of
+the algorithm.
+Gen-All-Pairs can be used of course to compute single-source shortest
+distances in graphs Gweighted over a complete semiring. The complexity
+of the Gen-All-Pairs algorithm in this case, ( |Q|3), makes it impractical
+for large graphs. The next section describes a single-sourc e shortest-distance
+algorithm which can be signiﬁcantly more eﬃcient in many cas es.
+2.2 Single-Source Shortest-Distance Problems
+The general single-source shortest-distance algorithm de scribed in this section
+is deﬁned for any k-closed semiring [41, 20].8
+k-Closed Semirings
+Letk≥0 be an integer. A semiring ( S,⊕,⊗,0,1) is said to be k-closed if
+∀a∈S,k+1/circleplusdisplay
+n=0an=k/circleplusdisplay
+n=0an. (14)
+Ak-closed semiring is thus a starsemiring with a∗=/circleplustextk
+n=0anfor all a∈
+S(as deﬁned in [20]). The Boolean semiring, the tropical semi ring ( R+∪
+{+∞},min,+,+∞,0), or ( R∪{−∞ ,∞},min,max,∞,−∞) are examples of
+k-closed semirings with k= 0.
+General single-source shortest-distance Algorithm
+The shortest-distance d[i, j] from any vertex ito any vertex jis well-deﬁned in
+ak-closed semiring S. Given a source vertex s∈Q, the general single-source
+shortest-distance problem consists of computing all dista ncesd[s, q],q∈Q.
+Figure 3 gives the pseudocode of an algorithm computing the s ingle-source
+shortest-distances for any k-closed semiring [41]. The algorithm is based on a
+generalization of the relaxation technique to the k-closed semirings.
+The algorithm maintains two arrays d[q] and r[q] indexed with vertices.
+d[q] denotes the tentative shortest distance from the source stoq.r[q] keeps
+8See also [24, 20] for the related deﬁnition of locally closed semirings .
+
+--- Page 10 ---
+10 Mehryar Mohri
+Gen-Single-Source (G,s)
+1fori←1to|Q|do
+2 d[i]←r[i]←0
+3d[s]←r[s]←1
+4Q←{ s}
+5whileQ/ne}ationslash=∅do
+6 q←Head (Q)
+7 Dequeue (Q)
+8 r′←r[q]
+9 r[q]←0
+10 foreache∈E[q]do
+11 ifd[n[e]]/ne}ationslash=d[n[e]]⊕(r′⊗w[e])then
+12 d[n[e]]←d[n[e]]⊕(r′⊗w[e])
+13 r[n[e]]←r[n[e]]⊕(r′⊗w[e])
+14 ifn[e]/ne}ationslash∈Qthen
+15 Enqueue (Q, n[e])
+Fig. 3. Generic single-source shortest-distance algorithm .
+track of the sum of the weights ⊕-added to d[q] since the last queue extraction
+ofq. The attribute ris needed for the shortest-distance algorithm to work in
+non-idempotent cases. The algorithm uses a queue Qto store the set of states
+to consider for the relaxation steps of lines 11-15 [41]. Any queue discipline,
+e.g., FIFO, shortest-ﬁrst, topological (in the acyclic cas e), can be used.
+Diﬀerent queue disciplines yield diﬀerent running times fo r our algorithm.
+The choice of the best queue discipline to use depends on the s emiring and
+the graph structure.
+If the graph is acyclic, then using the topological order que ue discipline
+gives a linear-time algorithm: O(|Q|+(T⊕+T⊗)|E|). For the tropical semiring
+(R+∪{+∞},min,+,+∞,0) and the best-ﬁrst queue discipline, the algorithm
+coincides with Dijkstra’s algorithm and its complexity is O(|E|+|Q|log|Q|)
+using Fibonacci heaps. In the presence of negative weights b ut no negative cy-
+cles, using a FIFO queue discipline, the algorithm coincide s with the Bellman-
+Ford algorithm.
+The initialization step of the algorithm (lines 1-3) takes O(|Q|) time, each
+relaxation (lines 11-13) takes O(T⊕+T⊗+C(A)) time. There are exactly
+N(q)|E[q]|relaxations at q. The total cost of the relaxations is thus: O((T⊕+
+T⊗+C(A))|E|max q∈QN(q)). Since each vertex qis inserted inQN(q) times
+(line 15), it is also extracted from QN(q) times (lines 6-7), and the general
+expression of the complexity is
+O(|Q|+ (T⊕+T⊗+C(A))|E|max
+q∈QN(q) + (C(I) +C(E))/summationdisplay
+q∈QN(q)),(15)
+
+--- Page 11 ---
+Algorithms 11
+where C(E) is the worst cost of removing a vertex qfrom the queueQ,C(I)
+that of inserting qinQ, andC(A) that of an assignment, including the possible
+necessary cost of reorganizing the queue.
+Theorem 3. LetG= (Q, E, w )be a weighted directed graph over a k-
+closed commutative semiring Sand let s∈Qbe a distinguished source ver-
+tex. Then, the algorithm Gen-Single-Source computes the single-source
+shortest-distances d[s, q]to all vertices q∈Qregardless of the queue disci-
+pline used forQ.
+The proof of theorem is given in [41].
+3 Rational Operations
+Regulated weighted transducers are closed under the follow ing three standard
+operations called rational operations :
+•thesum(orunion ) of two weighted transducers T1andT2is deﬁned by
+∀(x, y)∈Σ∗×∆∗,(T1⊕T2)(x, y) =T1(x, y)⊕T2(x, y).(16)
+•theproduct (orconcatenation ) of two weighted transducers T1andT2by
+∀(x, y)∈Σ∗×∆∗,(T1⊗T2)(x, y) =/circleplusdisplay
+x=x1x2y=y1y2T1(x1, y1)⊗T2(x2, y2).(17)
+The sum runs over all possible ways of decomposing xinto a preﬁx x1∈Σ∗
+and a suﬃx x2∈Σ∗and similarly y∈∆∗into a preﬁx y1∈∆∗and a
+suﬃx y2. The product of n >0 instances of T,n/bracehtipdownleft/bracehtipupright/bracehtipupleft /bracehtipdownright
+T⊗···⊗ T, is denoted by
+Tn, and by convention T0=E, whereEis the transducer deﬁned by
+/braceleftBigg
+E(x, y) =1 if ( x, y) = (ǫ, ǫ);
+0 otherwise .(18)
+•theclosure (orKleene-closure ) of a weighted transducer Tis deﬁned by
+∀(x, y)∈Σ∗×∆∗, T∗(x, y) =+∞/circleplusdisplay
+n=0Tn(x, y), (19)
+when/circleplustext+∞
+n=0Tn(x, y) is an element of Sfor all ( x, y)∈Σ∗×∆∗. Note
+that in the absence of accepting ǫ-paths, that is when P(I, ǫ, ǫ, F ) =∅,
+Tn(x, y) =0 forn >|x|+|y|, thus T∗(x, y) is deﬁned by a ﬁnite sum and
+is always an element of S. In complete semirings, the closure operation is
+deﬁned for all weighted transducers.
+
+--- Page 12 ---
+12 Mehryar Mohri
+0b:a/.1
+1/.5b:a/.2
+a:a/.3b:a/.4
+0 1a:b/.1
+b:b/.3b:a/.2
+2/.7a:a/.4
+b:a/.5a:b/.6
+(a) (b)
+01ε:ε/1
+3ε:ε/1b:a/.1
+2/.5b:a/.2
+a:a/.3
+4a:b/.1b:a/.4
+b:b/.3b:a/.2
+5/.7a:a/.4
+b:a/.5a:b/.6
+0b:a/.1
+1b:a/.2
+a:a/.3b:a/.4
+2ε:ε/.53a:b/.1
+b:b/.3b:a/.2
+4/.7a:a/.4
+b:a/.5a:b/.6
+(c) (d)
+0/1 1ε:ε/1b:a/.1
+2/.5b:a/.2
+a:a/.3
+ε:ε/.5b:a/.4
+(f)
+Fig. 4. (a) Weighted transducer T1and (b) weighted transducer T2over the prob-
+ability semiring. (c) Sum of T1andT2,T1⊕T2. (d) Product of T1andT2,T1⊗T2.
+(e) Closure of T1,T∗
+1.
+Rational operations can be used to create complex weighted t ransducers from
+simpler ones as in the standard case of unweighted acceptors . They admit
+simple and eﬃcient algorithms. Figures 4(c)-(e) illustrat e these algorithms for
+the particular cases of the transducers T1andT2of Figures 4(a)-(b).
+The transducer sum of two transducers T1andT2can be constructed
+fromT1andT2by introducing a new state, made the unique initial state,
+withǫ-transitions to the initial states of T1andT2carrying the weight 1.
+By construction, the sum of the weights of the paths with inpu t label xand
+output label yin the resulting transducer is exactly the sum of the weights
+of the paths with these labels in T1and those with these labels in T2, which
+matches precisely the deﬁnition of T1⊕T2(Figure 4(c). The time and space
+complexity of the algorithm is thus linear, O(|T1|+|T2|). Furthermore, the
+algorithm admits a natural on-demand oron-the-ﬂy construction : states and
+transitions of the transducer sum can be created only as requ ired by the
+algorithm using T1⊕T2. This is because the outgoing transition of a state of
+T1⊕T2can be constructed only by using that state and T1andT2without
+inspecting other states of T1⊕T2. This localavailability of the information
+needed to construct the output is what characterizes algori thms admitting
+natural on-the-ﬂy constructions.
+Similarly, the product (or concatenation) of two transduce rsT1andT2can
+be constructed from these transducers by making the ﬁnal sta tes of T1non-
+
+--- Page 13 ---
+Algorithms 13
+ﬁnal and by creating an ǫ-transition from each ﬁnal state pofT1to each initial
+stateqofT2carrying the ﬁnal weight of p(Figure 4(d)). It is straightforward
+to verify the correctness of this construction. The time and space complexity
+of the algorithm is O(|T1|+|T2|+|F1||I2|). The complexity of the product
+computation is linear for transducers with a single initial state, which is the
+typical situation in practice. As with the sum, the product a lgorithm admits
+a natural on-demand implementation.
+The closure of a transducer T1can be constructed as in the standard case
+of unweighted acceptors. A new initial state is created that is also ﬁnal with
+ﬁnal weight 1. An ǫ-transition with weight 1 is created from this state to
+the previously initial state of the transducer. Finally, an ǫ-transition is added
+from each ﬁnal state pto the previously initial state carrying the ﬁnal weight
+ofp(Figure 4(e)). The correctness of the construction follows the deﬁnition
+of the closure. The complexity of the algorithm is linear O(|T1|) and the
+algorithm admits a natural on-demand implementation as in t he case of the
+other rational operations.
+4 Elementary Unary Operations
+This section brieﬂy describes three elementary unary opera tions that are often
+useful in application.
+•thereversal of a weighted transducers Tproduces a transducer TRthat
+assigns to each pair of strings ( x, y) what Tassigns to their mirror images
+(xR, yR):
+TR(x, y) =T(xR, yR). (20)
+•theinversion (ortransposition ) of a weighted transducer Tproduces a
+new weighted transducer by swapping the input and output lab el of each
+transition
+T−1(x, y) =T(y, x). (21)
+•theprojection of a weighted transducer Ton the input side (orleft pro-
+jection ) yields an acceptor ↓Tby omitting output labels:
+↓T(x) =/circleplusdisplay
+yT(x, y). (22)
+Projection on the output side (orright projection ),T↓, is deﬁned in a
+similar way.
+These operations admit straightforward linear-time algor ithms that are illus-
+trated by Figures 5. Inversion and projection are trivial an d clearly admit
+a linear-time algorithm. When the semiring Sis commutative, reversal can
+be obtained by reverting the direction of each transition an d making initial
+states ﬁnal and ﬁnal states initial. It can also be obtained a s in Figure 5(a)
+
+--- Page 14 ---
+14 Mehryar Mohri
+62ε:ε/.5
+5ε:ε/.7b:a/.4
+1b:a/.2
+a:a/.3
+a:b/.6
+4a:a/.4b:a/.1
+0/1ε:ε/1
+3ε:ε/1
+b:b/.3 b:a/.5a:b/.1b:a/.2 01ε:ε/1
+3ε:ε/1a:b/.1
+2/.5a:b/.2
+a:a/.3
+4b:a/.1a:b/.4
+b:b/.3a:b/.2
+5/.7a:a/.4
+a:b/.5b:a/.6
+(a) (b)
+01e/1
+3e/1b/.1
+2/.5b/.2
+a/.3
+4a/.1b/.4
+b/.3b/.2
+5/.7a/.4
+b/.5a/.6
+(c)
+Fig. 5. Elementary operations applies to the transducer T=T1⊕T2of Figure 4(c).
+(a) Reversed transducer TR. (b) Inverted transducer T−1. (c) Projected transducer
+↓T.
+by reverting the direction of all transitions, creating a ne w state pmade the
+unique initial state, with ǫ-transitions to each previously ﬁnal state qcarrying
+the ﬁnal weight of q, and making previously initial states ﬁnal with the same
+weights. In all cases, reversal does not admit a natural on-d emand computa-
+tion since the computation of the outgoing transitions of a s tate of the output
+transducer requires creating or inspecting other output st ates.
+5 Fundamental binary operations
+In this section, the semiring Sis assumed to be commutative.
+5.1 Composition
+Composition is a general operation for combining two or more weighted trans-
+ducers [22, 54, 36, 35]. It is a powerful tool used in a variety of applications
+to create a complex weighted transducer from simpler ones re presenting sta-
+tistical models or discriminative models.
+The algorithm for the composition of weighted transducers i s a gener-
+alization of the standard composition algorithm for unweig hted ﬁnite-state
+transducers. However, as we shall see later, the weighted ca se requires a more
+subtle technique to deal with ǫ-path multiplicity issues [50, 46]. The algorithm
+takes as input two weighted transducers
+
+--- Page 15 ---
+Algorithms 15
+0 1a:b/0.1
+a:b/0.22 b:b/0.3
+3/0.7b:b/0.4a:b/0.5a:a/0.6
+0 1b:b/0.1b:a/0.2
+2 a:b/0.3
+3/0.6a:b/0.4b:a/0.5
+(a) (b)
+(0, 0) (1, 1)a:b/.01(0, 1) a:a/.04
+(2, 1)b:a/.06(3, 1)
+b:a/.08a:a/.02
+a:a/0.1(3, 2)a:b/.18
+(3, 3)/.42a:b/.24
+(c)
+Fig. 6. Weighted transducers (a) T1and (b) T2over the probability semiring. (c)
+Illustration of composition of T1andT2,T1◦T2. Some states might be constructed
+during the execution of the algorithm that are not co-access ible, e.g., (3 ,2). Such
+states and the related transitions can be removed by a trimmi ng (or connection)
+algorithm in linear-time.
+T1= (Σ∗, ∆∗, Q1, I1, F1, E1, λ1, ρ1) and T2= (∆∗, Ω∗, Q2, I2, F2, E2, λ2, ρ2)
+such that the input alphabet of T2,∆, coincides with the output alphabet of
+T1, outputs a weighted transducer T= (Σ∗, Ω∗, Q, I, F, E, λ, ρ ) realizing the
+composition of T1andT2.
+LetT1andT2be two weighted transducers deﬁned over Ssuch that the
+input alphabet of T2coincides with the output alphabet of T1. Assume that
+the inﬁnite sum/circleplustext
+z∈∆∗T1(x, z)⊗T2(z, y) is deﬁned and in Sfor all ( x, y)∈
+Σ∗×Ω∗. This condition holds for all transducers deﬁned over a comp lete
+semiring such as the Boolean semiring, the tropical semirin g, the probability
+semiring and the log semiring, and for all acyclic transduce rs deﬁned over
+an arbitrary semiring. Then, the result of the composition o fT1andT2is a
+weighted transducer denoted by T1◦T2and deﬁned for all x, yby:
+(T1◦T2)(x, y) =/circleplusdisplay
+z∈∆∗T1(x, z)⊗T2(z, y). (23)
+The sum runs over all strings zlabeling a path of T1on the output side and
+a path of T2on input label z. The matrix notation we have used emphasizes
+the connection of composition with matrix multiplication.9
+There exists a general and eﬃcient algorithm to compute the c omposition
+of two weighted transducers. In the absence of ǫs on the input side of T1or
+the output side of T2, the states of T1◦T2can be identiﬁed with pairs of a
+9Our choice of a matrix notation as opposed to a functional not ation is motivated
+by its convenience in applications.
+
+--- Page 16 ---
+16 Mehryar Mohri
+state of T1and a state of T2,Q⊆Q1×Q2. Initial states are those obtained
+by pairing initial states of the original transducers, I=I1×I2, and similarly
+ﬁnal states are deﬁned by F=Q∩(F1×F2). Transitions are obtained by
+matching a transition of T1with one of T2from appropriate transitions of T1
+andT2:
+E=/unionmultidisplay
+(q1,a,b,w 1,q2)∈E1
+(q′
+1,b,c,w 2,q′
+2)∈E2/braceleftbigg/parenleftbigg
+(q1, q′
+1), a, c, w 1⊗w2,(q2, q′
+2)/parenrightbigg/bracerightbigg
+.
+The following is the pseudocode of the algorithm in the ǫ-free case.
+Weighted-Composition (T1, T2)
+1Q←I1×I2
+2Q←I1×I2
+3whileQ/ne}ationslash=∅do
+4 q= (q1, q2)←Head (Q)
+5 Dequeue (Q)
+6 ifq∈I1×I2then
+7 I←I∪{q}
+8 λ(q)←λ1(q1)⊗λ2(q2)
+9 ifq∈F1×F2then
+10 F←F∪{q}
+11 ρ(q)←ρ1(q1)⊗ρ2(q2)
+12 foreach ( e1, e2)∈E[q1]×E[q2] such that o[e1] =i[e2]do
+13 if`
+q′= (n[e1], n[e2])/ne}ationslash∈Q´
+then
+14 Q←Q∪{q′}
+15 Enqueue (Q, q′)
+16 E←E⊎{(q, i[e1], o[e2], w[e1]⊗w[e2], q′)}
+17return T
+E,I, and Fare all assumed to be initialized to the empty set. The algo-
+rithm uses a queue Qcontaining the set of pairs of states yet to be examined.
+The queue discipline of Qcan be arbitrarily chosen and does not aﬀect the
+termination of the algorithm. The set of states Qis originally reduced to the
+set of pairs of the initial states of the original transducer s andQis initialized
+to the same (lines 1-2). At each execution of the loop of lines 3-16, a new pair
+of states ( q1, q2) is extracted from Q(lines 4-5). The initial weight of ( q1, q2)
+is computed by⊗-multiplying the initial weights of q1andq2when they are
+both initial states (lines 6-8). Similar steps are followed for ﬁnal states (lines
+9-11). Then, for each pair of matching transitions ( e1, e2), a new transition
+is created according to the rules speciﬁed earlier (line 16) . If the destination
+state ( n[e1], n[e2]) has not been found earlier on, it is added to Qand inserted
+inQ(lines 14-15).
+
+--- Page 17 ---
+Algorithms 17
+01a:a2b:/c213c:/c214d:d01a:d2/c21:e3d:a
+T1 T2
+0/c21:/c211/c21:/c211
+1a:a/c21:/c211/c21:/c211
+2b:/c212/c21:/c211/c21:/c211
+3c:/c212/c21:/c211/c21:/c211
+4d:d/c21:/c211/c21:/c211
+0/c212:/c21
+1a:d/c212:/c21
+2/c211:       e/c212:/c21
+3d:a/c212:/c21
+˜T1˜T2
+/c29/c2e/c29 /c27/c2e/c27 /c27/c2e/c28
+/c28/c2e/c27 /c28/c2e/c28
+/c2a/c2e/c27 /c2a/c2e/c28
+/c2b/c2e/c2a/c21/c22/c25 /c21/c22/c26
+/c23/c22/c21
+/c24/c22/c21/c23/c22/c21
+/c24/c22/c21/c21/c22/c26
+/c21/c22/c26
+/c25/c22/c21/c23/c22/c26/c2c/c2f/c22/c2f/c2d /c2c/c21/c21/c22/c21/c21/c2d
+/c2c/c21/c21/c22/c21/c21/c2d
+/c2c/c21/c21/c22/c21/c21/c2d/c2c/c21/c23/c22/c21/c23/c2d /c2c/c21/c23/c22/c21/c23/c2d
+/c2c/c21/c23/c22/c21/c23/c2d /c2c/c21/c23/c22/c21/c23/c2d
+/c2c/c2f/c22/c2f/c2d/c2c/c21/c23/c22/c21/c21/c24
+0x:x/c212:/c2111/c211:/c211
+2/c212:/c212x:x/c211:/c211
+x:x/c212:/c212
+(a) (b)
+Fig. 7. Redundant ǫ-paths in composition. All transition and ﬁnal weights are e qual
+to1. (a) A straightforward generalization of the ǫ-free case would generate all the
+paths from (1 ,1) to (3 ,2) when composing T1andT2and produce an incorrect
+results in non-idempotent semirings. (b) Filter transduce rF[46]. The shorthand x
+is used to represent an element of Σ.
+In the worst case, all transitions of T1leaving a state q1match all those
+ofT2leaving state q′
+1, thus the space and time complexity of composition is
+quadratic: O(|T1||T2|). However, an important feature of composition is that
+it admits a natural on-demand computation which can be used t o construct
+only the part of the composed transducer that is needed. Figu res 6(a)-(c)
+illustrate the algorithm when applied to the transducers of Figures 6(a)-(b)
+deﬁned over the probability semiring.
+More care is needed when T1admits output ǫlabels or T2input ǫlabels.
+Indeed, as illustrated by Figure 7, a straightforward gener alization of the ǫ-
+free case would generate redundant ǫ-paths and, in the case of non-idempotent
+semirings, would lead to an incorrect result. The weight of t he matching paths
+of the original transducers would be counted ptimes, where pis the number
+of redundant paths in the result of composition.
+To cope with this problem, all but one ǫ-path must be ﬁltered out of
+the composite transducer. Figure 7 indicates in boldface on e possible choice
+
+--- Page 18 ---
+18 Mehryar Mohri
+for that path, which in this case is the shortest. Remarkably , that ﬁltering
+mechanism itself can be encoded as a ﬁnite-state transducer F(Figure 7(b)).
+To apply that ﬁlter, we need to ﬁrst augment T1andT2with auxiliary sym-
+bols that make the semantics of ǫexplicit. Thus, let ˜T1(˜T2) be the weighted
+transducer obtained from T1(resp. T2) by replacing the output (resp. input)
+ǫlabels with ǫ2(resp. ǫ1) as illustrated by Figure 7. Thus, matching with the
+symbol e1corresponds to remaining at the same state of T1and taking a tran-
+sition of T2with input ǫ.e2can be described in a symmetric way. The ﬁlter
+transducer Fdisallows a matching ( ǫ2, ǫ2) immediately after ( ǫ1, ǫ1) since this
+can be done instead via ( ǫ2, ǫ1). By symmetry, it also disallows a matching
+(ǫ1, ǫ1) immediately after ( ǫ2, ǫ2). In the same way, a matching ( ǫ1, ǫ1) imme-
+diately followed by ( ǫ2, ǫ1) is not permitted by the ﬁlter Fsince a shorter path
+via the matchings ( ǫ2, ǫ1)(ǫ1, ǫ1) is possible. Similarly, ( ǫ2, ǫ2)(ǫ2, ǫ1) is ruled
+out. It is not hard to verify that the ﬁlter transducer Fis precisely a ﬁnite
+automaton over pairs accepting the complement of the langua ge
+L=σ∗((ǫ1, ǫ1)(ǫ2, ǫ2) + (ǫ2, ǫ2)(ǫ1, ǫ1) + (ǫ1, ǫ1)(ǫ2, ǫ1) + (ǫ2, ǫ2)(ǫ2, ǫ1))σ∗,
+where σ={(ǫ1, ǫ1),(ǫ2, ǫ2),(ǫ2, ǫ1), x}[4]. Thus, the ﬁlter Fguarantees that
+exactly one ǫ-path is allowed in the composition of each ǫsequences. To obtain
+the correct result of composition, it suﬃces then to use the ǫ-free composition
+algorithm already described and compute
+˜T1◦F◦T2. (24)
+Indeed, the two compositions in ˜T1◦F◦˜T2no more involve ǫs. Since the size
+of the ﬁlter transducer Fis constant, the complexity of general composition
+is the same as that of ǫ-free composition, that is O(|T1||T2|). In practice, the
+augmented transducers ˜T1and˜T2are not explicitly constructed, instead the
+presence of the auxiliary symbols is simulated. Further ﬁlt er optimizations
+help limit the number of non-coaccessible states created, f or example by ex-
+amining more carefully the case of states with only outgoing non-ǫ-transitions
+or only outgoing ǫ-transitions [46].
+Composition of weighted transducers can be further general ized to the
+N-way composition of weighted transducers [4]. Furthermore, N-way compo-
+sition of three or more transducers can be substantially fas ter than the use of
+the standard composition [5].
+5.2 Intersection
+The intersection (or Hadamard product) of two weighted auto mata A1and
+A2is deﬁned by [22, 54, 36]:
+(A1∩A2)(x) =A1(x)⊗A2(x). (25)
+It coincides with the special case of composition of weighte d transducers where
+the input label of each transition matches its output label. Thus, the same
+
+--- Page 19 ---
+Algorithms 19
+0 1b/0.1
+b/0.22 b/0.3
+3/0.7b/0.4b/0.5a/0.6
+0 1b/0.1b/0.2
+2a/0.3
+3/0.6a/0.4b/0.5
+(a) (b)
+(0, 0) (1, 1)b/.01(0, 1)b/.04
+(2, 1)b/.06(3, 1)
+b/.08b/.02
+b/0.1(3, 2)a/.18
+(3, 3)/.42a/.24
+(c)
+Fig. 8. Weighted Automata (a) A1and (b) A2over the probability semiring. (c)
+Illustration of intersection of A1andA2,A1∩A2. Some states might be constructed
+during the execution of the algorithm that are not co-access ible, e.g., (3 ,2). Such
+states and the related transitions can be removed by a trimmi ng (or connection)
+algorithm in linear-time.
+algorithm can be used to compute intersection with the same c omplexity.
+Figure 8 illustrates the application of the algorithm to two weighted automata
+extracted from the weighted transducers of Figure 6.
+5.3 Diﬀerence
+Negation is not deﬁned for all semirings, but a diﬀerence operation can be de-
+ﬁned for a weighted automata A1and an unweighted deterministic automaton
+A2as follows:10
+∀x∈Σ∗,(A1−A2)(x) =/braceleftBigg
+A1(x) ifx/ne}a⊔ionslash∈L(A2)
+0 otherwise .(26)
+Thus, ( A1−A2) is the weighted automaton A1from which all accepting
+paths labeled with a string accepted by A2are removed, which leads to the
+following equivalent formulation:
+∀x∈Σ∗,(A1−A2)(x) = (A1∩A2)(x), (27)
+where A2is a weighted automaton over the semiring Saccepting exactly the
+complement of L(A2) and assigning weight 1 to each string accepted. Since
+A2is deterministic, its complement A2can be computed from A2in linear
+time, with the following two steps:
+10Of course, when negation is deﬁned, A1⊕(⊖A2) deﬁned by∀x∈Σ∗, A1⊕(⊖A2) =
+A1(x)⊖A2(x) can be computed by applying the sum algorithm to A1and⊖A2.
+The semantics of the diﬀerence operation considered here is diﬀerent.
+
+--- Page 20 ---
+20 Mehryar Mohri
+01a2b3a
+b
+b01a4
+ba
+2bab
+3a
+b
+ba 0 1a4
+ba
+2bab
+3a
+b
+ba
+(a) (b) (c)
+0a/0.1
+1/.5b/0.2
+a/0.3(0,0)(0, 1)a/.1
+(1,4)
+/.5
+b/.2(0,4)a/.1
+(1,2)
+/.5b/.2
+a/.3b/.2a/.1
+(0,3)a/.3a/.1
+(1,1)
+/.5b/.2 a/.3
+(d) (e)
+Fig. 9. (a) Unweighted automaton A2. (b) Complete automaton equivalent to A2.
+(c) Complement of A2,A2, all weights are equal to 1 and thus not indicated. (d)
+Weighted automaton A1deﬁned over the probability semiring. (e) Diﬀerence of A1
+andA2,A1−A2, obtained by intersection of A1andA2.
+•completion : ﬁrst making A2complete , that is creating an equivalent au-
+tomaton to A2such that all alphabet symbols can be read from any state.
+This can be done by augmenting A2with a new state pwith self-loops
+labeled with all alphabet symbols, and by adding a transitio n labeled with
+a∈Σfrom state qtopwhen no transition labeled with ais available at
+qinA2.
+•complementation : then making all ﬁnal states of the modiﬁed automaton
+A2non-ﬁnal and vice-versa. Finally, all weights of the automa ton are set
+to1 to make it an automaton over S.
+Both of these steps can be executed in linear time O(|A2|+|Σ|) and admit
+a natural on-demand implementation. Note that the compleme ntation of ar-
+bitrary ﬁnite automata is PSPACE-complete [1], this is the r eason why A2
+was assumed to be deterministic here. The diﬀerence can then be obtained
+by computing the intersection of A1andA2. Since intersection or composi-
+tion also admit a natural on-the-demand computation, the sa me is true of
+the diﬀerence algorithm. Note that using that property, the alphabet symbol
+actually used in complementation can be limited to the symbo ls appearing in
+A1andA2. Thus, the overall complexity of diﬀerence is O(|A1|(|A2|+|Σ′|).
+Figure 9 illustrates the diﬀerence algorithm.
+
+--- Page 21 ---
+Algorithms 21
+6 Optimization algorithms
+6.1 Epsilon-Removal
+The use of various automata or transducer operations such as rational opera-
+tions generate ǫ-transitions. These transitions cause some delay in the use of
+the resulting transducers since the search for an alphabet s ymbol to match
+in composition or other similar operations requires readin g some sequences of
+ǫs ﬁrst. To make these weighted transducers more eﬃcient to us e, it may be
+preferable to remove allǫ-transitions, that is to create an equivalent weighted
+transducer with no ǫ-transition. This section describes a general ǫ-removal
+algorithm that precisely achieves this task.
+Simply removing ǫ-transitions from the input transducer clearly does not
+result in an equivalent one. Instead, for a given state p, the non- ǫ-transitions
+of all states qreachable from pviaǫ-transitions should be added to those of
+p. In the weighted case, this does not result in an equivalent t ransducer since
+the weights of the ǫ-transitions from ptoqwould be ignored. Thus, before
+adding an outgoing transition of state qtop, the weight it carries must be
+pre-⊗-multiplied by the sum of the weights of the ǫ-paths from ptoq. To
+ensure that this weight is an element of the semiring, we will assume that S
+is complete.11
+This leads to a two-step algorithm [40]. Given a transducer T, letTǫdenote
+the transducer derived from Tby keeping only ǫ-transitions and let dǫ[p, q] =
+⊕π∈P(p,ǫ,q)w[π] denote the distance from state pto state qinTǫ. Then, the
+following are the two main steps of the algorithms:
+•ǫ-closure computation: at each state p, theweighted ǫ-closure deﬁned by
+C(p) ={(q, w) :P(p, ǫ, q)/ne}a⊔ionslash=∅, w=dǫ[p, q]} (28)
+is computed.
+•actual removal of ǫs: allǫ-transitions are removed and for each pand each
+(q, w)∈C(p), the transition set of pis augmented with the following
+transitions
+{(p, a, b, d ǫ[p, q]⊗w, r) : (q, a, b, w, r )∈E,(a, b)/ne}a⊔ionslash= (ǫ, ǫ)}.(29)
+If there exists ( q, w)∈C(p) with q∈F, then dǫ[p, q]⊗ρ(q) must be
+⊕-added to the ﬁnal weight of p.
+The following is the pseudocode of the algorithm which follo ws the main steps
+just discussed.
+Theorem 4 ([40]). LetTbe a weighted transducer over a complete semir-
+ingS. Assume that the closures C(p)can be computed for any state pofT.
+Then, the weighted transducer T′returned by the epsilon-removal algorithm
+just described is equivalent to T.
+11The results presented also hold in the case of closed semirin gs.
+
+--- Page 22 ---
+22 Mehryar Mohri
+Epsilon-Removal (T)
+1foreachp∈Qdo
+2 Compute-Closure (C(p))
+3E′←Eǫ←{(p, a, b, w, q )∈E: (a,b)/ne}ationslash= (ǫ, ǫ)}
+4F′←F
+5ρ′←ρ
+6foreachp∈Qdo
+7 foreach ( q, w′)∈C[p]do
+8 E′[p]←E′[p]⊎{(p, a, b, w′⊗w, r) : (q, a, b, w, r )∈Eǫ}
+9 ifq∈Fthen
+10 ifp/ne}ationslash∈Fthen
+11 F′←F∪{p}
+12 ρ′[p]←0
+13 ρ′[p]←ρ′[p]⊕(w′⊗ρ(q))
+14return T′= (Σ, ∆, Q, I, F′, E′, λ, ρ′)
+The proof is simple and is given in [40].
+Theǫ-closures C(p) can be computed using an all-pair shortest-distance
+algorithm over Tǫwhen the semiring Sis complete, or by applying the single-
+shortest distance algorithm from each source pwhen the semiring is k-closed,
+as described in Section 2. The complexity of the second stage of the algorithm
+(lines 6-13) is in O(|Q|2+|Q||E|) since in the worst case each C(p) contains
+all states of the transducer. Thus, the overall complexity o f the algorithm is
+O(|Compute-Closure |+|Q|2+|Q||E|(T⊕+T⊗)), (30)
+where O(|Compute-Closure |) denotes the total cost of the closure compu-
+tation. We are now examining several special cases of practi cal interest:
+•Tǫis acyclic, that is Tadmits no ǫ-cycle, a rather frequent case in practice.
+In that case, the single-source shortest distance algorith m can be used for
+any semiring Sand has linear time complexity. The total complexity of
+applying the algorithm at each state is O(|Q|2+|Q||E|(T⊕+T⊗)) and
+matches that of the second stage. Thus, the overall complexi ty of epsilon-
+removal is then
+O(|Q|2+|Q||E|(T⊕+T⊗)). (31)
+The algorithm can in fact be improved in that special case. Th e complexity
+of the computation of the all-pairs shortest distances can b e substantially
+improved if the states of Tǫare visited in reverse topological order and if
+the single-source shortest-distance algorithm is interle aved with the actual
+removal of ǫs as follows: for each state pofTǫvisited in reverse topological
+order,
+– run a single-source shortest-distance algorithm with sou rcepto com-
+pute the distance from pto each state qinTǫ;
+
+--- Page 23 ---
+Algorithms 23
+01
+a:b/.102ε:ε/.204/.2b:a/.20
+b:a/.10a:b/.40ε:ε/.25
+a:b/.40
+3ε:ε/.5
+ε:ε/.40ε:ε/1
+0 1.04
+4/.2
+.152
+.2
+3.1.2 .75
+.5
+.41
+(a) (b)
+0 1/.03a:b/.10
+b:a/.02a:b/.084
+4/.2b:a/.20
+a:b/.08 01a:b/.1002a:b/.0203
+a:b/.0044/1a:b/.003
+b:a/.040
+a:b/.400a:b/.080
+b:a/.100a:b/.016a:b/.092
+a:b/.100a:b/.020a:b/.004 a:b/.003
+(c) (d)
+Fig. 10. (a) Weighted transducer Tdeﬁned over the probability semiring. (b)
+Weighted graph showing non- 0 all-pair distance dǫ[p, q]. From each state p, the
+outgoing weighted edges give the closure C(p). (c) Weighted transducer T′resulting
+fromTby epsilon-removal. (d) Weighted transducer T′′resulting from Tby reverse
+epsilon-removal.
+– then remove ǫ-transitions leaving qand update the ﬁnal weight as al-
+ready described.
+The reverse topological order guarantees that the ǫ-paths leaving pare re-
+duced to the ǫ-transitions leaving p. Thus, the cost of the shortest-distance
+algorithm run from ponly depends on the number of ǫ-transitions leaving
+pand the total cost of the computation of the shortest-distan ces is linear:
+O(|Q|+ (T⊕+T⊗)|E|).
+•Sis the tropical semiring. In that case, the complexity of the ﬁrst stage
+of the algorithm is that of a standard shortest-path algorit hm from each
+state of Tǫ. Using Fibonacci heaps, the complexity of the ﬁrst stage of t he
+algorithm is thus O(|Q||E|+|Q|2log|Q|). Thus, the overall complexity of
+epsilon-removal is again
+O(|Q|2+|Q||E|(T⊕+T⊗)). (32)
+•Sis a complete semiring. In that case, when the all-pairs shor test-distance
+algorithm of Section 2 is the only algorithm available, the c omplexity of
+the ﬁrst stage of the algorithm is Θ(|Q|3(T⊕+T⊗+T∗)) and the overall
+complexity of epsilon-removal is also
+O(|Q|3(T⊕+T⊗+T∗) +|Q||E|(T⊕+T⊗)). (33)
+Epsilon-removal does not create any new state. However, not all states of
+the original transducer may be necessary. States with only i ncoming (or out-
+going) ǫ-transitions become non-accessible (resp. non-coaccessi ble) after re-
+moval of these transitions, which causes other states not to be accessible or
+
+--- Page 24 ---
+24 Mehryar Mohri
+co-accessible. All of these states and corresponding trans itions can be removed
+in linear time using a standard trimming or connection algor ithm.
+During the epsilon-removal construction, it may happen qui te often in
+practice that several transitions from the same state pto the same state q,
+with the same input and output label, need to be constructed i n the resulting
+transducer T′. To avoid this redundancy, the weights of these transitions are
+⊕-summed to maintain at any time a single transition instead.
+Note that epsilon-removal admits a natural on-demand compu tation since
+the outgoing transitions of state qof the output automaton can be computed
+directly using the ǫ-closure of q. However, the reverse topological order de-
+scribed in the case of an acyclic Tǫrequires examining all states of Tǫand
+thus that version of the algorithm cannot be viewed as a natur al on-demand
+construction. In practice, both versions of the algorithm c an be useful.
+When epsilon-removal is to be followed immediately by the ap plication of
+determinization, the integration of these two operations o ften results in much
+more eﬃcient overall computation. This is because the ǫ-closure of a subset
+of states created by determinization can be computed by a sin gle shortest-
+distance algorithm with all states of the subset serving as s ources, rather than
+a distinct one for each state of the subset. Since some states can be reached
+by several elements of the subset, the ﬁrst method provides m ore sharing.
+This integration of determinization and epsilon-removal c an be extended
+to the weighted case where the weighted determinization [38 ] presented in the
+next section is used.12
+Epsilon-removal can be straightforwardly modiﬁed to remov e transitions
+with input label aand output label b, with ( a, b)/ne}a⊔ionslash= (ǫ, ǫ). This can be done for
+example by relabeling ǫ-transitions with a new label and replacing ( a, b) by
+(ǫ, ǫ), applying epsilon-removal, and then restoring original ǫs. The resulting
+transducer is equivalent to the original if ( a, b) is assigned the semantics of
+(ǫ, ǫ).
+Figure 10 illustrates the epsilon-removal algorithm. Figu re 10(c) shows the
+transducer T′resulting from the transducer Tof Figure 10(a) by application
+of epsilon-removal. Note that only three of the original sta tes remain in T′.
+As already discussed, since state 2 and 3 admit only incoming ǫ-transitions
+(and only outgoing ǫ-transitions in the case of state 3), after removal of ǫ-
+transitions they become inaccessible and can thus be remove d. Figure 10(b)
+indicates all non- 0 shortest-distances between states in Tǫ, which summarizes
+the closure information. These distances are used to determ ine the weight of
+the new transitions added.
+Instead of removing an ǫ-transition from ptoqby adding to state pall
+non-ǫ-transitions leaving q, one can equivalently proceed by adding to qall
+non-ǫ-transitions entering p. This is equivalent to applying epsilon-removal in
+12It is however limited to the cases where the result of epsilon -removal is deter-
+minizable , that is cases where the determinization algorithm termina tes, which,
+as we shall see later, does not always hold in the weighted cas e.
+
+--- Page 25 ---
+Algorithms 25
+the same way as before but to the reverse of T. We will thus refer to reverse
+epsilon-removal as the algorithm that consists of the following sequence of o p-
+erations: reversal, epsilon-removal, reversal. Figure 10 (d) shows T′′the result
+of the application of reverse epsilon-removal to T.T′′is equivalent to Tand
+T′′and has the same number of states as T, but in this case has more tran-
+sitions than T′. Which algorithm epsilon-removal or reverse epsilon-remo val,
+produces the smallest transducer depends on the number of ou tgoing transi-
+tions of the states qreached by an ǫ-path in the epsilon-removal case, or the
+number of incoming transitions of the states pwith incoming ǫs in the reverse
+epsilon-removal case. The decision of the direction of epsi lon-removal can be
+made in fact for each pair of states ( p, q) based upon these quantities.
+6.2 Determinization
+This section describes a general determinization algorith m for weighted au-
+tomata and transducers [38] which generalizes the standard powerset con-
+struction for unweighted ﬁnite automata. The presentation will focus on the
+case of weighted automata, the weighted transducer case can be treated in a
+similar way or as a special case of the general algorithm we pr esent [38].
+A weighted automaton is said to be deterministic orsubsequential if it
+has a unique initial state and if no two transitions leaving a ny state share the
+same input label. There exists a natural extension of the cla ssical subset con-
+struction to the case of weighted automata called determinization . Weighted
+determinization requires some technical conditions on the semiring or the
+weighted automaton which we will ﬁrst introduce. These cond itions hold in
+most cases in practice.
+Weighted determinization is a generic algorithm: it works w ith any weakly
+divisible semiring . A semiring is said to be divisible if all non- 0 elements
+admit an inverse, that is if S−{0}is a group. ( S,⊕,⊗,0,1) is said to be
+weakly divisible if for any xandyinSsuch that x⊕y/ne}a⊔ionslash=0, there exists at
+least one zsuch that x= (x⊕y)⊗z. The⊗-operation is cancellative ifzis
+unique and we can write: z= (x⊕y)−1x. When zis not unique, we can still
+assume that we have an algorithm to ﬁnd one of the possible zand call it
+(x⊕y)−1x. Furthermore, we will assume that zcan be found in a consistent
+way, that is: (( u⊗x)⊕(u⊗y))−1(u⊗x) = (x⊕y)−1xfor any x, y, u∈S
+such that u/ne}a⊔ionslash=0. A semiring is zero-sum-free if for any xandyinS,x⊕y=0
+implies x=y=0.
+Additionally, we assume that for any string x∈Σ∗, the sum of the
+weights of the paths labeled with xand starting at an initial state is non-
+0:w[P(I, x, Q )]/ne}a⊔ionslash=0. This condition is always satisﬁed with trim weighted
+automata over the tropical semiring or any zero-sum-free se miring.
+The pseudocode of the algorithm is given below with Q′,I′,F′, and E′
+all initialized to the empty set.
+Aweighted subset p′ofQis a set of pairs ( q, x)∈Q×S. We will denote
+byQ[p′] the set of states qof the weighted subset p′.E[Q[p′]] represents the
+
+--- Page 26 ---
+26 Mehryar Mohri
+Weighted-Determinization (A)
+1i′←{(i, λ(i)) :i∈I}
+2λ′(i′)←1
+3Q←{ i′}
+4whileQ/ne}ationslash=∅do
+5 p′←Head (Q)
+6 Dequeue (Q)
+7 foreachx∈i[E[Q[p′]]]do
+8 w′←L{v⊗w: (p, v)∈p′,(p,x, w, q )∈E}
+9 q′←{(q,L{w′−1⊗(v⊗w) : (p, v)∈p′,(p,x, w, q )∈E}) :
+q=n[e], i[e] =x,e∈E[Q[p′]]}
+10 E′←E′∪{(p′, x, w′, q′)}
+11 ifq′/ne}ationslash∈Q′then
+12 Q′←Q′∪{q′}
+13 ifQ[q′]∩F/ne}ationslash=∅then
+14 F′←F′∪{q′}
+15 ρ′(q′)←L{v⊗ρ(q) : (q, v)∈q′, q∈F}
+16 Enqueue (Q, q′)
+17return T′
+set of transitions leaving these states, and i[E[Q[p′]]] the set of input labels
+of these transitions.
+The states of the output automaton can be identiﬁed with (wei ghted) sub-
+sets of the states of the original automaton. A state rof the output automaton
+that can be reached from the start state by a path πis identiﬁed with the set of
+pairs ( q, x)∈Q×Ssuch that qcan be reached from an initial state of the origi-
+nal machine by a path σwithi[σ] =i[π] andλ(p[σ])⊗w[σ] =λ(p[π])⊗w[π]⊗x.
+Thus, xcan be viewed as the residual weight at state q.
+Determinization does not terminate for all weighted automa ta. As we
+shall see, not all weighted automata are determinizable by the algorithm
+just described. When it terminates, the algorithm returns a subsequential
+weighted automaton A′= (Σ, Q′, I′, F′, E′, λ′, ρ′), equivalent to the input
+A= (Σ, Q, I, F, E, λ, ρ ).
+The algorithm uses a queue Qcontaining the set of states of the resulting
+automaton A′, yet to be examined. The queue discipline of Qcan be arbitrarily
+chosen and does not aﬀect the termination of the algorithm. A′admits a
+unique initial state, i′, deﬁned as the set of initial states of Aaugmented with
+their respective initial weights. Its input weight is 1 (lines 1-2).Qoriginally
+contains only the subset i′(line 3). At each execution of the loop of lines 4-16,
+a new subset p′is extracted from Q(lines 5-6). For each xlabeling at least one
+of the transitions leaving a state pof the subset p′, a new transition with input
+labelxis constructed. The weight w′associated to that transition is the sum
+of the weights of all transitions in E[Q[p′]] labeled with xpre-⊗-multiplied
+
+--- Page 27 ---
+Algorithms 27
+01a/1
+2a/2b/3
+3/0c/5
+b/3d/6 (0,0) (1,0),(2,1)a/1b/3
+(3,0)/0c/5
+d/701a/1
+2a/2b/3
+3/0c/5
+b/4d/6
+(a) (b) (c)
+Fig. 11. Determinization of weighted automata. (a) Weighted automa ton over the
+tropical semiring A. (b) Equivalent weighted automaton Bobtained by determiniza-
+tion of A. (c) Non-determinizable weighted automaton over the tropi cal semiring,
+states 1 and 2 are non-twin siblings.
+by the residual weight vat each state p(line 8). The destination state of the
+transition is the subset containing all the states qreached by transitions in
+E[Q[p′]] labeled with x. The weight of each state qof the subset is obtained by
+taking the⊕-sum of the residual weights of the states p⊗-times the weight
+of the transition from pleading to qand by dividing that by w′. The new
+subset q′is inserted in the queue Qwhen it is a new state (line 15). If any
+of the states in the subset q′is ﬁnal, q′is made a ﬁnal state and its ﬁnal
+weight is obtained by summing the ﬁnal weights of all the ﬁnal states in q′,
+pre-⊗-multiplied by their residual weight v(line 14).
+Figure 11 illustrates the determinization of a weighted aut omaton over the
+tropical semiring. The worst case complexity of determiniz ation is exponential
+even in the unweighted case. However, in many practical case s such as for
+weighted automata used in large-vocabulary speech recogni tion, this blow-
+up does not occur. It is also important to notice that just lik e composition,
+determinization admits a natural lazy implementation whic h can be useful for
+saving space.
+Unlike the unweighted case, determinization does not halt o n all input
+weighted automata. In fact, some weighted automata, non subsequentiable
+automata, do not even admit equivalent subsequential machi nes. But even
+for some subsequentiable automata, the algorithm does not h alt. We say that
+a weighted automaton Aisdeterminizable if the determinization algorithm
+halts for the input A. With a determinizable input, the algorithm outputs an
+equivalent subsequential weighted automaton.
+There exists a general twins property for weighted automata that provides
+a characterization of determinizable weighted automata un der some general
+conditions. Let Abe a weighted automaton over a weakly divisible semiring
+S. Two states qandq′ofAare said to be siblings if there exist two strings x
+andyinA∗such that both qandq′can be reached from Iby paths labeled
+withxand there is a cycle at qand a cycle at q′both labeled with y. When
+Sis a commutative and cancellative semiring, two sibling sta tes are said to
+betwins iﬀ for any string y:
+w[P(q, y, q)] =w[P(q′, y, q′)] (34)
+
+--- Page 28 ---
+28 Mehryar Mohri
+Ahasthe twins property if any two sibling states of Aare twins.13Figure 11(c)
+shows an unambiguous weighted automaton over the tropical s emiring that
+does not have the twins property: states 1 and 2 can be reached by paths
+labeled with afrom the initial state and admit cycles with the same label b,
+but the weights of these cycles (3 and 4) are diﬀerent.
+The following theorem is proven in [38].
+Theorem 5 ([38]). LetAbe a weighted automaton over the tropical semiring.
+IfAhas the twins property, then Ais determinizable.
+With trim unambiguous weighted automata, the condition is a lso necessary
+[38, 3].
+Theorem 6 ([38, 3]). LetAbe a trim unambiguous weighted automaton over
+the tropical semiring. Then the three following properties are equivalent:
+1.Ais determinizable.
+2.Ahas the twins property.
+3.Ais subsequentiable.
+There exists an eﬃcient algorithm for testing the twins prop erty for trim un-
+ambiguous and even cycle-unambiguousweighted automata!cycle-unambiguous
+weighted automata in time O(|Q|2+|E|2) [3].14Note that any acyclic weighted
+automaton over a zero-sum-free semiring has the twins prope rty and is deter-
+minizable.
+The existence of an equivalent sequential weighted automat on for a ﬁnitely
+ambiguous weighted automaton over the tropical semiring wa s shown to be
+decidable [32]. The twins property has also been shown more r ecently to be
+a necessary and suﬃcient condition for the determinizabili ty of ﬁnitely am-
+biguous trim weighted automata, that is trim automata for wh ich at most
+a ﬁxed ﬁnite number of accepting paths are labeled by any stri ng, that are
+deﬁned over the tropical semiring of integers ( Z∪{+∞},min,+,+∞,0) [31].
+A more general notion of clones property was introduced by the same author
+and shown to be a decidable necessary and suﬃcient condition characteriz-
+ing determinizability for polynomially ambiguous automata over the tropical
+semiring, that is weighted automata over the tropical semir ing for which the
+number of accepting paths of any string xis bounded by a ﬁxed polynomial
+deﬁned over the length of x.
+13The notion of twins property was originally introduced for u nweighted ﬁnite-
+state transducers by [15, 16] and was shown to be decidable. P olynomial-time
+algorithms were later given to test this property for functi onal transducers in time
+O(|Q|4(|Q|2+|E|2)|∆|) by [58], O(|Q|4(|Q|2+|E|2)) by [11], and O(|Q|2(|Q|2+
+|E|2)) by [3], where Qis the set of states of the input transducer, Ethe set of its
+transitions and ∆the output alphabet.
+14An automaton is cycle-unambiguous if for any state qand any string xthere
+exists at most one cycle at qlabeled with x.
+
+--- Page 29 ---
+Algorithms 29
+6.3 Weight pushing
+The choice of the distribution of the total weight along each successful path of
+a weighted automaton does not aﬀect the deﬁnition of the func tion realized by
+that automaton, but it may have a critical impact on eﬃciency in many appli-
+cations, e.g., information extraction or natural language processing, where a
+heuristic pruning can often be used to visit only a subpart of the automaton.
+There exists an algorithm, weight pushing , for normalizing the distribution
+of the weights along the paths of a weighted automaton or more generally a
+weighted directed graph [38, 43].
+LetAbe a weighted automaton over a semiring S. Assume that Sis zero-
+sum-free and weakly divisible. For any state q∈Q, assume that the following
+sum is deﬁned and in S:
+d[q] =/circleplusdisplay
+π∈P(q,F)(w[π]⊗ρ(n[π])). (35)
+d[q] is the shortest-distance fromqtoFincluding the ﬁnal weight. d[q] is
+well-deﬁned for all q∈Qwhen Sis ak-closed semiring. The weight pushing
+algorithm consists of computing each shortest-distance d[q] and of reweighting
+the transition weights, initial weights and ﬁnal weights in the following way:
+∀e∈Es.t.d[p[e]]/ne}a⊔ionslash=0, w[e]←d[p[e]]−1⊗w[e]⊗d[n[e]] (36)
+∀q∈I, λ (q)←λ(q)⊗d[q] (37)
+∀q∈Fs.t.d[q]/ne}a⊔ionslash=0, ρ(q)←d[q]−1⊗ρ(q). (38)
+Roughly speaking, the algorithm pushes the weights of each path as much
+as possible towards the initial states. Figures 12(a)-(c) i llustrate the applica-
+tion of the algorithm in a special case both for the tropical a nd probability
+semirings.
+Each of the operations described can be assumed to be done in c onstant
+time, thus reweighting can be done in linear time O(T⊗|A|) where T⊗de-
+notes the worst cost of an ⊗-operation. The complexity of the computation
+of the shortest-distances depends on the semiring and the al gorithm used
+(see Section 2). In the case of k-closed semirings such as the tropical semir-
+ing,d[q] can be computed using a single-source shortest-path algor ithm. The
+complexity of the algorithm is linear in the case of an acycli c automaton:
+O(|Q|+ (T⊕+T⊗)|E|), where T⊕denotes the worst cost of an ⊕-operation.
+In the case of a general weighted automaton over the tropical semiring, the
+complexity of the algorithm is O(|E|+|Q|log|Q|).
+In the case of complete semirings such as ( R+,+,×,0,1), a generalization
+of the Floyd-Warshall algorithm for computing all-pairs sh ortest-distances can
+be used. The complexity of the algorithm is Θ(|Q|3(T⊕+T⊗+T∗)) where
+T∗denotes the worst cost of the closure operation. The space co mplexity
+of these algorithms is Θ(|Q|2). These complexities make it impractical to
+use the Floyd-Warshall algorithm for computing d[q],q∈Q, for relatively
+
+--- Page 30 ---
+30 Mehryar Mohri
+01a/0
+b/1
+c/5
+2d/0
+e/13e/0
+f/1
+e/4
+f/50/01a/0
+b/1
+c/5
+2d/4
+e/53/0e/0
+f/1
+e/0
+f/10/151a/0
+b/(1/15)
+c/(5/15)
+2d/0
+e/(9/15)3/1e/0
+f/1
+e/(4/9)
+f/(5/9) 0/0 1a/0
+b/1
+c/53/0e/0
+f/1
+(a) (b) (c) (d)
+Fig. 12. Weight pushing algorithm. (a) Weighted automaton A. (b) Equivalent
+weighted automaton Bobtained by weight pushing in the tropical semiring. (c)
+Weighted automaton Cobtained from Aby weight pushing in the probability semir-
+ing. (d) Minimal weighted automaton over the tropical semir ing equivalent to A.
+large graphs or automata of several hundred million states o r transitions.
+An approximate version of a generic shortest-distance algo rithm can be used
+instead to compute d[q] eﬃciently.
+Note that if d[q] =0, then, since Sis zero-sum-free, the weight of all
+paths from qtoFis0. Let Abe a weighted automaton over the semiring
+S. Assume that Sis complete or k-closed and that the shortest-distances
+d[q] are all well-deﬁned and in S−{0}. Note that in both cases we can use
+the distributivity over the inﬁnite sums deﬁning shortest d istances. Let e′
+(π′) denote the transition e(path π) after application of the weight pushing
+algorithm. e′(π′) diﬀers from e(resp. π) only by its weight. Let λ′denote the
+new initial weight function, and ρ′the new ﬁnal weight function.
+The following proposition is proven in [38, 43].
+Proposition 7 ([38, 43]). LetB= (A, Q, I, F, E′, λ′, ρ′)be the result of the
+weight pushing algorithm applied to the weighted automaton A, then
+1. the weight of a successful path πis unchanged after application of weight
+pushing:
+λ′[p[π′]]⊗w[π′]⊗ρ′[n[π′]] =λ(p[π])⊗w[π]⊗ρ(n[π]). (39)
+2. the weighted automaton Bisstochastic , i.e.
+∀q∈Q,/circleplusdisplay
+e′∈E′[q]w[e′] =1. (40)
+These two properties of weight pushing are illustrated by Fi gures 12(a)-(c):
+the total weight of a successful path is unchanged after push ing; at each
+state of the weighted automaton of Figure 12(b), the minimum weight of the
+outgoing transitions is 0, and at at each state of the weighte d automaton of
+Figure 12(c), the weights of outgoing transitions sum to 1.
+Weight pushing can also be used to test the equivalence of two subsequen-
+tial weighted automata [38, 43]. Let AandBbe two subsequential weighted
+automata to which weight pushing can be applied and let A′andB′be the
+
+--- Page 31 ---
+Algorithms 31
+resulting automata after weight pushing. Then, the equival ence of AandB
+can be tested by applying the standard equivalence algorith m for unweighted
+automata [1] to A′andB′after considering each pair of (transition label,
+transition weight) as a single label. The equivalence of two arbitrary weighted
+automata over the probability semiring can be tested in cubi c time using an
+algorithm [19] based on the standardization technique of Sc h¨ utzenberger [55].
+The equivalence of arbitrary weighted automata over the tro pical semiring is
+known to be undecidable [34].
+6.4 Minimization
+A deterministic weighted automaton is said to be minimal if there exists no
+other deterministic weighted automaton with a smaller numb er of states and
+realizing the same function. Two states of a deterministic w eighted automaton
+are said to be equivalent if exactly the same set of strings with the same
+weights label paths from these states to a ﬁnal state, the ﬁna l weights being
+included. Thus, two equivalent states of a deterministic we ighted automaton
+can be merged without aﬀecting the function realized by that automaton. A
+weighted automaton is minimal when it admits no two distinct equivalent
+states after any redistribution of the weights along its pat hs.
+There exists a general algorithm for computing a minimal det erministic
+automaton equivalent to a given weighted automaton [38]. It is thus a gen-
+eralization of the minimization algorithms for unweighted ﬁnite automata. In
+fact, minimization of both unweighted [39] and weighted ﬁni te-state transduc-
+ers can be viewed as special instances of this algorithm.
+The algorithm consists of ﬁrst applying weight pushing to no rmalize the
+distribution of the weights along the paths of the input auto maton, and then
+applying the classical unweighted automata minimization w hile treating each
+pair (label, weight) as a single label.
+Theorem 8 ([38]). LetAbe a deterministic weighted automaton over a
+semiring S. Assume that the conditions of application of the weight pus hing
+algorithm hold, then the execution of the following steps:
+1. weight pushing,
+2. (unweighted) automata minimization, treating each pair (label, weight) as
+a single label,
+yield a minimal weighted automaton equivalent to A.
+The complexity of automata minimization is linear in the cas e of acyclic au-
+tomata O(|Q|+|E|) [53] and in O(|E|log|Q|) in the general case [1]. Thus,
+in view of the complexity results given in the previous secti on, in the case
+of the tropical semiring, the total complexity of the weight ed minimization
+algorithm is linear in the acyclic case O(|Q|+|E|) and in O(|E|log|Q|) in the
+general case.
+
+--- Page 32 ---
+32 Mehryar Mohri
+01a/1
+b/2
+c/3
+2d/4
+e/53/1e/.8
+f/1
+e/4
+f/50/25 1a/.04
+b/.08
+c/.12
+d/.90
+e/12/1e/.8
+f/10/(459/5) 1a/(1/51)
+b/(2/51)
+c/(3/51)
+d/(20/51)
+e/(25/51)2/1e/(4/9)
+f/(5/9)
+(a) (b) (c)
+Fig. 13. Minimization of weighted automata. (a) Weighted automaton A′over
+the probability semiring. (b) Minimal weighted automaton B′equivalent to A′. (c)
+Minimal weighted automaton C′equivalent to A′.
+Figures 12(a), 12(b), and 12(d) illustrate the application of the algorithm
+in the tropical semiring. The automaton of Figure 12(a) cann ot be further
+minimized using the classical unweighted automata minimiz ation since no two
+states are equivalent in that machine. After weight pushing , the automaton
+(Figure 12(b)) has two states (1 and 2) that can be merged by th e classical
+unweighted automata minimization.
+Figures 13(a)-(c) illustrate the minimization of an automa ton deﬁned over
+the probability semiring. Unlike the unweighted case, a min imal weighted
+automaton is not unique, but all minimal weighted automata h ave the same
+graph topology, they only diﬀer by the way the weights are dis tributed along
+each path. The weighted automata B′andC′are both minimal and equivalent
+toA′.B′is obtained from A′using the algorithm described above in the
+probability semiring and it is thus a stochastic weighted au tomaton in the
+probability semiring.
+For a deterministic weighted automaton, the ﬁrst operation of the semiring
+can be arbitrarily chosen without aﬀecting the deﬁnition of the function it
+realizes. This is because, by deﬁnition, a deterministic we ighted automaton
+admits at most one path labeled with any given string. Thus, i n the algorithm
+described in Theorem 8, the weight pushing step can be execut ed in any
+semiring S′whose multiplicative operation matches that of S. The minimal
+weighted automaton obtained by pushing the weights in S′is also minimal in
+Ssince it can be interpreted as a (deterministic) weighted au tomaton over S.
+In particular, A′can be interpreted as a weighted automaton over the
+semiring ( R+,max,×,0,1). The application of the weighted minimization al-
+gorithm to A′in this semiring leads to the minimal weighted automaton C′
+of Figure 13(c). C′is also a stochastic weighted automaton in the sense that,
+at any state, the maximum weight of all outgoing transitions is one.
+This fact leads to several interesting observations. One is related to the
+complexity of the algorithms. Indeed, we can choose a semiri ngS′in which
+the complexity of weight pushing is better than in S. The resulting automaton
+is still minimal in Sand has the additional property of being stochastic in S′.
+It only diﬀers from the weighted automaton obtained by pushi ng weights in
+Sin the way weights are distributed along the paths. They can b e obtained
+
+--- Page 33 ---
+Algorithms 33
+from each other by application of weight pushing in the appro priate semiring.
+In the particular case of a weighted automaton over the proba bility semiring,
+it may be preferable to use weight pushing in the (max ,×)-semiring since the
+complexity of the algorithm is then equivalent to that of cla ssical single-source
+shortest-paths algorithms. The corresponding algorithm i s a special instance
+of the generic shortest-distance algorithm for k-closed semirings presented
+earlier in the chapter.
+Another important point is that the weight pushing algorith m may not be
+deﬁned in Sbecause the machine is not zero-sum-free or for other reason s.
+But an alternative semiring S′can sometimes be used to minimize the input
+weighted automaton.
+The results just presented were all related to the minimizat ion of the num-
+ber of states of a deterministic weighted automaton. The fol lowing simple
+proposition shows that minimizing the number of states coin cides with mini-
+mizing the number of transitions.
+Proposition 9. LetAbe a minimal deterministic weighted automaton, then
+Ahas the minimal number of transitions.
+Proof. LetAbe a deterministic weighted automaton with the minimal num-
+ber of transitions. If two distinct states of Awere equivalent, they could be
+merged, thereby strictly reducing the number of its transit ions. Thus, Amust
+be a minimal deterministic automaton. Since, minimal deter ministic automata
+have the same topology, in particular the same number of stat es and transi-
+tions, this proves the proposition. ⊓ ⊔
+6.5 Synchronization
+The weight pushing algorithm normalizes the way the weights are distributed
+along the paths. The algorithm presented in this section, synchronization of
+weighted transducers , normalizes instead the way the input and output labels
+are shifted with respect to each other along the paths. Rough ly speaking, the
+objective of the algorithm is to synchronize the consumptio n of non- ǫsymbols
+by the input and output tapes of a transducer, to the extent th at is possible.
+The following concept helps analyze and describe the domain of application
+of the algorithm.
+Deﬁnition 10. Thedelay of a path πis deﬁned as the diﬀerence of length
+between its output and input labels:
+d[π] =|o[π]|−|i[π]|. (41)
+The delay of a path is thus simply the sum of the delays of its co nstituent
+transitions. A trim transducer Tis said to have bounded delays if the delay
+along all paths of Tis bounded. We then denote by d[T]≥0 the maximum
+delay in absolute value of a path in T. The following lemma gives a straight-
+forward characterization of transducers with bounded dela ys.
+
+--- Page 34 ---
+34 Mehryar Mohri
+Lemma 11. A transducer Thas bounded delays iﬀ the delay of any cycle in
+Tis zero.
+Proof. IfTadmits a cycle πwith non-zero delay, then d[T]≥|d[πn]|=n|d[π]|
+is not bounded. Conversely, if all cycles have zero delay, th en the maximum
+delay in Tis that of the simple paths which are of ﬁnite number. ⊓ ⊔
+We deﬁne the string delay of a path πas the string σ[π] deﬁned by:
+σ[π] =/braceleftBigg
+suﬃx of o[π] of length|d[π]|ifd[π]≥0,
+suﬃx of i[π] of length|d[π]|otherwise .(42)
+For any state q∈Q, thestring delay at state q,s[q], is deﬁned by the set of
+string delays of the paths from an initial state to q:
+s[q] ={σ[π] :π∈P(I, q)}. (43)
+Lemma 12. IfThas bounded delays then the set s[q]is ﬁnite for any q∈Q.
+Proof. The lemma follows immediately the fact that the elements of s[q] are
+all of length less than d[T]. ⊓ ⊔
+A weighted transducer Tis said to be synchronized if along any successful
+path of Tthe delay is zero or varies strictly monotonically. An algor ithm that
+takes as input a transducer Tand computes an equivalent synchronized trans-
+ducer T′is called a synchronization algorithm.The synchronization algorithm
+described here [42] applies to all weighted transducers wit h bounded delays.
+The following is the pseudocode of the algorithm.
+To simplify the presentation of the algorithm, we augment QandFwith
+a new state fand set: ρ(f) =1 and E[f] =∅. We denote by car( x) the ﬁrst
+symbol of a string xifxis not empty, ǫotherwise, and denote by cdr( x) the
+suﬃx of xsuch that x= car( x) cdr( x).
+Each state of the resulting transducer T′corresponds to a triplet ( q, x, y)
+where q∈Qis a state of the original machine Tand where x∈Σ∗and
+y∈∆∗are strings over the input and output alphabet of T.
+The algorithm maintains a queue Qthat contains at any time the set of
+states of T′to examine. At each execution of the loop of lines 3-19, a new
+state p′= (q, x, y) is extracted from Q(line 4) and its outgoing transitions
+are computed and added to E′. The state p′is ﬁnal iﬀ qis ﬁnal and x=y=ǫ
+and in that case the ﬁnal weight at p′is simply the ﬁnal weight at the original
+state q(lines 5-6). If qis ﬁnal but the string xandyare not both empty,
+then the algorithm constructs a sequence of transitions fro mp′to (f, ǫ, ǫ) to
+consume the remaining input and output strings xandy(lines 7-11).
+For each transition eofq, an outgoing transition e′is created for p′with
+weight w[e]. The input and output labels of e′are both ǫifxi[e] ory o[e] is
+the empty string, the ﬁrst symbol of these strings otherwise . The remaining
+
+--- Page 35 ---
+Algorithms 35
+Synchronization (T)
+1F′←Q′←E′←∅
+2Q←i′←{(i, ǫ, ǫ) :i∈I}
+3whileQ/ne}ationslash=∅do
+4 p′= (q, x, y)←Head (Q)
+5 Dequeue (Q)
+6 if(q∈Fand|x|+|y|= 0)then
+7 F′←F′∪{p′};ρ′(p′)←ρ(q)
+8 elseif (q∈Fand|x|+|y|>0)then
+9 q′←(f,cdr(x),cdr(y))
+10 E′←E′⊎(p′,car(x),car(y), ρ(q),q′)
+11 if(q′/ne}ationslash∈Q′)then
+12 Q′←Q′∪{q′};Enqueue (Q, q′)
+13 foreache∈E[q]do
+14 if(|x i[e]|>0and|y o[e]|>0)then
+15 q′←(n[e],cdr(x i[e]),cdr(y o[e]))
+16 E′←E′⊎{(p′,car(x i[e]),car(y o[e]), w[e], q′)}
+17 elseq′←(n[e], x i[e], y o[e])
+18 E′←E′⊎{(p′, ǫ, ǫ, w [e], q′)}
+19 if(q′/ne}ationslash∈Q′)then
+20 Q′←Q′∪{q′};Enqueue (Q, q′)
+21return T′
+suﬃxes of these strings are stored in the destination state q′(lines 12-19).
+Note that in all cases, the transitions created by the steps o f the algorithm
+described in lines 14-17 have zero delay. The state q′is inserted inQif it has
+never been found before (line 18-19). Figures 14(a)-(b) ill ustrate the synchro-
+nization algorithm just presented.
+Theorem 13 ([42]). LetTbe a weighted transducer with bounded delays.
+Then, if we run the synchronization algorithm just describe d with input T,
+the algorithm terminates and returns a synchronized transd ucerT′equivalent
+toT.
+The algorithm creates a distinct state ( q, x, ǫ) or (q, ǫ, y) for each string delay
+x, y∈s[q] at state q/ne}a⊔ionslash=f. The paths from a state ( q, x, ǫ) or (q, ǫ, y),q∈F,
+to (f, ǫ, ǫ) are of length|x|or|y|. The length of a string delay is bounded
+byd[T]. Thus, there are at most |Σ|≤d[T]+|∆|≤d[T]=O(|Σ|d[T]+|∆|d[T])
+distinct string delays at each state. Thus, in the worst case , the size of the
+resulting transducer T′is:
+O((|Q|+|E|)(|Σ|d[T]+|∆|d[T])). (44)
+The string delays can be represented in a compact and eﬃcient way using a
+suﬃx tree. Indeed, let Ube a tree representing all the input and output labels
+
+--- Page 36 ---
+36 Mehryar Mohri
+0 1ε:a/1a:b/2
+2/4b:ε/3(0, ε, ε) (1, ε,a)ε:ε/1(1, ε,b)a:a/2
+(2, ε, ε)/4
+b:a/3a:b/2
+b:b/3
+(a) (b)
+01 a:a/3
+2/4b:a/4a:b/2
+b:b/3
+(c)
+Fig. 14. (a) Weighted transducer T1over the tropical semiring. (b) Equivalent
+synchronized transducer T2. (c) Synchronized weighted transducer T3equivalent to
+T1andT2obtained by ǫ-removal from T2.
+of the paths in Tfound in a depth-ﬁrst search of T. The size of Uis linear
+in that of Tand a suﬃx tree VofUcan be built in time proportional to the
+number of nodes of Utimes the size of the alphabet [27], that is in O((|Σ|+
+|∆|)(|Q|+|E|)). Since each string delay xis a suﬃx of a string represented
+byU, it can be represented by two nodes n1andn2ofVand a position in
+the string labeling the edge from n1ton2. The operations performed by the
+algorithm to construct a new transition require either comp uting xaora−1x
+where ais a symbol of the input or output alphabet. Clearly, these op erations
+can be performed in constant time: xais obtained by going down one position
+in the suﬃx tree, and a−1xby using the suﬃx link at node n1. Thus, using
+this representation, the operations performed for the cons truction of each new
+transition can be done in constant time. This includes the co st of comparison
+of a newly created state ( q′, x′, ǫ) with an existing state ( q, x, ǫ), since the
+comparison of the string delays xandx′can be done in constant time. Thus,
+the worst case space and time complexity of the algorithm is:
+O((|Q|+|E|)(|Σ|d[T]+|∆|d[T])). (45)
+This is not a tight evaluation of the complexity since it is no t clear if the
+worst case previously described can ever occur, but the algo rithm can indeed
+produce an exponentially larger transducer in some cases.
+Note that the algorithm does not depend on the queue discipli ne used for
+Qand that the construction of the transitions leaving a state p′= (q, x, y) of
+T′only depends on p′and not on the states and transitions previously con-
+structed. Thus, the transitions of T′can be naturally computed on-demand.
+Note also that the additive and multiplicative operations o f the semiring are
+not used in the deﬁnition of the algorithm. Only 1, the identity element of ⊗,
+was used for the deﬁnition of the ﬁnal weight of f. Thus, to a large extent,
+the algorithm is independent of the semiring S. In particular, the behavior of
+
+--- Page 37 ---
+Algorithms 37
+Table 2. Properties of several transducer algorithms. The second co lumn indicates
+the time or space complexity of each algorithm, the third whe ther or not it admits
+a natural on-demand computation.
+Algorithm Complexity On-Demand
+Sum O(|T1|+|T2|) +
+Product O(|T1|+|T2|+|F1||I2|) +
+Closure O(|T|) +
+Reversal O(|T|) -
+Inversion O(|T|) +
+Projection O(|T|) +
+Composition O(|T1||T2|) +
+Intersection O(|A1||A2|) +
+Completion O(|A|+|Σ|) +
+ComplementationaO(|A|) +
+Diﬀerence O(|A1||A2|) +
+Epsilon-removalbO(|Q|2+|Q||E|) +
+Determinization exponential +
+MinimizationbO(|E|log|Q|) -
+SynchronizationcO((|Q|+|E|)(|Σ|d[T]+|∆|d[T])) +
+aForAdeterministic.
+bFor the tropical semiring.
+cd(T) denotes the maximum delay in an accepting path of T.
+the algorithm is identical for two semirings having the same identity elements,
+such as for example the tropical and log semirings.
+The result of the synchronization algorithm may contain ǫ-transitions even
+if the input contains none. An equivalent weighted transduc er with no ǫ-
+transitions can be computed from T′using the general epsilon-removal algo-
+rithm described in a previous section [40]. Figure 14(c) ill ustrates the result of
+that algorithm when applied to the synchronized transducer of Figure 14(b).
+Since epsilon-removal does not shift input and output label s with respect to
+each other, the result of its application to T′is also a synchronized transducer.
+Note that the synchronization algorithm does not produce an yǫ-cycle if the
+original machine Tdoes not contain any. Thus, in that case, the computation
+of the ǫ-closures in Tcan be done in linear time [40] and the total time
+complexity of epsilon-removal is O(|Q′|2+(T⊕+T⊗)|Q′||E′|). Also, on-demand
+synchronization can be combined with on-demand epsilon-re moval to directly
+create synchronized transducers with no ǫ-transition on-the-ﬂy.
+A transducer Tis said to be double-tape unambiguous , if, when the input
+and output labels of a transition are treated as single pair l abel (input label,
+output label), no two accepting paths have the same label. A b y-product of
+synchronization followed by epsilon-removal is that the re sulting transducer
+is double-tape unambiguous. Note that the deﬁnition does no t entail any
+requirement on the weights.
+
+--- Page 38 ---
+38 Mehryar Mohri
+Proposition 14 ([42]). LetTbe a synchronized transducer and assume that
+Thas no ǫ-transition. Then, Tis double-tape unambiguous.
+7 Conclusion
+Table 2 summarizes some of the essential properties of the al gorithms de-
+scribed in this chapter. There are of course many other algor ithms related
+to weighted automata and transducers. But, those presented here constitute
+some of the core algorithms. Many other algorithms related t o weighted au-
+tomata can be derived either directly from these algorithms or as a combina-
+tion.
+These algorithms are useful in a variety of applications inc luding statisti-
+cal language modeling [7], parsing [45, 44, 8], phonologica l rule compilation
+[29, 30, 49], speech recognition [38, 43, 48], speech synthe sis [56, 6], image
+processing [2], bioinformatics [21, 9], sequence modeling and prediction [18],
+optical character recognition [14], and more generally any problem related
+to sequences and probabilistic models deﬁned over sequence s [33, 43]. An ef-
+ﬁcient implementation of these algorithms and several othe rs, including an
+on-demand implementation when possible, is available from the FSM library
+(executables only) [47] and the OpenFst library (source and executables) [10].
+References
+1. Alfred V. Aho, John E. Hopcroft, and Jeﬀrey D. Ullman. The Design and
+Analysis of Computer Algorithms . Addison Wesley: Reading, MA, 1974.
+2. J¨ urgen Albert and Jarkko Kari. Digital image compressio n. In Manfred Droste,
+Werner Kuich, and Heiko Vogler, editors, Handbook of weighted automata ,
+EATCS Monographs on Theoretical Computer Science. Springe r, 2009.
+3. Cyril Allauzen and Mehryar Mohri. Eﬃcient algorithms for testing the twins
+property. Journal of Automata, Languages and Combinatorics , 8(2):117–144,
+2003.
+4. Cyril Allauzen and Mehryar Mohri. N-way composition of we ighted ﬁnite-state
+transducers. Technical Report TR2007-902, Courant Instit ute of Mathematical
+Sciences, New York University, August 2007.
+5. Cyril Allauzen and Mehryar Mohri. 3-way composition of we ighted ﬁnite-state
+transducers. In Proceedings of the 13th International Conference on Implem en-
+tation and Application of Automata (CIAA 2008) , volume to appear of Lec-
+ture Notes in Computer Science , San Francisco, California, July 2008. Springer-
+Verlag, Heidelberg, Germany.
+6. Cyril Allauzen, Mehryar Mohri, and Michael Riley. Statis tical modeling for unit
+selection in speech synthesis. In 42 nd Meeting of the Association for Computa-
+tional Linguistics (ACL 2004), Proceedings of the Conferen ce, Barcelona, Spain,
+July 2004.
+
+--- Page 39 ---
+Algorithms 39
+7. Cyril Allauzen, Mehryar Mohri, and Brian Roark. Generali zed algorithms for
+constructing statistical language models. In 41 st Meeting of the Association for
+Computational Linguistics (ACL 2003), Proceedings of the C onference, Sapporo,
+Japan , July 2003.
+8. Cyril Allauzen, Mehryar Mohri, and Brian Roark. The desig n principles and
+algorithms of a weighted grammar library. International Journal of Foundations
+of Computer Science , 16(3):403–421, 2005.
+9. Cyril Allauzen, Mehryar Mohri, and Ameet Talwalkar. Sequ ence kernels for
+predicting protein essentiality. In Proceedings of the Twenty-ﬁfth International
+Conference on Machine Learning (ICML 2008) , Helsinki, Finland, July 2008.
+10. Cyril Allauzen, Michael Riley, Johan Schalkwyk, Wojcie ch Skut, and Mehryar
+Mohri. OpenFst: a general and eﬃcient weighted ﬁnite-state transducer library.
+InProceedings of the 12th International Conference on Implem entation and Ap-
+plication of Automata (CIAA 2007) , volume 4783 of Lecture Notes in Computer
+Science , pages 11–23, Prague, Czech Republic, July 2007. Springer- Verlag, Hei-
+delberg, Germany.
+11. Marie-Pierre B´ eal, Olivier Carton, Christophe Prieur , and Jacques Sakarovitch.
+Squaring transducers: An eﬃcient procedure for deciding fu nctionality and se-
+quentiality. In Proceedings of LATIN’2000 , volume 1776 of Lecture Notes in
+Computer Science . Springer, 2000.
+12. Jean Berstel. Transductions and Context-Free Languages . Teubner Studien-
+bucher: Stuttgart, 1979.
+13. Jean Berstel and Christophe Reutenauer. Rational Series and Their Languages .
+Springer-Verlag: Berlin-New York, 1988.
+14. Thomas M. Breuel. The OCRopus open source OCR system. In Proceedings of
+IS&T/SPIE 20th Annual Symposium , 2008.
+15. Christian Choﬀrut. Une caract´ erisation des fonctions s´ equentielles et des fonc-
+tions sous-s´ equentielles en tant que relations rationnel les.Theoretical Computer
+Science , 5:325–338, 1977.
+16. Christian Choﬀrut. Contributions ` a l’´ etude de quelques familles remarquabl es de
+fonctions rationnelles . PhD thesis, (th` ese de doctorat d’Etat), Universit´ e Pari s
+7, LITP: Paris, France, 1978.
+17. Thomas H. Cormen, Charles E. Leiserson, and Ronald E. Riv est.Introduction
+to Algorithms . The MIT Press: Cambridge, MA, 1992.
+18. Corinna Cortes, Patrick Haﬀner, and Mehryar Mohri. A mac hine learning frame-
+work for spoken-dialog classiﬁcation. In Larry Rabiner and Fred Juang, editors,
+Handbook on Speech Processing and Speech Communication, Pa rt E: Speech
+recognition . Springer-Verlag, Heidelberg, Germany, 2008.
+19. Corinna Cortes, Mehryar Mohri, and Ashish Rastogi. Lpdistance and equiva-
+lence of probabilistic automata. International Journal of Foundations of Com-
+puter Science , 18(4):761–780, 2007.
+20. Manfred Droste and Werner Kuich. Semirings and formal po wer series. In Man-
+fred Droste, Werner Kuich, and Heiko Vogler, editors, Handbook of weighted au-
+tomata , EATCS Monographs on Theoretical Computer Science. Spring er, 2009.
+21. Richard Durbin, Sean R. Eddy, Anders Krogh, and Graeme J. Mitchison. Bi-
+ological Sequence Analysis: Probabilistic Models of Prote ins and Nucleic Acids .
+Cambridge University Press, Cambridge UK, 1998.
+22. Samuel Eilenberg. Automata, Languages and Machines , volume A. Academic
+Press, 1974.
+
+--- Page 40 ---
+40 Mehryar Mohri
+23. Zolt´ an ´Esik and Werner Kuich. Modern automata theory. www.dmg.tuwien.ac.
+at/kuich .
+24. Zolt´ an ´Esik and Werner Kuich. Rationally additive semirings. Journal of Uni-
+versal Computer Science , 8:173–183, 2002.
+25. Robert W. Floyd. Algorithm 97 (SHORTEST PATH). Communications of the
+ACM, 18, 1968.
+26. Martin Goldstern. Vervollst¨ andigung von halbringen. Master’s thesis, Techni-
+sche Universit¨ at Wien, 1985.
+27. Shunsuke Inenaga, Hiromasa Hoshino, Ayumi Shinohara, M asayuki Takeda, and
+Setsuo Arikawa. Construction of the CDAWG for a Trie. In Proceedings of the
+Prague Stringology Conference (PSC’01) . Czech Technical University, 2001.
+28. Donald B. Johnson. Eﬃcient algorithms for shortest path s in sparse networks.
+Journal of the ACM , 24(1):1–13, 1977.
+29. Ronald M. Kaplan and Martin Kay. Regular models of phonol ogical rule sys-
+tems. Computational Linguistics , 20(3), 1994.
+30. Lauri Karttunen. The replace operator. In 33rd Annual Meeting of the Associa-
+tion for Computational Linguistics , pages 16–23. Association for Computational
+Linguistics, 1995. Distributed by Morgan Kaufmann Publish ers, San Francisco,
+California.
+31. Daniel Kirsten. A Burnside approach to the termination o f Mohri’s algorithm
+for polynomially ambiguous min-plus-automata. In R.A.I.R.O. - Informatique
+Th´ eorique et Applications, special issue on Journ´ ees Mon toises d’Informatique
+Th´ eorique 2006 (JM’06) , to appear in 2008.
+32. Ines Klimann, Sylvain Lombardy, Jean Mairesse, and Chri stophe Prieur. Decid-
+ing unambiguity and sequentiality from a ﬁnitely ambiguous max-plus automa-
+ton.Theoretical Computer Science , 327(3):349–373, 2004.
+33. Kevin Knight and Jonathan May. Applications of weighted automata in natu-
+ral language processing. In Manfred Droste, Werner Kuich, a nd Heiko Vogler,
+editors, Handbook of weighted automata , EATCS Monographs on Theoretical
+Computer Science. Springer, 2009.
+34. Daniel Krob. The equality problem for rational series wi th multiplicities in the
+tropical semiring is undecidable. Journal of Algebra and Computation , 4, 1994.
+35. Werner Kuich. Handbook of formal languages, vol. 1: word, language, gramm ar,
+chapter Semirings and Formal Power Series: Their Relevance to Formal Lan-
+guages and Automata, pages 609–677. Springer-Verlag New Yo rk, Inc., New
+York, NY, USA, 1997.
+36. Werner Kuich and Arto Salomaa. Semirings, Automata, Languages . Num-
+ber 5 in EATCS Monographs on Theoretical Computer Science. S pringer-Verlag,
+Berlin-New York, 1986.
+37. Daniel J. Lehmann. Algebraic structures for transitive closures. Theoretical
+Computer Science , 4:59–76, 1977.
+38. Mehryar Mohri. Finite-state transducers in language an d speech processing.
+Computational Linguistics , 23:2, 1997.
+39. Mehryar Mohri. Minimization algorithms for sequential transducers. Theoretical
+Computer Science , 234:177–201, March 2000.
+40. Mehryar Mohri. Generic epsilon-removal and input epsil on-normalization al-
+gorithms for weighted transducers. International Journal of Foundations of
+Computer Science , 13(1):129–143, 2002.
+41. Mehryar Mohri. Semiring frameworks and algorithms for s hortest-distance prob-
+lems.Journal of Automata, Languages and Combinatorics , 7(3):321–350, 2002.
+
+--- Page 41 ---
+Algorithms 41
+42. Mehryar Mohri. Edit-distance of weighted automata: Gen eral deﬁnitions and al-
+gorithms. International Journal of Foundations of Computer Science , 14(6):957–
+982, 2003.
+43. Mehryar Mohri. Statistical natural language processin g. In M. Lothaire, editor,
+Applied Combinatorics on Words . Cambridge University Press, 2005.
+44. Mehryar Mohri and Mark-Jan Nederhof. Regular approxima tion of context-free
+grammars through transformation. In Robustness in Language and Speech Tech-
+nology , pages 153–163. Kluwer Academic Publishers, The Netherlan ds, 2001.
+45. Mehryar Mohri and Fernando C. N. Pereira. Dynamic Compil ation of Weighted
+Context-Free Grammars. In 36 th Meeting of the Association for Computa-
+tional Linguistics (ACL ’98), Proceedings of the Conferenc e, Montr´ eal, Qu´ ebec,
+Canada , pages 891–897, 1998.
+46. Mehryar Mohri, Fernando C. N. Pereira, and Michael Riley . Weighted automata
+in text and speech processing. In Proceedings of the 12th biennial European Con-
+ference on Artiﬁcial Intelligence (ECAI-96), Workshop on E xtended ﬁnite state
+models of language , Budapest, Hungary, 1996. John Wiley and Sons, Chichester.
+47. Mehryar Mohri, Fernando C. N. Pereira, and Michael Riley . The design princi-
+ples of a weighted ﬁnite-state transducer library. Theoretical Computer Science ,
+231:17–32, January 2000.
+48. Mehryar Mohri, Fernando C. N. Pereira, and Michael Riley . Speech recognition
+with weighted ﬁnite-state transducers. In Larry Rabiner an d Fred Juang, edi-
+tors,Handbook on speech processing and speech communication, Pa rt E: Speech
+recognition . Springer-Verlag, Heidelberg, Germany, 2008.
+49. Mehryar Mohri and Richard Sproat. An eﬃcient compiler fo r weighted rewrite
+rules. In 34 th Meeting of the Association for Computational Linguistic s (ACL
+’96), Proceedings of the Conference, Santa Cruz, Californi a, Santa Cruz, Cali-
+fornia, 1996.
+50. Fernando C. N. Pereira and Michael D. Riley. Speech Recog nition by Composi-
+tion of Weighted Finite Automata. In Finite-State Language Processing , pages
+431–453. MIT Press, 1997.
+51. Dominique Perrin. Finite automata. In J. Van Leuwen, edi tor,Handbook of
+theoretical computer science, volume B: Formal models and s emantics , pages
+1–57. Elsevier, Amsterdam, 1990.
+52. Ion Petre and Arto Salomaa. Algebraic systems and pushdo wn automata. In
+Manfred Droste, Werner Kuich, and Heiko Vogler, editors, Handbook of weighted
+automata , EATCS Monographs on Theoretical Computer Science. Spring er,
+2009.
+53. Dominique Revuz. Minimisation of acyclic deterministi c automata in linear
+time.Theoretical Computer Science , 92(1):181–189, 1992.
+54. Arto Salomaa and Matti Soittola. Automata-Theoretic Aspects of Formal Power
+Series . Springer-Verlag: New York, 1978.
+55. Marcel-Paul Sch¨ utzenberger. On the deﬁnition of a fami ly of automata. Infor-
+mation and Control , 4, 1961.
+56. Richard Sproat. A ﬁnite-state architecture for tokeniz ation and grapheme-to-
+phoneme conversion in multilingual text analysis. In Proceedings of the ACL
+SIGDAT Workshop, Dublin, Ireland . ACL, 1995.
+57. Stephen Warshall. A theorem on Boolean matrices. Journal of the ACM ,
+9(1):11–12, 1962.
+58. Andreas Weber and Reinhard Klemm. Economy of descriptio n for single-valued
+transducers. Information and Computation , 118(2):327–340, 1995.
+
+--- Page 43 ---
+Index
+ǫ-closure, 21
+algorithm, 37
+optimization, 21
+cancellative operation, 25
+closure, 6, 7, 11
+of a matrix, 7
+transitive, 8
+complementation, 20
+completion, 20
+composition, 14
+N-way, 18
+concatenation, 11
+connection, 4, 15, 19
+determinization, 25
+diﬀerence, 19
+empty string ( ǫ), 2
+Epsilon-Removal , 22
+epsilon-removal, 21
+reverse, 25
+equivalent, 31
+ﬁnite-state transducer, 2, 4
+ﬁnite automaton, 4
+Gen-All-Pairs , 8
+Gen-Single-Source , 10
+Hadamard product, 18
+intersection, 18inversion, 13
+Kleene-closure, seeclosure
+minimal, 31
+minimization, 31
+mirror image, 2
+monoid, 2
+on-demand construction, 12
+on-the-ﬂy construction, 12
+operation
+binary, 14
+closure, 6, 11
+rational, 11
+unary, 13
+path
+accepting, 3
+delay, 33
+successful, 3
+product, 11
+projection, 13
+input, 13
+left, 13
+output, 13
+right, 13
+rational power series, 1
+reversal, 13
+reweighting, 29
+semiring, 2
+k-closed, 9
+
+--- Page 44 ---
+44 Index
+Boolean, 2, 6
+cancellative, 25
+closed, 5
+commutative, 2
+complete, 5
+Conway, 6, 7
+divisible, 25
+idempotent, 2
+lattice, 6
+locally closed, 9
+log, 2, 6
+non-idempotent, 6
+probability, 2, 6
+tropical, 2, 6
+weakly divisible, 25
+shortest-distance, 6
+algorithm, 5
+all-pairs, 6, 8
+single-source, 9, 10
+problem
+all-pairs, 5, 7
+single-source, 9
+starsemiring, 6
+complete, 6
+state
+ﬁnal, 3
+initial, 3
+non-accessible, 4
+non-coaccessible, 4
+sibling, 27
+twin, 27
+useless, 4
+stochastic, 30, 32
+string
+delay, 34
+length of, 2
+mirror image of, 2
+strongly connected component, 8
+decomposition into, 8
+sum, 11
+Synchronization , 35
+synchronization, 33transducer, seeweighted transducer
+transposition, 13
+trimming, 4, 15, 19
+twins property, 27, 28
+union, 11
+unweighted automaton, seeﬁnite au-
+tomaton
+unweighted transducer, seeﬁnite-
+state transducer
+Viterbi approximation, 2
+weight
+ﬁnal, 3
+initial, 3, 4
+weighted automaton
+determinizable, 26, 27
+subsequentiable, 27
+weighted subset, 25
+Weighted-Composition , 16
+Weighted-Determinization , 26
+weighted automaton, 1, 2, 4
+deterministic, 25
+polynomially ambiguous, 28
+subsequential, 25
+weighted ﬁnite-state transducer, see
+weighted transducer
+weighted transducer, 1–3
+complete, 20
+deterministic, 4
+determinizable, 24
+double-tape unambiguous, 37
+inverse, 3
+regulated, 3
+sequential, 4
+synchronized, 34
+trim, 4
+unambiguous, 4
+weight function, seeweight
+weight pushing, 29
+
+--- Page 45 ---
+Index 45

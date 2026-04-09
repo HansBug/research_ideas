@@ -1,0 +1,617 @@
+--- Page 1 ---
+Chalmers Publication Library
+Supremica–An Efficient Tool for Large-Scale Discrete Event Systems
+This document has been downloaded from Chalmers Publication Library (CPL). It is the author´s
+version of a work that was accepted for publication in:
+The 20th World Congress of the International Federation of Automatic Control, Toulouse,
+France, 9-14 July 2017
+Citation for the published paper:
+Malik, R. ; Åkesson, K. ; Flordal, H. et al. (2017) "Supremica–An Efficient Tool for Large-
+Scale Discrete Event Systems". The 20th World Congress of the International Federation of
+Automatic Control, Toulouse, France, 9-14 July 2017
+Downloaded from: http://publications.lib.chalmers.se/publication/251651
+Notice: Changes introduced as a result of publishing processes such as copy-editing and
+formatting may not be reflected in this document. For a definitive version of this work, please refer
+to the published source. Please note that access to the published version might require a
+subscription.
+Chalmers Publication Library (CPL) offers the possibility of retrieving research publications produced at Chalmers
+University of Technology. It covers all types of publications: articles, dissertations, licentiate theses, masters theses,
+conference papers, reports etc. Since 2006 it is the official tool for Chalmers official publication statistics. To ensure that
+Chalmers research results are disseminated as widely as possible, an Open Access Policy has been adopted.
+The CPL service is administrated and maintained by Chalmers Library.
+(article starts on next page)
+
+--- Page 2 ---
+Supremica{An Ecient Tool for
+Large-Scale Discrete Event Systems
+Robi MalikKnut AkessonHugo Flordal
+Martin Fabian
+The University of Waikato, Hamilton, New Zealand
+(robi@waikato.ac.nz)
+Chalmers University of Technology, G oteborg, Sweden
+(fabian@chalmers.se, knut@chalmers.se)
+Prover Technology, Stockholm, Sweden (hugo.ordal@prover.com)
+Abstract: Supremica is a tool for the modelling and analysis of discrete-event control functions
+based on state machine models of the uncontrolled plant and specication of the desired
+closed-loop behaviour. The modelling framework in Supremica is based on nite-state machines
+extended with variables, guard conditions, and action functions. In order to handle large-scale
+problems of industrially interesting size, Supremica uses advanced model checking techniques
+such as symbolic representations and compositional abstraction. Supremica has been used in
+several industrial research projects to verify and synthesise control functions for embedded
+controllers, industrial robots, and exible manufacturing systems, and to verify program code
+for autonomous vehicles. This paper gives an overview of the modelling features of Supremica ,
+shows the verication and synthesis facilities and their performance for large problems, and
+presents some of the industrial applications where Supremica has been used.
+Keywords: Discrete Event Systems, Supervisory Control, Extended Finite-State Machines,
+Synthesis, Verication, Formal Methods.
+1. INTRODUCTION
+The supervisory control theory (Ramadge and Wonham,
+1989) is a general framework for modelling, verication,
+and synthesis of discrete event supervisors, which has
+shown promising results mainly within academia. In or-
+der for the supervisory control theory to be accepted in
+industry, user friendly tools able to solve large-scale prob-
+lems of industrially interesting sizes are critical. Suprem-
+ica(Akesson et al., 2003, 2006) is an attempt to build
+an integrated development environment that can to solve
+large-scale supervisor verication and synthesis problems.
+This paper presents Supremica and the main ideas of the
+supervisory control theory for modelling discrete event
+systems, as well as the technology for synthesising and
+verifying control functions. The presentation focuses on
+the tool from a user perspective. For a more theoretical de-
+scription of the modelling framework with extended nite-
+state machines, the reader may refer to Sk oldstam et al.
+(2007) and Mohajerani et al. (2016). For more detailed
+presentations of algorithms, as well as further benchmarks,
+see for example Akesson et al. (2002), Mohajerani et al.
+(2014), and Pilbrow and Malik (2015).
+Several research groups have developed tools for discrete
+event systems, but few combine an easily accessible user in-
+terface with high-performance algorithms. TCT (Feng and
+Wonham, 2006) is a popular and ecient tool with tex-
+?Supremica has been developed with nancial support from the
+Swedish Research Council under grants 621-2001-2154 and 621-2009-
+3768.tual user interface. The Integrated Discrete-Event Systems
+Tool (Rudie, 2006) and DESTool (Moor et al., 2008) have
+nice user interfaces but their algorithms do not achieve the
+same performance as Supremica .
+In the following, Section 2 gives a brief overview of the su-
+pervisory control theory. Then Section 3 describes Suprem-
+icaand its features, Section 4 shows some experimental
+data to demonstrate its performance with large control
+problems, and Section 5 describes some recent applications
+of the tool. Finally, Section 6 adds concluding remarks.
+This paper gives a more detailed account on Supremica
+than previous publications ( Akesson et al., 2003, 2006),
+and describes recently added features. Supremica is con-
+stantly evolving, and the latest release can always be
+downloaded, free for education and research, from www.
+supremica.org .
+2. SUPERVISORY CONTROL THEORY
+Reactive systems have been a research eld within com-
+puter science and engineering for a long time. Model check-
+ing(Baier and Katoen, 2008) provides a means to verify
+the correctness of, typically already controlled, reactive
+systems against specications of their required properties.
+The supervisory control theory (Ramadge and Wonham,
+1989) takes a control theoretic model-based approach.
+In the supervisory control theory, the system model is sep-
+arated into the plant , which represents a physical system
+to be controlled, and the specication , which represents the
+desired behaviour of the controlled system. The plant and
+
+--- Page 3 ---
+specication are typically modelled as discrete event sys-
+tems, which are nite-state machines. Control is done by a
+so-called supervisor , which is a safety device that hinders
+the plant from executing certain events. Some events are
+controllable and can be disabled by this supervisor, while
+other events are uncontrollable and cannot be disabled.
+Given a specication and plant, a supervisor that guaran-
+tees that the entire specication can be achieved, exists if
+and only if the specication is controllable . Controllability
+is a safety property that states that all uncontrollable
+events possible in the controlled system must be permitted
+by the specication. If the specication is not controllable,
+then it may still be possible to construct a supervisor,
+but this supervisor only achieves a sub-behaviour of the
+specication. Even more, it is known that a supremal con-
+trollable sublanguage of the given plant and specication
+language exists and is readily calculable. This language
+may be empty, if there is no way to controllably enforce
+the specication. Otherwise, it represents a least restrictive
+supervisor which implements an optimal solution to the
+control problem (Ramadge and Wonham, 1989).
+In addition to controllability, it is desired for the supervisor
+to be nonblocking . This is a progress property that guar-
+antees that at least one marked state is reachable from
+any state that can be reached in the controlled system.
+Marked states typically represent states where all pend-
+ing tasks have been completed. As above, the supremal
+controllable and nonblocking sublanguage of a specication
+with respect to a given plant exists and can be calculated.
+Controllability and nonblocking can be checked automat-
+ically using model checking techniques, and if they are
+satised, then the specication itself can be used as an
+optimal supervisor. If not satised, then model checking
+produces a counterexample (Baier and Katoen, 2008),
+which is a trace of behaviour that takes the system to an
+undesired state. By inspecting counterexamples, engineers
+can gain a deeper understanding of the system, enabling
+them to discover and x problems. Synthesis (Ramadge
+and Wonham, 1989) goes one step further and automat-
+ically produces an optimal controllable and nonblocking
+supervisor.
+While the supervisory control theory has shown promis-
+ing results within academia, industrial adoption is hith-
+erto scarce. There seem to be two main reasons for this:
+the modelling formalism, which is not straightforward
+for the average control engineer typically used to Mat-
+lab/Simulink; and the lack of useful tools able to handle
+the complexity of real-life industrial applications. Suprem-
+ica's main focus has so far been on the second problem.
+Now, being able to handle systems of industrial sizes,
+the focus shifts to incorporate modelling, verication, and
+synthesis into the everyday life of engineers.
+3. THE SUPREMICA IDE
+Supremica is designed as an Integrated Development Envi-
+ronment (IDE) that allows the creation, verication, and
+synthesis of discrete event system models. Fig. 1 shows
+a screenshot. The main components of the IDE are the
+Editor that creates state machines graphically, the Simula-torthat animates the system behaviour, and the Analyser
+that supports a variety of nite-state machine algorithms.
+3.1 Editor
+The Supremica editor provides a graphical user interface
+to create and modify discrete event system models. Models
+consisting of several nite-state machines can be saved in a
+single le. They are displayed and edited graphically, with
+states and transitions labelled by easy-to-use drag & drop
+operations. As common in supervisory control theory, state
+machines can be designated to be plants orspecications .
+Events can be designated to be controllable oruncontrol-
+lable as well as observable orunobservable .
+Supremica supports ordinary nite-state machines (FSM)
+and extended nite-state machines (EFSM). The transi-
+tions of ordinary FSMs are labelled by events only, while
+EFSMs are a generalisation and have transitions labelled
+with guards and actions in addition to events (Chen and
+Lin, 2000). The guards and actions reference variables ,
+which can be declared over nite integer ranges or as
+enumerated type. A transition in an EFSM is enabled if the
+guard formula is true, and if it is taken, the variables are
+updated in accordance with the actions on the transition.
+Fig. 2 shows such an EFSM, which is part of a model
+of a distributed prime sieve algorithm. Its variables c3,
+c5, and x3are dened over the integer range 0 ; : : : ; 24.
+The transition from q0toq1is labelled with event tau3
+and has a guard c3>0, which means that the transition
+can only be taken when c3is greater than zero. The
+transition from q1toq2has an action x3=c3, which
+means that the variable x3will take as new value the
+value that c3currently has. Guards and actions can include
+simple arithmetics, for example the guard of the transition
+from q4toq0uses the modulo operator (%) to enable the
+transition only when the value of x3is divisible by 3.
+Additionally, Supremica supports parametrisation to facil-
+itate the creation of large models (Malik et al., 2011). It is
+possible to create several similar state machines (FSMs
+or EFSMs) by substitution of parameter variables in a
+template, or to create transitions with parametrised sets of
+events. State machines can also be grouped into modules
+and re-used with dierent parameter instantiations. As
+an example, these features make it possible to create a
+model of a manufacturing line with a variable number n
+of identical machines, and then instantiate it to get the
+correct model for any value of n.
+3.2 Simulator
+The Supremica simulator can display several state ma-
+chines in a model and show their synchronised behaviour.
+At any time, the simulator displays the current state of
+all state machines and the currently eligible events. The
+user can choose which event to execute and observe the
+resulting state changes. It is possible to step forwards and
+backwards through the history, and it is easy to determine
+for each event whether it is enabled, and if not, which state
+machine is responsible for its disablement.
+Synchronisation between FSMs is done by handshaking
+based on common events (Hoare, 1985). That is, if two
+
+--- Page 4 ---
+Fig. 1. Screenshot of counterexample simulation.
+q4q1
+q5q0
+q6q2
+q3
+x3==3x3%3==0
+x3!=3c5=x3c3>0
+x3%3!=0c3=0x3=c3
+c5==0tau3tau3
+tau3c5tau3x3
+tau3tau3tau3 tau3c3
+tau3
+Fig. 2. Extended nite-state machine (EFSM).
+or more state machines use the same event, then this
+event can only be executed if all these state machines are
+in a state where the event is enabled, and if executed,
+then all these state machines change their state together.
+EFSMs are also synchronised based on shared events,
+and in addition guards and actions are treated as logical
+formulas and combined by conjunction.
+Internally, the simulator is based on ordinary FSMs, as
+are most analysis algorithms in Supremica . EFSMs are
+translated into an equivalent groups of FSMs for com-
+putation and simulation. As there are dierent seman-
+tics (Sk oldstam et al., 2007; Mohajerani et al., 2016) for
+transforming EFSMs into ordinary automata, a few user-
+settable alternatives are available in Supremica .
+One problem with the translation from EFSM into FSM
+models is the possibly exponential blow-up in the numberof events, which can cause performance problems for large
+models. This problem has been recognised, and recent
+algorithms (Miremadi et al., 2011; Mohajerani et al., 2016)
+bypass the translation into FSMs and work directly on the
+EFSM model.
+3.3 Analyser
+The Supremica analyser provides access to a wide range of
+FSM analysis and simplication algorithms. It is used as
+a workbench to experiment with FSMs and the settings of
+the various verication and synthesis algorithms available.
+3.4 Verication
+Both the editor and analyser include verication func-
+tionality to check the model automatically and detect
+possible errors. Supremica supports the standard discrete
+event system properties of controllability and nonblock-
+ing(Ramadge and Wonham, 1989). It is also possible to
+check whether the model contains control loops (Malik
+and Malik, 2006). These are universal properties that can
+be checked automatically for every model without further
+user interaction. Their verication is invoked conveniently
+from the menu, and in many cases quickly returns an
+answer whether or not the model passes the check.
+Supremica also allows for the verication of application
+specic safety properties. These properties are specied
+by nite-state machines designed by the user to describe a
+maximum allowable behaviour, and checked by means of
+alanguage inclusion check (Brandin et al., 2004). This
+makes it possible to ask specic questions about the
+application at hand.
+
+--- Page 5 ---
+If verication fails, Supremica also computes a counterex-
+ample , which is a trace of events that takes the system
+to a problematic state. The counterexample trace can
+be displayed and explored interactively in the simulator.
+Fig. 1 shows an example of this. The user can replay the
+counterexample step-by-step and inspect the states of all
+components at each stage. This feature helps the user to
+understand the cause of a problem and x it.
+3.5 Synthesis
+The Supremica analyser includes the functionality to syn-
+thesise a least restrictive controllable and nonblocking
+supervisor for a collection of plant and specication FSMs
+(Ramadge and Wonham, 1989). The synthesised super-
+visor can take the form of a single FSM, or it can be
+a modular supervisor, consisting of several components,
+obtained by compositional synthesis (Mohajerani et al.,
+2014) or supervisor localisation (Cai and Wonham, 2015).
+It can also be simplied using supervisor reduction (Su and
+Wonham, 2004). Small supervisor FSMs can be displayed
+and edited in the graphical user interface. If a supervisor
+component has too many states to be displayed, it can still
+be stored in les or interacted with through the simulator.
+As an alternative, the Supremica editor includes the seam-
+less synthesis feature, which performs a symbolic synthesis
+based on Binary Decision Diagrams (BDDs) (Miremadi
+et al., 2011; Fei et al., 2014). In this case, the synthesised
+supervisor is added to the graphical plant model in the
+form of EFSM transition guards. This gives the user the
+possibility to implement only the guards representing the
+supervisor in a controller, such as a PLC.
+4. PERFORMANCE
+Verifying or synthesising a supervisor generally entails
+enumerating the state-space of the controlled system,
+the size of which typically grows exponentially with the
+number of state machines in the model. To deal with the
+large state numbers, Supremica includes highly optimised
+explicit verication algorithms, programmed in C++, that
+can explore more than 100 million states on contemporary
+computers (Malik, 2016). This is still insucient for many
+practical control problems. Several groups have conducted
+research to improve the performance of discrete event
+systems algorithms.
+One approach to mitigate the state-space explosion prob-
+lem uses ideas from symbolic model checking (Baier and
+Katoen, 2008), in particular BDDs (Akers, 1978; Bryant,
+1986). BDDs can eciently store and manipulate Boolean
+functions representing for example supervisory control
+problems. BDD-based algorithms can handle huge state-
+spaces while using little memory, and have been applied
+successfully to large discrete event systems (Vahidi, 2004;
+Song, 2006).
+Another approach to handle large discrete event systems is
+to exploit the inherent modularity common in these mod-
+els. Well-designed discrete event system models typically
+consist of a large number of small state machines. This
+makes it possible to perform synthesis and verication by
+considering only parts of the model at a time, without
+ever constructing the full synchronous composition. Safetyproperties such as controllability can be analysed using
+incremental ormodular verication, where the system
+is split into groups of state machines that are analysed
+separately ( Akesson et al., 2002; Brandin et al., 2004).
+Nonblocking verication and synthesis can be addressed
+through the compositional approach, where the state ma-
+chines are composed gradually and simplied after each
+step (Flordal and Malik, 2009; Su et al., 2010; Mohajerani
+et al., 2014).
+Supremica includes explicit, modular, BDD, composi-
+tional, and other verication and synthesis algorithms for
+solving controllability and nonblocking verication, and
+synthesis problems. Table 1 shows the results of some
+benchmark computations. The table shows the runtimes
+and memory usage for synthesis, nonblocking verication,
+and controllability verication using dierent algorithms.
+The test cases include complex industrial models and case
+studies from dierent application areas such as manufac-
+turing systems and automotive body electronics, most of
+which are also used as benchmarks by Mohajerani et al.
+(2014). The \Aut" column shows the number of state
+machines in the model, and \State-space" is the number of
+reachable states of the uncontrolled system. These exper-
+iments were run on a standard desktop PC using a single
+3.3 GHz microprocessor and not more than 2 GiB of RAM.
+The data for \ Comp. Syn. " refers to the compositional
+synthesis algorithm (Mohajerani et al., 2014). This algo-
+rithm calculates a least restrictive, controllable, and non-
+blocking supervisor for the given plants and specication,
+in the form of a set of synchronised FSMs. The data
+for \Comp. Nbl. " refers to compositional nonblocking
+verication with special events (Pilbrow and Malik, 2015),
+which is an improved version of the earlier algorithm
+(Flordal and Malik, 2009). \ Mod. Cont. " is incremental
+controllability verication (Brandin et al., 2004), which
+uses counterexamples to identify suitable subsystems to
+verify controllability. The timeout for the tbed uncont
+model occurred after 20 minutes. Finally, \ BDD Nbl. "
+and \ BDD Cont. " are BDD-based nonblocking and con-
+trollability verication. They are based on a BDD search
+algorithm with improvements for better performance on
+discrete event systems models. They use a variable order-
+ing based on the FORCE heuristics (Aloul et al., 2003)
+and a disjunctive partitioning and search strategy (Song,
+2006).
+The experiments show that Supremica can handle the
+verication and synthesis of discrete event systems with up
+to 1017states within a few seconds, in some cases minutes.
+All the algorithms can be tuned with various parameters
+for better performance, however this data was obtained
+with default settings to give a general impression of the
+performance of Supremica .
+5. APPLICATIONS
+Supremica is used at Chalmers and other universities to
+communicate the ideas of supervisory control to students.
+In addition, Supremica has been used in several research
+projects with industrial partners to verify and synthesise
+supervisors and controllers in various applications. This
+section describes four of these projects.
+
+--- Page 6 ---
+Table 1. Benchmark examples from Supremica .
+Model Comp. Syn. Comp. Nbl. BDD Nbl. Mod. Cont. BDD Cont.
+State- Time Mem. Time Mem. Time Mem. Time Mem. Time Mem.
+Name Aut space [s] [MiB] [s] [MiB] [s] [MiB] [s] [MiB] [s] [MiB]
+agv 16 2 :57 1070.8 37.6 0.2 108.7 0.1 32.0 0.0 31.5 0.1 31.4
+agvb 17 2 :29 1070.6 38.2 0.2 107.6 0.1 31.4 0.0 31.4 0.0 32.0
+aip0alps 35 3 :00 1080.4 57.3 0.2 101.3 0.2 11.7 0.0 11.7 0.1 11.6
+fencaiwon09b 31 8 :93 1070.4 46.5 0.4 129.4 0.9 9.4 0.1 8.9 0.3 8.8
+fencaiwon09s 29 3 :00 1080.4 37.8 0.3 38.1 0.1 31.4 0.0 31.4 0.0 32.0
+pslbig 37 3 :87 1070.5 45.9 0.3 39.2 1.3 31.6 0.0 28.2 0.0 28.9
+pslpartleft 39 7 :69 1071014.0 878.7 0.2 38.3 0.1 35.9 0.0 33.0 0.0 32.7
+pslrestart 37 3 :87 107550.2 396.4 0.4 39.9 0.9 32.9 0.0 29.9 0.0 30.1
+tbed hisc1 184 2 :87 101711.1 662.7 0.2 38.1 469.3 28.4 0.1 15.8 436.5 27.7
+tbed noderailb 84 3 :20 10125.2 419.3 3.2 140.6 91.8 38.2 9.7 32.9 102.2 28.5
+tbed uncont 84 3 :66 10125.5 528.0 3.3 260.0 166.2 27.7 Timeout 7.0 33.5
+verriegel3b 52 1 :32 1091.2 83.4 0.3 39.0 2.3 14.6 0.1 13.2 1.2 15.0
+verriegel4b 64 6 :26 10101.6 128.1 0.3 38.4 8.5 18.1 0.1 15.7 4.5 18.2
+6linka 53 2 :45 10142.8 154.7 0.3 38.4 4.0 30.8 0.0 31.4 0.5 30.8
+6linki 53 2 :75 10141.8 63.9 0.2 37.7 4.6 31.5 0.0 31.4 2.0 31.4
+6linkp 48 4 :43 10142.7 249.7 0.2 38.2 1.5 30.8 0.0 31.4 0.5 31.5
+6linkre 59 6 :21 10130.6 56.5 0.3 39.2 2.3 31.4 0.0 32.0 1.7 31.4
+5.1 Industrial Robot Interlocking
+In a modern car factory, several industrial robots work
+concurrently in a shared space to complete their tasks,
+for example welding together the frame of a car. In this
+setting, there is a risk for collisions between the robots.
+Manually programming the coordination logic to avoid
+collisions is both time-consuming and error prone due to
+the number of possible situations that must be taken into
+account. Using 3D-simulation models of the robots, it is
+possible to automatically extract nite-state models of the
+tasks and of the mutual exclusion zones where only a single
+robot is allowed to be at a time. This approach has been
+implemented as an add-on for a commercial robot pro-
+gramming and simulation environment, the coordination
+logic synthesis part is done using the Supremica kernel.
+The approach is presented by Flordal et al. (2007).
+5.2 Virtual Manufacturing
+The development and validation of a manufacturing sys-
+tems against a simulation model is attracting increasing
+interest in industry. The main motivation is that the
+systems can be integrated and tested before constructing
+any physical system. In addition to this, the ability to
+continuously test leads to increased reliability and enables
+better coping with late changes. Having a computable
+model has the added benet that it can be used as a base
+for preparation and implementation assisted by formal
+methods. In a case study (Bengtsson et al., 2012; Dahl
+et al., 2016), Supremica was used as an aid in generat-
+ing operation sequences for validation during production
+preparation. The result showed signicant promise, and
+currently this approach is further developed together with
+a European manufacturing company.
+5.3 Restart in Manufacturing Systems
+In manufacturing systems, restart after an unforeseen error
+is typically a complicated task, where the operator has
+to manually position the devices in known poses before
+production can continue. This is further complicated bya need to use the devices to help remove heavy work
+pieces. Bergag ard and Fabian (2013) describe an approach
+based on the supervisory control theory to calculate restart
+states in a manufacturing control system. This supports
+the operator to position the devices in a state from where
+it is guaranteed that nominal production can continue.
+As shown by Bergag ard and Fabian (2013), this can be
+formulated as a supervisor synthesis problem, solved o-
+line, where re-execution specications can be included
+in the calculation to obtain a correct behaviour for the
+restarted system.
+5.4 Autonomous Vehicles
+In collaboration with a European car manufacturer,
+Supremica was used to formally verify a part of the code
+for an autonomous vehicle (Petersson and Zita, 2016). This
+code manages the lateral state of the vehicle, eectuating
+lane change and related tasks. The manually written code
+implements a state machine, which was modelled as an
+EFSM in Supremica . Specications were then modelled
+and some of these were veried not to be fullled; one
+serious bug was revealed. Verication with Supremica 's
+abstraction-based compositional conict check examined
+601168 states in 0.45 seconds and produced a 38-event
+long counterexample. The error was then through a unit
+test conrmed to also exist in the actual code.
+6. CONCLUSIONS
+A tool, Supremica , for the modelling and analysis of dis-
+crete event supervisors according to the supervisory con-
+trol theory was presented. Extended Finite-State Machines
+are used as modelling formalism. The tool implements
+current state-of-the-art algorithms to handle systems of
+industrially interesting sizes. Supremica is currently used
+in a number of research projects together with industrial
+partners to facilitate the development of control functions.
+The use of formal methods for synthesising control func-
+tions that are correct by construction, addresses an impor-
+tant problem with implications for both how software and
+hardware control functions are developed.
+
+--- Page 7 ---
+ACKNOWLEDGEMENTS
+Supremica has been developed by many people over many
+years and with support from several national and interna-
+tional projects, all too numerous to mention here.
+REFERENCES
+Akers, S.B. (1978). Binary decision diagrams. IEEE Trans.
+Comput. , 27(6), 509{516.
+Akesson, K., Fabian, M., Flordal, H., and Malik, R. (2006).
+Supremica|an integrated environment for verication,
+synthesis and simulation of discrete event systems. In
+8th Int. Workshop on Discrete Event Systems , 384{385.
+IEEE.
+Akesson, K., Fabian, M., Flordal, H., and Vahidi, A.
+(2003). Supremica|a tool for verication and synthesis
+of discrete event supervisors. In 11th Mediterranean
+Conf. Control and Automation .
+Akesson, K., Flordal, H., and Fabian, M. (2002). Exploit-
+ing modularity for synthesis and verication of supervi-
+sors. In 15th IFAC World Congress . Barcelona, Spain.
+Aloul, F.A., Markov, I.L., and Sakallah, K.A. (2003).
+FORCE: A fast & easy-to-implement variable-ordering
+heuristic. In 13th ACM Great Lakes Symp. VLSI , 116{
+119.
+Baier, C. and Katoen, J.P. (2008). Principles of Model
+Checking . MIT Press.
+Bengtsson, K., Bergag ard, P., Thorstensson, C., Lennart-
+son, B., Akesson, K., Yuan, C., Miremadi, S., and
+Falkman, P. (2012). Sequence planning using multiple
+and coordinated sequences of operations. IEEE Trans.
+Autom. Sci. Eng. , 9(2), 308{319.
+Bergag ard, P. and Fabian, M. (2013). Calculating restart
+states for systems modeled by operations using supervi-
+sory control theory. Machines , 1(3), 116{141.
+Brandin, B.A., Malik, R., and Malik, P. (2004). Incremen-
+tal verication and synthesis of discrete-event systems
+guided by counter-examples. IEEE Trans. Control Syst.
+Technol. , 12(3), 387{401.
+Bryant, R.E. (1986). Graph-based algorithms for boolean
+function manipulation. IEEE Trans. Comput. , 35(8),
+677{691.
+Cai, K. and Wonham, W.M. (2015). New results on
+supervisor localization, with case studies. Discrete Event
+Dyn. Syst. , 25(1), 203{226.
+Chen, Y. and Lin, F. (2000). Modeling of discrete event
+systems using nite state machines with parameters. In
+IEEE Int. Conf. Control Applications , 941{946.
+Dahl, M., Bengtsson, K., Bergag ard, P., Fabian, M., and
+Falkman, P. (2016). Integrated virtual preparation
+and commissioning: supporting formal methods during
+automation systems development. IFAC-PapersOnLine ,
+49(12), 1939{1944.
+Fei, Z., Miremadi, S., Akesson, K., and Lennartson, B.
+(2014). Ecient symbolic supervisor synthesis for ex-
+tended nite automata. IEEE Trans. Control Syst.
+Technol. , 22, 2368{2375.
+Feng, L. and Wonham, W.M. (2006). TCT: A computation
+tool for supervisory control synthesis. In 8th Int.
+Workshop on Discrete Event Systems , 388{389. IEEE.
+Flordal, H., Fabian, M., Akesson, K., and Spensieri, D.
+(2007). Automatic model generation and PLC-code
+implementation for interlocking policies in industrialrobot cells. Control Engineering Practice , 15(11), 1416{
+1426.
+Flordal, H. and Malik, R. (2009). Compositional verica-
+tion in supervisory control. SIAM J. Control Optim. ,
+48(3), 1914{1938.
+Hoare, C.A.R. (1985). Communicating Sequential Pro-
+cesses . Prentice Hall International.
+Malik, P. and Malik, R. (2006). Modular control-loop
+detection. In 8th Int. Workshop on Discrete Event
+Systems , 119{124. IEEE.
+Malik, R. (2016). Programming a fast explicit conict
+checker. In 13th Int. Workshop on Discrete Event
+Systems , 464{469. IEEE.
+Malik, R., Fabian, M., and Akesson, K. (2011). Mod-
+elling large-scale discrete-event systems using modules,
+aliases, and extended nite-state automata. In 18th
+IFAC World Congress , 7000{7005. Milano, Italy.
+Miremadi, S., Akesson, K., and Lennartson, B. (2011).
+Symbolic computation of reduced guards in supervisory
+control. IEEE Trans. Autom. Sci. Eng. , 8(4), 754{765.
+Mohajerani, S., Malik, R., and Fabian, M. (2014). A
+framework for compositional synthesis of modular non-
+blocking supervisors. IEEE Trans. Autom. Control ,
+59(1), 150{162.
+Mohajerani, S., Malik, R., and Fabian, M. (2016). A
+framework for compositional nonblocking verication of
+extended nite-state machines. Discrete Event Dyn.
+Syst. , 26(1), 33{84.
+Moor, T., Schmidt, K., and Perk, S. (2008). libFaudes |
+an open source C++ library for discrete event systems.
+In9th Int. Workshop on Discrete Event Systems , 125{
+130. IEEE.
+Petersson, P. and Zita, A. (2016). Logical modelling and
+formal verication of decision and control functions
+for autonomous vehicles . Master's thesis, Chalmers
+University of Technology, G oteborg, Sweden.
+Pilbrow, C. and Malik, R. (2015). An algorithm for com-
+positional nonblocking verication using special events.
+Sci. Comput. Programming , 113(2), 119{148.
+Ramadge, P.J.G. and Wonham, W.M. (1989). The control
+of discrete event systems. Proc. IEEE , 77(1), 81{98.
+Rudie, K. (2006). The integrated discrete-event systems
+tool. In 8th Int. Workshop on Discrete Event Systems ,
+394{395. IEEE.
+Sk oldstam, M., Akesson, K., and Fabian, M. (2007). Mod-
+eling of discrete event systems using nite automata
+with variables. 46th IEEE Conf. Decision and Control ,
+3387{3392.
+Song, R. (2006). Symbolic Synthesis and Verication of
+Hierarchical Interface-based Supervisory Control . Mas-
+ter's thesis, Department of Computing and Software,
+McMaster University, Hamilton, ON, Canada.
+Su, R. and Wonham, W.M. (2004). Supervisor reduction
+for discrete-event systems. Discrete Event Dyn. Syst. ,
+14(1), 31{53.
+Su, R., van Schuppen, J.H., Rooda, J.E., and Hofkamp,
+A.T. (2010). Nonconict check by using sequential au-
+tomaton abstractions based on weak observation equiv-
+alence. Automatica , 46(6), 968{978.
+Vahidi, A. (2004). Ecient Analysis of Discrete Event
+Systems|Supervisor Synthesis with Binary Decision
+Diagrams . Ph.D. thesis, Chalmers University of Tech-
+nology, G oteborg, Sweden.

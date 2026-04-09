@@ -1,0 +1,2638 @@
+--- Page 1 ---
+Polynomial Interrupt Timed Automata
+B eatrice B erard1, Serge Haddad2, Claudine Picaronny2, Mohab Safey El Din1,
+and Mathieu Sassolas3
+1Sorbonne Universit e, Universit e P. & M. Curie, LIP6, CNRS UMR 7606, Paris,
+France
+2Ecole Normale Sup erieure de Cachan, LSV, CNRS UMR 8643, INRIA, Cachan,
+France
+3Universit e Paris-Est, LACL, Cr eteil, France
+Abstract. Interrupt Timed Automata ( ITA) form a subclass of stop-
+watch automata where reachability and some variants of timed model
+checking are decidable even in presence of parameters. They are well
+suited to model and analyze real-time operating systems. Here we ex-
+tendITA with polynomial guards and updates, leading to the class of
+polynomial ITA ( PolITA ). We prove the decidability of the reachabil-
+ity and model checking of a timed version of CTL by an adaptation of
+the cylindrical decomposition method for the rst-order theory of reals.
+Compared to previous approaches, our procedure handles parameters
+and clocks in a unied way. Moreover, we show that PolITA are in-
+comparable with stopwatch automata. Finally additional features are
+introduced while preserving decidability.
+1 Introduction
+Hybrid Automata. Hybrid systems [16] combine continuous evolution of variables
+according to ow functions (described by dierential inclusions) in control nodes,
+and discrete jumps between these nodes, where the variables can be tested by
+guards and updated. This class of models is very expressive and all relevant ver-
+ication questions ( e.g.reachability) are undecidable. For the last twenty years,
+a large amount of research was devoted to identifying subclasses with decidable
+properties, by restricting the continuous dynamics and/or the discrete behav-
+ior of the systems. Among these classes lie the well known Timed Automata
+(TA) [3], where all variables are clocks (with derivative _ x= 1), guards are com-
+parisons of clocks with rational constants, and updates are resets. It is proved
+in [17] that reachability becomes undecidable when adding one stopwatch (with
+_x= 1 or _x= 0) to timed automata. Decidability results were also obtained for
+larger classes (see [5,2,17,20,4]), usually by building from the associated tran-
+sition system (with uncountable state space) a nite abstraction preserving a
+specic class of properties, like reachability or those expressed by temporal logic
+formulas. In all these abstractions, a state is a pair composed of a control node
+and a polyhedron of variable values. Examples of such classes include initial-
+ized rectangular automata [17] where _ x2[a;b] or o-minimal hybrid systems [20]arXiv:1504.04541v1  [cs.FL]  17 Apr 2015
+
+--- Page 2 ---
+where the ow is more general, for instance of the form _ x=AxoverRnfor some
+matrixA. In both cases, the variables must be (possibly non deterministically)
+reinitialized at discrete jumps.
+Interrupt Timed Automata. The class of Interrupt Timed Automata (ITA), in-
+comparable with TA, was introduced in [8,10] as another subclass of hybrid
+automata with a (time-abstract) bisimulation providing a nite quotient, thus
+leading to decidability of reachability and some variants of timed model check-
+ing. In a basic n-dimensional ITA, control nodes are organized along nlevels,
+withnstopwatches (also called clocks hereafter), one per level. At a given level,
+the associated clock is active, while clocks from lower levels are frozen and clocks
+from higher levels are irrelevant. Guards are linear constraints and the clocks
+can be updated by linear expressions (using only clocks from lower levels). The
+particular hierarchical structure of ITA makes them particularly well suited for
+modeling systems with interruptions, like real-time operating systems. ITA were
+extended with parameters in [9] while preserving decidability by combining the
+nite abstraction of original ITA with a nite partition of parameter values.
+Contribution. We dene the class PolITA , of polynomial ITA, where linear
+expressions on clocks are replaced by polynomials with rational coecients both
+for guards and updates. For instance, a guard at level 2 with clock x2can be of
+the formP1(x1)x2
+2+P2(x1)0, whereP1andP2are polynomials with single
+variablex1, the clock of level 1. Thus, guards are more expressive than in the
+whole class of linear hybrid automata. Such guards can be useful for instance
+if some objects are produced at given levels, and operations on higher levels
+on these objects require polynomial-time computations w.r.t. the size of these
+objects. In addition, such guards can simulate irrational (algebraic) constraints,
+a case that becomes undecidable in the setting of timed automata [21].
+We establish that model checking of a timed extension of CTL (which con-
+tains reachability) is decidable in 2EXPTIME for PolITA by adapting the
+cylindrical decomposition [13,6] related to the rst order theory of reals. This
+decomposition produces a nite partition of the state space, which is the basis
+for the construction of a nite bisimulation quotient. The rst order theory of
+reals has already been used in several works on hybrid automata [20,4] but it
+was restricted to the dynamical part, with discrete jumps that must reinitial-
+ize the variables (like in o-minimal hybrid systems). Our adaptation consists
+in an on-the-y construction avoiding in the favorable cases to build the whole
+decomposition.
+From an expressiveness point of view, we show that (contrary to ITA)PolITA
+are incomparable with stopwatch automata ( SWA ). Finally, we prove that the
+decidability result still holds with several extensions: adding auxiliary clocks and
+parameters, and enriching the possible updates. In particular, parametric ITA [9]
+can be seen as a subclass of PolITA , and the complexity of our reachability
+algorithm is better than [9] (2EXPSPACE).
+
+--- Page 3 ---
+Outline. We describe the model of polynomial ITA in Section 2, with an example
+and the presentation of the model checking problem. In Section 3, we revisit and
+adapt in this context the cylindrical decomposition for the rst theory of reals,
+with a special focus on the related algorithmic questions. The decision proce-
+dure for the model checking problem in PolITA is then presented in Section 4,
+with an example of the construction. Finally, we describe several extensions in
+Section 5 and conclude in Section 6.
+2 Polynomial ITA
+2.1 Denition
+LetNdenote the set of natural numbers, Zthe set of integers, Qthe set of
+rationals, and Rthe set of real numbers, with R0the set of non negative real
+numbers.
+LetX=fx1;:::;xngbe a nite set of nvariables called clocks. We write
+Q[x1;:::;xn] for the set of polynomials with nvariables and rational coecients.
+Apolynomial constraint is a conjunction of constraints of the form P ./ 0 where
+P2Q[x1;:::;xn] and./2f<;;=;;>g, and we denote by C(X) the set of
+polynomial constraints. We also dene U(X), the set of polynomial updates over
+Xas:
+U(X) =(^
+x2Xx:=Px8x; Px2Q[x1;:::;xn])
+:
+A valuation for Xis a mapping v2RX, sometimes also identied to the
+vector (v(x1);:::;v (xn))2Rn. The valuation where v(x) = 0 for all x2Xis
+denoted by 0. ForP2Q[x1;:::;xn] andva valuation, the value of Patvis
+P(v) =P(v(x1);:::;v (xn)). A valuation vsatises the constraint P ./ 0, written
+vj=P ./ 0, ifP(v)./0. The notation is naturally extended to a polynomial
+constraint: vj='with'=V
+iPi./i0 ifvj=Pi./i0 for every i.
+An update of valuation vbyu=^x2Xx:=Px2U(X) is the valuation
+v[u] dened by v[u](x) =Px(v) for every x2X. Hence an update is atomic in
+the sense that all variables are set at the same time: the new value of variables
+depend on the old values of v.
+For a valuation vand a delay d2R0, the valuation v0=v+kd, corre-
+sponding to time elapsing for clock xk, is dened by v0(xk) =v(xk) +dand
+v0(x) =v(x) for any other clock x.
+Denition 2.1 (PolITA). Apolynomial interrupt timed automaton ( PolITA )
+is a tupleA=h;Q;q 0;F;X;;i, where:
+{is a nite alphabet,
+{Qis a nite set of states, q0is the initial state, FQis the set of nal
+states,
+{X=fx1;:::;xngconsists ofninterrupt clocks,
+
+--- Page 4 ---
+{the mapping :Q!f1;:::;ngassociates with each state its level and x(q)
+is called the active clock in stateq.
+{QC(X)([f"g)U(X)Qis the set of transitions. Let q';a;u!q0in
+be a transition with k=(q)andk0=(q0). The guard 'is a conjunction
+of constraints P ./ 0withP2Q[x1;:::;xk](Pis a polynomial over clocks
+from levels less than or equal to k). The update uis of the form^n
+i=1xi:=Ci
+with:
+ifk > k0, i.e. the transition decreases the level, then for 1ik0,
+Ci=xiand fori>k0,Ci= 0;
+ifkk0then for 1i < k ,Ci=xi,Ck=PforP2Q[x1;:::;xk1]
+orCk=xk, and fori>k ,Ci= 0.
+Remark that although it is possible to compare an active clock in a non-
+polynomial way, e.g.x2>px1(which can be translated as x2
+2>x 1^x10),
+it cannot be updated in such a fashion.
+Example 2.2. PolITAA0of Fig. 1 has two levels, with q0at level 1 and q1and
+q2at level 2, with q2the single nal state. At level 1, only x1appears in guards
+and updates (here the only update is the resetting of x1by actiona0), while at
+level 2 guards use polynomials in both x1andx2.
+q0;1q1;2 q2;2
+x2
+1x1+ 1,a
+x2
+1>x1+ 1,a0,x1:= 0(2x11)x2
+2>1,b
+x25x2
+1,c
+Fig. 1. A sample PolITAA0.
+Aconguration (q;v) consists of a state qofAand a clock valuation v.
+Denition 2.3. The semantics of a PolITAAis dened by the (timed) tran-
+sition systemTA= (S;s0;!), whereS=
+(q;v)jq2Q; v2RX
+is the set
+of congurations, with initial conguration s0= (q0;0). The relation!onS
+consists of two types of steps:
+Time steps: Only the active clock in a state can evolve, all other clocks are
+frozen. For a state qwith active clock x(q), a time step of duration d2R0
+is dened by (q;v)d !(q;v0)withv0=v+(q)d. A time step of duration 0
+leaves the system TAin the same conguration.
+Discrete steps: There is a discrete step (q;v)a !(q0;v0)whenever there exists
+a transition q';a;u!q0insuch thatvj='andv0=v[u].
+
+--- Page 5 ---
+An run of a PolITAAis a path inTA. The trace of a run is the sequence
+of letters (or word) appearing in the path. The timed word is the sequence
+of letters along with the absolute time of the occurrence, i.e.the sum of all
+delays appearing before the letter. Given a subset FQof nal states, a run
+is accepting if it ends in a state of F. This denes the language (resp. timed
+language ) as the set of traces (resp. timed words) of accepting runs.
+Example 2.4. ThePolITAA0can only take the transition from q0toq1before
+x1reaches1+p
+5
+2,i.e.at the point where the red curve crosses the x1axis on
+Fig. 2. Then, transition bfromq1toq2can only be taken once x2reaches
+the grey areas. Transition ccannot however be taken once the green curve has
+been crossed. Hence the loop bccan be taken as long as the clocks remain in
+the dark gray zone. In the sequel, we show how to symbolically compute these
+zones. Since q2is a nal state, the run depicted in Fig. 2 is accepted by A. The
+associated timed word is ( a;1:2)(b;2:3)(c;2:6)(b;3:3)(c;3:9)(b;5:1), and the trace
+is the word abcbcb .
+x1x2
+(2x11)x2
+21 = 0
+x2+x2
+15 = 0x2
+1x11 = 0
+abcbcb
+Fig. 2. A trajectory of clocks of A0in the 2-dimensional plane.
+2.2 Verication problems for PolITA
+Given a PolITAA, natural questions arise regarding its behavior. The most
+standard one is the reachability problem which is the decision problem asking
+whether a given state can be reached from the initial conguration. This allows in
+
+--- Page 6 ---
+particular to decide whether the timed language is nonempty, which is equivalent
+to testing the reachability of a nal state.
+More elaborate queries regarding the behavior of a PolITA can be expressed
+through temporal logics like CTL [15,22] or timed extensions of such logics like
+TCTL [1,18]. Here we use a timed extension of CTL which allows to reason over
+the values of clocks of the PolITA .
+LetAPbe a set of atomic propositions, we equip the states of Awith a label-
+inglab:Q!2APof propositions that hold in the given state. For convenience,
+we assume that QAPwith for all q;q02Q,q02lab(q) iq=q0.
+Denition 2.5. Formulas of the timed logic TCTL intare dened by the follow-
+ing grammar:
+ ::=pj ^ j: jP ./ 0jA U jE U
+wherep2AP,Pis a polynomial of Q[x1;:::;xn], and./2f>;;=;;<g.
+We use the classical shorthands Fp=trueUp,Gp=:F:p, and boolean opera-
+tors. The reachability problem of a state qis simply the satisfaction of E Fq.
+The formulas of TCTL intare interpreted over congurations of A, hence the
+semantics of TCTL intis dened as follows on the transition system TAassociated
+withA. Let Run(s) denote all runs starting from conguration s= (q;v). For
+= (q;v)d1!(q;v+(q)d1)a1!(q2;v2)2Run(s), a position in is a pair
+= (i;) where 1iand 0di. The conguration corresponding to 
+iss= (qi;vi+(qi)) (withq1=qandv1=v). We denote by <the strict
+lexicographical order over positions of .
+For basic formulas:
+sj=p ip2lab(s)
+sj=P ./ 0 ivj=P ./ 0
+and inductively:
+sj='^ isj='andsj=
+sj=:' is6j='
+sj=A'U i for all2Run(s); j='U
+sj=E'U i there exists 2Run(s) s. t.j='U
+withj='U i there is a position 2s. t.sj=
+and80<; s0j='_ :
+The automatonAsatises (writtenAj= ) if the initial conguration s0
+ofTAsatises . The model checking problem asks, given Aand , whether
+Aj= .
+As mentioned in the introduction, an exhaustive traversal of the (uncount-
+able) transition system TAis not possible, and the model checking algorithm
+relies on an abstraction of said transition system. This abstraction needs to be
+rened enough to capture both time elapsing and discrete jumps through the
+crossing of a transition. Namely, two congurations in the same abstraction class
+should reach the same successor classes when time elapses or when an update is
+
+--- Page 7 ---
+applied. Moreover, the truth value of subformulas P ./ 0 should be invariant in
+each abstraction class.
+The previous works of [8,10,9] on ITA built such an abstraction by relying on
+a set of expressions with rational coecients. These expressions contained linear
+forms involved in guards and updates, along with the active clock of the level.
+Moreover, since the ordering of two expressions at a given level could rely on the
+value of lower-level clocks, some expressions were required at inferior levels. The
+classes were then dened as subsets of Rnwhere the ordering of expressions was
+constant.
+In the sequel, we adapt the above process in the context of PolITA , where
+the constraints are polynomial rather than linear, and hence yield regions that
+are not polyhedra, but cells dened by a so called cylindrical decomposition .
+3 Cylindrical algebraic decomposition for rst-order
+theory of reals
+Cylindrical algebraic decomposition is introduced by Collins in [13] for solving
+quantier elimination problems of rst-order formulas over the reals. The rst
+algorithm for solving this problem was given by Tarski in [23] but its complexity
+was non elementary recursive. Cylindrical algebraic decomposition is doubly ex-
+ponential in the number of variables and is now a popular technique for solving
+polynomial systems over the reals. Given a polynomial family, it essentially par-
+tionates the ambient space into cellswhich are homeomorphic to ]0 ;1[iover which
+the input is sign-invariant. These cells are also intrinsically arranged together
+with a nice cylindrical structure which we explain further. Later on, a procedure
+in EXPSPACE was established [7]. The best lower bound currently known for
+this problem is STA (;2nO(1);n) (a complexity class dened by machines with
+limited alternations and located between EXPTIME and EXPSPACE) and it
+already holds without the multiplication [11].
+We consider formulas that express properties of reals. There are inductively
+dened as follows. An arithmetic expression is:
+{either an integer constant, a variable;
+{ore1+e2,e1e2wheree1ande2are arithmetic expressions.
+A formula is:
+{a basic formula: e0 where2f<;=gandeis an arithmetic expression;
+{or'1^'2,'1_'2,:'1,8x'1,9x'1where'1and'2are formulas and x
+is a variable.
+A sentence is a formula without free variables. A sentence has a truth value when
+interpreted over Rand we are looking for deciding the truth of a formula.
+For our purposes, we will adapt the cylindrical algebraic decomposition. So
+we develop in the section all the required machinery. Here we only describe the
+general principles and we explain how it can be used for deciding the truth of a
+formula. The rst concept that we introduce is the one of cell.
+
+--- Page 8 ---
+Denition 3.1. A cell of level nis a subset of Rninductively dened as follows.
+{Whenn= 1, it is either a point or an open interval.
+{A cellCof leveln+ 1 is based on a cell C0of leveln. It has one of the
+following shapes.
+1.C=f(x;f(x))jx2C0gwithfa continuous function from C0toR;
+2.C=f(x;y)jx2C0^l(x)<y<u (x)gwithl<u continuous functions
+fromC0toR, possibly with l=1 and/oru= +1.
+By convention the single cell of level 0 is R0.
+LetP=fPig1inbe a family of subsets of polynomials such that for all
+P2Pi,P2R[X1;:::;Xi]. By convention, we extend PwithP0=;. The
+second concept that we introduce is the sign invariance of a cell w.r.t.P.
+Denition 3.2. LetP=fPigin. A cellCof leveliisP-invariant if:
+{For allji, for allP2Pj, for allx;y2C sign (P(x)) =sign(P(y)).
+{Wheni<n ,
+1. eitherCRisP-invariant;
+2. or there exists f1<:::<f rcontinuous functions from CtoRsuch that
+all the following cells are P-invariant:
+for all 1ir,f(x;fi(x))jx2Cg;
+for all 0ir,f(x;y)jx2C^fi(x)< y < fi+1(x)gwith the
+convention that f0=1 andfr+1= +1.
+Observe that R0isP-invariant, and that one can inductively dene a tree of
+P-invariant cells as follows.
+{The root of the tree is R0;
+{LetCbe aP-invariant cell of level i < n belonging to the tree. Then de-
+pending on the kind of invariance,
+1. eitherChas a single child CR;
+2. or for some r2Nnf0g,Chas 2r+1 ordered children f(x;y)jx2C^y<
+f1(x)g,f(x;f1(x))jx2Cg,f(x;y)jx2C^f1(x)< y < f 2(x)g,:::,
+f(x;y)jx2C^y>fr(x)g.
+This tree is also called a cylindrical decomposition .
+Example 3.3 ([6]). Consider the single polynomial Ps=X2
+1+X2
+2+X2
+31, with
+Ps= 0 representing a sphere of radius 1 in R3, as shown in Fig. 3. At level 1, R
+is partitioned into 5 cells:
+C1=]1;1[C1=f1gC0=]1;1[
+C1=f1g C+1=]1;+1[
+At level 2, R2is partitioned above the previous cells. There is a single cell
+C1RaboveC1(and similarly C+1RaboveC+1). AboveC1are
+three cells, its children in the tree:
+f1g]1;0[f(1;0)g f 1g]0;+1[
+
+--- Page 9 ---
+xz
+yFig. 3. Cylindrical decomposition of a sphere.
+The cells above C1are similar.
+And above C0are 5 cells: the interior of the disc C0;0, its lower and upper
+edgesC0;1andC0;1and the exterior of the circle (the lower and upper parts)
+C0;1andC0;+1:
+C0;1:1<x 1<1
+x2=p
+1x2
+1C0;1:1<x 1<1
+x2=p
+1x2
+1
+C0;+1:1<x 1<1
+x2>p
+1x2
+1C0;1:1<x 1<1
+x2<p
+1x2
+1
+C0;0:1<x 1<1
+p
+1x2
+1<x 2<p
+1x2
+1
+
+--- Page 10 ---
+At level 3, cell C0;1is further lifted in three cells where C0;1;0is half the
+equator circle of the sphere:
+C0;1;1:8
+<
+:1<x 1<1
+x2=p
+1x2
+1
+x3<0C0;1;0:8
+<
+:1<x 1<1
+x2=p
+1x2
+1
+x3= 0
+C0;1;+1:8
+<
+:1<x 1<1
+x2=p
+1x2
+1
+x3>0
+AndC0;0is lifted into 5 cells: below (and above) the inferior (resp. superior) half
+of the sphere, said inferior (resp. superior) half, and the interior of the sphere.
+These cells are determined by two functions f1(x1;x2) =p
+1x2
+1x2
+2and
+f2(x1;x2) =p
+1x2
+1x2
+2.
+Algorithm 1: Checking the truth of a formula
+Data : A cylindrical decomposition having parameter Cas an element.
+Check (';i;C;S): a boolean
+Input :', a prenex sentence with nvariables,C, aP-invariant cell of level i
+Input :S, a set of pairs of polynomials and signs
+Output : the truth value of '
+Data :j;k, some indices
+// The expression sign(P(C))uses the sign invariance of C
+S S[f (P;sign (P(C))jP2Pig
+// Wheni=n, all atomic formulas of  are determined by S
+ifi=nthen return  (S)
+// LetC1;:::;Ckbe the children of C
+ifQi+1=9then
+forjfrom 1tokdo
+ifCheck (';i+ 1;Cj;S)then return true
+end
+return false
+else
+forjfrom 1tokdo
+if:Check (';i+ 1;Cj;S)then return false
+end
+return true
+end
+Let us explain how a cylindrical decomposition is useful for rst-order theory
+of reals. Any sentence can be transformed into an equivalent prenex formula
+'=Q1x1:::Qnxn such thatQi2f8;9gand is a quantier free formula that
+checks signs of polynomials evaluated on some of the xi's. Thus by syntactical
+
+--- Page 11 ---
+examination, we rst build the family Pfrom the polynomials occurring in  .
+Assume that we produce a cylindrical decomposition for P. Then Algorithm 1
+solves the decision problem with the call Check (';0;R0;;). The correctness of
+the algorithm is proved by (1) the sign invariance of the cells, (2) the partition
+ofCRbetween the children of a cell Cand (3) a backward inductive property:
+given a cell C of level i, the truth of Qi+1xi+1:::Qnxn does not depend on the
+point (x1;:::;xi)2C.
+The section is organized as follows. In subsection 3.1 we develop algorithms
+for rings with some additional assumptions that depend on the algorithms (also
+presented in [6]). The main hypothesis is that we consider subrings of Rfor which
+there is a decision procedure for evaluation of the sign of an item. In Subsec-
+tion 3.2, we introduce triangular systems which are representations of algebraic
+reals and domains of Rand we establish that they are sign-eective. Subsec-
+tion 3.3 is devoted to the building of a cylindrical decomposition. It consists in
+two stages: the elimination stage that enlarges Pand the lifting stage that builds
+the cylindrical decomposition. In this decomposition a cell is represented by an
+algebraic real (i.e. a triangular system) belonging to it.
+3.1 Algorithms in sign-eective subrings of reals
+Preliminary remarks. Let us denote by Aa domain i.e., a ring with no di-
+visors of zero. FAdenotes the eld of fractions of A. Whenever we will describe
+algorithms involving a domain A, we assume a representation of an item of A.
+For instance, the representation ofp
+q2Qcould be the pair of integers ( p;q). We
+do not require that the representation is unique but that the following opera-
+tions are eective: addition, multiplication and zero-test. We denote multiplica-
+tion and addition as usual. The function that performs the zero-test is denoted
+Null (A;d) withd, a representation of some item of A.
+The goal of this section is to exhibit some problems that can be solved in
+A[X] (forAR) when, in addition to the previous operations, the sign of an
+element of Acan be determined. The sign is dened by sign(0) = 0 and for
+x2Anf0g,sign(x) = 1 ifx > 0,sign(x) =1 ifx < 0. The function that
+computes the sign is denoted Sign (A;d) withd, a representation of some item
+ofA. Since the procedures we describe may depend on additional properties like
+this one, we will indicate which properties are assumed for the algorithms.
+Notations. The sign of a permutation that reverts the order of iitems is denoted
+by"i= (1)i(i1)
+2. We denote by Rem the remainder of the Euclidean division
+inA[X]: for polynomials P;Q2A[X] with respective degrees p;q,Rem (P;Q)2
+FA[X] is the unique polynomial of degree less than qsuch that there exists
+C2FA[X] withP=QC+Rem (P;Q).
+Computing the degree of a gcd. We start with a characterization of the degree
+of the gcd of two polynomials that holds in any domain. The interest of this
+characterization is that it only involves whether some determinants in Aare
+null and thus can be computed by additions, multiplications and zero-tests.
+Furthermore, subresultants will also be useful later on.
+
+--- Page 12 ---
+Denition 3.4 (Sylvester-Habicht matrices and subresultants). LetA
+be a domain. Let P;Q2A[X]withP=P
+ipaiXiandQ=P
+iqbiXisuch
+thatap6= 0,bq6= 0andqp. Then the Sylvester-Habicht matrix of order jfor
+0jmin(p1;q)is the (p+q2j)(p+qj)matrixSyHaj(P;Q)whose
+rows areXqj1P;:::;P;Q;:::;Xpj1Qconsidered as vectors with respect to
+the basisXp+qj1;:::;X; 1.
+Thej-th subresultant denoted sResj(P;Q)is the determinant of the square ma-
+trixSyHaj;j(P;Q)obtained by taking the rst p+q2jcolumns ofSyHaj(P;Q).
+Whenq<p , this denition is extended for q<jpby:sResp(P;Q) =ap, and
+sResj(P;Q) = 0 forq<jp1.
+Remark 3.5. Observe that when q<p ,SyHaq(P;Q) consists of Q;:::;Xpq1Q
+(without any occurrence of P). HencesResq(P;Q) is the determinant of a matrix
+obtained by reverting the rows of bqIdpq, which yields sResq(P;Q) ="pqbpq
+q.
+Example 3.6. Consider polynomials P=X21 andQ=X+, obtained
+from the PolITA of Fig. 1 when the value of X1has been xed. By denition,
+we havesRes 2(P;Q) =, and by the above remark, sRes 1(P;Q) = 1. Precisely
+SyHa 1(P;Q) is the one row matrix (1 ;) andSyHa 1;1(P;Q) = (1). For j= 0,
+one must compute the determinant of the matrix whose rows are P;Q;XQ ,
+namely
+SyHa 0(P;Q) =0
+@01
+0 1
+101
+A
+whose determinant is 1 2.
+Proposition 3.7. LetAbe a domain and P;Q2A[X]withP=P
+ipaiXiand
+Q=P
+iqbiXisuch thatap6= 0,bq6= 0 andqp. Let 0jmin(p1;q).
+Thendeg(gcd(P;Q)) =jif and only if sRes 0(P;Q) ==sResj1(P;Q) = 0
+andsResj(P;Q)6= 0. Consequently when p=q,deg(gcd(P;Q)) =pif and only
+ifsRes 0(P;Q) ==sResp1(P;Q) = 0 .
+Proof. Observe that sResj(P;Q) = 0 if and only if there is a non trivially null
+linear combination of polynomials qj1Xqj1P++0P+0Q++
+pj1Xpj1Qof degree strictly less than j. This is equivalent to the existence
+of two non null polynomials U=P
+iqj1iXiandV=P
+ipj1iXisuch
+thatdeg(UP+VQ)<j.
+We claim that sRes 0(P;Q) ==sResj1(P;Q) = 0 if, and only if, it is the
+case thatdeg(gcd(P;Q))j, which will yield the desired conclusion. Assume
+thatdeg(gcd(P;Q))jwhich is equivalent to deg(lcm(P;Q))p+qjwhich
+is equivalent to the existence of polynomials U;V withdeg(U)qj,deg(V)
+pjandUP=VQ. Our previous observation implies that sRes 0(P;Q) =
+=sResj1(P;Q) = 0.
+The reverse implication is established by induction on j. WhensRes 0(P;Q) = 0,
+the existence of UandVsuch thatUP+VQ= 0 withdeg(U)<qanddeg(V)<
+pimpliesdeg(gcd(P;Q))1. WhensRes 0(P;Q) ==sResj(P;Q) = 0,
+
+--- Page 13 ---
+the inductive hypothesis applied to j1 impliesdeg(gcd(P;Q))j. From
+sResj(P;Q) = 0, we again obtain U;V such that with deg(U)<qj,deg(V)<
+pjanddeg(UP+VQ)<j. Sincegcd(P;Q) dividesUP+VQthis implies that
+UP+VQ= 0 and sodeg(lcm(P;Q))<p+qjand nallydeg(gcd(P;Q))j+1.
+u t
+Due to the importance of the subresultant notion, we want a way to com-
+pute them eciently. To this aim, we introduce the \polynomial" matrices and
+determinants. Let us introduce additional notations.
+Denition 3.8. LetP1;:::;Pmbe polynomials in A[X]of degrees less than n
+withmnandPi=P
+j<npi;jXj. Thenpmatn(P1;:::;Pm)is themm
+matrix whose items are dened by:
+{For allim,j <m ,pmatn(P1;:::;Pm)[i;j] =pi;nj.
+{For allim,pmatn(P1;:::;Pm)[i;m] =Pi.
+Additionally, let pdetn(P1;:::;Pm) =det(pmatn(P1;:::;Pm)).
+Otherwise stated, the ith row of matrix pmatn(P1;:::;Pm) consists of coe-
+cients ofPiin descending order down to nm+ 1 ended by polynomial Pi
+itself.
+Denition 3.9. ConsiderP;Q polynomials with respective degrees p > q . We
+dene, for 0jp,
+{for0jq,sResPj(P;Q)pdetp+qj(Xqj1P;:::;P;Q;:::;Xpj1Q),
+that is det(SyHaPj(P;Q)), where
+SyHaPj(P;Q) =pmatp+qj(Xqj1P;:::;P;Q;:::;Xpj1Q).
+{forq<j <p1,sResPj(P;Q) = 0 ;
+{forj=p1,sResPj(P;Q) =Q(which is consistent with the original
+denition in case q=p1);
+{forj=p,sResPj(P;Q) =P.
+From the above denition, one can straightforwardly see:
+Proposition 3.10. sResPj(P;Q)is a polynomial of degree at most jand the
+coecient of degree jof this polynomial is sResj(P;Q).
+Additional assumption. We assume here that the integral division is eective
+inA: givena;b2A, there is an algorithm that answers whether there exists
+c2Awitha=bcand returns cin the positive case. This is the case in particular
+in any ring over Z[X1;:::;Xk] =Z[X1][Xk1][Xk] orQ[X1;:::;Xk] where
+the algorithm consists in trying to perform a (recursive) Euclidean division,
+stopping and answering negatively when a coecient of the quotient is not in
+the corresponding ring or there is a non null remainder. We denote the integral
+division by the usual fraction symbol since we will only use it when the result is
+dened.
+
+--- Page 14 ---
+Algorithm 2: Computing the subresultants for P;Q.
+Subresultants (A;P;p;Q;q ): a vector
+Input :P;Q, non null polynomials in A[X] with respective degrees p>q
+Output : the vector of subresultants ( sResi(P;Q))0ip
+Data :SresP a vector over A[X] indexed by [0 ;p]
+Data :s;tvectors over Aindexed by [0 ;p];i;j;k;` , some indices
+SresP [p] P;s[p] 1;t[p] 1;SresP [p1] Q;t[p1] Q[q]
+ifq=p1thens[p1] t[p1]elses[p1] 0
+for`fromq+ 1top2dos[`] 0
+SresP [q] "pqt[p1]pq1Q;t[q] SresP [q][q];s[q] t[q]
+i p+ 1;j p
+while Degree (A;SresP [j1])6=1do
+k Degree (A;SresP [j1]);t[j1] SresP [j1][k]
+ifk=j1thens[j1] t[j1]
+else
+for`fromk+ 1toj1dos[`] 0
+t[k] "jk(t[j1]
+s[j])jk1t[j1];s[k] t[k]
+SresP [k] s[k]sResP [j1])
+t[j1]
+end
+SresP [k1] Rem(t[j1]s[k]sResP [i1];sResP [j1])
+s[j]t[i1];i j;j k;
+end
+for`from 0toj2dos[`] 0
+returns
+
+--- Page 15 ---
+Our goal is to compute sResj(P;Q) by decreasing values of jand only relying
+on Euclidean divisions that remain in A[X]. For sake of clarity, we denote sj=
+sResj(P;Q) andtjthe leading coecient of sResPj(P;Q)except forsp=tp= 1.
+WhensResPj(P;Q) has degree j, we havesj=tj. Developing the last column
+w.r.t. the degrees of Xand observing that for degrees > jthe corresponding
+vector of reals already occurs in a former column, we can safely substitute to
+the polynomials their truncation up to degree j. Then it is immediate that
+sResPj(P;Q) = 0 i there exist polynomials U;V withdeg(U)<qj,deg(V)<
+pjandUP+VQ= 0. As a consequence, for all j0j,sResPj0(P;Q) = 0.
+The next proposition is the basis of Algorithm 2 for the ecient computa-
+tion of subresultants. As can be deduced from this proposition, the computation
+consists in taking successive remainders of Euclidean divisions (up to some con-
+stant) in order to get sResPij1(P;Q) and then some scalar multiplications and
+divisions to get sResPij+1(P;Q). Function Degree returns the degree of a poly-
+nomial in N[f1g by looking at the rst non null coecient (using Null
+function).
+Proposition 3.11. LetP;Q be non null polynomials of A[X]withp=deg(P)>
+deg(Q) =q. There exists a sequence of strictly decreasing indices i1;i2;:::;iJ
+withi1=p+ 1,i2=p,i3=qthat fullls the following properties:
+{for all 1< jJ,sResPij(P;Q)has degree ij(and sosij=tij), for all
+j <J ,sResPij1(P;Q)has degreeij+1and ifiJ>0then for all k<iJ,
+sResPk(P;Q) = 0 andsResPiJ11(P;Q) =gcd(P;Q);
+{for allj <J , whenij1>ij+1, for allij+1<k<ij1,sResPk(P;Q) = 0
+andtij1sResPij+1(P;Q) =sij+1sResPij1(P;Q)with
+sij+1="ijij+1(tij1)ijij+1
+(sij)ijij+11;
+{for all 1<j <J ,sijtij11sResPij+11(P;Q) =
+Rem (sij+1tij1sResPij11(P;Q);sResPij1(P;Q)).
+Substituting in the equation of the third item sResPij11(P;Q) by
+tij11
+sijsResPij(P;Q) (justied by the equation of the second item) and then
+multiplying bytij11
+sijone also obtains:
+s2
+ijsResPij+11(P;Q) =Rem (sij+1tij1sResPij(P;Q);sResPij1(P;Q)).
+Proof. LetR=Rem (P;Q). Let us look at SyHaPj(P;Q) forjq1. Write
+C=P
+ipqciXi(the quotient of Euclidean division of PbyQ). We have
+R=PP
+ipqciXiQ. Due to this equality, changing the rows Xqj1P;:::;P
+byXqj1R;:::;R does not modify the determinant sResPj(P;Q). We dene
+the determinant Djof the matrix obtained by reverting the order of the rows
+and replacing RbyR. The rst operation amounts to multiplying by "p+q2j
+and the second one by ( 1)qj. Since"p+q2j(1)qj="pq, we have:
+Dj="pqsResPj(P;Q).
+We rst prove the properties related to indexes between pandq1. Let us
+look at the second item. For the rst part by convention for all q < j < p1,
+
+--- Page 16 ---
+sResPj(P;Q) = 0. The second part of the second item corresponds to the case
+j= 2 withsp=ap,tp1=sq=bq. So the equation can be written as:
+bqsResPq(P;Q) =sqQwithsq="pqbpq
+q
+1pq1
+which is equivalent to:
+sResPq(P;Q) ="pqbpq1
+qQ:
+SincesResPq(P;Q) =pdetp(Q;:::;Xpq1Q), the result is immediate. Let us
+look at the third item: Dq1=bpq+1R. So
+sResPq1(P;Q) =Rem ("pqbpq+1P;Q):
+By convention, sp=tp= 1,sResPp(P;Q) =PandsResPp1(P;Q) =Qim-
+plyingtp1=bq. Furthermore we have shown that sq="pqbpq. Substituting
+in the previous equation establishes the third item.
+We prove the remaining properties by induction on J. LetR=Rem (P;Q) = 0
+which implies that Q=gcd(P;Q) andsResPq1(P;Q) = 0. So the base case
+(J= 3) is established.
+LetR=Rem (P;Q)6= 0. Letrbe the degree of R, we claim that:
+8j <q1sResPj(P;Q) ="pqbpr
+qsResPj(Q;R) (1)
+Whenjr=deg(R),Djcan be obtained starting from SyHaPj(Q;R) by
+adding the rows Xpj1Q;:::;XrjQand taking the determinant. Thus Dj=
+bpr
+qsResPj(Q;R) and sosResPj(P;Q) =bpr
+q"pqsResPj(Q;R). Whenr<
+j < q1 by denition sResPj(Q;R) = 0 butsResPj(P;Q) =Dj= 0 since
+the polynomial matrix pmatp+qj(Xpj1Q;:::;Q;Xqj1R;:::;R ) is upper
+triangular up to its pj+ 1thcolumn and since the degree Xqj1Ris less
+thanq1, the diagonal term of this column is null.
+Due to this proportionality between sResPj(P;Q) andsResPj(Q;R) with
+factor"pqbpr
+qand the inductive hypothesis, it only remains to prove that the
+two following equalities hold:
+sqtp1sResPr1(P;Q) =Rem (srtq1sResPp1(P;Q);sResPq1(P;Q)) (2)
+and
+sr="qr(tq1)qr
+(sq)qr1(3)
+For Equation (2), using the inductive hypothesis for the pair ( Q;R), the
+following equation holds:
+s0
+q2sResPr1(Q;R) =Rem (s0
+rt0
+q1sResPq(Q;R);sResPq1(Q;R))
+where the primed version of siandtiare related to the pair ( Q;R). By con-
+vention,s0
+q= 1. So:
+sqtp1sResPr1(P;Q) =sqtp1"pqbpr
+qsResPr1(Q;R)
+
+--- Page 17 ---
+= ("pqbpq
+q)(bq)"pqbpr
+qsResPr1(Q;R)
+=Rem (("pqbpr
+qs0
+r)("pqbpq+1
+qt0
+q1)sResPq(Q;R);sResPq1(Q;R)):
+Observe that the factor of proportionality established above implies that
+sr="pqbpq+1
+qs0
+r.
+SincesResPq1(P;Q) ="pqbpq+1
+qRandsResPq1(Q;R) =R, one ob-
+tainstq1="pqbpq+1
+q . So:
+sqtp1sResPr1(P;Q) =Rem (srtq1sResPq(Q;R);sResPq1(Q;R))
+=Rem (srtq1Q;R) =Rem (srtq1Q;"pqbpq+1
+qR)
+=Rem (srtq1sResPp1(P;Q);sResPq1(P;Q))
+For Equation (3), let us look at the following matrices.
+0
+BBBB@bqbq1::::::Xpq1Q
+0bq::::::Xpq2Q
+::: ::: :::::: :::
+0 0::: bqXQ
+0 0:::0Q1
+CCCCA0
+BBBB@bqbq1:::::: XpqQ
+0bq::::::Xpq1Q
+::: ::: :::::: :::
+0 0::: bqQ
+0 0:::0R1
+CCCCA
+The left matrix that we dene Dqhas been obtained by reverting the pq
+rows ofSyHaPq(P;Q). So its determinant is equal to "pqsResPq(P;Q). The
+right matrix is Dq1. As we have already seen, its determinant is equal to
+"pqsResPq1(P;Q). DenotingR=P
+iriXi, it is now obvious that bqr=
+tq1
+sq. As a consequence, we obtain that:
+sResPq1(P;Q) ="pqbpq+1
+qR (4)
+Let us look at the following matrices.
+0
+BBBBBBBBBBB@bqbq1::: ::: ::: ::: ::: ::: Xpr1Q
+0bq::: ::: ::: ::: ::: ::: Xpr2Q
+::: ::: ::: ::: ::: ::: ::: ::: :::
+0 0::: bq::: ::: ::: ::: Q
+0 0:::0 0 0 :::0R
+0 0:::0 ::: rXR
+::: ::: ::: ::: ::: ::: ::: ::: :::
+0 0::: ::: 0r::: :::Xqr2R
+0 0::: ::: rr1::: :::Xqr1R1
+CCCCCCCCCCCA0
+BBBBBBBBBBB@bqbq1::: ::: ::: ::: ::: ::: Xpr1Q
+0bq::: ::: ::: ::: ::: ::: Xpr2Q
+::: ::: ::: ::: ::: ::: ::: ::: :::
+0 0::: bq::: ::: ::: ::: Q
+0 0::: ::: rr1::: :::Xqr1R
+0 0::: ::: 0r::: :::Xqr2R
+::: ::: ::: ::: ::: ::: ::: ::: :::
+0 0:::0 ::: rXR
+0 0:::0 0 0 :::0R1
+CCCCCCCCCCCA
+The left matrix is Drand the right matrix has been obtained by reverting
+its lastqrcolumns. So the determinant of the latter matrix is proportional
+to the determinant of the former with factor "qr. On the other hand, the de-
+terminant of the right matrix is equal to the determinant of Dj1multiplied by
+(bqr)qr1. Combining the dierent equalities, we obtain that: sResr(P;Q) =
+"qr(tq1
+sq)qr1sResq1(P;Q) and consequently sr=tr="qrtqr
+q1
+sqr1
+q.
+This concludes the proof. u t
+
+--- Page 18 ---
+Computing sign realizations at roots of a polynomial
+Now we consider the special case of A=D,Dbeing a sign-eective subring
+ofR. The main ingredient for analyzing real roots of a univariate polynomial is
+the Cauchy index. We denote by Zer(P) =fz2RjP(z) = 0g,mult (P;z) =
+maxfnj(Xz)njPgandPole(Q=P) =fz2Rjmult (Q;z)< mult (P;z)g.
+ForzinPole(Q=P), remark that Q=P(w) goes to +1or1 aswtends toz
+on the right (respectively on the left), therefore the sign of Q=P keeps constant
+suciently close on the right (respectively on the left) of z.
+Denition 3.12. LetP;Q2D[X]. Then the Cauchy index of Q=P is dened
+by:
+Ind(Q=P) =1
+2P
+z2Pole (Q=P )sign((Q=P)(z+))sign((Q=P)(z))
+where sign ((Q=P)(z+))and sign ((Q=P)(z))) denote respectively the sign of the
+rational function Q=P at the right and at the left of z.
+Forz2Pole(Q=P), the value sign((Q=P)(z+))sign((Q=P)(z)) inf2;0;2g
+depends on the parity of the dierence PQof respective multiplicities of z
+as root ofPandQ, whenPQ(andQ= 0 ifzis not a root of Q).
+Example 3.13. Recall polynomials P=X21 andQ=X+of example 3.6.
+Let us compute the Cauchy index of Q=P for several values of and.
+{LetP1;Q1be the above polynomials with =p
+5 and=p
+57
+2. These
+values were obtained by setting X1to1+p
+5
+2. The poles of Q1=P1arez1=
+1
+4p
+5andz2=1
+4p
+5. One can see that X+remains negative between those
+poles. Hence
+Ind(Q1=P1) =1
+2(sign(Q1=P1)(z+
+1)sign(Q1=P1)(z
+1)
++sign(Q1=P1)(z+
+2)sign(Q1=P1)(z
+2))
+=1
+2(1(1) + (1)1) = 0:
+{LetP2;Q2be the above polynomials with = 2p
+51 and= 0, which can
+be obtained by setting X1top
+5. The poles of Q2=P2arez1=1p
+2p
+51
+andz2=1p
+2p
+51. Now since Q2has a root between z1andz2, hence
+Ind(Q2=P2) =1
+2(sign(Q2=P2)(z+
+1)sign(Q2=P2)(z
+1)
++sign(Q2=P2)(z+
+2)sign(Q2=P2)(z
+2))
+=1
+2(1(1) + 1(1)) = 2:
+The Cauchy index can be computed in several ways. First we observe that
+we can assume q=deg(Q)< deg (P) =p. Otherwise, let apbe the lead-
+ing coecient of Pand compute the Euclidean division of a2dqp+1
+2e
+pQbyP:
+
+--- Page 19 ---
+a2dqp+1
+2e
+pQ=PC+Rwithdeg(R)< deg (P). ThenInd(Q=P) =Ind(R=P).
+The multiplication by an even power of appreserves the signs. Furthermore Ris
+obtained by multiplications, additions and zero-tests so that it can be performed
+in a general domain Das indicated in Algorithm 3.
+Algorithm 3: Computing a polynomial positively proportional to
+Rem (Q;P)
+IntRem (D;Q;q;P;p ): a polynomial with its degree
+Input :P6= 0;Q, polynomials in D[X] with respective degrees p;q
+Output : a polynomial positively proportional to Rem (Q;P)
+Data :i;j, some indices
+ifq<p then return Q;q
+forifromqpdownto 0do
+forjfrom 0top1doQ[i+j] P[p]Q[i+j]P[j]Q[i+p]
+forjfrom 0toi1doQ[j] P[p]Q[j]
+end
+forifromptoqdoQ[i] 0
+ifqpmod 2 = 0 then
+forjfrom 0top1doQ[j] P[p]Q[j]
+end
+returnQ;Degree (D;Q)
+Here we use again the subresultants. Let s= (sp;:::;s 0) be a list of reals
+such thatsp6= 0. Dene s0as the shortest list such that s= (sp;0;:::; 0)s0.
+Then we inductively dene:
+PmV (s) =8
+<
+:0 if s0=;
+PmV (s0) +"pqsign(spsq) ifs0= (sq;:::;s 0) andpqis odd
+PmV (s0) otherwise
+Here acronym PmV means (generalized) permanence minus variations and as
+can be observed from the denition is related to the sign variations of the se-
+quences. An immediate property of the PmV is the following one. Let xp;:::;x 0
+be such that sign(xp) ==sign(x0)6= 0, then PmV (xpsp;:::;x 0s0) =
+PmV (sp;:::;s 0).
+Our approach consists in computing the PmV applied on subresultants.
+Notations. Ifp=deg(P)> q =deg(Q)0, we denote by sRes the tuple
+(sResp;:::;sRes 0).
+Example 3.14. For the polynomials of example 3.13, we have sRes (P;Q) =
+(;1;2+ 1).
+
+--- Page 20 ---
+{In the rst case, sRes (P1;Q1) = (p
+5;1;3727p
+5
+2). Then
+PmV (sRes (P1;Q1)) =PmV
+1;3727p
+5
+2!
++sign(p
+5)
+=PmV
+3727p
+5
+2!
++sign
+3727p
+5
+2!
++sign(p
+5)
+= 0 + sign
+3727p
+5
+2!
++sign(p
+5) = 0 + (1) + 1 = 0:
+{In the second case, sRes (P2;Q2) = (2p
+51;1;0). Then
+PmV (sRes (P2;Q2)) =PmV (1;1) + sign(2p
+51)
+=PmV (1) + sign(1) + sign(2p
+51)
+= 0 + 1 + 1 = 2 :
+Theorem 3.15. LetP;Q2D[X]withp=deg(P)>q=deg(Q). Then:
+PmV (sRes (P;Q)) =Ind(Q=P)
+Proof. LetP=P
+ipaiXi,Q=P
+iqbiXiand letRbe the remainder of the
+euclidean division of PbyQ:P=QC+R. We consider two cases, according to
+whetherR= 0 or not.
+IfR= 0 thenQ=P = 1=Cwithap=bqthe leading coecient of Cdenoted
+bycpq, hencesign(cpq) =sign(apbq). Observe rst that the sign of 1 =Cis
+unchanged between two consecutive poles. So the Cauchy index of 1 =Cwill be
+half the sign of Cat +1minus the sign of Cat1. Ifpqis even then
+C(x) will go to the same sign when xgoes either to +1or1 entailing that
+Ind(Q=P) = 0. Otherwise it will go to opposite signs with the sign at + 1being
+sign(apbq), thus entailing that Ind(Q=P) =sign(apbq).
+On the other hand, sResp(P;Q) =ap,sResj(P;Q) = 0 forq<j <p and
+sResq(P;Q) ="pqbpq
+qfrom Remark 3.5. By Proposition 3.7, sResj(P;Q) = 0
+forj < q . Whenpqis even,PmV (sRes (P;Q)) = 0 and when pqis odd,
+PmV (sRes (P;Q)) ="pqsign(ap"pqbpq
+q) =sign(apbq).
+WhenR6= 0, we claim that (1) Ind(Q=P) =Ind(R=Q)+sign(apbq) whenpq
+is odd and Ind(Q=P) =Ind(R=Q) otherwise and (2) PmV (sRes (P;Q)) =
+PmV (sRes (Q;R)) +sign(apbq) whenpqis odd and PmV (sRes (P;Q)) =
+PmV (sRes (Q;R)) otherwise. This will imply the theorem by induction on the
+degree ofP.
+LetGbe the gcd of PandQand writeP=P1G,Q=Q1GandR=R1G.
+ObviouslyInd(Q=P) =Ind(Q1=P1) andInd(P=Q) =Ind(P1=Q1). In addition
+the signs of PQ(x) andP1Q1(x) coincide on every point which is not a root of
+PQ. Since the roots of P1andQ1are distinct:
+1
+2(sign(PQ(+1))sign(PQ(1))) =1
+2(sign(P1Q1(+1))sign(P1Q1(1)))
+
+--- Page 21 ---
+=1
+2X
+z2Zer(P1Q1)sign((P1Q1)(z+))sign((P1Q1)(z))
+=1
+2X
+z2Zer(P1)sign((Q1=P1)(z+))sign((Q1=P1)(z))
++1
+2X
+z2Zer(Q1)sign((P1=Q1)(z+))sign((P1=Q1)(z))
+=Ind(Q1=P1)+Ind(P1=Q1) =Ind(Q=P)+Ind(P=Q) =Ind(Q=P)+Ind(R=Q):
+Since1
+2(sign(PQ(1))sign(PQ(1))) is null when pqis even and equal to
+sign(apbq) otherwise we obtain the rst claim.
+We recall Equation 1 where ris the degree of R:
+8j <q1sResPj(P;Q) ="pqbpr
+qsResPj(Q;R)
+and Equation 4:
+sResPq1(P;Q) ="pqbpq+1
+qR:
+Case 1:q1>r.
+Pmv (sRes (P;Q)) =
+PmV (ap;0;:::; 0;"pqbpq
+q;0;:::; 0;bpr
+q"pqsResr(Q;R);:::;bpr
+q"pqsRes 0(Q;R))
+Case 1.1: q>r1andpqis even.
+Pmv (sRes (P;Q)) =
+PmV ("pqbpq
+q;0;:::; 0;bpr
+q"pqsResr(Q;R);:::;bpr
+q"pqsRes 0(Q;R))
+=PmV (bpq
+q;0;:::; 0;bpr
+qsResr(Q;R);:::;bpr
+qsRes 0(Q;R))
+=PmV (1;0;:::; 0;bqr
+qsResr(Q;R);:::;bqr
+qsRes 0(Q;R))
+=PmV (bqr
+q;0;:::; 0;sResr(Q;R);:::;sRes 0(Q;R))
+Case 1.1.1: q>r1andpqis even and qris even.
+=PmV (sResr(Q;R);:::;sRes 0(Q;R)) =PmV (sRes (Q;R))
+Case 1.1.2: q>r1andpqis even and qris odd.
+=PmV (bq;0;:::; 0;sResr(Q;R);:::;sRes 0(Q;R)) =PmV (sRes (Q;R))
+Case 1.2: q>r1andpqis odd.
+Pmv (sRes (P;Q))
+=PmV ("pqbpq
+q;0;:::; 0;bpr
+q"pqsResr(Q;R);:::;bpr
+q"pqsRes 0(Q;R))
++"pqsign(ap"pqbpq
+q)
+=PmV (bpq
+q;0;:::; 0;bpr
+qsResr(Q;R);:::;bpr
+qsRes 0(Q;R)) +sign(apbq)
+=PmV (bqr
+q;0;:::; 0;sResr(Q;R);:::;sRes 0(Q;R)) +sign(apbq)
+where we conclude as in subcases 1.1.1 and 1.1.2.
+Case 2:q1 =r.
+In this case using Equation 4, sResq1(P;Q) ="pqbqpq+1cr="pqbpr
+q(cr)
+wherecris the leading coecient of R
+SoPmv (sRes (P;Q))
+=PmV (ap;0;:::; 0;"pqbpq
+q;bpr
+q"pqsResq1(Q;R);:::;bpr
+q"pqsRes 0(Q;R))
+And we conclude as in case 1.
+u t
+Algorithm 4 describes how to compute the PmV and so the Cauchy index of
+two polynomials. Now let us introduce the Tarski query.
+
+--- Page 22 ---
+Algorithm 4: Computing the generalized permanences minus variations
+PmVPol (A;P;p;Q;q ): an integer
+Input :P;Q, polynomials A[X] of degreepandqwithq<p
+Output :PmV (sResp(P;Q);:::;sRes 0(P;Q))
+Data :jan index,sp;:::;s 0a sequence of signs
+Data :sReS (P;Q) a sequence of items of A
+ifq=1then return 0
+// consistently with Cauchy index definition
+sRes (P;Q) SubResultants (A;P;p;Q;q )
+// The subresultants computation depends on A
+// since Algorithm 2 has an additional assumption.
+forjfrom 0topdosj Sign(A;sResj(P;Q))
+returnPmV (sp;:::;s 0)// by applying the definition
+Denition 3.16 (Tarski query). LetP;Q2D[X]. Then:
+TaQ(Q;P) =X
+z2Zer(P)sign(Q(z)):
+The Tarski query is closely related to the Cauchy index as established by the
+next proposition.
+Proposition 3.17. LetP;Q2D[X]. Then:
+TaQ(Q;P) =Ind(P0Q=P):
+Proof. Letzbe a root of Pwith multiplicity . ThenP0Q=P =Q(
+Xz+R) with
+Ra rational function with no pole at z. IfQ(z) = 0 then P0Q=P has no pole
+inz. Otherwise sign((P0Q=P)(z+)) =sign(Q(z)) andsign((P0Q=P)(z)) =
+sign(Q(z)). The assertion of the proposition follows. u t
+Example 3.18. {ForP1=p
+5X2+1 andQ1=X+p
+57
+2, we haveP0
+1= 2p
+5X.
+The sign of P0
+1Q1around the poles of P0
+1Q1=P1is constant: positive around z1
+and negative around z2. HenceInd(P0
+1Q1=P1) =1
+2(11+(1)1) =2.
+On the other hand, since the sign of Q1is negative at both z1andz2,
+TaQ(Q1;P1) =1 + (1) =2.
+{ForP2= (2p
+51)X21 andQ2=X, we haveP0
+2= (4p
+52)X. The
+sign ofP0
+2Q2is always non-negative, hence it is so at the poles of P0
+2Q2=P2,
+where it is non-zero. Hence Ind(P0
+2Q2=P2) =1
+2(11 + 1(1)) = 0 while
+Q2has the same sign as the roots of P2, soTaQ(Q2;P2) =1 + 1 = 0.
+In fact the Tarski question is an auxiliary value. The values we are really
+interested in are the following counters:
+{ nbP(Q)[1] =jfz2Zer(P)jQ(z)<0gj;
+{ nbP(Q)[0] =jfz2Zer(P)jQ(z) = 0gj.
+
+--- Page 23 ---
+{ nbP(Q)[1] =jfz2Zer(P)jQ(z)>0gj;
+The following lemma whose proof is obvious is the key for computing such
+counters.
+Lemma 3.19. The Tarski queries and root counters are related by:
+{TaQ(1;P) =nbP(Q)[1] +nbP(Q)[0] + nbP(Q)[1];
+{TaQ(Q;P) =nbP(Q)[1] +nbP(Q)[1];
+{TaQ(Q2;P) =nbP(Q)[1] +nbP(Q)[1].
+Example 3.20. We previously computed TaQ(Q1;P1) =2 (see Example 3.18).
+The valueTaQ(1;P1), actually computed through Ind(P0
+1=P1) yields the number
+of roots of P1, which is 2. Finally, computing TaQ(Q2
+1;P1) can also be done
+through the Cauchy index, and yields the number of roots of P1that are not
+roots ofQ1, in this case also 2.
+As a result, solving the system induced by the above lemma, there are two
+roots ofP1whereQ1is strictly negative, and no root of P1whereQ1is positive
+or null. The polynomial Q1has degree 1, this shows that both roots of P1are
+strictly smaller than the (only) root of Q1.
+Thus dening the invertible matrix M1and vector TaQP(Q) by:
+M1=0
+@1 1 1
+1 0 1
+1 0 11
+ATaQP(Q) =0
+@TaQP(Q)[0]
+TaQP(Q)[1]
+TaQP(Q)[2]1
+A=0
+@TaQ(Q0;P)
+TaQ(Q1;P)
+TaQ(Q2;P)1
+A
+we obtain:
+Proposition 3.21.
+TaQP(Q) =M1nbP(Q)
+As we are interested in determining the simultaneous signs of polynomials
+evaluated on the roots of another polynomial we generalize mappings nbPand
+TaQPto a sequence of polynomials.
+Denition 3.22 (Generalized counters and Tarski queries). LetP2
+D[X]andQ= (Q1;:::;Qm)be a nite sequence of D[X]. Then:
+nbP(Q)is an integer vector whose support is f1;0;1gf1;:::;mgsuch that:
+nbP(Q)[i1;:::;im] =jfz2Zer(P)j8jm sign (Qj(z)) =ijgj
+TaQP(Q)is an integer vector whose support is f0;1;2gf1;:::;mgsuch that:
+TaQP(Q)[i1;:::;im] =TaQ(Qi1
+1Qim
+m)
+The tensor product of two matrices Aof dimension manaandBof
+dimensionmbnbis the matrix A
+Bof dimension mambnanbdened
+by:A
+B[(ia;ib);(ja;jb)] =A[ia;ja]B[ib;jb]. We inductively dene for t >1,
+Mt=M1
+Mt1.
+
+--- Page 24 ---
+Proposition 3.23. LetP2D[X]andQ= (Q1;:::;Qm)a nite sequence of
+D[X]. Then:
+TaQP(Q) =MmnbP(Q):
+Proof. Observe that both TaQP(Q) and nbP(Q) only depend on Zer(P). Thus
+w.l.o.g we assume that P=Q
+iXziwith allzidistinct. In this case,
+TaQP(Q) =X
+iTaQXzi(Q) and nbP(Q) =X
+inbXzi(Q):
+So we are left with the case P=Xz. For all (i1;:::;im),
+TaQP(Q)[i1;:::;im] =TaQP(Qi1
+1Qim
+m)
+=sign(Qi1
+1(z)Qim
+m(z))
+=Y
+jsign(Qij
+j(z)) =Y
+jTaQP(Qij
+j)
+Therefore by denition of tensor product,
+TaQP(Q) =TaQP(Q1)
+
+ TaQP(Qm).
+On the other hand, for all ( i1;:::;im),nbP(Q)[i1;:::;im] =1V
+jsign(Qj(z))=ij
+=Q
+j1sign(Qj(z))=ij=Q
+jnbP(Qj)[ij]. Therefore,
+nbP(Q) =nbP(Q1)
+
+ nbP(Qm).
+SoTaQP(Q) =TaQP(Q1)
+
+ TaQP(Qm)
+=M1nbP(Q1)
+
+ M1nbP(Qm)using Proposition 3.21
+= (M1
+
+ M1)(nbP(Q1)
+
+ nbP(Qm))using a property of tensor
+product
+=MmnbP(Q).
+u t
+Using elementary properties of the tensorial product, one gets the following
+corollary.
+Corollary 3.24. LetP2D[X]andQ= (Q1;:::;Qm)a nite sequence of
+D[X]. Then:
+nbP(Q) = (Mm)1TaQP(Q) =
+(M1)1
+
+ (M1)1
+TaQP(Q):
+While the previous corollary provides a way to compute the number of zeroes
+ofPper sign realization at family Q, the procedure is highly inecient w.r.t
+m. IndeedMmhas size 3m3mwhile the values and the size of the support of
+vector nbP(Q) remain bounded by the number of zeroes of P. So in the next
+paragraphs, we rene the procedure by iteratively computing nbP(Qi;:::;Qm)
+by decreasing values of iand using the intermediate result to reduce the size of
+the matrix to be inverted at the next computation step.
+Denition 3.25. Letmbe an integer, f 1;0;1gmandAf0;1;2gm.
+ThenAisadapted toif the (sub)matrix Mm[A;]is invertible.
+
+--- Page 25 ---
+SinceMmis invertible any admits some A. However we need a way to
+eciently compute such an A.
+Denition 3.26. Letf 1;0;1gm. ThenA()is inductively dened by:
+{Ifm= 1then:
+1. Whenjj= 1,A() =f0g
+2. Whenjj= 2,A() =f0;1g
+3. Whenjj= 3,A() =f0;1;2g
+{Letf 1;0;1gm+1.
+Fork2f1;2;3g, denek=f2f 1;0;1gmjjf(i;)2gjkg.
+ThenA() =f0gA(1)[f1gA(2)[f2gA(3).
+Observe that 321and thatj3j+j2j+j1j=jj.
+Proposition 3.27. Letf 1;0;1gm. ThenA()is adapted to .
+Proof. The base case m= 1 is established by a straightforward examination of
+M1. Assume that the result holds for mand consider f 1;0;1gm+1. For
+21, we denote by Cthe column of matrix Mm[f0;1;2gm;1] indexed by
+. Then columns of matrix Mm+1[f0;1;2gm+1;] are:
+-C(1;)=0
+@1
+1
+11
+A
+C=0
+@C
+C
+C1
+Aif (1;)2,
+-C(0;)=0
+@1
+0
+01
+A
+C=0
+@C
+0
+01
+Aif (0;)2,
+-C(1;)=0
+@1
+1
+11
+A
+C=0
+@C
+C
+C1
+Aif (1;)2.
+For21, we pick a minimal k;1such that ( k;1;)2. For22,
+we pick a minimal k;26=k;1such that ( k;2;)2. For23, we pick
+the unique 1 = k;3=2fk;1;k;2gsuch that ( k;3;)2. Let us reorder the
+columns of matrix Mm+1[f0;1;2gm+1;] as follows. The rst j1jcolumns are
+those indexed by all ( k;1;)2. The nextj2jcolumns are those indexed by
+all (k;2;)2. The lastj3jcolumns are those indexed by all ( k;3;)2.
+We then perform on this matrix some columns operations that let the linear
+independence status of rows unchanged:
+{whenk;1=1 andk;2= 0 thenC0; C0;C1;so that
+C0;=0
+@0
+C
+C1
+A.
+{whenk;1=1 andk;2= 1 thenC1; 1
+2(C1;C1;) so that
+C1;=0
+@0
+C
+01
+A.
+
+--- Page 26 ---
+{whenk;1= 0 andk;2= 1 thenC1; C1;C1;so that
+C1;=0
+@0
+C
+C1
+A.
+{whenk;3is dened (and so equal to 1) then C1; 1
+2(C1;2C0;+C1;)
+so that
+C1;=0
+@0
+0
+C1
+A.
+The resulting matrix has a triangular form :
+0
+@Mm[f0;1;2gm;1] 0 0
+Mm[f0;1;2gm;2] 0
+  Mm[f0;1;2gm;3]1
+A
+Due to this triangular form, the rst j1j+j2j+j3jindependent rows of
+Mm+1[f0;1;2gm+1;] are the rstj1jrows of the rst diagonal block followed
+by the rstj2jrows of the second diagonal block and the rst j3jrows of the
+third diagonal block. u t
+Computing inductively A() seems to require three \recursive calls". How-
+ever observing that 321and using the next proposition we will obtain
+an ecient computation.
+Proposition 3.28. Let0f 1;0;1gm. ThenA(0)is obtained by ex-
+tracting the rstj0jlinearly independent rows of matrix Mm[A();0].
+Proof. We proceed by induction on m. The base case m= 1 is an immediate
+consequence of the denition of A().
+Assume that result holds for mand consider 0f 1;0;1gm+1. Dene as
+in Denition 3.26, 0
+1;0
+2and0
+3. Observe that for all i,0
+ii. Consider ma-
+trixMm+1[f1;0;1gm+1;0]. After performing the same linear transformations
+on the columns as those of the previous proof, we obtain the following matrix:
+0
+@Mm[f0;1;2gm;0
+1] 0 0
+Mm[f0;1;2gm;0
+2] 0
+  Mm[f0;1;2gm;0
+3]1
+A
+Thus the rst maximal set of independent rows of this matrix will be obtained
+by the rst maximal sets of independent rows in the three diagonal blocks.
+Applying the induction hypothesis, this corresponds to the rst maximal set of
+independent rows of the following matrix:
+0
+@Mm[A(1);0
+1] 0 0
+Mm[A(2);0
+2] 0
+  Mm[A(3);0
+3]1
+A
+which (by the inverse linear transformations) is equivalent to looking for the rst
+j0jlinearly independent rows of matrix Mm[A();0].
+u t
+Algorithm 5 implements the whole method developped above.
+
+--- Page 27 ---
+Algorithm 5: Computing sign realizations of family Qat roots of P
+SignRealization (D;P;p;Q): a non null vector with its support
+Input :P, a non null polynomial in D[X] with degree p
+Input :Q=f(Q1;q1);:::; (Qm;qm)g, a family of non null polynomials in D[X]
+Output : the vector counting the sign realizations for Qby the roots of P
+Data :e1;:::;emdegrees inf0;1;2g
+Data :TaQ a vector indexed by vectors of degrees
+Data :nba vector indexed by vectors of signs
+Data :R, a polynomial in D[X],ra degree
+Data :M, an integer matrix
+Data :extA;A;A 1;A2;A3, sets of vectors of degrees
+Data :ext;; 1;2;3, sets of vectors of signs
+foreminf0;1;2gdo
+R P0Qemm; (R;r) IntRem (D;R;emqm+p1;P;p)
+// see Algorithm 3 for IntRem
+TaQ [em] PmVPol (D;P;p;R;r )
+end
+nb M1
+1TaQ
+if nb =0 then return;;//Phas no roots
+ supp(nb)
+ifjj= 1thenA f0g
+else ifjj= 2thenA f0;1g
+elseA f0;1;2g
+nb nbj;M M1jA
+forifromm1downto 1do
+ext f 1;0;1g;extA f0;1;2gA;extM M1
+M
+for(ei;:::;em)inextA do
+R P0Q
+ijmQej
+j; (R;r) IntRem (D;R;P
+ijmqjej;P;p)
+TaQ [(ei;:::;em)] PmVPol (D;P;p;R;r )
+end
+nb extM1TaQ
+1 
+2 f2jjf(i;)2supp(nb)gj 2g;
+3 f2jjf(i;)2supp(nb)gj 3g
+A1 A
+A2 the indexes of the rst j2jlinearly independent rows of MjA2
+A3 the indexes of the rst j3jlinearly independent rows of MjA23
+ supp(nb)
+A f0gA1[f1gA2[f2gA3
+nb nbj;M extMjA
+end
+return;nb
+
+--- Page 28 ---
+Dening and computing encodings for roots
+Denition 3.29 (Thom-encoding). LetP2D[X]withdeg(P) =p>0and
+x2R. TheP-encoding of xis the vector:
+P(x) = (sign(P(x));sign (P0(x));:::;sign (P(p)(x))):
+AP-code is a vector of signs indexed by f0;:::;deg (P)g.
+Proposition 3.30. LetP2D[X]andbe aP-code. Then:
+{1
+P()is either empty, a point or an open interval.
+{Letx6=x0be two roots of P. ThenP(x)6=P(x0).
+{Letx;x0withP(x)6=P(x0). Thenx < x0if and only if, denoting kthe
+largest index with P(x)[k]6=P(x0)[k]:
+1. eitherP(x)[k+ 1] = 1 andP(x)[k]<P(x0)[k];
+2. orP(x)[k+ 1] =1andP(x)[k]>P(x0)[k].
+Proof. We proceed by induction on the degree of P. The case deg(P) = 1 is
+obvious. Assume that it is valid for all Psuch thatdeg(P)i. Consider P
+withdeg(P) =i+ 1. Apply the inductive hypothesis on restricted to its ilast
+components, denoted 0, and onP0. When1
+P0(0) is empty or a point then the
+result is immediate. When 1
+P0(0) is an interval, then [1]6= 0. ThusP(x) is a
+strictly monotonous function on the interval which meets 0 at most once. This
+implies the result.
+The second assertion is a direct consequence of the rst assertion.
+Considering the third assertion, P(k+1)(x) =P(k+1)(x0). Sincex6=x0, the sec-
+ond assertion implies that P(k+1)(x)6= 0.
+SinceP(k+1)is constant in [min( x;x0);max(x;x0)], this implies the third asser-
+tion.
+u t
+Algorithm 6: Computing the Q-encoding of roots of P
+RootCoding (D;P;p;Q;q ): a list
+Input :P;Q, non null polynomials in D[X] with respective degrees p;q
+Output : a list of the Q-encoding of roots of P
+Data : (s0;:::;sq) a vector of signs
+Data :nba vector indexed by vectors of signs
+Data :a set of vectors of signs
+(;nb) SignRealization (D;P;p;f(Q(0);q);:::; (Q(q);0)g)
+Order theQ-encodings ( s0;:::;sq) of the support ofnb
+using Proposition 3.30 and duplicating them w.r.t. nb[(s0;:::;sq)]
+return this list of encodings
+
+--- Page 29 ---
+Example 3.31. Let us consider the P1-encoding of reals for P1=p
+5X21. First
+remark that the second derivative is always positive, hence the third component
+of theP1-encoding of any real number is always +1. This encoding divides the
+real line into seven intervals:
+]1;1
+4p
+5[ is encoded into (+1 ;1;+1), since for xin this interval, P(x)
+is positive but decreasing.
+The rst root [1
+4p
+5;1
+4p
+5] is encoded into (0 ;1;+1).
+]1
+4p
+5;0[ corresponds to ( 1;1;+1).
+The point [0 ;0] is encoded by ( 1;0;+1).
+]0;1
+4p
+5[ corresponds to ( 1;+1;+1).
+The second root [1
+4p
+5;1
+4p
+5] is encoded into (0 ;+1;+1).
+]1
+4p
+5;+1[ is encoded into (+1 ;+1;+1).
+As a consequence of our previous developments, we are now in position to
+perform two main computations in D[X]: (1) determining the number of roots
+of a polynomial Pand computing their P-encoding, and (2) computing the Q-
+encoding of roots of a polynomial P. Both results are obtained by Algorithm 6.
+For the rst goal it is sucient to call PmVPol (P;P0) and if the result is non null
+to call RootCoding (P;P).
+3.2 Triangular systems
+While we only stated the eective properties of (a representation of) Din the
+previous parts, we now consider specic representations of real subrings of the
+formD=Q[1;:::;`] where the i's are real algebraic numbers. Such represen-
+tations are called triangular systems and we will show (in Proposition 3.34) that
+they are sign-eective. In the sequel, the leading coecient of P=P
+ipaiXi
+inD[X] withdeg(P) =pis denoted lcof(P) =ap. Note that the leading
+coecient of a polynomial PinQ[X1;:::;Xi1][Xi] is itself a polynomial in
+Q[X1;:::;Xi1].
+Denition 3.32 (Triangular system). Let((ni;Pi;pi))`
+i=1such that for all i,
+niis a positive integer and Pi2Q[X1;:::;Xi1][Xi]withdeg(Pi) =pi>0. Let
+(1;:::;`)be a sequence of reals. Then ((ni;Pi;pi))`
+i=1is a triangular system
+of level`for(1;:::;`)if:
+{1is thenth
+1root ofP1whose degree is p1;
+{For1i < ` ,Pi+1(1;:::;i)has degreepiandi+1is thenth
+i+1root of
+polynomial Pi+1(1;:::;i)2Q[1;:::;i][Xi+1].
+By convention, a triangular system of level 0 is the empty sequence. Observe
+that a priori we do not know how to decide whether (( ni;Pi;pi))`
+i=1is a triangu-
+lar system for some sequence of reals. Given a triangular system (( ni;Pi;pi))`
+i=1,
+a representation of an item of Q[1;:::;`] is nothing but some polynomial
+P2Q[X1;:::;Xl] denotingP(1;:::;`).
+
+--- Page 30 ---
+Algorithm 7: Computing PmV in triangular systems
+PmVPol (`;T;P;p;Q;q ): an integer
+Input :`, the current level
+Input :T=f(ni;Pi;pi)g`
+i=1a triangular system for ( 1;:::;`)
+Input :P;Q, polynomials Q[X1;:::;X`][X`+1] of degreepandqwithq<p
+such thatP(1;:::;`)6= 0 andQ(1;:::;`)6= 0 whenq0
+Output :PmV (sResp(P(1;:::;`);Q(1;:::;`));
+:::;sRes 0(P(1;:::;`);Q(1;:::;`)))
+Data :jan index,sp;:::;s 0a sequence of signs
+ifq=1then return 0 // consistently with Cauchy index denition
+sRes (P;Q) SubResultants (Q[X1;:::;X`];P;p;Q;q )// using Algorithm 2
+forjfrom 0topdosj Sign(`;T;sResj(P;Q))
+returnPmV (sp;:::;s 0)// by applying the definition
+Example 3.33. The system ((2 ;X2
+1X11;2);(1;(2X11)X2
+21;2)) is a
+triangular system for the reals (1+p
+5
+2;1
+4p
+5). Indeed, polynomial X2
+1X11
+has two roots1p
+5
+2<1+p
+5
+2. In addition, when X1=1+p
+5
+2, polynomial (2 X1
+1)X2
+21 becomesP1=p
+5X2
+21, with two roots 1
+4p
+5<1
+4p
+5.
+Proposition 3.34. Let`0and((ni;Pi;pi))`
+i=1such that for all i,niis a
+positive integer and Pi2Q[X1;:::;Xi1][Xi]withdeg(Pi) =pi>0. Then
+we can decide whether ((ni;Pi;pi))`
+i=1is a triangular system for some fig`
+i=1.
+Furthermore with this representation, the rings Q[1;:::;`]andZ[1;:::;`]
+are sign-eective.
+Proof. The proof is done by induction on `. The base case `= 0 corresponds to
+the case where the ring is QorZand so there is nothing to prove.
+For the inductive case, in order to check whether (( ni;Pi;pi))`+1
+i=1is a triangular
+system, we rst check that (( ni;Pi;pi))`
+i=1is a triangular system. In the positive
+caseQ[1;:::;`] is sign-eective so that we can check whether P`+1(1;:::;`)
+has degree p`+1and compute the number of roots of Pl+1(1;:::;`) by using
+PmvPol (l;T;Pl+1;pl+1;P0
+`+1;p`+11) inQ[1;:::;`]. We have rewritten the
+corresponding algorithm (see Algorithm 7) in order to exploit the representation
+provided by Algorithm 2.
+Assume that (( ni;Pi;pi))`+1
+i=1is a triangular system. Again using induction hy-
+pothesis Q[1;:::;`] is sign-eective. So in addition to sign determination in
+Q[1;:::;`], we are also able to compute Degree andRootCoding in this ring.
+Thus Algorithm 8 (applied at level l+ 1) determines the sign of P(1;:::;`+1)
+by computing the degree of PinQ[1;:::;`] and then determining the P-
+encodings of roots of P`+1inQ[1;:::;`] and returning the sign of Pcorre-
+sponding to the nth
+`+1root.
+u t
+
+--- Page 31 ---
+The sign determination is then obtained by a set of mutually recursive func-
+tions. In order to clarify their behavior we have represented their calls in Figure 4.
+RootCoding
+Degree IntRemSign
+SignRealization PmVPol1
+1
+Fig. 4. Links between function calls with level `changing.
+Algorithm 8: Determining the sign in a triangular system.
+Sign(`;T;P): a sign
+Input :P, a polynomial in Q[X1;:::;X`] =Q[X1;:::;X`1][X`]
+Input :`, the current level
+Input :T=f(ni;Pi;pi)g`
+i=1a triangular system for ( 1;:::;`)
+Output : the sign of P(1;:::;`)
+Data :a list of sign vectors
+if`= 0then return Sign(Q;P) //Pis a rational
+p Degree (`1;T#`1;P)
+//T#`1is the restriction of Tat level`1
+ifp=1then return 0
+=RootCoding (`1;T#`1;P`;p`;P;p)
+Letvbe thenth
+`item of
+return v [0]
+3.3 Building a cylindrical algebraic decomposition
+We have the following result [13]:
+Theorem 3.35. For every nite family of sets of polynomials P=fPiginsuch
+thatPiQ[X1;:::;Xi], one can build a cylindrical algebraic decomposition of
+Rnadapted toPin 2EXPTIME.
+
+--- Page 32 ---
+We devote the rest of the subsection to the proof of this theorem. The al-
+gorithm that builds the cylindrical algebraic decomposition of Rnproceeds in
+two steps: the elimination step and the lifting step . The elimination step en-
+sures the existence of a cylindrical algebraic decomposition while enlarging the
+set of polynomials of polynomials Pi. OncePhas been completed, the lifting
+step provides an eective way to compute the cylindrical algebraic decomposi-
+tion. Accordingly, one considers the coecients of polynomials in Rduring the
+elimination step and restrict them to belong to Qduring the lifting step.
+Elimination step. The following lemma establishes that the roots of a polyno-
+mial are \continuous" w.r.t. the coecients of the polynomial when the degree
+of the polynomial remains constant.
+Lemma 3.36. LetP2C[X1;:::;Xk1][Xk],SCk1such thatdeg(P(x))is
+constant over x2S. Leta2Ssuch thatz1;:::;zmare the roots of P(a)with
+multiplicities 1;:::;m, respectively. Let 0< r < mini6=j(jzizjj=2). Then
+there exists an open neighborhood Uofasuch that for x2U,P(x)has exactly
+iroots counted with multiplicities in the disc D(zi;r)for allim.
+Proof. Since the degree of Pis constant we can divide the coecients by the
+leading coecient, obtaining a monic polynomial with same roots and multiplic-
+ities and coecients being rational functions.
+Assume that P=X
+k. ConsiderQ=XP
+i<biXiwith= maxi<jbij<
+min(1;r)
+. Since<1
+, any root of Qhas a module less than one. Let zbe such
+a root. Then z=P
+i<bizi. Sojzj<rwhich impliesjzj<jrj.
+Let us consider the mapping from pairs ( Q;R) of monic polynomials of degree
+respectively qandrto their product '(Q;R) =QRof degreeq+r(viewed
+as mapping of their coecients). This mapping is dierentiable. It is routine
+to check that the Jacobian matrix of this mapping is equal or opposite to the
+subresultant Sres 0(Q;R) and so it locally admits a dierentiable inverse if Qand
+Rare coprime. Therefore, factoring P=QRsuch thatQandRare coprime,
+there exists some neighborhoods VQ,VRrespectively of QandR, such that
+V='(VQVR) is a neighborhood of P.
+By iteration, the polynomial P0= (Xkz1)1(Xkzm)madmits an open
+neighborhoodVof its coecients such that every monic polynomial P12V
+admits a decomposition P1=Q1:::Qmwith every Qiof degreeiand whose
+roots belong to the disc D(zi;r). Since the discs have no intersection, every disc
+contains exactly iroots counted with multiplicities.
+Since the coecients of Pare rational functions of X1;:::Xk1and so continu-
+ous, there is a neighborhood Uofathat fullls the conclusion of the lemma. u t
+The next proposition establishes that the real roots of a set of polynomials
+are \continuous" w.r.t. the coecients of the polynomials when the degrees of
+some appropriate polynomials (including the original ones) remain constant.
+
+--- Page 33 ---
+Proposition 3.37. LetP1;:::;Ps2R[X1;:::;Xk1][Xk],SRk1connected.
+Assume that over x2S, for all 1i;js,Pi(x)is not identically 0,
+deg(Pi(x)),deg(gcd(Pi(x);Pj(x)),deg(gcd(Pi(x);P0
+i(x))are both constant.
+Then there exist `(with`possibly null) continuous functions f1<<f`from
+StoRsuch that for every x2S, the set of real roots ofQ
+jsPj(x)is exactly
+ff1(x);:::;f`(x)g.
+Moreover for all i`;js, the multiplicity of the (possible) root fi(x)ofPj(x)
+is constant over x2S.
+Proof. Leta2Sandz1(a);:::;zm(a) be the roots in CofQ
+jsPi(a) withj
+ibe-
+ing the multiplicity of zi(a) forPj(a). The degree of Rjk(a) =gcd(Pj(a);Pk(a))
+isP
+immin(j
+i;k
+i) and min(j
+i;k
+i) is the (possibly null) multiplicity of zi(a)
+forRjk(a).
+Pickr > 0 such that the discs D(zi(a);r) are disjoint. Observe that since
+deg(gcd(Pj(x);P0
+j(x)) is constant over x2Sthe number of distinct roots of
+Pj(x) is constant over x2S. Leti;jsuch thatj
+i>0, applying Lemma 3.36
+and the previous observation, there is a neighborhood Uofasuch that for all
+x2U,D(zi;r) contains exactly a root, denoted zj
+i(x), ofPj(x) with multiplicity
+j
+i. Assume there exists k6=jwithk
+i>0, sincedeg(Rjk(x)) is constant over
+x2S,zj
+i(x) =zk
+i(x) for allx2U. Otherwise for such an xwhere the equality
+does not hold deg(Rjk(x))< deg (Rjk(a)). So we can omit the superscript jin
+zj
+i(x) (dened when j
+i>0).
+Ifzi(a) is real then zi(x) is real otherwise its conjugate would be another root in
+D(zi(a);r). Ifzi(a) is complex, its conjugate being also a root, D(zi(a);r) and
+D(zi(a);r) are disjoint and so zi(x) is not real. Hence the number of real roots
+of (x) is constant over x2U. As the number of real roots is locally constant
+andSis connected then the number of real roots ofQ
+jsPj(x) is constant over
+x2S, say`.
+Letfi(x), forilbe the function that associates with xtheithreal root
+ofQ
+jsPj(x) in increasing order. Since rcould be chosen arbitrarily small, fi
+is continuous. As the multiplicity of fi(x) w.r.t. any Pj(x) andQ(x) is locally
+constant, it is constant over x2S. u t
+The next denition is a basic construction that will be the atomic step of the
+elimination stage.
+Denition 3.38. LetP=P
+ipaiXi
+k2R[X1;:::;Xk1][Xk]. Thenlcof(P) =
+apandTru(P) =fP
+iraiXi
+kj8i>r ai=2R^ar6= 0g.
+LetPbe a nite subset of R[X1;:::;Xk1][Xk]. ThenElimXk(P)is the set
+of polynomials of R[X1;:::;Xk1]dened as follows. For all P;Q2 P;R2
+Tru(P),T2Tru(Q)withdeg(T)deg(R):
+{Iflcof(R)does not belong to Rthenlcof(R)2ElimXk(P);
+{Ifdeg(R)2then for all sResj(R;R0)that are dened and do not belong
+toR,sResj(R;R0)2ElimXk(P);
+{for allsResj(R;T)that are dened and do not belong to R,sResj(R;T)2
+ElimXk(P).
+
+--- Page 34 ---
+The next lemma establishes the interest of the ElimXkconstruction.
+Lemma 3.39. LetPbe a nite set of R[X1;:::;Xk1][Xk],SRk1a con-
+nected set. Assume that SisElimXk(P)-invariant.
+Then there exist `(with`posibly null) continuous functions f1<<f`from
+StoRsuch that for every x2S, the set of real roots ofQ
+P2PP(x)is exactly
+ff1(x);:::;f`(x)gwherePis the subset ofPconsisting of polynomials not
+identically null over S.
+Moreover for all iland for all P2P, the multiplicity of the root fi(x)of
+P(x)is constant over x2S.
+Proof. LetP2P. Since the leading coecients of Tru(P) belong toElimXk(P),
+the degree of P(x) is constant over x2S.
+LetR2Tru(P) be the appropriate polynomial for P(i.e. whose degree is
+the degree of P(x) forx2S). Then, by deg(gcd(R;R0)) is determined by the
+signs of polynomials of the sequence Sres (R;R0) due to Proposition 3.7. Since all
+these polynomials belong to ElimXk(P), the number of distinct complex roots
+ofdeg(gcd(P(x);P0(x)) is constant over x2S.
+LetT2Tru(Q) be the appropriate polynomial of QforQ2P. Then, by
+Proposition 3.7, deg(gcd(R;T)) is determined by the signs of polynomials of
+the sequence Sres (R;T). Since all these polynomials belong to ElimXk(P), the
+degree ofgcd(P(x);Q(x)) is constant over x2S.
+The conclusion follows using Proposition 3.37.
+u t
+We are now in position dene the elimination step and to prove its correct-
+ness.
+Theorem 3.40. LetQ=fQiginbe a family of nite set of polynomials such
+thatQiR[X1;:::;Xi]. DenePn=Qnand inductivelyPi1=Qi1[
+ElimXi(Qi)fori >1. Then there exists a cylindrical algebraic decomposition
+adapted toP(and thus toQ).
+Proof. Let us prove the existence of a cylindrical algebraic decomposition of Ri
+adapted toPiby induction.
+The children of R0form the partition dened by
+(1;r1);r1;(r1;r2);:::; (rm1;rm);rm;(rm;1)
+wherefr1;:::;rmgis the set of roots of all P2P 1(orRif there is no root). By
+construction, the cells of S1areP1-invariant and open intervals or points.
+Assume that we have built our tree up to level i<n . Pick any cell Cof leveli.C
+isElimXi+1(Pi+1)-invariant since ElimXi+1(Pi+1)Pi. Applying Lemma 3.39
+yields the children of C.
+u t
+
+--- Page 35 ---
+Complexity of elimination step. Lets=jQj,dbe the maximal total degree of
+polynomials ofQ, andvthe maximal constant appearing in a coecient of Q.
+A straightforward recurrence shows that
+{the maximal number of bits of a coecient of any PiisO(dn3log(n)n(n1)
+2
+log(v)),
+{the maximal total degree of polynomials of all Piis inO(d3n), and
+{the total number of polynomials is in O((sd)3n).
+Example 3.41. Let us build the family P1;P2of polynomials associated with
+the automaton of Fig. 1. We set I1=X1,I2=X2,A=X2
+1X11,B=
+(2X11)X2
+21 andC=X2+ (X2
+15). We start with P2=fI2;B;Cg,
+P1=fI1;Agand add toP1polynomials computed by ElimX2(P2).
+We rst add lcof(B) = 2X11 toP1. Note that we do not add lcof(C)
+since it is in Q.
+Let us now compute all subresultants of (potentially truncated) polynomials
+ofP2:
+sRes 0(I2;C) =1 0
+1X2
+15=X2
+15 is added toP1.
+We then add toP1the polynomial
+sRes 0(B;C) =2X11 01
+0 1 X2
+15
+1X2
+15 0
+=(2X11)(X2
+15)2+ 1
+=2X5
+1+X4
+1+ 20X3
+110X2
+150X1+ 26
+Remark that sRes 0(B;I 2) = 12Q, hence it is not added to P1. It is also
+the case for sRes 1(B;I 2) andsRes 1(B;C).
+We then need to compute the subresultants of each polynomial of degree
+2 with its derivative. In our case, that means computing sRes 0(B;B0) and
+sRes 1(B;B0). We haveB0= 2(2X11)X2. We obtain sRes 1(B;B0) = 2(2X11)
+that should be added to P1. However, since sRes 1(B;B0) = 2lcof(B), their sign
+will coincide. For simplicity we will not keep it in P1, although the automatic
+procedure does; nonetheless, this would not aect the elimination at lower levels.
+Finally, we have
+sRes 0(B;B0) =2X11 01
+0 2(2X11) 0
+2(2X11) 0 0= 4(2X11)2
+which is added to P1. This concludes the elimination phase.
+The nal setsP1andP2are given in Table 1 (page 40).
+
+--- Page 36 ---
+Algorithm 9: Lifting the cylindrical algebraic decomposition at a point of
+level`
+Input :P=fP`g`ka family of subsets of polynomials obtained by
+decomposition
+Output :Aa tree whose nodes at level `are sample points of the
+decomposition equipped with their sign evaluation for P`
+Lifting (`;T): an integer
+Input :`, the current level; T=f(ni;Pi;pi)g`
+i=1a triangular system for
+(1;:::;`) corresponding to a node of A.
+Data :La list of triangular systems equipped with sign vectors, Ea triangular
+system with a sign vector
+L LinePartition (`;T)
+ifL=;then
+T0 T[f (1;X`+1;1)g;T0Eval f(P;Sign(`;T;Lcof(P))jP2P`+1g
+A A[ (T !T0);if`+ 1<kthen Lifting (`+ 1;T0)
+else
+L Completing (`;T;L)
+forE2Ldo
+Pick some ( r;v;P )2Esuch thatris dened
+T0 T[f (r;P; Degree (`;T;P))g;
+T0Eval f(Q;v[0])jQ2P`+1^9(m;v;Q )2Eg
+A A[ (T !T0);if`+ 1<kthen Lifting (`+ 1;T0)
+end
+end
+
+--- Page 37 ---
+Lifting step. We build the cylindrical algebraic decomposition as follows: every
+cellCof level`is represented by a sample point , represented by a triangular
+system. In addition, the representation of Cincludes the evaluation of the sign of
+allP2P`. Observe that evaluation of a P2Pjwithj <` is found in its ancestor
+cell of level j. The construction is performed by Algorithm 9. An atomic step
+of the lifting phase corresponds to build, given a sample point R`, the ordered
+list of all sample points of R`+1representing the cells of the cylinder above
+S. It corresponds to a call to Lifting (without the recursive calls). The whole
+construction is done by the call Lifting (0;;).Lifting rst calls LinePartition
+in order to get an ordered list of the roots of all P2P`+1. Every real of this
+list is represented by a set of triplets ( r;v;P ) wherePis a polynomial whose
+coecients are algebraic numbers over T(and thus represented by polynomials
+inQ[X1;:::;X`]),vis theP-encoding of .rmay be undened but when dened
+it means that is therthroot ofP. For at least one triplet of the set ris dened
+allowing to extend the triangular system Tby. Since one wants to represent
+the interval between these roots by sample points, the list is completed by a call
+toCompleting . After this call either the list is empty (corresponding to the case
+of a single child CR) and this child is represented by `+1= 0, rst root of
+X`+1. The representation of this cell is now enlarged by the evaluation of all
+P2P`+1at this sample point. Otherwise for every item of the list one picks
+some arbitrary ( r;v;P ) withrdened and proceeds as previously to produce all
+the children of C.
+Algorithm 10 produces the list of roots of all P(1;:::;`) forP2P`+1.
+For any such P, it rst normalizes it by determining its higher non null coe-
+cient. Thus R2Tru(P).SL[P] will contain the singletons f(r;v;P )gfor every
+root ofP(1;:::;`). Then the algorithm enlarges these singletons with triplets
+f(r0;v0;Q)gfor allQthat preceed PinP`+1. All these triplets are obtained
+using the lists provided by appropriate calls to RootCoding . Conversely the sets
+of the listSL[Q] are enlarged with the triplets related to P. Once all roots have
+been produced in SL, it remains to order them and (possibly) merge them. This
+can be easily done with the help of their Thom-encoding and it is performed by
+a call to OrderedMerge .
+Algorithm 11 completes the list of roots by sample points representing the
+intervals between the roots. This is done as follows. Given a root ofPand a
+rootofQ, such that andare consecutive items of the list, there exists a
+rootfof (PQ)0such thatf2];[. Thus the sample point will be an arbitrary
+root of (PQ)0strictly between and. Ifis the smallest (resp. largest) root
+in the list for of some Pthen the rst (resp. last) root of P[X`+1+ 1] (resp.
+P[X`+11]) is12]1;[ (resp.+ 12];+1[). In this algorithm E
+represents the current item, say of the list of roots, Psome polynomial whose
+is a root and vis itsP-encoding. Let be the previous item of the list (when it
+exists).oldP is some polynomial whose is a root and oldv is itsoldP -encoding.
+Thus in order to nd a root of ( PoldP )0betweenand, one computes the
+PandoldP encoding of the roots of ( PoldP )0.
+
+--- Page 38 ---
+Algorithm 10: Partitioning the real line at a point of level `.
+Input :P=fP`g`ka family of subsets of polynomials
+LinePartition (`;T): a list
+Input :`, the current level
+Input :T=f(ni;Pi;pi)g`
+i=1a triangular system for ( 1;:::;`) corresponding
+to a node ofAwhose children have to be computed.
+Output :La list of sample points of the decomposition equipped with their
+sign evaluation for P`+1related toT.
+forP2P`+1do
+(R;r) Normalize (`;T;P)
+ifr0thenSL[P] ;
+else
+SLL RootCoding (`;T;R;r;R;r )
+// Singleton transforms a list of items into a list of
+singletons which contain these items. Furthermore it adds
+the number of the root of Rfor subsequent use.
+SL[P] Singleton (SLL)
+forQ2P`+1such that QPdo
+(S;s) Normalize (`;T;Q)
+SLL RootCoding (`;T;R;r;S;s );EnlargeWith (SL[P];SLL;Q )
+end
+end
+forQ2P`+1such that QPdo
+ifSL[Q]6=;then
+(S;s) Normalize (`;T;Q)
+SLL RootCoding (`;T;S;s;R;r );EnlargeWith (SL[Q];SLL;P )
+end
+end
+end
+L OrderedMerge (SL)
+returnL
+
+--- Page 39 ---
+Algorithm 11: Completing the line partition with samples of intervals.
+Input :P=fP`glka family of subsets of polynomials obtained by
+decomposition
+Completing (`;T;L): a list
+Input :`, the current level
+Input :T=f(ni;Pi;pi)g`
+i=1a triangular system for ( 1;:::;`) corresponding
+to a node ofAwhose children have to be computed.
+Input :La list of sample points of the decomposition represented by a
+triangular system equipped with their sign evaluation for P`+1related
+toT.
+Output : the input list Lenriched with of sample points for the intervals before,
+between and beyond the original sample points.
+forE2Ldo
+Pick some ( r;v;P )2Esuch thatris dened
+ifE=First (L)then
+(R;r) Normalize (`;T;P(X`+1+ 1));
+SLL RootCoding (`;T;R;r;R;r )
+shortL Singleton (SLL)
+forQ2P`+1do
+(S;s) Normalize (`;T;Q)
+SLL RootCoding (`;T;R;r;S;s );EnlargeWith (shortL;SLL;Q )
+end
+Insert First (shortL ) beforeEinL
+else
+(R;r) Normalize (`;T;(PoldP )0;SLL RootCoding (`;T;R;r;R;r )
+shortL Singleton (SLL)
+forQ2P`+1do
+(S;s) Normalize (`;T;Q)
+SLL RootCoding (`;T;R;r;S;s );EnlargeWith (shortL;SLL;Q )
+end
+FindFinshortL such that9(x;vP;P );(y;voldP;oldP )2F
+withvP <v andvoldP >oldv ; InsertFbeforeEinL
+end
+oldv v;oldP P
+end
+LetEbeLast(L)
+Pick some ( r;v;P )2Esuch thatris dened
+(R;r) Normalize (`;T;P(X`+11))
+SLL RootCoding (`;T;R;r;R;r );shortL Singleton (SLL)
+forQ2P`+1do
+(S;s) Normalize (`;T;Q)
+SLL RootCoding (`;T;R;r;S;s );EnlargeWith (shortL;SLL;Q )
+end
+Insert Last(shortL ) afterEinL;returnL
+
+--- Page 40 ---
+Example 3.42. We rst (by Algorithm 10) compute the line partition of Rat level
+1 forP1=fI1;A;D;E;F;Gg(see Table 1) obtained previously. This is done by
+comparing the P-encodings of roots of Qfor all pairs ( P;Q)2P2
+1. The result
+is (partially) depicted in Fig. 5. Each bullet represents the (relative) position of
+a root, given by a triangular system (where the degree of the polynomial is not
+represented for clarity). In the table, the line labeled by Pgives theP-encodings
+of the roots.
+I1=X1
+I2=X2
+A=X2
+1X11
+B= (2X11)X2
+21
+C=X2+X2
+15
+D= 2X11 (=lcof(B))
+E=X2
+15 (=sRes 0(I2;C))
+F=2X5
+1+X4
+1+ 20X3
+110X2
+150X1+ 26 (=sRes 0(B;C))
+G= 4(2X11)2(=sRes 0(B;B0))
+Int=14X6
+1+ 18X5
+1+ 105X4
+1124X3
+1180X2
+1+ 172X1+ 24 (= (FA)0)
+P1=fI1;A;D;E;F;Gg P 2=fI2;B;Cg
+Table 1. Polynomials used in the cylindrical decomposition.
+(1;I1)
+0(1;A)
+1p
+5
+2(1;E)
+p
+5(1;D)
+(1;G)
+1
+2(1;F)
+(2;A)
+1+p
+5
+2(2;F)
+(2;E)
+p
+5(3;F)
+(4;Int)
+I1
+A
+D
+E
+F
+G(0;1)
+(1;1;1)
+(1;1)
+(1;1;1)
+(1;1;1;1;1;1)
+(1;1;1)(1;1) (1;1) (1;1) (1;1) (1;1) (1;1) (1;1) (1;1)
+(1;1;1)(0;1;1) (1;0;1)(1;1;1)(0;1;1) (1;1;1) (1;1;1) (1;1;1)
+......
+Fig. 5. Partition of Raccording toP1and Thom encodings. The scale is not accurate.
+Example 3.43. We can now complete the line built above by computing sample
+points corresponding to intervals between consecutive roots (Algorithm 11). For
+
+--- Page 41 ---
+instance to compute a sample point at the left of (1 ;E) =p
+5, one can choose
+1p
+5 which is the rst root of H= (X+1)25 (i.e.EwhereXis replaced by
+X+ 1). In order to compute a value between (1 ;F) and (2;A), we consider the
+polynomial Int= (FA)0=14X6
+1+18X5
+1+105X4
+1124X3
+1180X2
+1+172X1+24.
+Computing the F-encodings of roots of Intgives the number kof roots of Int
+smaller than or equal to (1 ;F). Taking the k+ 1th root of Intyields a root
+greater than (1 ;F). The value ( k+ 1;Int) is smaller than (2 ;A) (since one such
+root exists). Here, one can show that the appropriate root is the 4th. Hence
+the sample point (4 ;Int) written1is added to the line in order to represent
+interval ](1;F);(2;A)[, as depicted by the empty bullet on Fig. 5. In addition,
+for all polynomials PofP1, theP-encoding of (4 ;Int) is computed: the rst
+component yields the sign of Pin the interval. Namely:
+I1(1)>0 A(1)<0 D(1)>0
+E(1)<0 F(1)<0 G(1)>0
+Remark that this interval corresponds to the one where transition aof Fig. 1 is
+red in the trajectory of Fig. 2.
+Sample points (and their encodings) for all intervals should be computed and
+added to the line. This is omitted for readability.
+Example 3.44. We illustrate the lifting (Algorithm 9) to R2for the interval rep-
+resented by the sample point (4 ;Int) built above. In this case, one must partition
+the real line with roots of polynomials of P2=fI2;B;CgwhenX1=1. Note
+thatI1andAare constants.
+In the computation of the P2-encodings, theP1-encodings of 1are used,
+in particular the encodings of polynomials constructed in the elimination phase.
+For example, since D(1)>0, the leading coecient of Bis positive, hence B
+has two roots. And since E(1)<0, the root of C(1) is positive (greater than
+the root of I2). Finding that all the roots of B(1) are smaller than the root
+ofC(1) involves not only the sign of F(1) (which only shows that is not
+between the roots of B(1)) but additional components of the encoding, namely
+in this case the sign of the second derivative of F. This is partially represented in
+Fig. 6 (again, the degrees of the polynomials are omitted). Note that this lifting
+corresponds to the trajectory depicted in Fig. 2, page 5.
+4 Verication algorithms for PolITA
+We now use the cylindrical decomposition to build a nite abstraction of the tran-
+sition system associated with a PolITA . The model checking problem (hence
+also the reachability problem) can be solved with this abstraction. An on-the-
+y construction is then given to produce a more ecient practical algorithm.
+Formally, we prove the following:
+Theorem 4.1. The model checking problem of TCTL intoverPolITA is decid-
+able in time (jAjj jd)2O(n)wherenis the number of clocks in Aanddthe
+maximal degree of polynomials appearing in Aand .
+
+--- Page 42 ---
+(4;Int)
+(1;I2)
+(1;F)
+(1;D)
+(1;G)
+(1;I1)0
+
+(2;A)
+(2;F)
+(1;B)(2;B)(1;C)
+X1X2
+
+Fig. 6. Line partitioning for X2above1= (4;Int).
+4.1 Abstraction construction
+LetA=h;Q;q 0;F;X;;ibe aPolITA withX=fx1;:::;xng. We de-
+ne Poly(A) the set of all polynomials appearing in guards and updates of A
+(including all clocks) as follows:
+Poly(A) =X[[
+(q;g;a;u;q0)2 ([
+ifPig'=^
+iPi./i0)
+[(n[
+i=1fxiPigu=n^
+i=1xi:=Pi)!
+Given a TCTL intformula , we dene Poly( ) the set of all polynomials appear-
+ing in ,i.e.in subformulas of the form P ./ 0. Note that in the case of the
+reachability problem, Poly( ) =;.
+LetDA; be the cylindrical algebraic decomposition adapted to Poly(A)[
+Poly( ) andX. SinceDA; is adapted to X, the cells can be arranged in levels
+D1
+A; ;:::;Dn
+A; , such that for 1in,Si
+k=1Dk
+A; is a CAD of Rfx1;:::;xig. As
+a result, the projection of a cell of level iover the axis xi= 0 yields a cell of
+leveli1.
+We deneRA; the nite transition system with states in QDA; , specif-
+ically, they can also be arranged by layer, with respect to the level of the state:Sn
+i=11(i)Di
+A; . Indeed, given a conguration ( q;v) with(q) =k, the se-
+mantics of PolITA require that for k <in,v(xi) = 0, hence vbelongs to a
+cell ofDk
+A; . We now dene the transitions of RA; as follows.
+Time successors. Letsucc=2be a letter representing time elapsing. Let
+(q;C) be a state ofRA; , with(q) =k, and letC2Dk1
+A; be the projection of
+ContoRk1and1=f0<<fr+1= +1be the functions dividing Cas
+in Denition 3.2. The succ transitions are dened as follows:
+
+--- Page 43 ---
+{ifC=f(x;fi(x))jx2Cgfor somei2f1;:::;rg, then there is a transition
+(q;C)succ! (q;C0) whereC0=f(x;y)jx2C;fi(x)<y<fi+1(x)g;
+{ifC=f(x;y)jx2C;fi1(x)<y<fi(x)gfor somei2 f1;:::;rg, then
+there is a transition ( q;C)succ! (q;C0) whereC0=f(x;fi(x))jx2Cg;
+{otherwise,C=f(x;y)jx2C;fr(x)<y<fr+1(x)g, and there is a self-loop
+labeled by succ: (q;C)succ! (q;C).
+In all the above cases, C0is called the time successor ofC(in the last case, C
+is its own time successor).
+Proposition 4.2 (Correctness w.r.t. time elapsing). Letvbe a valuation
+of a cellCof levelk.
+{There exists d > 0such that the elapsing of dtime units for xkyields a
+valuationv+kd2C0, the time successor of C.
+{For any 0< d0< d, the elapsing of d0time units for xkyields a valuation
+v+kdthat is either in Cor inC0.
+Proof. We again distinguish the possible cases for C:
+{IfC=f(x;fi(x))jx2Cgfor somei2f1;:::;rg, then the time successor
+C0=f(x;y)jx2C;fi(x)<y<fi+1(x)g. Thenv= (x;fi(x)). By elapsing
+fi+1(x)fi(x)
+2time units in level k, one clearly obtains a valuation of C0.
+Moreover, for every inferior delay d0,v+kd0is also inC0.
+{IfC=f(x;y)jx2C;fi1(x)<y<fi(x)gfor somei2 f1;:::;rg, then
+C0=f(x;fi(x))jx2Cg. Thenv= (x;y) withfi1(x)< y < fi(x). By
+elapsingfi(x)ytime units in level k, one clearly obtains a valuation of C0.
+Moreover, for every inferior delay d0,v+kd0remains in C.
+{Otherwise, C=f(x;y)jx2C;fr(x)<y<fr+1(x) = +1g, and any time
+elapsing for xkkeeps the valuation in C. u t
+Discrete successors. SinceDA; is adapted in particular to Poly(A) which
+contains all guards, we have the following result:
+Lemma 4.3. LetC2DA; be a cell of the aforementioned CAD. Let v2Cbe
+a valuation. Then for any v02Cand for every guard 'appearing inA,v0j='
+if, and only if, vj='.
+Hence we can write Cj='whenevervj='andv2C.
+Moreover, for every update xi:=Pithere is a polynomial xiPiinPoly(A),
+which has value 0 if and only if xi=Pi; as a result:
+Lemma 4.4. LetC2Dk
+A; be a cell of level k,Cbe the projection of Conto
+Rk1and1=f0<<fr+1= +1be the semi-algebraic functions dividing
+Cas in Denition 3.2. Let ube an update of the form xk:=Pfor some poly-
+nomialP2Q[x1;:::;xk1]. Then there exists an index i2f1;:::;rgsuch that,
+overC,fi=P.
+
+--- Page 44 ---
+As a corollary, there exists a unique cell C02Dk
+A; such that for any valuation
+v2C,v[u]2C0, namelyC0=f(x;fi(x))jx2Cg, which can be written C[u].
+Discrete transitions of Aare translated as follows into RA; : if (q;';a;u;q0)2
+andCj=', there is a transition ( q;C)a !(q0;C[u]).
+Proposition 4.5 (Correctness w.r.t. discrete steps).
+{If(q;v)a !(q0;v0)2 TA, then (q;C)a !(q0;C0)2 RAwithv2Cand
+v02C0.
+{If(q;C)a !(q0;C0)2RAthen for all v2Cthere exists v02C0such that
+(q;v)a !(q0;v0)2TA.
+Proof.
+{First, (q;v)a !(q0;v0)2TAimplies that there is a transition ( q;';a;u;q0)
+such thatvj='andv0=v[u]. By Lemma 4.3, we have that Cj='. In
+addition, we have by Lemma 4.4 that v0=v[u]2C[u]. By the denition of
+RA; , there is a transition ( q;C)a !(q0;C[u])2RA; .
+{Transition ( q;C)a !(q0;C0)2 RA; only exists because of a transition
+(q;';a;u;q0), and we have C0=C[u]. Letv2C. SinceCj=', by
+Lemma 4.3 we have that vj='. Hence there is a transition ( q;v)a !
+(q0;v[u])2TA. By Lemma 4.4, v[u]2C[u], which concludes the proof. u t
+Example 4.6. Part of this abstraction for deciding reachability in PolITAA0
+(Fig. 1, page 4) is depicted on Fig. 7. In this gure, points are given by the tri-
+angular system representing them. Computations of sample points for intervals
+between roots where omitted, and only appear in the graph as roots of deriva-
+tives. Note that having no aedge from state q0;1;(5;Int) is not an omission,
+but a consequence of the guard x2
+1x1+ 1 no longer being satised. In this
+graph,C+is the polynomial obtained when replacing X2byX21 inC. Faded
+states and transitions are unreachable but are nonetheless constructed from the
+decomposition.
+Labeling with atomic propositions. Finally, we translate a comparison P ./
+0 in into a fresh atomic proposition pP./0and labelRA; as follows. Note that
+sinceDA; is in particular adapted to Poly( ), every cell CofDA; is sign-
+invariant for P, hence the truth value of P ./ 0 is constant in C. As a result,
+it makes sense to write Cj=P ./ 0 whenever vj=P ./ 0 for some v2C, and
+proposition pP./0is true in every state ( q;C) whereCj=P ./ 0. We write  the
+formula where each P ./ 0 has been replaced by pP./0.
+Proposition 4.7. Aj= if, and only if,RA; j= .
+Note that is aCTL formula, which can be checked with the usual polynomial
+time labeling procedure. Since the number of cells in a cylindrical decomposition
+is doubly exponential in the number of clocks and polynomial in the number
+and maximal degree of polynomials to which it is adapted [6], we obtain the
+complexity stated in Theorem 4.1.
+
+--- Page 45 ---
+q0;1
+(1;I1)q1;2
+(1;I1)(1;I2)q0;1
+(1;(AI1)0)...
+q1;2
+(1;(AI1)0)(1;I2)
+q0;1
+(1;(I1D)0)q1;2
+(1;(I1D)0)(1;I2)
+q0;1
+(1;D)q1;2
+(1;D)(1;I2)
+q0;1
+(3;(DF)0)q1;2
+(3;(DF)0)(1;I2)
+q0;1
+(1;F)q1;2
+(1;F)(1;I2)
+q0;1
+(4;Int)q1;2
+(4;Int)(1;I2)...
+a q1;2
+(4;Int)(2;(BI2)0)q1;2
+(4;Int)(2;B)q1;2
+(4;Int)(2;(BC)0)q1;2
+(4;Int)(1;C)q1;2
+(4;Int)(1;C+)
+q2;2
+(4;Int)(2;(BC)0)q2;2
+(4;Int)(1;C)q2;2
+(4;Int)(1;C+)
+q2;2
+(4;Int)(2;B)
+q2;2
+(4;Int)(2;(BI2)0)
+...c
+cb
+cb
+cb
+q0;1
+(2;A)q1;2
+(2;A)(1;I2)
+q0;1
+(5;Int)
+...a0......
+a
+......
+a
+......
+a
+......
+a
+......
+a
+......
+a......
+a
+Fig. 7. Partial depiction of RA0.
+Dashed edges correspond to time successors succ; faded states are unreachable.
+
+--- Page 46 ---
+4.2 On-the-y algorithm
+Propositions 4.2 and 4.4 provide decidability of the model checking problem, by
+the algorithm that builds the nite graph RA; veries that  is satised in this
+graph.
+However, building the complete graph is not ecient in practice, since it
+requires to build the set of all cells beforehand. In the sequel, we show an on-
+the-y algorithm that builds only the reachable part of RA; . This algorithm
+would not, for example, build the faded states of RA0in Fig. 7.
+The key to the on-the-y algorithm is to store only the part of the tree corre-
+sponding to the current sample point and its time successors. This construction
+is akin to what is done in Fig. 6, where only the line partitioning for X2above
+the current sample point is computed by the lifting phase, while line partitioning
+above, for, say, sample point (1 ;F) is not computed. As a result, we do not keep
+the whole tree but only part of it.
+We show that this information is sucient to compute the successors through
+time elapsing and transition ring. Nonetheless, remark that although this prun-
+ing yields better performances in practice, the computational complexity in the
+worst case is not improved: the line partitioning at the rst level already requires
+doubly exponential time, since the elimination phase is required.
+Denition 4.8 (Pruned tree). LetfPkgknbe the polynomials obtained by
+the elimination phase. The pruned tree for sample point (1;:::;k)is the se-
+quence of completed line partitionings for sample points f(1;:::;i)g1ik. By
+convention, the pruned tree for the empty sample point ( k= 0) is the line par-
+titioning at level 1.
+Given a clock valuation ( v1;:::;vk;0;:::; 0) at levelk, it can be represented
+by a sample point ( 1;:::;k), or, equivalently, by a pruned tree for sample point
+(1;:::;k1) and the index mofkin the line partitioning for ( 1;:::;k1).
+In this representation, computing the time successors of ( 1;:::;k) is simply
+done by incrementing m(if it is not the maximal index in the line partitioning).
+Note that in this algorithm we do not loop on the rightmost cell; although it is
+convenient to assume in RAthat a time successor always exists, it has no eect
+regarding the reachability problem.
+The set of enabled discrete transitions can be generated by computing the
+signs (see Algorithm 5 page 27) of polynomials appearing in guards. When a
+discrete transition qg;a;u!q0is chosen, several cases should be distinguished
+with respect to the level of states qandq0.
+{If the level decreases, i.e.(q0)<(q). Then the pruned tree corresponding
+to the new conguration is only the topmost-part of height (q0) of the
+original pruned tree. Otherwise said, we \forget" line partitionings for levels
+above(q0); however, the partitionings can be kept in memory in order not
+to have to recompute them later. The new index is the index of (q0)in the
+partitioned line for this level.
+
+--- Page 47 ---
+{If the level doesn't change, i.e.(q0) =(q) =k. The only way to change the
+clock values is through an update xk:=PwithP2Q[X1;:::;Xk1]. Then
+the polynomial of degree 1 R=XkPwas added to Poly(A) and its unique
+root0
+kappears in the line partitioning of level `. Note that in the triangular
+system representing ( 1;:::;0
+k) it may appear as :::(1;R) or some other
+equivalent value, hence to determine the index in the partitioned line the
+algorithm must actually determine the sign of Rfor all sample points of the
+line until 0 is found.
+{If the level increases, i.e.(q0)> (q). First there can be an update of
+xk, hence the same computations as above must be performed in order to
+nd the new sample point corresponding to the valuation of clocks up to
+(q). Then the pruned tree of height (q0) has to be computed. This is
+done by(q0)(q) lifting steps (Algorithm 9 page 9). Since all clocks
+remain null for levels above (q), the sample points given as input4are
+(1;:::;(q);0;:::; 0).
+Now the on-the-y algorithm works as follows:
+{Compute sets of polynomials fPiginby the elimination phase.
+{Compute the completed line partitioning at level 1.
+{Start at a the initial state. If the level of the initial state is k >1, proceed
+withk1 lifting phases as in the case of level increase. Add this state in a
+queue.
+{Until the queue is empty:
+Compute the list of reable discrete transitions and whether time suc-
+cessor is allowed.
+Add all new successors through a reable discrete transition or a time
+step to the queue.
+{Apply the model checking algorithm on this graph.
+A note on ecient memory usage As noted above, a line partitioning only
+needs to be computed once. In addition { and this also holds for the complete
+construction ofRA; {, the triangular structure of triangular systems enables a
+sharing of line partitioning at lower levels. Thus the size of the graph in memory
+is at most the size of the complete tree of the decomposition added, and not
+multiplied, by the number of states of the PolITA .
+5 Expressiveness and extensions
+We nally focus on expressiveness of PolITA . After comparing this class with
+stopwatch automata, we show how to extend it while keeping decidable the above
+4Although the actual input of the algorithm are triangular systems, assuming we
+have the system Tfor (1;:::;(q)), the subsequent triangular systems are T [
+(1;X(q)+1):::.
+
+--- Page 48 ---
+verication problems. For sake of clarity, in section 2 we have presented a ba-
+sic model of PolITA . Here we show how to add three features consisting in:
+(1) including parameters in the expressions of guards and updates, (2) associ-
+ating with each level a subset of auxiliary clocks, and (3) allowing to update
+clocks of lower levels than the current one. Since in the context of ITA, the rst
+two extensions have already been studied in [9] and the third one in [10], our
+presentation will not be fully formalized.
+5.1 PolITA vsStopwatch automata
+By syntax inclusion, PolITA are at least as expressive as ITA. As a direct
+consequence, there exists a timed language accepted by a PolITA that is not
+accepted by a TA [8].
+There exists a timed language accepted by a timed automaton that is not
+accepted by any PolITA as presented above (the proof is a direct adaptation
+from the one proving said language is not accepted by an ITA [10]), although it
+is accepted by the extension with auxiliary clocks provided below (Section 5.3).
+The class of stopwatch automata ( SWA ), which also syntactically contains
+the class of ITA, is however incomparable to PolITA .
+Proposition 5.1. There exists a timed language accepted by a PolITA with a
+single clock that cannot be accepted by a stopwatch automaton.
+The proof of the above proposition relies on a lemma about runs accepted
+by aSWA . Recall that in a stopwatch automaton, each clock can be active or
+inactive in every state. Also recall that updates are restricted to resets5x:= 0
+and guards are comparisons to a rational constant6. In the remainder of the
+section, we use + qto denote addition only on stopwatches active in q.
+Lemma 5.2. Let= (q0;v0)0!(q0;v0+q00)g0;a0;u0! (q1;v1)be a run in
+a stopwatch automaton. Then there exists 0= (q0;v0)0
+0!(q0;v0+q00
+0)g;a1;u!
+(q1;v1)taking the same discrete transitions as such that8i;i2Q.
+Proof. We assume that stopwatches are never reset throughout the run. This
+can be done since one can assume that a reset stopwatch is actually a fresh one.
+Consider the linear system with a variable iper delay and rational coecients
+which corresponds to all guards appearing after qk. We write
+x
+i=
+1 ifxis active in qi
+0 otherwise
+For each stopwatch x, we add the constraints
+jj^
+i=0 iX
+`=0x
+ii!
+j=gi
+5It is possible to simulate aectations to rational constants, but it does not change
+expressiveness of the model.
+6Again, diagonal constraints xy./c forc2Qcan be simulated.
+
+--- Page 49 ---
+Note that since guards have rational coecients, this system has rational coe-
+cients. In addition since is an accepted run, this system has a solution ( 0;:::).
+Also note that for every solution ( 0
+i)i, replacing each delay iwith0
+iinstill
+yields a valid run 0, since all guards are still respected. The set of solutions of a
+linear system with rational coecient is a rational polyhedron, so the projection
+over each variable yields an interval with rational endpoints (or 1 or +1).
+If for some i,iis irrational, the interval cannot be reduced to a point, so it
+contains an open set around i, in which there is a rational 0
+i. Therefore, there
+exists a solution ( 0
+i)i2Qjjand0is a run with rational delays. u t
+Proof (Proposition 5.1). Consider PolITA of Fig. 8, which accepts the timed
+languageLcontaining the single word ( a;1)(b;p
+2). AssumeLis accepted by a
+stopwatch automaton AL. Let= (q0;v0)0!(q0;v0+q00)g;a1;u! (q1;v1)
+be a run accepting ( a;1)(b;p
+2). Note that some ais may actually be ". Since
+boccurs at an irrational instant, there is at least an irrational delay before
+the occurrence of b. By Lemma 5.2, 0the run where all delays are rational is
+also accepted. Therefore the instant of bin0is rational and cannot bep
+2.
+Furthermore any time rescaling for Ldoes not change this result since either a
+orbis taken at an irrational instant. u t
+x1= 1,a x2
+1= 2,b
+Fig. 8. APolITA whose timed language is not accepted by a stopwatch automaton.
+On the other hand, the (untimed) language of a PolITA (and the extensions
+of Section 5) is regular, as shown by the construction of a nite abstraction of TA
+in Section 4. It is not necessarily the case of (untimed) languages of stopwatch
+automata [12,2], hence there are some timed languages accepted by a SWA that
+are not accepted by any PolITA .
+5.2 Parameters
+Getting a complete knowledge of a system is often impossible, especially when in-
+tegrating quantitative constraints. Moreover, even if these constraints are known,
+when the execution of the system slightly deviates from the expected behavior,
+due to implementation choices, previously established properties may not hold
+anymore. Additionally, considering a wide range of values for constants allows
+for a more exible and robust design. Introducing parameters instead of con-
+crete values is an elegant way of addressing these three issues. Parametrization
+however makes verication more dicult. For instance, in timed automata, al-
+lowing a single clock to be compared to parameters leads to undecidability of
+the reachability problem [21].
+
+--- Page 50 ---
+Suppose that we enlarge PolITA allowing expressions to be polynomials
+whose set of variables is the union of a set of clocks fx1;:::;xngand a set of pa-
+rametersfp1;:::;pkg. Then we consider the cylindrical decomposition where the
+order of variables is p1;:::;pk;x1;:::;xn. Now assume that the relevant values
+of parameters are specied by a rst-order formula val. Then using the cylin-
+drical decomposition, we can answer reachability questions like \for all p1pk
+satisfying val, isqreachable?" or safety questions like \for all p1pksatisfying
+val, isqunreachable?".
+5.3 Auxiliary clocks
+With each level i, one may associate a set of auxiliary clocksYiin addition to the
+main clockxi. Since there are multiple clocks for some level i, in this PolITA ,
+with every state of level i, is associated an active clock among Xi=fxig[Yi,
+specifying which clock evolves with time in this state. Auxiliary clocks may be
+used in a restrictive setting w.r.t. the main clocks to inuence the behavior of
+thePolITA . Let us detail these restrictions:
+{In a guard of a transition outgoing from a state at level i, among auxiliary
+clocks only those of the level imay occur and they are only be compared
+between them or with the main clock (i.e. z./z0withz;z02Xi);
+{In a transition outgoing from state at level i, an auxiliary clock of level i
+may be updated by another clock of level i(i.e.y:=zwithy2Yiand
+z2Xi) while the main clock may be updated by an auxiliary clock only
+if the destination state of the transition is also at level i(i.e.xi:=ywith
+y2Yi).
+The decision procedure works as follows. The cylindrical decomposition does not
+take into account the auxiliary clocks. However the denition of a class species
+in which interval of level ilies any clock of level iand their relative position for
+clocks inside the same interval.
+Adding auxiliary clocks strictly extends expressiveness of PolITA w.r.t.
+timed languages. It was shown in [10] that the language
+L=
+(a;t1)(b;t2):::(a;t2p+1)(b;t2p+2)jp2N;
+80ip; t 2i+1=i+ 1 andi+ 1<t2i+2<i+ 2;
+81ip; t 2i+2t2i+1<t2it2i1
+is not a language of an ITA. The proof also holds for PolITA since it is only
+based on the following hypotheses: (1) there is a single clock per level, (2) at
+leveli, the behavior is only determined by the current state and the values of
+clocks at levels less or equal than i, and (3) the clock xiis null at level j <i .
+The untimed language of Lis (ab)+. In the accepted timed words, there is an
+occurrence of aat each time unit and the successive occurrences of bcome each
+time closer to the next occurrence of athan previously. Consider the PolITA of
+Figure 9 with a single level and single nal state q2. The main clock xis active
+in all states and yis an auxiliary clock. It is routine to check that the timed
+language of this automaton is L.
+
+--- Page 51 ---
+q0 q1 q2 q3x= 1;a;x := 0 0<x< 1;b;y :=xx= 1;a;x := 0
+y<x< 1;b;y :=x
+Fig. 9. APolITA with a single level and an auxiliary clock
+5.4 Allowing more updates
+At leveli, the value of a clock of level j < i is relevant. So it is interesting to
+allow updates of such a clock. Again for keeping decidability, such updates have
+the following restrictions:
+{At leveli, the main clock of level j <i can only be updated by a polynomial
+of the main clocks of level less than j:xj:=P(x1;:::;xj1);
+{At leveli, an auxiliary clock of level j < i may be updated by a clock of
+levelj:y:=zwithy2Yjandz2Xj.
+The decision procedure for this extension consists in translating the extended
+PolITA in aPolITA with the same behavior by at level i: (1) delaying the
+update of clocks of level j <i that should have been done until the current level
+becomesjand (2) duplicating the states by memorizing the current value of
+such a clock as an expression of the values of the clock when the level jwas left.
+Guards and updates outgoing from a duplicated state are modied to take into
+account these expressions.
+Let us illustrate this transformation on the PolITA of Figure 10 that is
+transformed in the PolITA of Figure 11. The original clock has only main
+clocks and the level of the state is indicated inside the state. In the transformed
+state the superscript '+' means that this corresponds to a state of of the original
+ITA ready to be simulated while the superscript '-' indicates that the delayed
+updates have to be performed. Let us start with the transition outgoing the
+stateq0, the update of x1is delayed but memorized in the state ` q+
+2;x1:= 2'.
+The transition outgoing from this state corresponds to the transition outgoing
+fromq2but in the guard the occurrence of x1has been substituted by 2. With
+this transformation, the update becomes x2:= 5 but since we are at level 3,
+this update is memorized in state ` q+
+3;x1:= 2;x2:= 5'. The transition from q3
+at level 3 to q5at level 2 is split in two transitions in the simulating PolITA .
+First we enter state ` q
+5;x1:= 2;x2:= 5' at level 2 where the active clock is
+an auxiliary clock of level 2, y2. Then in null time due to the guard we perform
+the delayed update of x2, still memorizing the update of x1and enter the state
+`q+
+5;x1:= 2'.
+6 Conclusion
+We extend Interrupt Timed Automata with polynomial expressions on clocks,
+and prove that reachability and model checking of some timed temporal logic
+
+--- Page 52 ---
+q0;2
+q1;2q2;3 q3;3q4;3
+q5;2x1:= 2 2x2+x1>3^x3<2
+x2:= 2x1+ 1x2:=x1+ 1
+x3:= 2x2
+x1:= 1
+Fig. 10. APolITA containing extended updates of clocks
+q+
+0;2q+
+2;3
+x1:= 2q+
+3;3
+x1:= 2
+x2:= 5q+
+4;3
+x1:= 2
+x2:= 3
+q+
+5;2
+x1:= 1q
+5;2
+x1:= 1
+x2:= 5
+q
+5;2
+x1:= 1
+x2:= 2x1+ 1
+q+
+3;3
+x2:= 2x1+ 1q+
+2;3 q+
+1;2q+
+4;3
+x2:=x1+ 12x2+ 2>3
+^x3<2 x3:= 10
+y2= 0;";x 2:= 5
+2x2+x1>3
+^x3<2 x3:= 4x1+ 2y2= 0;";x 2:=x1+ 1
+Fig. 11. APolITA equivalent to the PolITA of Figure 10
+are decidable using the cylindrical decomposition. We also show that an on-
+the-y construction of a class automaton is possible during the lifting phase of
+this decomposition. We establish that PolITA andSWA are incomparable and
+provide some additional interesting features to the model. In order to experi-
+ment the practical complexity of the decision procedures, an implementation is
+in progress. Since the current construction still requires the full complexity of
+the cylindrical decomposition, we plan for future work to investigate if recent
+methods [14,19] with a lower complexity could be used to achieve reachability,
+possibly for a restricted version of PolITA .
+References
+1. Alur, R., Courcoubetis, C., Dill, D.L.: Model-checking in dense real-time. Informa-
+tion and Computation 104, 2{34 (1993)
+
+--- Page 53 ---
+2. Alur, R., Courcoubetis, C., Halbwachs, N., Henzinger, T.A., Ho, P.H., Nicollin,
+X., Olivero, A., Sifakis, J., Yovine, S.: The algorithmic analysis of hybrid systems.
+TCS 138, 3{34 (1995)
+3. Alur, R., Dill, D.L.: A theory of timed automata. TCS 126, 183{235 (1994)
+4. Alur, R., Henzinger, T.A., Laerriere, G., Pappas, G.J.: Discrete abstractions of
+hybrid systems. Proceedings of the IEEE 88(7), 971{984 (2000)
+5. Asarin, E., Maler, O., Pnueli, A.: Reachability analysis of dynamical systems hav-
+ing piecewise-constant derivatives. TCS 138(1), 35{65 (1995)
+6. Basu, S., Pollack, R., Roy, M.F.: Algorithms in Real Algebraic Geometry. Springer
+(2006)
+7. Ben-Or, M., Kozen, D., Reif, J.: The complexity of elementary algebra and ge-
+ometry. In: Proceedings of the Sixteenth Annual ACM Symposium on Theory of
+Computing. pp. 457{464. STOC '84, ACM (1984)
+8. B erard, B., Haddad, S.: Interrupt timed automata. In: Proc. of FoSSaCS'09. LNCS,
+vol. 5504, pp. 197{211. Springer, York, UK (Mar 2009)
+9. B erard, B., Haddad, S., Jovanovi c, A., Lime, D.: Parametric interrupt timed au-
+tomata. In: Proceedings of the 7th Workshop on Reachability Problems in Com-
+putational Models (RP'13). LNCS, vol. 8169, pp. 59{69. Springer (2013)
+10. B erard, B., Haddad, S., Sassolas, M.: Interrupt timed automata: Verication and
+expressiveness. Formal Methods in System Design 40(1), 41{87 (Feb 2012)
+11. Berman, L.: The complexity of logical theories. TCS 11(1), 71 { 77 (1980)
+12. Cassez, F., Larsen, K.G.: The impressive power of stopwatches. In: Proc. of CON-
+CUR'00. LNCS, vol. 1877, pp. 138{152. Springer (Aug 2000)
+13. Collins, G.E.: Quantier elimination for real closed elds by cylindrical algebraic
+decompostion. In: Automata Theory and Formal Languages 2nd GI Conference,
+LNCS, vol. 33, pp. 134{183. Springer Berlin Heidelberg (1975)
+14. Din, M.S.E., Schost, E.: Polar varieties and computation of one point in each con-
+nected component of a smooth real algebraic set. In: Proceedings of International
+Symposium on Symbolic and Algebraic Computation (ISSAC 2003). pp. 224{231.
+ACM (2003)
+15. Emerson, E.A., Halpern, J.Y.: Decision procedures and expressiveness in the tem-
+poral logic of branching time. In: Proc. 14th annual ACM Symp. on Theory of
+Computing (Stoc'82). pp. 169{180. ACM (1982)
+16. Grossman, R., Nerode, A., Ravn, A., Rischel, H. (eds.): Hybrid systems, LNCS,
+vol. 736. Springer (1993)
+17. Henzinger, T.A., Kopke, P.W., Puri, A., Varaiya, P.: What's decidable about hy-
+brid automata? J. Comput. Syst. Sci. 57(1), 94{124 (1998)
+18. Henzinger, T.A., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic model checking for
+real-time systems. Information and Computation 111(2), 193{244 (1994)
+19. Hong, H., Din, M.S.E.: Variant quantier elimination. Journal of Symbolic Com-
+putation 47(7), 883{901 (2012)
+20. Laerriere, G., Pappas, G.J., Sastry, S.: O-minimal hybrid systems. MCSS 13(1),
+1{21 (2000)
+21. Miller, J.S.: Decidability and complexity results for timed automata and semi-linear
+hybrid automata. In: HSCC'00. LNCS, vol. 1790, pp. 296{309. Springer (2000)
+22. Queille, J.P., Sifakis, J.: Specication and verication of concurrent systems in
+CESAR. In: Proceedings of the 5th International Symposium on Programming.
+LNCS, vol. 137, pp. 337{351. Springer-Verlag, London, UK (1982)
+23. Tarski, A.: A decision method for elementary algebra and geometry. RAND Cor-
+poration, Santa Monica, Calif. (1948)

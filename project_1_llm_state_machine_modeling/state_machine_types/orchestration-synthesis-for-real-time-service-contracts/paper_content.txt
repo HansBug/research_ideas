@@ -1,0 +1,801 @@
+--- Page 1 ---
+Orchestration Synthesis for
+Real-time Service Contracts
+Davide Basile1;2, Maurice H. ter Beek2,
+Axel Legay3, and Louis-Marie Traonouez3
+1University of Florence, Italy
+2ISTI–CNR, Pisa, Italy
+{davide.basile,maurice.terbeek}@isti.cnr.it
+3Inria Rennes, France
+{axel.legay,louis-marie.traonouez}@inria.fr
+Abstract. Servicecontractsoﬀerawaytodeﬁnethedesiredbehavioural
+complianceofacompositionofservices,characterisedbythefulﬁlmentof
+all requirements (e.g. service requests) by obligations (e.g. service oﬀers).
+Dependingontheirgranularity,requirementsmayvaryaccordingtotheir
+criticality and contain real-time aspects (e.g. service expiration time).
+Synthesis of safe orchestrations, the standard method to reﬁne spurious
+compositions into compliant ones, is of paramount importance. Ideally,
+safe orchestrations solve competition among matching requests/oﬀers,
+respecting criticalities and time constraints, in the best possible way.
+Thecontributionofthispaperis(i)theintroductionoftimedservicecon-
+tract automata, a novel formalisation of service contracts with (ii) real-
+timeconstraintsand(iii)servicerequestswithvaryinglevelsofcriticality,
+andameanstocomputetheir(iv)compositionand(v)safeorchestration.
+Orchestration is based on the synthesis of the most permissive controller
+from supervisory control theory, computed using the concept of zones
+from timed games. An intuitive example illustrates the contribution.
+1 Introduction
+Service computing is concerned with the creation, publication, discovery and
+orchestration of services [1]. A typical application is an orchestration of services
+createdandpublishedbydiﬀerentorganisationsthataredynamicallydiscovered.
+In the recent Service Computing Manifesto [2], service design is listed as one of
+the four emerging research challenges in service computing for the next 10years.
+Formal models of service contracts are surveyed in [3]. These oﬀer speciﬁca-
+tion frameworks to formalise the externally observable behaviour of services in
+terms of obligations (i.e. oﬀers) and requirements (i.e. requests) to be matched.
+Contracts that are fulﬁlled characterise agreement among services as an orches-
+tration(i.e. composition) based on the satisfaction of all requirements through
+obligations. Orchestrations must be able to dynamically adapt to the discovery
+of new services, to service updates and to services that are no longer available [4].
+In this paper, we include notions of time in one such model, viz. (service) con-
+tract automata [5]. Such an automaton represents either a single service (called
+
+--- Page 2 ---
+a principal) or a multi-party composition of services. The goal of each principal
+is to reach an accepting (ﬁnal) state by matching its requests with corresponding
+oﬀers of other principals. The underlying composition mechanism is orchestra-
+tion. Service interactions are implicitly controlled by an orchestrator synthesised
+from the principals, which directs them in such a way that only ﬁnite executions
+in agreement actually happen. The (veriﬁable) notion of agreement characterises
+safe executions of services (i.e. all requests are matched by corresponding oﬀers).
+In [6], service contract automata were equipped with modalities distinguish-
+ingnecessary andpermitted requests to mimick the uncontrollable and control-
+lable actions, respectively, as known from Supervisory Control Theory (SCT) [7].
+Contribution. We introduce timed service contract automata (TSCA) by en-
+dowing service contract automata with real-time constraints . TSCA also allow
+to specify diﬀerent types of necessary requests, called urgent,greedyandlazy,
+with decreasing levels of criticality as in [8], which are key aspects to ensure that
+certain necessary requests must alwaysbe satisﬁed (e.g. in each possible context)
+while others must eventually be satisﬁed (e.g. in speciﬁc contexts). To handle
+this in a synthesis algorithm for TSCA, a notion of semi-controllability is used,
+which encompasses both the notion of controllability and that of uncontrollabil-
+ity as used in classical synthesis algorithms from SCT. Our synthesis algorithm
+mixes and extends techniques from SCT with notions from timed games [9,10].
+ATSCAorchestrationthussolvesmulti-partycompetitionsonserviceactions
+andontheassociatedtimingconstraints,anaturalscenarioinservicecomputing.
+Moreover, TSCA oﬀer a lot of ﬂexibility in the design of service systems through
+diﬀerent levels of critical requests and, in particular, by allowing to indicate
+those service oﬀers and requests that can possibly be (temporarily) ignored in
+an orchestration to avoid it becoming unsafe. This neatly delimits the fragments
+(i.e. executions) of service compositions allowed in safe orchestrations (cf. Fig. 4
+discussed in Sect. 4). By changing the timing constraints or criticality levels,
+designers can ﬁne-tune such fragments according to their speciﬁc needs.
+We summarise our contribution: (i) we introduce TSCA, a new formalisation
+of service contracts with (ii) real-time constraints and (iii) service requests with
+varying criticality levels, and a means to compute TSCA (iv) composition and
+(v) safe orchestration. We are not aware of other formalisms for service contracts
+or component-based software engineering with native support for these features.
+We illustrate its functioning with a TSCA model of a Hotel reservation system.
+Related Work. Formalismsforservicecontractsandsessiontypesaresurveyed
+in[11]:allofthem lackanexplicitnotionoftime anddiﬀerentlevels ofcriticality.
+Component-based formalisms like Interface automata [12] and(timed) (I/O)
+automata [13–15] cannot model contracts that compete for the same service oﬀer
+orrequest,akeyfeatureofTSCA,andalsodonotallowdiﬀerentcriticalitylevels.
+Modal I/O automata [16] distinguish may and must modalities, thus admitting
+some actions to be more critical than others, but the other diﬀerences remain.
+The accidentally homonym contract automata of [17] were introduced to model
+genericnaturallanguagelegalcontractsbetweentwoparties:theyarenotcompo-
+sitional and do not focus on synthesising orchestrations of services in agreement.
+
+--- Page 3 ---
+Finally, the synthesis algorithm for TSCA (introduced in Sect. 3) resembles
+atimed game , but diﬀers from classical timed game algorithms [9,10]: it solves
+both reachability and safety problems, and a TSCA might be such that all
+‘bad’ conﬁgurations are unreachable (i.e. it is safe), while at the same time no
+ﬁnal conﬁguration is reachable (i.e. the resulting orchestration is empty). TSCA
+strategies are deﬁned as relations: the orchestration is the maximal winning
+strategy, which is computable since only ﬁnite traces are allowed [18] and all
+services terminate by deﬁnition. The orchestrator enforces only fair executions.
+2 Modelling Real-time Service Contracts
+Contractautomatawereintroducedtodescribeandcomposeservicecontracts[5].
+A contract automaton represents the behaviour of a set of principals (possibly a
+singleton) which can either request, oﬀer or match services (a match is a pair of
+complementary request-oﬀer services) or remain idle. The number of principals
+in a contract automaton is called its rank. The states and actions labelling the
+transitions of a contract automaton (of rank n) are vectors (of rank n) over the
+states of its principals and over the actions that each performs, respectively.
+Notation. The complement of a ﬁnite set Sis denoted by S; the empty set by
+?. For a vector v= (e1;:::;en)ofrankn1, denoted by rv, itsith element is
+denoted v(i),1irv. Concatenation of mvectors viis denoted by v1vm.
+The set of basic actions of a contract automaton is deﬁned as =R[O[fg,
+where R=fa;b;:::gis the set of requests,O=fa;b;:::gis the set of oﬀers,
+R\O=?, and62R[Ois a distinguished element representing an idlemove.
+We deﬁne the involution co() :7!s.t.co(R) =O,co(O) =Randco() =.
+We stipulate that in an action vector aoverthere is either a single oﬀer
+or a single request, or a single pair of request-oﬀer that matches, i.e. there exist
+i;jsuch that a(i)is an oﬀer and a(j)is the complementary request or vice versa;
+all the other entries of acontain the symbol (meaning that the corresponding
+principals remain idle). Let mdenote a vector (;:::;)of rankm.
+Deﬁnition 1 (Actions). Letabe an action vector over . Letn1;n2;n30.
+Ifa=n1n2, then ais arequest (action) on if2R, whereas ais an
+oﬀer (action) on if2O.
+Ifa=n1n2co()n3, then ais amatch (action) on , with2R[O.
+Actions aandbarecomplementary , denoted by a1b, iﬀ the following holds:
+(i)92R[Os.t.ais either a request or oﬀer on ; (ii) ais an oﬀer on implies
+bis a request on co(); (iii) ais a request on implies bis an oﬀer on co().
+In [6], the contract automata of [5] were equipped with action variability via
+necessary (2) andpermitted (3) modalities that can be used to classify requests
+(and matches), while all oﬀers are by deﬁnition permitted. Permitted requests
+and oﬀers reﬂect optional behaviour and can thus be discarded in compositions.
+Table 1: Classiﬁcation of (basic) actions of timed service contract automata
+permitted permitted necessary requests
+oﬀers requests lazygreedy urgent
+a a3a2`a2ga2u
+
+--- Page 4 ---
+2.1 Timed Service Contract Automata
+In this paper, the set of necessary requests of the service contract automata of [6]
+ispartitionedin urgent,greedyandlazyrequestsasin[8].Thesemustbematched
+to reach agreement, thus adding a layer of ‘timed’ variability: a means to specify
+‘when’ certain (service) requests must be matched in a composition (contract).
+Table 1 depicts the diﬀerent types of actions considered in this paper.
+We borrow notation concerning clocks from[10]. Let Xbe a ﬁnite set of real-
+valuedvariablescalledclocks.Let C(X)denotethesetofconstraints 'generated
+by the grammar '::=xkjxykj'^', wherek2Z,x;y2Xand2
+f<;;=;>;g. LetB(X)denote the subset of C(X)that uses only rectangular
+constraints of the form xk. For simplicity, we consider only such constraints.
+Avaluation of the variables in Xis a mapping X7!R0. Let 0denote the
+valuation that assigns 0to each clock. For YX, letv[Y]denote the valuation
+assigning 0for anyx2Yandv(x)for anyx2XnY. Letv+for2R0
+denote the valuation s.t. for all x2X,(v+)(x) =v(x) +. Forg2C(X)
+andv2RX
+0, we writevj=gifvsatisﬁesgand[g]denotes the set of valuations
+fv2RX
+0jvj=gg:Azone Zis a subset of RX
+0s.t.[g] =Zfor someg2C(X).
+Deﬁnition 2 (TSCA). Atimed service contract automaton A(TSCA for
+short) of rank n1is a tuplehQ;q0;A3;A2u;A2g;A2`;Ao;X;T;Fi, in which
+–Q=Q1Qnis the product of ﬁnite sets of states
+–q02Qis the initial state
+–A3;A2u;A2g;A2`Rare (pairwise disjoint) sets of permitted, urgent,
+greedy and lazy requests, respectively, and we denote the set of requests by
+Ar=A3[A2, whereA2=A2u[A2g[A2`
+–AoOis the ﬁnite set of oﬀers
+–Xis a ﬁnite set of real-valued clocks
+–TQB(X)A2XQ, whereA= (Ar[Ao[fg )n, is the set of tran-
+sitions partitioned into permitted transitions T3andnecessary transitions
+T2withT=T3[T2s.t., givent= (q;g;a;Y;q0)2T, the following holds:
+-ais either a request or an oﬀer or a match
+-8i21:::n :a(i)=implies q(i)=q0
+(i)
+-t2T3iﬀais either a request or a match on a2A3or an oﬀer on
+a2Ao; otherwise t2T2
+–FQis the set of ﬁnal states
+Aprincipal TSCA (or just principal ) has rank 1 and Ar\co(Ao) =?.
+For brevity, unless stated diﬀerently, in the sequel we assume a ﬁxed TSCA
+A=hQA;q0A;A3
+A;A2u
+A;A2g
+A;A2`
+A;Ao
+A;XA;TA;FAiof rankn. SubscriptAmay
+be omitted when no confusion can arise. Moreover, if not stated otherwise, each
+operationop(Ar)(e.g. union) is intended to be performed homomorphically on
+op(A3),op(A2),op(A2u),op(A2g)andop(A2`). Finally, abusing notation, we
+may writeT3[2as shorthand for T3[T2and likewise for other transition sets,
+and we may write a transition tas a request, oﬀer or match, if its label is such.
+
+--- Page 5 ---
+qH0 qH1 qH2y50
+discount
+y 0
+room
+y 0y5
+card3
+y 0
+y5
+receipt
+y 0y4
+cash3
+y 0
+(a)HotelqD0 qD1
+qD2 qD3discount2`card
+receipt3
+(b)DiscountClient
+Fig.1: TSCA: (a) hotel booking system; (b) discount client
+Pictorially,oﬀeractionsareoverlinedwhilerequestactionsarenot.Moreover,
+permitted actions label dotted transitions and are suﬃxed by 3, whereas urgent,
+greedy and lazy necessary actions label red, orange and green transitions and
+are suﬃxed by 2u,2gand2`, respectively (cf. Table 1).4
+Example 1. Fig. 1 shows two TSCA. The one in Fig. 1a depicts a hotel booking
+system oﬀering two room types (normal and discount) and requests payment
+from clients. The discount room is only available upon waiting at least 50 time
+units (t.u. for short). Then the hotel requests payment, either in cash (which
+takes at least 4 t.u.) or by card (at least 5 t.u.). In the latter case only, the hotel
+oﬀers a receipt after at least 5 t.u. The TSCA in Fig. 1b depicts a hotel client,
+who requests a discount room, oﬀers to pay by card and requests a receipt.
+2.2 Semantics
+A TSCA recognises a trace language over actions and their modalities. Let A
+be a TSCA and let #2f3;2u;2g;2`g. From now on we use #as placeholder
+for necessary ( 2) and permitted ( 3) transitions. A conﬁguration of a TSCA is
+a tuple (w;q;v)2(A[f#g)QRX
+0consisting of a recognised trace, a state
+and a valuation of clocks. Recognised traces are such that from a conﬁguration
+(w;q;v), a TSCA either lets time progress or performs a discrete step to reach a
+new conﬁguration. This is formally deﬁned by the transition relation !by which
+a step (w;q;v)a#!(w0;q0;v0)is ﬁred iﬀw=a#w0and(q;g;a;Y;q0)2T#,
+wherevj=gandv0=v[Y]or else, for some 0, we have (w;q;v) !(w;q;v0)if
+v0=v+. Time progress is a silent action in languages recognised by TSCA.
+The semantics of a TSCA Ais a labelled transition system TSA= (C;c0;!),
+where C=(A[f#g)QRX
+0is the set of conﬁgurations, c0=(w;q0;0)is the
+initial conﬁguration, for some w2(A[f#g), and the set of transition labels is
+(Af#g)[R0. ArunofAis a sequence of alternating time and discrete tran-
+sitions in TSA. Note that the traces recognised by TSCA languages are ﬁnite.
+By an abuse of notation, modalities can be attached to basic actions or to
+their action vector (e.g. (a2`;a)(a;a)2`). We may write (q;v)wheneverwis
+immaterial, (q;v)a#!whenever (q0;v0)is immaterial and (w;q;v)!(w0;q0;v0)
+whenever a#orare immaterial. Let !denote the reﬂexive and transitive
+closure of!. The language of AisL(A) =fwj(w;q0;0) !(";q;v);q2Fg.
+4In this paper, there are no examples of greedy necessary actions.
+
+--- Page 6 ---
+Behavioural analysis is based on exploring a (ﬁnite) simulation graph , whose
+nodes are symbolic conﬁgurations , deﬁned as pairs (q;Z), where q2QandZ
+is a zone of RX
+0. LetCCbe a set of conﬁgurations and let a2A. Then we
+deﬁne the a-successor of XbyPostA;a(C) =fc0j9c2C:ca!c0gand the
+a-predecessor PredA;a(C) =fcj9c02C:ca!c0g. We moreover deﬁne the
+match/oﬀer predecessor asmoPredA(C) =S
+amatchoroﬀerPredA;a(C).
+The timed successors and timed predecessors of Care deﬁned by C%=
+f(q;v+)j(q;v)2C; 2R0gandC.=f(q;v)j(q;v)2C; 2R0g,
+respectively. Let!be the transition relation deﬁned on symbolic conﬁgurations
+by(q;Z)a#!(q0;Z0)if(q;g;a;Y;q0)2T#andZ0= ((Z\[g])[Y])%.
+2.3 Composition
+A set of TSCA is composable iﬀ their sets of clocks are pairwise disjoint.
+Deﬁnition 3 (Composable TSCA). A setfAiji21:::ngof TSCA is said
+to becomposable iﬀ8Xi;Xj;i6=j:Xi\Xj=?.
+The operands of the composition operator are either principals or composite
+services. Intuitively, a composition interleaves the actions of all operands, with
+only one restriction: if two operands are ready to execute two complementary
+actions, then only their match is allowed wheras their interleaving is prevented.
+The formal deﬁnition precedes an intuitive explanation. Recall from Deﬁnition 2
+thatthesetofactionsis A(Ar[Ao[fg )m.Alsorecallthatweset #2f3;2g.
+Deﬁnition 4 (Composition). LetAibe composable TSCA of rank ri,i2
+1:::n.ThecompositionN
+i21:::nAiistheTSCAAofrankm=P
+i21:::nri,where
+–Q=Q1Qn, with q0=q01q0n
+–Ar=S
+i21:::nAr
+i,Ao=S
+i21:::nAo
+i,X=S
+i21:::nXi
+–T#QB(X)A2XQs.t.(q;g;a;Y;q0)2T#iﬀ, when q=
+q1qn2Q, either case (1) or case (2) holds:
+1.9i;j;1i<jn, s.t. (qi;gi;ai;Yi;q0
+i)2T#
+i,
+(qj;gj;aj;Yj;q0
+j)2T#[3
+j,ai1ajholds, and8
+<
+:a=uaivajz;withu=r1++ri1; v=ri+1++rj1;
+z=rj+1++rn;jaj=m; g =gi^gj; Y=Yi[Yj;
+andq0=q1qi1q0
+iqi+1qj1q0
+jqj+1qnor8
+<
+:k;k02fi;jg; k6=k0; g=gk^:gk0; Y=Yk;
+a=uakv;withu=r1++rk1; v=rk+1++rn;jaj=m;
+andq0=q1qi1q0
+iqi+1qn
+2.9i;1in, s.t. (qi;gi;ai;Yi;q0
+i)2T#
+iand8j6=i;1jn;
+s.t.(qj;gj;aj;Yj;q0
+j)2T#[3
+j;ai1ajdoes not hold, anda=uaiv;withu=r1++ri1; v=ri+1++rn;jaj=m;
+g=gi; Y=Yi;andq0=q1qi1q0
+iqi+1qn
+–F=fq1qn2Qjqi2Fi; i21:::ng
+
+--- Page 7 ---
+qH0
+qD0qH0
+qD1
+qH1
+qD0qH1
+qD1qH2
+qD2qH1
+qD2
+qH0
+qD3qH2
+qD3
+y50
+(discount;discount )2`
+y 0y<50
+(;discount )2`
+(room;)3
+y 0y5
+(card;card)3
+y 0y4
+(cash;)3
+y 0y<3
+(;card)3
+y5
+(receipt;receipt )3
+y 0y<5
+(;receipt )3
+Fig.2: Excerpt of composition Hotel
+DiscountClient of the two TSCA in Fig. 1
+The composition of (untimed) contract automata has been carefully revisited in
+Deﬁnition 4. Case (1) generates match transitions starting from complementary
+actions of two operands’ transitions, say ai1aj. If(qj;gj;aj;Yj;q0
+j)2T2, then
+theresultingmatchtransitionismarkednecessary(i.e. (q;g;a;Y;q0)2T2),with
+g=gi^gjthe conjunction of the guards. If both aiandajare permitted, then
+so is their resulting match transition t. All principals not involved in tremain
+idle. In case ai1ajas before, but only one guard (i.e. either giorgj) is satisﬁed,
+then only the interleaving is possible and guard g=gk^:gk0requires the guard
+of principal k(eithergiorgj) to be satisﬁed and that of principal k06=knot.
+Case (2) generates all interleaved transitions if no complementary actions can
+be executed from the composed source state (i.e. q). Now one operand executes
+its transition t= (qi;gi;ai;Yi;q0
+i)and all others remain idle: only the guard
+of principal imust be satisﬁed. The resulting transition is marked necessary
+(permitted) only if tis necessary (permitted, respectively). Note that condition
+ai1ajexcludes pre-existing match transitions of the operands to generate new
+matches.
+Example 2. Fig. 2 shows excerpts of the TSCA composition of the hotel and
+client TSCA of Fig. 1. The more relevant part is depicted, viz. whose semantics
+is an orchestration (from initial to ﬁnal state). Note that request discount2`can
+either be matched with the oﬀer discount ify50or not matched if y<50.
+2.4 Controllability
+We now discuss the diﬀerent types of actions of TSCA (cf. Table 1) in light of
+the orchestration synthesis algorithm we will present in Sect. 3. To begin with,
+we deﬁne dangling conﬁgurations, i.e. those that are either not reachable or
+from which no ﬁnal state can be reached (i.e. not successful). The orchestration
+synthesis will be speciﬁed as a safety game, in which reachability of ﬁnal states is
+satisﬁed through the dangling predicate. The deﬁnition makes use of a set Cof
+‘bad’ conﬁgurations that are not to be traversed. Recall that Ais a ﬁxed TSCA.
+Deﬁnition 5 (Dangling conﬁguration). LetA,CCandc= (q;v)2C.
+We say that cisreachable inAgivenC, denoted as c2ReachableA(C), iﬀ
+(q0;0)w !cwithout traversing conﬁgurations (qr;vr)2C
+We say that cissuccessful inAgivenC, denoted as c2SuccessfulA(C), iﬀ
+cw !(qf;v0)2Fwithout traversing conﬁgurations (qr;vr)2C
+
+--- Page 8 ---
+Theset of danglingconﬁgurations inAgivenCisdeﬁned asDanglingA(C) =
+ReachableA(C)\SuccessfulA(C)
+In the sequel, abusing notation, we simply say that a state q2Qisdangling
+(inAgivenC), denoted by q2DanglingA(C), iﬀ(q;v)2DanglingA(C)for all
+possible evaluations v. Moreover, we set Dangling (A) =DanglingA(?).
+Orchestration synthesis for (service) contract automata resembles that of
+the most permissive controller from SCT; in fact, [6] provided a correspondence
+between controllable /uncontrollable actions from SCT and permitted/necessary
+requests of contract automata. Intuitively, the aim of SCT is to synthesise a most
+permissive controller enforcing ‘good’ computations, i.e. runs reaching a ﬁnal
+state without traversing any given forbidden state. To do so, SCT distinguishes
+controllable events (those the controller can disable) from uncontrollable events
+(those always enabled). Ideally, actions ruining a so-called safe orchestration
+of service contracts (a notion formally deﬁned in Sect. 3, resembling a most
+permissive controller) should be removed by the synthesis algorithm. However,
+this can only be done for actions that are controllable in the orchestration.
+We now characterise when a TSCA action (and the transition it labels) is
+(un)controllable. We also deﬁne ‘when’ a necessary request can be matched,
+stemming from the composition of TSCA (interleavings in Deﬁnition 4). Indeed,
+in TSCA it is possible to require that a necessary action (either a request or a
+match) must be matched in every possible conﬁguration of the orchestration. It
+is also possible to require that a necessary action must be matched in at least
+one conﬁguration from which it is ﬁred. In the latter situation, it is possible
+to safely remove those requests (or matches) from the orchestration, as long as
+they appear as part of a match in some other transition of the orchestration.
+Suchnecessaryactionsarecalled semi-controllable ,basicallyacontrollableaction
+becomes uncontrollable in case all possible matches are removed, but not vice
+versa. Table 2 summarises the controllability of requests and matches of TSCA.
+Recall that all oﬀers are permitted. All permitted actions (oﬀers, requests
+and matches) are fully controllable. Necessary actions ( urgent,greedyandlazy
+requests) have an increasing degree of (semi-)controllability. An urgent request
+mustbematchedineverypossiblestateinwhichitcanbeexecuted.Accordingly,
+urgent requests and urgent matches are uncontrollable. A greedy request can be
+disabled by the controller as long as it is matched elsewhere; once it is matched,
+it can no longer be disabled. In this case, greedy requests are semi-controllable
+while greedy matches are uncontrollable. Finally, a lazy action only requires to
+be matched: its matches are controllable in the orchestration, provided at least
+one match is available (i.e. lazy requests and lazy matches are semi-controllable).
+Table 2: Controllability of request actions and match actions
+action requests matches
+urgent 2u uncontrollable uncontrollable
+greedy 2gsemi-controllable uncontrollable
+lazy2` semi-controllable semi-controllable
+permitted 3 controllable controllable
+
+--- Page 9 ---
+In the rest of this section, we characterise semi-controllability of transitions
+(cf. Deﬁnition 6). Since we deal with real-time systems, this notion is deﬁned on
+conﬁgurations. Note from Table 2 that permitted actions are always controllable,
+while urgent actions are always uncontrollable.
+A semi-controllable transition tis either a (greedy or lazy) request or a lazy
+match, and it is controllable in TSCA AgivenCif there exists a (greedy or lazy)
+match transition t0inA, which is reachable given C, and in both tandt0the
+same principal, in the same local state, does the same request, and additionally
+the target conﬁguration is successful given C. Otherwise, tis uncontrollable.
+Deﬁnition 6 (Semi-controllable transition). LetAbe a TSCA, let CC
+and lett= (q1;g1;a1;Y1;q0
+1)be a transition of A. Thentissemi-controllable
+if it is a request on a2A2g[A2`or a match on a2A2`.
+At the same time, tis either controllable or uncontrollable in AgivenC.
+We say that tiscontrollable inAgivenCif9t0= (q2;g2;a2;Y2;q0
+2)2T2,
+s.t.a2isa match,9vs.t.(q2;v)2ReachableA(C),(q0
+2;v0)2PostA;a2((q2;v)%),
+(q0
+2;v0)2SuccessfulA(C),q1(i)=q2(i)anda1(i)=a2(i)2R\(A2g[A2`);
+otherwisetisuncontrollable inAgivenC.
+In Deﬁnition 6, it does not suﬃce to require q2orq0
+2to be inDanglingA(C):
+it could be the case that q0
+2is only reachable from a trace not passing through
+transitiont0, while q2only reaches a ﬁnal conﬁguration through a trace not
+traversingt0. Hence, we need to require that for some v,(q2;v)is reachable, and
+(q0
+2;v0)is a (timed) successor of (q2;v)that reaches a ﬁnal conﬁguration.
+Example 3. In Fig. 2, all transitions are permitted, except for the lazy discount
+actions. The transition (;discount )2`is thus a controllable lazy request, as the
+samerequestof DiscountClient ismatchedinthetransition (discount;discount )2`.
+In the resulting orchestration (cf. Sect. 4) this will be the only match available
+for such a necessary action.
+We call a transition uncontrollable if one of the above cases holds (i.e. urgent or
+greedymatch,uncontrollablegreedyorlazyrequestoruncontrollablelazymatch).
+3 Orchestration Synthesis
+In this section, we deﬁne synthesis of safe orchestrations of TSCA, considering
+bothtimingconstraintsandservicerequestswithdiﬀerentlevelsofcriticality.We
+carefully adapt the synthesis algorithm for (modal) service contract automata
+deﬁned in [6], which was based on the synthesis of the most permissive controller
+from SCT. To respect the timing constraints, the synthesis algorithm of TSCA
+presented below is computed using the notion of zones from timed games [9,10].
+The algorithm we will propose diﬀers from the ones presented in [9,10] by
+combining two separate games, viz. reachability games and safetygames. Indeed,
+as said before, the orchestration synthesis of TSCA is based on the synthesis
+of themost permissive controller from SCT, which ensures that (i) forbidden
+states are never traversed (a.k.a. a safety game) and (ii) marked states must be
+
+--- Page 10 ---
+reachable (a.k.a. a reachability game). In the TSCA framework, marked states
+are the ﬁnal states of the composition of contracts, whereas bad states are those
+states that spoil an agreement among contracts (cf. Deﬁnitions 7 and 9 below).
+We recall (modal) agreement andsafetyon languages of service contract au-
+tomata [6]. Intuitively, a trace is in agreement if it is a concatenation of matches,
+oﬀers and their modalities, while a TSCA is safe if all traces of its language are
+in agreement, and it admits agreement if at least one of its traces is.
+Deﬁnition 7 (Agreement, safety). LetAbe a TSCA. A trace accepted by A
+is inagreement if it belongs to the set
+A=fw2(n#)j8is.t.w(i)=a#;ais a match or an oﬀer ; n> 1g
+AissafeifL(A)A; elseunsafe. IfL(A)\A6=?, thenAadmits agreement .
+Basically, an orchestration of TSCA enables the largest sub-portion of a com-
+position of TSCA that is safe. Given the timed setting, the orchestration must
+consider clock evaluations for each contract. Hence, the underlying transition
+system of a TSCA is inspected by the synthesis algorithm. The orchestration
+will be rendered as a strategy on this transition system such that only traces in
+agreement are enforced. We start by introducing the notion of strategy on TSCA
+and that of a well-formed strategy: a strategy avoiding dangling conﬁgurations.
+Deﬁnition 8 (Strategy). LetAbe a TSCA. A strategyfis a relation deﬁned
+asf: (nf#g[RX
+0)(nf#g[RX
+0)mapping traces to actions or delays
+s.t. given (q0;0)w !(q;v), then (q;v) !(q0;v0), for some2f(w),(q0;v0)2C.
+Furthermore, fiswell-formed givenCCif never (q0;v0)2DanglingA(C).
+The language recognised by Afollowing the strategy fis denoted by Lf(A)and
+fCdenotes the strategy allowing to traverse all and only conﬁgurations in C.
+We discuss further diﬀerences compared to timed games. A TSCA game can
+be seen as a 2-player game. A controller (i.e. orchestrator) ﬁres controllable tran-
+sitions to enforce agreement among contracts. An opponent ﬁres uncontrollable
+transitions to drive the orchestrator to some ‘bad’ conﬁguration, from which an
+agreement can no longer be enforced (cf. Deﬁnition 9). The opponent has prece-
+dence over the orchestrator, as long as its uncontrollable transitions are enabled
+(i.e. satisﬁed clock guards). Finally, fairness of TSCA guarantees that a ﬁnal
+state is eventually reached, as traces recognised by TSCA languages are ﬁnite.
+In timed games, strategies cannot prevent uncontrollable transitions from
+beingﬁred.Thisfollowsfromthenotionof outcome ofastrategy,whichisusedto
+characterise winning strategies. In TSCA, winning strategies are deﬁned as those
+avoiding ‘bad’ conﬁgurations while at the same time enforcing agreement among
+contracts. Next we will formally deﬁne bad conﬁgurations, i.e. conﬁgurations in
+uncontrollable disagreement . Basically, a conﬁguration is in uncontrollable dis-
+agreement if the orchestrator cannot prevent a request of a principal from being
+ﬁred without a corresponding oﬀer (i.e. no match). In such conﬁgurations, the
+controller loses: the orchestration is unsafe. Note that the opponent can only win
+by reaching one such conﬁguration. Indeed, unfair traces are ruled out in TSCA.
+
+--- Page 11 ---
+Deﬁnition 9 (Conﬁguration in uncontrollable disagreement). LetAbe
+a TSCA and let CC. A transition t=qa !2TAisforcedin a conﬁguration
+(q;v)givenCiﬀ(q;v)a !and (i)tis uncontrollable in AgivenCor (ii) q62F
+and no other t0=qa0!2TAis s.t. (q;v) !(q;v0)a0!for some delay .
+A conﬁguration (q;v1)62DanglingA(C)is inuncontrollable disagreement in
+AgivenCiﬀ(q;v1)w !(q1;v2)s.t. only timed or forced transitions are enabled
+and either (i) w62Aor (ii) some conﬁguration in Cwas traversed or (iii) @w02
+As.t.(q1;v2)w0!(qf;v3)with qf2FAwithout traversing conﬁgurations in C.
+A safe orchestration of TSCA can be interpreted as a winning strategy in
+terms of timed games, and it is deﬁned below. Basically, a winning strategy en-
+forces agreement among contracts: no bad conﬁgurations will ever be traversed.
+Deﬁnition 10 (Winning strategy). LetAbe a TSCA, fbe a strategy given
+CCandUits set of conﬁgurations in uncontrollable disagreement in Agiven
+C. Thenfis awinning strategy givenCif it is well-formed given C, it never
+traverses conﬁgurations in UandLf(A)A. A winning strategy fgivenCis
+maximal if there is no winning strategy f0givenCs.t.Lf(A)Lf0(A).
+Before deﬁning the synthesis of a safe orchestration, we introduce some useful
+notions. Given a set of conﬁgurations CCof a TSCAA, theuncontrollable
+predecessor predicate uPredA(C)isdeﬁnedasallconﬁgurationsfromwhichsome
+conﬁguration in Cis reachable by ﬁring an uncontrollable transition. Formally:
+uPredA(C) =fcj9c02C; ca2!c0uncontrollable in AgivenCg
+We borrow the notion of safe timed predecessor of a setC1Cwith respect
+to a setC2Cfrom [10]. Intuitively, a conﬁguration cis inPredA;t(C1;C2)if
+fromcit is possible to reach a conﬁguration c02C1by time elapsing and the
+trace fromctoc0avoids conﬁgurations in C2. Formally:
+PredA;t(C1;C2) =fc2Cj92R0s.t.c !c0; c02C1andPostA;[0;](c)C2g;
+wherePostA;[0;](c) =fc02Cj9t2[0;]s.t.ct !c0gandC2=CnC2
+We can now specify the synthesis of a safe orchestration of TSCA. Let ^Adenote
+the TSCA obtained from Aby replacing TAwithT^A=ft=qa!jt2TAand
+(#6=3_anot request )g, i.e. all permitted requests are pruned from A.
+Deﬁnition 11 (Safe orchestration synthesis). LetAbe a TSCA and let
+: 2C!2Cbe a monotone function on the cpo (2C;)s.t.(Ci1) =Ci, where
+C0=fcjc2C; ca2!;auncontrollable request in ^Agiven?gand
+Ci=Pred ^A;t(Ci1[uPred ^A(Ci1);moPred ^A(Ci1))[Dangling ^A(Ci1)[Ci1
+Finally, let C=sup(fn(C0)jn2Ng)be the least ﬁxed point of . Then the
+safe orchestration ofAis the strategy:
+f=?if(q0;0)2C
+fCotherwise
+
+--- Page 12 ---
+Thisdeﬁnitionissuchthatwhenevertheinitialconﬁgurationbelongsto C,then
+the orchestration is empty: no strategy exists to enforce agreement among con-
+tracts while avoiding conﬁgurations in uncontrollable disagreement. Otherwise,
+Cidentiﬁes a winning strategy characterising a safe orchestration of contracts.
+This strategy allows as many transitions as possible without traversing conﬁgu-
+rations in C. The controller can avoid principals reaching bad conﬁgurations in
+C, while guaranteeing all requirements to be satisﬁed. Cmoreover identiﬁes
+the maximal winning strategy, i.e. fallows all controllable match/oﬀer transi-
+tions to conﬁgurations not in C(recallfis not a function). Note that fis
+computable due to ﬁniteness of the symbolic conﬁgurations and monotonicity of
+the ﬁxed-point computation [10]: it is the maximal well-formed winning strategy.
+Theorem 1 (Maximal winning strategy). LetAbe a TSCA and fbe the
+strategy computed through Deﬁnition 11. If f=?, then there exists no well-
+formed winning strategy fgiven C. Otherwise, fis the maximal well-formed
+winning strategy in AgivenC.
+Example 4. Recallthecomposition Hotel
+DiscountClient inFig.2.Wecanapply
+the synthesis algorithm to compute its safe orchestration f. Inf, the request
+transition (;discount2`)is removed because it is controllable (cf. Example 3).
+The language recognised by fis the singleton Lf(Hotel
+DiscountClient ) =
+f(discount;discount )2`(card;card)3(receipt;receipt )3g.
+In [10] (Theorem 4) the computation of PredA;tis reduced to the following
+basic operations on zones: PredA;t(C1;C2) = (C.
+1nC.
+2)[((C1\C.
+2)nC2)..
+Similarly, we now provide procedures for computing the newly introduced sets
+moPredA,uPredAandDanglingAusingbasicoperationsonzones.Togetherthese
+provideaneﬀectiveprocedureforcomputing C(henceasafeorchestration).The
+setmoPredAcan be computed from PredAby only considering discrete steps
+that are not requests. Conversely, both uPredAandDanglingArequire visiting
+the symbolic conﬁgurations of A, and can be computed as follows.
+Theorem 2 (Compute dangling conﬁguration). LetAbe a TSCA, CC
+andbe as in Deﬁnition 11 s.t. (Ci1) =CiandC=sup(fn(C0)jn2Ng).
+1. Thereachableconﬁgurations inAgivenCarecomputed asReachable A(C) =
+C, where C0= (q0;0)%nC%andCi=S
+a(PostA;a(Ci1)%nC%)[Ci1
+2. Thesuccessfulconﬁgurations inAgivenCare computed as SuccessfulA(C)=
+C, where C0=f(qf;v)jqf2FAandv2RXA
+0gnCandCi=
+PredA;t(Ci1[(PredA(Ci1)nC);C)[Ci1
+3. Thedangling conﬁgurations inAgivenCare computed as DanglingA(C) =
+SuccessfulA(C[ReachableA(C))
+Note that the dangling conﬁgurations are eﬃciently computed by combining a
+forward exploration (i.e. reachable conﬁgurations) with a backward exploration
+(i.e. successful conﬁgurations): it is then possible to ignore unreachable suc-
+cessful conﬁgurations. We thus determined an eﬀective procedure to compute
+DanglingA(C)that uses basic operations on zones. Finally, we deﬁne a proce-
+dure for computing the set of uncontrollable predecessors using Theorem 2.
+
+--- Page 13 ---
+Lemma 1 (Compute uncontrollable predecessors). LetAbe a TSCA and
+CC. Then the set of uncontrollable predecessors ofCinAis computed as
+uPredA(C) =fc2Cj9c02C:ca2!c02uncA(C)g;
+whereuncA(C) =f(q;v)a2! j (q;v)2C^(aurgent_agreedy match_
+(@(q2;v)2ReachableA(C);(q0
+2;v0)2SuccessfulA(C):(q0
+2;v0)2PostA;a0(q2;v)%
+^a(i)=a0(i)=a2R^a0match^q(i)=q2(i)))g
+With our results, safe TSCA orchestrations can be implemented using libraries
+for timed games [19,20] with primitive zone operations (i.e. [,\,n,%and.).
+4 Running Example Revisted
+We continue our running example with a PriviledgedClient , depicted in Fig. 3a,
+optionally asking for a discount room via a permitted request, but after 8 t.u.
+(in its initial state) urgently requests a normal room. In orchestration fof
+composition (Hotel
+DiscountClient )
+PriviledgedClient , the discount request of
+DiscountClient could be matched before one of the requests of PriviledgedClient .
+But, this interaction is prevented in f. Let a= (discount;discount; )2`,
+b= (;;room )2u,t1 = ((qH0;qD0;qP0);y50;a; y 0;(qH1;qD1;qP0))
+andt2 = ((qH1;qD1;qP0);x8;b;?;(qH1;qD1;qP1)). Nowt1is not enabled by
+for else we can reach a conﬁguration c2in uncontrollable disagreement via
+c0= 50!c1a !c2= 0!c2b !. Inc2, the uncontrollable transition t2is enabled, but
+urgentrequest bisnotmatched,thusviolatingagreement.Theﬁrsttransitionen-
+abled infis((qH0;qD0;qP0);x8;(room;;room )2u;y 0;(qH1;qD0;qP1)).
+Thus, PriviledgedClient interacts with Hotelprior to DiscountClient , who is
+served successively. This is only possible as both lazy request (;discount )2`and
+lazy match (discount;discount )2`ofHotel
+DiscountClient are semi-controllable
+andaredelayedintheorchestrationof (Hotel
+DiscountClient )
+PriviledgedClient .
+Next consider the TSCA of Figs. 3b–d, variants of the previous contracts:
+BusinessClientU requests urgently a room within 5 t.u., BusinessClientL requests
+lazily a room within 8 t.u, while Hotel2oﬀers only a normal room (no discount).
+qP0 qP1 qP2 qP3discount
+x8
+room2ucard
+x 0x7
+receipt3
+(a)PriviledgedClientqU0 qU1 qU2 qU3xU5
+room2ucard
+xU 0xU7
+receipt3
+cash
+(b)BusinessClientU
+qL0 qL1 qL2 qL3xL8
+room2`card
+xL 0xL7
+receipt3
+cash
+(c)BusinessClientLqH0 qH1 qH2
+room
+y 0y5
+card3
+y 0
+y5
+receipt
+y 0y7
+cash3
+y 0
+(d)Hotel2
+Fig.3: TSCA: (a) priviledged, (b) urgent (c) lazy business clients, (d) hotel2
+
+--- Page 14 ---
+First look at the (Hotel2
+BusinessClientL )
+BusinessClientU orchestration.
+It is empty (i.e. no agreement). In the initial state of Hotel2
+BusinessClientL ,
+the room oﬀer is available only after 8 t.u., otherwise it is matched by Business-
+ClientL’s lazy room request. As BusinessClientU ’s urgent room request must be
+matched within 5 t.u., it cannot be matched prior to BusinessClientL ’s lazy room
+request:aviolation,sotheinitialconﬁgurationisinuncontrollabledisagreement.
+Next look at (Hotel2
+BusinessClientU )
+BusinessClientL ’s orchestration f.
+Part of the behaviour allowed by fis depicted in Fig. 4 in the fragment
+marked with X(in this ﬁgure, a transition is ﬁred as soon as it is enabled).
+Now BusinessClientU performs the transaction with the hotel ﬁrst. In case of
+card payments, the minimum time required to reach state q= (qH0;qU3;qL0)
+is 5+5=10 t.u., with clocks evaluation v= (y= 0;xU= 5;xL= 10). In(q;v)
+(the top leftmost conﬁguration in Fig. 4), the (lazy) necessary room request of
+BusinessClientL can no longer be satisﬁed as it should have been matched within
+8 t.u., so violating agreement. Thus fforbids card payments of BusinessClientU .
+Notethatalsothetwopreviousconﬁgurations(containedinthefragmentmarked
+within Fig. 4) are forbidden in f, as they are in uncontrollable disagreement.
+If, however, BusinessClientU pays cash, then the minimum time required to
+reach state qis 7 t.u., with clocks evaluation v0= (y= 0;xU= 7;xL= 7).
+Indeed, in conﬁguration (q;v0)(the central rightmost conﬁguration in the frag-
+ment marked with Xin Fig. 4) the lazy room request of BusinessClientL can be
+matched by the room oﬀer of Hotel2, and successively the orchestration enables
+this client to pay either by cash or by card. Therefore, to satisfy BusinessClientL ’s
+lazy room request, in the resulting safe orchestration BusinessClientU is only al-
+lowed to pay with cash.
+
+XqH0y=0
+qU0xU= 0
+qL0xL= 0qH1y=0
+qU1xU= 0
+qL0xL= 0qH1y=5
+qU1xU= 5
+qL0xL= 5qH1y=7
+qU1xU= 7
+qL0xL= 7qH2y=0
+qU2xU= 0
+qL0xL= 5qH2y=5
+qU2xU= 5
+qL0xL= 10qH0y=0
+qU3xU= 5
+qL0xL= 10
+qH2y=0
+qU3xU= 12
+qL2xL= 0
+qH1y=5
+qU3xU= 12
+qL1xL= 12qH1y=0
+qU3xU= 7
+qL1xL= 7qH1y=7
+qU3xU= 14
+qL1xL= 14qH0y=0
+qU3xU= 7
+qL0xL= 7qH2y=5
+qU3xU= 17
+qL2xL= 5qH0y=0
+qU3xU= 17
+qL3xL= 5
+qH0y=0
+qU3xU= 14
+qL3xL= 14(room;room;)2u = 5 = 2(card;card;)3= 5 (receipt;receipt;)3
+(cash;cash;)3
+= 5 (cash;;cash)3(room;;room)2` (card;;card)3= 5
+= 2(receipt;;receipt )3
+Fig.4: Excerpt of TS(Hotel2
+BusinessClientU )
+BusinessClientL , whose fragment marked
+withXis allowed in the safe orchestration whereas the one marked with is not
+
+--- Page 15 ---
+5 Conclusions and Future Work
+We have presented TSCA, a new formalism for specifying service contracts with
+real-time constraints ,andforsynthesising theirsafe orchestration inthepresence
+ofservicerequestswithdiﬀerentlevelsofcriticality(viz. urgent,greedyandlazy).
+We plan to implement the theory in a prototype, extending tools for con-
+tract automata [21–23] and reusing libraries from timed games for operations on
+zones[19,20],towhichorchestrationsynthesishasbeenreduced(cf.Theorem2).
+We would also like to equip the formalism with weighted actions, e.g. to specify
+the prices of hotel rooms or how much clients are willing to pay for their room.
+References
+1. D. Georgakopoulos and M.P. Papazoglou. Service-oriented Computing . MIT, 2008.
+2. A. Bouguettaya et al.A Service Computing Manifesto: The Next 10 Years. Com-
+mun. ACM , 60(4):64–72, April 2017.
+3. M. Bartoletti, T. Cimoli, and R. Zunino. Compliance in Behavioural Contracts: A
+BriefSurvey. In Programming Languages with Applications to Biology and Security ,
+LNCS9465, pp. 103–121, 2015.
+4. D. Basile, P. Degano, and G.L. Ferrari. A formal framework for secure and com-
+plying services. J. Supercomput. , 69(1):43–52, 2014.
+5. D. Basile, P. Degano, and G.L. Ferrari. Automata for Specifying and Orchestrating
+Service Contracts. Log. Meth. Comput. Sci. , 12(4:6):1–51, 2016.
+6. D. Basile, F. Di Giandomenico, S. Gnesi, P. Degano, and G.L. Ferrari. Specifying
+Variability in Service Contracts. In VaMoS’17 , pp. 20–27. ACM, 2017.
+7. P.J. Ramadge and W.M. Wonham. Supervisory control of a class of discrete event
+processes. SIAM J. Control Optim. , 25(1):206–230, 1987.
+8. D. Basile, M.H. ter Beek, F. Di Giandomenico, and S. Gnesi. Orchestration of
+Dynamic Service Product Lines with Featured Modal Contract Automata. In
+SPLC, pp. 117–122. ACM, 2017.
+9. E. Asarin, O. Maler, A. Pnueli, and J. Sifakis. Controller Synthesis for Timed
+Automata. IFAC Proceedings Volumes , 31(18):447–452, 1998.
+10. F. Cassez, A. David, E. Fleury, K. Larsen, and D. Lime. Eﬃcient on-the-ﬂy algor-
+ithms for the analysis of timed games. In CONCUR ,LNCS3653, pp. 66–80, 2005.
+11. H. Hüttel et al.Foundations of Session Types and Behavioural Contracts. ACM
+Comput. Surv. , 49(1):3:1–3:36, 2016.
+12. L. de Alfaro and T.A. Henzinger. Interface Automata. In ESEC/FSE , pp. 109–120.
+ACM, 2001.
+13. N.A. Lynch and M.R. Tuttle. An Introduction to Input/Output Automata. CWI
+Quarterly , 2(3):219–246, 1989.
+14. R. Alur and D.L. Dill. A Theory of Timed Automata. Theoret. Comput. Sci. ,
+126(2):183–235, 1994.
+15. A. David, K.G. Larsen, A. Legay, U. Nyman, and A. Wąsowski. Timed I/O Au-
+tomata. In HSCC, pp. 91–100. ACM, 2010.
+16. K.G. Larsen, U. Nyman, and A. Wąsowski. Modal I/O Automata for Interface
+and Product Line Theories. In ESOP,LNCS4421, pp. 64–79, 2007.
+17. S. Azzopardi, G.J. Pace, F. Schapachnik, and G. Schneider. Contract automata.
+Artif. Intell. Law , 24(3):203–243, 2016.
+
+--- Page 16 ---
+18. P. Bouyer, N. Markey, and O. Sankur. Robust Reachability in Timed Automata:
+A Game-Based Approach. In ICALP,LNCS7392, pp. 128–140, 2012.
+19. A. David et al.UPPAAL DBM Library, 2017.
+20. A. Legay and L.-M. Traonouez. PyEcdar: Towards Open Source Implementation
+for Timed Systems. In ATVA,LNCS8172, pp. 460–463, 2013.
+21. D. Basile, P. Degano, G.L. Ferrari, and E. Tuosto. Playing with Our CATand
+Communication-Centric Applications. In FORTE,LNCS9688, pp. 62–73, 2016.
+22. D. Basile, F. Di Giandomenico, and S. Gnesi. FMCAT: Supporting Dynamic
+Service-based Product Lines. In SPLC, pp. 3–8. ACM, 2017.
+23. D. Basile, M.H. ter Beek, and S. Gnesi. Modelling and Analysis with Featured
+Modal Contract Automata. In SPLC. ACM, 2018.

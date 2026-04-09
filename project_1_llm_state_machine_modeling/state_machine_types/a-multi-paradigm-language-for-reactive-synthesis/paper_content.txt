@@ -1,0 +1,1310 @@
+--- Page 1 ---
+ˇCern ´y, Kuncak, Madhusudan (Eds.): Fourth Workshop on
+Synthesis (SYNT 2015)
+EPTCS 202, 2016, pp. 73–97, doi:10.4204/EPTCS.202.6© I. Filippidis, R.M. Murray, G.J. HolzmannA multi-paradigm language for reactive synthesis
+Ioannis Filippidis Richard M. Murray
+fifilippi, murray g@caltech.edu
+Control and Dynamical Systems,
+California Institute of Technology,
+Pasadena CA 91125, USAGerard J. Holzmann
+gerard.j.holzmann@jpl.nasa.gov
+Laboratory for Reliable Software,
+Jet Propulsion Lab, Caltech,
+Pasadena CA 91109, USA
+This paper proposes a language for describing reactive synthesis problems that integrates imperative
+and declarative elements. The semantics is deﬁned in terms of two-player turn-based inﬁnite games
+with full information. Currently, synthesis tools accept linear temporal logic (LTL) as input, but this
+description is less structured and does not facilitate the expression of sequential constraints. This
+motivates the use of a structured programming language to specify synthesis problems. Transition
+systems and guarded commands serve as imperative constructs, expressed in a syntax based on that
+of the modeling language P ROMELA . The syntax allows deﬁning which player controls data and
+control ﬂow, and separating a program into assumptions and guarantees. These notions are necessary
+for input to game solvers. The integration of imperative and declarative paradigms allows using the
+paradigm that is most appropriate for expressing each requirement. The declarative part is expressed
+in the LTL fragment of generalized reactivity(1), which admits efﬁcient synthesis algorithms, ex-
+tended with past LTL. The implementation translates P ROMELA to input for the S LUGS synthesizer
+and is written in P YTHON . The AMBA AHB bus case study is revisited and synthesized efﬁciently,
+identifying the need to reorder binary decision diagrams during strategy construction, in order to
+prevent the exponential blowup observed in previous work.
+1 Introduction
+Over the past three decades, system formal veriﬁcation has aided design and become practical for in-
+dustrial application. In the past decade, synthesis of systems from speciﬁcations has seen signiﬁcant
+development [60, 100], partially owing to the discovery of temporal logic fragments that admit efﬁcient
+synthesis algorithms [83, 20, 30, 8]. Applications range from protocol synthesis for hardware circuits
+[20], to correct-by-construction controllers for hybrid systems [57, 56, 101].
+Many languages and tools have been developed for modeling and model checking systems. Unlike
+veriﬁcation using model checking, the tools for synthesis have been developed much more recently. One
+reason is that centralized synthesis from linear temporal logic (LTL) [85] has doubly exponential com-
+plexity in the length of the speciﬁcation formula [89], a result that did not encourage further development
+initially.
+Currently, LTL is the language used for describing speciﬁcations as input to synthesis tools. There
+are many beneﬁts in using a logic for synthesis tasks, its declarative nature being a major one, because
+it allows expressing individual requirements separately, and in a precise way. It also makes explicit the
+implicit conventions present in programming languages [61]. Another aspect of synthesis problems that
+makes declarative descriptions appropriate is that we want to describe as large a set of possible designs
+as possible, in order to avoid overconstraining the search space.
+However, not all speciﬁcations are best described declaratively. There exist synthesis problems
+whose description involves graph-like structures that are cumbersome for humans to write in logic.
+Robotics problems typically involve graph constraints that originate from possible physical conﬁgura-
+tions. For example, considering a wheeled robot, its physical motion is modeled by possible transitions
+
+--- Page 2 ---
+74 A multi-paradigm language for reactive synthesis
+that avoid collisions with other objects, whereas an objective to patrol between two locations can more
+appropriately be described with a temporal logic formula. Properties that specify sequential behavior
+also lead to graph-like structures, and require use of auxiliary variables that serve as memory. Express-
+ing sequential composition in logic leads to long, unstructured formulas that deemphasize the speciﬁer’s
+intent. The resulting speciﬁcations are difﬁcult to maintain, and writing them is error-prone. In addition,
+the speciﬁer may need to explicitly write clauses that constrain variables to remain unchanged, in order
+to maintain imperative state. This leads to longer formulas in which the intent behind individual clauses
+is less readable.
+Another motivation relates to the temporal logic hierarchy [71, 92]. Synthesis from LTL has time
+complexity polynomial in the state space size, and doubly exponential in the size of the formula. In
+contrast, algorithms with linear time complexity in the size of the formula are known for the fragment of
+generalized reactivity of rank one, known as GR(1).
+In the automata hierarchy, the GR(1) fragment corresponds to an implication of deterministic B ¨uchi
+automata (BAs) [83, 92, 78, 93]. The consequent requires some system behavior, provided that the envi-
+ronment satisﬁes the antecedent of the implication, as described in Section 2.3. Deterministic automata
+can describe recurrence properties ( 	), but not persistence ( 	). Intuitively, the behavior of vari-
+ables uniquely determines the associated behavior of a deterministic BA. This drops the complexity of
+synthesis, because the algorithm does not have to keep track of branching in the automata that is not
+recorded in the problem’s variable.
+A large subset of properties that are of practical interest in industrial applications [28, 69, 20] can
+be expressed in GR(1). There do exist properties that cannot be represented by deterministic B ¨uchi
+automata, e.g., persistence 	 p. Of these properties, those with Rabin rank equal to one are still
+amenable to polynomial time algorithms (by solving parity games) [30]. Higher Rabin ranks are not
+expected to admit polynomial time solution, unless P =NP [30]. This motivates formulating the required
+properties in GR(1), which corresponds to Streett properties with rank one. The winning set for a Streett
+objective of rank one can be computed with the same time complexity as that for a Rabin objective of
+rank one. Therefore, properties in the lower Rabin ranks are known to be at least as hard to synthesize as
+GR(1). This motivates formulating the required properties in GR(1), which trades off expressive power
+for computational efﬁciency.
+Translating properties to deterministic automata can be done automatically, but may lead to more
+expensive synthesis problems than manually written properties, as reported in [78]. So the ability to
+write deterministic automata directly in a structured and readable language avoids the need for automated
+translation, and allows ﬁne tuning them, based on the speciﬁer’s understanding of the problem. The
+trade-off is that the translation has to be performed by a human.
+Another reason why speciﬁcations are not always purely declarative is that in many cases we want to
+synthesize a system using existing components. In other words, we already have a partial model, which
+describes the possible behavior of components that already exist, e.g., because we purchased them off the
+self, to interface them with the part of the system that we are synthesizing. We declare to our synthesis
+tool what properties the controller under design should satisfy with respect to this model. This restricts
+what the system should achieve using these components, but not how exactly that will be achieved. So
+the partial model is best described imperatively, whereas the goal declaratively, using temporal logic.
+Educationally, the transition for students from a general purpose programming language like P YTHON
+orC, directly to temporal logic constitutes a signiﬁcant leap. Using a multiparadigm language can make
+this transition smoother.
+This work proposes a language that can describe synthesis problems for open systems that react to an
+adversarial environment. The syntax is derived from that of P ROMELA , whereas the semantics interprets
+
+--- Page 3 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 75
+it as a two-player turn-based game of inﬁnite duration. Both synchronous and asynchronously scheduled
+centralized systems with full information can be synthesized. In Section 2, we review temporal logic and
+relevant notions about two-player games. The presence of two players requires declaring who controls
+each variable (Section 3.1), as well as the data ﬂow, and control ﬂow in transition systems (Section 3.2).
+In addition, the speciﬁcation needs to be partitioned into assumptions about the environment, and guar-
+antees that the system must satisfy (Section 2, Section 3.2). The integration of declarative and imperative
+semantics is obtained by deﬁning imperative variables (Section 3.1), deconstraining, and executability of
+actions (Section 3.3). In order to be synthesized, the program is translated to temporal logic, as described
+in Section 4. In Section 5, we discuss the implementation, and in Section 6 signiﬁcant improvements
+in the AMBA case study [20] that were possible by merging fairness requirements into a single B ¨uchi
+automaton. Relevant work is collected in Section 7, and conclusions in Section 8.
+2 Preliminaries
+2.1 Linear temporal logic
+Linear temporal logic with past is an extension of Boolean logic used to reason about temporal modalities
+over sequences. The temporal operators next 
+, previous , untilU, and since Ssufﬁce to deﬁne the
+other operators [85, 10]. Let APbe a set of variable symbols pthat can take values over B,f?;>g. A
+model of an LTL formula is a sequence of variable valuations called a word w :N!BAP. A well-formed
+formula is inductively deﬁned by j::=pj:jjp^pj
+jjjUjjjjjSj. A formula jis evaluated
+over a word wat a time i0, and w;ij=jdenotes that jholds at position iof word w. Formula 
+j
+holds at position iifjholds at position i+1,jUyholds at iif there exists a time jisuch that
+w;jj=yand for all ik<j, it is w;kj=j. The operator 	p,>Uprequires that pbe eventually
+true, and the operator p,:	:prequires that pbe true over the whole word. The past fragment of
+LTL extends it with the previous and since operators, ;Srespectively [66, 70, 54]. Formula jholds
+atiiffi>0 and w;i1j=j, and formula jSyholds at iiff there exists a time jwith 0jisuch
+thatw;jj=y, and for all ksuch that j<kiit isw;kj=j. The weak previous operator is deﬁned as
+j,::j, onceasj,>Sj, and historically asj,::j. Past LTL is implemented
+using temporal testers [54].
+2.2 Turn-based games
+In many applications, we are interested in designing a system that does not have full control over the
+behavior of all variables that are used to model the situation. Some problem variables represent the
+behavior of other entities, usually collectively referred to as the environment. The system reads these
+input variables and reacts by writing to output variables that it controls, continuing indeﬁnitely. Such
+a system is called open [6, 84], to distinguish it from closed systems that have no inputs, and so full
+control.
+The synthesis of an open system can be formulated as a two-player adversarial game of inﬁnite
+duration [96]. The two players in the game are usually called the protagonist (system) and antagonist
+(environment). We control the protagonist, but not the antagonist. If the players move in turns, then the
+game is called alternating . Each pair of consecutive moves by the two players is called a turn of the
+game. In each turn, player 0 moves ﬁrst, without knowing how player 1 will choose to move in that
+turn of the game. Then player 1 moves, knowing how player 0 moved in that turn. Depending on which
+player we control, there are two types of game. If the protagonist is player 1, then the game is called
+
+--- Page 4 ---
+76 A multi-paradigm language for reactive synthesis
+Mealy , otherwise Moore [75, 76]. Due to the difference in knowledge about the opponent’s next move
+between the two ﬂavors of game, more speciﬁcations are realizable in a Mealy game, than in a Moore
+game. There exist solvers for both Moore and Mealy games. Here we will consider Mealy games only.
+2.3 Games in logic
+Temporal logic can be used to describe both the possible moves in a game (the arena orgame graph ),
+as well as the winning condition. Let XandYbe two sets of propositional variables, controlled by the
+environment and system, respectively. Let X0andY0denote primed variables, where x0represents the
+next value 
+xof variable x. We abuse notation by using primed variables inside temporal formulae.
+Synthesis from LTL speciﬁcations is in 2E XPTIME[87, 89], motivating the search for fragments that
+admit more efﬁcient synthesis algorithms. Generalized reactivity of index one, abbreviated as GR(1), is
+a fragment of LTL that admits synthesis algorithms of time complexity polynomial in the size of the state
+space [20]. GR(1) [50, 88, 16, 67, 32] is used in the following, but the results can be adapted to larger
+fragments of LTL, provided that another synthesizer be used [49, 31, 29, 21, 33].
+The possible moves in a Mealy game can be speciﬁed by initial and transition conditions that con-
+strain the environment and system. Initial conditions are described by propositional formulae over
+X[Y. Transition conditions are described by safety formulae of the form jiwhere, for the en-
+vironment i=eandjeis a formula over X[X0[Y, and for the system i=sandjsis a formula
+overX[X0[Y[Y0. Note that the system plays second in each turn, so it can see X0, whereas the
+environment cannot see Y0, because it represents future values. The winning condition in a GR(1) game
+is described using progress formulae of the form 	yi;i2fe;sg, where yiis a propositional formula
+overX[Y.
+The overall speciﬁcation of a GR(1) game is of the form
+
+qe^je^n1^
+i=0	ye;i
+|{z}
+assumption
+sr.
+qs^js^m1^
+j=0	ys;j
+|{z}
+assertion
+(1)
+Note that requirements that constraint the environment are called assumptions and guarantees that the
+system must satisfy are called assertions . Assumptions limit the set of admissible environments, because,
+in practice, it is impossible to satisfy the design requirements in arbitrarily adversarial environments [6].
+The strict realizability implicationsr.above is interpreted by prioritizing between safety and liveness
+[20], to prevent the system from violating the safety assertion, in case this would allow it to prevent the
+environment from satisfying the liveness assumption. The GR(1) synthesis algorithm has time complex-
+ityO
+nmjSj2
+[20], where n(m) is the number of recurrence assumptions (assertions), and Sthe set of
+all possible variable valuations.
+3 Language deﬁnition
+The language we are about to deﬁne is syntactically an extension of P ROMELA [47], but its semantics is
+deﬁned by a translation to turn-based inﬁnite games with full information. P ROMELA is a guarded com-
+mand language that can represent transition systems, non-deterministic execution, and guard conditions
+for determining whether statements are executable [47, 27]. Its syntax can be found in the language ref-
+erence manual [47, 46]. Here we will introduce syntactic elements only as needed for the presentation.
+Brieﬂy, we mention that a program comprises of transition systems and automata, whose control ﬂow
+
+--- Page 5 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 77
+can be described with sequential composition, selection and iteration statements, goto , as well as blocks
+that group statements for atomic execution.
+3.1 Variables
+Ownership In a game, variables from Xare controlled by the environment and variables from Yby
+the system. We call owner of a variable the player that controls it. We use the keywords envandsysto
+signify the owner of a variable. Variables can be of Boolean, bit, byte, (bounded) integer, or bitﬁeld type.
+Declarative and imperative semantics In imperative languages, variables remain unchanged, unless
+explicitly assigned new values. In declarative languages, variables are free to change, unless explicitly
+constrained [97]. In veriﬁcation, both declarative languages like TLA [62] and SMV [24] have been
+used, as well as imperative languages like P ROMELA and D VE[12].
+In a synthesis problem, there are variables that are more succinct to describe declaratively, whereas
+others imperatively. For this reason, we combine the two paradigms, by introducing a new keyword
+free to distinguish between imperative and declarative variables. Variables whose declaration includes
+the keyword free are by default allowed to be assigned any value in their domain, unless explicitly
+constrained otherwise. Variables without the keyword free have imperative semantics, so their value re-
+mains unchanged, unless otherwise explicitly stated. Let Vf reedenote free variables, and Vimpimperative
+variables, and Vpthe variables of player p2fe;sg.
+Ranged integer data type Symbolic methods for synthesis use reduced ordered binary decision di-
+agrams (BDDs) [23, 10], which represent sets of states, and relations over states. As operations are
+performed between BDDs, these can grow quickly, consuming more memory. The growth can be amelio-
+rated by reordering the variables over which a BDD is deﬁned. Reordering variables can be prohibitively
+expensive, as discussed in Fig. 5, so reducing the number of bits is a primary objective. In addition,
+the complexity of GR(1) synthesis is polynomial in the number jSjof variable valuations, which grows
+exponentially with each additional bit. We can reduce the number of bits by using bitﬁelds whose width
+is tailored to the problem at hand. For convenience, the ranged integer type int(MIN, MAX) is intro-
+duced to deﬁne a variable x2fMIN ;MIN+1;:::; MAXg, with saturating semantics [42]. An integer
+with saturating semantics cannot be incremented when its value reached the maximal in its range, i.e.,
+MAX.
+A ranged integer is represented by a bitﬁeld. The bitﬁeld is comprised of bits, so it can only range
+between powers of two. The ranged integer though may have an arbitrary range. For this reason, safety
+constraints are automatically imposed on the bitﬁeld representing the ranged integer. In other words, if
+xis the integer value of the bitﬁeld, and it represents an integer that can take values from MIN to MAX,
+then the constraint (MINx0MAX )is added to the safety formula, and MIN xMAX to the
+initial condition of the player that owns the ranged integer.
+Other numerical data types have mod wrap semantics. The value of an integer with mod wrap
+semantics overﬂows to MIN (underﬂows to MAX) if incremented when equal to the maximal value MAX
+(minimal value MIN). Mod wrap semantics are available only for integers that range over all values of
+a (signed) bitﬁeld, because the modulo operation would otherwise be needed. Any BDD describing a
+modulo operation is at best of exponential size [23].
+
+--- Page 6 ---
+78 A multi-paradigm language for reactive synthesis
+8
+888
+888pcr
+env Xenv
+(a)assume env
+9
+8
+999sys
+envpcr
+X
+(b)assume sys
+8
+999
+8env
+syspcr
+Y
+(c)assert env
+9
+9
+9sys
+pcr
+sys
+Ycontrol
+ﬂow
+data
+ﬂow
+(d)assert sys
+Figure 1: An assumption (assertion) process constrains the environment (system) variables, and env
+(sys) declares who chooses the next statement to be executed (when there are multiple).
+3.2 Programs representing games
+In many synthesis problems, the speciﬁcation includes graph-like constraints. These may originate from
+physical conﬁgurations in robotics problems, deterministic automata to express a formula in GR(1), or
+describe abstractions of existing components that are to be controlled. These constraints can be described
+by processes. A process describes both control and data ﬂow. In order to discuss control and data ﬂow,
+we will refer to program graphs . A program graph is an intermediate representation of a process, after
+parsing and control ﬂow analysis. For our purposes, a program graph is a rooted directed multi-graph
+Pr,(Vr;Er)whose edges Erare labeled with program statements, and nodes Vrabstract states of the
+system [53, 10]. Execution starts from the graph’s root. A multi-digraph is needed, because, between
+two given nodes, there may exist edges labeled with different program statements.
+Control ﬂow is the traversal of edges in a program graph (i.e., execution of statements), whereas data
+ﬂow is the behavior of program variables along this traversal. A program counter pcris a variable used
+to store the current node in Vr. A natural question to ask is who controls the program counter. Another
+question is whose data ﬂow is constrained by the program graph Pr. In the next section, we deﬁne syntax
+that allows declaring the player that controls the program counter, and the player that is constrained to
+manipulate the variables it owns, according to the statements selected by the program counter. This
+allows deﬁning both processes where control and data ﬂow are controlled and constrain the same player,
+but also processes with mixed control. If one player controls the program counter, and the opponent
+reacts by choosing a compliant data ﬂow, then the process itself describes a game.
+As an example, suppose that for a given process, the environment controls the program counter,
+and the system the local program variables. By choosing the next value of the program counter, the
+environment selects the next program statement that will execute. The system must react by choosing the
+next values of the local variables, such that they satisfy the selected program statement. The environment
+can select as next program statement any statement that is satisﬁable by a system reaction, as discussed
+in more detail in Section 3.3. But other constraints, e.g., LTL formulae, can prevent the system from
+satisfying this statement.
+The consecutive assignments of values to variables by the environment and the system can be rep-
+resented by a game graph . Each node in the game graph corresponds to a valuation of variables. From
+each node, a single player can assign new values to its variables, depending on the outgoing edges
+at that node. The choice of outgoing edge at environment (system) nodes is universal (existential).
+The nodes in a game graph correspond to universal and existential nodes in alternating tree automata
+
+--- Page 7 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 79
+[25, 79, 98, 99, 59]. Nondeterminism with universal quantiﬁcation is known as demonic , [45, p.85],
+[95], otherwise as angelic [73, 37, 22]. In the previous example, the environment’s choice of control
+ﬂow occurs at universal nodes in the game graph. The system’s reaction, by assigning to local variables,
+occurs at existential nodes in the game graph. The correspondence of control and data ﬂow with a game
+graph is shown in Fig. 1.
+3.2.1 Syntax
+Program graphs are declared with the proctype keyword of Promela followed by statements enclosed
+in braces. The keyword assume (assert ) declares a process that constrains the environment’s (system’s)
+data ﬂow. These keywords are common in theorem proving and program veriﬁcation languages [64].
+01
+(xt,	yt)(x,	y)2
+0 1 2 33
+Figure 2: Adversarial game.The keyword env(sys) declares that the environment (sys-
+tem) controls the program counter pcrof a process, Fig. 1. The
+implementation of assume sys is the most interesting, and
+is described in Section 4. We will call program graphs pro-
+cesses , noting that these processes have full information about
+each other, so they correspond to centralized synthesis, not dis-
+tributed. The program counter owner is the player that controls
+variable pcr. The process player is the player constrained by
+the program graph.
+Example For example, the speciﬁcation in Listing 1 deﬁnes a
+game between two players: the Bunny, and the Fox, that move
+in turns, as depicted in Fig. 2. Each logic time step includes a
+move by the Fox from (xt;yt)to(x0
+t;y0
+t), followed by a move by the Bunny from (x;y)to(x0;y0). The
+Bunny must reach the carrot, without moving through a cell that Fox is in ( assert ltl ). The Fox can
+only move between xt2f1;2g, and has to keep visiting the lower row ( assume ltl ). The Fox can move
+diagonally, but the Bunny only vertically or horizontally. Both players have an option to stay still ( skip ).
+Note that xtis a declarative variable, so it can change unless constrained.
+Listing 1: Simple example.
+1# define H 3
+2
+3free env int (1, 2) xt;
+4env int (0, H) yt;
+5
+6assume env proctype fox (){
+7 do
+8 :: yt = yt - 1
+9 :: yt = yt + 1
+10 :: skip
+11 od
+12}
+13
+14assume ltl { [] <>( yt == 0) }
+15
+16sys int (0, 3) x;
+17sys int (0, H) y;18
+19assert sys proctype bunny (){
+20 do
+21 :: x = x - 1
+22 :: x = x + 1
+23 :: y = y - 1
+24 :: y = y + 1
+25 :: skip
+26 od
+27}
+28
+29assert ltl {
+30 [] ! ((x == xt) && (y == yt)
+) &&
+31 [] ! ((xt ' == x) && (yt ' ==
+y)) &&
+32 [] < >((x == 3) && (y == 2)) }
+
+--- Page 8 ---
+80 A multi-paradigm language for reactive synthesis
+The process foxconstrains the environment variables xt;yt(assume ) and the environment controls
+its program counter ( env). The doloops deﬁne alternatives that each player must choose from to continue
+playing the game. Note that nondeterminism in process foxis demonic (universally quantiﬁed), whereas
+inbunny angelic (existentially quantiﬁed), i.e., the design freedom given to the synthesis tool. Each
+player has full information about all variables in the game, both local, as well as global, and auxiliary.
+The solution is a strategy represented as a Mealy transducer [75] that the Bunny can use to win the game.
+The conjuct j,:((x=x0
+t)^(y=y0
+t))prevents the Bunny from moving next to the Fox, from
+where the Fox can catch it in the next turn. The operator requires that, at each time step, the formula
+:as main operator be true.
+3.3 Statements
+Control ﬂow can be deﬁned using selection ( if) and repetition ( do) statements, else ,break ,goto ,
+and labeled statements. The statements run,call ,return are not supported, because dynamic process
+creation would dynamically add BDD variables. In this section, we deﬁne expressions, assignments, and
+their executability.
+Expressions Primed variables (that correspond to using the next operator 
+) can appear in expressions
+to refer to the next values of those variables, as in the syntax of synthesis tools and TLA [61]. The
+operators weak previous and strong previous are expressed with the tokens -Xand--X, respectively.
+Following TLA, we will call (state) predicate an expression that contains no primed variables and action
+an expression that contains primed variables [61]. Actions can be regarded as generalized assignments, in
+a sense that will be made precise later. Primed system variables cannot appear in assumption processes,
+because they refer to values not yet known to the environment. Using a GR(1) synthesizer as back-end,
+multiple priming within a single statement is not allowed, but can be allowed if a full LTL synthesizer is
+used as back-end [49, 36].
+Deconstraining By default, imperative variables are constrained to remain invariant. If any assumption
+(assertion) process executes a statement that contains a primed environment (system) variable, then that
+variable is not constrained to remain unchanged in that time step. For example, in the assertion sys bit
+x = 0; (x == 0); (x' == 1 - y) the variable xis constrained by x0=xwhen x == 0 is executed,
+but the synthesizer is allowed to pick its next value as needed, in order to satisfy x' == 1 - y . Note
+that statements in assumption (assertion) processes that contain primed imperative system (environment)
+variables do notdeconstrain those variables, because assumptions (assertions) are relevant only to the
+environment’s (system’s) data ﬂow.
+Assignments In P ROMELA , expressions are evaluated by ﬁrst converting all values to integers, then
+evaluating the expression with precision that depends on the operating system and processor, and updat-
+ing the assigned variable’s value, truncating if needed. Let trunc (y;w)denote a function that truncates
+the value of expression yto bitwidth w. An assignment x = expr is translated to the logic formula
+x0=trunc(expr;width (x)), if variable xhas mod wrap semantics, and to x0=expr otherwise. If variable
+xis imperative, then it is deconstrained.
+Statement executability A condition called guard is associated to each statement [27]. The process
+can execute a statement only if the guard evaluates to true. If a process currently has no executable
+
+--- Page 9 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 81
+statement, then it blocks . For each statement, its guard is deﬁned by existential quantiﬁcation of the
+primed variables of the data ﬂow player. The quantiﬁcation is applied after the statement is translated to
+a logic formula. So the guard of a statement is the realizability condition for that statement. It means
+that, from the local viewpoint of that statement only, given the current values of variables in the game,
+the constrained player can choose a next move. So the scheduler cannot pick as next process to execute
+a process that has blocked. Clearly, if all processes block, then that player deadlocks.
+Using this deﬁnition, the guard of a state predicate is itself, as in P ROMELA . The implementation
+quantiﬁes variables using the P YTHON binary decision diagram dd[4]. If an unsatisﬁable guard is found,
+then the implementation raises a warning. For example, if we inserted the statement xt && xt' && y'
+in the process bunny (see example), then its guard would be 9y0:xt^x0
+t^y0=xt^x0
+t. Similarly, the guard
+of an expression xt && xt' in the process foxisxt.
+4 Translation to logic
+In this section, we describe how a program is translated to temporal logic, in particular GR(1). For each
+process, the starting point is its program graph, which has edges labeled by program statements, and
+describes the control ﬂow of a process in the source code. The construction of program graphs from
+source code is the same as for P ROMELA [47], and described in detail in [35].
+Here we give a brief example. Consider the process maintain lock in Listing 2. It has two doloops,
+with two outgoing edges each. The corresponding program graph is shown in Fig. 3b. Each statement
+labels one edge, and that edge can be traversed if the guard associated to the statement evaluates to
+true. The guard can contain primed variables, requiring that the dataﬂow player manipulates them so
+as to make the edge’s guard true. Otherwise, the player cannot traverse an edge with false guard. This
+program graph is translated further to logic, as described next. The semantics of the language are deﬁned
+by this translation to logic.
+There are three groups of elements in a program: processes, ltlblocks, and the scheduler that picks
+processes for execution. The scheduler is not present in the source code, but is added during translation,
+to represent the products between processes. The translation can be organized into a few thematically
+related sets of formulae. Due to lack of space, we are going to discuss the most interesting and represen-
+tative of these at a high level. The full translation can be found in [35], and in the implementation. There
+are four groups of formulae: (i) control and data ﬂow, (ii) invariance of variables, (iii) process scheduler,
+(iv) exclusive execution (atomic).
+Control and data ﬂow The translation of processes is reminiscent of symbolic model checking [74],
+but differs in that there are two players, and both play in each logic time step. This requires carefully
+separating the formulae into assumptions and guarantees (assertions).
+Suppose that the scheduler selects process rto execute (how is explained later). At a given time step,
+a process is at some node iin its program graph, and will transition to a next node j, by traversing an
+edge labeled by a program statement. The player that controls the program counter pcrselects the next
+statement, so the edge in the program graph. The player that is constrained by that process has to make
+sure that it complies , by picking values for variables that it controls such that the statement is satisﬁed.
+Recall that the scheduler can only pick from processes that have a satisﬁable statement, so whenever
+a process executes, there will exist a satisﬁable next statement. Of course, conﬂicts can arise between
+different synchronous processes that can lead to deadlock, and it is the synthesizer’s task to avoid such
+
+--- Page 10 ---
+82 A multi-paradigm language for reactive synthesis
+situations, to avoid losing the game. The transition constraints are encoded by the formula
+trans(p;r),^
+i2Nr
+(pcr=i)!_
+(i;j;k)2Erjr;i;j;k^(˜pcr=j)^(˜keyr=k)^exclusive (p;r;i;j;k)
+(2)
+where Nrdenotes the set of nodes, and Erthe multi-edges of the program graph of a process, pdenotes
+the player ( e;s). The logic formula equivalent to bitblasting the statement labeling edge (r;i;j;k)isjr;i;j;k.
+Forassume sys processes, the system selects the next edge one time step before the scheduler decides
+whether that environment process will execute, so two copies are needed, pcr;ˆpcr(system variables). So
+in an assume sys process, ˜ pcr,ˆpcr;˜keyr,key(r), and in other processes ˜ pcr,pc0
+r;˜keyr,key(r)0.
+The variable key (r)selects among multi-edges, and is controlled by the same player as the program
+counter pcrof the process with pid r. In a system process, if node jis in an atomic block, then
+exclusive (p;r;i;j;k)sets the auxiliary variables ex0
+sandpm0
+sto request atomic execution from the sched-
+uler. The integer variable exsstores the identity of the process that requests atomic execution, and the bit
+pmsrequests that the environment be preempted, if the scheduler grants the request for atomic execution.
+dataﬂow (r),(ps(r)0=m(r))!trans(p;r)
+selectable (r),blocked (r)!(ps(r)06=m(r))
+control ﬂow(r),ite
+(ps(r)0=m(r));pctrans(p;r);inv(pcr)
+blocked (r),_
+i2Nr
+(pcr=i)^^
+(i;j;k)2Er:guardr;i;j;k(3)
+The environment variables ps(r)select the process or synchronous product that will execute next inside
+an asynchronous product (top context is an asynchronous product). For this purpose, each process and
+product have a local integer id m()among the elements inside the product that contains them. The
+transition relation for the program counter depends on the type of process. For assume sys processes,
+pctrans(p;r),(pc0
+r=bpcr), and for other processes it equals guards (r). The condition guards (r)con-
+strains the program counter to follow unblocked edges in a process. It is necessary when the control and
+data ﬂow are controlled by different players, because whoever moves the program counter, can other-
+wise pick an edge with a statement that blocks the other player. In addition, for assume sys processes,
+a separate constraint with same form as guards (r), but different priming of sub-expressions is imposed
+on the program counter copy bpcr. The ternary conditional is denoted by ite (a;b;c).
+Invariance of variables When a process is not executing, its declarative local variables must be con-
+strained to remain invariant ( x0=x). Also, imperative variables must remain invariant whenever no pro-
+cess executes a statement (edge) that either is an expression and contains a primed copy of that variable,
+or is an assignment. These are ensured by the following equations
+local free(p;r),(ps(r)06=m(r))!^
+x2Vfreep;rinv(x)
+imperative inv(p;r),array inv(p;r)^^
+x2Vimp
+p;r(inv(x)__
+(i;j;k)2Er:x2deconstrained (r;i;j;k)edge(r;i;j;k))(4)
+where Vfree
+p;rare free local variables of player pin process r. For assume sys processes, it is edge (r;i;j;k),
+(ps(r)0=m(r))^(pcr=i)^(ˆpcr=j)^(key(r) =k), and for other types of processes edge (r;i;j;k),
+(ps(r)0=m(r))^(pcr=i)^(pc0
+r=j)^(key(r)0=k). Primed references to elements in imperative
+arrays deconstrain only the referenced array element, ensured by array inv.
+
+--- Page 11 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 83
+Scheduler The scheduler (environment) has to select the processes that will execute. Products of pro-
+cesses can be deﬁned in the source code by enclosing processes, or other products, in braces preceded
+by the keywords async andsync . They can be nested. async deﬁnes an asynchronous product, and the
+scheduler picks some unblocked process or product inside it to execute next. If all processes/products in
+an asynchronous product khave blocked, then the scheduler sets the corresponding variable pskto a re-
+served value ( nk). The reserved value is also used if the asynchronous product is nested in a synchronous
+product that currently is not selected to execute.
+If the top product blocks, then the player has deadlocked, losing the game. The only exception is
+when the environment is preempted by a request from a system process for atomic execution. At a high
+level, this behavior is expressed as follows for scheduling the environment processes.
+product selected (k),(ps(k)06=m(k))$(ps0
+k=nk)
+selectable element (r),element blocked (r)!(ps(r)06=m(r))
+element blocked (r),8
+><
+>:blocked (r);ifris a process
+sync blocked (r);ifris a synchronous product
+async blocked (r);ifris an asynchronous product :(5)
+sync blocked (k),_
+r2Rkelement blocked (r)
+async blocked (k),^
+r2Rkelement blocked (r)(6)
+pause envifreq,(ps0
+envtop=ne)$(pms^(ps0
+systop=exs<ns)): (7)
+The expression element blocked (r)depends on the blocked (z)expressions, and ensures that the sched-
+uler doesn’t select a synchronous product containing some blocked process, neither an asynchronous
+product where all processes are blocked. Recall also selectable from earlier, which applies to indi-
+vidual processes. Analogous formulae apply to system processes. For system processes, the top-level
+asynchronous product implication in async blocked (r)must be replaced with equivalence, to force the
+environment to choose some system process (or product) to execute, when there exist unblocked ones.
+Note that the asynchronous products here are in the context of full information, so the system is not
+asynchronous in the sense of [55, 86].
+Exclusive execution A system process of the top asynchronous product can request to execute atom-
+ically by setting the variables pms;exs, Eq. (2). If that process remains unblocked in the next time step,
+then the scheduler will grant it uninterrupted execution, until it exits atomic context (either blocked, or
+reached statements outside the atomicf...gblock).
+grants,^
+r2pids(s)
+((exs=m(r))^frozen unblocked (r))!(ps(r)0=m(r))
+(8)
+Recall also that the environment is allowed to pause only if preempted by the system, otherwise it loses
+the game (pause envifreq). The formula frozen unblocked (r)checks whether the system would block,
+in case the environment froze, granting it exclusive execution. In case the system will block, then the
+request is not granted, and atomicity lost. This requires substituting primed environment variables with
+
+--- Page 12 ---
+84 A multi-paradigm language for reactive synthesis
+unprimed ones, as follows
+frozen unblocked (r),8
+<
+:W
+i2Nr
+(pcr=i)^W
+(i;j;k)2Erguard test(r;i;j;k)
+;if player (r) =s
+:blocked (r);otherwise
+guard test(r;i;j;k),(
+guard (r;i;j;k)jx=x0forx2X;ifiin atomic context
+guard (r;i;j;k);otherwise :(9)
+The reason is that this formula corresponds to the case that the environment sets x0=xfor the program
+variables it owns. If atomicity is lost in this turn, then the environment does not need to set x0=x, and
+this is ensured by the deﬁnition of guard test(r;i;j;k).
+As in P ROMELA , LTL formulae that express safety are deactivated during atomic execution (in im-
+plementation, an option allows making atomic execution visible to LTL properties). They are re-activated
+as soon as atomicity is lost.
+mask envltl,ite(pms^(ps0
+systop=exs<ns);freeze envfree;yenv safety ltl) (10)
+For the system, mask sysltl is deﬁned similarly. The formula freeze envfree constrains declarative
+environment variables in global context and inside system processes to remain unchanged while the
+system is granted exclusive execution.
+If an atomic block appears in a process, then the ltl properties in the program must not contain
+primed variables, to ensure that the above translation yields the intended interpretation (stutter invari-
+ance). If unbounded loops appear inside an atomic context, then there can be no liveness assumptions.
+The reason is that the system can hide in atomic execution forever, preventing the environment from
+satisfying its liveness assumptions, thus winning trivially. In order to avoid this, the environment live-
+ness goals must be disjoined with strong fairness, a persistence property ( 	), which is outside of the
+GR(1) fragment. An extension to use a full LTL synthesizer is possible, though not expected to scale
+as well. Labels in the code that contain progress result in accepting states (liveness conditions). Those
+expressions described but not deﬁned above, the initial conditions, and a listing into assumptions and
+assertions can be found in the technical report [35].
+5 Implementation
+The implementation is written in P YTHON and available [1, 2, 5] under a BSD license. The frontend
+comprises of a parser generator that uses P LY(Python lex-yacc ) [14]. The parser for the proposed
+language subclasses and extends a separate parser for P ROMELA [2], to enable use of the latter also by
+those interested in veriﬁcation activities. After parsing and program graph construction, the translation
+described in Section 4 is applied [1]. This results in linear temporal logic formulae that contain modular
+integer arithmetic. At this point, each ltl block is syntactically checked to be in the GR(1) fragment,
+and split into initial condition, action, and recurrence conjuncts [5]. The past fragment is then translated
+using temporal testers [54]. In the future, the syntactic check can be removed, and a full LTL synthesis
+algorithm used.
+The next step encodes signed arithmetic in bitvector logic using two’s complement representation
+[58]. The resulting formulae are in the input syntax recognized by the S LUGS synthesizer [32]. This
+preﬁx syntax includes memory buffers , which enable avoiding repetition of formulae. For example,
+$ 3 x a b & ?1 ?0 | ?2 ! ?0 describes the ternary conditional ite (x;a;b). Memory buffers
+
+--- Page 13 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 85
+[]((!pc0 &
+!pc1 & !pc2)
+-> ...x = 1;
+y == 2;
+...0
+1
+2x = 1
+y == 20
+1
+2x' = 1
+Noneparsing
+program graph source listing graph of actions
+0
+1
+2True
+y = 2
+graph of guardsto logic
+to guardPromela-like syntaxtemporal logic syntax
+flatten
+schedule[]((pc = 0) ->
+(X(pc = 1) &
+...
+GR(1) specbitblast
+bounded
+integer
+arithmeticpropositional
+(a) Compiler architecture.
+����� �������
+��������������������������������� ��������������������������������
+�����������������������������������(b) Program graph that corresponds to
+process maintain lock in Listing 2.
+Figure 3: Compiling programs to temporal logic.
+prevent the bitblasted formulae from blowing up. The S LUGS distribution includes an encoder of un-
+signed addition and comparison into bitvector logic using memory buffers. Here, signed arithmetic and
+arrays are supported. The bitblaster code is a separate module, which can be reused as a backend to other
+frontends. The resulting formula is passed to the S LUGS synthesis tool to check for realizability and
+construct a winning strategy as a Mealy transducer.
+6 AMBA AHB Case study
+Revised speciﬁcation The ARM processor Advanced Microcontroller Bus Architecture (AMBA) [9]
+speciﬁes a number of different bus protocols. Among them, the Advanced High-performance (AHB)
+architecture has been studied extensively in the reactive synthesis literature [17, 18, 77, 20, 91, 43, 19].
+The AHB bus comprises of masters that need to communicate with slaves, and an arbiter that controls
+the bus and decides which master is given access to the bus. The arbiter receives requests from the
+masters that desire to access the bus, and must respond in a weakly fair way. In other words, every
+master that keeps uninterruptedly requesting the bus must eventually be granted access to it. Note that the
+AMBA technical manual [9] does not specify any fairness requirement, but instead leaves that decision to
+the designer. For automated synthesis, weak fairness is one possible formalization that ensures servicing
+of all the masters.
+In addition, a master can request that the access be locked. In the ARM manual, the arbiter makes
+no promises as to whether a request for the lock will be granted. If the arbiter does lock the access,
+then it guarantees to maintain the lock, until the request for locking is withdrawn by the master that
+currently owns the bus. Note that the speciﬁcation used here requires the arbiter to lock the bus, whenever
+requested by the master to be granted next.
+A speciﬁcation for the arbiter appeared in [17], and is presented in detail in [20]. Here, we expressed
+the speciﬁcation of [20] in the proposed language, Listing 2 on p.90. In doing so, some assumptions were
+weakened and assumption A1 modiﬁed, to improve the correspondence with the ARM technical manual,
+and reduce the number of environment variables (thus universal branching). First, we describe the AHB
+speciﬁcation, referring to Listing 2. After that, we summarize the changes, and discuss the experiments.
+The speciﬁcation in Listing 2 has both environment and system variables, as well as assumptions and
+guarantees. The arbiter is the system, and the environment comprises of slaves and N+1 masters. An
+
+--- Page 14 ---
+86 A multi-paradigm language for reactive synthesis
+234567891011
+Number of masters10-1100101102Time ratios
+total
+reordering
+realizability
+strategy
+234567891011
+Number of masters050100150200250300350400450Size ratios
+peak total nodes
+strategy nodes
+all vars
+env vars
+234567891011
+Number of masters10-1100101102Ratios of fractions (see legend)
+reordering / total time
+strategy / total nodes
+env / total vars
+strategy construction /
+ realizability time
+(a) Conjunction divided by BA, no reordering.
+0 5 10 15 20 25 30 35100101102103104Total time (sec)
+0 5 10 15 20 25 30 35
+Number of masters10-1100101102103104Max RSS
+memory (MB)
+(b) BA, no reordering.
+Figure 4: Selection of experimental measurements for the revised AMBA speciﬁcation.
+
+--- Page 15 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 87
+array request of bits represents the request of each individual master to be given bus ownership, for
+sending and receiving from a slave of interest. Communication proceeds in bursts. The bus owner selects
+which type of burst it desires, by setting the integer burst . Three lengths of bursts are modeled: single
+time step ( SINGLE ), four consecutive time steps ( BURST4 ), and undeﬁned duration ( INCR ). The currently
+addressed slave sets the bit ready (to true) to acknowledge that it has successfully received data for a
+burst. While ready is false, the bus owner cannot change (G1,6), and a BURST4 time step is not counted
+towards completion (G3). For this reason, the slaves (environment) are required to recur setting ready
+to true (A2). The master can also request that, when it is granted the bus, it should be locked. Each
+master can do so by setting a signal. Only two of these signals are modeled here, using the bit variables
+grantee lockreq andmaster lockreq (described below).
+The arbiter works in primarily two phases, as introduced in [20]. These phases are extraneous to the
+standard, and used only to aid in describing the speciﬁcation. Firstly, the arbiter decides to which master
+it will next grant the bus to. The arbiter sets the bit decide to true during that period. The decision is
+stored in the form of two variables, grant andlockmemo , which don’t change while decide is false
+(G8). The integer grant indicates the master that has been decided to receive bus ownership after the
+current owner. For performance reasons, the arbiter can only grant the bus to a master that requested it
+(G10), with the exception of a default master (with index 0).
+The bit lockmemo is set to the value of the environment bit grantee lockreq (G7). The value
+grantee lockreq' represents whether the master grant had requested locked ownership. In the orig-
+inal speciﬁcation, an array lockreq ofNenvironment bits is used (denoted by HLOCK in [20]). This
+increases signiﬁcantly the variables with universal quantiﬁcation. Here, this array is abstracted by the bit
+grantee lockreq . In implementation, the transducer input grantee lockreq' should be set equal to
+the lock request of master grant in the previous time step, i.e., grantee lockreq0,(lockreq )[grant].
+In [20], some assumptions are expressed to constrain the array lockreq , i.e., when masters request locked
+ownership. The assumptions can be weakened [34], and by modifying assumption A1 (described below),
+the array lockreq can be abstracted by the two bits grantee lockreq andmaster lockeq .
+The arbiter promises to lock the bus, until the bus owner master interrupts requesting it. The
+owner indicates its lock request by the value master lockreq' . In implementation, the input value
+master lockreq' should be set equal to the lock request of master , i.e., master lockreq0,lockreq [master ].
+In the second phase, the master changes the bus owner, by updating the integer master togrant
+(G4,5). If the grantee had requested a lock, via grantee lockreq , then that request is propagated to the
+bitlock (G4,5). With the bit lock , the arbiter indicates that master has been given locked access to the
+bus.
+To be weakly fair, each master that keeps uninterruptedly requesting the bus should be granted own-
+ership. This requirement is described as a B ¨uchi automaton (G9).
+The assumption A1 of [20] requires that for locked undeﬁned-length bursts, the masters eventu-
+ally withdraw their request to access the bus. This assumption is not explicit in the ARM standard, so
+we modify it, by requiring that masters withdraw only their request for the lock, notfor bus access.
+This is described as the B ¨uchi automaton withdraw lock that constrains the environment. The arbiter
+grants master locked access by setting the bit lock to true. If lock is false, then the master (envi-
+ronment) remains in the outer loop, at the else . Iflock becomes true, then the automaton enters the
+inner loop. In order for the automaton withdraw lock to exit the inner loop, the environment must
+setmaster lockreq' to false. This obliges the owner master to eventually stop requesting locked
+ownership.
+For a SINGLE burst, the burst is completed at the next time step that ready is true, so the arbiter
+does not need to lock the bus (since the owner remains unchanged while ready is false). For a BURST4
+
+--- Page 16 ---
+88 A multi-paradigm language for reactive synthesis
+burst, the arbiter locks the bus for a predeﬁned length of four successful beats (G3). This requirement is
+described by the safety automaton count bursts . Note that assumption A1 is not needed for this case.
+For a INCR burst, the duration is unspeciﬁed a priori. While the owner master continuously requests
+locked access (with master lockreq ), the arbiter cannot change the bus owner (G2). This is described
+by the safety automaton maintain lock . When the arbiter grants locked access to the bus for a burst
+of undeﬁned duration, then the guard lock && start && (burst == INCR) is true. The process
+maintain lock enters the inner loop, and remains there until master lockreq becomes true. This is
+where assumption A1 is required, to ensure that the owner will eventually stop requesting the lock. The
+arbiter can then exit the inner loop of maintain lock . Then, the arbiter can wait outside ( start is false
+throughout the burst), until the addressed slave sets ready to true, signifying the successful completion
+of that burst, and allowing the arbiter to set start and change the bus owner, if needed.
+Some properties not in GR(1) are translated to deterministic B ¨uchi automata in [20]. The resulting
+formulae are much less readable, and not easy to modify and experiment with. Above, we speciﬁed these
+properties directly as processes, with progress states where needed.
+Observations By encoding master andgrant as integers, and abstracting the array lockreq by the
+two variables master lockreq andgrantee lockreq , the synthesis time was reduced signiﬁcantly
+(by a factor of 100 [34]), but are not sufﬁcient to prevent the synthesized strategies from blowing up.
+By also merging the Nweak fairness guaranteesVN1
+i=0	(request [i]!master =i)into the B ¨uchi
+automaton (BA) weak fairness with one accepting state, we were able to prevent the strategies from
+blowing up, and synthesize up to 33 masters, Fig. 4b. The synthesis time for 16 masters is in the order
+of 5 minutes, and peak memory consumption less than 1GB. To our knowledge, in previous works,
+the maximal number of masters has been 16, the strategies were blowing up, and the runtimes were
+signiﬁcantly longer (21 hours for 12 masters in [20], and more than an hour in [43] for 16 masters).
+Measurements To identify what caused this difference, we conducted experiments for 8 different
+combinations: original vs revised spec, conjunction vs BA, reordering during strategy construction en-
+abled/disabled, Table 1. We collected detailed measurements with instrumentation that we inserted into
+SLUGS , available at [3]. Some of these are shown in Fig. 5, and the complete set can be found in the
+technical report [34] (the language is described in [35]). The experiments were run on an Intel(R) Xeon®
+X5550 core, with 27 GB RAM, running Ubuntu 14.04.1. The maximal memory limit of C UDD [94] was
+set to 16 GB.
+We found that lack of dynamic BDD reordering during construction of the strategy was the reason
+for poor performance of conjoined liveness goals, as opposed to a single BA. The implementation of the
+GR(1) synthesis algorithm in S LUGS has three phases:
+1. Computing the winning region, while memoizing the iterates of the ﬁxpoint iteration, as BDDs.
+2. Construction of individual strategies, one for each recurrence goal.
+3. Combination of the individual strategies into a single transducer, which iterates through them.
+In S LUGS , variable reordering [90] is enabled during the ﬁrst two phases, but disabled in the last one.
+If the recurrence goals are conjoined into a formula of the formV	, then the memory needed for
+synthesis blows up Fig. 4a, for both the original and revised speciﬁcations. Using a BA, the revised
+speciﬁcation scales without blowup.
+If reordering is enabled during the last phase (combined transducer construction), then the speciﬁ-
+cation with conjunction can be synthesized without blowup. With a BA, enabling reordering in the last
+
+--- Page 17 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 89
+0.00.51.01.52.0
+1e50.00.51.01.52.0Reordering (ms)1e5
+0.0 0.5 1.0 1.5 2.0
+1e56
+4
+2
+0246Goal j1e2
+0.0 0.5 1.0 1.5 2.0
+1e50.00.20.40.60.81.0Assumption i
+0.0 0.5 1.0 1.5 2.0
+1e50.00.20.40.60.81.01.21.41.61.8Total BDD Nodes1e6
+0.0 0.5 1.0 1.5 2.0
+1e501234567Fixed points
+(BDD nodes)1e3X Y Z
+189000 190000 191000 192000 193000 194000 195000 196000100101102103104105106Individual strategies
+(BDD nodes)ith strategy covered states new states
+1.85 1.90 1.95 2.00 2.05 2.10
+time (milliseconds) 1e55.25.35.45.55.65.75.85.9Combined strategy
+(BDD nodes)1e5
+(a) BA, no reordering, N=16.
+0.0 0.5 1.0
+1e50.00.51.0Reordering (ms)1e5
+0 1 2 3 4 5 6 7 8 9
+1e40.00.20.40.60.81.01.21.41.6Goal j1e1
+0 1 2 3 4 5 6 7 8 9
+1e40.00.20.40.60.81.0Assumption i
+0 1 2 3 4 5 6 7 8 9
+1e40.00.51.01.52.02.53.03.54.04.5Total BDD Nodes1e5
+0 1 2 3 4 5 6 7 8
+1e40.00.51.01.52.02.53.03.54.04.5Fixed points
+(BDD nodes)1e3X Y Z
+71100 71200 71300 71400 71500 71600 71700100101102103104Individual strategies
+(BDD nodes)ith strategy covered states new states
+7.0 7.2 7.4 7.6 7.8 8.0 8.2
+time (milliseconds) 1e40.00.51.01.52.02.5Combined strategy
+(BDD nodes)1e5 (b) Conjunction, with reordering, N=16.
+Figure 5: Measurements during phases of: (1) realizability, (2) sub-strategy, and (3) combined strategy
+construction. The top 4 plots are over all phases, the ﬁxpoints over (1), the individual strategies over (2),
+and the bottom plot over (3). The revised speciﬁcation is used.
+phase has a mildly negative effect, because it can trigger unnecessary reordering. We used the group
+sifting algorithm [82, 90] for reordering.
+Enabling dynamic BDD variable reordering is necessary to prevent the blowup. The conjunction
+with reordering enabled in phase 3 outperforms the BA with reordering turned off in phase 3. This is
+a consequence mainly of the fact that the BA chains the goals inside the state space, leading to deeper
+ﬁxpoint iterations, and has slightly larger state space, due to the nodes of the automaton maintain lock .
+Reordering typically accounts for most of the runtime (top plot in Fig. 5a). The second plot shows
+the currently pursued goal during realizability, and later the sub-strategy under construction, and the
+sub-strategy being combined in the ﬁnal strategy. Each drop in total BDD nodes (teeth in 4th plot)
+
+--- Page 18 ---
+90 A multi-paradigm language for reactive synthesis
+Table 1: Overview of results.
+Strategy
+reorderingSpeciﬁcation
+original revised
+Conjunction of fairnesswith slow fast
+w/o memory blowup memory blowup
+B¨uchi automatonwith very slow ok (slower)
+w/o slow ok
+corresponds to an outer ﬁxpoint iteration. The ﬁrst outer iteration takes the most time, due to reordering.
+Later iterations construct subsets, for which the obtained order remains suitable. The highlighted period
+corresponds to the construction of individual strategies. Plots for the other experiments can be found in
+[34].
+Conclusions The major effect of reordering in the ﬁnal phase of strategy construction can be under-
+stood as follows. Using a BA reduces the goals to only one, so no disjunction of individual sub-strategies
+is needed [83]. Also, this encoding shifts the transducer memory (a counter of liveness goals), from the
+strategy construction, to the realizability phase (attractor computations). This slightly increases the state
+space. Nonetheless, this symbolic encoding allows the variable ordering more time to gradually adjust
+to the represented sets.
+In contrast, by conjoining liveness goals, the variable order is oblivious during realizability checking
+that the sub-strategies will be disjoined at the end. The disjunction of strategies acts as a shock wave,
+disruptive to how far from optimal the obtained variable order is. If, by that phase, reordering has been
+disabled, then this effect causes exponential blowup.
+Overall, the proposed language made experimentation easier and revisions faster, helping to study
+variants of the speciﬁcation. It can be used to explore the sensitivity of a speciﬁcation, in the following
+way. A formula, e.g., requiring weak fairness, can be temporarily replaced with a process that is one
+possible reﬁnement of that formula, potentially simpliﬁed. In the AMBA example, one can ﬁx a round
+robin schedule for selecting the next grantee (temporarily dropping G10). This is reminiscent of the
+manual implementation [20]. By doing so, it can be evaluated whether the synthesizer ﬁnds it difﬁcult to
+pick requestors only, or whether some other factor is more important, either another part of the speciﬁ-
+cation, or some external factor. For the AMBA problem, such a change resulted in replacing recurrence
+formulae with a BA, and led to identifying the need for strategy reordering to avoid memory blowup.
+Therefore, we believe that it can prove useful in exploring the sensitivity of speciﬁcations, to help the
+speciﬁer direct their attention to improve those parts of the speciﬁcation that impact the most synthesis
+performance.
+Listing 2: AMBA AHB speciﬁcation in the pro-
+posed language.
+1# define N 2 /* N + 1 masters
+*/
+2# define SINGLE 0
+3# define BURST4 1
+4# define INCR 25/* variables of masters and
+slaves
+6A4: initial condition */
+7free env bool ready = false ;
+8free env int (0, 2) burst ;
+9free env bool request [N + 1] =
+false ;
+10free env bool grantee_lockreq =
+
+--- Page 19 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 91
+false ;
+11free env bool master_lockreq =
+false ;
+12/* arbiter variables */
+13/* G11 : sys initial condition
+*/
+14free bool start = true ;
+15free bool decide = true ;
+16free bool lock = false ;
+17free bool lockmemo ;
+18free int (0, N) master = 0;
+19free int (0, N) grant ;
+20/* A2: slaves must progress
+with receiving data */
+21assume ltl { []<> ready }
+22/* A3: dropped , weakening the
+assumptions */
+23/* A1: */
+24assume env proctype
+withdraw_lock (){
+25 progress :
+26 do
+27 :: lock ;
+28 do
+29 :: ! master_lockreq ';
+break
+30 :: true /* wait */
+31 od
+32 :: else
+33 od
+34}
+35assert ltl {
+36[](
+37/* G1: new access starts only
+when slave is ready */
+38(start ' -> ready )
+39/* G4 ,5 */
+40&& ( ready -> (( master ' ==
+grant ) && (lock ' <->
+lockmemo ')))
+41/* G6 */
+42&& (! start ' -> (
+43 (master ' == master ) &&
+44 (lock ' <-> lock )))
+45/* G7: remember if lock
+requested */
+46&& ((--X decide ) -> ( lockmemo '
+<-> grantee_lockreq '))
+47/* G8 */
+48&& (! decide -> (grant ' ==
+grant ))
+49&& ((! --X decide ) -> (lockmemo ' <-> lockmemo ))
+50/* G10: grant only to
+requestors */
+51&& (( grant ' == grant ) || (
+grant ' == 0) || request [
+grant '])
+52)
+53}
+54sync { /* synchronous product
+*/
+55/* G9: weak fairness */
+56assert proctype weak_fairness
+(){
+57 int (0, N) count ;
+58 do
+59 :: (! request [ count ] || (
+master == count ));
+60 if
+61 :: ( count < N) && (
+count ' == count +
+1)
+62 :: ( count == N) && (
+count ' == 0);
+63 progress : skip
+64 fi
+65 :: else
+66 od
+67}
+68/* G2: lock until no lock req
+*/
+69assert sys proctype
+maintain_lock (){
+70 do
+71 :: ( lock && start && (
+burst == INCR ));
+72 do
+73 :: (! start && !
+master_lockreq ');
+break
+74 :: ! start
+75 od
+76 :: else
+77 od
+78}
+79/* G3: for a BURST4 access ,
+count the " ready " time
+steps . */
+80assert sys proctype
+count_burst (){
+81 int (0, 3) count ;
+82 do
+83 :: ( start && lock &&
+
+--- Page 20 ---
+92 A multi-paradigm language for reactive synthesis
+84 ( burst == BURST4 ) &&
+85 (! ready || (count ' ==
+1)) &&
+86 ( ready || (count ' ==
+0)) );
+87 do
+88 :: (! start && ! ready
+)
+89 :: (! start && ready
+&& ( count < 3) &&90 (count ' == count +
+1))
+91 :: (! start && ready
+&& ( count >= 3));
+break
+92 od
+93 :: else
+94 od
+95}
+96}
+7 Relevant work
+Our approach has common elements with program repair [51], program sketching [65], and syntax-
+guided synthesis [7]. Program repair aims at modifying an existing program in a conventional pro-
+gramming language. Syntax-guided synthesis uses a grammar to slice the admissible search space of
+terminating programs. Here, we are interested in reactive programs. Similarly, program sketching uses
+templates to restrict the search space and give hints to the synthesizer for obtaining a complete program.
+In [15], the authors propose another constraint-based approach to games, but start directly from logic
+formulae.
+TLA [61, 62] subsumes our proposed language, since it includes quantiﬁcation, but is intended as
+a theorem proving activity, is declarative, and is aimed at veriﬁcation. Nonetheless, one can view the
+proposed translation as from open-P ROMELA to TLA. SMV is a declarative language [24], and J TLV
+[88] an SMV-like language for synthesis speciﬁcations, but with no imperative constructs. A SPECT LTL
+is a further declarative extension for aspect-oriented programming [72].
+RPROMELA is an extension of P ROMELA that adds synchronous-reactive constructs (not in the sense
+of reactive synthesis) that include synchronous products and channels called ports [80, 81]. Its semantics
+are deﬁned in terms of stable states , where the synchronous product blocks, waiting for message recep-
+tion from its global ports. RP ROMELA does not address modeling of the environment, nor declarative
+elements. Besides, synchronous-reactive languages like E STEREL , QUARTZ (imperative textual), S TAT-
+ECHARTS , ARGOS , SYNCCHARTS (imperative graphical), L USTRE , and L UCID SYNCHRONE (declar-
+ative textual) and S IGNAL (declarative graphical) are by deﬁnition deterministic languages intended for
+direct design of transducers [41, 44, 52]. In synthesis, non-determinism is an essential feature of the
+speciﬁcation.
+Our approach has common elements with constraint imperative programming (CIP), introduced with
+the experimental language K ALEIDOSCOPE [38, 39, 40, 68], one of the ﬁrst attempts to integrate the im-
+perative and declarative constraint programming paradigms. An observation from [38], which applies
+also here, is that speciﬁers need to express two types of relations: long-lived (best described declara-
+tively), and sequencing relations (more naturally expressed in an imperative style). However, CIP does
+notensure correct reactivity, because the constraints are solved online. Constraints are a related approach
+that uses constraints for indirect assignment to imperative variables is [63].
+The translation from P ROMELA to declarative formalisms has been considered in [11, 48, 26] and
+decision diagrams in [13]. These translations aim at veriﬁcation, do not have LTL as target language,
+and either have limited support for atomicity [26], no details [11], or programs graphs semantics that do
+not match P ROMELA [48].
+
+--- Page 21 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 93
+8 Conclusions
+We have presented a language for reactive synthesis that combines declarative and imperative elements
+to allow using the most suitable paradigm for each requirement, to write readable speciﬁcations. By
+expressing the AMBA speciﬁcation in a multi-paradigm language, it became easier to experiment and
+transform it into one that led to efﬁcient synthesis that improved previous results by two orders of mag-
+nitude. Besides the AMBA speciﬁcation, other examples can be found in the code repository [1].
+Acknowledgments The authors would like to thank Scott Livingston for providing helpful feedback.
+This work was supported by STARnet, a Semiconductor Research Corporation program, sponsored by
+MARCO and DARPA. The ﬁrst author was partially supported by a graduate research fellowship from
+the Jet Propulsion Laboratory, over the summer of 2014.
+References
+[1]open- PROMELA compiler ( PYTHON package) . Available at https://github.com/johnyf/
+openpromela .
+[2] P ROMELA parser ( PYTHON package) . Available at https://github.com/johnyf/promela .
+[3] S LUGS instrumentation at tag synt 2015 . Available at https://github.com/johnyf/slugs .
+[4]dd: Decision diagrams ( PYTHON package) . Available at https://github.com/johnyf/dd .
+[5]omega : Symbolic and enumerated data structures and algorithms for manipulating w-regular sets ( PYTHON
+package) . Available at https://github.com/johnyf/omega .
+[6] Mart ´ın Abadi & Leslie Lamport (1994): Open systems in TLA . In: PODC , pp. 81–90,
+doi:10.1145/197917.197960.
+[7] Rajeev Alur, Rastislav Bodik, Garvit Juniwal, Milo MK Martin, Mukund Raghothaman, Sanjit A Seshia,
+Rishabh Singh, Armando Solar-Lezama, Emina Torlak & Abhishek Udupa (2013): Syntax-guided synthesis .
+In:FMCAD , pp. 1–17, doi:10.1109/FMCAD.2013.6679385.
+[8] Rajeev Alur & Salvatore La Torre (2004): Deterministic generators and games for LTL fragments .ACM
+Trans. Comput. Logic 5(1), pp. 1–25, doi:10.1145/963927.963928.
+[9] ARM Ltd. (1999): AMBA™Speciﬁcation , Rev 2.0 edition. Available at http://www-micro.deis.
+unibo.it/ ~magagni/amba99.pdf .
+[10] Christel Baier & Joost-Pieter Katoen (2008): Principles of model checking . The MIT Press.
+[11] Michael Baldamus & Jochen Schr ¨oder-Babo (2001): P2B: A translation utility for linking PROMELA and
+symbolic model checking . In: SPIN , pp. 183–191, doi:10.1007/3-540-45139-0 11.
+[12] Ji ˇr´ı Barnat, Lubo ˇs Brim, V ojt ˇech Havel, Jan Havl ´ıˇcek, Jan Kriho, Milan Len ˇco, Petr Ro ˇckai, Vladim ´ırˇStill
+& Jiˇr´ı Weiser (2013): D IVINE3.0 – An explicit-state model checker for multithreaded C & C++ programs .
+In:CA V , 8044, pp. 863–868, doi:10.1007/978-3-642-39799-8 60.
+[13] Vincent Beaudenon, Emmanuelle Encrenaz & Sami Taktak (2010): Data decision diagrams for promela
+systems analysis .STTT 12(5), pp. 337–352, doi:10.1007/s10009-010-0135-0.
+[14] David M. Beazley: PLY (Python Lex-Yacc) v3.4 . Available at http://www.dabeaz.com/ply/ply.html .
+[15] Tewodros Beyene, Swarat Chaudhuri, Corneliu Popeea & Andrey Rybalchenko (2014): A constraint-based
+approach to solving games on inﬁnite graphs . In: POPL , pp. 221–233, doi:10.1145/2535838.2535860.
+[16] Roderick Bloem, Alessandro Cimatti, Karin Greimel, Georg Hofferek, Robert K ¨onighofer, Marco Roveri,
+Viktor Schuppan & Richard Seeber (2010): R ATSY –A new requirements analysis tool with synthesis . In:
+CA V , pp. 425–429, doi:10.1007/978-3-642-14295-6 37.
+
+--- Page 22 ---
+94 A multi-paradigm language for reactive synthesis
+[17] Roderick Bloem, Stefan Galler, Barbara Jobstmann, Nir Piterman, Amir Pnueli & Martin Weiglhofer
+(2007): Interactive presentation: Automatic hardware synthesis from speciﬁcations: A case study . In:
+Design, Automation and Test in Europe (DATE) , pp. 1188–1193. Available at http://dl.acm.org/
+citation.cfm?id=1266366.1266622 .
+[18] Roderick Bloem, Stefan Galler, Barbara Jobstmann, Nir Piterman, Amir Pnueli & Martin Wei-
+glhofer (2007): Specify, compile, run: Hardware from PSL. ENTCS 190(4), pp. 3–16,
+doi:10.1016/j.entcs.2007.09.004.
+[19] Roderick Bloem, Swen Jacobs & Ayrat Khalimov (2014): Parameterized synthesis case study: AMBA
+AHB . In Krishnendu Chatterjee, R ¨udiger Ehlers & Susmit Jha, editors: SYNT ,EPTCS 157, pp. 68–83,
+doi:10.4204/EPTCS.157.9. Available at http://arxiv.org/abs/1407.6580v1 .
+[20] Roderick Bloem, Barbara Jobstmann, Nir Piterman, Amir Pnueli & Yaniv Sa’ar (2012): Synthe-
+sis of reactive(1) designs .Journal of Computer and System Sciences (JCSS) 78(3), pp. 911–938,
+doi:10.1016/j.jcss.2011.08.007.
+[21] Aaron Bohy, V ´eronique Bruy `ere, Emmanuel Filiot, Naiyong Jin & Jean-Franc ¸ois Raskin (2012): A CACIA +,
+a tool for LTL synthesis . In: CA V , pp. 652–657, doi:10.1007/978-3-642-31424-7 45.
+[22] Manfred Broy (1986): A theory for nondeterminism, parallelism, communication, and concurrency .TCS
+45(0), pp. 1–61, doi:10.1016/0304-3975(86)90040-X.
+[23] Randal E. Bryant (1986): Graph-based algorithms for Boolean function manipulation .IEEE Trans. Com-
+put.35(8), pp. 677–691, doi:10.1109/TC.1986.1676819.
+[24] Roberto Cavada, Alessandro Cimatti, Charles Arthur Jochim, Gavin Keighren, Emanuele Olivetti, Marco
+Pistore, Marco Roveri & Andrei Tchaltsev (2010): N USMV 2.5 User Manual . Technical Report, Fon-
+dazione Bruno Kessler, 18 Via Sommarive, 38055 Povo (Trento), Italy.
+[25] Ashok K. Chandra, Dexter C. Kozen & Larry J. Stockmeyer (1981): Alternation .JACM 28(1), pp. 114–133,
+doi:10.1145/322234.322243.
+[26] Frank Ciesinski, Christel Baier, Marcus Gr ¨oßer & David Parker (2008): Generating compact MTBDD-
+representations from Probmela speciﬁcations . In: SPIN , pp. 60–76, doi:10.1007/978-3-540-85114-1 7.
+[27] Edsger W. Dijkstra (1975): Guarded commands, nondeterminacy and formal derivation of programs .
+CACM 18(8), pp. 453–457, doi:10.1145/360933.360975.
+[28] M.B. Dwyer, G.S. Avrunin & J.C. Corbett (1999): Patterns in property speciﬁcations for ﬁnite-state veriﬁ-
+cation . In: ICSE , pp. 411–420, doi:10.1145/302405.302672.
+[29] R ¨udiger Ehlers (2011): Experimental aspects of synthesis .EPTCS 50, doi:10.4204/EPTCS.50.
+[30] R ¨udiger Ehlers (2011): Generalized Rabin(1) synthesis with applications to robust system synthesis . In:
+NFM , pp. 101–115, doi:10.1007/978-3-642-20398-5 9.
+[31] R ¨udiger Ehlers (2011): Unbeast: Symbolic bounded synthesis . In: TACAS , pp. 272–275, doi:10.1007/978-
+3-642-19835-9 25.
+[32] R ¨udiger Ehlers & Vasumathi Raman (2014): Low-effort speciﬁcation debugging and analysis .EPTCS 157,
+pp. 117–133, doi:10.4204/EPTCS.157.12.
+[33] Ioannis Filippidis & contributors (2013): List of veriﬁcation and synthesis tools . Available at https:
+//github.com/johnyf/tool_lists/blob/master/verification_synthesis.md .
+[34] Ioannis Filippidis & Richard M. Murray (2015): Revisiting the AMBA AHB bus case study . Technical
+Report CaltechCDSTR:2015.004, California Institute of Technology, Pasadena, CA. Available at http:
+//resolver.caltech.edu/CaltechCDSTR:2015.004 .
+[35] Ioannis Filippidis, Richard M. Murray & Gerard J. Holzmann (2015): Synthesis from multi-paradigm spec-
+iﬁcations . Technical Report CaltechCDSTR:2015.003, California Institute of Technology, Pasadena, CA.
+Available at http://resolver.caltech.edu/CaltechCDSTR:2015.003 .
+[36] Bernd Finkbeiner & Sven Schewe (2013): Bounded synthesis .International Journal on Software Tools for
+Technology Transfer (STTT) 15(5-6), pp. 519–539, doi:10.1007/s10009-012-0228-z.
+
+--- Page 23 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 95
+[37] Robert W. Floyd (1967): Nondeterministic algorithms . JACM 14(4), pp. 636–644,
+doi:10.1145/321420.321422.
+[38] Bjorn N. Freeman-Benson (1990): K ALEIDOSCOPE : Mixing objects, constraints, and imperative program-
+ming . In: OOPSLA/ECOOP , pp. 77–88, doi:10.1145/97946.97957.
+[39] Bjørn N. Freeman-Benson & Alan Borning (1992): Integrating constraints with an object-oriented lan-
+guage . In: ECOOP , pp. 268–286, doi:10.1007/BFb0053042.
+[40] B.N. Freeman-Benson & A Borning (1992): The design and implementation of KALEIDOSCOPE ’90-A
+constraint imperative programming language . In: ICCL , pp. 174–180, doi:10.1109/ICCL.1992.185480.
+[41] Abdoulaye Gamati ´e (2010): Designing embedded systems with the Signal programming language: syn-
+chronous, reactive speciﬁcation . Springer, doi:10.1007/978-1-4419-0941-1.
+[42] Jeff Gennari, Shaun Hedrick, Fred Long, Justin Pincar & Robert Seacord (2007): Ranged integers for
+the C programming language . Technical Note CMU/SEI-2007-TN-027, Software Engineering Institute,
+Carnegie Mellon University. Available at http://resources.sei.cmu.edu/library/asset-view.
+cfm?AssetID=8265 .
+[43] Yashdeep Godhal, Krishnendu Chatterjee & Thomas A Henzinger (2013): Synthesis of AMBA AHB from
+formal speciﬁcation: a case study .International Journal on Software Tools for Technology Transfer (STTT)
+15(5-6), pp. 585–601, doi:10.1007/s10009-011-0207-9.
+[44] Nicolas Halbwachs (1993): Synchronous programming of reactive systems .Engineering and Computer
+Science 215, Springer, doi:10.1007/978-1-4757-2231-4. Available at http://www-verimag.imag.fr/
+~halbwach/newbook.pdf .
+[45] Charles Antony Richard Hoare (1985, 2004): Communicating sequential processes . 178, Prentice-Hall.
+Available at http://www.usingcsp.com/cspbook.pdf .
+[46] Gerard J. Holzmann: P ROMELA Language Reference ( http: // spinroot. com/ spin/ Man/ promela.
+html ). Available at http://spinroot.com/spin/Man/promela.html .
+[47] Gerard J. Holzmann (2003): The SPIN model checker: Primer and reference manual . Addison-Wesley.
+[48] Yong Jiang & Zongyan Qiu (2012): S2N: model transformation from SPINtoNUSMV. In: SPIN , pp.
+255–260, doi:10.1007/978-3-642-31759-0 20.
+[49] Barbara Jobstmann & Roderick Bloem (2006): Optimizations for LTL synthesis . In: FMCAD , pp. 117–124,
+doi:10.1109/FMCAD.2006.22.
+[50] Barbara Jobstmann, Stefan Galler, Martin Weiglhofer & Roderick Bloem (2007): A NZU: A tool for property
+synthesis . In: CA V , pp. 258–262, doi:10.1007/978-3-540-73368-3 29.
+[51] Barbara Jobstmann, Andreas Griesmayer & Roderick Bloem (2005): Program repair as a game . In: CA V ,
+pp. 226–238, doi:10.1007/11513988 23.
+[52] Muriel Jourdan, Fabienne Lagnier, R Maraninchi & Pascal Raymond (1994): A multiparadigm language
+for reactive systems . In: ICCL , pp. 211–218, doi:10.1109/ICCL.1994.288379.
+[53] Robert M. Keller (1976): Formal veriﬁcation of parallel programs .CACM 19(7), pp. 371–384,
+doi:10.1145/360248.360251.
+[54] Yonit Kesten, Amir Pnueli & Li-on Raviv (1998): Algorithmic veriﬁcation of linear temporal logic speciﬁ-
+cations . In: ICALP , 1443, pp. 1–16, doi:10.1007/BFb0055036.
+[55] Uri Klein, Nir Piterman & Amir Pnueli (2012): Effective synthesis of asynchronous systems from GR(1)
+speciﬁcations . In: VMCAI , pp. 283–298, doi:10.1007/978-3-642-27940-9 19.
+[56] M. Kloetzer & C. Belta (2008): A fully automated framework for control of linear systems from temporal
+logic speciﬁcations .TAC 53(1), pp. 287–297, doi:10.1109/TAC.2007.914952.
+[57] H. Kress-Gazit, G.E. Fainekos & G.J. Pappas (2009): Temporal-logic-based reactive mission and motion
+planning .IEEE Transactions on Robotics (TRO) 25(6), pp. 1370–1381, doi:10.1109/TRO.2009.2030225.
+[58] Daniel Kroening & Ofer Strichman (2008): Decision procedures: An algorithmic point of view . Springer.
+
+--- Page 24 ---
+96 A multi-paradigm language for reactive synthesis
+[59] O. Kupferman & M.Y . Vardi (2005): Safraless decision procedures . In: FOCS , pp. 531–540,
+doi:10.1109/SFCS.2005.66.
+[60] Orna Kupferman (2012): Recent challenges and ideas in temporal synthesis . In: SOFSEM , pp. 88–98,
+doi:10.1007/978-3-642-27660-6 8.
+[61] Leslie Lamport (1994): The Temporal Logic of Actions .ACM Trans. Program. Lang. Syst. 16(3), pp.
+872–923, doi:10.1145/177492.177726.
+[62] Leslie Lamport (2002): Specifying systems: The TLA+ language and tools or hardware and software
+engineers . Addison-Wesley. Available at http://research.microsoft.com/en-us/um/people/
+lamport/tla/book.html .
+[63] Leslie Lamport & Fred B. Schneider (1985): Constraints: A uniform approach to aliasing and typing . In:
+POPL , pp. 205–216, doi:10.1145/318593.318640.
+[64] K Rustan M Leino (2010): Dafny: An automatic program veriﬁer for functional correctness . In: LPAR ,
+6355, pp. 348–370, doi:10.1007/978-3-642-17511-4 20.
+[65] A Solar Lezama (2008): Program synthesis by sketching . Ph.D. thesis, Citeseer. Available at http://www.
+eecs.berkeley.edu/Pubs/TechRpts/2008/EECS-2008-177.html .
+[66] Orna Lichtenstein, Amir Pnueli & Lenore Zuck (1985): The glory of the past . In: Logics of Programs , 193,
+pp. 196–218, doi:10.1007/3-540-15648-8 16.
+[67] Scott C. Livingston, Richard M. Murray & Joel W. Burdick (2012): Backtracking temporal logic synthesis
+for uncertain environments . In: ICRA , pp. 5163–5170, doi:10.1109/ICRA.2012.6225208.
+[68] Gus Lopez, Bjorn Freeman-Benson & Alan Borning (1994): Implementing constraint imperative
+programming languages: The KALEIDOSCOPE ’93 virtual machine . In: OOPSLA , pp. 259–271,
+doi:10.1145/191080.191118.
+[69] Z Manna & Amir Pnueli (1990): Tools and rules for the practicing veriﬁer . Technical Report CS-TR-90-
+1321, Stanford University, CA, USA. Available at http://i.stanford.edu/pub/cstr/reports/cs/
+tr/90/1321/CS-TR-90-1321.pdf .
+[70] Zohar Manna & Amir Pnueli (1989): The anchored version of the temporal framework . In: Linear time,
+branching time and partial order in Logics and models for concurrency ,LNCS 354, Springer, pp. 201–284,
+doi:10.1007/BFb0013024.
+[71] Zohar Manna & Amir Pnueli (1990): A hierarchy of temporal properties . In: PODC , pp. 377–410,
+doi:10.1145/93385.93442.
+[72] Shahar Maoz & Yaniv Sa’ar (2011): A SPECT LTL: An aspect language for LTL speciﬁcations . In: Aspect-
+oriented Software Development (AOSD) , ACM, pp. 19–30, doi:10.1145/1960275.1960280.
+[73] John McCarthy (1959): A basis for a mathematical theory of computation . In P. Braffort & D. Hirschberg,
+editors: Computer Programming and Formal Systems ,Studies in Logic and the Foundations of Mathemat-
+ics26, North-Holland, pp. 33–70, doi:10.1016/S0049-237X(09)70099-0.
+[74] Kenneth Lauchlin McMillan (1992): Symbolic model checking: An approach to the state explosion problem .
+Ph.D. thesis, Carnegie Mellon University, Pittsburgh, PA, USA, doi:10.1007/978-1-4615-3190-6. Available
+athttp://www.kenmcmil.com/pubs/thesis.pdf . UMI Order No. GAX92-24209.
+[75] George H Mealy (1955): A method for synthesizing sequential circuits .Bell System Technical Journal
+34(5), pp. 1045–1079, doi:10.1002/j.1538-7305.1955.tb03788.x.
+[76] Edward F Moore (1956): Gedanken-experiments on sequential machines .Automata studies 34, pp. 129–
+153.
+[77] A. Morgenstern (2010): Symbolic controller synthesis for LTL speciﬁcations . Ph.D. thesis, Com-
+puter Science. Available at http://nbn-resolving.de/urn/resolver.pl?urn:nbn:de:hbz:
+386-kluedo-25721 .
+[78] A. Morgenstern & K. Schneider (2011): A LTL fragment for GR(1)-synthesis .EPTCS 50, pp. 33–45,
+doi:10.4204/EPTCS.50.3.
+
+--- Page 25 ---
+I. Filippidis, R.M. Murray, G.J. Holzmann 97
+[79] David E Muller, Ahmed Saoudi & Paul E Schupp (1986): Alternating automata, the weak monadic theory
+of the tree, and its complexity . In: ICALP , pp. 275–283, doi:10.1007/3-540-16761-7 77.
+[80] Elie Najm & Frank Olsen (1996): Protocol veriﬁcation with Reactive PROELA /RSPIN . In: SPIN , pp. 109–
+128. Available at http://spinroot.com/spin/Workshops/ws96/Ol.pdf .
+[81] Elie Najm & Frank Olsen (1996): Reactive EFSMs — Reactive Promela/RSPIN . In: TACAS , pp. 349–368,
+doi:10.1007/3-540-61042-1 54.
+[82] Shipra Panda & Fabio Somenzi (1995): Who are the variables in your neighbourhood . In: ICCAD , pp.
+74–77, doi:10.1109/ICCAD.1995.479994.
+[83] Nir Piterman, Amir Pnueli & Yaniv Sa’ar (2006): Synthesis of reactive(1) designs . In: VMCAI , pp. 364–
+380, doi:10.1007/11609773 24.
+[84] A. Pnueli & R. Rosner (1989): On the synthesis of a reactive module . In: POPL , pp. 179–190,
+doi:10.1145/75277.75293.
+[85] Amir Pnueli (1977): The temporal logic of programs . In: FOCS , pp. 46 –57, doi:10.1109/SFCS.1977.32.
+[86] Amir Pnueli & Uri Klein (2009): Synthesis of programs from temporal property speciﬁcations . In: MEM-
+OCODE , pp. 1–7, doi:10.1109/MEMCOD.2009.5185372.
+[87] Amir Pnueli & Roni Rosner (1989): On the synthesis of an asynchronous reactive module . In: ICALP , pp.
+652–671, doi:10.1007/BFb0035790.
+[88] Amir Pnueli, Yaniv Sa’ar & Lenore D Zuck (2010): J TLV: A framework for developing veriﬁcation algo-
+rithms . In: CA V , pp. 171–174, doi:10.1007/978-3-642-14295-6 18.
+[89] Roni Rosner (1992): Modular synthesis of reactive systems . Ph.D. thesis, Weizmann Institute of Science,
+Rehovot, Israel. Available at http://www.researchgate.net/publication/238759536_Modular_
+synthesis_of_reactive_systems/file/50463527f8b648c3ba.pdf .
+[90] Richard Rudell (1993): Dynamic variable ordering for ordered binary decision diagrams . In: ICCAD , pp.
+42–47, doi:10.1109/ICCAD.1993.580029.
+[91] Matthias Schlaipfer, Georg Hofferek & Roderick Bloem (2012): Generalized reactivity(1) synthesis without
+a monolithic strategy . In: HSVT , pp. 20–34, doi:10.1007/978-3-642-34188-5 6.
+[92] Klaus Schneider (2004): Veriﬁcation of reactive systems: formal methods and algorithms . Springer,
+doi:10.1007/978-3-662-10778-2.
+[93] Saqib Sohail, Fabio Somenzi & Kavita Ravi (2008): A hybrid algorithm for LTL games . In: VMCAI , pp.
+309–323, doi:10.1007/978-3-540-78163-9 26.
+[94] Fabio Somenzi (2012): C UDD: CU Decision Diagram package - release 2.5.0 .University of Colorado at
+Boulder . Available at http://vlsi.colorado.edu/ ~fabio/CUDD/cuddIntro.html .
+[95] Harald Søndergaard & Peter Sestoft (1992): Non-determinism in functional languages .The Computer
+Journal 35(5), pp. 514–523, doi:10.1093/comjnl/35.5.514.
+[96] Wolfgang Thomas (2008): Solution of Church’s Problem: A tutorial .New Perspectives on Games and
+interaction 5.
+[97] Peter Van-Roy & Seif Haridi (2004): Concepts, techniques, and models of computer programming . MIT
+press.
+[98] Moshe Y Vardi (1995): Alternating automata and program veriﬁcation . In: Computer Science Today ,
+Springer, pp. 471–485, doi:10.1007/BFb0015261.
+[99] Moshe Y Vardi (1996): An automata-theoretic approach to linear temporal logic . In: Logics for concur-
+rency ,LNCS 1043, Springer, pp. 238–266, doi:10.1007/3-540-60915-6 6.
+[100] Igor Walukiewicz (2004): A Landscape with games in the background .LICS 0, pp. 356–366,
+doi:10.1109/LICS.2004.1319630.
+[101] Tichakorn Wongpiromsarn, Ufuk Topcu & Richard M Murray (2013): Synthesis of control protocols for
+autonomous systems .Unmanned Systems 1(01), pp. 21–39, doi:10.1142/S2301385013500027.

@@ -1,0 +1,930 @@
+--- Page 1 ---
+EPiC Series in Computing
+Volume 46, 2017, Pages 144–161
+LPAR-21. 21st International Conference on Logic for
+Programming, Artiﬁcial Intelligence and Reasoning
+Automated analysis of Stateﬂow models
+Hamza Bourbouh1;3;5, Pierre-Loic Garoche2, Christophe Garion1
+Arie Gurﬁnkel4, Temesghen Kahsai5;6, and Xavier Thirioux3
+1ISAE-SUPAERO/DISC, France
+2ONERA/DTIM, France
+3ENSEEIHT/IRIT, France
+4University of Waterloo, Canada
+5NASA Ames, USA
+6CMU, USA
+Abstract
+Stateﬂow is a widely used modeling framework for embedded and cyberphysical sys-
+tems where control software interacts with physical processes. In this work, we present a
+framework and a fully automated safety veriﬁcation technique for Stateﬂow models. Our
+approach is two-folded: (i) we faithfully compile Stateﬂow models into hierarchical state
+machines, and (ii) we use automated logic-based veriﬁcation engine to decide the valid-
+ity of safety properties. The starting point of our approach is a denotational semantics
+of Stateﬂow. We propose a compilation process using continuation-passing style (CPS)
+denotational semantics. Our compilation technique preserves the structural and modal be-
+havior of the system. The overall approach is implemented as an open source toolbox that
+can be integrated into the existing Mathworks Simulink/Stateﬂow modeling framework.
+We present preliminary experimental evaluations that illustrate the eﬀectiveness of our
+approach in code generation and safety veriﬁcation of industrial scale Stateﬂow models.
+1 Introduction
+Thewidespreaddeploymentofcyberphysicalsystemsinsafetycriticalscenarioslikeautomotive,
+avionics, and medical devices, has made formal and automated analysis of such systems neces-
+sary. This is witnessed by the sheer number of extensive approaches proposed in the veriﬁcation
+community. Stateﬂow [22] is a widely used modeling framework for embedded and cyberphys-
+ical systems where control software interacts with physical processes. Speciﬁcally, Stateﬂow is
+a toolbox developed by MathWorks Inc. that extends Simulink [20] with an environment for
+modeling and simulating reactive systems. A Stateﬂow diagram can be included in a Simulink
+model as one of the blocks interacting with other Simulink components using input and output
+signals. Stateﬂow is a highly complex language with no formal semantics1: its semantics is only
+This work was partially supported by the ANR-INSE-2012 CAFEIN project, CNES project No. R-S16/BS-
+0004-045 and NASA Contract No. NNX14AI09G.
+1At least not provided as a reference by the tool provider.
+T.Eiter and D.Sands (eds.), LPAR-21 (EPiC Series in Computing, vol. 46), pp. 144–161
+
+--- Page 2 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+described through examples on the MathWorks website [22] without any formal deﬁnition. A
+Stateﬂow diagram has a hierarchical structure, which can be either arranged in parallelin which
+all states become active whenever the diagram is activated; or sequentially , in which states are
+connected with transitions and only one of them can be active.
+Over the years several approaches have been proposed for the analysis of Stateﬂow diagrams.
+Suchapproachesoftenlackoneormanyofthefollowingdesiredfeatures: (i)aconvincingformal
+semantics; (ii) a faithful compilation that preserves the hierarchical structure of the Stateﬂow
+model; (iii) fully automated analysis engine; and last but not least (iv) an open source tool
+that is easy to use and able to handle realistic models. The aim of this paper is to provide a
+framework in which all those points are properly addressed. We based our work upon a series of
+papers by Hamon [15, 14, 16] providing operational and denotational semantics for Stateﬂow,
+designing interpreters for Stateﬂow.
+A CPS semantics for Stateﬂow. The starting point of our approach is the expression of the
+denotationalsemanticsofStateﬂow[14]asapure continuation-passing style (CPS)denotational
+semantics. CPS has been proposed in the 70s by Plotkins [24] for -calculus call-by-value
+semantics and later developed for eﬃcient compilation means, for example in the long line of
+Danvy’s works, e.g., [18] and Appel’s book [3]. As recalled by Danvy, CPS terms can be simply
+expressed yet enjoy a number of useful properties, e.g., “oﬀering a good format for compilation
+and optimization”. The following equations deﬁne the Plotkin’s call-by-value CPS rules:
+JxK=x
+Jx:e K=(xkJeKk)
+Je0e1K= Je0K(v0:Je1K(v1v0v1))
+The key idea is to associate to each function an additional argument, the explicit contin-
+uation:t!t. This continuation is an endomorphic map over tvalues on which control
+is explicitly modeled: function calls, intermediate values, evaluation order, etc. In compila-
+tion, CPS-reduction amounts to characterize a global continuation, which, when evaluated,
+produces the generated code.
+Contributions. This paper makes the following contributions:
+We adapted Hamon’s denotational semantics [14] to a pure CPS semantics, solving some
+of its ﬂaws (see §2.2).
+We instantiate such CPS semantics for diﬀerent uses, such as a model interpreter and a
+code generator for Stateﬂow models. Such framework has several advantages, including a
+formal semantics of Stateﬂow that preserves the hierarchical structure of the model.
+We implemented the general CPS semantics and the proposed instantiations in OCaml:
+an interpreter and a code generator both for imperative code and Lustre automaton.
+The Lustre automaton code generator from Stateﬂow has been implemented and inte-
+grated in CoCoSim [17] – an automated analysis framework for Simulink models. Co-
+CoSimamong other features provides an intuitive user interface that facilitates the mod-
+eling of safety properties, code generation, veriﬁcation, and graphical debugging of failed
+properties.
+We used CoCoSim ﬁtted with this new capability to address Stateﬂow model compilation
+and veriﬁcation on a set of industrial scale benchmarks and have experimentally evaluated
+our approach using two evaluation scales: (i) does the tool generate faithful code (wrt.
+145
+
+--- Page 3 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+Figure 1: Stopwatch Stateﬂow model (from [14]).
+the intended Stateﬂow semantics)? and (ii) is the tool able to eﬃciently verify safety
+properties? In Section 5 we provide evidence that answers positively both questions.
+Synopsis. The paper is structured as follows. In the next two paragraphs, we ﬁrst informally
+illustrate the Stateﬂow semantics and then give an overview of related works. In Section 2, we
+describe a CPS denotational semantics for Stateﬂow. In Section 3, we illustrate instantiations
+of the CPS semantics that allow us to generate both an interpreter and a code generator. Based
+on the code generator from Section 3, we describe in section 4 a compiler from Stateﬂow to
+Lustre automaton. Finally, in Section 5, we describe an open source implementation of our
+proposed technique and present the experimental evaluations that illustrate the eﬀectiveness of
+our approach.
+Stateﬂow semantics. Let us look at a concrete example that illustrates diﬀerent Stateﬂow
+constructs. Figure 1 shows the Stopwatch model capturing a basic behavior of a stopwatch.
+This system interacts with its environment via 3 signals: START,LAPandTIC.TICmodels
+the time increment of the system. STARTandLAPevents model the user interaction with
+the device. There are 2 top level states RunandStop, and 4 inner states Reset,Lap_stop ,
+Running andLap. The device is initialized in Stopmode and switches back and forth between
+StopandRun. When in Running state, it can be paused using the LAPsignal. Each TICsignal
+received when in Runstate increments the timer, performing side eﬀects on the internal timer
+variables (i.e., cent, sec, min ). This speciﬁc behavior is modeled by a set of transitions using
+only junctions and starting with an inner transition. This model is interesting since it relies on
+multiple constructs of Stateﬂow: innerandoutertransitions, junctions and hierarchical states.
+Related work. Despite its lack of formal semantics, Stateﬂow is widely used in the industry
+both for modeling purposes and code generation [23]. It has been studied for formal model-
+ing and veriﬁcation by numerous approaches, e.g., targeting automata [4, 19, 33], hybrid au-
+tomata [2], process calculi such as CPS [6, 34], transition systems [23], tabular expressions [28]
+or the synchronous language Lustre [27]. As a general remark, each of these approaches makes
+some restriction on the considered language, e.g., on events, inner transitions or junctions, and
+synthesizes an encoding in the target language, supported by veriﬁcation tools or test case
+generation, independently of the code generated from the same model.
+146
+
+--- Page 4 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+An approach related to ours is the work described in [27]. This approach translates a State-
+ﬂow model into Lustre dataﬂow language [5]. Since Lustre-like languages such as Scade [29] are
+used in the industry to generate embedded code, the approach is compatible both with compi-
+lation and veriﬁcation. The approach is however very limited in respecting the full Stateﬂow
+semantics. A tool, sf2lus, is provided and performs the translation for the considered subset.
+This approach diﬀers from ours in several ways: (i) Our translation keeps state machines struc-
+ture and by consequence makes it easy to read and traces state information; (ii) sf2lus handles
+events erroneously at the same time, which makes the behavior unsound wrt. Stateﬂow events
+semantics. Events occur (and wake the chart) in an ascending order based on their port num-
+bers once at a time. Such a chart can then be executed multiple times in the same time step;
+(iii)sf2lusdoes not support newer versions of Stateﬂow; and last (iv) our tool is developed in
+Matlab and is directly integrated into the Simulink/Stateﬂow environment, which allows among
+other features the use of Matlab simulation tool to further investigate failed properties.
+Another line of related works are developed in a series of papers by Hamon [14, 15] on
+which we based our work. In these papers, a formal semantics for Stateﬂow is provided, either in
+operationalordenotationalﬂavors. Noticethat[32]startsfromHamon’sdenotationalsemantics
+todeﬁneastructuraloperationalsemanticsforthreeStatechartslanguages, includingStateﬂow,
+but does not provide a compilation schema or analysis techniques. [30] uses a translation of
+Stateﬂow models to pushdown systems to generate and check invariants, but does not go further
+in properties to analyze. Until now, these are the only formal reference semantics available for
+Stateﬂow.
+Last, Simulink Design Veriﬁer (SLDV) is a toolbox provided by Mathworks to perform
+automated formal analysis of Simulink/Stateﬂow models. However, SLDV is a commercial
+distributed tool, therefore details on implementation and functionality are not available to the
+public.
+2 Denotational Semantics for Stateﬂow
+In this section, we describe our ﬁrst contribution: a continuation-passing style denotational
+semanticsforStateﬂow. Westartfromthesyntaxanddenotationalsemantics2describedin[14].
+However, we will revisit such semantics using a continuation-passing style (CPS). This new
+formulation allows to directly and easily capture the intended semantics of Stateﬂow. We use
+a syntactic representation of Stateﬂow models described by the grammar presented in Table 1.
+P::= (s;[src0;:::;srcn])
+srci::=s:sdjj:T
+sd::= ((ae;ad;ax);To;Ti;C)
+C::=Or(T;[s0;:::;sn])
+jAnd ([s0;:::;sn])
+t::= (e;c;(ac;at);d)
+T::=;jt:T
+d::=pjj
+p::=;js:p
+Table 1: Syntactic representation of Stateﬂow
+models.Syntax. A program (s;srci2[1:::n])is com-
+posed of state deﬁnitions s:sdand junctions
+j:T, with a main node s. A single state
+is deﬁned by the entry,duringandexitac-
+tions (ae;ad;ax),outerandinnertransitions
+ToandTi, as well as component content C.
+A component content Cis either an Or(T;sl)
+state with initializing transitions Tand sub-
+statessl, or anAnd(sl)state where all slsub-
+states are run in parallel. A transition list
+is an ordered sequence of transitions. Each
+2This syntax and semantics does not handle additional constructs such as loops, history junctions or call to
+external C functions. The restriction of covered constructs is further detailed in Sect. 5
+147
+
+--- Page 5 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+main:run:running : ((;a;disp = (cent;sec;min);;a);
+[(START;true;;a;;a;P main:stop:reset ) ;
+(LAP;true;;a;;a;P main:run:lap )];[];Or([];))
+main:run:lap : ((;a;;a;;a);
+[(START;true;;a;;a;P main:stop:lap _stop) ;
+(LAP;true;;a;;a;P main:run:running )];[];Or([];))
+main:run : ((;a;;a;;a);[];
+[(TIC;true; cent =cent +1;;a;J j1)];Or([];frunning ;lapg))
+j1 : [(noevent; cent ==100;cont =0;sec=sec+1;;a;J j2) ;
+(noevent; cent! =100;;a;;a;J j3)]
+j2 : [(noevent; sec==60;min=min+1;;a;P main:run ) ;
+(noevent; sec! =60;;a;;a;J j3)]
+j3 : []
+Figure 2: Encoding of the Stopwatch Stateﬂow model using the syntax from Table 1.
+transition is associated with an event, a con-
+dition, side eﬀect condition actions ac, transition actions atand a destination d. Destinations
+could be either states or junctions leading to further transitions.
+Modeling Stopwatch example. Figure 2 describes the Stopwatch model using the syntax
+from Table 1. Transitions from a state sto another s0are deﬁned as outer Toand inner
+transitions Tiof nodes, depending on the target node. The transitions associated to a node
+content of type Ordescribe the initialization transitions when entering into the node. Junctions
+enable the deﬁnition of transitions combining multiple conditions. The semantics of transitions
+is far from trivial: a transition path is evaluated one segment (atomic transition) after the other,
+performing side eﬀects on the state via condition actions acon the go, while transition actions
+atare only performed when all conditions over the path are satisﬁed and the path reaches a
+state not a junction. If a given path is eventually ﬁreable, the exit actions of the original node
+are performed, then the transition actions, to conclude with entry actions of the target node.
+2.1 CPS Denotational Semantics for Stateﬂow
+Motivating Continuation-passing style. The denotational semantics presented in [14]
+relies on continuations to model the actions of path computation. Indeed, the actions associated
+to an atomic transition (a segment) are performed either immediately for condition actions and
+eventually for transition actions. Success and fail continuations allow to capture this complex
+behavior in functions, representing side eﬀects as denotations. However, values manipulated
+by this denotational semantics were explicitly ﬁrst order and represented by environments of
+typeEnv:::=fx0:v0;:::;xn:vn;s0:b0;:::;sk:bkg. These environments represented both
+the values of variables xiand the active status of states si.
+The encoding of [14] could be signiﬁcantly improved by rearranging arguments so as to
+push environments in rightmost position and deﬁning a pure continuation-passing style (CPS)
+denotational semantics, point-free wrt. environments. Indeed, in some situations, the author
+would drop continuations and evaluate explicit intermediate environments.
+The following deﬁnitions characterize our CPS denotational semantics for Stateﬂow, fol-
+lowing precisely the semantics of [14] while solving its ﬂaws. The semantics is higher order
+and environments are never made explicit: the evaluation of a model component acts as a
+transformer.
+148
+
+--- Page 6 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+Conditions. Transitions in Stateﬂow are computed based on the current environment and
+an active event, evaluating conditions. Without loss of generality, we assume that the event
+is part of the environment and is not made explicit in the rules. An active event ecould be
+checked as a regular condition using the predicate event(e) . We recall that the environment
+contains both variables mapped to values and active status of Stateﬂow states. To clarify the
+expression, we made explicit the check whether a state characterized by pis active using the
+predicate active(p) .
+Actions. The key ingredient of transition computation in Stateﬂow is the sequence of ac-
+tions applied on the current environment, updating values of variables and changing active
+and inactive states. Actions act as transformers and are the values manipulated by our CPS
+denotational semantics. We denote by Denthis transformer type.
+Basic action constructors are left free here but typically express some imperative assign-
+ment of an expression to an environment variable. In addition, we introduce the actions open
+pand close p which switch the Boolean status of state ptotrueorfalserespectively.
+In order to generalize the approach, we express disjunctions as actions using the constructor
+Ite(condition;Den;Den ).
+A primitive action (assignment or open/close action) semantics, i.e., its interpretation as
+a transformer, is deﬁned using the function AJK:action!Den. (Actions) transformers can
+be combined using the operator :Den!Den!Den, which is associative: a1a2a3
+means that action a1is performed before action a2followed by a3. Last, the default action,
+identity, is denoted Id.
+Denotational semantics as a functions map. Semantics functions are associated to state
+names and a global continuation environment of typeKEnvis deﬁned as follows: ::=
+fpi: (SJpi:sdiKe
+m;SJpi:sdiKd;SJpi:sdiKx
+m);jj:TJTjK;:::;jj:TJTjKg. Functions
+SJp0:sd0Ke
+m,SJp0:sd0KdandSJp0:sd0Kx
+mdenote respectively the semantics of a state when
+entering it, executing it, or exiting it. Note that entry and exit actions are parametrized by a
+modem2Mode =LjS. This mode, either loose ( L) or strict ( S), captures the diﬀerence
+between inner and outer transitions for entry and exit actions. Junctions are associated to
+transition list semantics function T. Themap captures the semantics of all components of
+the Stateﬂow model and is typically provided as argument of denotations.
+Transitions semantics. Stateﬂow semantics is rather complex. A Stateﬂow transition
+amounts to evaluate a sequence of atomic transitions. Depending on some dynamic conditions,
+each atomic transition may be eventually ﬁred or not. In all cases, it will impact the environ-
+ment through side eﬀects (condition actions). We introduce three continuations: success of
+typek+::=Denmodeling a ﬁred transition, a failcontinuations of type k ::=Denmodeling
+an unﬁred one and a third case failglobof typek capturing complex executions in which a
+series of junctions ends in a terminal junction. In case of a transition leading to another state,
+some entry or exit actions may be performed3. They are captured by the wrapper continuation
+of typew::=p!Den!Den.
+The evaluation of a destination path which is a state amounts to apply the wrapper on
+the success continuation. Otherwise, when the destination is a junction, the transition list
+semantics is evaluated with the same continuations.
+DJpK(:KEnv ) (wrap :w) (success :k+) (fail failglob:k ) :Den =wrap p success
+3Note that those actions are not performed for a transition ending in a terminal junction.
+149
+
+--- Page 7 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+DJjK wrap success fail failglob=j(j)wrap success fail failglob
+Atomic transition semantics introduces an Iteaction: in case of an unfeasible condition, the
+(regular) fail continuation is used, otherwise a new success continuation is built, evaluating the
+transition actions of the atomic transition. The action associated to the then-branch combines
+the condition actions followed by the new destination evaluation and relies on the newly deﬁned
+success continuation.
+J(et;c;(ac;at);d)K(:KEnv ) (wrapper :w) (success :k+) (fail failglob:k ) :Den =
+Ite(event (et)^c;
+(letsuccess0=success(AJatK)in
+(AJacK)(DJdK wrapper success0fail failglob));
+fail )
+Evaluation of a list of transitions performs a left-to-right traversal of the list: the unfea-
+sibility of the head transition leads to the evaluation of the next, involving deﬁnition of fail
+continuations. As a special case, when provided with an empty list of transitions it always
+evaluates to the global fail continuation.
+TJ;K(:KEnv ) (wrapper :w) (success :k+) (fail failglob:k ) :Den =failglob
+TJt:TK wrapper success fail failglob=
+letfail0=TJTK wrapper success fail failglobin
+JtK wrapper success fail0failglob
+State semantics. State semantics involves the opening and closing actions of states. We
+introduce wrapper functions dedicated to inner, outer transitions, as well as entering of states.
+Wrapper considers a source and destination paths, psandpd, and identiﬁes the common
+preﬁxpof both paths. Depending on the context (inner or outer transition), it will compose
+respectively the exit actions of remaining ps, the transition actions continuation, and the enter-
+ing actions of the remaining pd. Outer transitions will involve loose state semantics while inner
+transitions involve strict one. A speciﬁc wrapper open_patheis introduced to enter substates
+of a path.
+open_pathv(:KEnv ) (p:Path ) (ps:Path ) (pd:Path ) :w=
+if hd (ps) = hd(pd)^hd(ps)6=;then
+open_pathv p:hd(ps)tl(ps)tl(pd)
+else match vwith
+o->den:x
+L(p:hd(ps))dene
+L(p:hd(pd))tl(pd)
+i->den:x
+S(p:hd(ps))dene
+S(p:hd(pd))tl(pd)
+e->den:dene
+L(p:hd(pd))tl(pd)
+This deﬁnition assumes that hdandtlfunctions, returning head and tail of a list, are
+extended to handle empty lists, i.e., hd;=;andtl;=;.
+We now deﬁne the core semantics functions of states, SJKfe;d;xg
+m. Note that mode parameter
+mis provided as an index. Entering or exiting a path executes the entry and exit actions of
+all states in the path, respectively. Depending on the outer or inner status of a transition, the
+entry or exit actions of the root node shall or shall not be evaluated. The following deﬁnitions
+capture Stateﬂow semantics, handling speciﬁcities such as transitions from a node to a child or
+parent.
+SJp: ((ae;ad;ax);T0;Ti;C)Ke
+S(:KEnv ) (;:Path ) :Den = (CJCKep )
+SJp: ((ae;ad;ax);T0;Ti;C)Ke
+S s:pd= (e
+L(p:s)pd)
+SJp: ((ae;ad;ax);T0;Ti;C)Kx
+S(:KEnv ) :Den = (CJCKxp )
+SJp: ((ae;ad;ax);T0;Ti;C)Ke
+L; = (AJaeK)(AJopenpK)(CJCKep )
+SJp: ((ae;ad;ax);T0;Ti;C)Ke
+L s:pd= (AJaeK)(AJopenpK)(e
+L(p:s)pd)
+SJp: ((ae;ad;ax);T0;Ti;C)Kx
+L= (CJCKxp )(AJaxK)(AJclosepK)
+150
+
+--- Page 8 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+The deﬁnition for during actions is the following. First outer transitions are evaluated. If
+none succeeds, the during action of the node is computed. Then, inner transitions apply. If no
+transition can be ﬁred at all, the components of the node are computed.
+SJp: ((ae;ad;ax);To;Ti;C)Kd(:KEnv ) :Den =
+letwrapperi=open_pathi;pin
+letwrappero=open_patho;pin
+letfailo=
+letfaili=CJCKdp  in
+(AJadK)(TJTiK wrapper iId failifaili)in
+TJToK wrapper oId failofailo
+Component semantics deﬁnitions follow. Entry transitions associated to an Ornode initiate
+the component and shall not fail (the ?value is unreachable). Execution or exiting of an Or
+component applies on the active element. Parallel states rely on fold_right to ensure proper
+function compositions.
+CJOr(T;;)Kep  =Id
+CJOr(T;S )Kep  =TJTK(open_pathe;p)Id??
+CJOr(T;;)Kdp  =Id
+CJOr(T;x:S )Kdp  =Ite(active (p:x);d(p:x);CJOr(T;S )Kdp )
+CJOr(T;;)Kxp  =Id
+CJOr(T;x:S )Kxp  =Ite(active (p:x);x
+L(p:x);CJOr(T;S )Kxp )
+CJAnd (S)Kep  =fold_right (x:res:e
+L(p:x);res)SId
+CJAnd (S)Kdp  =fold_right (x:res:d(p:x)res)SId
+CJAnd (S)Kxp  =fold_right (x:res:x
+L(p:x)res)SId
+Program semantics. The evaluation of the main program produces a transformer:
+PJ(s;Srcs K:Den =Ite(active (s);d(s);e
+L(s);)
+whereis built using Srcsand initial environment assumes all states are inactive, including
+the main one, s.
+2.2 Comparison with Hamon’s denotational semantics
+The previous deﬁnitions are directly extracted from [14] but were modiﬁed to solve minor
+soundness ﬂaws and to be compatible with the pure CPS semantics we designed. Without de-
+veloping much about the soundness ﬂaws4, let us highlight the main diﬀerences in the semantics
+deﬁnitions:
+we adapted the rule to match our understanding of non trivial Stateﬂow constructs,
+as exhibited by current Stateﬂow simulation engine. For example sequences of actions
+performedwhenleavingastateandenteringanotheronefollowaspeciﬁcorder: in[14]the
+use of success and fail continuations was improperly combined. Our encoding introduced
+a new argument wrapper used inD,andT. Open and close actions bind dedicated
+wrappers that reorder actions. Our version follows current Stateﬂow behavior.
+regarding CPS, as explained at the beginning of the section, the argument is abstracted
+away and gives rise to a point-free semantics. Every dynamic access to environment as
+4In fairness to this work, it is somehow diﬃcult at the present time to ﬁgure out what the undocumented
+semantics of Stateﬂow circa 2005 may look like and to what extent it was well speciﬁed. The appendix sections
+compares the original semantics of [14] and the one we provide, both compared to the current behavior of
+Stateﬂow simulator. Notice also that [32] corrects some ﬂaws in Hamon’s denotational semantics.
+151
+
+--- Page 9 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+AJopenpK() =[p7!true]
+AJclosepK() =[p7!false ]
+AJv=expr K() =[v7!Jexpr K]
+Ite(cond;T;E )() = ifJcond KthenT()
+elseE()
+(D1D2)() =D2D1()
+Id() =
+?= assert false
+(a) InterpreterAJopenpK=p=true
+AJclosepK=p=false
+AJv=expr K=v=expr
+Ite(cond;T;E ) = ifcond thenT
+elseE
+(D1D2) =D1;D2
+Id= nop
+?= assert false
+(b) Code Generator
+Figure 3: Instantiations
+found in Hamon’s work is removed. For instance, dynamic if-then-else statements are
+lifted to a dedicated constructor to postpone their execution; similarly action evaluation
+is always introduced within computed continuations and never evaluated directly (see e.g.,
+JKandSJKd). This brings far more ﬂexibility in the purpose and design of semantics
+functions and allows for instance to deﬁne interpreters, code generators, source to source
+transformations, etc.
+3 Modular code generation for Stateﬂow
+The formal semantics presented in the previous section can be instantiated with appropriate
+deﬁnitions for the primitive elements of the denotational semantics: AJK,Ite(;;),,?and
+Id.
+Wepresentherediﬀerentsettingsfortheinstantiationeitherasaninterpreterorascodegen-
+erator. The next section will address our main goal: generate Lustre automata from Stateﬂow
+model while preserving the hierarchical structure model.
+Interpreter instantiation. The denotational semantics of [14] can be obtained where trans-
+formers modify environments: Den =Env!Env. Figure 3a details the associated deﬁni-
+tions. Anenvironment deﬁnesamapfromvariablestovalues, includingactivestatusofstates.
+[v!c]represents the substitution of a variable vto valuecin environment . We assume that
+Jexpr Krepresents the evaluation of expression exprin, with a Boolean interpretation when
+evaluating a condition expression. The bottom construct throws an exception, but should not
+happen for well constructed models. We recall that events are part of the environment and are
+accessible through predicate active (e)using in conditional expressions. Such an instantiation
+provides a simulator for the model: when provided with an initial environment, it computes
+the successor environment.
+Code generator instantiation. One can also synthesize imperative code by synthesizing an
+abstract syntax tree while evaluating transformers. Dendenotes here an abstract syntax tree
+(AST):
+Den ::=Den;Den
+j ifcond thenDen elseDen
+jv=exprjnopjassert false :
+Figure 3b provides such simple instantiation. Applying the code generator on the Stopwatch
+example from Fig. 1 generates a rather large program: about 800LOC, for an overall number
+of220actions and 135conditions, nested up to depth 13.
+152
+
+--- Page 10 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+Preserving hierarchical structure. Stateﬂow semantics is global since environment is
+shared among all states. However, the transitions are attached locally to states. We can
+preserve this hierarchical structure by associating a procedure to each state execution denota-
+tion: each call to the denotation e(p),d(p)orx(p)could be respectively substituted by a
+call to a procedure thetae_p ,thetad_p orthetax_p instead of executing SJp:sdKe;d;x. This
+is possible since all arguments of these semantics functions are static (paths, modes, etc).
+For a program (s;srcs ), the total code generation is then performed state by state, generat-
+ing procedures thetad_p for each state pdeclared in program sources srcs. The main procedure
+being the one associated to state s. For the Stopwatch example in Fig. 1, it generates 7pro-
+cedures, for an overall number of about 270LOC, 100actions and 55conditions, nested up to
+depth 7. We have implemented in OCaml an interpreter and a code generator instantiation of
+the CPS denotational semantics. The code can be found in [1].
+In our approach, modularity is itself modular as we can choose either to turn every se-
+mantics function into a procedure or on the contrary to inline its results. In this respect,
+turning junction-related semantics function j(j), which amounts to computing TJj:TKinto
+a procedure helps in factorizing out common preﬁxes of transition sequences, provided one can
+defunctionalize [9] its arguments wrapper,successandfail, expressing as ﬁrst-order values.
+For Stateﬂow models with complex transition sequences between junctions, this would
+greatly help factorizing out common junctions occurring in many paths, avoiding combinatorial
+blow-ups. This is left for future work.
+4 Stateﬂow models as Lustre automata
+Inthissection, wedescribethecompilationofStateﬂowmodelsintoLustreautomata. Lustre[5]
+is a dataﬂow language, bearing similarities with Simulink/Stateﬂow, but is endowed with a
+synchronous semantics, which yields a more disciplined and predictable language, suited to
+veriﬁcation activities. Lustre programs are expressed in terms of nodes, which directly model
+subsystems in a modular fashion, with an externally visible set of inputs and outputs. A node
+can be seen as a mapping of a ﬁnite set of input streams to a ﬁnite set of output streams.
+Operationally, a node has a cyclic behavior: at each clock tick t, it takes as input the value
+of each input stream at instant tandsynchronously returns the value of each output stream
+at same instant t. A Lustre node is built from a set of dataﬂow equations of the form x=e
+wherexis a variable denoting an output or a locally deﬁned stream and eis an expression, in
+a certain stream algebra, whose variables are input, output, or local streams. Each variable is
+assigned exactly once at each cycle. Most of Lustre operators are point-wise lifting to streams
+of the usual operators over stream values. Still, a Lustre node may access to variable values at
+previous cycles, up to to a bounded past.
+Automata are supported since Lustre V6 [8, 7]. The overall behavior of an automaton
+is pictured in Fig. 4. An automaton consists of states, each with its own set of equations
+and possibly local variables. At each instant, two pairs of variables are computed: a putative
+state_inand an actual state state_actand also, for both states, two booleans restart_inand
+restart_act, that tell whether their respective state equations should be reset before execution.
+The actual state is obtained via an immediate ( unless) transition from the putative state,
+whereas the next putative state is obtained via a normal ( until) transition from the actual
+state. Only the actual state equations are executed at each instant. Finally, a state reset
+function is driven by the restart/resumekeyword switches. A more complete presentation of
+these constructs is given in [11].
+We are able to generate a Lustre AST mimicking the execution of the previous imperative
+153
+
+--- Page 11 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+Unless
+z 1State Eqs
++ Untilinput
+input
+next_state_in, next_restart_in
+base clockrestart_act
+state_actstate_inrestart_inoutput
+Figure 4: Automaton as a pure dataﬂow.
+AJopenpKin out :=fout=ein[in_p7!true]
+AJclosepKin out :=fout=ein[in_p7!false ]
+AJv=expr Kin out =fout=ein[in_v7!Jexpr Kin]
+AJcallpKin out :=fout=thetad_p(ein)
+(L1L2)in out := (L1in nameuid) ;
+(L2nameuidout)
+Id in out :=fout=ein
+?in out := assert false
+node thetad _p(ein:fTin)returns (fout:gTout)
+let(SdJpKin out );telIte(cond;T;E )in out :=
+automaton nameuid
+state Cond :
+unless J:cond KinrestartNotCond
+let(T in out );tel
+state NotCond :
+unless Jcond KinrestartCond
+let(E in out );tel
+Figure 5: Lustre instantiation
+code. The translation is also modular: a Lustre node is built for each component and each
+condition within a component is turned into an automaton. The use of intermediate local
+variables in the Lustre source allows to make the control-ﬂow explicit. The denotation is
+deﬁned asDen = (Name!Name!LustreAST ), taking two names inandoutstanding for
+input and output variables and producing a piece of code, assigning output from input. Lustre
+automata encode the very semantics of imperative conditional statements, whereas standard
+Lustre conditional is a strict operator which doesn’t suit our needs. This instantiation is
+presented in Figure 5, assuming a supplementary node call action callp. We denote by einand
+foutthe sequence of variables present in the Stateﬂow environment, preﬁxed by names inand
+outrespectively. Similarly, fTinandgToutdenote their respective types.
+Note that the action transformer function generates a set of Lustre ﬂow deﬁnitions. Its
+evaluation combines all atomic transitions of Stateﬂow of an end-to-end transition into a single
+Lustre automaton state. No intermediate step is introduced. The language of actions is, for
+the moment, limited to basic Lustre ﬂow deﬁnitions, but is left free in the general semantics
+of [16].
+Main compilation schema. We have implemented this compilation as a component of the
+CoCoSim tool framework. In order to illustrate how the compiler works, let us consider a
+simple example. Figure 6 presents a simple transition between two states AandB. Each state
+is compiled into a corresponding Lustre automaton state (suﬃxed with _IDL). As Lustre only
+allows computations in states, the transition between AandBis compiled into a Lustre state
+that executes the transition actions. A_EXIT_B_ENTRY thus represents the transition in
+154
+
+--- Page 12 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+En: A_En
+Ex: A_ExA
+En: B_En
+Ex: B_ExB
+E[C]{A c}/A t
+automaton ab
+state CENTER_POINT :
+unless id =1 and E and C restart
+A_EXIT_B_ENTRY ;
+unless id =1 restart A_IDL ;
+unless id =2 restart B_IDL ;
+let
+outputs = old_outputs ;
+tel
+state A_IDL :
+let
+outputs = A_during_action ( old_outputs ,
+inputs );
+tel
+until true restart CENTER_POINT ;state A_EXIT_B_ENTRY :
+let
+-- execute the actions : condition
+action ,
+-- A exit action , transition action , B
+entry action
+tel
+until true restart CENTER_POINT ;
+state B_IDL :
+let
+outputs = B_during_action ( old_outputs ,
+inputs );
+tel
+until true restart CENTER_POINT ;
+Figure 6: A simple transition encoding.
+our example and contains all the actions to be executed: condition actions, exiting state A,
+transition actions and entering state B.idindicates the active state at the beginning of each
+clock. “Set B to active” means “update idto2”. The Lustre code associated to the previous
+transition A!Bis presented in the same Figure. In order to make the presentation simpler,
+nested Ite constructs as synthesized by our CPS semantics have been merged into a single
+automaton with more states.
+5 Experimental evaluation
+In this section, we describe the implementation of our proposed approach as a component in
+theCoCoSim [17] tool framework. Moreover, we report the results from our experimental
+evaluation.
+5.1 CoCoSim
+CoCoSim [17]isanopensourceautomatedlogic-basedanalysisframeworkforSimulinkmodels.
+CoCoSim consists of two main components: (i) a compiler that compiles a subset of Simulink
+models to Lustre [5]; (ii) an interface to multiple model checkers based on Lustre. In this paper,
+we have extended CoCoSim to support compilation and veriﬁcation of Stateﬂow models. The
+current version of CoCoSim provides capability to verify user supplied safety requirements.
+TheCoCoSim workﬂow is pretty straightforward: a user speciﬁes a safety requirement (prop-
+erty) in the Simulink/Stateﬂow model. This is done using a synchronous observer method.
+Subsequently, CoCoSim can be called directly on the Matlab environment5and the result of
+the analysis is reported directly on the Simulink model. If the property is violated, CoCoSim
+reports the set of input values that leads to the error state. Such information is then used to
+simulate the model, which allows the user to debug why a property is failing.
+5The implementation in Matlab provides easy access to priorities for transition, typing information and eases
+the construction of traceability maps enabling the expression at model level of invariants or counter-examples.
+155
+
+--- Page 13 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+(a)
+ (b)
+Figure 7: (a) The overall architecture of CoCoSim . (b) A screenshot of a veriﬁcation scenario
+of a Stateﬂow model using CoCoSim : part (A) shows the Stateﬂow model; part (B) is the
+synchronous observer block, where the property to be veriﬁed is speciﬁed; part (C) is the
+CoCoSim dropdown menu provided as a Matlab toolbox.
+The analyzer as well as the traceability information of the CoCoSim toolchain produces
+both a complete environment to simulate the model in Simulink as well as the sequence of
+active Lustre states and Lustre transitions computed, leading to a violation of the property.
+The computation of the associated list of Stateﬂow states and transitions could be rebuilt from
+that information. This is left as a future work.
+The veriﬁcation technique via observer-based method was ﬁrst introduced by Halbwachs et
+al. [13], where a safety property of an I/O machine Mis deﬁned in terms of another machine
+called a synchronous observer. The observer watches the inputs and outputs of M, and if
+they ever violate the safety property it emits an alarm signal. Various work has been devoted
+in applying the observer-based method in diﬀerent areas, e.g., [31]. In [25], Rushby explains
+how observer-based methods are quite versatile. For instance, they can be used to increase
+expressiveness, specify assumptions and axioms, but also to generate test cases. Synchronous
+observers are speciﬁed using the same language as the system under test. This is means that
+the user of CoCoSim can specify the desired requirements using Simulink blocks. Its main
+novelties can be summarized as: (i) It decouples the input language syntax from the under-
+lying veriﬁcation technique; (ii) It provides a convenient way to express safety requirements;
+(iii) It allows the combination of automated logic-based veriﬁcation results with traditional
+Matlab based tools; and ﬁnally, (iv) it oﬀers a convenient way to debug failed properties. An
+important aspect of CoCoSim is its ability to simplify the development and integration of new
+analysis techniques targeting Simulink/Stateﬂow models. This is accomplished via a modular
+architecture (see Fig. 7a).
+Supported Stateﬂow blocks Our implementation in CoCoSim version v0.1 supports most
+known Stateﬂow constructs such as: states(Exclusive (OR) and Parallel (AND) states), most
+usedstate actions (entry, during and exit actions), transitions with the following transition
+labels: event only, event and condition, condition only, action only or event and condition
+and action combined. In addition to these constructs, CoCoSim supports default transitions,
+inner and outer transitions, self-loop transitions, inter-level transitions, connective junctions
+156
+
+--- Page 14 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+and history junctions. CoCoSim also supports basic data types (int, real and booleans) and
+also arrays with static indexes (e.g., [2]). More speciﬁc charts6are supported such as: ﬂow
+charts, Stateﬂow functions (graph functions), Hierarchical states, enter,exit,sendandafter
+operators.
+The current version of CoCoSim does not support events emission in actions (state action
+or transition actions); it supports instead the sendoperator that can replace events emission.
+We also assume that the model does not have an unbound behavior (such as loop in junctions).
+In addition, transitions with more than one event are not yet supported7.
+Datatypes. Our work focuses on providing a global semantics to Stateﬂow, which we believe
+is hard enough. We do not address speciﬁc details such as how to represent Simulink datatypes
+in the target language Lustre. Several simple solutions nevertheless come to mind. One could
+provide each of these types in the form of an external Lustre library, totally hiding their im-
+plementations, at the cost of making explicit all the implicit coercions at work in the Simulink
+semantics. Another solution would be for instance to map every speciﬁcally-sized integer type
+to the unspeciﬁed Lustre integer type (that is what we currently do) and then to annotate the
+Lustre program in order to take care of sizes when generating C code or Horn clauses.
+5.2 Experimental evaluation
+We have performed a set of experimental evaluations to demonstrate the eﬀectiveness of Co-
+CoSim. Our experiments are carried out in a machine with the following speciﬁcations: Intel
+Core i5, 8Go RAM, 750Go HD, with Ubuntu 16.04. We used CoCoSim v0.1 which runs on
+Matlab2014bandup, however, inthisexperimentsweusedMatlab2016awithStateﬂowversion
+8.7.
+The ﬁrst experiment was performed in order to illustrate the soundness of our compilation
+scheme. In particular, we would like to answer the question “ how faithful is the code generated
+viaCoCoSim ?”. In order to answer this question, we have compared the C code generated via
+CoCoSim with the one generated by Mathwork’s Simulink RCoderTM[21]. The latter is a
+popular product routinely used in diﬀerent industrial application for code generation. Speciﬁ-
+cally, we have used a set of randomly generated test vectors with 100 iterations to validate the
+code generated by CoCoSim against the one generated by Simulink RCoderTM. Such valida-
+tion process is given as an option in CoCoSim . This allows a user to validate that the compiled
+code via CoCoSim conforms at least with the code generated by Simulink RCoderTM. It
+also allowed us to demonstrate that other translation tools such as sf2lus [27] do not respect
+the full Stateﬂow semantic comparing to ours.
+In our experiments, we have used a set of 77Stateﬂow models8to evaluate the soundness
+andruntimeofthecompilation. Fig.8ashowsthesizeofthediﬀerentmodels: numberofactions
+is the sum of all state actions (entry, exit and during actions), condition and transition actions
+in the model. Fig. 8b illustrates the amount of time the compiler took to generate ﬁrst Lustre
+code and then Horn clauses (used for veriﬁcation). The models are given in decreasing number
+of actions, we can easily observe that generation time increases with the number of actions of
+the models. On average, CoCoSim takes about 1:85s to generate Lustre code. Fig. 8c shows
+the times for the validation script. On average, the validation process takes about 3:35s.
+6https://github.com/coco-team/regression-test
+7Weareworkingon CoCoSim v0.2tosupport: externalCfunctionscallandMatlabcode, Arrays, On_event
+action and others.
+8https://github.com/coco-team/regression-test
+157
+
+--- Page 15 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+(a)
+ (b)
+ (c)
+Figure 8: Runtime and validation experiments of CoCoSim .
+models #
+props# safe #
+unsafe#
+timeoutsafe
+(time)unsafe
+(time)
+Microwave 15 15 0 0 65.51 0
+NasaDockingApproach 4 3 0 1 360 0
+GPCA_System_Monitor 1 1 0 0 0.64 0
+GPCA_Logging 1 1 0 0 4.88 0
+GPCA_Top_Level_Mode 3 3 0 0 36 0
+GPCA_CONFIG 1 0 1 0 0 19.34
+GPCA_INFUSION_MGR 7 5 0 2596.51 0
+GPCA_Alarm 8 0 6 2 0281.12
+Figure 9: Experimental results of safety veriﬁcation on a set of use cases.
+5.3 Safety veriﬁcation
+The second experiment was performed in order to illustrate the eﬀectiveness of our approach
+for the veriﬁcation of safety properties. We have used 3 set of use cases. The ﬁrst one is
+a Stateﬂow model of a microwave that captures the modal behavior of a typical microwave
+control software9.CoCoSim were able to verify 15 properties of this model using the backend
+solver Zustre [10] as the backend solving engine. The second use case is a Stateﬂow model that
+captures the complex behavior of the Space Shuttle when docking with the International Space
+Station (ISS) [26]. As the shuttle approaches the ISS, it goes through several operational modes
+related to how the shuttle is to orient itself for capture, dock with the ISS, and capture the
+ISS docking latch, among several other operational modes. The model describing this behavior
+is quite intricate and consists of a hierarchical and parallel state machines with three levels of
+hierarchy and multiple parallel state machines, including a total of 64 states. Using CoCoSim
+we were able to verify 2 out of 4 safety properties.
+The third use case is the Generic Patient Controlled Analgesic infusion pump system. It
+consistsoffourmaincomponents: Alarm,Infusion,ModeandLogging. Amoredetaileddescrip-
+tion of the model can be found in [12]. Figure 9 summarizes the safety veriﬁcation experimental
+evaluation results using CoCoSim .
+9This model is developed by Rockwell Collins
+158
+
+--- Page 16 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+6 Conclusion
+In this paper, we have described an automated technique for the formal analysis of Stateﬂow
+models. OurapproachfaithfullycompilesStateﬂowmodelsintohierarchicalstatemachines, and
+uses automated logic-based veriﬁcation engine to decide the validity of safety properties. We
+capture the compilation process using continuation-passing style (CPS) denotational semantics.
+Our compilation technique preserves the structural and modal behavior of the system, making
+thesafetyanalysisofsuchmodelsmoretractable. Wehavepresentedapreliminaryexperimental
+evaluationthatillustratestheeﬀectivenessofourapproachinthesafetyveriﬁcationofindustrial
+scale Stateﬂow models.
+References
+[1] Continuation-passing style denotational semantics for stateﬂow. https://github.com/ploc/
+stateflow_CPS_semantics .
+[2] A. Agrawal, G. Simon, and G. Karsai. Semantic translation of simulink/stateﬂow models to hybrid
+automata using graph transformations. Electr. Notes Theor. Comput. Sci. , 109:43–56, 2004.
+[3] A. W. Appel. Compiling with Continuations (corr. version) . Cambridge University Press, 2006.
+[4] P. Boström and L. Morel. Mode-automata in simulink/stateﬂow. In TUCS Technical Report No
+772, September 2006 , 2006.
+[5] P. Caspi, D. Pilaud, N. Halbwachs, and J. Plaice. Lustre: A declarative language for program-
+ming synchronous systems. In Conference Record of the Fourteenth Annual ACM Symposium on
+Principles of Programming Languages, Munich, Germany, January 21-23, 1987 , pages 178–188,
+1987.
+[6] C. Chen, J. Sun, Y. Liu, J. S. Dong, and M. Zheng. Formal modeling and validation of stateﬂow
+diagrams. International Journal on Software Tools for Technology Transfer , 14(6):653–671, 2012.
+[7] J. Colaço, G. Hamon, and M. Pouzet. Mixing signals and modes in synchronous data-ﬂow systems.
+InProceedings of the 6th ACM & IEEE International conference on Embedded software, EMSOFT
+2006, October 22-25, 2006, Seoul, Korea , pages 73–82, 2006.
+[8] J. Colaço, B. Pagano, and M. Pouzet. A conservative extension of synchronous data-ﬂow with
+state machines. In EMSOFT 2005, September 18-22, 2005, Jersey City, NJ, USA, 5th ACM
+International Conference On Embedded Software, Proceedings , pages 173–182, 2005.
+[9] O. Danvy. Defunctionalized interpreters for programming languages. In Proceedings of the 13th
+ACM SIGPLAN International Conference on Functional Programming , ICFP ’08, pages 131–142,
+New York, NY, USA, 2008. ACM.
+[10] P. Garoche, A. Gurﬁnkel, and T. Kahsai. Synthesizing modular invariants for synchronous code.
+In N. Bjørner, F. Fioravanti, A. Rybalchenko, and V. Senni, editors, Proceedings First Workshop
+on Horn Clauses for Veriﬁcation and Synthesis, HCVS 2014, Vienna, Austria, 17 July 2014. ,
+volume 169 of EPTCS, pages 19–30, 2014.
+[11] P. Garoche, T. Kahsai, and X. Thirioux. Hierarchical state machines as modular horn clauses. In
+Proceedings 3rd Workshop on Horn Clauses for Veriﬁcation and Synthesis, HCVS@ETAPS 2016,
+Eindhoven, The Netherlands, 3rd April 2016. , pages 15–28, 2016.
+[12] C. Group. Generic patient controlled analgesia infusion pump project. https://crysis.cs.umn.
+edu/gpca.shtml .
+[13] N. Halbwachs, F. Lagnier, and P. Raymond. Synchronous observers and the veriﬁcation of reactive
+systems. In M. Nivat, C. Rattray, T. Rus, and G. Scollo, editors, Algebraic Methodology and Soft-
+ware Technology (AMAST ’93), Proceedings of the Third International Conference on Methodology
+and Software Technology, University of Twente, Enschede, The Netherlands, 21-25 June, 1993 ,
+Workshops in Computing, pages 83–96. Springer, 1993.
+159
+
+--- Page 17 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+[14] G. Hamon. A denotational semantics for stateﬂow. In EMSOFT 2005, September 18-22, 2005,
+Jersey City, NJ, USA, 5th ACM International Conference On Embedded Software, Proceedings ,
+pages 164–172, 2005.
+[15] G. Hamon and J. M. Rushby. An operational semantics for stateﬂow. In FASE 2004 , pages
+229–243, 2004.
+[16] G. Hamon and J. M. Rushby. An operational semantics for stateﬂow. STTT, 9(5-6):447–456,
+2007.
+[17] T. Kahsai. CoCoSim – automated analysis framework for simulink. https://github.com/
+coco-team/cocoSim .
+[18] J. L. Lawall and O. Danvy. Separating stages in the continuation-passing style transformation. In
+Conference Record of the Twentieth Annual ACM SIGPLAN-SIGACT Symposium on Principles of
+Programming Languages, Charleston, South Carolina, USA, January 1993 , pages 124–136, 1993.
+[19] M. Li and R. Kumar. Recursive modeling of stateﬂow as input/output-extended automaton. IEEE
+Trans. Automation Science and Engineering , 11(4):1229–1239, 2014.
+[20] Mathworks. Simulink. http://www.mathorks.com/products/simulink/ .
+[21] MathWorks. Simulink coder. https://www.mathworks.com/help/dsp/ug/
+generate-code-from-simulink.html .
+[22] MathWorks. Stateﬂow. http://www.mathworks.com/products/stateflow/ .
+[23] P. J. Pingree, E. Mikk, G. J. Holzmann, M. H. Smith, and D. Dams. Validation of mission critical
+software design and implementation using model checking [spacecraft]. In Digital Avionics Systems
+Conference, 2002. Proceedings. The 21st , volume 1, pages 6A4–1–6A4–12 vol.1, Oct 2002.
+[24] G. D. Plotkin. Call-by-name, call-by-value and the lambda-calculus. Theor. Comput. Sci. ,
+1(2):125–159, 1975.
+[25] J. Rushby. The versatile synchronous observer. In S. Iida, J. Meseguer, and K. Ogata, editors,
+Speciﬁcation, Algebra, and Software, A Festschrift Symposium in Honor of Kokichi Futatsugi ,
+volume 8373 of Lecture Notes in Computer Science , pages 110–128, Kanazawa, Japan, Apr. 2014.
+Springer-Verlag.
+[26] M. Sampson and V. Derevenko. Interface deﬁnition document (idd) for international space station
+(iss) visiting vehicles (vvs). NASA Technical Report , 2000.
+[27] N. Scaife, C. Sofronis, P. Caspi, S. Tripakis, and F. Maraninchi. Deﬁning and translating a "safe"
+subset of simulink/stateﬂow into lustre. In EMSOFT 2004 , pages 259–268, 2004.
+[28] N. K. Singh, M. Lawford, T. S. E. Maibaum, and A. Wassyng. Stateﬂow to tabular expressions.
+In H. Q. Thang, L. A. Phuong, L. D. Raedt, Y. Deville, M. Bui, T. T. D. Linh, N. T. Oanh, D. V.
+Sang, and N. B. Ngoc, editors, Proceedings of the Sixth International Symposium on Information
+and Communication Technology, Hue City, Vietnam, December 3-4, 2015 , pages 312–319. ACM,
+2015.
+[29] E. Technologies. Scade.
+[30] A. Tiwari. Formal semantics and analysis methods for Simulink Stateﬂow models. Technical
+report, SRI International, 2002. http://www.csl.sri.com/users/tiwari/html/stateflow.html .
+[31] M. Westhead, S. Nadjm-tehrani, and F. H. E. U. K. Veriﬁcation of embedded systems using
+synchronousobservers. In In Proceedings of the 4th International Conference on Formal Techniques
+in Real-time and Fault-tolerant Systems, LNCS 1135 , pages 405–419. Springer Verlag, 1996.
+[32] M. Whalen. A parametric structural operational semantics for stateﬂow, uml statecharts, and
+rhapsody. Technical report, UMSEC, 2010. https://www.umsec.umn.edu/sites/www.umsec.umn.
+edu/files/Parametric%20SOS%202_1.pdf .
+[33] Y. Yang, Y. Jiang, M. Gu, and J. Sun. Verifying simulink/stateﬂow model: timed automata
+approach. In Proceedings of the 31st IEEE/ACM International Conference on Automated Software
+Engineering, ASE 2016 , pages 852–857, 2016.
+[34] L. Zou, N. Zhan, S. Wang, and M. Fränzle. Formal veriﬁcation of simulink/stateﬂow diagrams. In
+160
+
+--- Page 18 ---
+Analysis of Stateﬂow models Bourbouh, Garoche, Garion, Gurﬁnkel, Kahsai, Thirioux
+B. Finkbeiner, G. Pu, and L. Zhang, editors, Automated Technology for Veriﬁcation and Analysis
+- 13th International Symposium, ATVA 2015 , volume 9364 of Lecture Notes in Computer Science ,
+pages 464–481. Springer, 2015.
+A Semantics of stopwatch example
+We illustrate here the output of the stopwatch example as deﬁned in Figures 1 and 2 when used
+with our Ocaml interpreter.
+Interpreter. Whenprovidedwithasimplesequenceofevents [NO_EVENT ;START ;TIC],
+it produces the following changes of active states. Note that a ﬁrst step without provided event
+setup the model in its initial active state. We call ./sf_sem -model stopwatch -eval 2
+###1
+main -> false
+main.run -> false
+main.run.lap -> false
+main.run.running -> false
+main.stop -> false
+main.stop.lap_stop -> false
+main.stop.reset -> false
+###2
+– Event none –
+– no action performed –main -> true
+main.stop -> true
+main.stop.reset -> true
+###3
+– Event START –
+– no action performed –
+main.run -> true
+main.run.lap -> false
+main.run.running -> true
+main.stop -> false
+main.stop.reset -> false###4
+– Event TIC –
+– action performed –
+cent+=1
+cent==100
+cont=0;sec+=1
+sec==60
+sec=0; min+=1
+disp=(cent,sec,min)
+« no state changed »
+Code generator. We can also produce imperative-like code using the instianciation of Fig-
+ure 3b. In our prototype, the modularity is tuned at three diﬀerent levels: (i) no modu-
+larity at all, generating about 600 lines of code; (ii) modular with respect to Sd, ie. for
+each state of the automaton, generating about 270 lines of code including seven functions fo-
+cused on each state behavior; (iii) last, modular for each element: entry, during, exit actions,
+generating about 328 including 23 functions for each set of actions: entry, during or exit ac-
+tion of each state. We present here an excerpt of the code obtained with the second option:
+./sf_sem -model stopwatch -modular 1 -gen_imp
+principal =
+if Active ( main ) then <CallD ( main )>
+else <Open ( main ) >;
+if true then <Open ( main . stop ) >;
+if true then <Open ( main . stop . reset )
+>
+else bot
+endif
+else bot
+endif
+endif
+...
+component CallD ( main . stop . reset ) =
+begin
+if Event ( START ) thenif Active ( main . stop . reset )
+then <Close ( main . stop . reset )>
+else if Active ( main . stop . lap_stop )
+then <Close ( main . stop . lap_stop
+)>
+else <Nil > endif
+endif ;
+<Close ( main . stop ) >;
+<Open ( main . run ) >;
+<Open ( main . run . running )>
+else if Event (LAP ) then <reset
+counter >
+else <Nil > endif
+endif
+end
+The generation of Lustre is even more verbose: 2713 loc for inline calls, 1154 loc for state
+modular Lustre generation and 1132 with the fully modular model. We do not present here
+such generated code but refer the reader for the tool website to evaluate it. The generated is
+compatible with our tool LustreC and therefore can be used either to generate embeddable C
+code or to perform model-checking analyzes with our tool Zustre.
+161

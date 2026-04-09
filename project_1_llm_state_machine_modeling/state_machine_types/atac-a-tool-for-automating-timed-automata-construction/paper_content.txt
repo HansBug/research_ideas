@@ -1,0 +1,460 @@
+--- Page 1 ---
+ATAC : A Tool for Automating
+Timed Automata Construction?
+Beyazit Yalcinkaya and Ebru Aydin Gol
+Middle East Technical University, Ankara, Turkey
+fbeyazit.yalcinkaya,ebrugol g@metu.edu.tr
+Abstract. In this paper, we focus on the design and verication of timed
+automata (TA). We introduce a new method for assisting construction
+and verication of TA models along with a tool implementing the pro-
+posed method, i.e., ATAC :Automated Timed Automata Construction .
+Our method provides two main functionalities, i.e., construction of TA
+models from descriptions and generation of temporal logic queries from
+specications. Both description and specication sentences shall follow
+our well-dened structured natural language denition. TA models con-
+structed from descriptions and temporal logic queries generated from
+specications can be imported to UPPAAL, a verication tool for TA
+models. The goal is to accelerate the design phase for real-time systems
+by assisting the construction and verication of a formal model. We be-
+lieve ATAC can be useful especially during the initial phases of the design
+process and help designers to avoid erroneous models.
+1 Introduction
+Cyber-physical systems (CPS) are everywhere and they are getting increasingly
+more attention from the research community as well as the industry with the
+advancements in the digital transformation and increase in the adaptation of in-
+telligent systems. As their application areas increase, models representing CPS
+are getting more complex and sophisticated. Systems with timing requirements,
+i.e., real-time systems (RTS), are an essential part of CPS. Timed automata
+(TA) [1,2,3], a widely-used and well-known RTS formalism, is used for model-
+ing, designing, and verifying CPS. From railroad crossing systems [4,5] to cardiac
+pacemakers [6] to scheduling of real-time systems [7,8,9], TA are used to model
+and analyze numerous systems. Algorithms for verifying TA against formal speci-
+cations such as temporal logics exist and implemented in various tools including
+UPPAAL [10], a tool for modeling, designing, and verifying TA models.
+As CPS get more complicated, designing reliable TA models is getting tedious
+and error-prone. Since most of the RTS are safety-critical, errors in the design
+of TA models are not tolerable. However, since there is no automated way of
+?This work has received funding from the European Union's Horizon 2020 research
+and innovation programme under the Marie Sk lodowska-Curie grant agreement No
+798482.arXiv:1905.08169v2  [cs.FL]  1 Jul 2020
+
+--- Page 2 ---
+2 B. Yalcinkaya and E. Aydin Gol
+TA design and no well-dened design procedure to follow, designing TA models
+inherently requires human creativity and knowledge, which is an unavoidable
+source of error and considerably dangerous for safety-critical systems.
+This paper We introduce novel methods to assist TA design. We generate TA
+models and temporal logic formulas from specications and system descriptions
+given in structured natural language in an automated way. We restrict descrip-
+tion and specication sentences to a limited set of English sentences to simplify
+the design descriptions. Given a description sentence, any implied timing, syn-
+chronization, and transition information about the system are extracted, then a
+TA model following these descriptions is constructed. For the specication sen-
+tences, specications are mapped to formulas in the UPPAAL's query language,
+a subset of Timed Computation Tree Logic (TCTL). If there is a specic timing
+behavior implied by the given sentence, the necessary clocks are placed on the
+model so that the corresponding formula can be veried. That is, a non-trivial
+mapping is performed from input sentences to TA models and temporal logic
+queries by taking care of low-level design choices such as clock allocations, syn-
+chronization of TA models, and generation of temporal logic formulas. The goal
+is to assist development of TA models, not to fully automate the whole design
+process. Although, the developed methods allow users to dene complete TA
+models, we foresee that for a complex model, description sentences would be too
+long and it would not be simpler than manually designing the model. For this
+reason, we believe the proposed methods would be useful to construct a skele-
+ton for the complex model together with the placement of necessary clocks for
+the verication of timing properties, and then the user can take over to add the
+task-specic components of the model. The developed methods are implemented
+as a Python program named ATAC (Automated Timed Automata Construction) .
+Given the system descriptions and specications, ATAC outputs an XML le and
+a query le which can be imported to UPPAAL.
+Related Work To the best of out knowledge, the proposed method is the rst
+attempt to automate TA construction at this level. Although, there has been
+some work on dierent aspects of TA generation such as parameter synthesis [11]
+and controller synthesis [12], no prior work has been focused on the automation
+of TA design. In [13], the authors present a theoretic approach to the problem
+of automatic synthesis of real-time systems. In their solution, from a given set of
+timed models and a real-time logical specication, they check the existence of a
+real-time model which can yield a TA network satisfying given specication. In
+LTLMop Project [14], a set of sentences are mapped to Linear Temporal Logic
+(LTL) specications for robot control by dening a formal grammar. In [15],
+IMITATOR is presented which is a tool for parametric verication and robustness
+analysis of parametric timed automata. In [16], a transformation method from
+programmable logic controllers represented with functional block diagrams to a
+TA model has been introduced. However, no work has been done on assisting
+TA design at the level of structured natural language.
+
+--- Page 3 ---
+ATAC : A Tool for Automating Timed Automata Construction 3
+The paper is outlined as follows. Sec. 2 presents basic denitions of TA and
+UPPAAL. Sec. 3 and Sec. 4 present details of the TA construction and speci-
+cation generation, respectively. Sec. 5 reveals details of ATAC . Sec. 6 elaborates
+a case study, and Sec. 7 concludes the paper.
+2 Timed Automata
+A timed automaton (TA) [1,3,17] is a nite-state machine extended with a nite
+set of real-valued clocks progressing monotonically and measuring the time spent
+after their latest resets. (C) is a set of clock constraints over a set of clocks C.
+Aclock constraint 2(C) is given by the grammar: ::=xcjxcjx<
+cjx>cj^, wherex2Candc2Q.
+Denition 1 (Timed Automata). A timed automaton A= (L;l0;;C;I;T )
+is a tuple, where (i) Lis a nite set of locations, (ii) l02Lis an initial location,
+(iii)is a nite set of labels, (iv) Cis a nite set of clocks, (v) Iis a mapping
+fromLto(C), and (vi)TL2C(C)Lis a set of transitions.
+t= (ls;;;;l t)2Tis a transition from lstolton symbol.is a set of
+clocks reset to zero on tandis a clock constraint tested for enabling t.
+UPPAAL [10,18], is a tool for modeling, designing, simulating, and verify-
+ing TA. UPPAAL extends the TA formalism to provide wider implementation
+opportunities for RTS. One such extension is the synchronization channels that
+can be added to transitions to synchronize two TA, i.e., the synchronized TAs
+have to take the transition at the same time. The developed methods support
+the synchronization channels as it is fundamental to model network of RTS.
+However, other extensions are omitted to avoid complicated descriptions.
+3 Timed Automata Construction
+In this section, we dene proposed approach to generate a TA model from high
+level descriptions of a RTS. First, we dene a formal grammar for the system de-
+scription sentences. For a set of sentences following this grammar, we construct
+a TA by allocating locations, transitions, clocks, and synchronization channels
+by inferring details of the model in an automated way. Eqn. (1) denes main
+grammar rules for the TA construction. Notice that, in this denition, Aindi-
+cates name of a TA model, Lindicates name of a location, Sindicates name of a
+synchronization channel, italic font indicates strings appearing in the rules, and
+is the empty string. A set of sentences for describing a TA model should follow
+the ruleTA.
+To dene a TA (1a), rst, an initialization sentence followinginitshould
+be given. It declares name of the model and its locations. If the model contains
+a single location (1b), otherwise (1c) should be used. System sentences (1d)
+follow the initialization sentence. These sentences can refer to either invariance
+properties (1e) or transitions (1f-1k) of the model.
+
+--- Page 4 ---
+4 B. Yalcinkaya and E. Aydin Gol
+TA::=initsys (1a)
+init::=Acan only be L (1b)
+jAcan belocsand it is initially L (1c)
+sys::=invrtsysjtransysj (1d)
+invrt ::=forAicinLjforAthe time spent in Lcannot beicons (1e)
+tran ::=Acango (1f)
+jAcan send Sandgo (1g)
+jifscthenAcango (1h)
+jiftcthenAcango (1i)
+jiftcthenAcan send Sandgo (1j)
+jifscandtcthenAcango (1k)
+Grammar denes six distinct transition types: Simple transition (1f) denes a
+transition from a set of locations to a set of locations. Synchronization transition
+(1g) denes a simple transition sending a synchronization signal. Synchroniza-
+tion conditional simple transition (1h) denes a simple transition which can only
+be taken if a synchronization signal is received. Time conditional simple tran-
+sition (1i) denes a simple transition which can only be taken if a condition
+on clocks is satised. Time conditional synchronization transition (1j) denes a
+synchronization transition which can only be taken if a condition on clocks is
+satised. Synchronization-time conditional simple transition (1k) denes a sim-
+ple transition which can only be taken if a synchronization signal is received and
+a condition on clocks is satised.
+Eqn. (2) presents helper grammar rules. Locations (2a) denes a set of loca-
+tions in the model; synchronization condition (2b) indicates a synchronization
+condition; transition condition (2c) describes a time condition implicitly referring
+existence of some clocks without giving any low-level details; invariant condi-
+tion (2d) is similar to a transition condition as it also denes a time condition
+but for a location invariant; time constraint (2e) describes a timing constraint
+by relational operators; invariant constraint (2f) denes a timing constraint by
+using only more than and more than or equal to relational operators; equality
+(2g) indicates either existence or nonexistence of the equality case for relational
+operators; entering or leaving (2h) indicates if the transition under consideration
+is either entering or leaving mentioned location in the sentence; and nally, go
+(2i) indicates transitions from a set of locations to a set locations.
+Note that clocks are not explicitly dened in the grammar. For transition
+condition s and invariant condition s, the clock allocation, reset placement, and
+constraint generation are performed in an automated way. In particular, for each
+transition and invariant condition appearing in the description, a new clock is
+created. If the sentence refers to a condition depending on entering a location,
+then this new clock is reset on each transition that ends in the given location. If
+
+--- Page 5 ---
+ATAC : A Tool for Automating Timed Automata Construction 5
+the sentence refers to a condition depending on leaving a location, then the clock
+is reset on each transition that leaves the given location. This entering/leaving
+information for resetting clocks is inferred from elrule in the grammar. To
+generate conditions of a clock, we extract the information given by tcandic.
+locs::=LjLlocs (2a)
+sc::=Sis received (2b)
+tc::=the time spent after elListconsjtcandtc (2c)
+ic::=the time spent after elLcannot beiconsjicandic (2d)
+tcons ::=more thaneqNjless thaneqN
+jequal to Njtcons andtcons (2e)
+icons ::=more thaneqNjicons andicons (2f)
+eq::=or equal toj (2g)
+el::=enteringjleaving (2h)
+go::=go fromlocstolocs (2i)
+It is ensured that ordering of the description sentences is not signicant, i.e.,
+a given set of sentences following the description grammar is mapped to a unique
+TA for any ordering. Once all the description sentences are analyzed for a TA,
+the clock reduction algorithm from [19] is applied to reduce the number of clocks.
+As each timing constraint is, initially, encoded with a separate clock, the clock
+reduction step signicantly reduces the number of clocks, which is essential to
+reduce the verication time and improve maintainability of the model.
+4 Specication Generation
+In this section, we dene the structure for the specication sentences, the map-
+ping to the TCTL formulas and the corresponding query in the UPPAAL's query
+language. In addition to formula generation, for a specication with a timing con-
+dition, we place a new clock on the model and generate the formula with respect
+to this new clock. That is, the user does not specify anything regarding a new
+clock and its value (similar to the description grammar). Only a high-level spec-
+ication is given by the user and the necessary clock placement is performed
+automatically for the verication of the inferred formula. We dene the struc-
+tured natural language sentences for generating queries with a formal grammar
+which entirely covers UPPAAL's query language. Notice that, the same conven-
+tion as in the specication grammar and some of the helper rules are used. A
+specication sentence should follow the rule specin Eqn. 3.
+Four distinct specication types are dened by the grammar: General (3a)
+denes the general format of UPPAAL's query language which is a subset of
+TCTL. Since UPPAAL does not allow nested path formulas, the general query
+
+--- Page 6 ---
+6 B. Yalcinkaya and E. Aydin Gol
+format can be realized by a path formula ( pf) followed by a state formula
+(sf), which is further explained below. Deadlock (3b) indicates the special case
+of UPPAAL's query language for checking the existence of a deadlock. This rule
+is mapped to the following TCTL formula: \ A:deadlock " which is written
+as \A[] not deadlock " in UPPAAL. Leads to (3c) is again a special case of
+UPPAAL's query language. A sentence following this rule basically says that
+a state formula leads to another state formula. Suppose a sentence following
+(3c) is given as \  1leads to 2", then this sentence is mapped to the follow-
+ing TCTL formula: A( 1=)A 2) which is written as \  1--> 2" in
+UPPAAL. Shorthand (3d) is a shorthand rule that we introduced for conve-
+nience. It indicates that a given location shall always be visited within a specic
+amount of time. Suppose a sentence is given following this rule and it belongs
+to a TA named Template, name of the inferred location is Location, and the
+amount of time specied is 4, then the tool maps it to the following TCTL
+formula: \A:Template:Location _x4" which is written as \ A[] not
+Template.Location or x <= 4 " in UPPAAL. Notice that xis a clock variable
+that is automatically created and it is reset to zero in every transition leaving
+given location.
+spec ::=itpfbe the case that sf (3a)
+jdeadlock never occurs (3b)
+jsfleads tosf (3c)
+jforA L shall hold within every N (3d)
+pf::=shall alwaysjshall eventually
+jmight alwaysjmight eventually (3e)
+sf::=atomjatomopsf (3f)
+atom ::=forAthe time spent after elListcons
+jforAlocsholdsjforAlocsdoes not hold (3g)
+op::=andjorjimplies
+Path formulas (3e) are mapped to TCTL path formulas as follows: shall al-
+ways is mapped to A,shall eventually is mapped to A,might always is mapped
+toE, and shall eventually is mapped to E.State formulas (3f) can either be
+an atomic proposition or some atomic propositions connected by conjunction,
+disjunction, and implication. Atomic propositions (3g) can infer to either a time
+condition or visiting a location of the model.
+For each time condition, a unique clock is generated. The clock reduction
+process is not applied to these clocks. They are only reset to zero on necessary
+transitions of the model and only checked in the generated queries. This func-
+tionality allows users to avoid manual clock allocations for the verication of
+specications.
+
+--- Page 7 ---
+ATAC : A Tool for Automating Timed Automata Construction 7
+5 Implementation of ATAC
+TA and formula construction methods presented in this paper are implemented
+as a Python program called ATAC [20]. The user can give multiple TA descriptions
+(TA(1)) to construct a network of TA. Descriptions of these TA can intersect,
+i.e., TA descriptions does not need to be sequential. ATAC handles allocation
+of locations, transitions, clocks, and synchronization channels automatically as
+described in Sec. 3 and Sec. 4. The tool also implements the clock reduction
+algorithm from [19] that reduces the number of clocks via clock renaming. As
+described in Sec. 3, initially a new clock is generated for each sentence with a
+time condition, which results in a large number of clocks. Then, the reduction is
+performed to reduce the number of clocks. After TA construction, clock reduc-
+tion, and specication mapping, the resulting TA is mapped to an XML le and
+its specications are mapped to a query le. Both of these les can be imported
+to UPPAAL.
+6 A Case Study: Train-Gate TA
+In this section, we present a case study to illustrate the proposed methods and
+the intended usage of ATAC . We picked a well-know example which is also pro-
+vided in the installation package of UPPAAL as a demo example, i.e., Train-Gate
+model (Fig. 1). This model consists of two TA models: a train and a gate. A
+certain number of the train model can be instantiated and each instance of the
+train TA is given an identication number ( id). There is a single instantiation
+for the gate TA controlling which train to pass the gate and which ones to wait.
+The communication between the gate and trains is performed by an array of
+synchronization channels. The channel array is indexed by train ids. In addition
+to the channel array, the model uses other extensions implemented in UPPAAL
+such as nondeterministic selection of integers, C-like programming structures,
+and committed locations.
+6.1 Description of Train TA
+Below, we list description sentences to construct the model given in Fig. 1-(a).
+Notice that with the clock reduction algorithm, our tool automatically reduces
+the number of clocks to one for multiple timing requirements on the model.
+Fig. 1-(b) presents the TA model obtained after manual modication of the
+automatically constructed model. To obtain the nal model, only some C-like
+programming structures and channel indexes are added to the model manually.
+{Train can be Safe Appr Cross Stop Start and it is initially Safe.
+{Train can send Appr and go from Safe to Appr.
+{If the time spent after entering Appr is more than or equal to 10, then Train
+can go from Appr to Cross.
+{If Stop is received and the time spent after entering Appr is less than or
+equal to 10, then Train can go from Appr to Stop.
+
+--- Page 8 ---
+8 B. Yalcinkaya and E. Aydin Gol
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations(c) Gate TA Output of the Tool(d) Gate TA After Manual Modiﬁcations
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations(c) Gate TA Output of the Tool(d) Gate TA After Manual Modiﬁcations
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations(c) Gate TA Output of the Tool(d) Gate TA After Manual Modiﬁcations
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations(c) Gate TA Output of the Tool(d) Gate TA After Manual Modiﬁcations
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+(a) Train TA Output of the Tool(b) Train TA After Manual Modiﬁcations
+(c) Gate TA Output of the Tool(b) Gate TA After Manual Modiﬁcations
+Fig. 2. Train-Gate Model3) Description of Env TA:Below, we list description sen-tences for Env TA given in Fig. 1-(d). Six sentences are neededfor this model and no further manual modiﬁcation is required.1)Env can be ON OFF ERROR and it is initially ON.2)Env can send up and go from ON to ON.3)Env can send down and go from ON to ON.4)Env can send shutdown and go from ON to OFF.5)Env can send up and go from OFF to ERROR.6)Env can send down and go from OFF to ERROR.4) Speciﬁcations for the whole model:Below, we give aspeciﬁcation and its resulting UPPAAL query.•It shall always be the case that for Env, ERROR does nothold.–A[] not Env.ERRORB. Train-Gate ModelTrain-Gate model consists of two TA models: a train and agate. A certain number of the train model can be instantiatedand each instance of the train TA is given an identiﬁcationnumber (id). There is a single instantiation for the gate TAcontrolling which train to pass the gate and which one to wait.The communication between the gate and trains is performedby an array of synchronization channels. The channel arrayis indexed by the train ids. In addition to the array channels,the model uses other TA extensions implemented in UPPAALsuch as the nondeterministic selection for integer variables,C-like programming structures, and committed locations.1) Description of Train TA:Below, we list descriptionsentences to construct the model given in Fig. 2-(a). Noticethat with the clock reduction algorithm, our tool automaticallyreduces the number of clocks to one for multiple timingrequirements on the model. Fig. 2-(b) presents the TA modelobtained after manual modiﬁcation of the automatically con-structed model. To obtain the ﬁnal model only some C-likeprogramming structures and channel indexes are added to themodel manually.1)Train can be Safe Appr Cross Stop Start and it is initiallySafe.2)Train can send Appr and go from Safe to Appr.3)If the time spent after entering Appr is more than orequal to 10, then Train can go from Appr to Cross.4)If Stop is received and the time spent after entering Appris less than or equal to 10, then Train can go from Apprto Stop.5)If Go is received, then Train can go from Stop to Start.6)If the time spent after entering Start is more than or
+Fig. 1. Train-Gate Model
+{If Go is received, then Train can go from Stop to Start.
+{If the time spent after entering Start is more than or equal to 7, then Train
+can go from Start to Cross.
+{If the time spent after entering Cross is more than or equal to 3, then Train
+can send Leave and go from Cross to Safe.
+{For Train, the time spent in Appr cannot be more than 20.
+{For Train, the time spent in Start cannot be more than 15.
+{For Train, the time spent in Cross cannot be more than 5.
+6.2 Description of Gate TA
+Below, we list description sentences for Gate TA given in Fig. 1-(c). Four sen-
+tences are needed for this model. Fig. 1-(d) presents the TA model obtained after
+manual modication of the automatically constructed model. To obtain the -
+nal model, only nondeterministic selection for integer variables and a committed
+location are added to the model manually.
+{Gate can be Free Occ and it is initially Free.
+{Gate can send Go and go from Free to Occ.
+{If Appr is received, then Gate can go from Free to Occ.
+{If Leave is received, then Gate can go from Occ to Free.
+
+--- Page 9 ---
+ATAC : A Tool for Automating Timed Automata Construction 9
+6.3 Specications for the whole model
+Below, we give some useful specications and their resulting UPPAAL queries.
+{It might eventually be the case that for Gate, Occ holds: E<> Gate.Occ
+{For Gate, Free holds leads to for Train, Cross holds: Gate.Free --> Train.Cross
+{It shall always be the case that for Train, Cross does not hold or for Gate,
+Free does not hold: A[] not Train.Cross or not Gate.Free
+{Deadlock never occurs: A[] not deadlock
+{For Gate, Free shall hold within every 40: A[] not Gate.Free or y <= 40
+Notice that, in Gate TA, clock ydoes not exist in the original example of
+UPPAAL. Since the last specication has a timing condition, it is generated
+automatically to verify the specication.
+7 Conclusion
+In this paper, we presented a new method for assisting TA construction and
+a tool implementing this method. ATAC constructs TA models and generates
+queries from high-level descriptions and specications given in structured nat-
+ural language. Output models and formulas can be imported to UPPAAL for
+verication. We gave a brief introduction to the basic concepts of TA and UP-
+PAAL, and then presented description and specication grammars. Finally, we
+presented a case study generated with ATAC . Additional examples are included
+in the tool [20]. Although our method can be used for construction of a complete
+TA along with queries for specications, we suggest using it as an assistance tool
+rather than a fully automated one. We encourage using it in the initial phases
+of the design where only a textual description of the model under construction
+is available. This way our method can provide an almost complete model which
+can be further improved. In addition, it identies the necessary number of clocks
+and allocates them on the TA model for the considered RTS. Furthermore, ac-
+companying the model with the specications and descriptions given in natural
+language improves its maintainability.
+References
+1. R. Alur, Principles of Cyber-Physical Systems . The MIT Press, 2015.
+2. R. Alur, C. Courcoubetis, and D. Dill, \Model-checking in dense real-time," Infor-
+mation and computation , vol. 104, no. 1, pp. 2{34, 1993.
+3. R. Alur and D. L. Dill, \A theory of timed automata," Theoretical computer sci-
+ence, vol. 126, no. 2, pp. 183{235, 1994.
+4. C. Heitmeyer and N. Lynch, \The generalized railroad crossing: a case study in
+formal verication of real-time systems," in 1994 Proceedings Real-Time Systems
+Symposium , Dec 1994, pp. 120{131.
+5. F. Wang, \Formal verication of timed systems: a survey and perspective," Pro-
+ceedings of the IEEE , vol. 92, no. 8, pp. 1283{1305, Aug 2004.
+
+--- Page 10 ---
+10 B. Yalcinkaya and E. Aydin Gol
+6. M. Kwiatkowska, A. Mereacre, N. Paoletti, and A. Patan e, \Synthesising robust
+and optimal parameters for cardiac pacemakers using symbolic and evolutionary
+computation techniques," in Hybrid Systems Biology , A. Abate and D. Safr anek,
+Eds. Cham: Springer International Publishing, 2015, pp. 119{140.
+7. A. David, J. Illum, K. G. Larsen, and A. Skou, \Model-based framework for schedu-
+lability analysis using UPPAAL 4.1," in Model-based design for embedded systems ,
+2009, pp. 117{144.
+8. N. Guan, Z. Gu, Q. Deng, S. Gao, and G. Yu, \Exact schedulability analysis for
+static-priority global multiprocessor scheduling using model-checking," in Proc. of
+SEUS , 2007, pp. 263{272.
+9. B. Yalcinkaya, M. Nasri, and B. B. Brandenburg, \An exact schedulability test for
+non-preemptive self-suspending real-time tasks," IEEE/ACM Design, Automation
+and Test in Europe (DATE) , 2019.
+10. G. Behrmann, A. David, K. G. Larsen, J. Hakansson, P. Petterson, W. Yi, and
+M. Hendriks, \Uppaal 4.0," in Proceedings of the 3rd International Conference on
+the Quantitative Evaluation of Systems , ser. QEST '06. Washington, DC, USA:
+IEEE Computer Society, 2006, pp. 125{126.
+11. E. Andr e, T. Chatain, L. Fribourg, and E. Encrenaz, \An inverse method for
+parametric timed automata," International Journal of Foundations of Computer
+Science , vol. 20, no. 05, pp. 819{836, 2009.
+12. E. Asarin and O. Maler, \As soon as possible: Time optimal control for timed
+automata," in Hybrid Systems: Computation and Control , F. W. Vaandrager and
+J. H. van Schuppen, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 1999,
+pp. 19{30.
+13. J. H. Andersen, K. J. Kristoersen, K. G. Larsen, and J. Niedermann, \Auto-
+matic synthesis of real time systems," in International Colloquium on Automata,
+Languages, and Programming . Springer, 1995, pp. 535{546.
+14. Cornell Veriable Robotics Research Group, \Ltlmop project page," 2013.
+[Online]. Available: https://ltlmop.github.io/
+15.E. Andr e, L. Fribourg, U. K uhne, and R. Soulat, \Imitator 2.5: A tool for ana-
+lyzing robustness in scheduling problems," in International Symposium on Formal
+Methods . Springer, 2012, pp. 33{36.
+16. E. P. Enoiu, D. Sundmark, and P. Pettersson, \Model-based test suite genera-
+tion for function block diagrams using the uppaal model checker," in 2013 IEEE
+Sixth International Conference on Software Testing, Verication and Validation
+Workshops . IEEE, 2013, pp. 158{167.
+17. K. G. Larsen and W. Yi, \Time abstracted bisimulation: Implicit specications
+and decidability," in International Conference on Mathematical Foundations of
+Programming Semantics . Springer, 1993, pp. 160{176.
+18. K. G. Larsen, P. Pettersson, and W. Yi, \Uppaal in a nutshell," International
+Journal on Software Tools for Technology Transfer (STTT) , vol. 1, no. 1, pp. 134{
+152, 1997.
+19. B. Yalcinkaya and E. A. Gol, \Clock reduction in timed automata while preserving
+design parameters," in 2019 IEEE/ACM 7th International Conference on Formal
+Methods in Software Engineering (FormaliSE) . IEEE, 2019, pp. 31{40.
+20. B. Yalcinkaya, \Atac," https://github.com/beyazit-yalcinkaya/atac, 2020.

@@ -1,0 +1,384 @@
+--- Page 1 ---
+An Interface Theory Based Approach to Veriﬁcation of Web Services¤
+Zhenbang Chen, Ji Wang, Wei Dong, Zhichang Qi
+National Laboratory for Parallel and Distributed Processing, Changsha, China
+fz.b.chen, jiwang, dong.wei g@mail.edu.cn
+W.L. Yeung
+Department of Computing and Decision Sciences, Lingnan University, Hong Kong, China
+wlyeung@ln.edu.hk
+Abstract
+The veriﬁcation of web services becomes a challenge in
+software veriﬁcation. This paper presents a framework for
+veriﬁcation of web service interfaces at various abstrac-
+tion levels. Its foundation is the interface theory for web
+services, in which transaction features are incorporated.
+Within the framework, one may check non mutual invoca-
+tion, compatibility and reﬁnement of web services at signa-
+ture, conversation and protocol levels. At protocol level, we
+present a model checking approach to verifying the protocol
+properties in Action Set Computation Tree Logic(ASCTL).
+The paper also discusses the integration of our framework
+into the web service development.
+1. Introduction
+Web service is emerging as a standard framework for
+service-oriented computing. It becomes a new challenge
+to ensure the high conﬁdence of web service systems. As
+a formal foundation of component-based design, [1] pro-
+posed a theory of interface automata for specifying the in-
+terfaces of components. [2] presented a web service inter-
+face description language, which can describe the interfaces
+at three levels, i.e. signature, consistency and protocol.
+However, the transaction features have not been considered
+in the existing interface theories, while they are essential
+features for distributed computing, such as web service sys-
+tems. We have extended the formalism of web service inter-
+faces proposed in [2] to describe transaction information in
+all three levels of signature, conversation and protocol. In
+¤Supported by the National Natural Science Foundation of China under
+Grant No.60233020, 60303013, 90612009; the National High-Tech Re-
+search and Development Plan of China under Grant No.2005AA113130;
+the National Grand Fundamental Research 973 Program of China under
+Grant No.2005CB321802; Program for New Century Excellent Talents in
+University under Grant No.NCET-04-0996.this paper, we present a multi-level veriﬁcation framework
+to verify web service interfaces. In the framework, the in-
+terface behaviour of web service interfaces will be speciﬁed
+and veriﬁed with respect to the expected properties at differ-
+ent abstract levels. The remainder of this paper is organized
+as follows. Section 2 brieﬂy presents the underlying inter-
+face theory, and Section 3 proposes the veriﬁcation frame-
+work and show the details in verifying protocol property.
+Section 4 discusses the integration of our framework into
+the web service development. Section 5 discusses some re-
+lated works and concludes the paper.
+2. Web Service Interface Theory
+A web service interface description contains some
+method declarations, and clients can use the functionali-
+ties of web services through method calls. A web service
+may provide or request some methods which may return
+some different values. An action is an instance of a method
+call. In the perspective of action, web service interface be-
+haviour contains three parts . The ﬁrst part is the normal
+behaviour of action invocations. If an exception action is
+invoked, after which the corresponding fault handling be-
+haviour in the description should be taken, which is the sec-
+ond part . If an exception action can invoke some success-
+ful actions before the exception occurrence, the successful
+actions should be compensated by the corresponding com-
+pensation behaviour which is the third part of the interface
+behaviour. Figure 1 shows a supply chain management sys-
+tem with transactions. SellItem is the method provided by
+web service Shop , andhSellItem; FAIL iis one of its pro-
+vided actions.
+There are different detailed interface descriptions from
+web service providers. For this reason, we proposed the
+interface theory for describing the transaction information
+at three different abstract levels of signature, conversation
+and protocol, which is same as [2]. As a shorthand, brief
+description of the interface theory will be given as follows.
+
+--- Page 2 ---
+ Shop 
+Bank Transport  Store 
+Supplier Post office 
+Client SellItem  
+Recede  
+Compensate  
+ProcPay  ShipItem  WithDraw  Apologize  ChkAvail  
+ChkStore  
+RStore  
+GetOffer  Order  SendLetter Figure 1. Supply chain management system.
+According to the three parts of interface behaviour, a web
+service signature interface has three partial functions: S,
+SCandSF. The deﬁnitions of all functions are same as
+A ! 2A, where Ais a set of actions. Sassigns to an ac-
+tionaa set of actions which acan normally invoke. SC
+assigns to an action aa set of actions that can be invoked by
+the compensation for a.SFassigns to an action aa set of
+actions that can be invoked by the fault handling for a.
+An action may invoke different action sets in different
+cases, which is the reason for proposing conversation inter-
+face. A conversation is a set of actions that are invoked to-
+gether. A conversation interface also has three partial func-
+tions: E,ECandEF. The deﬁnitions of all functions are
+same as A!!(A).!(A)is the set of expressions over the
+action set Ausing the binary operators uandt, and the
+constant >. The meanings of functions are similar to those
+of signature interface, except that each function assigns to
+an action a conversation expression to describe the interface
+behaviour.
+A conversation is a set of actions, which does not have
+any sequence information. For indicating the sequences of
+action invocations, we propose extended protocol automa-
+ton, which is a triple (A;L; ±), where Ais a set of actions,
+Lis a set of locations, and there are two special locations
+?;£inL,?is the return location, and £is the excep-
+tion location, and ±µ(L n f? ;£g)£Terms (A)£ Lis the
+transition relation set. Terms (A)is the term set whose ele-
+ments indicate different modes of method invocations, such
+as thread creation, choice, and parallel executions. A pro-
+tocol interface has an extended protocol automaton Gand
+three partial functions: R,RCandRF, whose meanings
+are similar to those in signature interface, except that each
+function assigns to an action the start location in the ex-
+tended protocol automaton. The deﬁnitions of all functions
+are same as A ! L .
+Signature interface and conversation interface describe
+the static invocation relations of web service interfaces.
+Protocol interface describes dynamic web service interface
+behaviour. Given a protocol interface Tand an action
+a2dom(R), the interface behaviour invoked by acan be
+transformed into a labeled transition system (LTS).Compared with the interface theory in [2], we extend it
+with transaction description mechanism at all three levels.
+In each level, we add compensation function and fault han-
+dling function, through which the semantics of the interface
+can incorporate features of long running transaction.
+3. Veriﬁcation Framework
+For ensuring the high conﬁdence of web service systems,
+it is desired to verify web service interfaces with respect to
+the expected properties. The presented web service inter-
+face theory provides the foundation for veriﬁcation. Ac-
+cording to three abstract levels, we propose a veriﬁcation
+framework for verifying web service interfaces. The sketch
+of the framework are shown in Figure 2. The veriﬁcation
+can be taken on signature, conversation and protocol levels,
+and non mutual invocation, compatibility and substitutivity
+can be checked in each level. The compatibility and sub-
+stitutivity between web service interfaces will be checked
+with respect to a set of conditions derived from the inter-
+face theory. In conversation and protocol levels, part of the
+expected properties will be application-related, and will be
+speciﬁed and veriﬁed specially.
+ Signature Verification Compatibility Substitutivity  
+Protocol Verification 
+Protocol Property Conversation Verification 
+Conversation Property Non Mutual Invocation  
+Web Service Interfaces 
+Figure 2. Sketch of veriﬁcation framework.
+For a web service system, if two actions can invoke each
+other mutually, the system resource may be exhausted even-
+tually. Therefore it is desired that the mutual invocation
+should be forbidden in web service systems. Because sig-
+nature interface describes direct invocation relation between
+web service interfaces, the non mutual invocation property
+can be checked on it. A signature interface is non mutual
+invocation if any two supported actions can not invoke each
+other mutually. For conversation and protocol interface, we
+can calculate their underlying signature interfaces, on which
+we can check the non mutual invocation property.
+Conversation interface can describe different cases for
+the same action invocation. Some non-temporal properties
+can be veriﬁed on it. The property can be speciﬁed by con-
+versation property (CP), whose form is deﬁned as follows,
+where a2 A;D µ A anda =2 D.
+CP::a! ¦D j a!¤D ja9D ja98D ja99D
+
+--- Page 3 ---
+The meanings of different property forms are given as
+follows: 1) a! ¦D speciﬁes that action acan invoke a con-
+versation which includes all actions in D, 2)a!¤Dspec-
+iﬁes that every conversation invoked by action aincludes
+all actions in D, 3)a9Dspeciﬁes that every conversa-
+tion invoked by action adoes not include all actions in D,
+4)a98Dspeciﬁes that every conversation invoked by
+action adoes not include any action in D, 5)a99Dspec-
+iﬁes that action acan invoke a conversation which does not
+include any action in D.
+Some temporal properties can be veriﬁed on protocol in-
+terface. The protocol property must be formed in a!',
+where a2dom(R)and'is the formula in Action Set Com-
+putation Tree Logic (ASCTL), whose deﬁnition is given as
+follows, where Dµ A.
+Â::truejfalse jDj :ÂjÂ^Â0
+'::truejfalse j :'j'^'0jE°jA°
+°:: ['fÂgUfÂ0g'0]j['fÂgUfÂ0g'0]
+Compared to ACTL in [4], the syntax and semantics of
+ASCTL are similar except that the action set is used instead
+of the single action. So, for the semantics of ASCTL, the
+labels of transitions in LTS model are action sets, and we
+deﬁne Aj=DiffA\D6=;, where Ais the transition label
+andDis the action set in ASCTL formula. The derived
+ASCTL operators, such as EF,AF,EGandAG, are deﬁned
+as in [4].
+The non mutual invocation checking and conversation
+property veriﬁcation are straightforward, and model check-
+ing method is used to verify protocol properties. The
+method for model checking is same as [4], which used sym-
+bolic model checking method based on ﬁxed point calcula-
+tion [6] for ACTL veriﬁcation. The veriﬁcation process of
+protocol property is shown in Figure 3.
+ Model Checking for (M ⊧ϕϕ ϕϕ ?) Transformation  Protocol 
+Interface s 
+LTS M of action a invocation Property a /barb2right ϕϕ ϕϕ 
+ASCTL  formula  ϕϕ ϕϕ 
+Result 
+Figure 3. Protocol property veriﬁcation.
+First, the corresponding LTS of the property should be
+generated, and the LTS only contains the transitions whose
+labels are external action sets. Next, we can use the pre-
+sented method to verify the ASCTL formula in the property.
+Given two web service interfaces, we want to check
+whether they can cooperate properly. First, two services can
+       s0  s1  s2 {<ChkAvail,FAIL>}  {<ChkStore,FAIL>}  
+ s3 {<GetOffer,OK>,<Order,OK>}  {<Apologize,OK>}  
+ E 
+ s5 
+s6 {<ChkStore,OK>} 
+{<GetOffer,OK>,<Order,OK>}  {<ChkAvail,OK>} 
+ s7 {<ProcPay,FAIL>}  s8 {<RStore,OK>}  
+s10  {<ProcPay,OK>} 
+{<ShipItem,FAIL>}  s11  {<Apologize,OK>}  
+{<Compensate,OK>}  
+s15  {<ProcPay,FAIL>} 
+{<ProcPay,OK>} 
+s19  {<ShipItem,FAIL>}   s12   s13  {<RStore,OK>}  {<Apologize,OK>}  
+ s16   s17  {<RStore,OK>}  {<Apologize,OK>}  
+ s20  {<Compensate,OK>}  
+ s21   s22  {<RStore,OK>}  {<Apologize,OK>}   s4 {<SendLetter,OK>}  
+ E  s9 {<SendLetter,OK>}  
+ E  s14  {<SendLetter,OK>}  
+ E  s18  {<SendLetter,OK>}  
+ E  s23  {<SendLetter,OK>}  Figure 4. LTS of hSellItem; FAIL iinvocation.
+not support same actions. Second, the new service interface,
+which is composed by them, should be well-formed. To en-
+able top-down design, it is desired to replace a web service
+in a system with a new web service without affecting the
+running of the system. After replacement, all parts of the
+system can still cooperate properly as before. The main idea
+of the substitutivity is the new web service should guaran-
+tee more and assume fewer than the old web service. Intu-
+itively, for a web service, the deﬁned methods of interface
+are the guarantees, and the remote calls are the assumptions.
+Protocol Property Result
+hSellItem,FAIL i ! AFfhSendLetter,OK ig True
+hSellItem,FAIL i ! True
+:E[f: fh ProcPay,OK iggUffhCompensate,OK igg]
+hSellItem,FAIL i ! False
+:E[f: fh Compensate,OK iggUffhRStore,OK igg]
+hSellItem,FAIL i ! : E[f: fh Compensate,OK igg True
+UffhRStore,OK iggEFfhCompensate,OK ig]
+Table 1. The protocol property and the corre-
+sponding veriﬁcation result.
+After composing, the supply management system con-
+tains six web services. We can verify some proper-
+ties of the composed system interface. For indicat-
+ing the compensation and fault handling behaviour, the
+LTS of the hSellItem; FAIL iaction invocation is shown
+in Figure 4, which is the projection to the external ac-
+tions. The protocol properties for hSellItem; FAIL iand
+the corresponding results are shown in Table 1. The for-
+mula AFfhSendLetter; OK igrepresents that the shop must
+send an apologetic letter for the failure of purchasing.
+:E[f:fhProcPay; OK iggUffhCompensate; OK igg]rep-
+resents that the compensation for the payment must not oc-
+cur before the payment. :E[f:fhCompensate; OK iggU
+ffhRStore; OK igg]represents that it will never happen that
+if the compensation for the successful checking availability
+occurs, no compensation for the payment has occurred be-
+fore. The last property represents that if the compensation
+for the payment occurs, it must not occur after the compen-
+
+--- Page 4 ---
+sation for the successful checking availability. This prop-
+erty is veriﬁed to ensure the behaviour model satisﬁes the
+requirements of long running transaction.
+4. Integration of the Veriﬁcation Framework
+into Development Process
+The veriﬁcation framework can be employed in the
+process of web service development, to achieve a high as-
+surance of the developed systems. Figure 5 shows an out-
+line for incorporating veriﬁcation activities in the develop-
+ment process.
+ Preliminary Design Requirements 
+Detailed Design 
+Implementation 
+Publish Signature Interfaces 
+Conversation Interfaces  
+Protocol Interfaces Conversation Property 
+Protocol Property 
+Protocol Interfaces Specifying properties 
+Non mutual invocation property satisfied  
+Specified properties satisfied 
+Verification 
+Protocol properties satisfied 
+Formalizing  
+Verification Development Condition  
+Specifying Property  
+Development Process  
+Figure 5. Integration of the veriﬁcation frame-
+work into development process.
+After acquiring requirements, the designer can specify
+some properties according to the requirements. When the
+designer ﬁnishes preliminary design, signature interface can
+be used for formalizing the interface description and non
+mutual invocation property can be checked. If the non mu-
+tual invocation property is satisﬁed, the designer can con-
+tinue to do detailed design, otherwise some modiﬁcation in
+preliminary design should be taken. When detail design is
+ﬁnished, some requirement properties speciﬁed before can
+be veriﬁed. If all requirements are satisﬁed, the designer
+can give the detailed design to the implementor, who may
+implement the actual web services by some composition
+languages, such as BPEL4WS[3]. After ﬁnishing imple-
+mentation, the requirement properties should be veriﬁed on
+implementation model to ensure the correctness and con-
+sistency. If some requirement properties are not satisﬁed
+during these two steps, the designer or implementor should
+modify its design or implementation to ensure the require-
+ment satisﬁed. Finally, the veriﬁed web service interfaces
+can be published to the web service registry and web ser-
+vices can be deployed to some service engines. The veriﬁ-
+cation framework can also be used as the foundation for the
+registry to test the web services to be published.5. Related Works and Conclusions
+There are some researches on formalization and veriﬁ-
+cation of web service interfaces [7, 8, 9]. Most of them
+have focused on formalization and veriﬁcation using for-
+malisms such as Petri-nets, state machine and process al-
+gebra. Their approaches are deﬁcient in modeling and ver-
+ifying the transaction behaviour of web service interfaces,
+especially in compensation and fault handling. Based on
+extending the formalism in [2], the approach presented in
+this paper can rigorously describe and verify the transaction
+behaviour of web service interfaces.
+The paper presents a veriﬁcation framework for the web
+service interfaces based on the interface theory. Differ-
+ent aspects of web service interfaces can be veriﬁed in the
+framework. In signature level, non mutual invocation can be
+checked. Conversation property can be veriﬁed on conver-
+sation level. Protocol property which is speciﬁed in ASCTL
+can be veriﬁed using model checking on protocol level. Be-
+sides that, compatibility and substitutivity can be checked
+on each level.
+6. References
+[1]L. de Alfaro, T. A. Henzinger, Interface automata, presented
+at the 8th European Software Engineering Conference held
+jointly with 9th ACM SIGSOFT International Symposium
+on Foundations of Software Engineering Vienna, Austria,
+2001.
+[2]D. Beyer, A. Chakrabarti, T.A. Henzinger, Web Service In-
+terfaces, presented at 14th International World Wide Web
+Conference, Chiba, Japan, 2005.
+[3]F. Curbera, Y . Goland, et al, Business Process Execution
+Language For Web Services, Version 1.0, 2002.
+[4]R. Meolic, T. Kapus, Z. Brezocnik, Veriﬁcation of concur-
+rent systems using ACTL, presented at the IASTED Inter-
+national Conference on Applied Informatics AI’2000, Inns-
+bruck, Austria, 2000.
+[5]R.D. Nicola, A. Fantechi, S. Gnesi, and G. Ristori, An ac-
+tion based framework for verifying logical and behavioural
+properties of concurrent sytems, presented at 3th WorkShop
+on Computer Aided Veriﬁcation, Aalborg, Denmark, 1991.
+[6]J.R. Burch, E.M. Clarke, D.E. Long, K.L. McMillan, and
+D.L. Dill. Symbolic Model Checking for Sequential Circuit
+Veriﬁcation, IEEE Transactions On Computer-Aided De-
+sign of Intergrated Circuits and Systems, V ol. 13, No. 4,
+1994.
+[7]R. Hamadi, B. Benatallah, A Petri net-based model for web
+service composition, presented at 14th Australasian Data-
+base Conference, Adelaide, South Australia, 2003.
+[8]H. Foster, S. Uchitel, J. Magee, J. Kammer, Compatibil-
+ity for Web Service Choreography, presented at 3th IEEE
+International Conference on Web Services, San Diego, CA,
+2004.
+[9]X. Fu, T. Bultan, J. Su, Analysis of Interacting BPEL Web
+Services, presented at 13th International World Wide Web
+Conference, New York, USA, 2004

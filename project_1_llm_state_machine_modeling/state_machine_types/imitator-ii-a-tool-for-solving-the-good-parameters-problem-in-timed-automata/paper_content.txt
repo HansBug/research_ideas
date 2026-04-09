@@ -1,0 +1,387 @@
+--- Page 1 ---
+Y .-F. Chen and A. Rezine (Eds.): The 12th INFINITY Workshop.
+EPTCS 39, 2010, pp. 91–99, doi:10.4204/EPTCS.39.7c´E. Andr ´e
+This work is licensed under the
+Creative Commons Attribution License.IMITATOR II: A Tool for Solving
+the Good Parameters Problem in Timed Automata
+´Etienne Andr ´e
+LSV , ENS de Cachan & CNRS, Cachan, France
+andre@lsv.ens-cachan.fr
+We present here I MITATOR II, a new version of I MITATOR , a tool implementing the “inverse method”
+for parametric timed automata: given a reference valuation of the parameters, it synthesizes a con-
+straint such that, for any valuation satisfying this constraint, the system behaves the same as under
+the reference valuation in terms of traces, i.e., alternating sequences of locations and actions. I MITA -
+TOR II also implements the “behavioral cartography algorithm”, allowing us to solve the following
+good parameters problem: ﬁnd a set of valuations within a given bounded parametric domain for
+which the system behaves well. We present new features and optimizations of the tool, and give
+results of applications to various examples of asynchronous circuits and communication protocols.
+1 Introduction
+Timed automata [2] are ﬁnite control automata equipped with clocks , which are real-valued variables
+which increase uniformly, and that are compared with timing delays . One can check the correctness of
+a system modeled by a timed automaton for one particular value for each delay (using model checkers
+such as, e.g., U PPAAL [23]), but this does not give any information for other values. Actually, checking
+the correctness of the system for all the delays, even in a bounded interval, would require an inﬁnite
+number of calls to the model checker, because those delays can have real (or rational) values. It is
+therefore interesting to reason parametrically , by considering that these delays are unknown constants,
+orparameters , and try to synthesize a constraint (i.e., a conjunction of linear inequalities) on these
+parameters which will guarantee a correct behavior of the system. Such automata are called parametric
+timed automata (PTA) [3].
+The Good Parameters Problem for Timed Automata. We aim at solving the good parameters prob-
+lem, as deﬁned in [15] in the framework of linear hybrid automata [1]: “Given a PTA Aand a rectangular
+parameter domain V0, what is the largest set of parameter values within V0for which Ais safe?”
+The parameter design problem for timed automata (and more generally, for linear hybrid automata)
+was formulated in [19], where a straightforward solution is given, based on the generation of the whole
+parametric state space until a ﬁxpoint is reached. Unfortunately, in all but the most simple cases, this is
+is prohibitively expensive due, in particular, to the brute exploration of the whole parametric state space.
+In [15], the authors propose an extension based on the counterexample guided abstraction reﬁnement
+(CEGAR, [14]). When ﬁnding a counterexample, the system obtains constraints on the parameters that
+make the counterexample infeasible. When all the counterexamples have been eliminated, the resulting
+constraints describe a set of parameters for which the system is safe.
+This work is partially supported by the V ALMEM Project of Agence Nationale de la Recherche, grant ANR-06-ARFU-005,
+and by Institut Farman (ENS Cachan).
+
+--- Page 2 ---
+92 IMITATOR II: A Tool for Solving the Good Parameters Problem in Timed Automata
+Contributions. The tool I MITATOR II presented in this paper is based on the inverse method [5], which
+starts from a “good instantiation” p0of the parameters that one wants to generalize. More precisely,
+IMITATOR II synthesizes a constraint K0on the parameters that corresponds to a dense set of valuations
+such that, for all instantiation pof parameters in this set, the behavior of the timed automaton Ais
+(time-abstract) equivalent to the behavior of Aunder p0, in the sense that they have the same trace sets.
+This is useful to relax timing bounds, and gives a criterion of robustness.
+Moreover, I MITATOR II implements the behavioral cartography algorithm [6], which synthesizes a
+constraint on the parameters (“tile”) by calling the inverse method on integers point located within a
+given bounded parameter real-valued domain (rectangle) V0. This algorithm allows us to partition the
+parametric space into a subset of “good” tiles (which correspond to “good behaviors”) and a subset of
+“bad” ones. Often in practice, what is covered is not only the integer subspace of V0, but two major
+extensions: ﬁrst, not only the integer points but a major part of the dense set of real-valued points of V0is
+covered by the tiles; second, the tiles are often unbounded w.r.t. several dimensions (hence are inﬁnite),
+and cover most of the parametric space beyond V0, thus giving a solution to the good parameters problem.
+IMITATOR II is a new version of I MITATOR [7], a prototype written in Python [26] implementing the
+inverse method, and calling the model checker H YTECH [18]. I MITATOR II has been entirely rewritten
+and is now a standalone tool, making use of the A PRON library [20] and the Parma Polyhedra Library [9].
+Compared to I MITATOR , the computation timings of I MITATOR II have dramatically decreased. More-
+over, I MITATOR II offers new features, such as the implementation of the cartography algorithm, the
+visualization of the trace sets of the constraints, and of the cartography (for 2 parameter dimensions).
+Related Tools. IMITATOR II has been designed to implement the inverse method and the cartography
+algorithm and, as far as we know, it is the only tool implementing this kind of algorithms. Although
+it is thus not possible to compare directly the computation times of I MITATOR II with other tools, it is
+interesting to mention the following tools allowing to perform related analyses of timed systems.
+HYTECH [18] is the ﬁrst model checker for analyzing parametric hybrid automata. It features an in-
+tuitive input syntax, and performs reachability analysis and operations on states sets. Although H YTECH
+has been used to verify interesting case studies, it can hardly verify even medium sized examples because
+of its arithmetics with limited precision leading to overﬂows, and its static composition of the automata,
+preventing the composition of more than a dozen of automata.
+The tool PHA Ver [17], designed by Goran Frehse, highly improves the scalability compared to
+HYTECH, and performs analyses on parametric hybrid systems using exact arithmetics with unlimited
+precision and convex polyhedra, using the Parma Polyhedra Library (PPL) [9]. Moreover, PHA Ver of-
+fers various features such as automatic partitioning, graphical outputs, and forward/backward abstraction
+reﬁnement. Various case studies have been veriﬁed, in particular in the framework of analog circuits [16].
+UPPAAL is a powerful tool for model checking timed automata extended with several data types [23].
+In particular, it veriﬁes very efﬁciently timing properties such as reachability, safety or liveness properties
+on timed automata. However, although an extension allowing to perform parametric model checking is
+mentioned in [4], the standard version of U PPAAL does not allow the use of hybrid or parametric systems.
+TREX [8] is a model checker allowing to verify properties on parametric timed automata extended
+with integer counters and ﬁnite-domain variables. TR EX features on-the-ﬂy veriﬁcation of safety prop-
+erties, as well as parameter synthesis either using parametric reachability, or in order to satisfy properties.
+Various representations are allowed and both forward and backward exploration algorithms can be used.
+Finally, the RED library [25] features analysis of real-time systems using Clock-Restriction Dia-
+grams, as well as parametric analysis of hybrid systems using Hybrid-Restriction Diagrams.
+
+--- Page 3 ---
+´E. Andr ´e 93
+Plan of the Paper. We ﬁrst recall the framework of Parametric Timed Automata, the inverse method
+algorithm and the behavioral cartography algorithm in Section 2. We then introduce I MITATOR II in
+Section 3 and give details on its internal structure and its various features. We present in Section 4 a
+range of case studies including hardware devices and unbounded communication protocols. We give
+ﬁnal remarks in Section 5.
+2 Behavioral Cartography of Timed Automata
+Parametric Timed Automata. We use in this paper the same formalism as in [6]. Throughout this
+paper, we assume a ﬁxed set X=fx1; : : : ; xHgofclocks , and a ﬁxed set P=fp1; : : : ; pMgofparameters .
+Given a constraint Con the clocks and the parameters, the expression 9X:Cdenotes the constraint on
+the parameters obtained from Cafter elimination of the clocks.
+Parametric timed automata are an extension of timed automata [2] to the parametric case, allowing
+within guards and invariants the use of parameters in place of constants [3]. A parametric timed automa-
+ton (PTA) Ais a 6-tuple of the form A= (S;Q;q0;K;I;!), where Sis a ﬁnite set of actions, Qis a
+ﬁnite set of locations, q02Qis the initial location, Kis a constraint on the parameters, Iis the invariant
+assigning to every q2Qa constraint I(q)on the clocks and the parameters, and !is a step relation
+consisting in elements of the form (q;g;a;r;q0)where q;q02Q,a2S,rXis a set of clocks to be
+reset by the step, and g(the step guard) is a constraint on the clocks and the parameters.
+In the sequel, we consider the PTA A= (S;Q;q0;K;I;!). We simply denote this PTA by A(K), in
+order to emphasize the fact that only Kwill change in A. For every parameter valuation p= (p1; : : : ;pM),
+A[p]denotes the PTA A(K), where KisVM
+i=1pi=pi. This corresponds to the PTA obtained from A
+by substituting every occurrence of a parameter piby constant piin the guards and invariants. We say
+thatpiisinstantiated with pi. Note that A[p]is a standard timed automaton.
+A(symbolic) state s ofA(K)is a couple (q;C)where qis a location, and Ca constraint on the clocks
+and the parameters. The initial state ofA(K)is a state s0of the form (q0;C0), where C0=K^I(q0)^VH1
+i=1xi=xi+1. In the latter expression, Kis the initial constraint on the parameters, I(q0)is the invariant
+of the initial state, and the rest of the expression lets clocks evolve from the same initial value. A run R of
+A(K)is an alternating sequence of states and actions of the form (q0;C0)a0)(q1;C1)a1)am1)(qm;Cm),
+such that for all i=0; : : : ; m1,ai2Sand(qi;Ci)ai)(qi+1;Ci+1)is a step of A(K). The trace associated
+to R is the alternating sequence of locations and actions q0a0)am1)qm. The trace set of A(K)refers
+to the set of traces associated to the runs of A(K).
+In the following, we are interested in verifying properties on traces sets. For example, a trace can be
+said to be “good” if it never contains any “bad” location of a given set, or if a given action always occurs
+before another one (see [6]). Given such a property on traces, we say that a trace is good if it satisﬁes the
+property, and badotherwise. Likewise, we say that a trace set is good if all its traces are good, and bad
+otherwise. Actually, the good behaviors that can be captured with trace sets are relevant to linear-time
+properties [10], which can express properties more general than reachability properties.
+The Inverse Method. We recall here the inverse method algorithm IM(A;p0), as deﬁned in [5], which
+synthesizes a constraint K0on the parameters such that p0j=K0, and for all p2K0, the trace sets of A[p]
+andA[p0]are equal. Starting with K=true , we iteratively compute a growing set of reachable states.
+When a p0-incompatible state(q;C)is encountered (i.e., when p06j= (9X:C)),Kis reﬁned as follows:
+ap0-incompatible inequality J(i.e., such that p06j=J) is selected within the projection of Conto the
+parameters and:Jis added to K. The procedure is then started again with this new K, and so on, until
+
+--- Page 4 ---
+94 IMITATOR II: A Tool for Solving the Good Parameters Problem in Timed Automata
+no new state is computed. We ﬁnally return the intersection of the projection onto the parameters of all
+the constraints associated to the reachable states.
+The output of IMis abehavioral tile in the following sense: A constraint Kis said to be a behavioral
+tile(or more simply a tile), if for all p1;p22K, the trace sets of A[p1]andA[p2]are equal. Note that
+a tile corresponds to a convex and dense set of real-valued points. Given a tile K, the trace set of A(K)
+will be referred to as “the trace set of K”.
+Algorithm 1: IM(A;p0)
+input : A PTA Aof initial state s0
+input : Valuation p0of the parameters
+output : Constraint Kon the parameters
+1i 0;K true ;S fs0g
+2while true do
+3 while there are p0-incompatible states in S do
+4 Select a p0-incompatible state (q;C)ofS(i.e., s.t. p06j= (9X:C)) ;
+5 Select a p0-incompatible inequality Jin(9X:C)(i.e., s.t. p06j=J) ;
+6 K K^:J;
+7 S Si
+j=0Postj
+A(K)(fs0g);
+8 ifPostA(K)(S)vSthen return K T
+(q;C)2S(9X:C)
+9 i i+1;S S[PostA(K)(S); //S=Si
+j=0Postj
+A(K)(fs0g)
+The algorithm IMis given in Algorithm 1. We deﬁne Posti
+A(K)(S)as the set of states reachable from
+Sin exactly isteps, and Post
+A(K)(S)as the set of all states reachable from SinA(K)(i.e., Post
+A(K)(S) =
+S
+i0Posti
+A(K)(S)). Given two sets of states SandS0, we write SvS0iff8s2S;9s02S0s.t.s=s0.
+The Behavioral Cartography Algorithm. By iterating the above inverse method IMover all the in-
+teger points of a rectangle V0(of which there are a ﬁnite number), one is able to decompose (most of)
+the parametric space included into V0into behavioral tiles. We recall in Algorithm 2 the behavioral
+cartography algorithm, as deﬁned in [6].
+Algorithm 2: Behavioral Cartography Algorithm BC(A;V0)
+input : A PTA A, a ﬁnite rectangle V0RM
+0
+output :Tiling : list of tiles (initially empty)
+1repeat
+2 select an integer point p2V0;
+3 ifpdoes not belong to any tile of Tiling then addIM(A;p)toTiling ;
+4until Tiling contains all the integer points of V 0;
+In practice, most of (the real-valued space of) V0is covered by Tiling (see case studies in Section 4),
+although some “holes” (i.e., small zones containing no integer point) may sometimes remain uncovered
+byTiling . Furthermore, the space covered by Tiling often largely exceeds the limits of V0.
+
+--- Page 5 ---
+´E. Andr ´e 95
+According to a given property on traces one wants to check, it is possible to partition trace sets
+between good and bad, and thus to partition the rectangle V0into a good subspace (union of good tiles)
+and a bad subspace (union of bad tiles).
+The main advantage of this algorithm is that the cartography does not depend on the property one
+wants to check. Only the partition between good and bad tiles does. Moreover, the algorithm does not
+compute the set of all the reachable states; on the contrary, each call to IMquickly reduces the state space
+by removing the “bad” states. This allows us to overcome the state space explosion problem, which often
+prevents other methods, such as the computation of the whole set of reachable states to terminate.
+3 Implementation
+Features. The input syntax of I MITATOR II to describe the network of PTAs modeling the system is
+given in [27], and is very close to the H YTECH syntax. I MITATOR II implements the ability to per-
+form a full reachability analysis (computation of the set of all the reachable states), the inverse method
+algorithm, and the behavioral cartography algorithm.
+When applying the inverse method, I MITATOR II takes as input a ﬁle describing the network of PTAs,
+and another ﬁle giving the reference valuation. It synthesizes a constraint solving the inverse problem, as
+well as the corresponding trace set under a graphical form (see example in Figure 1 left). The description
+of all the parametric reachable states is also returned.
+Figure 1: Examples of trace set (left) and of cartography (right)
+When applying the behavioral cartography, I MITATOR II takes as input a ﬁle describing the network
+of PTAs, and another ﬁle giving the reference rectangle, i.e., the bounds to consider for each parameter.
+It synthesizes a list of tiles, as well as the trace set corresponding to each tile under a graphical form.
+For systems with only two parameter dimensions, the cartography is also returned under a graphical
+form (see example in Figure 1 right). Two different modes can be considered for BC: (1) cover all the
+integer points of V0or, (2) call a given number of times the inverse method on an integer point selected
+randomly within V0(which is interesting for rectangles containing a very big number of integer points
+but few different tiles). As shown in Table 1, all those features (except the inverse method) are new
+features which were not available in I MITATOR .
+
+--- Page 6 ---
+96 IMITATOR II: A Tool for Solving the Good Parameters Problem in Timed Automata
+Tool Inverse Method Cartography Computation of traces Graphical output
+IMITATOR yes no no no
+IMITATOR II yes yes yes yes
+Table 1: Comparison of the features of I MITATOR and I MITATOR II
+Among the options for the tool (see [27] for an exhaustive list), one can mention the possibility to add
+a limit for the depth of the Post operation, or for the execution time, and an option for acyclic systems
+avoiding to check whether a state has been computed before.
+Implementation. IMITATOR II is a tool written in OCaml, making use of an external library for manip-
+ulating convex polyhedra, which can be, depending on the user’s preference, either the NewPolka library,
+available in the A PRON library [20], or the Parma Polyhedra Library (PPL) [9]. The trace sets, as well as
+the cartography for 2 parameter dimensions, are output under a graphical form using the DOT module of
+the graph visualization software Graphviz [28]. I MITATOR II contains about 9000 lines of code, and its
+development took about 6 man-months.
+States are represented using a triple (q;v;C)made of the current location qin each automaton, a
+value for each discrete variable1v, and a constraint Con the clocks and the parameters. In order to
+optimize the test of equality between a new computed state and the set of states computed previously,
+the states are stored in a hash table as follows: to a given key (q;v)of the hash table, we associate a list
+of constraints C1; : : : ; Cn, corresponding to the nstates (q;v;C1), . . . , (q;v;Cn). Contrarily to H YTECH,
+IMITATOR II uses exact arithmetics with unlimited precision, and performs an on-the-ﬂy composition
+of the automata, allowing to analyze bigger systems, and decreasing drastically the computation time
+compared to I MITATOR (see Section 4).
+Optimization. Line 7 in Algorithm 1 corresponds to the computation of all the states reachable in up
+toisteps from s0, with the new constraint Kthat has just been updated with the addition of some :J.
+However, this computation is redundant because no new state can be computed (because Khas been
+restrained with:J), and no state previously computed can be removed (because both :Jand the states
+previously computed are p-compatible). Instead, we simply update the set Sof states by adding :Jto all
+the states computed, by replacing line 7 in Algorithm 1 by the portion of algorithm given in Algorithm 3.
+Algorithm 3: Modiﬁcation of the Inverse Method Algorithm
+1foreach (q;C)2Sdo
+2 C C^:J
+4 Case Studies
+We present in this section a range of case studies of asynchronous circuits and communication protocols.
+The source code of I MITATOR II and various binaries, as well as the input ﬁle for all those case studies
+can be found in [27]. Experiments were conducted on an Intel Core2 Duo 2.4 GHz with 2 Gb.
+1Discrete variables are syntactic sugar allowing to factorize several locations into a single one. In I MITATOR II, discrete
+variables are integer variables that can be updated using constants or other discrete variables.
+
+--- Page 7 ---
+´E. Andr ´e 97
+Inverse Method. The results of the application of the inverse method to various case studies are given
+in Table 2. We give from left to right the name of the example, the number of PTAs composing the global
+system A, the lower and upper bounds on the number of locations per PTA, the number of clocks and
+parameters of A, of iterations of the algorithm, of inequalities within K0, of states and transitions, the
+computation time in seconds using I MITATOR , and the computation time in seconds using I MITATOR II.
+Example PTAs loc./PTAjXjjPjiter.jK0jstates trans. Time1 Time2
+SR-latch 3 [3;8]33 5 2 4 3 0:11 0:007
+Flip-ﬂop [13] 5 [4;16]512 9 6 11 10 1:60:122
+And–Or [12] 3 [4;8]412 14 4 13 13 1:81 0:15
+Valmem Latch 7 [2;5]813 12 6 18 17 14:40:345
+CSMA/CD [22] 3 [3;8]3319 2219 342 41 1:01
+RCP [21] 5 [6;11]6520 2327 518 64 2:3
+SPSMALL 1[11] 10 [3;8]1026 32 23 31 30 4680 2.6
+BRP [24] 6 [2;6]7630 7429 474 901 34
+SPSMALL 2[11] 28 [2;11]28592 8472 548 - 1755
+Table 2: Summary of experiments for the inverse method
+The SPSMALL case study corresponds to an asynchronous memory sold by ST-Microelectronics,
+and studied in the framework of V ALMEM project. We considered two versions of this case study: the
+ﬁrst one (“SPSMALL 1”) was manually abstracted from the VHDL code (see [11]) and several gates have
+been merged into a single PTA. The second model (“SPSMALL 2”) has been automatically generated
+from the VHDL code without any simpliﬁcation. It is impossible to analyze SPSMALL 2using the
+ﬁrst version of I MITATOR because H YTECH runs out of memory when trying to statically compose the
+28 automata in parallel.
+The Valmem latch is an example of latch studied in the framework of V ALMEM project.
+Note that the computation time using I MITATOR II has dramatically decreased compared to I MITA -
+TOR for all examples: the time has been divided at least by 10, and up to 2000 for the SPSMALL 1
+memory. Explanations for this high improvement are the rewriting of the tool using a library of con-
+vex polyhedra instead of the call to H YTECH, the on-the-ﬂy composition of the different PTAs, and the
+optimization of the algorithm described in Section 3.
+Behavioral Cartography. The results of the application of the behavioral cartography algorithm to
+various case studies are given in Table 3. We give from left to right the name of the example, the number
+of PTAs composing the global system A, the lower and upper bounds on the number of locations per
+PTA, the number of clocks of A(those ﬁrst 4 columns are identical to Table 2), the number of parameters
+varying in the cartography, of integer points within V0, of tiles computed, the average number per tile of
+states and transitions of the trace set, and the computation time in seconds using I MITATOR II (since the
+cartography is a new feature available in I MITATOR II only, no comparison is possible with I MITATOR ).
+For all those examples, the cartography covers 100 % of the real-valued space of V0, except for the
+Root Contention Protocol (see Section 9), where “only” 99,99 % of V0is covered. Moreover, a signiﬁcant
+part of the real-valued space outside V0is also covered.
+Note that it is possible to ﬁnd examples for which the algorithm BCdoes not terminate for some V0,
+because the algorithm IMdoes not terminate for some p2V0. This is in particular the case of the
+“And–Or” circuit considered in [12], for a different V0from the one considered in Table 3.
+
+--- Page 8 ---
+98 IMITATOR II: A Tool for Solving the Good Parameters Problem in Timed Automata
+Example PTAs loc./PTAjXjjPjjV0jtiles states trans. Time
+SR-latch 3 [3;8]331331 6 5 4 0:3
+Flip-ﬂop [13] 5 [4;16]52 644 8 15 14 3
+And–Or [12] 3 [4;8]4675600 4 64 72 118
+Valmem Latch 7 [2;5]8473062 5 21 20 96:3
+CSMA/CD [22] 3 [3;8]332000 140 349 545 269
+RCP [21] 5 [6;11]63186050 195688 9312 7018
+SPSMALL 1[11] 10 [3;8]1023149 259 60 61 1194
+Table 3: Summary of experiments for the cartography algorithm
+5 Conclusion
+IMITATOR II allows us to solve the good parameters problem for timed automata by iterating the inverse
+method on the integer points of a real-valued parameter domain V0. In practice, our cartography algorithm
+covers not only (most of) V0but also a signiﬁcant part of the whole parametric space beyond V0. The tool
+has been successfully applied to various examples of asynchronous circuits and protocols.
+Ongoing and Future Work. Ulrich K ¨uhne is currently extending I MITATOR II to hybrid systems,
+where clocks evolve at different rates. Romain Soulat is currently implementing variants and optimiza-
+tions of IMin order to verify larger asynchronous memory circuits, in particular using an on-the-ﬂy
+intersection of the constraints associated to the states, allowing to merge states. A variant of IMis also
+under implementation, where the ﬁxpoint condition (line 8 of Algorithm 1) is modiﬁed as follows: in-
+stead of checking whether all new states are equal to states computed previously, we check whether all
+new states are included (in the sense of constraint inclusion) into former states.
+Future work include the automatic partition into good and bad tiles, using an external tool such as
+UPPAAL . We are also studying a “dynamic” cartography, where the space unit between the selected
+points (so far, one integer) can be reﬁned in order to ﬁll the remaining holes. It would also be interesting
+to reason in a backward manner, i.e., considering a Preoperation instead of Post in Algorithm 1.
+Acknowledgments. I thank Bertrand Jeannet for his help to link I MITATOR II with A PRON , Ulrich
+K¨uhne for the interface with PPL, and Daphn ´e Dussaud for the graphical output for the cartography.
+I also thank anonymous referees for their helpful comments.
+References
+[1] R. Alur, C. Courcoubetis, T.A. Henzinger & P.H. Ho (1992): Hybrid Automata: An Algorithmic Approach to
+the Speciﬁcation and Veriﬁcation of Hybrid Systems . In: Hybrid Systems , pp. 209–229.
+[2] R. Alur & D. L. Dill (1994): A theory of timed automata .TCS 126(2), pp. 183–235.
+[3] R. Alur, T.A. Henzinger & M. Y . Vardi (1993): Parametric real-time reasoning . In: STOC ’93 , ACM, pp.
+592–601.
+[4] T. Amnell, G. Behrmann, J. Bengtsson, P. R. D’Argenio, A. David, A. Fehnker, T. Hune, B. Jeannet, K. G.
+Larsen, M. O. M ¨oller, P. Pettersson, C. Weise & W. Yi (2001): UPPAAL - Now, Next, and Future . In: Proc.
+MOVEP’00, LNCS 2067 , Springer, pp. 99–124.
+[5]´E. Andr ´e, T. Chatain, E. Encrenaz & L. Fribourg (2009): An Inverse Method for Parametric Timed Automata .
+International Journal of Foundations of Computer Science 20(5), pp. 819–836.
+
+--- Page 9 ---
+´E. Andr ´e 99
+[6]´E. Andr ´e & L. Fribourg (2010): Behavioral Cartography of Timed Automata . In: RP’10 ,LNCS 6227,
+Springer. To appear.
+[7]´Etienne Andr ´e (2009): IMITATOR: A Tool for Synthesizing Constraints on Timing Bounds of Timed Au-
+tomata . In: ICTAC’09 ,LNCS 5684, Springer, pp. 336–342.
+[8] A. Annichini, A. Bouajjani & M. Sighireanu (2001): TReX: A Tool for Reachability Analysis of Complex
+Systems . In: CA V ’01 , Springer-Verlag, pp. 368–372.
+[9] R. Bagnara, P. M. Hill & E. Zaffanella (2008): The Parma Polyhedra Library: Toward a Complete Set of
+Numerical Abstractions for the Analysis and Veriﬁcation of Hardware and Software Systems .Science of
+Computer Programming 72(1–2), pp. 3–21.
+[10] C. Baier & J.-P. Katoen (2008): Principles of Model Checking . The MIT Press.
+[11] R. Chevallier, E. Encrenaz, L. Fribourg & W. Xu (2009): Timed Veriﬁcation of the Generic Architecture of a
+Memory Circuit Using Parametric Timed Automata .Formal Methods in System Design 34(1), pp. 59–81.
+[12] R. Claris ´o & J. Cortadella (2005): Veriﬁcation of Concurrent Systems with Parametric Delays Using Octa-
+hedra . In: ACSD ’05 , IEEE Computer Society.
+[13] R. Claris ´o & J. Cortadella (2007): The octahedron abstract domain .Sci. Comput. Program. 64(1), pp. 115–
+139.
+[14] E. M. Clarke, O. Grumberg, S. Jha, Y . Lu & H. Veith (2000): Counterexample-Guided Abstraction Reﬁne-
+ment . In: CA V ’00 , Springer-Verlag, pp. 154–169.
+[15] G. Frehse, S.K. Jha & B.H. Krogh (2008): A Counterexample-Guided Approach to Parameter Synthesis for
+Linear Hybrid Automata . In: HSCC ’08 ,LNCS 4981, Springer, pp. 187–200.
+[16] G. Frehse, B.H. Krogh & R.A. Rutenbar (2006): Verifying analog oscillator circuits using forward/backward
+abstraction reﬁnement . In: DATE ’06: Proceedings of the conference on Design, automation and test in
+Europe , European Design and Automation Association, pp. 257–262.
+[17] Goran Frehse (2005): PHAVer: Algorithmic Veriﬁcation of Hybrid Systems Past HyTech . In: HSCC , pp.
+258–273.
+[18] T.A. Henzinger, P.H. Ho & H. Wong-Toi (1997): HyTech: A Model Checker for Hybrid Systems .Software
+Tools for Technology Transfer 1, pp. 460–463.
+[19] T.A. Henzinger & H. Wong-Toi (1996): Using HYTECH to Synthesize Control Parameters for a Steam
+Boiler . In: Formal Methods for Industrial Applications: Specifying and Programming the Steam Boiler
+Control, LNCS 1165 , Springer-Verlag.
+[20] B. Jeannet & A. Min ´e (2009): Apron: A Library of Numerical Abstract Domains for Static Analysis . In: CA V
+’09,LNCS 5643, Springer, pp. 661–667.
+[21] M. Kwiatkowska, G. Norman & J. Sproston (2003): Probabilistic Model Checking of Deadline Properties in
+the IEEE 1394 FireWire Root Contention Protocol .Formal Aspects of Computing 14(3), pp. 295–318.
+[22] M. Kwiatkowska, G. Norman, J. Sproston & F. Wang (2007): Symbolic Model Checking for Probabilistic
+Timed Automata .Information and Computation 205(7), pp. 1027–1077.
+[23] K. G. Larsen, P. Pettersson & W. Yi (1997): U PPAAL in a Nutshell .International Journal on Software Tools
+for Technology Transfer 1(1-2), pp. 134–152.
+[24] P.R. D’Argenio, J.P. Katoen, T.C. Ruys & G.J. Tretmans (1997): The Bounded Retransmission Protocol Must
+Be on Time! In:TACAS ’97 , Springer.
+[25] Farn Wang (2006): REDLIB for the Formal Veriﬁcation of Embedded Systems . In: ISoLA , pp. 341–346.
+[26] Python Web Page. http://www.python.org/ .
+[27] I MITATOR II Web Page. http://www.lsv.ens-cachan.fr/ ~andre/IMITATOR2 .
+[28] Graphviz Web Page. http://www.graphviz.org/ .

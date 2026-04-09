@@ -1,0 +1,755 @@
+--- Page 1 ---
+Towards a Modular Human-Robot Safety Control System Using Petri
+Nets
+Philipp Kranz
+a, Fabian Schirmer
+b, Marian Daun
+cand Tobias Kaupp
+d
+Center for Robotics (CERI), Technical University of Applied Sciences W ¨urzburg-Schweinfurt, Schweinfurt, Germany
+Keywords: Human-Robot Collaboration, Safety, Modularity, Petri Nets.
+Abstract: In industrial human-robot collaboration, where humans and robots operate in a shared workspace, the
+paramount concern is the safety of the human operator. The prevailing safety practices evaluate safety based
+on the overall assembly sequence, with the most critical task within the sequence being the limiting factor for
+all other tasks. This approach often results in significant limitations and the potential exclusion of collabora-
+tive interaction. However, the integration of human and robotic capabilities can facilitate the automation of
+processes, enhancing overall flexibility. The modular safety control system presented in this work employs
+a decentralized approach using Petri nets to evaluate the safety of humans and robots on a task-basis. This
+enables bridging the gap between the current, static regulatory framework and the necessary adaptivity of
+modern production systems.
+1 INTRODUCTION
+The concept of human-robot collaboration (HRC)
+represents a production paradigm that is designed
+to enhance flexibility within the context of Indus-
+try 4.0 production landscapes (Kr ¨uger et al., 2009).
+However, the increased flexibility that HRC affords
+also gives rise to an elevated risk of safety incidents.
+In the case of conventional robot applications, the
+workspaces between humans and robots are separated
+by safety fences, which effectively eliminate the ma-
+jority of safety risks. In contrast, the safety assess-
+ment process assumes a pivotal role in HRC, as hu-
+mans and robots have to solve assembly tasks together
+and interact in the same workspace simultaneously
+(Manjunath et al., 2024).
+Safety assessment is a critical issue and an ongo-
+ing research challenge in HRC (Arents et al., 2021).
+The objective of safety assessment is to eliminate the
+majority of potential risks at design time. While this
+approach works for traditional robot and automation
+solutions, it significantly constrains the dynamic as-
+pects of human-robot collaboration, impeding the ac-
+ceptance of such applications. HRC should therefore
+a
+https://orcid.org/0000-0002-1057-4273
+b
+https://orcid.org/0000-0002-7032-8242
+c
+https://orcid.org/0000-0002-9156-9731
+d
+https://orcid.org/0000-0003-3017-5816use passive measures wherever possible, but these
+should be complemented by active measures backed
+up by an intelligent monitoring strategy.
+This is particularly important as most accidents in
+HRC occur during process and maintenance opera-
+tions (Lee et al., 2021). The causes of these accidents
+are often malfunctions, untrained operators, improper
+methods, or operator fatigue. However, what is not
+considered in many safety assessment approaches is
+a system-wide view resulting from the interaction be-
+tween human and robot (Berx et al., 2022). Human-
+robot interaction is therefore both a driver of the flex-
+ibility of HRC, but also introduces new risks that are
+difficult to detect with current safety control systems.
+Robot safety standards provide limited support for the
+implementation of such flexible automation solutions
+and do not take human factors and the trade-off be-
+tween various industrial requirements and safety into
+account (Hanna et al., 2022).
+This work presents a model-based approach that
+serves as a foundation for the development of a mod-
+ular safety control system for HRC assembly. The
+system uses a fully decentralized adaptive control
+scheme in which independent sub-systems (human
+and robot) coordinate with each other. The control
+scheme is based on the four MAPE activities: Mon-
+itor (M), Analyze (A), Plan (P), and Execute (E).
+(Weyns et al., 2013). To this end, this work constructs
+a state-space model in the form of Petri nets, which is384
+Kranz, P ., Schirmer, F ., Daun, M. and Kaupp, T.
+Towards a Modular Human-Robot Safety Control System Using Petri Nets.
+DOI: 10.5220/0013011900003822
+InProceedings of the 21st International Conference on Informatics in Control, Automation and Robotics (ICINCO 2024) - Volume 1 , pages 384-391
+ISBN: 978-989-758-717-7; ISSN: 2184-2809
+Copyright ©2025 by Paper published under CC license (CC BY -NC-ND 4.0)
+
+
+--- Page 2 ---
+capable of evaluating the status of the human and the
+robot on an assembly task level and calculating the
+current hazard potential in the form of a Safety Risk
+Indicator (SRI).
+The paper is structured as follows: Section 2 re-
+views the literature on HRC risk management and
+model-based approaches, including the use of Petri
+nets. Section 3 explains the proposed modular safety
+control system and how to calculate a Safety Risk In-
+dicator. Section 4 details the Petri Net models for
+human, robot, and safety control systems. Section 5
+evaluates the approach in an industrial use case, and
+Section 6 concludes with a discussion, a summary,
+and future research directions.
+2 RELATED WORK
+This section summarizes the research underlying this
+work. It first reviews current safety regulations for
+HRC and highlights their limitations. Next, the bene-
+fits of a modular design for safety control systems are
+presented, followed by the use of Petri nets for mod-
+eling and their applications in HRC.
+2.1 Safety Standards and Regulations
+for HRC
+Under the European Union’s legal framework, man-
+ufacturers, integrators, and end users must ensure
+robotic systems comply with the Machinery Direc-
+tive’s health and safety requirements. Compliance can
+be achieved by adhering to the directive or harmo-
+nized standards like ISO 10218 and ISO/TS 15066.
+While these standards are not legally binding, a
+mandatory risk assessment must identify hazards, es-
+timate severity, analyze risks, monitor continuously,
+and implement risk mitigation measures (Hanna et al.,
+2022). Unlike the automotive sector, which follows
+ISO 26262 for safety analysis, no definitive proce-
+dures exist for robotics. Techniques such as Fault
+Tree Analysis (FTA) and Failure Mode and Effects
+Analysis (FMEA) are common but often oversimplify
+system behavior, leading to unreliable reliability as-
+sessments. There exists a notable gap between the ex-
+isting static safety regulations and procedures and the
+necessary adaptability required by modern production
+systems (Hanna et al., 2022).
+2.2 Modular Safety Control in HRC
+The modular design of assembly systems allows for
+greater flexibility and versatility in their utilization(Siegert et al., 2021). However, the introduction of
+a new or modified application to such a system ren-
+ders it a novel and potentially hazardous system from
+a safety perspective, necessitating a reassessment of
+the associated risks. A modular design of a safety
+control system would be advantageous for HRC, as it
+would allow for compensation in the event of devia-
+tions in the interaction between humans and robots,
+as well as enabling a more flexible response to dan-
+gerous situations. In their study, (Hillen et al., 2022)
+present an initial approach to addressing the discrep-
+ancy between the current static safety regulations and
+the requisite flexibility of modern production systems.
+The modular safety approach allows for comprehen-
+sive coverage of the design, development and run-
+time phases of risk assessment. In the runtime phase,
+a multitude of safety-related variables, including the
+present configuration and parameters of the systems,
+can be evaluated automatically.
+2.3 Petri Nets for Safety Modeling
+A Petri net (PN) is a formal model used to describe
+and analyze information flow and control systems,
+particularly for asynchronous and concurrent activ-
+ities (Peterson, 1977). PNs have a long history in
+safety control, with Leveson and Stolzy using time
+PNs to model failures in safety-critical real-time soft-
+ware systems, focusing on fault tolerance and risk
+mitigation (Leveson and Stolzy, 1987). Recently, PNs
+have gained traction for safety, reliability, and risk as-
+sessment due to their formal, graphical, and mathe-
+matical nature, which enables realistic modeling of
+dynamic behaviors (Kabir and Papadopoulos, 2019).
+However, PNs can face state space explosion issues,
+limiting their use in large systems. Modularization
+has been proposed as a solution (Yevkin, 2011; Chi-
+acchio et al., 2013). Given the complexity of human-
+robot collaboration (HRC) in assembly tasks, this
+work adopts a modular approach to enhance the scal-
+ability of the PNs used.
+2.4 Petri Nets in HRC
+Chao and Thomaz utilize time PNs to create a sys-
+tematic model for reciprocal human-robot turn-taking
+(Chao and Thomaz, 2016). Their modular ap-
+proach maps various resources and social actions, like
+speech, gaze, and gestures, enabling the robot to per-
+form pick-and-place tasks while adapting to the hu-
+man operator. This results in quicker reactions and
+improved task completion compared to simpler state-
+based methods. Similarly, Casalino et al. use time
+PNs to enhance scheduling in collaborative assemblyTowards a Modular Human-Robot Safety Control System Using Petri Nets
+385
+
+
+--- Page 3 ---
+(Casalino et al., 2019). Their model allows for adap-
+tive adjustments based on runtime data, responding
+to variations in human task durations and optimizing
+assembly activities. The principles of modularity and
+adaptivity can also inform the development of a safety
+control system for HRC. This work builds on the PNs
+in (Casalino et al., 2019), extending their approach to
+include a safety control loop.
+3 MODULAR HRC SAFETY
+CONTROL SYSTEM
+This section presents a modular safety control sys-
+tem for HRC. Firstly, the overall architecture based
+on MAPE principles is explained. The most common
+hazards for HRC assembly are then classified, and
+a SRI is calculated as a safety metric for task-based
+safety assessment.
+3.1 Overall Architecture
+The system architecture overview is depicted in Fig-
+ure 1. In human-robot interaction during assembly,
+each step (1 to n) involves specific conditions related
+to components, actions, tools, and agents. These con-
+ditions, alongside environmental factors, can lead to
+safety hazards (accidents or losses) (Leveson, 2016).
+Hazards are categorized by severity, frequency, and
+likelihood of occurrence. To mitigate risks, we can
+use active controls that adjust system parameters or
+passive controls that raise awareness of potential haz-
+ards. Our safety control system employs a MAPE
+(Monitor, Analyze, Plan, and Execute) loop to contin-
+uously monitor conditions, analyze safety risks, and
+implement mitigation strategies, ensuring customized
+safety precautions for each assembly step (De Lemos
+et al., 2013).
+To enhance modularity, we implemented a decen-
+tralized safety control system based on the MAPE
+loop, as shown in Figure 2. In this fully decentral-
+ized approach, each host operates its own MAPE loop
+(De Lemos et al., 2013). The local M, A, P, and E
+components coordinate with corresponding peer com-
+ponents from other hosts, facilitating flexible infor-
+mation exchange on system status and analysis re-
+sults. The local P components manage adjustment
+actions that activate their local E components to ex-
+ecute actions on the sub-systems. In HRC assembly,
+these sub-systems correspond to the agents involved,
+which include both the human and the robot.
+Figure 1: Overview of the proposed system with the two
+main components, the assembly sequence and the safety
+control system. Each assembly step is associated with spe-
+cific conditions that give rise to different safety hazards.
+These hazards are analyzed to apply appropriate mitigation
+strategies, which legitimize execution of the assembly step.
+Figure 2: Decentralized pattern of a collaborative
+workspace, consisting of two sub-systems, the human and
+the robot, adapted from (De Lemos et al., 2013). The
+MAPE components of the human sub-system communi-
+cate with the MAPE components of the robot sub-system,
+making the overall system modular and adaptable to future
+changes.
+3.2 Hazard Sources in HRC Assembly
+In order to conduct a safety assessment for Human-
+Robot Collaboration (HRC), it is essential to identify
+potential risk factors. Most accidents in HRC occur
+during the execution of tasks (Lee et al., 2021). Each
+task involves components, actions, tools, and agents,
+all of which contribute to safety hazards. In adverse
+scenarios, a combination of these elements and envi-
+ronmental conditions may lead to safety risks (Leve-
+son, 2016). Therefore, hazards are attributed to these
+conditions, forming the basis for calculating a risk in-
+dicator for specific tasks. This study focuses on task-
+specific safety hazards, assuming that the robot and
+workspace are inherently safe.
+In assembly, components are the individual parts
+that are combined, while sub-assemblies consist of atICINCO 2024 - 21st International Conference on Informatics in Control, Automation and Robotics
+386
+
+
+--- Page 4 ---
+least two components. The final product represents
+the highest level, incorporating both sub-assemblies
+and components. Handling components, especially
+by robots, can create various hazards, such as sharp
+edges posing risks to workers and difficult-to-grip
+geometries that increase the likelihood of dropping
+heavy components. An ordinal rating system catego-
+rizes components as low, medium, or high risk based
+on their characteristics.
+Actions are operations necessary for assembling
+components into sub-assemblies or final products,
+performed by either robots or humans. This study fo-
+cuses on the following actions: 1) Pick : the robot or
+human grasps a component, 2) Place : the robot or
+human moves and releases a component at a specific
+point, 3) Join: the robot or human connects compo-
+nents or sub-assemblies with the required force, 4)
+Hold : the robot or human fixes a component in po-
+sition, often with the robot acting as a third hand in
+collaborative tasks, and 5) Screw : the robot or human
+drives a screw using a screwdriver, with the appropri-
+ate tool.
+Tools are objects required for specific actions,
+used by either humans (e.g., screwdrivers, hammers)
+or robots (as end-effectors or gripped tools). How-
+ever, tools can also introduce safety risks, influenced
+by their geometry (e.g., piercing by a screwdriver bit)
+or function (e.g., crushing or entanglement).
+Agents in HRC include humans, robots, or both,
+and the interaction modes depend on the task. For
+tasks performed exclusively by humans or robots,
+only their respective risk indicators are considered.
+In collaborative tasks, the interactions must be eval-
+uated, as safety risks can escalate with certain in-
+teraction types. This work recognizes five interac-
+tion modalities as proposed by (Bauer et al., 2016):
+1)Human-Robot Cell : Humans and robots work in
+separate areas, with the robot fenced off, preventing
+contact, 2) Human-Robot Coexistence : Humans and
+robots work in separate areas without a safety fence,
+with no direct contact, 3) Human-Robot Synchro-
+nized : Humans and robots share a workspace, work-
+ing on the same component but at different times, 4)
+Human-Robot Cooperation : They work on different
+components in the same space simultaneously, with
+possible but unnecessary contact, and 5) Human-
+Robot Collaboration : Both work on the same com-
+ponent in the same space at the same time, with nec-
+essary contact.
+3.3 Safety Metrics in HRC
+In human-robot collaboration, safety hazards are usu-
+ally assessed at design time, not at runtime, as itis proposed in this work. One of the most com-
+monly used metrics for design time safety assessment,
+the risk priority number, is typically used to assess
+hazards, prioritize them and identify the most criti-
+cal ones so that targeted mitigation strategies can be
+found (Afefy, 2015). The risk priority number is made
+up of the severity of a hazard, its occurrence prob-
+ability and its detectability. As it is not possible to
+objectively measure detectability at runtime, the met-
+ric is adjusted accordingly and the frequency at which
+the actor is exposed to a hazard is used instead. The
+three components of our Safety Risk Indicator (SRI)
+are then defined as follows: 1) Severity (S): The po-
+tential impact or seriousness of a failure on the system
+is evaluated. Higher severity means more significant
+consequences, 2) Frequency (F): This measure the
+number of exposures to a situation where a potential
+hazard can occur, and 3) Occurrence (O): This as-
+sesses how likely it is for a particular failure to hap-
+pen. A higher occurrence rate indicates that the fail-
+ure is more common.
+The defined conditions of an assembly task af-
+fect the SRI variables: Components and tools impact
+severity, the number of actions affects frequency, and
+the agents and their interaction modalities influence
+occurrence. All variables are scaled as low, medium,
+or high and weighted as follows: severity (S) [3], oc-
+currence (O) [2], and frequency (F) [1]. The SRI is
+calculated as: SRI = 3 x S + 2 x O + 1 x F
+4 HRC SAFETY CONTROL
+MODEL
+The modular HRC safety control system is modeled
+using PNs. The MAPE loops of the human and robot
+are integrated into a PN to model the control of a hu-
+man, a robot and a human-robot task (Figure 3). The
+PN models in this paper are based on the work of
+(Casalino et al., 2019).
+4.1 Model of a Robot Control System
+To control a robot task, only the upper two compo-
+nents of the PN are used: the assembly task and the
+robot control loop. The robot status is represented
+by a blue token linked to the assigned task. Before
+starting the robot task, a condition check is initiated,
+providing all relevant information (components, tools,
+etc.). When T0 (Figure 3) is triggered, the safety con-
+trol process begins.
+The token first moves to ”Check Environment,”
+where current parameters of the robot and its environ-
+ment are assessed. Using these values, an SRI valueTowards a Modular Human-Robot Safety Control System Using Petri Nets
+387
+
+
+--- Page 5 ---
+is calculated to establish a task-specific safety metric,
+as detailed in Section 3.3. Robot parameters are then
+adjusted to meet the SRI safety requirements. If the
+requirements are satisfied, T8 fires and the robot pro-
+ceeds to the assembly step and returns to ”Wait/Idle”
+afterward. If not, T7 fires and the token moves to
+”Check Environment,” and the safety control loop re-
+evaluates the conditions for potential task execution.
+The robot token consists of both unchangeable
+and changeable values. Unchangeable values include
+the robot type and the end-effector or tool, which
+may vary depending on configuration or if a gripper
+change system is used. Changeable values involve
+current robot parameters (speed and force) and task-
+specific conditions, such as 1) components to be han-
+dled for the assembly step, 2) required actions, and
+3) the interaction modality with the human operator.
+These variable values can be modified throughout the
+safety control cycle. Initially, task-specific conditions
+are recorded during the monitoring phase, followed
+by SRI calculation and adjustments to robot parame-
+ters. Thus, the value composition for the robot’s place
+type includes:
+Robot=Type×CurrentSpeed ×CurrentForce ×
+Components ×Actions ×Tools×Interaction ×SRI
+4.2 Model of a Human Control System
+The safety control system for the human operates sim-
+ilarly to that of the robot (Figure 3, lower part). After
+T0 is fired, the control loop starts, and the red human
+status token moves to ”Check Environment.” Depth
+cameras assess the human’s availability and position
+at the collaborative workplace, while specific assem-
+bly step information is gathered. An SRI value for the
+human operator is calculated, mirroring the robot’s
+process.
+Due to the non-deterministic nature of human be-
+havior, we can only passively control the human by
+informing them of the calculated SRI and associated
+risks. If T12 is satisfied, the task execution is con-
+firmed, and the human receives assembly instructions.
+The token then moves to ”Human Task” during exe-
+cution and returns to ”Wait/Idle” afterward. If T14 is
+fired, the token moves to ”Check Environment”, and
+the safety control loop is re-triggered.
+The human token consists of both changeable
+and immutable values. Immutable values include the
+employee ID, job description, and relevant training,
+which help identify whether the individual is a trained
+assembly or maintenance operator or a non-specialist,
+the latter posing a higher safety risk. Like robots, hu-
+man operators are assigned appropriate working con-
+ditions based on the task. However, the tool used isa variable value, while other conditions align with the
+robot’s task-specific parameters. Since humans lack
+directly adjustable parameters, only passive mitiga-
+tion strategies can be employed. Thus, the value com-
+position for the human’s place type includes:
+Human =EmployeID ×Jobtitle ×Trainings ×
+Components ×Actions ×Tools×Interaction ×SRI
+4.3 Model of a Human-Robot Control
+System
+In collaborative assembly situations, both, human and
+robot execute an assembly step together (Figure 3).
+For this purpose, both safety control systems work in
+parallel. When T0 fires, both systems are triggered
+and start their respective control loops, like they do
+when the safety for a pure robot or a pure human step
+is checked. As intended for the decentralized system
+and as described in Section 3.1, the corresponding
+MAPE components of the human and the robot con-
+trol system are in close interaction to cover the over-
+all safety hazards regarding the shared assembly step.
+Transition T1 to start the actual Human-Robot Task
+can only be fired, if both, the robot parameters are
+met and the residual risk for the human is tolerable.
+P1 (Check Task
+Conditions)P2 (Robot/Human
+Task)P9 (Confirm
+Execution
+/Execute)P6 (Check
+Environment
+/Monitor)P7
+(Calculate
+SRI
+/Analyze)P8 (Set Robot
+Parameters/
+Plan)T8 robot.SRI <=
+robot.parameter
+P4 (Wait/Idle)T7 (robot.SRI >
+robot.parameter)
+Robot
+P0 (Start Task) P3 (End Task)TaskP5 (Aux 1
+Robot)
+P16 (Confirm
+Execution
+/Execute)P13 (Check
+Environment
+/Monitor)
+P14 (Calculate
+SRI
+/Analyze)
+P15 (Inform Human
+about Risks /Plan)T12(human.SRI <=
+Human.risk)P17 (Wait/Idle)
+T14(human.SRI >
+Human.risk)P12 (Aux 1
+Human)Human
+P11 (Aux 3
+Robot)P10 (Aux 2
+Robot)
+P18 (Aux 2
+Human)P19 (Aux 3
+Human)T0 T1 T2 T3T4T5T6
+T9
+T10
+T11T13T15
+Figure 3: Petri net for the control structure of a human-
+robot task. Top: Robot safety control loop. Middle: HRC
+assembly step. Bottom: Human safety control loop.
+In the human-robot tasks, the token values associ-
+ated with both the robot and the human are integrated
+to compute the SRI. The aforementioned values com-
+prise the employee ID, job title and trainings for the
+human, and the type, current speed and current forceICINCO 2024 - 21st International Conference on Informatics in Control, Automation and Robotics
+388
+
+
+--- Page 6 ---
+Figure 4: Exploded view of the product consisting of a
+base (cabin, load carrier, and chassis), a front axle, a rear
+axle, and four sub-assembly 1 (axle holder and two screws)
+(Schirmer et al., 2024).
+for the robot. Task-specific values, including the com-
+ponents, actions and tools, are combined for both ac-
+tors, thereby creating a new interaction modality. The
+calculated SRI is then applied to the human and the
+robot. In conclusion, the value composition for the
+place type of human-robot task is as follows:
+Human-Robot =Type×CurrentSpeed ×
+CurrentForce ×EmployeID ×Jobtitle ×Trainings ×
+Components ×Actions ×Tools×Interaction ×SRI
+5 APPLICATION
+The safety control system, as previously created, is
+now applied to an industrial use case: the collabo-
+rative assembly of a toy pick-up truck. This paper
+demonstrates how the interaction between the MAPE
+components of the robot and human affect the SRI
+score, and how this can be manipulated by adjusting
+the human and robot parameters.
+5.1 Experimental Setup
+The collaborative assembly of a toy pick-up truck,
+shown in Figure 4, is employed as a case study
+(Schirmer et al., 2024). The assembly sequence com-
+prises tasks that are performed exclusively by hu-
+mans, exclusively by the robot, or by an interaction
+of the two actors.
+In the initial assembly phase, the robot prepares
+the truck base, consisting of the load carrier, cabin,
+and chassis, by positioning them upside-down in an
+assembly bracket. The human operator prepares sub-
+assembly 1 by inserting two screws into each axle
+holder. They then collaborate to fix the front axle: the
+robot positions it, and the operator secures it with two
+sub-assembly 1 using an electric screwdriver. This
+process is repeated for the rear axle.
+The SRI of the truck assembly tasks was initially
+determined using the evaluation criteria set out in Sec-
+tion 3 (Figure 6 top). The severity is determined by
+the severity of the components and the severity of thetools used in the task. The number of actions is trans-
+lated into the frequency, and the type of interaction
+between the agents is translated into the occurrence.
+5.2 Safety Control System of the Toy
+Pick-Up Truck
+Figure 5 shows the safety control of the toy truck
+modeled by using the PN from Section 4. The three
+main components are color-coded: the assembly se-
+quence in black, the robot’s safety control in blue,
+and the human’s in red. Once the assembly starts and
+T0 is activated, the tasks ’Prepare Base’ and ’Pre-
+pare Sub-Assembly 1’ are initiated simultaneously,
+engaging both agents’ safety control systems. As they
+progress through their MAPE cycles, their monitor
+components update to recognize that both agents are
+working in the same collaborative space, effectively
+merging the tasks. This results in an increased SRI
+from 7 (Prepare Base) and 5 (Prepare Sub-Assembly
+1) to 11 (Figure 6 bottom).
+The ’Fix Front Axle’ and ’Fix Rear Axle’ tasks
+require interaction, initially planned as collaborative.
+After T0 fires, both safety control systems activate
+and go through their MAPE loops. Their identical
+initial SRI of 14 (Figure 6 top) is too high for execu-
+tion. To lower the SRI, the interaction can be adjusted
+to synchronization (SRI 10) or cooperation (SRI 12)
+(Figure 6 bottom). The synchronization option is
+chosen for execution due to its lower SRI, though
+other factors like execution time or ergonomics could
+change this decision.
+6 DISCUSSION AND
+CONCLUSION
+The presented safety control system can conduct
+safety assessments for collaborative assembly se-
+quences on a task basis, allowing for more dynamic
+evaluations compared to existing EU-standard sys-
+tems, which require full assembly assessments. This
+task-based approach promotes modular HRC systems
+and enables the reuse of safety assessments across dif-
+ferent sequences. However, the current system has a
+limitation in its discrete assessment of safety hazards,
+which cannot account for safety-critical factors occur-
+ring during task execution.
+In summary, this paper introduces a modular
+safety control system based on the MAPE cycle, en-
+abling decentralized safety evaluations for both robot
+and human agents. By using Petri nets to represent the
+system, we demonstrate the behavior of the MAPETowards a Modular Human-Robot Safety Control System Using Petri Nets
+389
+
+
+--- Page 7 ---
+P0 (Start
+Assembly)P1 (Check Task
+Conditions)P2 (Prepare
+Base)
+P9 (Check Task
+Conditions)P10 (Prepare Sub-
+Assembly 1)P4 (Check Task
+Conditions)P5 (Fix Front
+Axle)P8 (Fix Rear
+Axle)P7P19 (Wait/Idle)P15 (Check
+Environment
+/Monitor)P16 (Calculate SRI
+/Analyze)P17 (Set Robot
+Parameters
+/Plan)
+P18
+(Confirm
+Execution
+/Execute)T12 (Robot.SRI >
+robot.parameter)T13 (Robot.SRI <=
+robot.parameter)
+P27 (Wait/Idle)
+P23 (Check
+Environment
+/Monitor)
+P26 (Give
+Assembly
+Instructions
+/Execute)
+P24 (Calculate SRI
+/Analyze)P25 (Inform Human
+about Risks
+/Plan)T18 (human.SRI >
+human.risk)
+T19 (human.SRI <=
+human.risk)Blue = Robot Safety Control System
+Red = Human Safety Control SystemBlack = Assembly Sequence
+P20 (Aux 1 Human)P12 (Aux 1 Robot)T9
+P13 (Aux 2 Robot)P14 (Aux 3 Robot)
+P3 (End
+Task)
+P21 (Aux 2 Human)P22 (Aux 3 Human)T0T1 T2
+T3 T4 T5 T6 T7 T8T10T11
+T14
+T15
+T16
+T17T20P6 P11 End
+Task
+T21 T22Figure 5: Petri net for the toy truck assembly. Different colors are used to distinguish between the three major parts of the
+PN: black for the assembly task, blue for the safety control system of the robot, and red for the safety control system of the
+human.
+Figure 6: Calculated SRI values for the truck use case. Top: Initially calculated values. Bottom: Calculated values from the
+safety control systems. Changes from the initial values are marked in blue.ICINCO 2024 - 21st International Conference on Informatics in Control, Automation and Robotics
+390
+
+
+--- Page 8 ---
+components and their connection to the assembly se-
+quence. Evaluations in an industrial context show the
+system’s ability to discern various interaction modal-
+ities and adjust parameters to keep safe robot interac-
+tions within acceptable ranges.
+In future work, in addition to a general risk assess-
+ment of the current task, we intend to integrate the
+detection and mitigation of more specific safety risks
+into our system. These will be continually reviewed
+to overcome our current limitation of discrete safety
+assessment, which can only identify risks before, but
+not during, task execution.
+ACKNOWLEDGEMENTS
+This research was partly funded by the Bayerische
+Forschungsstiftung under grant no. AZ-1512-21. We
+thank our industry partners Fresenius Medical Care,
+Wittenstein SE, Uhlmann und Zacher, DE software &
+control and Universal Robots.
+REFERENCES
+Afefy, I. H. (2015). Hazard analysis and risk assess-
+ments for industrial processes using fmea and bow-tie
+methodologies. Industrial Engineering and Manage-
+ment Systems , 14(4):379–391.
+Arents, J., Abolins, V ., Judvaitis, J., Vismanis, O., Oraby,
+A., and Ozols, K. (2021). Human–robot collaboration
+trends and safety aspects: A systematic review. Jour-
+nal of Sensor and Actuator Networks , 10(3):48.
+Bauer, W., Bender, M., Braun, M., Rally, P., and Scholtz,
+O. (2016). Lightweight robots in manual assembly–
+best to start simply. Frauenhofer-Institut f ¨ur Ar-
+beitswirtschaft und Organisation IAO, Stuttgart , 1.
+Berx, N., Decr ´e, W., Morag, I., Chemweno, P., and Pin-
+telon, L. (2022). Identification and classification
+of risk factors for human-robot collaboration from a
+system-wide perspective. Computers & Industrial En-
+gineering , 163:107827.
+Casalino, A., Zanchettin, A. M., Piroddi, L., and Rocco,
+P. (2019). Optimal scheduling of human–robot col-
+laborative assembly operations with time petri nets.
+IEEE Transactions on Automation Science and Engi-
+neering , 18(1):70–84.
+Chao, C. and Thomaz, A. (2016). Timed petri nets for flu-
+ent turn-taking over multimodal interaction resources
+in human-robot collaboration. The Int. Journal of
+Robotics Research , 35(11):1330–1353.
+Chiacchio, F., Cacioppo, M., D’Urso, D., Manno, G., Tra-
+pani, N., and Compagno, L. (2013). A weibull-
+based compositional approach for hierarchical dy-
+namic fault trees. Reliability Engineering & System
+Safety , 109:45–52.De Lemos, R., Giese, H., M ¨uller, H. A., Shaw, M., Ander-
+sson, J., Litoiu, M., Schmerl, B., Tamura, G., Ville-
+gas, N. M., V ogel, T., et al. (2013). Software engi-
+neering for self-adaptive systems: A second research
+roadmap. In Software Engineering for Self-Adaptive
+Systems II , pages 1–32. Springer.
+Hanna, A., Larsson, S., G ¨otvall, P.-L., and Bengtsson,
+K. (2022). Deliberative safety for industrial intel-
+ligent human–robot collaboration: Regulatory chal-
+lenges and solutions for taking the next step towards
+industry 4.0. Robotics and Computer-Integrated Man-
+ufacturing , 78:102386.
+Hillen, D., Huck, T. P., Laxman, N., Ledermann, C., Re-
+ich, J., Schlosser, P., Schmidt, A., Schneider, D.,
+and Uecker, D. (2022). Plug-and-produce... safely!
+end-to-end model-based safety assurance for recon-
+figurable industry 4.0. In Int. Symposium on Model-
+Based Safety and Assessment , pages 83–97. Springer.
+Kabir, S. and Papadopoulos, Y . (2019). Applications of
+bayesian networks and petri nets in safety, reliabil-
+ity, and risk assessments: A review. Safety science ,
+115:154–175.
+Kr¨uger, J., Lien, T., and Verl, A. (2009). Cooperation of
+human and machines in assembly lines. CIRP Annals ,
+58(2):628–646.
+Lee, K., Shin, J., and Lim, J.-Y . (2021). Critical hazard fac-
+tors in the risk assessments of industrial robots: causal
+analysis and case studies. Safety and health at work ,
+12(4):496–504.
+Leveson, N. and Stolzy, J. (1987). Safety analysis using
+petri nets. IEEE Transactions on Software Engineer-
+ing, SE-13(3):386–397.
+Leveson, N. G. (2016). Engineering a safer world: Systems
+thinking applied to safety . The MIT Press.
+Manjunath, M., Raja, J. J., and Daun, M. (2024). Early
+model-based safety analysis for collaborative robotic
+systems. IEEE Transactions on Automation Science
+and Engineering .
+Peterson, J. L. (1977). Petri nets. ACM Comput. Surv. ,
+9(3):223–252.
+Schirmer, F., Kranz, P., Rose, C. G., Schmitt, J., and Kaupp,
+T. (2024). Holistic assembly planning framework
+for dynamic human-robot collaboration. In Intelli-
+gent Autonomous Systems 18 , pages 215–227, Cham.
+Springer Nature Switzerland.
+Siegert, J., Krispin, L., Ramez, A., El-Shamouty, M.,
+Schlegel, T., Zarco, L., Roth, F., and Mannuß, O.
+(2021). Model-based approach for the automation and
+acceleration of the ce-conformity process for modular
+production systems: Future requirements and poten-
+tials. ESSN: 2701-6277 .
+Weyns, D., Schmerl, B., Grassi, V ., Malek, S., Mirandola,
+R., Prehofer, C., Wuttke, J., Andersson, J., Giese, H.,
+and G ¨oschka, K. M. (2013). On patterns for decen-
+tralized control in self-adaptive systems. In Software
+Engineering for Self-Adaptive Systems II , pages 76–
+107. Springer.
+Yevkin, O. (2011). An improved modular approach for dy-
+namic fault tree analysis. In Annual Reliability and
+Maintainability Symposium , pages 1–5.Towards a Modular Human-Robot Safety Control System Using Petri Nets
+391

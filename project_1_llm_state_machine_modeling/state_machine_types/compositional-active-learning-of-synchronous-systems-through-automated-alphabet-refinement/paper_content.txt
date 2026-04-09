@@ -1,0 +1,992 @@
+--- Page 1 ---
+Compositional Active Learning of Synchronous
+Systems through Automated Alphabet Refinement
+Léo Henry /orcid
+Royal Holloway, University of London, United Kingdom
+Mohammad Reza Mousavi /envel⌢pe
+King’s College London, United Kingdom
+Thomas Neele /envel⌢pe/h⌢me/orcid
+Eindhoven University of Technology, The Netherlands
+Matteo Sammartino /envel⌢pe
+Royal Holloway, University of London, United Kingdom
+Abstract
+Active automata learning infers automaton models of systems from behavioral observations, a
+technique successfully applied to a wide range of domains. Compositional approaches for concurrent
+systems have recently emerged. We take a significant step beyond available results, including those
+by the authors, and develop a general technique for compositional learning of a synchronizing
+parallel system with an unknown decomposition. Our approach automatically refines the global
+alphabet into component alphabets while learning the component models. We develop a theoretical
+treatment of distributions of alphabets, i.e., sets of possibly overlapping component alphabets.
+We characterize counter-examples that reveal inconsistencies with global observations, and show
+how to systematically update the distribution to restore consistency. We present a compositional
+learning algorithm implementing these ideas, where learning counterexamples precisely correspond
+to distribution counterexamples under well-defined conditions. We provide an implementation, called
+CoalA, using the state-of-the-art active learning library LearnLib . Our experiments show that
+in more than 630 subject systems, CoalAdelivers orders of magnitude improvements (up to five
+orders) in membership queries and in systems with significant concurrency, it also achieves better
+scalability in the number of equivalence queries.
+2012 ACM Subject Classification Theory of computation →Active learning
+Keywords and phrases Active learning; Compositional methods; Concurrency theory; Labelled
+transition systems; Formal methods
+1 Introduction
+Automata learning [ 13] has been successfully applied to learn widely-used protocols such
+as TCP [ 9], SSH [10], and QUIC [ 8], CPU caching policies [ 33], and finding faults in their
+black-box actual implementations. There are already accessible exposition of the success
+stories in this field [ 17,31]. However, it is well-known that the state-of-the-art automata
+learning algorithms do not scale beyond systems with more than a few hundreds of input
+and output symbols in their alphabets [31].
+Scalability to larger systems with large input alphabets is required for many real-life
+systems. This requirement has inspired some recent attempts [ 22,27,24] to come up with
+compositional approaches to automata learning, to address the scalability issues. Some
+of the past compositional approaches [ 27] relied on an a-priori knowledge of the system
+decomposition, while others [ 22] assumed no synchronization among the components or a
+non-standard synchronization scheme to help the decomposition [ 24]. These assumptions are
+problematic when dealing with legacy and black box systems and dealing with interacting
+components. In particular, in the presence of an ever-increasing body of automatically-
+generated code, architectural discovery is a significant challenge [20, 12, 28].arXiv:2504.16624v1  [cs.LG]  23 Apr 2025
+
+--- Page 2 ---
+2 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+In this paper, we take a significant step beyond the available results and develop a
+compositional automata learning approach that does not assume any pre-knowledge of
+the decomposition of the alphabet and allows for an arbitrary general synchronization
+scheme, common in the theory of automata and process calculi [ 16]. To this end, we take
+inspirations from the realizability problem in concurrency theory and use iterative refinements
+of the decomposition of alphabet (called distributions [ 26]) to arrive in a provably sound
+decomposition while learning the components’ behavior. To our knowledge this is the first
+result of its kind and the first extension of realizability into the domain of automata learning.
+To summarize, the contributions of our paper are listed below:
+We develop a novel theory of system decomposition for LTS synchronization that formally
+characterizes which alphabet decompositions can accurately model observed behaviors,
+establishing a theoretical foundation for automated component discovery. Proofs to our
+theorems are given in the appendix.
+Based on this, we propose a compositional active learning algorithm that dynamically
+refines component alphabets during the learning process, supporting standard synchro-
+nization mechanisms without requiring a priori knowledge of the system’s decomposition.
+We implemented our approach as the prototype tool CoalA, built on the state-of-the-art
+LearnLib framework [ 19], and evaluated it on over 630 systems from three benchmark
+sets. Compared to a monolithic approach, CoalAachieved substantial reductions in
+queries, with up to five orders of magnitude fewer membership queries and one order
+fewer equivalence queries across most of our benchmark systems with parallel components,
+resulting in better overall scalability. The replication package is available at [15].
+2 Related work
+Realizability of sequential specifications in terms of parallel components has been a long-
+standing problem in concurrency theory. In the context of Petri nets, this has been pioneered
+by Ehrenfeucht and Rozenberg [ 7], followed up by the work of Castellani, Mukund and
+Thiagarajan [ 5]. Realizability has been further investigated in other models of concurrency
+such as team automata [ 29], session types [ 3], communicating automata [ 14] and labelled
+transition systems (LTSs) [ 30]. Related to this line of research is the decomposition of
+LTSs into prime processes [ 23]. We are inspired by the work of Mukund [ 26], characterizing
+the transition systems that can be synthesized into an equivalent parallel system given a
+decomposition of their alphabet (called distribution). Mukund explores this characterization
+for two notions of parallel composition (loosely cooperating- and synchronous parallel
+composition) and three notions of equivalence (isomorphism, language equivalence, and
+bisimulation). We base our work on the results of Mukund for loosely cooperating systems
+and language equivalence. We extend it to define consistency between observations and
+distributions and refining distributions to reinstate consistency.
+Our work integrates two recent approaches on compositional learning: we extend the work
+on learning synchronous parallel composition of automata [ 27] by automatically learning the
+decomposition of the alphabets, through refinement of distributions; moreover, we extend
+the work on learning interleaving parallel composition of automata [ 22] by enabling a generic
+synchronization scheme among components. In parallel to our work, an alternative proposal
+[24] has appeared to allow for synchronization among interleaving automata; however, the
+proposed synchronization scheme is non-standard in that whenever two components are
+not ready to synchronize, e.g., because they produce different outputs on the same input,
+a special output is produced to help the learning process. We do not assume any such
+
+--- Page 3 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 3
+additional information and use a standard synchronization scheme widely used in the theory
+of automata and process calculi [ 16]. Other contributions related to compositional learning
+include the active learning of product automata , a variation of Mealy machine where the
+output is the combination of outputs of several Mealy machines –as in our case, the component
+Mealy machines are learned individually [ 25]; learning of systems of procedural automata [11],
+sets of automata that can call each other in a way similar to procedure calls; learning
+asynchronously-communicating finite state machines via queries in the form of message
+sequence charts [4], though using a monolithic approach.
+3 Preliminaries
+We use Σto denote a finite alphabet of action symbols, and Σ⋆to denote the set of finite
+sequences of symbols in Σ, which we call traces; we useϵ∈Σ⋆to denote the empty trace.
+Given two traces σ1,σ2∈Σ⋆, we denote their concatenation by σ1·σ2. We refer to the
+ith element of σbyσ[i]. Theprojectionσ↾Σ′ofσon an alphabet Σ′⊆Σis the sequence
+of symbols in σthat are also contained in Σ′:ϵ↾Σ′=ϵandσ·a↾Σ′=σ↾Σ′·aifa∈Σ′
+andσ↾Σ′otherwise. We generalize this notation to sets (and thus languages), such that
+S↾Σ′={σ↾Σ′|σ∈S}. Given a set S, we write|S|for its cardinality. We write img(f)for
+the image of a function f.
+3.1 Labelled Transition Systems
+In this work we represent the state-based behavior of a system as a labelled transition system .
+▶Definition 3.1 (Labelled Transition System) .Alabelled transition system (LTS) is a
+four-tupleT= (S,Σ,→,ˆs), whereSis a set of states; Σis a finite alphabet of actions;
+→⊆S×Σ×Sis a transition relation; ˆs∈Sis an initial state.
+We write in infix notation sa− →tfor(s,a,t )∈→We say that an action aisenabledin
+s, writtensa− →, if there is tsuch thatsa− →t. The transition relation and the notion of
+enabled-ness are also extended to traces σ∈Σ⋆, yieldingsσ− →tandsσ− →.
+▶Definition 3.2 (Language of an LTS) .The language of Tis the set of traces enabled from
+the starting state, formally: L(T) ={σ∈Σ⋆|ˆsσ− →}.
+Note that languages of LTSs are always prefix-closed, because every prefix of an enabled
+trace is necessarily enabled.
+The parallel composition of a finite set of LTSs is a product model representing all possible
+behaviors when the LTSs synchronize on shared actions. Intuitively, an action acan be
+performed when all LTSs that have ain their alphabet can perform it in their current state.
+The other LTSs remain idle during the transition.
+▶Definition 3.3 (Parallel composition) .GivennLTSsTi= (Si,Σi,→i,ˆsi)for1≤i≤n,
+theirparallel composition , denoted∥n
+i=1Ti, is an LTS (S1×···×Sn,/uniontextn
+i=1Σi,− →,(ˆs1,..., ˆsn)),
+where the transition relation − →is given by the following rule:
+sia− →itifor allisuch thata∈Σi
+sj=tjfor alljsuch thata /∈Σj
+(s1,...,sn)a− →(t1,...,tn)
+We say that an action aislocalif there is exactly one isuch thata∈Σi; otherwise, it is called
+synchronizing . The parallel composition of LTSs thus forces individual LTSs to cooperate on
+
+--- Page 4 ---
+4 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+T1= s0 s1 s2a
+cb
+cT2= t0 t1 t2b d
+T1∥T2= s0, t0 s1, t0
+s2, t0s1, t1s2, t1
+s2, t2
+s1, t2a
+c
+cb
+dc d
+c
+Figure 1 The parallel composition of two LTSs.
+Learner TeacherMembership query: σ∈ L?
+yes / no
+Equivalence Query: L(H) =L?
+yes / (no + cex)
+Figure 2 Active automata learning for a target language L.
+synchronizing actions; local actions can be performed independently. We typically refer to
+the LTSs that make up a composite LTS as components . For a parallel composition of two
+LTSs, we use the infix notation, i.e., T∥T′, when convenient. Synchronization of components
+corresponds to communication between components in the real world.
+We define the corresponding notion for languages on restricted alphabets.
+▶Definition 3.4 (Parallel composition of languages) .Givennlanguages and alphabets (Li,Σi)
+such thatLi⊆Σ⋆
+ifor all 1≤i≤n, letΣ =/uniontextn
+i=1Σi. We define∥n
+i=1(Li,Σi)as
+{σ∈Σ⋆|∀1≤i≤n.σ↾Σi∈Li}.
+▶Example 3.5 (Running example) .Consider the LTSs T1andT2given in Figure 1, with
+the respective alphabets {a,b,c}and{b,d}. Their parallel composition is depicted at the
+bottom of Figure 1. Here a,canddare local actions, whereas bis synchronizing. Note that,
+althoughT2can perform bfrom its initial state t0, there is no btransition from (s0,t0)in
+T1∥T2, becausebis not enabled in s0. Actionbcan only be performed in T1∥T2afterT1
+does anaor acand moves to s1, which is captured as the aandctransitions from (s0,t0).
+3.2 Active Automata Learning
+In active automata learning [ 2], aLearnerinfers an automaton model of an unknown language
+Lby querying a Teacher, which knowsLand answers two query types (see Figure 2):
+Membership queries : is a trace σinL? The Teacher replies yes/no.
+Equivalence queries : given a hypothesis modelH, isL(H) =L? The Teacher either replies
+yes or provides a counter-example – a trace that is in one language but not in the other.
+Algorithms based on this framework – Angluin’s L⋆being the classical example – converge to
+a canonical model ( e.g., the minimal DFA) of the target language. In practice, the Teacher
+is realized as an interface to the System Under Learning (SUL): membership queries become
+tests on the SUL, and equivalence queries are approximated via systematic testing strategies.
+During learning, the learner gathers observations about the SUL. While these observations
+are typically organized in a data structure (e.g., a table or a tree), they can be abstractly
+
+--- Page 5 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 5
+represented as a partial function mapping traces to their accepted ( +) or rejected (−) status.
+▶Definition 3.6 (Observation function) .Anobservation function over Σis a partial function
+Obs: Σ⋆⇀{+,−}.
+We write Dom(Obs)for the domain of Obsand only consider observation functions with
+a finite domain. We sometimes represent an observation function Obsas the set of pairs
+{(σ,Obs(σ))|σ∈Dom(Obs)}.
+▶Definition 3.7 (Observation function/language agreement) .An observation function Obs
+agrees with a language L, notationL|=Obs, whenever σ∈L⇔ Obs(σ) = +, for all
+σ∈Dom(Obs).
+To compositionally learn a model formulated as a parallel composition of LTSs ∥n
+i=1Ti, it is
+useful to define localobservation functions that will be used for the components.
+▶Definition 3.8 (Local observation function) .Given a sub-alphabet Σi⊆Σ, a local obser-
+vation function ObsΣi: Σ⋆
+i⇀{+,−}is defined such that Dom(ObsΣi) =Dom(Obs)↾Σiand
+ObsΣi(σ′) =/logicalortext
+{σ|σ∈Dom(Obs)∧σ↾Σi=σ′}Obs(σ), for allσ′∈Dom(ObsΣi).
+This definition is taken to mimic the behavior of parallel composition, i.e., a component Ti
+acceptsσif and only if there is σ′such thatσ′↾Σi=σand∥n
+i=1Tiacceptsσ′.
+4 Distributions
+In this section, we first discuss how we decompose the global alphabet into a distribution , i.e.,
+a set of potentially overlapping local alphabets. We then give some properties of distributions
+and their relation to observation functions. Based on these, we explain how to extend a
+distribution to model a given observation function.
+4.1 Distributions and Observations
+In a model expressed as a parallel composition ∥iTi, permuting symbols belonging to different
+local alphabets does not affect membership of the language. For example, in Figure 1, because
+abcdis in the language, we directly know that abdcis too, as both canddare local to
+different components. To formalize this, we first formally define distributions as follows.
+▶Definition 4.1 (Distribution) .Adistribution of an alphabet Σis a set Ω ={Σ1,..., Σn}
+such that/uniontextn
+i=1Σi= Σ.
+For the rest of this section, we fix an alphabet Σ, a distribution Ω ={Σ1,..., Σn}ofΣand
+an observation function Obsover Σunless otherwise specified.
+For a given distribution Ω, we define below the class of languages, called product languages
+over Ω, that can be represented over that distribution.
+▶Definition 4.2 (Product language) .Lis aproduct language over Ω, notation Ω|=L, iff
+there exists a family of languages {Li}1≤i≤n, whereLi⊆Σ⋆
+ifor all 1≤i≤n, such that
+L=∥n
+i=1(Li,Σi).
+▶Example4.3. InExample3.5, itisclearbyconstructionthat {{a,b,c},{b,d}}|=L(T1∥T2).
+However,L(T1∥T2)is not a product language over Ωsingles ={{a},{b},{c},{d}}because
+any product language over Ωsinglesshould allow for permuting aandband thus, would fail
+to capture the fact that bcan only come after one a.
+
+--- Page 6 ---
+6 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+We recall the following key lemma for product languages.
+▶Lemma 4.4 ([26], Lemma 5.2) .A languageLis a product language over Ωif and only if
+L=∥n
+i=1(L↾Σi,Σi).
+We can now define product observations over Ω,i.e., an observation that can be generated
+by a product language over Ω.
+▶Definition 4.5 (Product observation) .Obsis aproduct observation over Ω, notation
+Ω|=Obs, iff there exists a language Lsuch that Ω|=LandL|=Obs. We conversely say
+thatΩmodels Obs.
+While Definition 4.5 does not prescribe how to find such a distribution given an observation
+function, it can be used to detect precisely when a current distribution is not consistent with
+observations and must be updated. This results in the following proposition linking local
+and global observations for a given distribution: an observation is a product observation
+over a distribution if and only if its projections according to the distribution hold the same
+information as the observation itself. The proof follows largely from Lemma 4.4.
+▶Proposition 4.6. Ω|=Obsif and only if for all traces σ∈Dom(Obs)it holds that
+Obs(σ) =/logicalandtext
+Σi∈ΩObsΣi(σ↾Σi).
+▶Example 4.7. Following from Example 4.3, consider the following observation function
+based onL(T1∥T2)from Example 3.5:
+Obs:ϵ∝⇕⊣√∫⊔≀→+;a∝⇕⊣√∫⊔≀→+;ab∝⇕⊣√∫⊔≀→+;b∝⇕⊣√∫⊔≀→−;c∝⇕⊣√∫⊔≀→+;d∝⇕⊣√∫⊔≀→−.
+Using the above proposition, we can verify that Ωsingles ={{a},{b},{c},{d}}̸|=Obs. This
+is because Obs(b) =−, whereas for all Σi∈Ωsingles,ObsΣi(b) =+sinceab↾{b}=bcauses
+Obs{b}(b) =+. In contrast, Ω{a,b}={{a,b},{c},{d}}|=Obssince the alphabet {a,b}allows
+for distinguishing observations bandab.
+In our algorithm, this check on local and global observation functions is used to trigger an
+update of the current distribution exactly when necessary.
+Based on the above proposition, we now define counter-examples to a distribution . By
+definition of local observations, if Obs(σ) =+, then ObsΣi(σ↾Σi) =+. Hence, to obtain
+Obs(σ)̸=/logicalandtext
+Σi∈ΩObsΣi(σ↾Σi), we must have a globally negative observation σNand a set of
+globallypositiveobservationswhoseprojectionstothelocalcomponentsmatchtheprojections
+ofσN, indicating a mismatch between global and local observations.
+▶Definition 4.8 (Counter-example to a distribution) .A counter-example to Ω|=Obsis a
+pair(σN,P)∈Dom(Obs)×Dom(Obs)Ωwith
+σNa negative observation Obs(σN) =−;
+Pa function that maps each Σi∈Ωto a positive observation σΣi, i.e., Obs(σΣi) = +,
+such thatσN↾Σi=σΣi↾Σi.
+We call img(P)thepositive image of the counter-example. We write CED (Ω,Obs)for the
+set of such counter-examples.
+Although these counter-examples are not necessarily related to learning, we use the same
+terminology as in active learning. This is because the two concepts are directly linked in our
+case, as will be explained later.
+
+--- Page 7 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 7
+▶Example 4.9. Reusing the observation function Obsand the singleton distribution Ωsingles
+defined in Example 4.7, for every element of CED (Obs,Ωsingles )we haveσN=b. and
+P({b}) =ab. For the remaining elements of Ω, there are more choices: {a}can be mapped
+to eitherϵorc;{c}to eitherϵ,aorab; and{d}to eitherϵ,a,aborc.
+Proposition 4.6, specialized to our definition of counter-examples, yields the following
+corollary.
+▶Corollary 4.10. Ω|=Obs⇐⇒ CED (Ω,Obs) =∅.
+4.2 Resolving a Counter-example
+Given a distribution Ωand a fixed observation function Obs, one key question is how to
+extend Ωto a new distribution Ω′modelling Obs. This is a difficult problem, as new counter-
+examples can arise when extending a distribution. In this subsection, we explain how to
+resolve a single counter-example as a fist step.
+When a counter-example (σN,P)toΩ|=Obsexists, it reveals a limitation in the
+distribution Ω: the projections of σNcoincide with projections of elements in P, making
+them indistinguishable under the current components. To resolve such counter-examples, it is
+thus necessary and sufficient to augment Ωwith new components that disrupt this matching.
+In the following, we will fix (σN,P)∈CED (Ω,Obs)as a counter-example to Ω|=Obs.
+More precisely, for each pair of traces (σN,σ)withσ∈P, it suffices to identify a
+discrepancy between them. There are two types of discrepancies: multiplicity discrepancies
+andorder discrepancies . A multiplicity discrepancy is a symbol occurring a different number
+of times in each trace. For this, given a trace σ, letΣm(σ)denote the multiset of symbols
+occurring in σ. Note that Σm(σ) = Σm(σ′)if and only if σis a permutation of σ′. The
+symmetric difference of multisets AandBis denotedA∆B.
+▶Definition 4.11 (Multiplicity discrepancy) .Given a Σi∈Ω, the set of multiplicity discrep-
+anciesforΣiisDΣim(σN,P) = Σm(σN) ∆ Σm(P(Σi)).
+We now define an order discrepancy ,i.e., a pair of symbols whose relative positions differ
+between the traces. We do this by considering whether symbols that are nota multiplicity
+discrepancy, i.e., those appearing the same number of times in both traces, are permuted.
+We choose the permutation such the relative order of identical symbols is maintained.
+▶Definition 4.12 (Order discrepancy) .Given Σi∈Ω, letθ= Σ\(Σm(σN) ∆ Σm(P(Σi)))
+be the symbols on which σNandP(Σi)agree and define σ′
+N=σN↾θ. Letπbe the unique
+permutation such that σ′
+N=π(P(Σi)↾θ)andσ′
+N[j] =σ′
+N[k] =⇒π(j)<π(k), for allj <k.
+Then the set of order discrepancies forΣiis
+DΣi
+o(σN,P) ={{σ′
+N[j],σ′
+N[k]}|k<j∧π(k)>π(j)}
+Finally, we define the discrepancies for a counter-example as sets that contain at least a
+discrepancy of either type for each alphabet in Ω.
+▶Definition 4.13 (Discrepancy set) .A setδ⊆Σis adiscrepancy for(σN,P)iff for all
+Σi∈Ω, eitherDΣim(σN,P)∩δ̸=∅or there isδΣi∈DΣio(σN,P)such thatδΣi⊆δ. We write
+D(σN,P)for the set of all discrepancies for the counter-example (σN,P).
+For a set of counter-examples {ce1,...,cen}, we writeD({ce1,...,cen}) ={{δ1,...,δn}|
+∀i.δi∈D(cei)}, representing all possible selections of one discrepancy per counter-example.
+
+--- Page 8 ---
+8 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+▶Example 4.14 (Multiplicity discrepancy) .Following Example 4.9 with the singleton
+distribution Ωsingles ={{a},{b},{c},{d}}, consider the counter-example (σN,P) =
+(b,({a}∝⇕⊣√∫⊔≀→ϵ,{b}∝⇕⊣√∫⊔≀→ab,{c}∝⇕⊣√∫⊔≀→ϵ,{d}∝⇕⊣√∫⊔≀→ϵ)). We find the following multiplicity discrep-
+ancies:DΣim(σN,P) ={b}, for Σi∈ {{a},{c},{d}}, becauseboccurs once in σNvs.
+zero times in P(Σi), andD{b}
+m(σN,P) ={a}. Hence,D(σN,P)includes all subsets of
+{a,b,c,d}containing{a,b}. For a different counter-example such as (σN,P′) = (b,({a}∝⇕⊣√∫⊔≀→
+c,{b}∝⇕⊣√∫⊔≀→ab,{c}∝⇕⊣√∫⊔≀→ab,{d}∝⇕⊣√∫⊔≀→c)), we obtainD{a}
+m(σN,P′) =D{d}
+m(σN,P′) ={b,c}and
+D{b}
+m(σN,P′) =D{c}
+m(σN,P′) ={a}, soD(σN,P′)includes any subset of {a,b,c,d}that
+contains either{a,b}or{a,c}.
+▶Example 4.15 (Order discrepancy) .Consider a singleton distribution Ωsingles =
+{{a},{b},{c}}with Obs(abc) = +and Obs(bac) =−. This yields the counter-example
+(σN,P) = (bac,({a} ∝⇕⊣√∫⊔≀→abc,{b} ∝⇕⊣√∫⊔≀→abc,{c} ∝⇕⊣√∫⊔≀→abc)). For each Σi∈Ωsingles, we find
+DΣio(σN,P) ={{a,b}}. Intuitively, these discrepancies reveals that singleton components
+allow for all permutations of aandb, but the observation function forbids some of them.
+Therefore,D(σN,P)includes all subsets of {a,b,c}containing{a,b}.
+We can now state that discrepancies are both sufficient and necessary additions to a distribu-
+tion in order to eliminate their counter-examples.
+▶Proposition 4.16. Suppose there exists (σN,P)∈CED (Ω,Obs). For each discrepancy
+δ∈D(σN,P),(σN,P)̸∈CED (Ω∪{δ},Obs). Conversely, for any distribution Ω′ofΣwhere
+δ̸⊆Σi, for allδ∈D(σN,P)and all Σi∈Ω′,(σN,P)is a counter-example to Ω′|=Obs.
+4.3 Extending a Distribution to Model an Observation Function
+Using the previous subsection as a basis, we leverage structural properties of distributions
+to restrict the possible counter-examples that can appear when updating the distribution.
+Finally, we devise an iterative process that is guaranteed to converge to a distribution
+modelling Obs.
+Pre-ordering of Distributions
+Distributions can be preordered by their “connecting power”, i.e., by the extent to which
+they connect symbols together as part of the same alphabets.
+▶Definition 4.17 (Connectivity preorder) .Given two distributions ΩandΩ′of alphabet Σ,
+we say that Ωisless connecting than Ω′and write Ω≼Ω′when∀Σi∈Ω.∃Σj∈Ω′.Σi⊆Σj
+(equivalently, Ω′is said to be more connecting than Ω). The relation is strict, written Ω≺Ω′,
+when Ω′̸≼Ω. The relation ≼forms a preorder with finite chains.
+We relate this notion to the sets of counter-examples for a fixed observation function to show
+that adding connections in a distribution makes the counter-example set progress along a
+preorder. For this, we first define a notion of inclusion for counter-examples.
+▶Definition 4.18 (Counter-example inclusion) .Consider two distributions ΩandΩ′ofΣ,
+(σN,P)a counter-example to Ω|=Obsand(σ′
+N,P′)a counter-example to Ω′|=Obs. We
+write (σN,P)⊆(σ′
+N,P′)wheneverσN=σ′
+Nandimg(P)⊆img(P′). The strict inclusion
+(σN,P)⊂(σ′
+N,P′)holds whenever σN=σ′
+Nandimg(P)⊂img(P′).
+In its simplest form, progress means eliminating counter-examples from the current set of
+counter-examples CED (Ω,Obs). However, a counter-example cemight be replaced by new
+
+--- Page 9 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 9
+CE=ce1 ce2 ce3 ce4CE′=≼ce1=ce′
+3⊆ce′
+4⊆ce′′
+4⊆
+Figure 3 The different relations between the elements of two sets of counter-examples CE≼CE′.
+counter-examples ce′such thatce⊆ce′, which emerge when new connections are added to
+the distribution. Hence, progress means that some counter-examples are either eliminated or
+replaced by subsuming ones, as depicted in Figure 3.
+▶Definition 4.19 (Counter-example set preordering) .ConsiderCEandCE′sets of counter-
+examples. We write CE≼CE′when∀ce′∈CE′.∃ce∈CE. ce⊆ce′. We write CE≺CE′
+when, furthermore, either ce⊂ce′orCE≼CE′\{ce′}, force∈CEandce′∈CE′.
+▶Example 4.20. We give a short example of the preorder on set of counter-examples inspired
+by Example 5.5:
+{(b,({a,b}∝⇕⊣√∫⊔≀→cb,{c}∝⇕⊣√∫⊔≀→ϵ,{d}∝⇕⊣√∫⊔≀→ϵ))}≼(b,({a,b}∝⇕⊣√∫⊔≀→cb,{b,c}∝⇕⊣√∫⊔≀→ab,{d}∝⇕⊣√∫⊔≀→ϵ)).
+Usingtheabovedefinitions, wecanprovethatincreasingtheconnectingpowerofadistribution
+ensures that the set of counter-example progresses.
+▶Proposition 4.21. Consider two distributions ΩandΩ′ofΣ. We have Ω≼Ω′⇒
+CED (Ω,Obs)≼CED (Ω′,Obs).
+As an immediate consequence, whenever Ωhas no counter-examples, any distribution Ω′
+that is more connecting than Ωwill also have none, i.e., both distributions will model the
+same observations.
+▶Corollary 4.22. LetΩbe a distribution of Σsuch that Ω|=Obs. For any distribution Ω′
+ofΣsuch that Ω≼Ω′, we have Ω′|=Obs.
+Fixing the distribution
+Using Propositions 4.16 and 4.21, from an initial distribution Ω̸|=Obswe can create a more
+connecting one that entails a strict progression in counter-examples.
+▶Corollary 4.23. Suppose that CED (Ω,Obs)̸=∅. For (σN,P)∈CED (Ω,Obs), we pick
+a discrepancy δ(σN,P)∈D(σN,P). For any non-empty subset SofCED (Ω,Obs), let Ω′=
+Ω∪{δce|ce∈S}. Then Ω≺Ω′andCED (Ω,Obs)≺CED (Ω′,Obs).
+▶Remark 4.24. Corollary 4.23 gives us the freedom to select any discrepancy δce, for each
+counter-example ce. We can select discrepancies that result in a least connecting distribution,
+which yields a locally optimal greedy strategy for progress.
+By iteratively applying this Corollary, we can eliminate counter-examples until reaching a
+distribution that models the observations. This leads to the following convergence result:
+▶Theorem 4.25. Suppose Ω̸|=Obs. The above process converges to a distribution Ω′|=Obs
+such that Ω≺Ω′after finitely many of steps. For choosing S=CED (Ω,Obs)at each step,
+the number of steps is bounded by |P(Σ)|.
+
+--- Page 10 ---
+10 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+Ω =Σ1. . .
+ΣnDistribution
+L1 . . .
+LnLocal learning
+Membership queriesH1. . .
+HnHypotheses
+∥n
+i=1HiCounterexample
+Equivalence queryglobalΣ′
+1. . .
+Σ′
+kNew
+distribution
+localL′
+1. . .
+L′
+kUpdated
+learners
+Figure 4 Overview of the algorithm.
+Canonical distributions: inducing a partial order
+Distributions have few constraints: they only need to span the entire alphabet, which
+leaves room for redundancies. We propose to remove redundancies without affecting the
+distribution’s connecting power, by removing alphabets completely contained within another.
+▶Definition 4.26 (Canonical distribution) .Consider a distribution Ω ={Σ1,..., Σn}and
+Sub={Σi∈Ω|∃Σj∈Ω.Σi⊂Σj}. The associated canonical distribution is JΩK≼= Ω\Sub.
+As one would expect J·K≼collapses equivalence classes of the preorder ≼(i.e., Ω≼Ω′and
+Ω′≼Ω) to create a strict partial order. Canonical distributions allow minimizing the number
+of alphabets in the distribution while retaining the same connecting power. This means that
+counter-examples can be easily translated between a distribution and its canonical form, and
+hence the following proposition.
+▶Proposition 4.27. CED (JΩK≼,Obs) =∅⇔CED (Ω,Obs) =∅
+5 Compositional Learning Algorithm
+In this section, we present our algorithm to compositionally learn an unknown system
+SUL =M1∥M2∥...∥Mnconsisting of the parallel composition of nLTSs, given only a
+Teacher for the whole SUL and knowledge of the global alphabet ΣSUL.
+A bird’s eye view of the algorithm is provided in Figure 4. The key idea is to learn each
+component via a separate learner. Each learner Liposes membership queries independently,
+which are suitably translated to queries for the global Teacher, until it produces a hypothesis
+Hi. Hypotheses returned by local learners are combined to create a global equivalence query.
+Counter-examples obtained through equivalence queries (σ,b)∈Σ⋆
+SUL×{−,+}are classified
+as either globalorlocal. They are global when the updated observations Obs′=Obs∪{(σ,b)}
+and the current distribution ΩofΣSULare such that Ω̸|=Obs′, and local otherwise. Global
+counter-examples are used to refine the distribution Ω, possibly creating components/learners.
+Local counter-examples are used to update the state of local learners.
+We briefly recall the local learning procedure, which was introduced in previous work,
+before moving on to presenting the details of our main algorithm in Section 5.2.
+5.1 Local learners
+For each alphabet Σiin the distribution Ω, we spawn a learner Lithat is tasked with
+formulating a hypothesis for the corresponding component. A key feature of this learner is
+
+--- Page 11 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 11
+the ability to translate localmembership queries into globalones for the entire SUL, and
+to interpret the results of global queries at the local level [ 27]. The main difficulty is that
+this translation is not always feasible: when a membership query contains synchronizing
+actions, cooperation with the other learners is required. This should be done in a way that
+is consistent with the current distribution, i.e., ifΩ|=Obs, then for any global membership
+query result (σ,b)∈Σ⋆
+SUL×{−,+}, we require Ω|=Obs∪{(σ,b)}. Furthermore, due to
+the nature of local observation functions, it is possible that at first ObsΣi(σ) =−, and
+later this becomes ObsΣi(σ) = +as the set of global observations is extended through
+counter-examples; the learners must account for this. In summary, local learners should:
+translate local queries to global ones, preserving Ω|=Obs. If a local query cannot be
+translated, the answer is “unknown”;
+be able to handle “unknown” entries in the learning data structure ( e.g., an observation
+table), ensuring progress even in the presence of incomplete information; and
+be able to correct negative CEXs on the basis of a later positive CEX.
+Our previous work [ 27] shows one way to implement such a learner as an extension of the L⋆
+algorithm [ 2], in which LTSs are represented as prefix-closed DFAs. However, we remark
+that the algorithms proposed in the present work are independent of the implementation
+of these local learners, as long as they satisfy the requirements above. Thus, our L⋆-based
+implementation can be swapped out for other active learner algorithms, such as TTT [18].
+5.2 Main algorithm
+The main algorithm is presented in Algorithm 1. Initially, Obsis empty, and the distribution
+Ωcontains singletons of the alphabet of the SUL. The algorithm iteratively performs the
+following steps.
+Each learner is run in parallel until producing a hypothesis. Observations Obsare suitably
+updated to record the interactions with the Teacher. Next, the local hypotheses are composed
+in parallel to form H, which is submitted to the Teacher as an equivalence query Teacher (H).
+If the query returns no counter-example, the algorithm returns Hand terminates. Otherwise,
+the returned counter-example (σcex,b)is added to Obs.
+Crucially, when (σcex,b)is a global counter-example, it corresponds exactly to counter-
+examples to the distribution (Definition 4.8), as shown in the following lemma.
+▶Lemma 5.1. Given a global counter-example (σ,b), let Obs′=Obs∪{(σ,b)}:
+ifb=−, then there is P∈Dom(Obs)Ωsuch that (σ,P)∈CED (Ω,Obs′).
+else, there is σN∈Dom(Obs),S⊆ΩandP∈Dom(Obs)Ω\Ssuch that (σN,P∪(Σi∝⇕⊣√∫⊔≀→
+σ)Σi∈S)∈CED (Ω,Obs′)
+Furthermore, all of the elements of CED (Ω,Obs′)have the above structure.
+Therefore, based on this lemma, the distribution is augmented with discrepancies for a
+chosen subset Sof distribution counter-examples, following Corollary 4.23. This process
+eventually converges to provide Ωsuch that Ω|=Obs(Theorem 4.25). The new distribution
+is then optimized by making it canonical (Definition 4.26) and, if desired, increasing its
+connectivity. The optimization step does not affect counter-example-freeness (by Proposi-
+tion 4.27 and Corollary 4.22) and may be used to reduce synchronizations, which improves
+performance (see Section 6). New learners are then started over the updated alphabets.1
+1In practice, learners leverage Obsto partially initialize their observation tables.
+
+--- Page 12 ---
+12 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+Algorithm 1 Main learning algorithm.
+Input:The alphabet of the SUL ΣSULand the teacher Teacher.
+Init: Obs=∅,Ω ={{a}|a∈ΣSUL},L={new learner LionΣi|Σi∈Ω}
+1whileTruedo
+2foreachLi∈Lin parallel do
+3 Locally learn using Teacher until an hypothesis Hiis returned
+4 Obs←Obs∪{(σ,b)|(σ,b)∈global membership queries of Li}
+5H=∥|Ω|
+i=1Hi
+6CEX =Teacher (H)
+7ifCEXis empty then
+8 ReturnH1,...,H|Ω|
+9else ifCEX = (σcex,b)then
+10 Obs←Obs∪{(σcex,b)}
+11 if(σcex,b)is global then
+12 while CED (Ω,Obs)̸=∅do
+13 PickS⊆CED (Ω,Obs)non-empty
+14 Ω←Ω∪Ω′for some Ω′∈D(S)
+15 Optimize (Ω)
+16 L←{new learner LionΣi|Σi∈Ω}
+17 else
+18 foreachLi∈Llearning on Σido
+19 Forwardσcex↾ΣitoLi
+If, instead, the counter-example is local, its projections are forwarded to the local learners,
+and the next iteration starts.
+▶Remark 5.2. We leave the selection of counter-example set Sas an implementation choice.
+WhileS=CED (Ω,Obs)maximizescounter-exampleelimination, findingallcounter-examples
+may be expensive. In our implementation, we process just one counter-example at a time,
+which in practice often yields a valid distribution after a single update step.
+Our main theorem for this section states that the algorithm terminates and returns a correct
+model of the SUL.
+▶Theorem 5.3. LetSUL =M1∥M2∥...∥Mnconsist ofnparallel LTSs. Algorithm 1
+terminates and returns H1,H2,...,Hksuch thatH1∥H2∥...∥Hk≡SUL.
+▶Remark 5.4. We make no claims regarding the number of components returned by the
+algorithm orHi≡Mi, for alli. This is because the final distribution may vary depending
+on counter-example and discrepancy choices. Furthermore, different component LTSs can
+result in the same parallel composition (see [27, Remark 2]).
+▶Example 5.5 (Example run) .We give an example run where the target SUL is the model
+of Figure 1. For the sake of simplicity, we focus on the global counter-examples and the
+subsequent distribution updates, considering only one distribution counter-example per step.
+Moreover, we consistently select a smallest discrepancy for each counter-example as our
+greedy strategy to minimize the connectivity of the resulting distribution.
+We start from Ωsingles ={{a},{b},{c},{d}}. The local alphabets initially contain only
+one symbol, so local learners will make membership queries about traces containing exclusively
+that symbol. This leads to the components depicted below.
+
+--- Page 13 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 13
+T{a}= s0 s1aT{b}= s0 T{c}= s0c T{d}= s0
+The first global counter-example is (ab,+), yielding several counter-examples to Ωsingles|=
+Obs, of which we consider (b,({a} ∝⇕⊣√∫⊔≀→ϵ,{b} ∝⇕⊣√∫⊔≀→ab,{c} ∝⇕⊣√∫⊔≀→ϵ,{d} ∝⇕⊣√∫⊔≀→ϵ)). The smallest
+discrepancy for this counter-example is {a,b}. We use it to update the distribution and
+obtain Ωab={{a,b},{c},{d}},2, which models the current observations. The new component
+over{a,b}is then learned locally, producing (the {c}and{d}components are unchanged):
+T{a,b}= s0 s1 s2a bT{c}= s0c T{d}= s0
+The next global counter-example (cb,+), leads to distribution counter-example (b,({a,b}∝⇕⊣√∫⊔≀→
+cb,{c} ∝⇕⊣√∫⊔≀→ϵ,{d} ∝⇕⊣√∫⊔≀→ϵ)). Its smallest discrepancy is {b,c}and the new distribution is
+Ωab,bc={{a,b},{b,c},{d}}. Although the counter-example has been handled, Ωab,bcdoes not
+model the observations, as CED (Ωab,bc,Obs)contains (b,({a,b}∝⇕⊣√∫⊔≀→cb,{b,c}∝⇕⊣√∫⊔≀→ab,{d}∝⇕⊣√∫⊔≀→ϵ)).
+Its smallest discrepancy {a,b,c}gives Ωabc={{a,b,c},{d}}, modelling the observations.
+To finish our example, the next global counter-example is (abd,+). The corresponding
+distribution counter-example is (d,({a,b,c}∝⇕⊣√∫⊔≀→ϵ,{d}∝⇕⊣√∫⊔≀→abd)). There are two smallest discrep-
+ancies for this counter-example: {a,d}and{b,d}. Selecting{b,d}leads to{{a,b,c},{b,d}},
+which models the target language and exactly corresponds to the decomposition of Figure 1.
+Selecting{a,d}creates unnecessary connections, resulting (after some omitted steps) in
+either{{a,b,c},{a,d},{b,d}}or{{a,b,c},{a,b,d}}as a final distribution.
+Our current implementation selects either discrepancy as both are locally optimal. Finding
+efficientwaystoexploremultiplediscrepancychoicesforgloballyoptimaldistributionsremains
+an open challenge for future work.
+6 Experiments
+We evaluate the effectiveness of our approach in terms of savings in membership and
+equivalence queries. We did not expect to gain efficiency (absolute execution time) over the
+mature available tools, because our current implementation of local learners [ 27] interfaces
+with an external SAT solver for forming local hypotheses. To start with, we extended the tool
+Coal[27] into CoalA(for COmpositional Automata Learner with Alphabet refinement),
+by adding the ability to refine the alphabets based on global CEXs. The tool is based
+on LearnLib 0.18.0 [ 19]. As discussed in Section 5.2, the theory allows optimizing the
+distribution. Our implementation of this is based on greedily finding a clique edge cover in
+the hypergraph (Σ,∆), where ∆is the set of all discrepancies found thus far. The learners
+Liperform better when their alphabet contains more local actions, thus we sometimes merge
+components to convert synchronizations into local actions.
+To validate our approach, we experiment with learning LTSs obtained from three sources:
+first, we re-use the 300 randomly generated LTSs from our previous work [ 27]; these vary in
+structure and size. Next, we have two scalable realistic models, namely CloudOpsManagement
+from the 2019 Model Checking Contest [ 1] and aproducers/consumers model [36, Fig. 8].
+Finally, we have 328 LTSs obtained from Petri nets that are provided by the Hippo tool [ 35]
+website.3These are often more sequential in nature than our other models.
+2We made the distribution canonical (Definition 4.26) and removed the {a}and{b}components.
+3https://hippo.uz.zgora.pl/
+
+--- Page 14 ---
+14 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+1011031051071091011041071010
+CoalA(compositional)L⋆(monolithic)Number of membership queries
+100101102103100101102103
+CoalA(compositional)Number of equivalence queries
+multiparty
+ring
+bipartite
+star
+random
+Figure 5 Performance of L⋆and compositional learning on random models. Dashed lines indicate
+time-outs. Results obtained with Coalare in gray.
+101103105107101103105107
+CoalA(compositional)L⋆(monolithic)Number of membership queries
+100101102100101102
+CoalA(compositional)Number of equivalence queries
+Figure 6 Performance of L⋆and compositional learning on Hippo models. Dashed lines indicate
+time-outs or out-of-memory.
+Using a machine with four Intel Xeon 6136 processors and 3TB of RAM running Ubuntu
+20.04, we apply each of three approaches: (i) our black-box compositional approach ( CoalA),
+(ii) compositional learning with given alphabets ( Coal) [27], and (iii) monolithic learning
+with L∗(as implemented in LearnLib). Coalcan be viewed as an idealized (best-case)
+baseline where the knowledge of the system decomposition is already available. Each run
+has a time-out of 30 minutes. We record the number of membership and equivalence queries
+posed to the teacher. A complete replication package is archived at [15].
+Figure 5 shows the results on our random models. The colors indicate various communi-
+cation structures (see [ 27] for details). As a reference, the results obtained with Coalare
+given in gray. We observe that CoalArequires significantly fewer membership queries than
+L⋆(note the logarithmic scale) and is closer the theoretical optimum of Coal; the result
+show 5-6 orders of magnitude of improvement in a large number of concurrent systems. The
+number of equivalence queries required by CoalAis typically slightly higher, but results of
+larger instances suggest that CoalAscales better than its monolithic counterpart. The data
+shows that also in the case of equivalence queries, it is not uncommon to gain an order of
+magnitude of saving by using our approach.
+The results of learning the Hippo models are given in Figure 6. Here we are not able
+to run Coal, since the component alphabets are not known. CoalAdoes not perform as
+well as on random models, in particular it requires more equivalence queries than monolithic
+
+--- Page 15 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 15
+Table 1Performance of CoalAand L⋆for realistic composite systems. Reported runtimes are
+in seconds. The number of refinement iterations is listed under ‘it.’ and the number of components
+found under ‘com’.
+CoalA Coal L⋆
+model states time memQ eqQ it. com time memQ eqQ com time memQ eqQ
+CloudOps W=1,C=1,N=3 690 225 .21 7 686 106 67 9 1 .27 880 24 5 3 .29 2 740 128 88
+CloudOps W=1,C=1,N=4 1 932 235 .97 9 521 115 74 10 1 .93 923 26 6 29 .62 22 252 120 216
+CloudOps W=2,C=1,N=3 3 858 232 .87 25 968 98 63 8 357 .51 9 812 29 5 12 .69 12 574 560 99
+CloudOps W=2,C=1,N=4 10 824 708 .95 33 616 111 72 10 555 .82 9 532 30 6 143 .28 91 178 900 227
+ProdCons K=3,P=2,C=2 1 664 3 .84 685 26 23 5 1 .40 301 13 5 3 .05 2 141 165 43
+ProdCons K=5,P=1,C=1 170 1 .03 451 22 14 3 0 .88 118 11 3 0 .40 160 126 30
+ProdCons K=5,P=2,C=1 662 1 .59 379 24 17 4 0 .93 158 13 4 2 .79 2 523 625 91
+ProdCons K=5,P=2,C=2 2 240 5 .53 697 28 25 5 2 .35 282 14 5 6 .40 6 984 705 93
+ProdCons K=5,P=3,C=2 8 750 17 .82 1 305 31 30 6 6 .33 604 15 6 72 .87 60 186 235 187
+ProdCons K=5,P=3,C=3 30 344 73 .69 2 454 34 37 7 32 .59 1 269 17 7 321 .54 222 567 729 193
+ProdCons K=7,P=2,C=2 2 816 5 .26 715 29 25 5 2 .20 307 15 5 16 .92 15 792 997 135
+L⋆. This is explained by the fact that these Petri nets contain mostly sequential behavior,
+i.e., the language roughly has the shape L1·a·L2for some languages L1⊆Σ∗
+1andL2⊆Σ∗
+2.
+Even though our learner is able to find the decomposition {Σ1∪{a},Σ2∪{a}}, we do not
+gain much due to the absence of concurrent behavior. In the Hippo benchmark set, CoalA
+typically finds between two and nine components.
+Finally, Table 1 shows the results of learning two scalable models with relevant parameters
+indicated. CoalAscales well as the SUL size increases, requiring roughly a constant factor
+more queries than Coalfor both CloudOps and producers/consumers. We remark that
+practically all runtime of CoalAandCoalis spent in the local learners: they require
+expensive SAT queries to construct a local hypothesis. Improving the implementation of
+local learners would decrease these times significantly; we stress that this is orthogonal to the
+goal of the current work. Furthermore, in any practical scenario, the processing of queries by
+the Teacher forms the bottleneck and L⋆would be much slower than CoalA.
+7 Conclusion
+We presented a novel active learning algorithm that automatically discovers component
+decompositions using only global observations. Unlike previous approaches, our technique
+handles a general synchronization scheme common in automata theory and process calculi,
+without any prior knowledge of component structure. We developed a theory of alphabet
+distributions and their relation to observations, formally characterizing counter-examples
+that indicate inconsistencies between distributions and observations, and providing system-
+atic methods to resolve them. The algorithm spawns a local learner for each component,
+dynamically refining the distribution of the alphabet based on counter-examples. Our
+CoalAimplementation dramatically reduces membership queries and achieves better query
+scalability than monolithic learning on highly concurrent systems. Future work will focus on:
+developing a theory of counter-example and discrepancy selection to characterize optimal
+distributions;
+extending our approach to apartness-based learning [ 32] and more expressive formalisms
+such as register automata [6] or timed automata [34];
+leveraging our compositional techniques to analyze AI-generated code [28]; and
+improving the efficiency of the local learners [21].
+
+--- Page 16 ---
+16 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+References
+1Elvio Amparore et al. Presentation of the 9th Edition of the Model Checking Contest. In
+TACAS2019 , volume 11429 of LNCS, pages 50–68, 2019. doi:10.1007/978-3-030-17502-3_4 .
+2Dana Angluin. Learning regular sets from queries and counterexamples. Information and
+computation , 75(2):87–106, 1987. doi:10.1016/0890-5401(87)90052-6 .
+3Franco Barbanera, Mariangiola Dezani-Ciancaglini, Ivan Lanese, and Emilio Tuosto. Composi-
+tion and decomposition of multiparty sessions. J. Log. Algebraic Methods Program. , 119:100620,
+2021. doi:10.1016/J.JLAMP.2020.100620 .
+4Benedikt Bollig, Joost-Pieter Katoen, Carsten Kern, and Martin Leucker. Learning Com-
+municating Automata from MSCs. IEEE Trans. Software Eng. , 36(3):390–408, 2010.
+doi:10.1109/TSE.2009.89 .
+5IlariaCastellani, MadhavanMukund, andP.S.Thiagarajan. Synthesizingdistributedtransition
+systems from global specification. In C. Pandu Rangan, Venkatesh Raman, and Ramaswamy
+Ramanujam, editors, FSTTCS 1999, Proceedings , volume 1738 of LNCS, pages 219–231.
+Springer, 1999. doi:10.1007/3-540-46691-6_17 .
+6Simon Dierl, Paul Fiterau-Brostean, Falk Howar, Bengt Jonsson, Konstantinos Sagonas,
+and Fredrik Tåquist. Scalable tree-based register automata learning. In Bernd Finkbeiner
+and Laura Kovács, editors, TACAS, volume 14571 of LNCS, pages 87–108, 2024. doi:
+10.1007/978-3-031-57249-4_5 .
+7Andrzej Ehrenfeucht and Grzegorz Rozenberg. Partial (set) 2-structures. part II: state spaces
+of concurrent systems. Acta Informatica , 27(4):343–368, 1990. doi:10.1007/BF00264612 .
+8Tiago Ferreira, Harrison Brewton, Loris D’Antoni, and Alexandra Silva. Prognosis: closed-box
+analysis of network protocol implementations. In SIGCOMM , pages 762–774. ACM, 2021.
+doi:10.1145/3452296.3472938 .
+9Paul Fiterau-Brostean, Ramon Janssen, and Frits W. Vaandrager. Combining Model Learning
+and Model Checking to Analyze TCP Implementations. In CAV, volume 9780 of LNCS, pages
+454–471. Springer, 2016. doi:10.1007/978-3-319-41540-6_25 .
+10Paul Fiterau-Brostean, Toon Lenaerts, Erik Poll, Joeri de Ruiter, Frits W. Vaandrager, and
+Patrick Verleg. Model learning and model checking of SSH implementations. In SPIN, pages
+142–151. ACM, 2017. doi:10.1145/3092282.3092289 .
+11Markus Frohme and Bernhard Steffen. Compositional learning of mutually recursive
+procedural systems. Int. J. Softw. Tools Technol. Transf. , 23(4):521–543, 2021. doi:
+10.1007/s10009-021-00634-y .
+12Dominik Fuchß, Haoyu Liu, Tobias Hey, Jan Keim, and Anne Koziolek. Enabling architecture
+traceability by llm-based architecture component name extraction. In Proceedings of the 22nd
+IEEE International Conference on Software Architecture (ICSA 2025) . IRRR, 2025.
+13E. Mark Gold. Complexity of automaton identification from given data. Inf. Control. ,
+37(3):302–320, 1978. doi:10.1016/S0019-9958(78)90562-4 .
+14Roberto Guanciale and Emilio Tuosto. Realisability of pomsets via communicating automata.
+In Massimo Bartoletti and Sophia Knight, editors, ICE 2018 , volume 279 of EPTCS, pages
+37–51, 2018. doi:10.4204/EPTCS.279.6 .
+15Léo Henry, Mohammad Mousavi, Thomas Neele, and Matteo Sammartino. Replication package
+for the paper “Compositional Active Learning of Synchronous Systems through Automated
+Alphabet Refinement”, April 2025. doi:10.5281/zenodo.15170685 .
+16C. A. R. Hoare. Communicating Sequential Processes . Prentice Hall International, 2004.
+17Falk Howar and Bernhard Steffen. Active automata learning in practice - an annotated
+bibliography of the years 2011 to 2016. In Machine Learning for Dynamic Software Analysis ,
+volume 11026 of LNCS, pages 123–148. Springer, 2018. doi:10.1007/978-3-319-96562-8_5 .
+18Malte Isberner, Falk Howar, and Bernhard Steffen. The TTT algorithm: A redundancy-free
+approach to active automata learning. In RV, volume 8734 of LNCS, pages 307–322. Springer,
+2014. doi:10.1007/978-3-319-11164-3_26 .
+
+--- Page 17 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 17
+19Malte Isberner, Falk Howar, and Bernhard Steffen. The Open-Source LearnLib: A Framework
+for Active Automata Learning. In CAV2015 , volume 9206 of LNCS, pages 487–495, 2015.
+doi:10.1007/978-3-319-21690-4_32 .
+20Rainer Koschke. Architecture Reconstruction . Springer-Verlag, 2009. doi:10.1007/
+978-3-540-95888-8 .
+21Loes Kruger, Sebastian Junges, and Jurriaan Rot. Small test suites for active automata
+learning. In Bernd Finkbeiner and Laura Kovács, editors, TACAS, volume 14571, pages
+109–129, 2024. doi:10.1007/978-3-031-57249-4_6 .
+22Faezeh Labbaf, Jan Friso Groote, Hossein Hojjat, and Mohammad Reza Mousavi. Composi-
+tional learning for interleaving parallel automata. In FoSSaCS , volume 13992 of LNCS, pages
+413–435. Springer, 2023. doi:10.1007/978-3-031-30829-1_20 .
+23Bas Luttik. Unique parallel decomposition in branching and weak bisimulation semantics. Theo-
+retical Computer Science , 612:29 – 44, 2016. URL: http://www.sciencedirect.com/science/
+article/pii/S0304397515008968 ,doi:http://dx.doi.org/10.1016/j.tcs.2015.10.013 .
+24Aryan Bastany Mahboubeh Samadi and Hossein Hojjat. Compositional learning for syn-
+chronous parallel automata. In Artur Boronat and Gordon Fraser, editors, FASE 2025,
+Proceedings , LNCS. Springer, 2025.
+25Joshua Moerman. Learning product automata. In ICGI, volume 93 of Proceedings of Machine
+Learning Research , pages 54–66. PMLR, 2018.
+26Madhavan Mukund. From global specifications to distributed implementations. In Benoît
+Caillaud, Philippe Darondeau, Luciano Lavagno, and Xiaolan Xie, editors, Synthesis and
+Control of Discrete Event Systems , pages 19–35, Boston, MA, 2002. Springer US. doi:
+10.1007/978-1-4757-6656-1_2 .
+27Thomas Neele and Matteo Sammartino. Compositional automata learning of synchronous
+systems. In FASE, volume 13991 of LNCS, pages 47–66. Springer, 2023. doi:10.1007/
+978-3-031-30826-0_3 .
+28Marc North, Amir Atapour-Abarghouei, and Nelly Bencomo. Code gradients: Towards
+automated traceability of llm-generated code. In 2024 IEEE 32nd International Requirements
+Engineering Conference (RE) , pages 321–329, 2024. doi:10.1109/RE59067.2024.00038 .
+29Maurice H. ter Beek, Rolf Hennicker, and José Proença. Team automata: Overview and
+roadmap. In Ilaria Castellani and Francesco Tiezzi, editors, COORDINATION 2024 , volume
+14676 of LNCS, pages 161–198. Springer, 2024. doi:10.1007/978-3-031-62697-5_10 .
+30Maurice H. ter Beek, Rolf Hennicker, and José Proença. Overview and roadmap of team
+automata. CoRR, abs/2501.13589, 2025. arXiv:2501.13589 ,doi:10.48550/ARXIV.2501.
+13589.
+31Frits W. Vaandrager. Model learning. Commun. ACM , 60(2):86–95, 2017. doi:10.1145/
+2967606.
+32Frits W. Vaandrager, Bharat Garhewal, Jurriaan Rot, and Thorsten Wißmann. A new
+approach for active automata learning based on apartness. In TACAS, volume 13243, pages
+223–243, 2022. doi:10.1007/978-3-030-99524-9_12 .
+33Pepe Vila, Pierre Ganty, Marco Guarnieri, and Boris Köpf. CacheQuery: Learning Replacement
+Policies from Hardware Caches. In PLDI 2020 , pages 519–532, New York, NY, USA, 2020.
+ACM. doi:10.1145/3385412.3386008 .
+34Masaki Waga. Active learning of deterministic timed automata with myhill-nerode style
+characterization. In Computer Aided Verification: 35th International Conference, CAV 2023,
+Paris, France, July 17-22, 2023, Proceedings, Part I , pages 3–26, Berlin, Heidelberg, 2023.
+Springer-Verlag. doi:10.1007/978-3-031-37706-8_1 .
+35Remigiusz Wiśniewski, Grzegorz Bazydło, Marcin Wojnakowski, and Mateusz Popławski.
+Hippo-CPS: A Tool for Verification and Analysis of Petri Net-Based Cyber-Physical Sys-
+tems. In Petri Nets 2023 , volume 13929 of LNCS, pages 191–204, 2023. doi:10.1007/
+978-3-031-33620-1_10 .
+
+--- Page 18 ---
+18 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+36W.M. Zuberek. Petri net models of process synchronization mechanisms. In SMC1999 ,
+volume 1, pages 841–847. IEEE, 1999. doi:10.1109/ICSMC.1999.814201 .
+A Proofs
+A.1 Section 4
+▶Proposition 4.6. Ω|=Obsif and only if for all traces σ∈Dom(Obs)it holds that
+Obs(σ) =/logicalandtext
+Σi∈ΩObsΣi(σ↾Σi).
+Proof.We make the proof by double implication.
+Suppose Ω|=Obs. By definition this means that there is Ω|=Lsuch thatL|=Obs.
+SinceLis a product language, Lemma 4.4 yields that L={σ|∀1≤i≤n.σ↾Σi∈Li}where
+Li={σ↾Σi|σ∈L}for alli.
+Now for any σ∈Dom(Obs), we wish to show that
+Obs(σ) = +iff/logicalanddisplay
+Σi∈ΩObsΣi(σ↾Σi) = +.
+We separate the two implications.
+IfObs(σ) = +, then ObsΣi(σ↾Σi) = +for alliby definition of local observation functions
+and we have our result.
+If/logicalandtext
+Σi∈ΩObsΣi(σ↾Σi) = +, it means that for any i,ObsΣi(σ↾Σi) = +. By definition of
+local observations, for all ithere isσ′
+i∈Dom(Obs)such that Obs(σ′
+i) = +andσ↾Σi=σ′
+i↾Σi.
+AsL|=Obs,σ′
+i∈L.
+This implies that ∀i.∃σ′
+i∈L∧σ↾Σi=σ′
+i↾Σi. Hence for all i,σ↾Σi∈Liby definition of
+Li. It follows by definition of Lthatσ∈L. AsL|=Obs, we have Obs(σ) = +.
+Conversely, suppose that ∀σ∈Dom(Obs),Obs(σ) =/logicalandtext
+Σi∈ΩObsΣi(σ↾Σi).
+Consider the language L={σ∈Dom(Obs)|Obs(σ) = +}and, for all i, letLi={σ∈
+Dom(ObsΣi)|ObsΣi(σ) = +}. Clearly, we have that L|=Obs. Furthermore, by assumption,
+L={σ|∀1≤i≤n,σ↾Σi∈Li}. Hence Ω|=Lby definition. Ω|=Obsfollows. ◀
+▶Corollary 4.10. Ω|=Obs⇐⇒ CED (Ω,Obs) =∅.
+Proof.We make the proof by double implication.
+When CED (Ω,Obs)̸=∅there is a counter-example (σN,P)toObs|=Obs. In particular
+Obs(σN) =−and for all Σi∈ΩObsΣi(σN↾Σi) =ObsΣi(P(Σi)↾Σi) = +by definition of a
+counter-example and local observation functions. Hence by Proposition 4.6, Ω̸|=Obs.
+Conversely, when CED (Ω,Obs) =∅then for any σ∈Dom(Obs)such that Obs(σ) =−
+there is some isuch that for any σ′∈Dom(Obs)verifying ObsΣi(σ′↾Σi) = ObsΣi(σ↾Σi),
+Obs(σ′) =−.
+It follows that for any σ∈Dom(Obs)such that Obs(σ) =−,/logicalandtext
+1≤i≤nObsΣi(σ↾Σi=−).
+As by definition of local observations, for any σ∈Dom(Obs)such that Obs(σ) = +,/logicalandtext
+1≤i≤nObsΣi(σ↾Σi= +)we have Ω|=Obsby Proposition 4.6.
+◀
+▶Proposition 4.16. Suppose there exists (σN,P)∈CED (Ω,Obs). For each discrepancy
+δ∈D(σN,P),(σN,P)̸∈CED (Ω∪{δ},Obs). Conversely, for any distribution Ω′ofΣwhere
+δ̸⊆Σi, for allδ∈D(σN,P)and all Σi∈Ω′,(σN,P)is a counter-example to Ω′|=Obs.
+
+--- Page 19 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 19
+Proof.Consider a discrepancy δ. We first prove that introducing δintoΩis sufficient to
+remove the counter-example. As Obsis not changed by the change from ΩtoΩ′we have to
+prove that there is no σΣi∈img(P)such thatσN↾δ=σΣi↾δ.
+FixσΣi∈img(P).
+IfDΣim(σN,P)∩δ̸=∅then there is a∈δthat occurs in different multiplicities in σNand
+σΣi. Hence,aalso occurs in different multiplicities in σN↾δandσ↾δ. Hence,σ↾δ̸=σi↾δ.
+Otherwise, following the notations of Definition 4.12, σ′
+N=π(σΣi↾θ)and for all j <k
+such thatσ′
+N[j] =σ′
+N[k]it holds that π(j)< π(k). By preserving the order of equal
+symbols, we maintain that σ[j] =ais thel-th occurrence of ainσ′
+Niffσ′[π(j)] =ais
+thel-th occurrence of ainσi.
+Now{a,b}={σ′
+N[j],σ′
+N[k]}⊆δby definition of a discrepancy and {a,b}is created
+from a so-called inversion inπ: a pair (j,k)such thatj <kandπ(j)>π(k). By our
+assumption on π, we know that a̸=band furthermore that in σ′at least one more copy
+ofbprecedes this a(namely the batσ′[π(k)]). As a result of this and the fact that
+{a,b}⊆δ, we haveσ′
+N↾δ̸=σΣi↾θ↾δ. It follows directly that σN↾δ̸=σΣi↾δ.
+We now prove that it is necessary. Consider Ω′defined as above and fix Σj∈Ω′. In the
+following, we show that there is σ∈img(P)such thatσN↾Σj=σ↾Σj.
+For this, as there is no discrepancy δ∈D(σN,P)subset to Σjwe know that there
+is at least one Σi∈Ωsuch that no order nor multiplicity discrepancy for σ δΣiis a
+subset of Σj. Because of this, Σm(σN) ∆ Σm(P(Σi))∩Σj=∅. HenceP(Σi)↾Σjand
+σN↾Σjare equal up to permutation. Consider any permutation π′such thatσ′
+N=π′(σi)
+(following again the notations of Definition 4.12). Without loss of generality, we do not
+permute the position of equal symbols, which fixes a unique permutation π′=π. For any
+{{σ′
+N[j],σ′
+N[k]}|j < k∧π(j)> π(k)}, we know (as these are elements of DΣio(σN,P))
+that we don’t have {σ′
+N[j],σ′
+N[k]}⊆Σj. It follows that the restriction of πto the indices
+corresponding to symbols in Σjis non-decreasing and thus the identity. It follows that
+σN↾Σj=P(Σi)↾Σj. ◀
+▶Proposition 4.21. Consider two distributions ΩandΩ′ofΣ. We have Ω≼Ω′⇒
+CED (Ω,Obs)≼CED (Ω′,Obs).
+Proof.We first prove that CED (Ω,Obs)≼CED (Ω′,Obs)Suppose Ω≼Ω′. If
+CED (Ω′,Obs) =∅then we have our result. Else, take (σN,P)∈CED (Ω′,Obs).
+We know that for each Σi∈Ω, there is Σi
+j∈Ω′such that Σi⊆Σi
+j. Fix such a Σi
+j. We
+have thatσN↾Σi=P(Σi
+j)↾ΣiasΣi⊆Σi
+jand(σN,P)∈CED (Ω′,Obs).
+By doing this for all Σi∈Ω, we get (σN,(P(Σi
+j))Σi∈Ω)∈CED (Ω,Obs)and by definition
+(σN,(P(Σi
+j))Σi∈Ω)⊆(σN,P). ◀
+▶Corollary 4.23. Suppose that CED (Ω,Obs)̸=∅. For (σN,P)∈CED (Ω,Obs), we pick
+a discrepancy δ(σN,P)∈D(σN,P). For any non-empty subset SofCED (Ω,Obs), let Ω′=
+Ω∪{δce|ce∈S}. Then Ω≺Ω′andCED (Ω,Obs)≺CED (Ω′,Obs).
+Proof. Ω≼Ω′follows directly from the definition of Ω′: all elements of Ωare preserved.
+Furthermore, for ce∈S, for all Σi∈Ωwe haveδce̸⊆Σi∈ΩasσN↾δ̸=σΣi↾δand
+σN↾Σi=σΣi↾Σi. Hence Ω′̸≼Ωand Ω≺Ω′. From Proposition 4.21 we get that
+CED (Ω,Obs)≼CED (Ω′,Obs). Furthermore, we know by Proposition 4.16 that for a
+fixedce∈S,CED (Ω∪Dce,Obs)does not contain ce, ensuring that CED (Ω,Obs)≺
+CED (Ω∪δce,Obs). As furthermore CED (Ω∪δce,Obs)≼CED (Ω′,Obs)by construction, we
+have that CED (Ω,Obs)≺CED (Ω′,Obs). ◀
+
+--- Page 20 ---
+20 CompositionalActiveLearningofSynchronousSystemsthroughAutomatedAlphabetRefinement
+▶Theorem 4.25. Suppose Ω̸|=Obs. The above process converges to a distribution Ω′|=Obs
+such that Ω≺Ω′after finitely many of steps. For choosing S=CED (Ω,Obs)at each step,
+the number of steps is bounded by |P(Σ)|.
+Proof.In case of convergence, Ω≺Ω′is ensured directly by each step of the process
+by Corollary 4.23. We now prove that convergence occurs in a finite amount of steps. Each
+step eliminates all counter-examples that are part of the non-empty set Schosen, as proven
+in Proposition 4.16 and Corollary 4.23. As CED (Ω,Obs)≺CED (Ω′,Obs)the only possible
+new counter-examples are ones that contain strictly counter-examples of CED (Ω,Obs). It
+follows that iterating this process makes strict progress in the following sense: either counter-
+examples are eliminated or they are replaced by ones with a strictly larger positive image.
+Because the positive image size of counter-examples is bounded by the size of the distribution,
+itself bounded by |P(Σ)|, we know that this converges in a finite number of steps.
+IfS=CED (Ω,Obs)at each step, we furthermore have that the size of the smallest
+positive image of a counter-example increases by at least one at each step, which bounds the
+number of steps by |P(Σ)|. ◀
+▶Proposition 4.27. CED (JΩK≼,Obs) =∅⇔CED (Ω,Obs) =∅
+Proof.We make the proof for a fixed Σi∈Sub, the result following by induction.
+By definition Ω′≼Ω, which entails that CED (Ω,Obs)≼CED (Ω′,Obs). From there it
+follows that CED (Ω,Obs) =∅⇒ CED (Ω′,Obs) =∅. To get the other one, we reason by
+contrapositive. Suppose CED (Ω,Obs)̸=∅and consider (σN,P)in it. Then clearly, taking
+P′= (P(Σj))j̸=i,(σN,P′)∈CED (Ω′,Obs)and we have our result. ◀
+A.2 Section 5
+▶Lemma 5.1. Given a global counter-example (σ,b), let Obs′=Obs∪{(σ,b)}:
+ifb=−, then there is P∈Dom(Obs)Ωsuch that (σ,P)∈CED (Ω,Obs′).
+else, there is σN∈Dom(Obs),S⊆ΩandP∈Dom(Obs)Ω\Ssuch that (σN,P∪(Σi∝⇕⊣√∫⊔≀→
+σ)Σi∈S)∈CED (Ω,Obs′)
+Furthermore, all of the elements of CED (Ω,Obs′)have the above structure.
+Proof.We know that Ω|=ObsandΩ̸|=Obs′since the counter-example is global. From
+Corollary 4.10 we get that CED (Ω,Obs) =∅andCED (Ω,Obs′)̸=∅.
+Consider (σN,P)∈CED (Ω,Obs′). Since it is not a counter-example to Ω|=Obs,σ
+must appear in it. If b=−we must have that σN=σby definition of counter-examples
+to a distribution. Similarly, if b= +thenσ∈img(P). Observing that Dom(Obs′) =
+Dom(Obs)∪{σ}, we obtain our result. ◀
+▶Theorem 5.3. LetSUL =M1∥M2∥...∥Mnconsist ofnparallel LTSs. Algorithm 1
+terminates and returns H1,H2,...,Hksuch thatH1∥H2∥...∥Hk≡SUL.
+Proof.The correctness of the returned hypothesis is guaranteed by the Teacher.
+The algorithm’s termination is established by showing that the “while True” loop cannot
+execute indefinitely. This is because the two types of counter-examples can only occur finitely
+many times:
+For local counter-examples, when the distribution Ωis fixed, all the learners eventually
+converge to a hypothesis after encountering finitely many local counter-examples, as
+shown in [27, Theorem 2].
+
+--- Page 21 ---
+L. Henry, T. Neele, M. Mousavi and M. Sammartino 21
+For global counter-examples, each global counter-example leads to an updated distribution
+Ω′such that Ω≺Ω′(Theorem 4.25). This update can only happen finitely many times,
+as the top element of ≺is{ΣSUL}.
+◀

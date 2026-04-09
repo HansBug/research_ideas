@@ -1,0 +1,3037 @@
+--- Page 1 ---
+Int J Softw Tools Technol Transfer (2007) 9:213–254
+DOI 10.1007/s10009-007-0038-x
+SPECIAL SECTION CPN 04/05
+Coloured Petri Nets and CPN Tools for modelling and validation
+of concurrent systems
+Kurt Jensen ·Lars Michael Kristensen ·Lisa Wells
+Published online: 13 March 2007
+© Springer-Verlag 2007
+Abstract Coloured Petri Nets (CPNs) is a language
+for the modelling and validation of systems in which
+concurrency, communication, and synchronisation play
+a major role. Coloured Petri Nets is a discrete-eventmodelling language combining Petri nets with the func-
+tional programming language Standard ML. Petri nets
+provide the foundation of the graphical notation andthe basic primitives for modelling concurrency, commu-
+nication, and synchronisation. Standard ML provides
+the primitives for the deﬁnition of data types, describingdata manipulation, and for creating compact and pa-rameterisable models. A CPN model of a system is an
+executable model representing the states of the system
+and the events (transitions) that can cause the systemto change state. The CPN language makes it possible to
+organise a model as a set of modules, and it includes a
+time concept for representing the time taken to executeevents in the modelled system. CPN Tools is an indus-
+trial-strength computer tool for constructing and anal-
+ysing CPN models. Using CPN Tools, it is possible toinvestigate the behaviour of the modelled system usingsimulation, to verify properties by means of state space
+methods and model checking, and to conduct simula-
+tion-based performance analysis. User interaction withCPN Tools is based on direct manipulation of the graph-
+ical representation of the CPN model using interaction
+techniques, such as tool palettes and marking menus. A
+K. Jensen ·L. M. Kristensen ·L. Wells (B)
+Department of Computer Science, University of Aarhus,IT-parken, Aabogade 34, 8200 Aarhus N, Denmarke-mail: wells@daimi.au.dk
+K. Jensen
+e-mail: kjensen@daimi.au.dk
+L. M. Kristensen
+e-mail: lmkristensen@daimi.au.dklicense for CPN Tools can be obtained free of charge,
+also for commercial use.
+Keywords Coloured Petri Nets ·Discrete-event
+systems ·Behavioural modelling ·Validation ·
+Simulation ·Veriﬁcation ·State space methods ·Model
+checking ·Performance analysis ·Visualisation
+1 Introduction
+Systems engineering is a comprehensive discipline
+involving a multitude of activities such as requirementsengineering, design and speciﬁcation, implementation,
+testing, and deployment. The development of distrib-
+uted systems is particularly challenging. A major reasonis that these systems possess concurrency and non-
+determinism which means that the execution of such sys-
+tems may proceed in many different ways. It is extremelyeasy for the human designer to miss some important
+interaction patterns when designing such a system, lead-
+ing to gaps or malfunctions in the system design. To copewith the complexity of modern concurrent systems, it istherefore crucial to provide methods that enable debug-
+ging and testing of central parts of the system design
+prior to implementation and deployment.
+One way to approach the challenge of developing
+concurrent systems is to build an executable model of
+the system. Constructing a model and simulating it usu-ally leads to signiﬁcant new insights into the design and
+operation of the system considered and often results in
+a simpler and more streamlined design. Furthermore,constructing an executable model usually leads to amore complete speciﬁcation facilitating a systematic
+
+--- Page 2 ---
+214 K. Jensen et al.
+investigation of scenarios which can signiﬁcantly decr-
+ease the number of design errors.
+Coloured Petri Nets (CP-nets or CPNs) [ 16,17,19,23]
+is a graphical language for constructing models of con-current systems and analysing their properties. CP-netsis a discrete-event modelling language combining Petri
+nets [ 33] and the functional programming language CPN
+ML which is based on Standard ML [ 36,37]. The CPN
+modelling language is a general purpose modelling lan-
+guage, i.e., it is not focused on modelling a speciﬁc class
+of systems, but aimed towards a very broad class of sys-tems that can be characterised as concurrent systems.
+Typical application domains of CP-nets are communi-
+cation protocols [ 6], data networks [ 5], distributed algo-
+rithms [ 34], and embedded systems [ 1,41]. CP-nets are,
+however, also applicable more generally for modelling
+systems where concurrency and communication are key
+characteristics. Examples of these are business processand workﬂow modelling [ 39], manufacturing systems
+[11], and agent systems [ 31]. Examples of industrial
+applications of CP-nets within different domains areavailable via [ 12]. An introduction to the practical use
+of CP-nets is also given in [ 19,24].
+A CPN model of a system describes the states of the
+system and the events (transitions) that can cause thesystem to change state. By making simulations of the
+CPN model, it is possible to investigate different sce-
+narios and explore the behaviours of the system. Veryoften, the goal of simulation is to debug and investi-
+gate the system design. CP-nets can be simulated inter-
+actively or automatically. An interactive simulation issimilar to single-step debugging. It provides a way to
+“walk through” a CPN model, investigating different
+scenarios in detail and checking whether the modelworks as expected. During an interactive simulation,the modeller is in charge and determines the next step
+by selecting between the enabled events in the current
+state. It is possible to observe the effects of the indi-vidual steps directly on the graphical representation of
+the CPN model. Automatic simulation is similar to pro-
+gram execution. The purpose is to simulate the modelas fast as possible and it is typically used for testing and
+performance analysis. For testing purposes, the model-
+ler typically sets up appropriate breakpoints and stopcriteria. For performance analysis the model is instru-mented with data collectors to collect data concerning
+the performance of the system.
+Time plays a signiﬁcant role in a wide range of concur-
+rent systems. The correct functioning of some systems
+crucially depends on the time taken by certain activi-
+ties, and different design decisions may have a signiﬁ-cant impact on the performance of a system. CP-nets
+include a time concept that makes it possible to capturethe time taken to execute activities in the system. The
+time concept also means that CP-nets can be applied
+for simulation-based performance analysis, investigat-
+ing performance measures such as delays, throughput,and queue lengths in the system, and for modelling andvalidation of real-time systems.
+CPN models can be structured into a set of modules
+to handle large speciﬁcations. The modules interact witheach other through a set of well-deﬁned interfaces, in a
+similar way as in programming languages. The module
+concept of CP-nets is based on a hierarchical structuringmechanism, allowing a module to have submodules and
+allowing a set of modules to be composed to form a new
+module.
+Visualisation is a technique that uses high-level graph-
+ics to animate the behaviour of CPN models, and it is
+closely related to simulation of CPN models. An impor-
+tant application of visualisation is that it allows for thepresentation of design ideas and analysis results using
+application domain concepts. This is particularly impor-
+tant in discussions with people and colleagues unfamiliarwith CP-nets. Several means exist for adding domain-
+speciﬁc graphics on top of a CPN model. This can be
+used to abstractly visualise the execution of the CPNmodel in the context of the application domain. Oneexample of this is to use message sequence charts [ 15]
+(or sequence diagrams [ 29]) to visualise the exchange of
+messages in the execution of a communication protocol.
+CPN models are formal—in the sense that the CPN
+modelling language has a mathematical deﬁnition of
+its syntax and semantics. This means that they can be
+used to verify system properties, i.e., prove that certain
+desired properties are fulﬁlled or that certain undesired
+properties are guaranteed to be absent. Veriﬁcation ofsystem properties is supported by a set of state spacemethods. The basic idea underlying state spaces is to
+compute all reachable states and state changes of the
+CPN model and represent these as a directed graphwhere nodes represent states and arcs represent occur-
+ring events. State spaces can be constructed fully auto-
+matically. From a constructed state space it is possible toanswer a large set of veriﬁcation questions concerning
+the behaviour of the system such as absence of dead-
+locks, the possibility of always being able to reach agiven state, and the guaranteed delivery of a given ser-vice. The state space methods of CP-nets can also be
+applied to timed CP-nets. Hence, it is also possible to
+verify the functional correctness of systems modelledby means of timed CP-nets.
+It should be stressed that for the practical use of
+CP-nets and their supporting computer tools, it suf-ﬁces to have an intuitive understanding of the syntax
+and semantics of the CPN modelling language. This is
+
+--- Page 3 ---
+Coloured Petri Nets and CPN Tools 215
+analogous to ordinary programming languages such as
+JA VA that are successfully applied by programmers who
+are usually not familiar with the formal deﬁnitions of the
+languages. This underpins the important property thatCP-nets can be taught and learned without studying theassociated formal deﬁnitions.
+The practical application of CPN modelling and anal-
+ysis relies heavily on the existence of computer toolssupporting the creation and manipulation of models.
+CPN Tools [ 10] is a tool suite for editing, simulation,
+state space analysis, and performance analysis of CPNmodels. The user of CPN Tools works directly on the
+graphical representation of the CPN model. The graph-
+ical user interface (GUI) of CPN Tools has no conven-tional menu bars and pull-down menus, but is based oninteraction techniques such as tool palettes and marking
+menus . A license for CPN Tools can be obtained free of
+charge via the CPN Tools web pages [ 10]. CPN Tools is
+currently licensed to more than 4,000 users in more than
+115 different countries and is available for MS Windows
+and Linux.
+Reader’s guide
+This paper gives a brief introduction to the CPN mod-
+elling language and illustrates how construction, simu-
+lation, state space analysis, performance analysis, and
+visualisation are supported by CPN Tools. Section 2
+introduces the concepts of the CPN modelling language.
+Section 3illustrates how construction of CPN models is
+supported by CPN Tools, and Sect. 4shows how simu-
+lation is supported. Section 5gives a brief introduction
+to state space methods and explains how they are sup-
+ported in CPN Tools. Section 6introduces the basic ideas
+of simulation-based performance analysis and explainshow it is supported by CPN Tools. Section 7illustrates
+how domain-speciﬁc visualisation is supported by CPN
+Tools. Finally, Section 8concludes the paper and pro-
+vides references to further material on the CPN model-
+ling language, practical examples, and use of CPN Tools.
+It is not necessary to read the entire paper or to be
+familiar with Standard ML to get started using CP-netsand CPN Tools. To learn the basics it is sufﬁcient to read
+the following: the introduction to the concepts of non-
+hierarchical CP-nets (Sects. 2.1–2.3), the introduction
+to CPN Tools and the tools for constructing non-hier-
+archical models (Sects. 3.1,3.2,3.4, and 3.5), and the
+description of simulating CP-nets (Sect. 4).
+The remaining sections of the paper present more
+advanced topics. Hierarchical CP-nets are introduced in
+Sect. 2.4, and tools for constructing hierarchical models
+are presented in Sect. 3.3. Readers interested in perfor-
+mance analysis should read the introduction to timedCP-nets (Sect. 2.5), and Sect. 6on performance analysis.
+State space analysis and visualisation are described in
+Sects. 5and 7, respectively.
+A basic introduction to CPN ML and many exam-
+ples of how to use CPN ML can be found in the helppages for CPN Tools (which can also be found online via
+[10]). It is not necessary to have a good understanding
+of Standard ML to use the basic features of the perfor-mance, state space, and visualisation facilities. However,
+to make effective use of the more advanced features of
+these facilities, it is necessary to understand Standard
+ML. Again, the help pages provide a number of exam-
+ples and descriptions of how Standard ML is used to
+support advanced analysis techniques.
+2 The CPN modelling language
+In this section, we introduce the CPN modelling lan-
+guage by means of a small running example modelling
+a communication protocol. We use a simple protocol
+since it is easy to explain and understand, and becauseit involves concurrency, non-determinism, communica-
+tion, and synchronisation which are key characteristics
+of concurrent systems. The protocol itself is unsophisti-cated, but yet complex enough to illustrate the constructs
+of the CPN modelling language. No prior knowledge of
+protocols is required.
+The simple protocol consists of a sender transferring
+a number of data packets to a receiver . Communication
+takes place on an unreliable network, i.e., packets may
+be lost and overtaking is possible. The protocol usessequence numbers, acknowledgements, and retransmis-
+sions to ensure that the data packets are delivered exactly
+once and in the correct order at the receiving end. Theprotocol uses a stop-and-wait strategy, i.e., the same data
+packet is transmitted until a corresponding acknowl-
+edgement is received. The data packets consist of asequence number and the data (payload) to be transmit-ted. An acknowledgement consists of a sequence num-
+ber specifying the number of the data packet expected
+next by the receiver.
+2.1 Net structure, declarations, and inscriptions
+A CPN model is usually created as a graphical drawing,
+and Fig. 1shows the basic CPN model of the protocol.
+The left part models the sender, the middle part models
+the network, and the right part models the receiver. TheCPN model contains eight places (drawn as ellipses or
+circles), ﬁve transitions (drawn as rectangular boxes), a
+number of directed arcs connecting places and transi-
+tions, and ﬁnally some textual inscriptions next to the
+places, transitions, and arcs. The inscriptions are written
+
+--- Page 4 ---
+216 K. Jensen et al.
+Fig. 1 Basic CPN model of the simple protocol in the initial marking M0
+in the CPN ML programming language which is an
+extension of the Standard ML language. Places and tran-sitions are called nodes . Together with the directed arcs
+they constitute the net structure . An arc always connects
+a place to a transition or a transition to a place. It isillegal to have an arc between two nodes of the same
+kind, i.e., between two transitions or two places.
+The state of the modelled system is represented by
+the places. Each place can be marked with one or moretokens , and each token has a data value attached to it.
+This data value is called the token colour . It is the num-
+ber of tokens and the token colours on the individualplaces which together represent the state of the system.
+This is called a marking of the CPN model, while the
+tokens on a speciﬁc place constitute the marking of thatplace. By convention, we write the names of the places
+inside the ellipses. The names have no formal mean-
+ing—but they have huge practical importance for thereadability of a CPN model (just like the use of mne-monic names in traditional programming). The state of
+the sender is modelled by the two places PacketsToSend
+andNextSend . The state of the receiver is modelled
+by the two places DataReceived andNextRec , and the
+state of the network is modelled by the places A,B,C,
+andD.
+Next to each place, there is an inscription which deter-
+mines the set of token colours (data values) that the
+tokens on the place are allowed to have. The set of pos-sible token colours is speciﬁed by means of a type (asknown from programming languages), and it is called the
+colour set of the place. By convention the colour set is
+written below the place. The places NextSend ,NextRec ,
+C, and Dhave the colour set NO. In CPN Tools, coloursets are deﬁned using the CPN ML keyword colset ,
+and the colour set NOis deﬁned to be equal to the integer
+typeint:
+colset NO = int;This means that tokens residing on the four places
+NextSend ,NextRec ,C, and Dwill have an integer as
+their token colour. The colour set NOis used to model
+the sequence numbers in the protocol. The place Data
+Received has the colour set DATA deﬁned to be the set
+of all text strings string . The colour set DATA is used to
+model the payload of data packets. The remaining threeplaces have the colour set NOxDATA which is deﬁned to
+be theproduct of the types NOandDATA . This type
+contains all two-tuples (pairs) where the ﬁrst element is
+an integer and the second element is a text string. Tuples
+are written using parentheses (and)around a comma-
+separated list. The colour set NOxDATA is used to model
+the data packets which contain a sequence number andsome data. The colour sets are deﬁned as:
+colset DATA = string;
+colset NOxDATA = product NO * DATA;
+Next to each place, we ﬁnd another inscription which
+determines the initial marking of the place. The initial
+marking inscription of a place is by convention writ-
+ten above the place. For example, the inscription at the
+upper right side of the place NextSend speciﬁes that
+the initial marking of this place consists of one tokenwith the colour (value) 1. This indicates that we want
+data packet number 1 to be the ﬁrst data packet to
+be sent. Analogously, the place NextRec has an initial
+marking consisting of a single token with the colour 1.
+
+--- Page 5 ---
+Coloured Petri Nets and CPN Tools 217
+This indicates that the receiver is initially expecting
+the data packet with sequence number 1. The place
+DataReceived has an initial marking which consists of
+one token with colour ""(which is the empty text string).
+This indicates that the receiver has initially received nodata. The inscription AllPackets at the upper left side
+of place PacketsToSend is a constant deﬁned as:
+val AllPackets = 1‘(1,"COL") ++ 1‘(2,"OUR") ++
+1‘(3,"ED ") ++ 1‘(4,"PET") ++1‘(5,"RI ") ++ 1‘(6,"NET");
+which speciﬁes that the initial marking of this place con-
+sists of six tokens with the data values:
+(1,"COL"),(2,"OUR"),(3,"ED "),(4,"PET"),
+(5,"RI "),(6,"NET").
+The++and‘are operators that allow for the con-
+struction of a multi-set consisting of token colours. A
+multi-set is similar to a set, except that values can appear
+more than once. The inﬁx operator ‘takes a non-
+negative integer as left argument specifying the num-ber of appearances of the element provided as the right
+argument. The ++takes two multi-sets as arguments
+and returns their union (sum). The initial marking ofPacketsToSend consists of six tokens representing the
+data packets which we want to transmit. The absence of
+an inscription specifying the initial marking means thatthe place initially contains no tokens. This is the case for
+the places A,B,C, and D.
+The current marking of each place is indicated next
+to the place. The number of tokens on the place in thecurrent marking is shown in the small circle, while the
+detailed token colours are indicated in the box posi-
+tioned next to the small circle. Initially, the current mark-ing is equal to the initial marking, denoted M
+0.A s
+explained earlier, the initial marking has six tokens on
+Packets ToSend and one token on each of the places
+NextSend ,NextRec , and DataReceived .
+The ﬁve transitions (drawn as rectangles) represent
+the events that can take place in the system. As withplaces, we write the names of the transitions inside therectangles. The transition names also have no formal
+meaning but they are very important for the readabil-
+ity of the model. When a transition occurs , it removes
+tokens from its input places (those places that have an arc
+leading to the transition) and it adds tokens to its output
+places (those places that have an arc coming from the
+transition). The colours of the tokens that are removed
+from input places and added to output places when a
+transition occurs are determined by means of the arc
+expressions which are the textual inscriptions positioned
+next to the individual arcs. A transition and a place mayalso be connected by double-headed arcs . A double-
+headed arc is shorthand for two directed arcs in oppo-
+site directions between a place and a transition which
+both have the same arc expression. This implies thatthe place is both an input place and an output placefor the transition. The transition SendPacket and the
+places PacketsToSend andNextSend are connected by
+double-headed arcs.
+The arc expressions are written in the CPN ML pro-
+gramming language and are built from typed variables,
+constants, operators, and functions. When all variablesin an expression are bound to values (of the correct type)
+the expression can be evaluated. An arc expression eval-
+uates to a multi-set of token colours. As an example,consider the two arc expressions: nand(n,d) on the
+three arcs connected to the transition SendPacket . They
+contain the variables nandddeclared as:
+var n : NO;
+var d : DATA;
+This means that nmust be bound to a value of type NO
+(i.e., an integer), while dmust be bound to a value of
+typeDATA (i.e., a text string). We may, e.g., consider the
+binding :
+/angbracketleftn=3,d="CPN" /angbracketright
+which binds nto3anddto"CPN" . For this binding the
+arc expressions evaluate to the following values, where→should be read as “evaluates to”:
+n →1‘3
+(n,d) →1‘(3,"CPN")
+Arc expressions evaluate to a multi-set of token col-
+ours, and this means that there may be zero, exactly onetoken, or more than one token removed from an input
+place or added to an output place. If an arc expression
+evaluates to exactly one token, then the
+1‘can be omit-
+ted from the expression by convention. For example,
+arc expressions nand(n,d) are shorthand for 1‘n and
+1‘(n,d) .
+2.2 Enabling and occurrence of transitions
+Next let us consider the occurrence of events in a CPN
+model. The arc expressions on the input arcs of a transi-
+tion together with the tokens on the input places deter-
+mine whether the transition is enabled , i.e., is able to
+occur in a given marking. For a transition to be enabled
+it must be possible to ﬁnd a binding of the variables
+that appear in the surrounding arc expressions of the
+transition such that the arc expression of each input arcevaluates to a multi-set of token colours that is presenton the corresponding input place. When the transition
+
+--- Page 6 ---
+218 K. Jensen et al.
+occurs with a given binding, it removes from each input
+place the multi-set of token colours to which the corre-
+sponding input arc expression evaluates. Analogously, it
+adds to each output place the multi-set of token coloursto which the expression on the corresponding output arc
+evaluates.
+Let us now consider transition SendPacket .I nF i g . 1
+transition SendPacket has a thick border line, while the
+other four transitions do not. In CPN Tools, this indi-
+cates that SendPacket is the only transition that has an
+enabled binding in the initial marking M
+0. The other
+transitions are disabled, i.e., they cannot occur. When
+this transition occurs, it removes a token from each of
+the input places NextSend andPacketsToSend . The arc
+expressions of the two double-headed arcs are nand
+(n,d) .
+The initial marking of place NextSend contains a sin-
+gle token with colour 1. This means that the variable n
+must be bound to 1. Otherwise the expression on the arc
+from NextSend would evaluate to a token colour which
+is not present at NextSend implying that the transition
+isdisabled for that binding. Now let us consider the arc
+expression (n,d) on the arc from PacketsToSend .W e
+have already bound nto1, and now we are looking for
+a binding of dsuch that the arc expression (n,d) will
+evaluate to one of the six token colours that are present
+onPacketsToSend . Obviously, the only possibility is to
+binddto the string "COL" . Hence, we conclude that the
+binding:
+/angbracketleftn=1,d="COL" /angbracketright
+is the only enabled binding for SendPacket (in the ini-
+tial marking). An occurrence of SendPacket with this
+binding removes the token with colour 1from the input
+place NextSend and removes the token with colour
+(1,"COL") from the input place PacketsToSend . Since
+SendPacket is connected to PacketsToSend andNext-
+Send by means of double-headed arcs, the occurrence
+ofSendPacket with this binding will also add a token
+with colour (1,"COL") toPacketsToSend and add a
+token with colour 1toNextSend . This means that tokens
+removed from the places PacketsToSend andNextSend
+according to the result of evaluating the arc expression,
+are immediately replaced by new tokens with the same
+token colours. Thus the markings of these places donot change when the transition occurs. This allows thepacket to be retransmitted (to recover from loss). The
+occurrence of SendPacket also adds a new token with
+colour(1,"COL") to the output place A. Intuitively,
+this represents that the ﬁrst data packet (1,"COL")
+has been sent to the network. Figure 2shows a fragment
+of the CPN model in the new marking M
+1. We show only
+a fragment of the CPN model since the occurrence of aFig. 2 Marking M1reached when SendPacket occurs in M0
+transition changes only the markings of the places that
+are connected to the transition via an arc.
+Consider the marking M1and the transition Trans-
+mitPacket which has three variables n,d, andsuccess .
+The variable success is a Boolean variable declared
+as:
+var success : BOOL;which appears on the output arc. The colour set BOOL
+is deﬁned to be the set of Boolean values ( {true,
+false} )bool :
+colset BOOL = bool;In marking M
+1, place Ahas a single token with colour
+(1,"COL") . The variable success is only found on
+an output arc from TransmitPacket , and this means that
+the variable can be bound to an arbitrary value from itscolour set (which is BOOL ). Based on the arc expression
+(n,d) on the input arc from A, it is straightforward to
+conclude that transition TransmitPacket is enabled with
+two different bindings in M
+1:
+b+=/angbracketleftn=1,d="COL" ,success=true /angbracketright
+b−=/angbracketleftn=1,d="COL" ,success=false /angbracketright
+The ﬁrst of these bindings b+represents successful trans-
+mission over the network. If it occurs in M1the following
+happens:
+– The data packet (1,"COL") is removed from input
+place A.
+– A new token representing the same data packet is
+added to the output place B(in theif-then-else
+expression the condition success evaluates to
+true while1‘(n,d) evaluates to 1‘(1,"COL") ).
+Figure 3shows part of the marking M+
+2which is the
+result of an occurrence of the binding b+inM1.
+The second binding b−represents an unsuccessful
+transmission, i.e., that the data packet is lost by the net-work. If it occurs in M
+1the following happens:
+
+--- Page 7 ---
+Coloured Petri Nets and CPN Tools 219
+Fig. 3 Marking M+
+2—successful transmission in M1
+– The data packet (1,"COL") is removed from input
+place A.
+– No token is added to the output place B(in the
+if-then-else expression the condition success
+evaluates to false while the predeﬁned constant
+empty evaluates to the empty multi-set).
+An occurrence of the binding b−inM1leads back to the
+initial marking M0shown in Fig. 1.
+Let us now consider the reception of data packets
+in marking M+
+2. The token on place NextRec represents
+the sequence number of the data packet that the receiver
+expects to receive next. The variable kis bound to the
+value of this sequence number. The variable data has
+typeDATA (i.e., text string):
+var data : DATA;
+The variable data will be bound to the text string in the
+token colour of the token on place DataReceived .T h i s
+text string contains the data from all of the data packetsthat have been received by the receiver.
+When a data packet is present at place Bthere are
+two different possibilities. Either n=k evaluates to true
+which means that the data packet being received is theone that the receiver expects, or n=k evaluates to false
+which means that it is not the data packet expected. If
+the data packet on place Bis the expected data packet
+(i.e.,n=k), the following happens:
+– The data packet is removed from place B.
+– The data in the data packet is concatenated to the
+end of the data which the receiver has alreadyreceived (the operator ˆ is the concatenation opera-
+tor for text strings).
+– The token colour on place NextRec changes from k
+tok+1, which means that the receiver now waits for
+the next data packet.Fig. 4 Marking M3reached when ReceivePacket occurs
+– An acknowledgement is put on place C. The ack-
+nowledgement contains the sequence number of thedata packet that the receiver is expecting next.
+The occurrence of the transition ReceivePacket in
+the marking M
++
+2from Fig. 3corresponds to the reception
+of the expected data packet. Figure 4shows the marking
+M3reached when ReceivePacket occurs in M+
+2.
+If the data packet on Bis not the expected data packet
+(i.e.,n/negationslash=k), the following happens:
+– The data packet is removed from place B.
+– The data in the data packet is ignored (the marking
+ofDataReceived does not change).
+– The token colour on place NextRec does not change,
+which means that the receiver is waiting for the same
+data packet as before.
+– An acknowledgement is put on place C. The ack-
+nowledgement contains the sequence number of the
+data packet that the receiver is expecting next.
+Transition TransmitAck has a behaviour which is sim-
+ilar to the behaviour of TransmitPacket . It removes
+acknowledgements from place Cand adds them to place
+Din case of a successful transmission. Let M4be
+the marking reached from M3by the occurrence of
+TransmitAck with the binding /angbracketleftn=2,success=true /angbracketright.
+Let us now consider the reception of acknowledge-
+ments. When the transition ReceiveAck occurs, it
+removes an acknowledgement from place Dand updates
+the token on NextSend to contain the sequence number
+speciﬁed in the acknowledgement. The sender is nowable to send the next packet, according to the stop-and-wait strategy.
+
+--- Page 8 ---
+220 K. Jensen et al.
+Suppose that the transition ReceiveAck occurs with
+the binding /angbracketleftn=2,k=1/angbracketrightin marking M4. This will lead
+to a marking M5which represents a state where the
+sender is ready to send data packet number 2 (since theﬁrst data packet is now known to have been successfullyreceived). This marking is similar to the initial marking,
+but the tokens on places NextSend andNextRec have
+colour2(instead of 1), and the token on DataReceived
+has colour "COL" (instead of "").
+Above, we have described the sending, transmission,
+and reception of data packet number 1 and the cor-responding acknowledgement. In the CPN model this
+corresponds to the occurrence of ﬁve transitions with
+enabled bindings. A pair consisting of a transition anda binding for the variables of the transition is called abinding element . Below we have listed the ﬁve occurring
+binding elements:
+(SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+(TransmitPacket ,/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+(ReceivePacket ,/angbracketleftn=1,d="COL" ,k=1,data="" /angbracketright)
+(TransmitAck ,/angbracketleftn=2,success=true /angbracketright)
+(ReceiveAck ,/angbracketleftn=2,k=1/angbracketright)
+Transitions are also allowed to have a guard , which is
+a Boolean expression. When a guard is present it must
+evaluate to true for the binding to be enabled, other-
+wise the binding is disabled and cannot occur. Hence, aguard puts an additional constraint on the enabling of
+bindings for the transition. An example of a guard will
+be given in Sect. 6.1.
+2.3 Steps, concurrency and conﬂict
+Now let us consider the behaviour of the CPN model
+in further detail. We have seen that a single bindingelement is enabled in the initial marking:
+(SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+When it occurs, it leads to the marking M
+1that is shown
+in Fig. 2. In marking M1three different binding elements
+are enabled:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+TP+=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+TP−=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=false /angbracketright)
+The ﬁrst binding element represents a retransmission
+of data packet number 1. The second binding element
+represents a successful transmission of data packet num-
+ber 1 over the network, while the third binding elementrepresents the loss of the data packet by the network.The last two binding elements, TP
++and TP −,a r ei nconﬂict with each other. Both of them are enabled, but
+only one of them can occur since each of them needs a
+token from place A, and there is only one such token
+inM1. However, the binding elements SP and TP +can
+occur concurrently (i.e., in parallel). To occur, SP needs a
+token from place PacketsToSend and a token on Next-
+Send , while TP +needs a token from place A. In other
+words, both binding elements can get the tokens theyneed without competition/interference with the other
+binding element. A multi-set of binding elements is con-
+currently enabled in a given marking if there are enough
+tokens on the input places of the transitions in question
+to simultaneously satisfy the demands of all of the bind-
+ing elements. By a similar argument, we see that SP andTP
+−are concurrently enabled.
+Astepin general consists of a (non-empty and ﬁnite)
+multi-set of concurrently enabled binding elements. A
+step may consist of a single binding element. We do notconsider the empty multi-set of binding elements to be
+a legal step since it would have no effect and always be
+enabled. The effect of the occurrence of a set of concur-rently enabled binding elements is the sum of the effects
+caused by the occurrence of the individual binding ele-
+ments. This means that the marking reached will be thesame as the one which will be reached if we let the set ofbinding elements occur sequentially (i.e., one after each
+other in some arbitrary order).
+Now let us assume that the ﬁrst and second of the
+three enabled binding elements in marking M
+1occur
+concurrently with each other, i.e., that we have the fol-
+lowing step (written as a multi-set of binding elements):
+1‘(SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)+ +
+1‘(TransmitPacket ,/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+We then reach the marking M2which is partly shown
+in Fig. 5. In marking M2we have four enabled binding
+elements:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+TP+=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+TP−=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=false /angbracketright)
+RP = ( ReceivePacket ,
+/angbracketleftn=1,d="COL" ,k=1,data="" /angbracketright)
+As before, we have a conﬂict between TP +and TP −,
+while all the other binding elements are concurrentlyenabled since there are enough input tokens to simulta-
+neously satisfy the demands of each binding element.
+An execution of a CPN model is, in general, described
+by means of an occurrence sequence , which speciﬁes
+the steps that occur and the intermediate markings that
+
+--- Page 9 ---
+Coloured Petri Nets and CPN Tools 221
+Fig. 5 Marking M2reached when SendPacket and Transmit-
+Packet occur in M1
+are reached. A marking that is reachable via an occur-
+rence sequence starting in the initial marking is called areachable marking . The existence of a reachable mark-
+ing with more than one enabled binding element makes
+the CPN model non-deterministic . This means that there
+exist different occurrence sequences containing differ-ent sequences of steps and leading to different reach-
+able markings. It is important to stress that it is only
+the choice between the enabled steps which is non-deterministic. The individual steps themselves are deter-
+ministic in the sense that once an enabled step has been
+selected in a given marking, the marking resulting fromits occurrence is uniquely determined (unless randomfunctions are used, as we will illustrate in Sect. 6).
+Figure 6shows an intermediate marking M
+∗reached
+after the occurrence of a sequence of steps of the CPNmodel. In the marking M
+∗place Ahas two tokens
+with colour (1,"COL") and one token with colour
+(2,"OUR") . In this situation, TransmitPacket is enabled
+in bindings corresponding to transmission of data packet
+1 and data packet 2. In a CPN model there are norequirements on the order in which tokens are removed
+from places. This means that in M∗it is possible to let the
+binding of TransmitPacket corresponding to a success-
+ful transmission of data packet 2 occur, and in this waylet the data packet with sequence number 2 on place A
+overtake the two data packets with sequence number 1.
+Since there are two tokens with colour (1,"COL") it
+also means that TP
++and TP −can occur concurrently
+because there is a token on Afor each of the two bind-
+ing elements. It also means that TP +can occur concur-
+rently with itself , and the same is true for TP −. Thus it
+is possible to transmit multiple packets on the network
+concurrently.
+The transition SendPacket is enabled in M∗i nab i n d -
+ing corresponding to a retransmission of data packet 2even if data packet 2 is still in transit. The retransmission
+is possible because the transmission of data packet 2 is
+too slow and hence could be out-raced by the secondoccurrence of SendPacket (i.e., the retransmission of
+packet number 2). This means that we have described a
+time-related behaviour without the explicit use of time.What is important at the chosen abstraction level is not
+when a retransmission may occur, but the simple fact
+that it is possible that such a retransmission can occur.We will discuss the execution of CPN models in moredetail in Sect. 4when presenting how simulation is sup-
+ported by CPN Tools.
+2.4 Modules
+We now show how a CPN model can be organised as a
+set of hierarchically related modules —in a similar way
+as programs are constructed from modules. To illustrate
+kif n=k
+then k+1
+else kkdata
+n
+n if successthen 1`nelse emptynif n=kthen k+1else k(n,d) (n,d)
+nif n=k 
+then data^d
+else data(n,d)if success
+then 1`(n,d)else empty(n,d)
+Receive
+AckTransmit
+AckReceive
+PacketTransmit
+PacketSend
+Packet
+NextRec1`1
+NO
+C
+NOD
+NOA
+NOxDATA
+NextSend1`1
+NOData
+Received1`""
+DATA
+B
+NOxDATAPackets
+To SendAllPackets
+NOxDATA
+1 1`2
+1 1`232`(1,"COL")++
+1`(2,"OUR")
+11`21 1`"COL"
+11`(1,"COL")61`(1,"COL")++1`(2,"OUR")++1`(3,"ED ")++1`(4,"PET")++1`(5,"RI  ")++1`(6,"NET")
+Fig. 6 Intermediate marking M∗reached after an occurrence sequence starting in M0
+
+--- Page 10 ---
+222 K. Jensen et al.
+nkData(n,d)
+Ack(n)(n,d)
+n
+Receive
+AckSend
+PacketAOut
+PACKET
+DIn
+PACKETNextSend1`1
+NOPackets
+To SendI/OAllPackets
+NOxDATAI/O
+InOut
+Fig. 7 Module for the sender
+the use of modules, we revisit the CPN model of the
+protocol from Fig. 1and develop a hierarchical CPN
+model for the protocol example. A straightforward ideais to create a module for the sender, a module for the
+network, and a module for the receiver. Furthermore,
+if we take a closer look at the network part of themodel in Fig. 1, we notice that it contains two transi-
+tions TransmitPacket andTransmitAck that have a very
+similar behaviour. Hence, it would be natural to use the
+same module to represent the behaviour of Transmit-
+Packet andTransmit-Ack . However, the involved token
+colours are slightly different. The TransmitPacket tran-
+sition deals with data packets, represented by tokens oftypeNOxDATA , while the TransmitAck transition deals
+with acknowledgements, represented by tokens of type
+NO. This means that we cannot immediately use the same
+module to represent the behaviour of TransmitPacket
+andTransmitAck . To overcome this problem, we use the
+union colour set PACKET deﬁned as follows:
+colset PACKET = union Data : NOxDATA +
+Ack : NO;
+The colour set PACKET is a union, and it uses two con-
+structorsData andAck to tell whether a data value
+of this colour set represents a data packet (such asData(1,"COL") ) or an acknowledgement packet
+(such asAck(2) ).
+Figure 7shows the Sender module, which contains
+two transitions and four places. Place Dis an input port ,
+place Ais an output port , while place PacketsToSendif n=k
+then Ack(k+1)
+else Ack(k)Data(n,d)
+if n=k then data^delse data
+kdata
+if n=kthen k+1else kReceive
+ Packet
+C Out
+PACKETB In
+PACKETData
+ReceivedI/O1`""
+DATA
+NextRec1`1
+NOIn
+OutI/O
+Fig. 8 Module for the receiver
+is an input/output port. This means that places A,D,
+PacketsToSend constitute the interface through which
+theSender module exchanges tokens with its environ-
+ment (i.e., the other modules). The Sender module will
+import tokens via the input port Dand it will export
+tokens via the output port A. An input/output port is
+a port through which the module can both import and
+export tokens. In CPN Tools, port places can be recog-
+nised by the rectangular port-type tags positioned nextto them specifying whether the port place is an input,
+output, or input/output port. The place NextSend is an
+internal place, which is only relevant to the Sender mod-
+ule itself. The Sender module is identical to the sender
+part of Fig. 1except that the colour set of the places A
+andDare nowPACKET and that we use the constructors
+Data andAck in the arc expressions on the surrounding
+arcs of these places.
+Figure 8shows the Receiver module. It has an input
+port B, an output port C, an input/output port DataRe-
+ceived , and an internal place NextRec .
+Figure 9shows the Network module. The Network
+module has two input ports, AandC, together with
+two output ports, BandD.T h e Network module has
+no internal places. The Network module has two sub-
+stitution transitions (drawn as rectangular boxes with
+double lines), TransmitData andTransmitAck . The basic
+Transmit
+Ack
+TransmitTransmit
+Data
+Transmit
+CIn
+PACKETD Out
+PACKETBOut
+PACKETA In
+PACKETIn Out
+InTransmit
+TransmitOut
+Fig. 9 Module for network
+
+--- Page 11 ---
+Coloured Petri Nets and CPN Tools 223
+if success
+then 1`pelse empty
+p
+Transmit OUT Out
+PACKETIN In
+PACKETIn Out
+Fig. 10 Module for packet transmission
+idea in hierarchical models is to associate a module with
+each substitution transition. When a module is associ-
+ated with a substitution transition it is said to be a sub-
+module . In CPN Tools, substitution transitions can be
+recognised by the double boxes and rectangular sub-
+module tags positioned next to them. The tag containsthe name of the submodule related to the substitution
+transition. Intuitively, this means that the submodule
+presents a more detailed view of the behaviour repre-sented by the substitution transition—in a similar wayas the implementation of a procedure provides a more
+detailed view of the effect of a procedure call. In Fig. 9,
+both substitution transitions have the Transmit module
+as their associated submodule.
+TheTransmit module is shown in Fig. 10. The transi-
+tionTransmit of the Transmit module transmits packets
+of typePACKET , i.e., both data packets and acknowl-
+edgements. The variable pis a variable of the colour set
+PACKET .
+To tie the modules together, we use the Protocol mod-
+u l es h o w ni nF i g . 11. It represents a more abstract view of
+the (entire) protocol system. The substitution transition
+Sender has the Sender module from Fig. 7as its associ-
+ated submodule, Network has the Network module from
+Fig.9as its associated submodule, and Receiver has the
+Receiver module from Fig. 8as its associated submod-
+ule. In the Protocol module, we can see that the Sender ,
+Network , and Receiver modules exchange tokens with
+each other, via the places A,B,C, and D—but we can-
+not see the details of what the Sender ,Network andReceiver modules do. In Fig. 11each substitution tran-
+sition has the same name as its submodule, but this is
+not required.
+The input places of substitution transitions are called
+input sockets , while the output places are called output
+sockets . This means that in the Protocol module Ais an
+output socket for the substitution transition Sender , and
+an input socket for the substitution transition Network .
+Place PacketsToSend is an input/output socket for the
+substitution transition Sender .
+The socket places of a substitution transition con-
+stitute the interface of the substitution transition. To
+obtain a complete hierarchical model, we need to tell
+how the interface of each submodule is related to theinterface of its substitution transition. This is done bymeans of a port assignment , which maps the port places
+of the submodule to the socket places of the substitu-
+tion transition. Input ports are assigned to input sockets,output ports to output sockets, and input/output ports
+to input/output sockets. For the substitution transitions
+and associated submodules in Fig. 11, each port has the
+same name as the socket to which it is assigned, but this
+is not required.
+When a port is assigned to a socket, the two places
+constitute two different views of a single place. Thismeans that the port and socket place always share the
+same marking and hence conceptually become the same
+compound place . Figures 12and13show the marking of
+theSender andNetwork modules after an occurrence
+of the SendPacket transition in the initial marking.
+When transition SendPacket occurs, it adds a token
+to the output port Ain the Sender module (see Fig. 12).
+This port place is assigned to the output socket Aof the
+substitution transition Sender in the Protocol module
+(see Fig. 11). Hence, the new token will also appear at
+place Ain the Protocol module. This place is also an
+Network
+NetworkReceiver
+ReceiverSender
+SenderPackets
+To Send
+NOxDATA
+C
+PACKETD
+PACKETA
+PACKETData
+Received1`""
+DATA
+B
+PACKET
+Sender Receiver NetworkAllPackets
+Fig. 11 Protocol module—top-level module of the hierarchical protocol model
+
+--- Page 12 ---
+224 K. Jensen et al.
+Fig. 12 Marking of Sender module—after occurrence of
+SendPacket
+Fig. 13 Marking of Network module—after occurrence of
+SendPacket
+input socket for the substitution transition Network and
+has the port place Ain the Network module (see Fig. 13)
+assigned to it. Hence, we conclude that the new token
+also becomes available at the port place Aof the Network
+module. In other words the three places A(in the Proto-
+col,Sender , and Network modules) are three different
+views of a single compound place—through which the
+modules can interchange tokens with each other. Similarremarks can be made about the places B,C, and D.T h e
+place Dappears in the Protocol ,Sender , and Network
+modules, while BandCappear in the Protocol ,Network ,
+andReceiver modules.
+Above we have seen that two related port and socket
+places constitute different views of a single compound
+place, and that this means that they always have the samemarking. Obviously, this implies that they also need to
+have identical colour sets and identical initial markings.
+It should be noted that substitution transitions do nothave guards, and arcs connected to substitution transi-
+tions do not have arc expressions. It does not make sense
+to talk about the enabling and occurrence of a substitu-tion transition. Instead the substitution transition repre-sents the compound behaviour of its submodule.In the hierarchical model presented above there are
+three levels of abstraction. The highest abstraction level
+is the Protocol module, while the lowest abstraction level
+is the Sender ,Transmit , and Receiver modules, and the
+Network module is in between. In general, there can be
+an arbitrary number of abstraction levels. CPN models
+of larger systems typically have up to ten abstraction
+levels.
+The Transmit module is used as submodule of the
+TransmitData andTransmitAck substitution transitions
+in the Network module. This means that there will be
+two separate instances of the Transmit module—one
+instance for each of the two substitution transitions.
+For the instance of the Transmit module which is a sub-
+module of the substitution transition TransmitData ,w e
+assign the port place IN
+to the socket place A, while we
+assign the port place OUT to the socket place B.F o rt h e
+instance of the Transmit module which is a submodule
+of the substitution transition TransmitAck , we assign the
+port place INto the socket place C, while we assign the
+port place OUT to the socket place D.
+Each instance of a module has its own marking. This
+means that the marking of the instance of the Trans-
+mitmodule corresponding to the TransmitData substi-
+tution transition is independent of the marking of theinstance of the Transmit module corresponding to the
+TransmitAck substitution transition. The marking of each
+instance of a port place matches the tokens present onthe corresponding socket place of the associated substi-
+tution transition. CPN tools automatically instantiates
+the appropriate number of instances of each module andassociates these instances with substitution transitions.
+Above we have seen how modules can exchange
+tokens via port and socket places. It is also possible formodules to exchange tokens via fusion sets . Fusion sets
+allow a number of places (which may belong to different
+modules) to be glued together into one compound place
+across the hierarchical structure of the model.
+2.5 Modelling of time
+We now describe how timing information can be added
+to CPN models. This will allow us to evaluate how efﬁ-
+ciently a system performs its operations, and it also
+allows us to model and validate real-time systems, i.e.,systems where the correctness of the system relies on the
+proper timing of the events. With a timed CPN model
+we may calculate performance measures, such as max-imum queue lengths, mean waiting times, and through-
+put. This will be illustrated in Sect. 6. We may also, e.g.,
+verify whether a real-time system meets the requireddeadlines. We present the time concept of CP-nets usingthe non-hierarchical variant of the simple protocol. The
+
+--- Page 13 ---
+Coloured Petri Nets and CPN Tools 225
+Fig. 14 Timed CPN model for the protocol in the initial marking M0
+timing constructs apply also to hierarchical CPN mod-
+els, and CPN Tools supports simulation and analysis of
+timed hierarchical CP-nets.
+Now let us look at Fig. 14which contains a timed CPN
+model for the simple protocol. It is easy to see that the
+CPN model is very closely related to the untimed CPN
+model in Fig. 1.
+The main difference between timed and untimed CPN
+models is that the tokens in a timed CPN model—
+in addition to the token colour—can carry a secondvalue called a time stamp . This means that the mark-
+ing of a place where the tokens carry a time stamp is
+now a timed multi-set specifying the elements in the
+multi-set together with their number of appearances andtheir time stamps. Furthermore, the CPN model has a
+global clock representing model time . The distribution
+of tokens on the places together with their time stampsand the value of the global clock is called a timed mark-
+ing. In a hierarchical timed CPN model there is a single
+global clock that is shared among all the modules.
+In general, a time stamp can be a non-negative inte-
+ger or real. In the current implementation of CPN Tools,
+only non-negative integers are supported. The timestamp tells us the time at which the token is ready to
+be used, i.e., the time at which it can be removed from
+the place by an occurring transition. The tokens on a
+place will carry a time stamp if the colour set of theplace is timed. A colour set is declared to be timed using
+the CPN ML keyword timed . Figure 15shows the col-
+our set declarations for the timed model. It can be seenthat all colour sets, except BOOL are deﬁned to be timed
+colour sets .
+The execution of a timed CPN model is controlled
+by the global clock, and it works in a similar way asFig. 15 Colour sets for the timed CPN model in Fig. 14
+the event queue found in most simulation engines for
+discrete-event simulation. The model remains at a given
+model time as long as there are binding elements that are
+colour enabled (i.e., have the needed input tokens) and
+are ready for execution (i.e., the required tokens have
+time stamps which are less than or equal to the current
+value of the global clock). Hence, in a timed CPN model
+an enabled binding element must be both colour enabledand ready in order to be able to occur. When there is no
+longer such a binding element to be executed, the clock
+is advanced to the earliest model time at which bind-ing elements can be executed. Each marking exists in a
+closed interval of model time (which may be a point, i.e.,
+a single moment of time). As for untimed CPN models,we may have conﬂicts and concurrency between bindingelements (and binding elements may be concurrent to
+themselves)—but only if the binding elements are ready
+to be executed at the same time.
+Consider now the initial marking of the timed CPN
+model for the protocol shown in Fig. 14. The colours of
+the tokens are the same as in the initial marking of theuntimed CPN model of the protocol, but now the tokens
+carry time stamps. As an example, the initial marking of
+the place PacketsToSend is:
+1‘(1,"COL")@0 +++
+1‘(2,"OUR")@0 +++
+
+--- Page 14 ---
+226 K. Jensen et al.
+1‘(3,"ED ")@0 +++
+1‘(4,"PET")@0 +++
+1‘(5,"RI ")@0 +++
+1‘(6,"NET")@0
+The time stamp of tokens are written after the @sym-
+bol which is pronounced as “at”. In this case, all tokenscarry the time stamp 0. The +++ operator takes two
+timed multi-sets as arguments and returns their union.
+All other tokens in the initial marking also carry thetime stamp 0. The value of the global clock in the initial
+marking is also 0. The initial marking of all places are
+speciﬁed as an (untimed) multi-set. CPN Tools will auto-matically attach the time stamp 0if the initial marking
+inscription of a place with a timed colour set does not
+explicitly specify the time stamps of the tokens.
+Consider the transition SendPacket and the binding
+/angbracketleftn=1,d="COL" /angbracketrightin Fig. 14. To occur, this binding needs
+the presence of a token with colour 1on place NextSend
+and the presence of a token with colour (1,"COL") on
+place PacketsToSend . This is determined by the input
+arc expressions by means of the enabling rule explained
+in Sect. 2.2. We see that the two tokens that are needed
+bySendPacket exist on the input places and that both
+of them carry the time stamp 0, which means that they
+can be used at time 0. Hence, the transition can occur at
+time0. When the transition occurs, it removes the two
+tokens from the input places and adds a token to each of
+the three output places. The colours of these tokens are
+determined by the output arc expressions by means ofthe occurrence rule explained in Sect. 2.2. However, it
+is now also necessary to calculate the time stamps to be
+given to the three output tokens. This is done by usingtime delay inscriptions attached to the transition and/or
+to the individual output arcs. Time delays inscribed on
+the transition apply to all output tokens created by that
+transition, while time delays inscribed on an output arconly apply to tokens created at that arc. In Fig. 14we
+have attached a time delay inscription @+9 to the Send-
+Packet transition, and a time delay inscription @+Wait
+to the outgoing arc to PacketsToSend , whereWait is a
+constant deﬁned as:
+val Wait = 100;
+The arc expressions on the output arcs to the places
+AandNextSend have no separate time delays. The time
+stamp given to the tokens created on an output arc isthe value of the global clock plus the result of evaluat-
+ing the time delay inscription of the transition plus the
+result of evaluating the time delay inscription of the arc.Hence, we conclude that the tokens added to the placesNextSend andAg e tt h et i m es t a m p :
+0+9+0=
+9( 1 )(n,d)
+nif success
+then 1`(n,d)else empty
+Transmit
+Packet
+@+Delay()Send
+Packet
+@+9A
+NOxDATA
+NextSend1`1
+NOB
+NOxDAT APackets
+To SendAllPackets
+NOxDATA
+(n,d) (n,d)@+Wait
+(n,d)11`(1,"COL")@9
+11`1@961`(1,"COL")@109+++
+1`(2,"OUR")@0+++1`(3,"ED ")@0+++1`(4,"PET")@0+++1`(5,"RI  ")@0+++1`(6,"NET")@0
+Fig. 16 Marking M1reached when SendPacket occurs at time 0
+inM0
+The ﬁrst 0 is the time at which the transition occurs as
+given by the global clock, 9 is the time delay inscribed on
+the transition, and the second 0 is the time delay on the
+output arc (since there is no time delay on the outputarc). Intuitively this models that the execution of thesend packet operation has a duration of 9 time units.
+The arc expression on the output arc to place Packets-
+ToSend has a separate time delay: @+Wait . This means
+that the token added to PacketsToSend gets the time
+stamp:
+0+9+100=109 (2)
+The 0 is the time at which the transition occurs, 9 is
+the time delay inscribed on the transition, while 100 is
+time delay inscribed on the output arc. Intuitively, this
+represents the fact that we do not want to resend datapacket number 1 until time 109, i.e., until 100 time units
+after the end of the previous send operation. This is
+achieved by giving the token for data packet number1 the time stamp 109—thus making it unavailable until
+that moment of time. However, it should be noticed that
+data packet number 2 still has time stamp 0. Hence, itwill be immediately possible to transmit this data packet,if an acknowledgement arrives before time 109. When
+SendPacket occurs at time 0, we reach the marking M
+1
+which is partially shown in Fig. 16.
+In marking M1there are three binding elements that
+have the needed tokens on their input places:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+TP+=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+TP−=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=false /angbracketright)
+SP can occur at time 109 (since it needs a token with
+time stamp 109 and a token with time stamp 9). How-ever, TP
++and TP −can occur already at time 9 (because
+they need a token with time stamp 9). Since TP +and
+
+--- Page 15 ---
+Coloured Petri Nets and CPN Tools 227
+if n=k
+then k+1
+else kkdata
+if n=k
+then k+1else k(n,d)
+if n=k 
+then data^d
+else data(n,d)if success
+then 1`(n,d)else empty
+Receive
+ Packet
+@+17Transmit
+Packet
+@+Delay()
+NextRec1`1
+NO
+C
+NOA
+NOxDATAData
+Received1`""
+DATA
+B
+NOxDATA
+1 1`1@01 1`""@0
+11`(1,"COL")@47
+Fig. 17 Marking M2reached when TransmitPacket occurs at time
+9i n M1
+TP−are the ﬁrst binding elements that are ready to
+occur, one of these will be chosen (the two binding ele-
+ments are in conﬂict with each other) and it will occur assoon as possible, i.e., at time 9. Let us assume that TP
++
+is chosen to occur. It will remove the token from place A
+and add a token to place B. The time stamp of this token
+will be the sum of the time at which the transition occurs(9) and the value obtained by evaluating the time delay
+expression @+Delay() inscribed on the transition. The
+functionDelay takes a unit ( ()) as argument and is
+deﬁned as follows:
+fun Delay() = discrete(25,75);The function discrete is a predeﬁned function pro-
+viding a discrete uniform distribution over the closedinterval speciﬁed by its arguments. This means that a
+callDelay() returns an integer from the interval [25,75]
+and that all numbers in the interval have the same prob-ability of being chosen. Intuitively, this represents thatthe time needed to transmit a packet over the network
+may vary between 25 and 75 time units, e.g., due to
+the load on the network. Let us assume that Delay()
+evaluates to 38. Then we reach the marking M
+2which
+is partially shown in Fig. 17. The above illustrates how
+random functions can be used to give time stamps totokens.
+In marking M
+2there are two binding elements that
+have the needed tokens on their input places:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+RP = ( ReceivePacket ,/angbracketleftn=1,d="COL" ,k=1,data="" /angbracketright)
+As before, SP can occur at time 109. However, RP
+can occur already at time 47 (because it needs a tokenwith time stamp 47 and two tokens with time stamp 0).if n=k
+then k+1else kkdata
+if n=k
+then k+1
+else kif n=k 
+then data^delse data(n,d)
+Receive
+ Packet
+@+17NextRec1`1
+NO
+C
+NOData
+Received1`""
+DATA
+B
+NOxDATA
+1 1`2@64
+11`2@641 1`"COL"@64
+Fig. 18 Marking M3reached when ReceivePacket occurs at time
+47 in M2
+Hence RP will be chosen and we will reach the marking
+M3which is partially shown in Fig. 18.
+In marking M3there are three binding elements that
+have the needed tokens on their input places:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+TA+=(TransmitAck ,/angbracketleftn=2,success=true /angbracketright)
+TA−=(TransmitAck ,/angbracketleftn=2,success=false /angbracketright)
+SP can occur at time 109. However, TA +and TA −
+can occur already at time 64 (because they need a token
+with time stamp 64). Hence TA +or TA −will be chosen.
+The transmission and reception of an acknowledgementare similar as in the untimed CPN model and hence wewill not explain them in further detail.
+In the timed CPN model considered above, all tokens
+carry a time stamp since all colour sets of the places weredeclared to be timed. However, this is generally not the
+case. The modeller is allowed to specify whether each
+individual type (colour set) is timed or not. The tokens oftimed colour sets carry time stamps while the tokens of
+untimed colour sets do not. Tokens without time stamps
+are always ready to participate in occurrences of bindingelements.
+Consider the token on place NextSend . If the token
+carries a time stamp, it is not possible for transitions
+SendPacket andReceiveAck to occur at the same model
+time. This is due to the fact that when one of these tran-
+sitions occurs, the time stamp of the token is increased,
+which eliminates the possibility that the other transitioncan occur at the same model time. This could represent a
+sender that uses a single thread for sending data packets
+and receiving acknowledgements. On the other hand, ifthe token on NextSend did not carry a time stamp, then
+these two transitions could occur at the same model
+
+--- Page 16 ---
+228 K. Jensen et al.
+time. This could be used to model a sender with sepa-
+rate threads for sending and receiving.
+It should be noted that the possible occurrence
+sequences of a timed CPN model always form a sub-set of the occurrence sequences for the underlying un-timed CPN model, i.e., the model in which we remove
+all time delay inscriptions (and all time stamps). This
+means that the time delay inscriptions merely enforce aset of additional constraints on the execution of the CPN
+model—forcing colour-enabled binding elements to be
+chosen when they are ready. Turning an untimed CPNmodel into a timed model cannot create new behaviour
+in the form of new occurrence sequences. As a conse-
+quence it is often a useful modelling strategy to start byinvestigating the functional/logical properties by meansof an untimed CPN model. Then the timing related to
+events can be considered afterwards.
+The occurrence of a transition is instantaneous, i.e.,
+takes no time. However, as shown in the protocol exam-
+ple above, it is easy to model that some actions in a
+system have a non-zero duration. This is done by givingthe output tokens created by the corresponding tran-
+sition time stamps that prevent the tokens from being
+used until the time at which the action has ﬁnished.As an example, TransmitPacket cannot occur until 9
+time units after the occurrence of SendPacket —thisrepresents that the action to send a data packet takes
+9 time units. An alternative approach would have been
+to allow the occurrence of a transition to have a non-
+zero duration. We could then remove the input tokensat the moment where the occurrence begins and addthe output tokens when the occurrence ends. However,
+such an approach would make the relationship between
+a timed CPN model and its underlying untimed CPNmodel much more complex. There would then be a lot of
+reachable markings in the timed CPN model which are
+unreachable in the untimed CPN model—because theycorrespond to situations where one or more transitions
+are partway through their occurrence (having removed
+tokens from the input places, but not yet having addedtokens to the output places).
+3 Construction of CPN models
+This section introduces the GUI of CPN Tools and the
+tools and features in CPN Tools for constructing CPN
+models. There are tools for creating declarations, net
+structure, inscriptions, and hierarchical models. Addi-tional tools are available to improve the readability of
+a model, including tools for changing line colours and
+widths, and for aligning elements.
+Fig. 19 Screenshot of CPN Tools
+
+--- Page 17 ---
+Coloured Petri Nets and CPN Tools 229
+3.1 Overview of the GUI
+Figure 19shows a screenshot of CPN Tools. The rect-
+angular area to the left is the index . It includes the Tool
+boxwhich contains many of the tools that are available
+for manipulating the declarations and modules that con-
+stitute the CPN model. The Tool box includes tools for
+creating and cloning (i.e., copying) the basic elements ofCPN models. Additionally, it contains a wide selection
+of tools for manipulating the graphical layout and the
+appearance of the objects in the CPN model. The lat-ter set of tools is very important in order to be able to
+create readable and graphically appealing CPN models.
+The index also contains a model overview for each of the
+models that are open. A model overview shows a vari-ety of information including the name of the model, the
+Declarations for the model, the modules of the model,
+and the hierarchical structure of the model. The History
+for a model shows a list of the operations that have been
+performed on the model. This list contains only those
+operations that can be undone and redone. Many oper-ations can be undone, including editing operations, while
+others cannot be undone, such as executing simulation
+steps.
+A small triangle to the left of an entry in the index
+indicates either that the entry contains subentries or that
+the entry can be expanded to show more information for
+the entry. Clicking on a small triangle will open and closethe corresponding index entry. A triangle that points to
+the right indicates a closed entry, while a triangle point-
+ing downwards indicates an open entry. A subentry inthe index is indented to the right of its parent entry. For
+example, in Fig. 19theTool box entry has been opened
+to show its nine subentries (from Auxiliary toView ),
+and the declaration for the variable success has been
+opened to show the type of the variable.
+The remaining part of the screen is the workspace ,
+which in this case contains ﬁve binders (the rectangu-
+lar windows) and a circular marking menu . Each binder
+holds a number of items which can be accessed by click-
+ing the tabs at the top of the binder (only one item isvisible at a time in each binder). There are two kinds
+of binders. One kind contains the elements of the CPN
+model, i.e., the modules and declarations. The other kindcontains tool palettes which contain the tools which the
+user applies to construct and manipulate CPN models. A
+tool in a tool palette can be picked up by clicking on the
+appropriate tool cell . After picking up a tool, the mouse
+cursor will change to show which tool has been picked
+up. A tool that has been picked up is applied by clicking
+on an appropriate target. In Fig. 19one binder contains
+three modules named Protocol ,Sender , and Receiver ,
+another binder contains a single module named Networktogether with the declaration of the colour set NOxDATA ,
+and a third binder contains the declaration of the con-
+stantAllPackets . The two remaining binders contain
+four different tool palettes to Create elements, change
+their Style , perform simulations ( Sim), and construct
+state spaces (
+SS). Some items can be dragged from the
+index to the binders, and from one binder to another
+binder of the same kind. It is possible to position thesame item in two different binders, e.g., to view a mod-
+ule in two different zoom factors.
+A circular marking menu has been popped up on
+top of the bottom-left binder. Marking menus are con-
+textual menus that make it possible to select between
+some of the possible operations for a given object. Inthis example it shows some of the operations that canbe performed on a port place. Most of the tools that are
+available in a marking menu are also available in a tool
+palette, and vice versa.
+3.2 Construction of model elements
+The New Net andLoad Net tools are used to create
+a new model and load an existing model, respectively.These tools can be found in the Net tool palette or in
+the marking menu for the workspace. When a model is
+created or loaded, its model overview will be added to
+the index.
+The colour sets, variables, and functions that are used
+in inscriptions must be deﬁned in Declarations for the
+model. The Declarations that belong to a model can beseen in the index in the model overview. New declara-
+tions are added using the New Declaration tool which
+can be found in relevant marking menus. Declarationscan be grouped in declaration blocks .I nF i g . 19, many
+of the declarations for the Protocol.cpn model can be
+seen, and the Standard declarations entry is a declara-
+tion block that contains a number of default declara-tions that are included when a new model is created.
+Keyboard shortcuts can be used to jump from one dec-
+laration to the next and to add a new declaration aftera declaration that is being edited. Declarations can be
+viewed and edited in the index and in declaration sheets
+in binders.
+The tools for creating net structure are found in the
+Create palette which is shown in Fig. 20. The available
+tools (from left to right and top to bottom) are:
+Fig. 20 Tools for creating net
+structure in the Create palette
+
+
+--- Page 18 ---
+230 K. Jensen et al.
+Fig. 21 Tool options in the
+index for the Create Place
+tool
+– Create a transition.
+– Create a place.
+– Create an arc.– Create a vertical guideline.– Delete an element.
+– Clone, i.e., copy, an element.
+– Change direction of an arc.– Create a horizontal guideline.
+The tools from the Create palette can also be found
+in marking menus, with the exception of the tools for
+creating guidelines which will be explained below. Each
+tool can be applied to certain kinds of targets. For exam-ple, the tools for creating places and transitions can be
+applied to modules in binders, while the tool for creating
+an arc must be applied ﬁrst to a place (transition), andthen to a transition (place).
+A number of tools have options that affect the behav-
+iour of the tool. These tool options can be changed, and
+they are accessible in the index and via tool cells in pal-ettes. Figure 21shows the tool options for the Create
+Place tool. With these options it is possible to change
+the default width and height of new places.
+Inscriptions must be added to nodes and arcs. After
+creating a new place, transition or arc, text-edit mode
+will be entered, and it will be possible to add the ﬁrstinscription to the element. Arcs have only one inscrip-tion, while places and transitions have several kinds of
+inscriptions. The TAB key is used to cycle between the
+different inscriptions for a node.
+There are a number of different tools and features
+that can be used to improve the layout, and therefore
+the readability, of a model. The tools in the Style pal-
+ette are used to change the graphical attributes of model
+objects. There are tools for changing line and ﬁll colour,
+line widths, and arrowhead size.
+Nodes and arc bend points can be aligned using guide-
+lines and automatic snap-to-alignment features. Objects
+will automatically be snapped to vertical or horizontal
+alignment whenever possible. For example, if an arc isadded between two nodes that are almost aligned, then
+they will be moved into alignment with each other, or
+if a node that is attached to another node via an arcis moved, then it will be snapped into alignment with
+the other node whenever it is moved close enough into
+alignment. Similarly, inscriptions can be snapped to var-ious different snap points for their parent objects. Forexample, transitions have snap points at each corner as
+Fig. 22 A group of elements in a module
+well as at the middle of each side, and inscriptions can
+be snapped to these points. Several different elementscan be aligned by snapping them to guidelines. All of the
+elements that are snapped to a guideline will be moved
+when the guideline is moved.
+New model elements do not need to be created from
+scratch because they can be created by cloning, i.e., copy-
+ing, existing elements. Many kinds of elements can becloned, including inscriptions, nodes together with alltheir inscriptions and modules. When an object is cloned,
+all of its graphical attributes, such as size and line col-
+our, are cloned as well. Objects can be cloned withinthe same model or between two models (more than one
+model may be open at a time in CPN Tools). It is also
+possible to clone just the graphical attributes from oneobject to another.
+It can be tedious to perform the same operation on a
+number of individual elements, such as changing the col-our of model elements, or moving and realigning modelelements. In CPN Tools, it is possible to create groups ,
+and to perform operations on the elements in a group.
+Group tabs at the bottom left of a module in a binder
+indicate which groups are deﬁned for the module. The
+elements that are not in the group are dimmed, as shown
+in Fig. 22. If a tool is applied to an element in a group, the
+tool will be applied to all of the other relevant elements
+in the group. For example, changing the colour of any
+element in the group will change the colour of all of theelements in the group, while changing the direction of anarc will only affect the arcs in the group. Regular groups
+can only contain elements from the same module, but
+global groups can contain elements from any module in
+the model.
+3.3 Construction of hierarchical models
+The tools for creating hierarchical nets are found in the
+Hierarchy palette which is shown in Fig. 23. The avail-
+able tools (from left to right and top to bottom) are:
+
+--- Page 19 ---
+Coloured Petri Nets and CPN Tools 231
+Fig. 23 Thehierarchy palette
+Fig. 24 Overview of hierarchical relationships
+– Move a transition or group to a new submodule.
+– Replace a substitution transition with its submod-
+ule.
+– Assign a submodule to a substitution transition.– Assign a port to a socket.
+– Set port type to input.
+– Set port type to output.– Set port type to input/output.
+– Assign a place to a fusion set.
+These tools support both top-down and bottom-up
+construction of CPN models. Supporting a top-down
+approach, the Move to Submodule tool will move a
+group of elements from one module to a new submod-
+ule, create a substitution transition with appropriate arcs
+in the original module, create appropriate port places inthe submodule, and assign ports to sockets. The Assign
+Submodule tool supports a bottom-up approach, in that
+it will assign an existing module to be the submodule
+associated with an existing (substitution) transition, andit will automatically assign port places to sockets when-
+ever possible. In addition, the Clone tool can also be
+used to clone hierarchy elements, such as port-type tags,or even a substitution transition and all of its submod-
+ules.
+Information about hierarchical relationships can be
+seen in modules and the index, as shown in Fig. 24.T h e
+left-hand side of the ﬁgure shows the names of the mod-
+ules from a model overview. A small triangle next to a
+module name indicates that it has submodules, and thesubmodules of the module are listed below and indented
+to the right of the supermodule. In the example, the
+Protocol module is the top-level module, and it has three
+submodules. One of these submodules ( Network )a l s o
+has two submodules. A number in parentheses after the
+module name indicates that there are multiple instances,while a missing number indicates that there is only oneinstance of that module in the model.Instantiation of modules is handled fully automati-
+cally by CPN Tools, and the user can access the indi-
+vidual instances of modules. It should be noted that
+instantiation of modules is done prior to simulation ofthe CPN model. Hence, the number of instances of mod-ules is ﬁxed throughout the simulation of a hierarchical
+model, and it is not possible to dynamically instantiate
+new modules during the simulation.
+The right-hand side of Fig. 24shows hierarchical infor-
+mation that can be seen in a module. The small tag
+immediately below TransmitData indicates that it is a
+substitution transition, and that it is associated with the
+submodule Transmit . The list to the lower right of Trans-
+mitData shows the assignments between its sockets and
+the port places in submodule Transmit . The list is opened
+and closed by clicking on the small triangle in the lower
+left-hand corner of the substitution transition. Place A
+is a socket for TransmitData , but the small tag next to
+the place indicates that it is also an input port. The tags
+associated with port places, substitution transitions, and
+fusion places are collectively referred to as hierarchy
+tags. Marking menus for some hierarchy tags contain
+operations for opening and showing sub- and super-
+modules in binders. This makes it possible to navigateefﬁciently.
+3.4 Syntax check and code generation
+CPN Tools performs syntax and type checking, and sim-
+ulation code generation. Error messages are provided to
+the user in a contextual manner next to the object caus-ing the error. Figure 25shows an example of an error
+message for a place inscription.
+The syntax check and code generation are incremen-
+tal and performed in parallel with editing. This means
+that it is possible to execute parts of a CPN model even
+if the model is not complete, and it means that whenparts of a CPN model are modiﬁed, syntax check andcode generation are only performed on the elements
+that depend on the parts that were modiﬁed. Some ele-
+ments will not be checked until they have enough infor-
+Fig. 25 Contextual error message
+
+--- Page 20 ---
+232 K. Jensen et al.
+mation to be syntactically correct. For example, a place
+will not be checked until it has a colour set inscription,
+and a transition will not be checked until all of its sur-
+rounding places can be checked, and all of its surround-ing arcs have arc inscriptions.
+The main outcome of the code generation is the simu-
+lation code . The simulation code contains the functions
+for inferring the set of enabled binding elements in agiven marking of the CPN model, and for computing
+the marking reached after an enabled binding element
+occurs.
+3.5 Graphical feedback and help
+CPN Tools uses several kinds of graphical feedback to
+provide information when editing and analysing a CPN
+model. Help information is also available. Colour-codedauras are used to highlight objects with particular char-
+acteristics or to indicate different kinds of relationships
+between objects. For example, bright red auras indi-cate errors. Auras are associated with places, transitions,arcs, inscriptions, declarations, module tabs, and index
+entries, such as module names. Auras are propagated
+to parent-like objects whenever possible. In Fig. 25the
+place has an inscription with an error, and the place will
+therefore have a red aura. The red aura will be prop-
+agated to the tab for the module in the binder, to thename of the module in the index, and to the model
+name. Error auras are always shown, and they will be
+removed only if the error is ﬁxed. Other kinds of aurasappear only when the cursor hovers over a particularkind of object. For example, dark blue auras indicate
+dependencies between declarations and model objects,
+and they appear only when the cursor hovers over a dec-laration or a node. In Fig. 19, one of the declarations has
+an aura (in dark blue) because the cursor has been used
+to open a marking menu for a place that is dependenton that declaration.
+Aspeech bubble is a yellow rectangle that provides
+context-sensitive information, such as an error message.Some speech bubbles appear automatically, while oth-ers appear after a slight delay when the cursor is moved
+over an appropriate object. For example, moving the
+cursor over a model name will cause a speech bubblecontaining the full path to the model to appear. On the
+other hand, speech bubbles with error messages for net
+structure, like the one in Fig. 25appear automatically.
+Status bubbles are colour-coded bubbles that occa-
+sionally appear at the bottom of the index. A speech
+bubble is often associated with the status bubble, asshown in Fig. 26. It may be necessary to move the cursor
+over a status bubble to see the corresponding speech
+Fig. 26 Status bubble at bottom of index
+bubble. Green indicates that an operation completed
+successfully, red indicates an error, and light purple indi-cates that a time-consuming operation, such as a longsimulation, is being performed.
+Detailed help information can be accessed in a num-
+ber of ways. Dragging the Help index entry to the work-
+space will open the main page for the ofﬂine help in a
+Web browser. A brief tool tip describing the function-
+ality of the tool will appear if the cursor hovers over atool cell in a tool palette. Marking menus for tool cells
+in palettes and for palette tabs in binders contain tools
+for opening a relevant help page in a browser.
+4 Simulation
+The simulator of CPN Tools exploits a number of
+advanced data structures and algorithms for efﬁcient
+simulation of large hierarchical CPN models [ 28]. The
+simulator exploits the locality property of Petri nets,which ensures that the occurrence of a transition only
+affects its immediate surroundings. This ensures that the
+number of steps executed per second in a simulation isindependent of the number of places and transitions inthe CPN model. This means that simulation scales to
+large CPN models.
+The CPN Tools simulator only executes steps consist-
+ing of a single binding element. The marking resulting
+from the occurrence of an enabled step with multiple
+binding elements is the same as letting the binding ele-ments in the step occur one after each other in some
+arbitrary order. Hence, markings that can be reached
+via occurrence sequences consisting of steps with mul-tiple binding elements can also be reached via occur-rence sequences with steps consisting of a single binding
+element.
+CPN Tools uses graphical simulation feedback ,a s
+shown in Fig. 27, to provide information about the mark-
+ings that are reached and the binding elements that are
+enabled and occur during a simulation. A small circlenext to a place indicates the number of tokens on the
+place in a marking, and a box next to the circle shows
+the colours of the tokens. In Fig. 27, place DataReceived
+contains one token with value "COL" . Green auras indi-
+cate enabled transitions, and the auras can be found on
+
+--- Page 21 ---
+Coloured Petri Nets and CPN Tools 233
+Fig. 27 Simulation feedback in CPN Tools
+Fig. 28 Simulation tool palette
+transitions, on module names in binders and the index,
+and on submodule tags. The box below ReceivePacket
+will be discussed below.
+Many of the tools that are available for simulating
+CPN models can be found in the simulation tool palette
+s h o w ni nF i g . 28. A VCR (Video Cassette Recorder)
+metaphor is used for the graphical symbols representingthe simulation tools. The simulation tools can be pickedup with the mouse cursor and applied to the CPN model.
+The available tools (from left to right) are:
+– Return to the initial marking.
+– Stop an ongoing animated automatic simulation.– Execute a single transition with a manually chosen
+binding.
+– Execute a single transition with a random binding.– Execute an animated automatic simulation, i.e., exe-
+cute an occurrence sequence with randomly chosen
+binding elements and display the current markingbetween each step.
+– Execute a fast automatic simulation, i.e., execute an
+occurrence sequence with randomly chosen bind-ing elements without displaying the current markingbetween each step.
+– Evaluate a CPN ML expression (to be explained in
+Sect. 6.6).4.1 Interactive and automatic simulations
+When a CPN model is simulated in interactive mode ,t h e
+simulator calculates the set of enabled transitions in eachmarking encountered. Then it is up to the user to choosebetween the enabled transitions and bindings. Figure 27
+shows an example where the user is in the process of
+choosing between the enabled bindings of the Receive-
+Packet transition. The choice between the enabled bind-
+ings is done via the rectangular box opened next to the
+transition. It lists the variables of the transition and thevalues to which they can be bound in the current mark-
+ing. In this case, the value 2has already been bound to
+the variable kand the value "COL" has been bound to
+data . This is done automatically by the simulator since
+there is only one possible choice for these variables. The
+user still has a choice in binding values to the variables
+nandd. The user may also leave the choice to the sim-
+ulator which uses a random number generator for this
+purpose. In the above case it sufﬁces for the user to bind
+eithernordsince the value bound to the other variable
+is then uniquely determined and will be automatically
+bound by the simulator.
+After the chosen binding element has been executed,
+the marking and enabling information is updated andpresented to the user, who either chooses a new enabled
+binding element or leaves the choice to the simula-
+tor, and so on. This means that it is the simulator thatmakes all the calculations (of the enabled binding ele-
+ments and the effect of their occurrences), while it is
+the user who chooses between the different occurrencesequences (i.e., the different behavioural scenarios). If
+it is not necessary to choose a particular binding of vari-
+ables, the user can use the Single Step tool to execute a
+single transition. The tool can be applied to different tar-gets, and it will have different effects depending on the
+target. For example, if the tool is applied to an enabled
+transition, then that particular transition will occur, andif the tool is applied to a binder, then a randomly cho-
+sen enabled transition on a module in the binder will
+occur. An interactive simulation is by nature slow, sinceit takes time for the user to investigate the markings and
+enablings and to choose between them. This means that
+only a few steps can be executed each minute and theworking style is very similar to single-step debuggingknown from conventional programming environments.
+When a CPN model is simulated in animated auto-
+matic mode , the simulator calculates the set of enabled
+transitions in each marking encountered. The simulator
+also chooses between the enabled transitions and bind-
+ings. The simulator feedback is updated after each stepin an animated automatic simulation. The Play tool, i.e.,
+the third tool from the right in Fig. 28, has tool options
+
+--- Page 22 ---
+234 K. Jensen et al.
+Fig. 29 Dead marking Mdead reached at the end of a simulation
+which determine how many steps should be executed
+in an animated automatic simulation, and how long thesimulator should pause between each step. The simula-
+tor will perform the speciﬁed number of steps, unless it
+reaches a state in which there are no more enabled tran-sitions or until the Stop tool from the simulation palette
+is applied.
+A CPN model can also be simulated in fast automatic
+mode . This kind of simulation is similar to a program
+execution, and a speed of several thousand steps per
+second is typical. Before the start of a fast automatic
+simulation, the user speciﬁes one or more stop criteria,e.g., that 100,000 steps should occur or 50,000 units of
+model time should elapse. If one of the stop criteria
+becomes fulﬁlled or if there are no more enabled tran-sitions, the simulation stops and the user can inspect themarking which has been reached. There are also a num-
+ber of different ways in which the user can inspect the
+markings and the binding elements that occurred duringthe simulation. We shall brieﬂy return to this at the end
+of this section.
+A simulation of the protocol example may stop in the
+marking M
+dead shown in Fig. 29. This marking is a dead
+marking because there are no enabled transitions. Due
+to the non-determinism in the CPN model, we cannotguarantee that the dead marking will be reached sinceit is possible to keep losing packets and acknowledge-
+ments. However, if we reach a dead marking it will be
+the marking shown in Fig. 29. Here, we see that all six
+data packets have been received (in the correct order).
+The sender has stopped sending because NextSend has
+a token with colour 7 and there is no data packet withnumber 7. All the places A,B,C, and Dconnecting the
+network to the sender and receiver are empty. Finally,place NextRec has a token with colour 7. Hence, this
+marking represents the desired terminal state of the pro-tocol system. By making a number of automatic simu-
+lations of the CPN model, it is possible to test that the
+simple protocol design appears to be correct. Conduct-ing a set of automatic simulations does not guaranteethat all possible executions of the protocol have been
+covered. Hence, we cannot in general use simulation
+to verify properties of the protocol, but it is a power-ful technique for testing the protocol and for locating
+errors. In Sect. 5we will introduce state space analy-
+sis which makes it possible to ensure that all possibleexecutions are covered. This makes it possible to verify
+systems, i.e., prove that different behavioural properties
+are present or absent in a model.
+As mentioned earlier in this section, the user may be
+interested in inspecting some of the markings and some
+of the binding elements that occurred during a simu-
+lation. A simple (and brute-force) way to do this is toinspect the simulation report which lists the steps that
+have occurred. Figure 30shows the beginning of a sim-
+ulation report for the hierarchical model from Sect. 2.4.
+We see the ﬁrst three transitions that occurred. A simu-
+lation report speciﬁes the names of the transitions that
+occur during a simulation, the module instances wherethe transitions are located, and the user determines if thereport should specify the values bound to the variables
+of the occurring transitions. In this case, the SendPacket
+transition in instance 1 of the Sender module occurred
+in step 1, the Transmit transition in instance 2 of the
+Transmit module occurred in step 2, and the Receive-
+Packet transition in instance 1 of the Receiver module
+occurred in step 3. The number 0following the step
+number speciﬁes the model time at which the transition
+
+--- Page 23 ---
+Coloured Petri Nets and CPN Tools 235
+Fig. 30 Beginning of a simulation report
+occurs. Since the hierarchical model of the simple pro-
+tocol presented in Sect. 2.4is untimed, all steps occur at
+time zero.
+4.2 Simulation breakpoint monitors
+Simple simulation tool options can specify that a sim-
+ulation should stop after a certain number of steps or
+after a certain amount of model time has passed, but in
+many cases it can be useful to stop a simulation in a par-ticular state or after a particular transition has ﬁred. In
+CPN Tools, monitors can be used to examine the binding
+elements that occur and the markings that are reachedduring a simulation. Different kinds of monitors can be
+used for different purposes. Breakpoint monitors can be
+used to stop simulations when speciﬁc conditions are ful-ﬁlled. A transition enabled monitor is a standard break-
+point monitor that can be associated with a transition,
+and the monitor will stop a simulation when the transi-
+tion is enabled (or disabled, as determined by an optionfor the monitor). Another standard breakpoint monitor
+can be used to stop a simulation when the marking of a
+particular place is empty (or not empty, as determined byan option for the monitor). A generic breakpoint moni-
+torcan be used to deﬁne a model-speciﬁc condition that
+will determine when a simulation should stop. It is thenchecked at certain steps in the simulation whether thecondition is fulﬁlled.
+Each monitor has monitoring functions that deter-
+mine its functionality. For transition enabled monitors,the monitoring functions are hidden from the user. How-
+ever, for generic breakpoint monitors, the monitoring
+function is accessible, and it must be modiﬁed by theuser. When a new monitor is created, template code for
+the accessible monitoring functions is automatically gen-
+erated. The template code must be modiﬁed to obtainthe desired behaviour. This means that the user doesnot have to write monitoring functions from scratch.
+Fig. 31 Overview of a monitor in the index
+A monitoring function often consists of 5–10 lines of
+CPN ML code. Each monitor is associated with a groupof nodes consisting of zero or more places and zero or
+more transitions in the model. A monitor can only exam-
+ine the nodes with which it is associated. For a genericbreakpoint monitor, the user must deﬁne a predicate
+function that determines when a simulation should stop.
+A predicate function will be called after certain steps in
+a simulation, and it should return the value true when
+the simulation should stop.
+An example of a model-speciﬁc breakpoint monitor
+would be a monitor that will stop a simulation of the pro-tocol if the sender receives an acknowledgement which
+is lower than the sequence number of the data packet
+that is currently being sent. In this case, the monitoris associated with the ReceiveAck transition only. The
+predicate function for this monitor will be invoked each
+time the ReceiveAck transition occurs and it will return
+true if the value bound to the variable kis greater than
+the value bound to the variable n.
+A monitor is created by applying one of the tools
+from the Monitoring palette (not shown) to an appropri-
+ate target. The target may be a single place or transition,
+a group of nodes, a global group of nodes, or the name
+of the model. Note that a monitor may be associatedwith nodes from different modules. After a monitor hasbeen created, it will be added to the index, where differ-
+ent kinds of information related to the monitor can be
+viewed and modiﬁed. Figure 31shows the information
+that is added to the index when a generic breakpoint
+monitor is created for the ReceiveAck transition in the
+Protocol module. The monitor overview shows the user-
+speciﬁed name of the monitor (
+CheckReceivedAck ), the
+type of the monitor ((generic) breakpoint), the nodes
+that the monitor is associated with, and the accessi-ble monitoring functions. The predicate function for the
+CheckReceivedAck monitor looks as follows:
+fun pred
+(Protocol’Receive_Ack (1, {k,n})) = n < k
+Since this monitor is associated with only one tran-
+sition, the predicate function can only examine bindingelements for the ReceiveAck transition. The predicate
+
+--- Page 24 ---
+236 K. Jensen et al.
+function will automatically be called in CPN Tools after
+theReceiveAck transition occurs, and it will not be
+called after any of the other transitions in the model
+occur. The function inspects the values of the variablesnandkand compares them as described above. For fur-
+ther details on implementing model-speciﬁc monitors
+we refer to [ 10].
+It is also possible to disable monitors, which means
+that it is possible to ensure that a monitor will not be
+activated during a simulation without having to remove
+the monitor from the model.
+5 State space analysis
+Simulation can only be used to consider a ﬁnite number
+of executions of the model being analysed. This makessimulation suited for detecting errors and for obtaining
+increased conﬁdence in the correctness of the model,
+and thereby the system. For the simple protocol we mayconduct a number of simulations which show that the
+model of the protocol always seems to terminate in the
+desired state where all data packets have been receivedin the correct order. This makes it likely that the proto-
+col works correctly, but it cannot be used to ensure this
+with 100% certainty since we cannot guarantee that thesimulations cover all possible executions. Hence, afterconducting a set of simulations, there may still exist exe-
+cutions of the model leading to a state where, e.g., the
+data packets are not received in the correct order.
+Full state spaces represent all possible executions of
+the model being analysed. The basic idea of full statespaces is to calculate all reachable states (markings) and
+all state changes (occurring binding elements) of the
+CPN model and represent these in a directed graph
+where the nodes correspond to the set of reachablemarkings and the arcs correspond to occurring bindingelements. The state space of a CPN model can be com-
+puted fully automatically and makes it possible to auto-
+matically verify , i.e., prove in the mathematical sense
+of the word that the model possesses a certain formally
+speciﬁed property. We present state spaces and behavio-
+ural properties using a non-hierarchical CPN model.However, full state spaces generalise to hierarchical and
+timed CPN models, and CPN Tools supports full state
+spaces for hierarchical and timed CPN models.
+5.1 Revised model for state space analysis
+To introduce state space analysis we consider the simple
+protocol from Fig. 1. Before we construct a state space
+for the model of the protocol, we will make a small modi-ﬁcation. The CPN model in Fig. 1has inﬁnite occurrence
+sequences in which the transition SendPacket occurs an
+inﬁnite number of times immediately after each other(retransmitting the ﬁrst packet an inﬁnite number oftimes). This means that there is an inﬁnite number of
+reachable markings. To obtain a ﬁnite number of reach-
+able markings, we limit the number of tokens which maysimultaneously reside on the network buffer places A,B,
+C, and D. This is done by adding a new place Limit as
+shown in Fig. 32. It has the colour set UNIT deﬁned as:
+colset UNIT = unit;
+if not success
+then 1`()
+else emptyif not success
+then 1`()else empty
+()()
+kkdata
+n
+n if successthen 1`n
+else emptynif n=k
+then k+1else knif n=kthen data^d
+else dataif success
+then 1`(n,d)else empty(n,d)
+Receive
+AckTransmit
+AckReceive
+PacketTransmit
+PacketSend
+Packet
+Limit3`()
+UNITNextRec1`1
+NO
+C
+NOD
+NOA
+NOxDATA
+NextSend1`1
+NOData
+Received1`""
+DATA
+B
+NOxDATAPackets
+To SendAllPackets
+NOxDATA
+(n,d)
+if n=k
+then k+1else k(n,d) (n,d)
+33`() 1 1`1 11`11 1`"" 61`(1,"COL")++
+1`(2,"OUR")++
+1`(3,"ED ")++1`(4,"PET")++1`(5,"RI  ")++1`(6,"NET")
+Fig. 32 CPN model used for state space analysis
+
+--- Page 25 ---
+Coloured Petri Nets and CPN Tools 237
+whereunit is the basic CPN ML type containing the
+single value (). The initial marking of Limit is the multi-
+set3‘() . Tokens with the token colour ()can be
+thought of as being “uncoloured” tokens where thevalue attached carries no information (since it can onlytake one possible value). A token is removed from place
+Limit each time a packet is sent to the network, and
+a token is added to place Limit , each time a packet is
+removed or lost from the network. This means that the
+total number of tokens on the ﬁve places A,B,C,D, and
+Limit is constant and identical to the number of tokens
+which Limit has in the initial marking.
+Clearly, making this kind of modiﬁcation changes the
+behaviour of the model, and it should be done withcare. However, for models with very large state spaces,it is often useful to analyse the restricted behaviour of a
+model in order to increase our conﬁdence in the correct-
+ness of the unrestricted model. For the protocol exam-ple, we have chosen to limit the number of tokens on the
+network buffer places to three tokens. This conﬁguration
+allows packets to overtake each other, and it also allowsfor duplicate packets to be in the buffer places. How-
+ever, it signiﬁcantly limits how often packets overtake
+each other as well as the number of duplicate packets inbuffer places. If analysis shows that the restricted modelis correct, then this will increase our conﬁdence in the
+fact that the unrestricted model is also correct. Simi-
+larly, if errors are found in the restricted model, thenthe same errors exist in the unrestricted model of the
+protocol. It is unlikely that we would obtain additional
+insights into the behaviour of the unrestricted model byincreasing the number of tokens allowed in the buffer
+places in the restricted model. On the other hand, if we
+had limited the number of tokens in buffer places to justone, then it would no longer be possible for packets toovertake each other, nor would it be possible to have
+duplicate packets in the buffer places. In this case, the
+restriction is probably too radical, and the behaviourof the restricted model would be signiﬁcantly different
+from the unrestricted model.
+5.2 Full state spaces
+Afull state space is a directed graph, where there is a
+node for each reachable marking and an arc for eachoccurring binding element. There is an arc labelled with
+a binding element (t,b)from a node representing a
+marking M
+1to a node representing a marking M2if
+and only if the binding (t,b)is enabled in M1and the
+occurrence of (t,b)inM1leads to the marking M2.
+Figure 33shows an initial fragment of the state space
+of the CPN model in Fig. 32. This fragment has been cre-
+ated using the support for visualisation of state spacesin CPN Tools. Each node is inscribed with three inte-
+gers. The topmost integer is the node number and the
+two integers separated by a colon give the number of
+predecessor and successor nodes. Node 1 correspondsto the initial marking, and the ﬁgure shows all markingsreachable by the occurrence of at most three binding
+elements starting in the initial marking. The rectangular
+node descriptor associated with each node gives infor-
+mation about the marking of the individual places in
+the state represented by the node. The node descrip-
+tor lists the places which have a non-empty marking.We have omitted the marking of place PacketsToSend
+since this place always contains the six tokens corre-
+sponding to the data packets to be sent. The rectangulararc descriptor associated with each arc gives information
+about the corresponding binding element. The node and
+arc descriptors have a default content, but options are
+available for the user to control the contents of the de-scriptors.
+In the initial marking only one binding element
+(SendPacket ,/angbracketleftn=1,d="COL" /angbracketright) is enabled and it leads
+to the marking which is identical to the initial mark-
+ing except that there is now also a token with colour
+(1,"COL") on place A, and there is one less token on
+place Limit .I nF i g . 33, this marking is represented by
+node 2. In the marking corresponding to node 2, we
+have three enabled binding elements:
+SP = ( SendPacket ,/angbracketleftn=1,d="COL" /angbracketright)
+TP
++=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=true /angbracketright)
+TP−=( TransmitPacket ,
+/angbracketleftn=1,d="COL" ,success=false /angbracketright)
+and their occurrence lead to the markings represented
+by nodes 3, 4, and 1, respectively. The full state spacefor the CPN model has 13,215 nodes and 52,784 arcs
+and is far too big to be conveniently represented as a
+drawing. Drawing fragments of a state space, like theone in Fig. 33, can, however, be a very effective way of
+analysing the markings reachable within a small number
+of steps from a given marking.
+State spaces are calculated fully automatically by the
+CPN state space tool using a state space construction
+algorithm. CPN Tools stores the directed graph repre-
+senting the state space in internal memory. This meansthat the full state space can only be generated if it ﬁts
+into the available computer memory. The tool supports
+a number of stop and branching options that makes itpossible for the user to control the state space genera-
+tion.
+The generation of the full state spaces is in most cases
+followed by the generation of the Strongly Connected
+Component Graph (SCC-graph) which is derived from
+
+--- Page 26 ---
+238 K. Jensen et al.
+SendPacket: {d="COL",n=1}TransmitPacket: {n=1,d="COL",success=true}TransmitPacket: {n=1,d="COL",success=false}
+SendPacket: {d="COL",n=1}ReceivePacket: {k=1,data="",n=1,d="COL"}SendPacket: {d="COL",n=1} TransmitPacket: {n=1,d="COL",success=true}TransmitPacket: {n=1,d="COL",success=false} SendPacket: {d="COL",n=1}
+5
+1:2
+NextSend: 1`1
+A: 3`(1,"COL")NextRec: 1`1DataReceived: 1`""NextSend: 1`1A: 3`(1,"COL")NextRec: 1`1DataReceived: 1`""6
+3:4
+NextSend: 1`1
+A: 1`(1,"COL")B: 1`(1,"COL")NextRec: 1`1DataReceived: 1`""Limit: 1`()NextSend: 1`1A: 1`(1,"COL")B: 1`(1,"COL")NextRec: 1`1DataReceived: 1`""Limit: 1`()7
+4:3
+NextSend: 1`1
+NextRec: 1`2DataReceived: 1`"COL"C: 1`2
+Limit: 2`()NextSend: 1`1
+NextRec: 1`2DataReceived: 1`"COL"C: 1`2
+Limit: 2`()3
+2:3NextSend: 1`1
+A: 2`(1,"COL")
+NextRec: 1`1DataReceived: 1`""Limit: 1`()NextSend: 1`1
+A: 2`(1,"COL")
+NextRec: 1`1DataReceived: 1`""Limit: 1`() 4
+2:2NextSend: 1`1
+B: 1`(1,"COL")
+NextRec: 1`1DataReceived: 1`""Limit: 2`()NextSend: 1`1
+B: 1`(1,"COL")
+NextRec: 1`1DataReceived: 1`""Limit: 2`()2
+2:3NextSend: 1`1
+A: 1`(1,"COL")NextRec: 1`1DataReceived: 1`""Limit: 2`()NextSend: 1`1A: 1`(1,"COL")NextRec: 1`1DataReceived: 1`""Limit: 2`()1
+1:1NextSend: 1`1
+NextRec: 1`1DataReceived: 1`""Limit: 3`()NextSend: 1`1NextRec: 1`1DataReceived: 1`""Limit: 3`()
+Fig. 33 Initial state space fragment for CPN model in Fig. 32
+the graph structure of the state space. The nodes in
+the SCC-graph are subgraphs called strongly connected
+components (SCCs) and are obtained by making a dis-
+joint division of the nodes in the state space such that
+two state space nodes are in the same SCC if and onlyif they are mutually reachable, i.e., there exists a pathin the state space from the ﬁrst node to the second
+node and vice versa. The SCC-graph is used by CPN
+Tools to determine a number of the standard behavio-ural properties of the model (as we will explain below)
+and the structure of the SCC-graph quite often gives
+useful information about the overall behaviour of themodel being analysed.
+Tools for generating, investigating, and displaying
+state spaces are found in the State Space palette of
+CPN Tools which is shown in Fig. 34. The available tools
+(from left to right and top to bottom) are:
+– Generate model-speciﬁc code for state space
+analysis.
+– Generate a state space.– Generate an SCC graph.
+– Save a state space report.
+– Display a node in a state space.– Display the successors of a state space node.– Display the predecessors of a state space node.Fig. 34 TheState Space
+palette
+– Evaluate a CPN ML expression that returns a list of
+either state space nodes or state space arcs, and dis-
+play the resulting nodes and/or arcs from the statespace.
+– Display the marking corresponding to a state space
+node in the simulator.
+– Add the current simulator state to the state space.
+5.3 State space report
+The ﬁrst step when conducting state space analysis is
+usually to ask for a state space report , which provides
+some basic information about the size of the state spaceand standard behavioural properties of the CPN model.
+For the CPN model in Fig. 32, the state space report
+looks as shown in Figs. 36,37,38, and 39. First we have
+some state space statistics (see Fig. 35) telling how large
+the state space is. For the model of the protocol we have
+
+--- Page 27 ---
+Coloured Petri Nets and CPN Tools 239
+13, 215 nodes and 52, 784 arcs. The construction of the
+full state space took 53 s. We also get statistics about
+the SCC-graph. It has 5, 013 nodes and 37, 312 arcs, and
+was calculated in 2 s. The fact that there are fewer nodesin the SCC-graph than in the state space immediatelytells us that there exist cycles in the state space of the
+simple protocol. This implies that we can have inﬁnite
+occurrence sequences and that the protocol may notterminate.
+The next two parts of the state space report con-
+tain information about the boundedness properties .T h e
+boundedness properties tell how many (and which)
+tokens a place may hold—when we consider all reach-
+able markings.
+Figure 36speciﬁes the best upper and lower integer
+bounds. The best upper integer bound of a place speci-
+ﬁes the maximal number of tokens that can reside on a
+place in any reachable marking. The best upper integerbound of the place DataReceived is 1 which means that
+there is at most one token on place DataReceived , and
+there exists reachable markings where there is one tokenonDataReceived . This is what we would expect, since
+DataReceived is always supposed to contain a single
+token with a colour corresponding to the data that hasbeen received. The place Ahas a best upper integer
+bound of 3 which means that in any reachable marking
+there are at most three tokens on A, and there exists a
+reachable marking where there is exactly three tokensonA. Similar remarks apply to the places B,C, and D.
+This is what we would expect, since we modiﬁed the
+original model by introducing the Limit place to ensure
+that there are at most three tokens simultaneously on the
+places A,B,C, and D. What we learn from the best upper
+integers bounds of the four network places is that thereare markings where the maximum number of packetsallowed simultaneously on the network are all in one
+network buffer.
+The best lower integer bounds for a place speciﬁes the
+minimal number of tokens that can reside on the place
+in any reachable marking. The place DataReceived has
+Fig. 35 State space report—statisticsFig. 36 State space report—integer bounds
+a best lower integer bound of 1 which means that there
+is always at least one token on this place. Together withthe best upper integer bound of 1 this means that there
+is exactly one token on this place in any reachable mark-
+ing. When the best upper and lower integer bound areequal it implies that the place always contains the samenumber of tokens (as given by the two integer bounds)—
+even if the colour of these tokens may vary. For example,
+place DataReceived always contains exactly one token,
+and place PacketsToSend always contains exactly six
+tokens. The best lower integer bound of the place Ais
+0 which means that there exists a reachable markingin which there are no tokens on this place. A similar
+remark applies to the places B,C, and D.
+Above, we have considered the minimal and maximal
+number of tokens that may be present on a place ignor-
+ing the token colours. Figure 37speciﬁes the best upper
+and lower multi-set bounds. These bounds consider not
+only the number of tokens, but also the colours of thetokens. The best upper multi-set bound of a place spec-
+iﬁes for each colour in the colour set of the place the
+maximal numbers of tokens that is present on this placewith the given colour in any reachable marking. This
+is speciﬁed as a multi-set, where the coefﬁcient of each
+value is the maximal number of tokens with the givenvalue.
+As an example, the place Chas the following multi-set
+as the best upper multi-set bound:
+3‘2 ++ 3‘3 ++ 3‘4 ++ 3‘5 ++ 3‘6 ++ 3‘7
+This speciﬁes that there is a maximum of three tokens
+with the colour 2onCin any reachable marking (and
+similarly for the colours 3,4,5,6,7). It also speci-
+ﬁes that there exists a reachable marking where there
+are three tokens with the colour 2on the place. The
+best upper multi-set for Calso speciﬁes that there can
+never be a token with the colour 1on the place. This
+is expected, since the acknowledgements sent by thereceiver always specify the data packet expected next,and because the ﬁrst acknowledgement (with sequence
+
+--- Page 28 ---
+240 K. Jensen et al.
+Fig. 37 State space report—multi-set bounds
+number 2) is sent after the data packet with sequence
+number 1 is received.
+As another example, consider the place
+DataReceived which has the following best upper multi-
+set bound:
+1‘"" ++ 1‘"COL" ++ 1‘"COLOUR" ++
+1‘"COLOURED " ++ 1‘"COLOURED PET" ++1‘"COLOURED PETRI " ++ 1‘"COLOURED PETRI NET"
+This speciﬁes a maximum of one token with the col-
+our""onDataReceived in any reachable marking (and
+similarly for the other values in the multi-set). The size
+of the above multi-set is 7—even though DataReceived
+has a single token in each reachable marking as speciﬁedby the best upper and lower integer bounds in Fig. 36.
+From the best upper multi-set bound and the best upperand lower integer bounds it follows that the possible
+markings of the place DataReceived are:
+1‘""
+1‘"COL"
+1‘"COLOUR"
+1‘"COLOURED "1‘"COLOURED PET"
+1‘"COLOURED PETRI"
+1‘"COLOURED PETRI NET"
+This corresponds to the expected preﬁxes of the data
+being sent from the sender. From the boundedness prop-erties we cannot see the order in which these markings
+are reached.
+Above we have illustrated that the integer and the
+multi-set bounds often tell us different and complemen-
+tary “stories”. The integer bounds of DataReceived tell
+us that the place always has exactly one token, butnothing about the possible colours of this token. Thebest upper multi-set bound of DataReceived tells us the
+tokens colours we may have at the place, but not that
+there is only one token at a time. It should be noted thatthere is no guarantee that there exists a reachable mark-
+ing with the multi-set equal to the best upper multi-set
+bound. This is illustrated by the place DataReceived .
+The best lower multi-set bound of a place speciﬁes for
+each colour in the colour set of the place the minimal
+numbers of tokens that is present on this place with thegiven colour in any reachable marking. This is speci-ﬁed as a multi-set, where the coefﬁcient of each value
+is the minimal number of tokens with the given value.
+Best lower multi-set bounds give, therefore, informationabout how many tokens of each colour that are always
+present on a given place. All places for the simple pro-
+tocol except PacketsToSend have the empty multi-set
+empty as best lower multi-set bound. This means that
+there are no tokens which are always present on these
+places. However, we cannot conclude that there exists areachable marking with no tokens on these places. Thisis illustrated by DataReceived ,NextSend , and NextRec
+which always have one token each. The best lower multi-
+set for PacketToSend is:
+1‘(1,"COL") ++ 1‘(2,"OUR") ++ 1‘(3,"ED ")++
+1‘(4,"PET") ++ 1‘(5,"RI ") ++ 1‘(6,"NET")
+This means that there is at least one token with the
+colour(1,"COL") onPacketToSend in any reachable
+marking (and similarly for the other values in the multi-
+set). This is as expected since the data packet beingremoved from PacketsToSend when SendPacket
+occurs is immediately put back again.
+
+--- Page 29 ---
+Coloured Petri Nets and CPN Tools 241
+Fig. 38 State space report—home properties
+Figure 38shows the part of the state space report spec-
+ifying the home properties . The home properties tell us
+that there exists a single home marking , which has the
+node number 4868. A home marking Mhome is a mark-
+ing which can be reached from any reachable marking.
+This means that it is impossible to have an occurrence
+sequence which cannot be extended to reach Mhome.I n
+other words, we cannot do things which will make it
+impossible to reach Mhome afterwards.
+In the protocol system we have a single home mark-
+ing. By asking CPN Tools to display the marking cor-responding to node 4868 from the state space, we get
+the marking that is shown in Fig. 29. It can be seen that
+this is the marking in which the protocol has successfullyﬁnished the transmission of all six data packets. The fact
+that this is a home marking means that no matter what
+happens when the protocol is executed (e.g., packet lossand overtaking of packets on the network), it is always
+possible to reach the marking where the transmission
+of all six data packets has been completed successfully.It should be noted that we only know that it is possible
+to reach the home marking M
+home from any reachable
+marking M. There is no guarantee that Mhome actually
+will be reached from M, i.e., there may exist occurrence
+sequences that start in Mand never reach Mhome.A s
+an example, the simple protocol has the inﬁnite occur-
+rence sequence in which SendPacket followed by Trans-
+mitPacket with a binding losing the data packet occur
+inﬁnitely many times immediately after each other. In
+this case we will never reach the marking in Fig. 29.I f
+we want to exclude that kind of behaviour, we wouldintroduce a counter which limits the number of retrans-
+missions allowed for each individual packet.
+The liveness properties in Fig. 39specify that there
+is a single dead marking which has the node number
+Fig. 39 State space report—liveness properties4868. A dead marking is a marking in which no binding
+elements are enabled. This means that the marking cor-
+responding to node 4868 is both a home marking and
+a dead marking. The fact that node 4868 is the onlydead marking tells us that the protocol as speciﬁed bythe CPN model is partially correct —if execution termi-
+nates we have the correct result. Furthermore, because
+node 4868 is also a home marking it is always possibleto terminate the protocol with the correct result. It may
+be a bit surprising that a dead marking can be a home
+marking, but this is possible because any marking canbe reached from itself by means of the trivial occurrence
+sequence of length zero.
+Figure 39tells us that there are no live transitions .
+A transition is liveif from any reachable marking we
+can always ﬁnd an occurrence sequence containing the
+transition. In other words, we cannot do things which
+will make it impossible for the transition to occur after-wards. We have already seen that our protocol has a
+dead marking, and this is the reason why it cannot have
+any live transitions—no transitions can be made enabledfrom the dead marking.
+Finally, Fig. 39also tells us that there are no dead
+transitions . A transition is dead if there are no reachable
+markings in which it is enabled. That there are no deadtransitions means that each transition in the protocol has
+the possibility to occur at least once. If a model has dead
+transitions then they correspond to parts of the modelthat can never be activated. Hence, we can remove
+dead transitions from the model without changing the
+behaviour of it.
+5.4 Query functions
+Above, we have discussed the contents of the state space
+report (with the exception of the so-called fairness prop-
+erties). It is produced totally automatically, and it con-
+tains information about a number of key properties forthe CPN model under analysis. The behavioural prop-
+erties investigated in the state space report are stan-
+dard properties that can be investigated for any model.Hence, the state space report is often the ﬁrst thing whichthe user asks for. However, the user may also want to
+investigate properties that are not general enough to be
+part of the state space report. For this purpose a numberof predeﬁned query functions are available in CPN Tools
+that make it possible to write user-deﬁned and model-
+dependent queries. These queries are written in the CPNML programming language. The CPN state space tool
+uses the predeﬁned query functions when computing the
+content of the state space report. CPN Tools addition-ally contains a library that makes it possible to formulatequeries in a temporal logic [ 8].
+
+--- Page 30 ---
+242 K. Jensen et al.
+An example of a model-speciﬁc query for the CPN
+model in Fig. 32would be to check whether the pro-
+tocol obeys the stop-and-wait strategy, i.e., whether the
+sequence number of the data packet currently being sentby the sender is at most one less than the sequence num-ber expected by the receiver. For this purpose we can
+implement a predicate StopWait which given a mark-
+ing, i.e., a node from the state space, checks whether thedifference between the sequence number in the receiver
+side (represented by the token on place NextRec ) and
+the sequence number in the sender side (represented bythe token on place NextSend ) is at most one. The imple-
+mentation of the StopWait predicate is as follows:
+fun StopWait (n:Node) =
+let
+val Sender_Seq =
+ms_to_col (Mark.Protocol’NextSend 1 n);
+val Receiver_Seq =
+ms_to_col (Mark.Protocol’NextRec 1 n);
+in
+(Receiver_Seq - Sender_Seq) <= 1
+end;
+The function extracts the colours of the tokens on the
+places NextSend andNextRec in the current marking
+given by the parameter nwhich is a Node in the state
+space. It then compares the value of the two sequence
+numbers as described above. The StopWait predicate
+can then be provided to the query function PredAll-
+Nodes which lists all nodes in the state space satisfying
+a given predicate. Surprisingly, not all nodes satisfy thepredicate. The reason for this is that acknowledgementsmay overtake each other on the places CandDwhich
+means that it is possible for the sender to receive an
+old acknowledgement that causes the sender to dec-rement its sequence number. Using the query functions
+ArcsInPath provided by CPN Tools it is easy to obtain
+a counter example, i.e., an occurrence sequence lead-ing from the initial marking to a marking where the
+predicate does not hold and have it visualised using the
+drawing facilities of CPN Tools.
+One of the main advantages of state space methods is
+that they are relatively easy to use, and they have a high
+degree of automation. The ease of use is primarily due
+to the fact that with state space methods it is possibleto hide a large portion of the underlying complex math-
+ematics from the user. This means that quite often the
+user is only required to formulate the property whichis to be veriﬁed and then apply a computer tool. The
+main disadvantage of state spaces is the state explosion
+problem [38]: even relatively small systems may have an
+astronomical or even inﬁnite number of reachable states,and this is a serious problem for the use of state spacemethods for the veriﬁcation of real-life systems. CPN
+Tools includes a collection of reduction techniques for
+alleviating the state explosion problem inherent in state
+space-based veriﬁcation. These advanced state spacetechniques typically represent the state space in a com-pact form or represent only parts of the state space. The
+state space reduction is done in such a way that it is
+still possible to verify properties of the system. A dis-cussion of these reduction methods is, however, beyond
+the scope of this paper, for details see, e.g., [ 9,18,25,26].
+The state space of a timed CPN model is deﬁned in
+a similar way as for untimed CPN models, except that
+each state space node now corresponds to a timed mark-
+ing, i.e., the timed multi-sets specifying the markings ofthe places and the value of the global clock. CPN Toolsalso supports state space analysis of timed CPN models.
+6 Performance analysis
+Simulation-based performance analysis is supported via
+automatic simulation combined with data collection.
+The basic idea of simulation-based performance anal-
+ysis is to conduct a number of lengthy simulations ofthe model during which data about the performance
+of the system is collected. The data typically provides
+information such as the size of queues, delay of packets,and load on various components. The collection of datais based on the concept of data collector monitors that
+allow the user to specify when and what data is to be col-
+lected during the individual steps of a series of automaticsimulations. The data can be written in log ﬁles for post-
+processing, e.g., in spreadsheets, or a performance report
+can be saved summarising key ﬁgures for the collecteddata such as average, standard deviation, and conﬁdence
+intervals. Simulation-based performance analysis typ-
+ically uses batch simulation that makes it possible to
+explore the parameter space of the model and conductmultiple simulations of each parameter conﬁguration to
+obtain results that are statistically reliable. We illustrate
+performance analysis using a timed model of the simpleprotocol.
+6.1 Revised model for performance analysis
+We will develop a slightly modiﬁed version of our
+protocol model to be used for performance analysis.This model contains a module for the arrival of the data
+packets to be sent by the sender and a module for the
+protocol. These two modules are shown in Figs. 41and
+42, and they are tied together via the System module
+shown in Fig. 40.
+
+--- Page 31 ---
+Coloured Petri Nets and CPN Tools 243
+Fig. 40 System module—top-level module for the hierarchical,
+timed protocol model
+Let us ﬁrst consider the data packets that the sender
+must send. When analysing the performance of a system,one is often interested in measuring the performance of
+a system when it processes a particular kind of workload.
+For example, the workload for the timed protocol is datapackets. With CPN models it is possible to use both ﬁxedworkloads, i.e., workloads that are predetermined at the
+start of a simulation, and dynamic workloads.
+In previous sections, the initial marking inscription
+of the place PacketsToSend has been used to deter-
+mine exactly which data packets should be sent. When
+debugging the model or when examining the logical cor-rectness of the protocol via state space analysis, it is sufﬁ-
+cient to examine the behaviour of the model for a limited
+number of data packets. However, it is unlikely that sucha protocol would be used to send a small, ﬁxed numberof data packets that are always available in a buffer. If
+data packets arrive much faster than they can be sent and
+acknowledged, then a large queue of data packets willgrow at the sender, and an unacceptably large amount
+of time may pass from when a packet arrives until it is
+acknowledged. The arrival of data packets will affect theperformance of the protocol, and this behaviour should,
+therefore, be modelled accurately. For this system, it is
+useful to consider a dynamic workload.
+The arrival of data packets is modelled in the Arriv-
+alsmodule shown in Fig. 41. A single timed token on
+the place Next is used to control the arrival of new data
+packets. The colour of the token represents the sequencenumber of the next data packet that will arrive, and
+the time stamp determines when a new data packet
+will arrive. In the marking shown in Fig. 41, the next
+data packet will arrive at time 3161 , and it will get the
+sequence number 16. When the CreatePacket transi-
+tion occurs, the time delay of the token that is addedto the place Next is determined by the nextArrival
+function deﬁned as:
+fun nextArrival() = discrete(200,220);
+Intuitively, the value returned by the nextArrival
+function represents the amount of time that will passbefore the next data packet arrives. Here the discrete
+probability distribution function is used, but CPN Tools
+provides support for a number of probability distribu-tions, including, uniform, normal, Erlang, and exponen-tial.n+1@+nextArrival()n
+newDataPacket(n)Create
+PacketNext1`1
+NO
+Packets
+To SendOut
+DATAPACKETOut11`16@3161
+31`(13,"p13 ",2513)@3065+++
+1`(14,"p14 ",2724)@2724+++1`(15,"p15 ",2943)@2943
+Fig. 41 Module for the arrival of data packets
+When doing performance analysis, it is often interest-
+ing to measure the amount of time that passes betweendifferent events. In the timed protocol example, it is
+interesting to measure the amount of time that passes
+from when a data packet arrives at the sender until thedata packet is received by the receiver. To be able to
+do this it must be possible to record and remember the
+time at which the ﬁrst event occurs. In a CPN model,the easiest way to record this kind of information is to
+include it in token values. The colour set DATAPACKET
+shown below is used to model the data packets. Herethe token colour of a data packet is a triple consisting ofa sequence number, the data contents, and the time of
+arrival for the data packet. The time of arrival is repre-
+sented by the integer colour set TOA.
+colset TOA = int;
+var t : TOA;colset DATAPACKET = product NO*DATA*TOA
+timed;
+When the CreatePacket transition occurs, a new data
+packet is created by the newDataPacket function (not
+shown) which returns a value of type DATAPACKET , i.e.,
+a triple. The sequence number of the new data packet
+is determined by the argument n,s h o w ni nF i g . 41, and
+the time of arrival of the data packet will be equal to themodel time at which the transition occurs.
+Figure 42shows a variant of the timed protocol that
+differs from the timed model in Fig. 14in a number of
+ways. In Fig. 42, data packets are discarded after they
+have been acknowledged. Transition RemovePacket
+removes data packets from the place PacketsToSend
+after they have been acknowledged. The inscription tothe upper left of the transition, i.e., the inscription
+[n<k] , is the guard for the transition. This guard ensures
+that only packets that have a sequence number that issmaller than the sequence number on NextSend will
+be removed from place PacketsToSend . A time delay
+inscription on the arc from PacketsToSend toRemove-
+Packet allows tokens to be removed ahead of time from
+the place PacketsToSend . The arc inscription on the arc
+
+--- Page 32 ---
+244 K. Jensen et al.
+data(n,d,t)@+Wait
+(n,d,t)
+if n=k
+then k+1
+else kk
+n if ok()
+then 1`n
+else emptynif n=k
+then k+1
+else k(n,d,t) (n,d,t)
+nif n=k then data^delse data(n,d,t)if ok()
+then 1`(n,d,t)else empty(n,d,t)@+Wait
+Remove
+Packet[n<k]
+Receive
+Ack
+@+7Transmit
+Ack
+@+Delay()Receive
+Packet
+@+17Transmit
+Packet
+@+Delay()Send
+Packet
+@+9
+NextRec1`1
+NO
+C
+NOD
+NOA
+DATAPACKET
+NextSend1`1
+NOData
+Received1`""
+DATA
+B
+DATAPACKETPackets
+To SendIn
+DATAPACKET
+k
+kif n>k
+then n
+else kIn
+Fig. 42 Module for the protocol
+from ReceiveAck toNextSend has also been changed
+so that the sequence number on NextSend will never be
+decreased. This means that the sender will notretransmit packets that have already been received if
+a duplicate acknowledgement is received.
+The loss of data packets is also represented slightly
+differently. For automatic simulations of the model
+s h o w ni nF i g . 14, the variable success for the transi-
+tionTransmitPacket would be randomly bound to either
+true orfalse each time the transition occurs, and both
+values would be equally likely. In other words, approx-
+imately 50% of the data packets would be lost during
+automatic simulations. Many networks are more reli-able than this, so when studying the performance of
+the protocol, it is important to represent the loss rate
+more accurately. In Fig. 42theokfunction determines
+whether a packet will be transmitted successfully or lost:
+fun ok() = uniform(0.0,1.0) <= 0.9;
+Theuniform function will return a random value
+between 0.0 and 1.0, and all values in the interval havethe same probability of being chosen. The okfunction
+speciﬁes that there is a 90% chance that data packets will
+be transmitted successfully. The loss of acknowledge-ments is modelled in a similar manner. Since fewer pack-
+ets will be lost, it is not necessary to retransmit packets as
+often. Therefore, the value of the constant Wait , which
+determines how long the sender should wait beforeretransmitting a data packet, has been changed to 175.
+6.2 Performance measures and data collectorsThere are a number of interesting performance mea-
+sures for the timed protocol example. For example, itcould be interesting to know how many data packets orhow many duplicate data packets are received by thereceiver during a simulation. Measuring the number of
+packets to send will indicate whether there is a backlog
+of data packets at the sender. In this example, packetdelay will be the amount of time that passes from when
+a data packet arrives at the sender until it is correctly
+received by the receiver. Calculating average and max-imum packet delay will indicate whether data packets
+are received in a timely fashion.
+Such performance measures can be calculated based
+on numerical data that is extracted or collected froma CPN model during simulations. In CPN Tools, data
+collector monitors are used for this purpose. As we
+shall see, the numerical data can be extracted from thebinding elements that occur and the markings that are
+reached during a simulation. Different kinds of data col-
+lector monitors can be used for different purposes. Thereare standard or predeﬁned data collector monitors that
+can be used for any CPN model. We will also see exam-
+ples of user-deﬁned or generic data collector monitorswhich collect data that is model speciﬁc. Data collectormonitors are created with tools from the Monitoring pal-
+ette, and they can be created by cloning and modifying
+existing data collector monitors.
+Calculating the number of data packets that are
+received by the receiver is simply a matter of count-
+ing the number of times the ReceivePacket transition
+occurs during a simulation. In CPN Tools a count
+transition occurrences monitor is a standard monitor for
+just this purpose. The monitor for counting the numberof received data packets is named
+ReceivedPackets .
+In the model, a duplicate data packet is received
+when the ReceivePacket transition occurs with a bind-
+ing where n/negationslash=k.Generic data collector monitors can be
+used to collect any kind of numerical data from a CPN
+model. The behaviour of such monitors is determined
+by their monitoring functions which are accessible to the
+
+--- Page 33 ---
+Coloured Petri Nets and CPN Tools 245
+user. Here we will use a generic data collector monitor
+to calculate the number of duplicate packets received by
+counting the number of times a transition occurs with a
+particular binding. The monitor is named ReceivedDupli-
+catePackets .
+So, we need to be able to determine at least two things
+for the ReceivedDuplicatePackets monitor: (1) when data
+should be collected from the model for updating thecounter of duplicate data packets, and (2) the value with
+which the counter should be increased. This function-
+ality is determined by the monitoring functions for thedata collector monitor.
+In a data collector monitor, a predicate function will be
+called periodically, and it should return true whenever
+the monitor should collect data from the model. Thepredicate function for the
+ReceivedDuplicatePackets mon-
+itor looks like this:
+fun pred (Protocol’Receive_Packet
+(1,{d,data,k,n,t})) = true
+The predicate function can examine the bindings of
+the variables of the transition, but it is deﬁned so thatit ignores the bindings of the variables. The function
+returnstrue every time ReceivePacket occurs.
+In a data collector monitor, an observation function
+collects numerical data from the model. An observation
+function is called each time the predicate function for
+the same monitor is called and returns true .T h ef o l -
+lowing observation function collects data that is used to
+calculate the number of duplicate data packets received:
+fun obs (Protocol’Receive_Packet
+(1, {d,data,k,n,t})) =
+if n=k then 0 else 1
+The predicate function above determines that this obser-
+vation function will be called each time ReceivePacket
+occurs. The function will return 1 whenever a duplicate
+data packet is received by the receiver, and 0 when apacket is received the ﬁrst time. The data values that are
+returned by the observation function are used to calcu-
+late statistics, such as the sum, average, and maximumof the data values that are collected. The sum of thedata values collected by this monitor will indicate how
+many duplicate data packets have been received during
+a simulation. The average of the data values will be theproportion of duplicate data packets to the total number
+of data packets received.
+Each data collector monitor has two additional mon-
+itoring functions: an initialisation function and a stop
+function . The initialisation function can be used to col-
+lect data from the initial marking of the model. Simi-larly, the stop function can be used to collect data fromthe ﬁnal marking of a simulation. Initialisation and stopfunctions cannot be used to collect data from binding
+elements. For the
+ReceivedDuplicatePackets monitor, nei-
+ther the initialisation function nor the stop function is
+used to collect data from markings.
+We deﬁne another generic data collector monitor
+called PacketDelay which collects data from occurring
+binding elements. It is deﬁned to measure packet delay,
+and to calculate average and maximum packet delay.When the ReceivePacket transition occurs (see Fig. 42),
+the variable tis bound to the arrival time of the data
+packet that is being received, and this value can be usedto calculate the packet delay. This data collector monitor
+is associated only with the ReceivePacket transition.
+The predicate function for this monitor is exactly the
+same as the one for the
+ReceivedDuplicatePackets monitor.
+The observation function for measuring packet delay
+subtracts the time of arrival for the data packet tfrom
+the model time at which the transition occurs, and thetime that is required to receive the data packet ( 17)i s
+added, since the time delay for receiving the data packet
+ought to be included in the packet delay. The initialisa-tion and stop functions are not used to collect data from
+markings.
+We have seen a number of examples of how data col-
+lector monitors can be used to collect data from bindingelements that occur during a simulation. We will now
+see how monitors can be used to collect data from the
+markings that are reached during a simulation.
+The number of tokens on the place PacketsToSend
+in a particular marking is equal to the number of pack-
+ets to be sent. In CPN Tools, a marking size monitor is
+a standard monitor that is used to measure the number
+of tokens on a place during a simulation. Such a moni-
+tor can calculate the average and maximum number oftokens on a place during a simulation. We will use amarking size monitor named
+PacketsT oSend for measur-
+ing the number of tokens on the place PacketsToSend
+during a simulation, and to calculate the average andmaximum number of data packets to be sent during a
+simulation.
+One way to measure the number of tokens on a place
+is to count the number of tokens on the place in the
+initial marking and after every step in a simulation. If
+the model is not timed, then this is a good way to collectthe data for calculating the average number of tokenson the place, and a marking size monitor for untimed
+models does, in fact, use this technique.
+However, for a timed model, it is often desirable to
+use timing information when calculating the average
+number of tokens on a place. Such timing information
+will be taken into consideration if we calculate the time-
+average number of packets to send. By time average we
+mean a weighted average of the possible number of data
+
+--- Page 34 ---
+246 K. Jensen et al.
+packets to send (0, 1, 2, …) weighted by the proportion
+of time during the simulation that there were that many
+data packets to send. When calculating the time average,
+it is sufﬁcient to measure the number of tokens at theplace only when one of the transitions surrounding theplace occurs. When the number of tokens is measured,
+the interval of model time that passes until the number
+of tokens is measured again is used to weight the ﬁrstmeasurement. A marking size monitor for timed models
+uses this technique.
+We deﬁne another generic data collector monitor
+called
+W aitingForTransmission which calculates the time-
+average number of data packets and acknowledgements
+that are waiting to be transmitted. In other words, itmeasures the sum of the number of tokens on placesAandC. Since it calculates the time-average number
+of tokens on these two places, it is sufﬁcient to mea-
+sure the number of tokens when one of the transitionsconnected to either of the places occurs. The monitor
+is associated with the following nodes: places AandC,
+and transitions SendPacket ,TransmitPacket ,Receive-
+Packet , and TransmitAck . The predicate function will be
+called only when one of these transitions occurs, and
+the function will return true whenever it is called. The
+observation function returns the total number of tokenson the two places:
+fun obs (bindelem,
+Protocol’A_1_mark : DATAPACKET tms,
+Protocol’C_1_mark : NO tms) =
+(size Protocol’A_1_mark) +(size Protocol’C_1_mark)
+The initialisation and stop functions for the
+W aitingFor-
+Transmission monitor are similar to the observation func-
+tion of the monitor.
+Generic data collector monitors are not required to
+collect data regularly during simulations. For the timed
+protocol example, we would like to calculate throughputas the number of unique data packets that were receivedby the receiver per second. This can be calculated at the
+end of a simulation by dividing the number of unique
+packets that are received during the simulation by thelength of the simulation expressed as seconds of model
+time. In this model, one second is equal to 1,000,000
+units of model time. The stop function for generic datacollector monitor named
+Throughput is used to calcu-
+late throughput. It is also necessary to deﬁne predicate,
+observation, and initialisation functions for the Through-
+putmonitor, even though these functions will not be used
+to collect data.6.3 Statistics
+Since most simulation models contain random behav-
+iour, the simulation output data are also random, andcare must be taken when interpreting and analysing theoutput data. Performance measures are estimated by
+calculating statistics for the data that is collected by data
+collector monitors during a simulation. Below we givea very brief description of some of the statistical con-
+cepts used when conducting performance analysis using
+CPN Tools. For a more detailed introduction to statisticsplease see a textbook on statistics or simulation, such as
+[27]o r[ 3].
+Statistics that are calculated relative to a collection
+of discrete data values are known as discrete-parameter
+statistics [21]. For example, the average packet delay is
+deﬁned relative to the collection of discrete observations
+D
+iwhere Diis the packet delay for the ith data packet
+received during a simulation.
+As discussed in the previous section, the time-aver-
+age number of data packets waiting to be sent is equal tothe time-average number of tokens on place PacketsTo-
+Send . This is a different kind of “average” than the aver-
+age packet delay, because time-average is taken over(continuous) time, rather than over data packets (whichare discrete). Time-average is an example of a contin-
+uous-time statistic . Intuitively, continuous-time statistics
+are those that result from taking the (time) average,minimum, or maximum of a plot of something dur-
+ing the simulation, where the x-axis is continuous time
+[21].
+A data collector monitor can calculate either the
+(regular) average or the time-average. A monitor that
+calculates the (regular) average is said to calculate dis-crete-parameter statistics. A monitor that calculatestime-average is said to calculate continuous-time sta-
+tistics. Both kinds of monitors can calculate a number of
+different statistics, including: count (number of obser-vations), minimum, maximum, sum, and average. Each
+data collector monitor has predeﬁned functions that can
+be used to access the statistics that are calculated for themonitor, such as count ,sum,avrg , andmax.
+It is important to remember that running different
+simulations will result in different estimates of perfor-mance measures. Conﬁdence intervals are often used
+to evaluate the accuracy of performance measure esti-
+mates. Accurate conﬁdence intervals can only be
+calculated for data values that are independent and iden-
+tically distributed (IID) . Intuitively, data values are IID
+if they are not related to each other, and if they have the
+same probability distribution. CPN Tools can calculate90, 95, and 99% conﬁdence intervals. Figure 43shows an
+example of how the 95% conﬁdence interval for average
+
+--- Page 35 ---
+Coloured Petri Nets and CPN Tools 247
+ 180 200 220 240 260 280 300
+ 100  50  25  105Average packet delay
+Number of Simulations95% confidence intervals
+Fig. 43 95% conﬁdence intervals for average packet delay
+packet delay generally decreases as more IID estimates
+are collected from increasing numbers of simulations.
+Since all of the data collected by a single data col-
+lector monitor is not likely to be IID, it is necessaryto ﬁnd other methods for collecting IID estimates of
+performance measures. One widely used method is to
+collect IID estimates from independent, simulation rep-
+lications , which start in the same initial state and stop
+when the same stop criterion is fulﬁlled. For exam-
+ple, simulation replications of the timed protocol exam-ple could all stop after 1,000 data packets have beenreceived, or after one hour of model time has passed.
+The batch-means method is another commonly used
+technique for obtaining IID estimates of performancemeasures. In this method, IID estimates of performance
+measures are derived from data values from a single,
+long simulation. The idea behind this method is to groupindividual observations into a number of batches, to
+calculate the averages of the observations within each
+batch, and then to use the averages from each of thebatches as IID estimates of a performance measure.
+As we will see in Sect. 6.5, determining whether IID
+estimates should be obtained from simulation replica-
+tions or via the batch-means method will depend on thekinds of simulation experiments that are to be done.
+6.4 Performance output
+Several different kinds of output can be generated for
+data collector monitors. In this section, we will see some
+examples of performance-related output, including logﬁles, statistical reports, and scripts for plotting data
+values.
+All of the data that is collected by a data collector
+can be saved in a data collector log ﬁle . The log ﬁle
+also contains information about the steps and modelFig. 44 Data collector log ﬁle for PacketsT oSend monitor
+times at which the data was collected. An option for
+a data collector monitor determines whether a log ﬁle
+should be generated for the monitor. Figure 44shows
+an example of a log ﬁle for the PacketsT oSend monitor.
+The last line of Fig. 44shows that there was 1 token
+on place PacketsToSend after the 9th simulation step
+which occurred at model time 220, and this was the 6thtime that the number of tokens on the place was mea-
+sured. The monitor measures the number of tokens on
+the place whenever one of the surrounding transitionsoccurs. Since the number of tokens on the place does
+not change when the SendPacket transition occurs, suc-
+cessive data values that are collected by the monitormay be the same, as can be seen in the ﬁrst column ofFig.44. The last two columns show that more than one
+data value may be collected after different simulation
+steps that occur at the same model time.
+Data collector log ﬁles can be post-processed after
+a simulation has completed. For example, they can be
+imported into a spreadsheet or plotted. CPN Tools gen-erates scripts for plotting data collector log ﬁles with
+the gnuplot program [ 14]. Figure 45shows an example
+of how a log ﬁle for the
+PacketsT oSend monitor can be
+plotted with gnuplot.
+The statistics that are calculated for data collector
+monitors are saved in different kinds of reports. A sim-
+0123
+0  1000  2000  3000  4000  5000Number
+Model timePackets to Send
+Fig. 45 Plotting data for PacketsT oSend monitor
+
+--- Page 36 ---
+248 K. Jensen et al.
+Fig. 46 Statistics from a simulation performance report
+ulation performance report contains statistics that are
+calculated for the data that is collected by data collec-
+tors during one simulation. Figure 46shows statistics
+from a simulation performance report. The simulationstopped after 1,000 data packets had been received by
+the receiver. In addition to statistics, the report contains
+information (not shown in Fig. 46) indicating that the
+simulation stopped at model time 188,775 after the exe-
+cution of 6,916 simulation steps.
+The upper part of Fig. 46shows the continuous-time
+statistics from the simulation performance report. Thereare ﬁve columns with different kinds of statistics. The
+user can determine which statistics should be included
+in a simulation performance report. The statistics for the
+PacketsT oSend monitor show that the time-average num-
+ber of data packets to send was 1.57, and that the max-
+imum number of data packets to send was 7. The countstatistic for the monitor shows that it collected 2,911 data
+values, i.e., it measured the number of tokens on place
+PacketsToSend 2,911 times. The ﬁrst time the monitor
+measured the number of tokens was at model time 0.The time average for the
+W aitingForTransmission monitor
+shows the time-average number of packets waiting to be
+transmitted, i.e., the time-average number of tokens onplaces AandC, was 0.14.
+The lower part of Fig. 46shows the discrete-param-
+eter statistics from the simulation performance report.The count statistic for the
+PacketDelay monitor shows
+that the monitor measured the packet delay for 1,000
+data packets. The average packet delay is 273.26 unitsof time, with a minimum and maximum packet delayof 51 and 1,275, respectively. Note that not all statis-
+tics in a simulation report will be useful, for example
+the average, minimum, and maximum values for the
+ReceivedPackets monitor are not interesting, and the sum
+and count statistics show the same value, namely the
+number of packets that were received during thesimulation. The statistics for the
+ReceivedDuplicatePac-
+ketsmonitor indicate that 102 out of 1,000 received pack-
+ets were duplicates. Finally, the throughput for the sim-ulation was 4,756.99 (unique) data packets per 1,000,000time units, i.e., per second. Recall that the throughputis calculated by a monitor stop function at the end of a
+simulation, and this explains why the count statistic for
+the monitor is 1, and why the sum, average, minimum
+and maximum values for the monitor are the same.
+The statistics in a simulation performance report are
+unreliable, because they are just one estimate of var-
+ious different performance measures. Different statis-
+tics would be obtained if another simulation were run.A reliable estimate of a performance measure can be
+obtained by calculating a conﬁdence interval for the
+average of a set of IID estimates for the performancemeasures. For example, IID estimates of the average
+packet delay can be obtained by running a number of
+independent simulation replications in CPN Tools. SuchIID estimates can also be saved in log ﬁles. Figure 47
+shows IID estimates from ten simulation replications
+for average packet delay for 1,000 packets. This data
+can then be used to calculate a conﬁdence interval for areliable estimate of average packet delay for the timed
+protocol example.
+Another performance report contains reliable esti-
+mates of performance measures based on IID data val-
+ues. Figure 48shows an excerpt of such a performance
+report. The statistics shown in the ﬁgure are calculatedfor IID estimates of performance measures that werecollected from ten simulation replications. A value in
+the 95% Half Width column is equal to half of the length
+of the 95% conﬁdence interval for the average in thesame row. For example, the data from Fig. 47were used
+to calculate the statistics in the avrg_iid row under the
+PacketDelay heading, and the 95% conﬁdence interval
+Fig. 47 Log ﬁle with IID estimates of average packet delay
+Fig. 48 Reliable statistics based on data from ten replications
+
+--- Page 37 ---
+Coloured Petri Nets and CPN Tools 249
+for the average packet delay based on the data from
+the ten simulations is 240.01 ±25.32. A value in the Min
+(Max ) column is the minimum (maximum) of the IID
+estimates that were collected for the performance mea-sure in the ﬁrst column of the same row. For example,the minimum average packet delay from the ten rep-
+lications is 203.79, while the maximum average packet
+delay is 311.17. Some, but rarely all, of the statisticsshown in this performance report will represent useful
+performance measures for the model.
+6.5 Conducting simulation experiments
+Performance analysis studies are conducted for differ-
+ent reasons, e.g., to evaluate existing or planned sys-tems, to compare alternative conﬁgurations, or to ﬁnd an
+optimal conﬁguration of a system. Experimental design
+[27] is concerned with determining which scenarios are
+going to be simulated and how each of the scenarios will
+be simulated in a simulation study. When deciding how
+many simulations to run and how long to run each sim-ulation for a scenario, it is necessary to consider whatkind of system is being modelled and what the purpose
+of the simulation study is. There are two kinds of sys-
+tems, terminating systems and non-terminating systems ,
+which will be described below. As we shall see, different
+statistical techniques are used to analyse these different
+kinds of systems.
+Terminating systems are characterised by having a
+ﬁxed starting condition and a naturally occurring event
+that marks the end of the system. An example of a termi-nating system is a business day at a bank that starts at 10a.m. and ends at 4 p.m.The purpose of simulating termi-
+nating systems is to understand their behaviour during
+a certain period of time, and this is also referred to asstudying the transient behaviour of the system.
+Terminating simulations are used to simulate termi-
+nating systems. The length of a terminating simulationis determined either by the system itself, if the system
+is a terminating system, or by the objective of a simu-
+lation study. The length of a terminating simulation canbe determined by a ﬁxed amount of time, e.g., 6 h, or itcan be determined by some condition, e.g., the depar-
+ture of the tenth customer. Simulation replications are
+generally used to collect IID estimates of performancemeasures for terminating simulations.
+In a non-terminating system, the duration of the
+system is not ﬁnite. The Internet exempliﬁes a non-terminating system. Non-terminating simulations are
+used to simulate non-terminating systems. In a non-
+terminating simulation, there is no event to signal theend of a simulation, and such simulations are typicallyused to investigate the long-term behaviour of a system.Non-terminating simulations must, of course, stop at
+some point, and it is a non-trivial problem to determine
+the proper duration of a non-terminating simulation.
+If the behaviour of a non-terminating system becomes
+fairly stable at some point, then there are simple tech-niques for analysing the steady-state behaviour of the
+system using non-terminating simulations. Determining
+when, or if, a model reaches a steady state is also a com-plicated issue. IID estimates of performance measures
+for steady-state simulations are often obtained by apply-
+ing the batch-means method during a long simulation.
+It is often useful to be able to deﬁne a warmup period
+in which data should not be collected at the beginning
+of a simulation. When analysing steady-state behaviourusing non-terminating simulations, the warmup periodis used to ignore the behaviour of the model during the
+time it takes the model to reach a steady state. It can
+also be useful to deﬁne a warmup period for terminat-ing simulations.
+6.6 Model parameters and comparing conﬁgurations
+Simulation-based performance analysis is often used to
+compare different scenarios or conﬁgurations of a sys-
+tem. The performance of a system is often dependent
+on several parameters. For example, the performance ofthe timed protocol example is inﬂuenced by parameters
+that determine the probability that packets will be trans-
+mitted successfully, the minimum and maximum timesbetween arrivals of data packets, and even the distribu-
+tion of the interarrival times of data packets. Changing
+these parameters will most likely affect the performancemeasures of the model. In the original version of themodel, these parameters were hardcoded into functions,
+such as the okfunction:
+fun ok() = uniform(0.0,1.0) <= 0.9;The probability that a packet will be transmitted suc-
+cessfully is 90%, as determined by the 0.9 in theok
+function. This parameter can be changed by modifying
+the declaration of the okfunction. In CPN Tools, these
+changes require the syntax of the declaration and theparts of the model that depend on the declaration to be
+rechecked. Making such changes can therefore be time
+consuming, especially if many parts of a large modelmust be rechecked. If parameters are deﬁned in this
+way, then it is not possible to automatically simulate a
+number of conﬁgurations without manual interaction byau s e r .
+These problems can be avoided if parameters are
+declared as reference variables
+. It is possible to change
+the value of a parameter declared as a reference vari-able without having to recheck the syntax of any part of
+
+--- Page 38 ---
+250 K. Jensen et al.
+Fig. 49 Using the Evaluate ML tool to change a parameter value
+a model. Here is the declaration of a reference variable
+that determines the probability that a packet is trans-
+mitted successfully, and the okfunction that uses the
+reference variable:
+globref successrate = 0.9;
+fun ok() =
+uniform(0.0,1.0) <= !successrate;
+The keyword globref indicates that a global reference
+variable is being declared, i.e., the reference variable canbe accessed from any part of the CP-net. The name of
+the reference variable is successrate , and the initial
+contents of the reference variable is 0.9.T h e!opera-
+tor is used to access the contents of a reference variable.Figure 49shows how the value of successrate could
+be changed to 0.75 by picking up the Evaluate ML tool
+from the simulation tool palette (shown in Fig. 28) and
+applying the tool to an auxiliary text. The value of a
+parameter could also be changed in a function. If model
+parameters are declared as reference variables, then it isvery easy to change the values of the parameters and to
+automatically simulate different model conﬁgurations.
+If the scenarios of a simulation study are not pre-
+determined, then the purpose of the study may be tolocate the parameters that have the most impact on a
+particular performance measure or to locate important
+parameters in the system. Sensitivity analysis [22] inves-
+tigates how large changes in parameters affect perfor-
+mance measures. Gradient estimation [27] examines how
+small changes in numerical parameters affect the per-formance of the system. Optimisation [2]i so f t e nj u s ta
+sophisticated form of comparing alternative conﬁgura-
+tions, in that it is a systematic method for trying differentcombinations of parameters in the hope of ﬁnding thecombination that gives the best results.
+7 Visualisation
+Even though the CPN modelling language supports
+abstraction and a module concept, there can, in manycases, be an overwhelming amount of detail in theconstructed CPN model. Furthermore, observing everysingle step in a simulation is often too detailed for inves-
+tigating the behaviour of a model, especially for large
+CPN models. This level of detail can be a limitation, in
+particular when presenting and discussing a CPN modelwith colleagues unfamiliar with the CPN modelling lan-guage. The idea of animation graphics and visualisation
+is to add high-level graphics to CPN models. This means
+that feedback from simulations can be obtained at amore adequate level of detail using application domain
+concepts, and in such a way that the underlying formal
+CPN model is fully transparent to the observer.
+CPN Tools can interact with the BRITNeY Suite ani-
+mation tool [ 40] that supports the creation of domain-
+speciﬁc graphics on top of CPN models. The animationtool supports a wide range of diagram types via an ani-mation plug-in architecture. Below we give two exam-
+ples of how the animation tool can be used to create
+domain-speciﬁc graphics. One example is the use of mes-sage sequence charts (MSCs) to illustrate the exchange
+of messages in the simple protocol. The second example
+illustrates how it is possible to provide input and con-trol a simulation of a CPN model by interacting with
+system-speciﬁc graphics. We use the CPN model previ-
+ously shown in Fig. 1as a basis for both examples.
+7.1 Message sequence charts
+Figure 50shows an example of an MSC created during a
+simulation of the CPN model of the simple protocol. The
+MSC has four columns. The leftmost column representsthe sender and the rightmost column represents the
+receiver. The two middle columns represent the sender
+and receiver side of the network. The MSC captures ascenario where the ﬁrst data packet sent by the sender
+is lost which then causes a retransmission of the data
+packet to occur. The retransmitted data packet is thensuccessfully transmitted to the receiver and the corre-
+Fig. 50 Example of a message sequence chart
+
+--- Page 39 ---
+Coloured Petri Nets and CPN Tools 251
+sponding acknowledgement is successfully received by
+the sender.
+The graphical feedback from the execution of the
+CPN model is achieved by attaching code segments to
+the transitions in the CPN model. A code segment con-sists of a piece of sequential CPN ML code that is exe-
+cuted whenever the corresponding transition occurs in
+the simulation of the CPN model. As an example, thetransition SendPacket has the following code segment
+attached:
+input (n,d);
+output ();action
+msc.addEvent ("Sender","Network 1",
+NOxDATA.mkstr(n,d))
+The code segment is provided with the value bound
+to the variables nanddvia the input part of the code
+segment. The code segment then uses the functionmsc.addEvent provided by the animation tool to cre-
+ate an event from the Sender column to the Network1
+column labelled with the value bound to nandd.T h e
+functionNOxDATA.mkstr converts the pair (n,d) into
+a corresponding string used to label the arc of the MSC.
+The output part of the code segment is not used in this
+code segment, but its use will be illustrated in the nextsubsection. The other transitions of the CPN model have
+similar code segments. Each code segment essentially
+consists of invoking the appropriate primitive in the ani-mation tool. An alternative to using code segments is touse a user-deﬁned monitor to invoke the appropriate
+primitive depending on which transition occurs. For fur-
+ther details regarding user-deﬁned monitors we referto [10].
+7.2 Interaction graphics
+Figure 51shows an example of a system-speciﬁc anima-
+tion graphic created using an animation plug-in based
+on the SceneBeans framework [ 35]. The graphic illus-
+trates the system modelled by the CPN model of thesimple protocol. The computer to the left represents
+the sender, the computer to the right represents the
+receiver. The cloud in the middle represents the net-work. When a simulation is started, a modal dialog pops
+up that allows the observer to enter the text string to be
+transmitted from the sender to the receiver. In this caseit was the text string "Coloured Petri Nets" that
+was entered. The modal dialog is created by adding a
+transition Initconnected to the PacketsToSend as shown
+in Fig. 52.T h e Inittransition is the only enabled transi-
+tion in the initial marking, and when it occurs it removes
+Fig. 51 Example of system-speciﬁc animation graphics
+CreatePackets(data)()
+Initinput ();
+output (data);action
+setupVisualization()Init()
+UNIT
+Packets
+To Send
+NOxDATA11`()
+Fig. 52 Transition Initand surroundings
+the token with colour ()from place Init, executes the
+attached code segment, and creates data packets on theplace PacketsToSend according to the string entered by
+the user in the modal dialog. The function setupVisu-
+alisation (not shown) in the code segment of the Init
+transition invokes the primitive in the animation tool
+for creating a modal dialog box and returns the string
+entered. The string entered will be bound to the variabledata used in the output part of the code segment. The
+string bound to data is then used as the argument for
+the function CreatePackets which splits the string
+into corresponding data packets.
+The text on top of the sender computer shows the text
+string to be transmitted and is hence a representation of
+the marking of place PacketsToSend . Similarly, the text
+on top of the receiver computer shows the text string
+received by the receiver and is hence a representation
+of the marking of place DataReceived . The two counters
+on top of the sender and the receiver are representations
+of the values of the tokens on places NextSend andNext-
+Rec, respectively. The four numbers at the edges of the
+network cloud represent the number of tokens on thenetwork places A,B,C, and D. In the topmost part of
+
+--- Page 40 ---
+252 K. Jensen et al.
+the network a data packet (1,"Col") is shown which
+is currently in transit on the network. The two square
+boxes in the middle below the data packet (and coloured
+green and red) let the user decide whether the packetis to be lost (if the user clicks on the red square) orsuccessfully transmitted (if the user clicks on the green
+square). This illustrates how it is possible to provide
+input to an ongoing simulation via the animation graph-ics. The interaction graphics shown in Fig. 51is created
+in a similar way as the MSCs above by attaching code
+segments invoking the animation primitives to the tran-sitions of the CPN model. The only difference is that the
+code segments now invoke primitives from a different
+animation plug-in. Furthermore, the interaction graph-ics has an XML scene ﬁle that describes the differentelements in the animation, i.e., the computers, the net-
+work cloud, the labels, and the buttons. Further details
+on the animation tool can be found in [ 7,40].
+8 Conclusion
+To cope with the complexity of modern concurrent sys-
+tems, it is crucial to provide methods that enable debug-
+ging and testing of central parts of the system designsprior to implementation and deployment. One way to
+approach the challenge of developing concurrent sys-
+tems is to build an executable model of the system.Constructing a model and simulating it usually lead to
+signiﬁcant new insights into the design and operation
+of the system considered and often results in a simplerand more streamlined design. Furthermore, construct-ing an executable model usually leads to a more com-
+plete speciﬁcation of the design and makes it possible
+to make a systematic investigation of scenarios whichcan signiﬁcantly decrease the number of design errors.
+The construction of a model of the system design typ-
+ically means that more effort is spent in early phasesof system development, i.e., requirements engineering,
+design, and speciﬁcation. This additional investment is,
+in most cases, justiﬁed by the additional insight intothe properties of the system that can be gained priorto implementation. Furthermore, many design prob-
+lems and errors can be discovered and resolved in the
+requirements and design phase rather than in the imple-mentation, test, and deployment phases. Finally, mod-
+els are, in most cases, simpler and more complete than
+traditional design documents which means that the con-struction and exploration of the model has resulted in
+a more solid foundation for doing the implementation.
+This may in turn shorten the implementation and testphases signiﬁcantly and decrease the number of ﬂaws inthe ﬁnal system.The development of CP-nets has been driven by the
+desire to develop an industrial-strength modelling lan-
+guage—at the same time theoretically well-founded and
+versatile enough to be used in practice for systems ofthe size and complexity found in typical industrial pro-jects. CP-nets are, however, not a modelling language
+designed to replace other modelling languages (such as
+UML). In our view it should be used as a supplementto existing modelling languages and methodologies and
+can be used together with these or even integrated into
+them. High-level Petri Nets is an ISO/IEC standard [ 4]
+and the CPN modelling language and supporting com-
+puter tools conform to this standard. The practical appli-
+cation of CP-nets typically relies on a combination ofinteractive and automatic simulation, visualisation, statespace analysis, and performance analysis. These activi-
+ties in conjunction result in a validation of the system
+under consideration in the sense that it has been justiﬁedthat the system has the desired properties and a high-
+degree of conﬁdence and understanding of the system
+has been obtained. CPN models can be used to validateboth the functional/logical correctness and the perfor-
+mance of a system. This saves a lot of time, because we
+do not need to construct two totally independent mod-els of the system. Instead we can use a single model or(more often) two models that are very closely related to
+each other. There exist a number of modelling languages
+that are in widespread use for performance analysis ofsystems, e.g., queueing theory. However, most of these
+modelling languages cannot be used for modelling and
+validation of the logical properties of systems. Some ofthese are also unable to cope with performance analysis
+of systems which have irregular behaviour.
+The paper has given a brief introduction to the CPN
+modelling language and the associated analysis meth-ods. The reader interested in a complete treatment of the
+modelling language and analysis methods are referred
+to [16,17,19] or the forthcoming book [ 20]. The web site
+associated with [ 20] contains an extensive set of slides,
+exercises, and projects for using CP-nets and CPN Tools
+in courses. Further detailed information on the use ofCPN Tools can be found via [ 10] which contains an elab-
+orate set of manuals, tutorials, and other examples of
+CPN models. The CPN Tools web site also explains howto obtain a licence for CPN Tools. Beyond what was pre-sented in this paper, CPN Tools further includes a collec-
+tion of libraries for different purposes. One example is
+Comms/CPN [ 13] for TCP/IP communication between
+CPN models and external applications. CPN Tools gen-
+erally has an architecture that allows the user to extend
+its functionality, such as experimenting with new statespace methods. Hence, in addition to being a tool for
+modelling and validation it also provides a prototyping
+
+--- Page 41 ---
+Coloured Petri Nets and CPN Tools 253
+environment for researchers interested in experiment-
+ing with new analysis algorithms.
+We have illustrated the use of CP-nets for modelling
+and validation of a simple protocol. Readers interestedin more elaborate industrial use of CPN models andCPN Tools are referred to [ 12,19,20,24], the proceed-
+ings of the annual CPN workshop [ 32], and the proceed-
+ings of the annual conference on theory and applicationof Petri Nets [ 30].
+Acknowledgments There are many people who have inﬂuenced
+the development of CP-nets, their analysis methods, and their toolsupport. Unfortunately, we cannot mention them all here, butwe are extremely grateful for their numerous contributions. Wewould like to thank the many developers of CPN Tools. In partic-ular, S øren Christensen and Kjeld H øyer Mortensen who played
+key roles in the development of CPN Tools and its predeces-sor Design/CPN, Michel Beudouin-Lafon and Wendy E. Mackaywho played a central role in designing the GUI of CPN Tools,and Henry Michael Lassen who has been instrumental in thedevelopment of CPN Tools since the start of the project. Usersof CPN Tools have provided invaluable feedback that has helpedto improve the tool. In particular, feedback from Wil van der Aalstand his group has helped to signiﬁcantly improve the stability ofthe tool. Finally, we would also like to thank the reviewers of thispaper for (among other things) their detailed and thoughtful com-ments: Charles Lakos, Guy Gallasch, Jens B ækJørgensen, Jo ão
+Miguel Fernandes, Jonathan Billington, Laure Petrucci, Lin Liu,
+and Simon Tjell. L. M. Kristensen was supported by the Carlsberg
+Foundation and the Danish Research Council for Technology andProduction. Lisa Wells was supported by the ISIS KatrinebjergCompetence Centre.
+References
+1. Adamski, M.A., Karatkevich, A., Wegrzyn, M. (eds.): Design
+of Embedded Control Systems. Springer, Berlin (2005)
+2. Andradóttir, S.: Simulation optimization. In: Banks [ 3],
+chap. 9
+3. Banks, J. (ed.): Handbook of Simulation. Wiley, New York
+(1998)
+4. Billington, J.: ISO/IEC 15909-1:2004 Software and system
+engineering. High-level Petri nets, Part 1: Concepts, deﬁni-tions and graphical notation, 2004
+5. Billington, J., Diaz, M., Rozenberg, G. (eds.): Application of
+Petri Nets to Communication Networks, vol. 1605. Springer,Berlin (1999)
+6. Billington, J., Gallasch, G.E., Han, B.: A Coloured Petri Net
+approach to protocol veriﬁcation. In: Desel, J., Reisig, W.,Rozenberg, G. (eds.) Lectures on Concurrency and Petri Nets.Advances in Petri Nets. In: Proceedings of 4th AdvancedCourse on Petri Nets, Lecture Notes in Computer Science,vol. 3018 pp. 210–290. Springer, Berlin (2004)
+7. BRITNeY Suite. http://www.wiki.daimi.au.dk/britney/8. Cheng, A., Christensen, S., Mortensen, K.H.: Model check-
+ing coloured Petri Nets exploiting strongly connected compo-nents. In: Proceedings of International Workshop on DiscreteEvent Systems, pp. 169–177 (1996)
+9. Christensen, S., Kristensen, L.M., Mailund, T.: Condensed
+state spaces for timed Petri Nets. In: Proceedings of Interna-tional Conference on Application and Theory of Petri Nets.Lecture Notes in Computer Science, vol. 2075 pp. 101–120.Springer, Berlin (2001)10. CPN Tools.: http://www.daimi.au.dk/CPNTools/
+11. Desrochers, A.A., Al-Jaar, R.Y.: Applications of Petri Nets
+in Manufacturing Systems: Modeling, Control, and Perfor-mance Analysis. IEEE, (1994)
+12. Examples of Industrial Use of CP-nets. http://www.daimi.
+au.dk/CPnets/intro/example_indu.html
+13. Gallasch, G.E., Kristensen, L.M.: COMMS/CPN: A Com-
+munication Infrastructure for External Communication withDesign/CPN. In: Proceedings of Third Workshop and Tuto-rial on Practical Use of Coloured Petri Nets and the CPNTools, DAIMI PB-554, pp. 75–91. Department of ComputerScience, University of Aarhus, Denmark (2001)
+14. Gnuplot.: http://www.gnuplot.info15. ITU (CCITT).: Recommendation Z.120: MSC. Technical
+report, International Telecommunication Union, 1992
+16. Jensen, K.: Coloured Petri Nets. Basic concepts, analysis
+methods and practical use. Basic Concepts, vol. 1. Springer,Berlin (1992)
+17. Jensen, K.: Coloured Petri Nets. Basic concepts, analysis
+methods and practical use. Analysis Methods, vol. 2. Springer,Berlin (1994)
+18. Jensen, K.: Condensed state spaces for symmetrical Coloured
+Petri Nets. Formal Methods in System Design, vol. 9, (1996)
+19. Jensen, K.: Coloured Petri Nets. Basic Concepts, Analysis
+Methods and Practical Use. Practical use, vol. 3. Springer,Berlin (1997)
+20. Jensen, K., Kristensen, L.M.: Coloured Petri Nets. Modelling
+and Validation of Concurrent Systems. Springer Textbook (inpreparation) Companion web site: www.daimi.au.dk/CPnets/cpnbook.
+21. Kelton, W.D., Sadowski, R.P ., Sadowski, D.A.: Simulation
+with Arena, 2nd edn. McGraw-Hill, (2002)
+22. Kleijnen, J.P .C.: Experimental design for sensitivity analy-
+sis, optimization, and validation of simulation models. In:Banks [ 3]
+23. Kristensen, L.M., Christensen, S., Jensen, K.: The Practi-
+tioner’s Guide to Coloured Petri Nets. Int. J. Softw. ToolsTechnol. Transf. 2(2), 98–132 (1998)
+24. Kristensen, L.M., J ørgensen, J.B., Jensen, K.: Application of
+Coloured Petri Nets in System Development. In: Lectures on
+Concurrency and Petri Nets. Advances in Petri Nets. Proceed-ings of 4th Advanced Course on Petri Nets. Lecture Notes inComputer Science, vol. 3098, pp. 626–685. Springer, Berlin(2004)
+25. Kristensen, L.M., Mailund, T.: A generalised sweep-line
+method for safety properties. In: Proceedings of Formal Meth-ods Europe, Lecture Notes in Computer Science, vol. 2391,pp. 549–567. Springer, Berlin (2002)
+26. Kristensen, L.M., Valmari, A.: Finding Stubborn Sets of Col-
+oured Petri Nets Without Unfolding. In: Proceedings of Inter-national Conference on Application and Theory of Petri Nets.Lecture Notes in Computer Science, vol. 1420, pp. 104–123.Springer, Berlin (1998)
+27. Law, A.M., Kelton, W.D.: Simulation Modeling and Analysis,
+3rd edn. McGraw-Hill, (2000)
+28. Mortensen, K.H.: Efﬁcient data-structures and algorithms for
+a Coloured Petri Nets Simulator. In: Proceedings of ThirdWorkshop and Tutorial on Practical Use of Coloured PetriNets and the CPN Tools, 2001
+29. Object Management Group. Uniﬁed Modeling Language:
+Superstructure, version 2.0, formal/05-07-04, 2005
+30. Proceedings of International Conference on Application and
+Theory of Petri Nets and Other Models of Concurrency.Springer, Berlin 1980–present
+31. Proceedings of Workshop on Modelling of Objects, Compo-
+nents, and Agents, 2001–present
+
+--- Page 42 ---
+254 K. Jensen et al.
+32. Proceedings of Workshop on Practical Use of Coloured Petri
+Nets and the CPN Tools, 1998–present. http://www.daimi.au.dk/CPnets/
+33. Reisig, W.: Petri Nets. EATCS Monographs on Theoretical
+Computer Science, vol. 4 Springer, Berlin (1985)
+34. Reisig, W.: Elements of Distributed Algorithms: Modeling
+and Analysis with Petri Nets. Springer, Berlin (1998)
+35. SceneBeans. http://www.dse.doc.ic.ac.uk/Software/Scene-
+Beans/
+36. Standard ML of New Jersey. http://www.smlnj.org37. Ullman, J.D.: Elements of ML Programming. Prentice-Hall,
+Englewood Cliffs (1998)38. Valmari, A.: The state explosion problem. In: Lectures on
+Petri Nets I: Basic Models. Lecture Notes in Computer Sci-ence, vol. 1491 pp. 429–528. Springer, Berlin (1998)
+39. van der Aalst, W., van Hee, K.: Workﬂow Management: Mod-
+els, Methods, and Systems. MIT Press, Cambridge, MA (2002)
+40. Westergaard, M., Lassen, K.B.: The BRITNeY Suite Anima-
+tion Tool. In: Proceedings of 27th International Conferenceon Application and Theory of Petri Nets and Other Models ofConcurrency. Lecture Notes in Computer Science, vol. 4024pp. 431–440. Springer, Berlin (2006)
+41. Yakovlev, A., Gomes, L., Lavagno, L.: Hardware Design and
+Petri Nets. Springer, Berlin (2000)

@@ -1,0 +1,1291 @@
+--- Page 1 ---
+V eriﬁcation of Concurrent Systems with Parametric Delays Using Octahedra
+Robert Claris´ o and Jordi Cortadella∗
+Universitat Polit` ecnica de Catalunya
+Barcelona, Spain
+Abstract
+A technique for the veriﬁcation of concurrent paramet-
+ric timed systems is presented. In the systems under study,
+each action has a bounded delay where the bounds are ei-ther constants or parameters . Given a safety property, the
+analysis computes automatically a set of constraints on the
+parameters sufﬁcient to guarantee the property. The main
+contribution is an innovative representation of the paramet-
+ric timed state space based on bit-vectors. Experimental re-sults from the domain of timed circuits show that this repre-
+sentation improves both CPU time and memory usage with
+respect to another parametric approach, convex polyhedra.
+1. Introduction
+The behavior of many concurrent systems depends on
+their temporal characteristics. Many real-time formalismsdescribe these characteristics using bounded delays (e.g.
+timed transition systems [16]) or clocks whose value can
+be read or reset (e.g. timed automata [2]). In these for-malisms, the delays and clock thresholds are usually de-
+ﬁned as known constants. A more general class of mod-
+e l si st h a to f parametric real-time systems [3], where these
+values become parameters of the problem. In addition to
+simply checking whether a temporal property is satisﬁed bya parametric system, it is also possible to compute which
+values of the parameters satisfy the property.
+For example, let us consider the timed Petri Net in Fig-
+ure 1 depicting the railroad crossing problem. The subnet
+on the top describes the behavior of a train as it approaches
+a crossing. The subnet on the bottom depicts the behavior
+of the gate at the crossing. Each event has a delay bounded
+by an interval [d, D], which captures the amount of time
+elapsed since the event becomes enabled until it occurs.
+Some bounds of the intervals are parameters of the prob-
+lem: the time required to lower and raise the gate ( [d
+L,D L]
+and[dR,D R]respectively), the time required by the con-
+troller of the gate to issue a command ([dC,D C])and the
+time between the sensor detects the proximity of the trainuntil the train enters the crossing ( [d
+E,D E]). The following
+safety property should be satisﬁed: “whenever the train is
+inside the crossing, the gate should be closed ”. The anal-
+ysis described in this paper is able to discover the safety
+requirement (dE>D L+DR+DC)automatically.
+∗Research funded by CICYT TIN 2004-07925 and the FPU grant
+AP2002-3862 from the Spanish Ministry of Education, Culture and Sports.[dC,D]C[dC,D]C
+[dL,DL]down
+[dC,D]Clower[dC,D]Craise
+[d,D]RRupE,DE][d[0,+   ] [0,+   ]far
+app exit
+enterinside nearTRAIN
+faropen raise lower closed nearGATE
+goingdowngoingup
+Figure 1. The railroad crossing problem
+Techniques used in real-time systems such as Differ-
+ence Bound Matrices (DBMs) [14] cannot be used to studyparametric systems. These methods can only handle con-
+straints that involve at most two variables, while in paramet-
+ric systems several parameters may appear in the same con-straint. Furthermore, many interesting problems for para-
+metric timed systems are undecidable. As such, it is only
+possible to address them using approximate techniques (e.g.
+[1]) or semi-decision procedures (e.g. [5]).
+This paper focuses on the veriﬁcation of a speciﬁc class
+of timed systems: timed circuits [18]. They rely on timing
+constraints to ensure a correct operation. Timing constraints
+limit the degree of concurrency in the circuit: some behav-
+iors valid in the untimed domain become forbidden in the
+timed domain. The results presented in this paper extend
+the approach presented in [10]. This method, based on ab-
+stract interpretation [11], discovers a very general class of
+timing constraints that can be used later to:
+•Efﬁciently check if an implementation of a circuit with
+speciﬁc delays satisﬁes the timing constraints.
+•Choose which delays should be used in the implemen-
+tation in order to improve pe rformance, while ensuring
+a correct functionality.
+This method does not impose ap r i o r i any restriction on
+the delays of the elements of the circuit. Instead, delays aremodeled as symbols . The output timing constraints are lin-
+ear inequalities describing a set of sufﬁcient constraints on
+these symbols that guarantee a correct behavior. Notice that
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 2 ---
+Left
+environment
+Pulse signal
+to data latchRight
+environmentxoutrey y+ y−
+le− le+x−
+re+ re−x+
+aBC
+ADE
+not∆s
+le
+Fδ(x−)>δ(B)
+δ(B)+δ(not)+δ(F)>δ(x−)
+δ(y+)>δ(E)
+δ(y−)+δ(A)>δ(∆) + δ(D)+δ(C)
+δ(∆) >δ(not)+δ(C)
+δ(y+)>δ(∆)
+δ(x+)>δ(not)+δ(C)
+δ(x+)>δ(∆) + δ(D)+δ(C)
+δ(x+)>δ(y+) +δ(A)+δ(y−)
+δ(D)+δ(∆) >δ(A)
+δ(y−)>δ(not)+δ(B)+δ(C)
+Figure 2. GasP FIFO controller [22]. Each shaded area has been modeled with a different symbolic delay. On
+the right, the timing constraints that ensure a correct operation of the circuit.
+this kind of timing constraints is less restrictive than metric
+timing constraints1[6,7] and easier to validate than relative
+timing constraints2[19, 21]. This additional freedom can
+be used to select more aggressive delays for larger perfor-
+mance gains.
+1.1. Motivating example: GasP FIFO controller
+The approach presented in this paper is suitable for the
+veriﬁcation of small controllers, typically designed by hand
+or by sophisticated synthesis tools, whose behavior depends
+on the timing characteristics of the components, such asasynchronous controllers (e.g. [20, 22]).
+For example, Figure 2 shows a GasP FIFO controller
+[22]. The environment of this controller is modeled with
+Signal Transition Graphs (STG) [8]. Gates, transistors and
+environment events have a delay speciﬁed as a symbol ( δ).
+The correctness of the circuit has been veriﬁed with
+respect to three criteria: absence of short-circuits ;ab-
+sence of hazards ;a n d conformance , i.e. all output events
+produced by the circuit are expected by the environ-
+ment. These criteria can be satisﬁed with the timing con-
+straints that appear in Fig.2. For example, the constraint
+(δ(x−)>δ(B))models the fact that changes in the in-
+put signal xmust be slow enough to let the transistor
+Bdischarge the signal le. On the other side, the con-
+straint (δ(B)+δ(not)+δ(F)>δ(x−))establishes that
+the event x−must be faster than the path deﬁned by the
+transistor B, the inverter and the pair of transistors in F.
+Otherwise, there is a short-circuit as transistors BandC
+may be both on.
+1.2. The contribution
+The main contribution of this paper is the innovative
+representation for the linear timing constraints presented
+1Setting the lower and upper bound delays of each element, or intro-
+ducing constant delay paddings to ensure correctness.
+2Restrictions on the relative order of concurrent events.in Section 3. Instead of using linear constraints, only
+unit constraints, i.e. linear constraints with coefﬁcients
+{−1,0,+1}, are considered. This restriction is useful be-
+cause most timing constraints are implicitly comparing the
+delay of two paths in the circuit:
+(δ1+···+δi/bracehtipupleft
+ /bracehtipdownright/bracehtipdownleft
+ /bracehtipupright
+delay(path 1))−(δi+1+···+δn/bracehtipupleft
+ /bracehtipdownright/bracehtipdownleft
+ /bracehtipupright
+delay(path 2))≥k
+The encoding of unit constraints is based on bit-vectors and
+it improves memory and time usage with respect to previous
+representations based on convex polyhedra [10] and deci-
+sion diagrams [9], although it may generate more restrictivetiming constraints. Using t his new method, larger circuits
+which were not analyzable previously can be successfully
+studied. Furthermore, the analysis of other types of para-metric timed systems, such as parametric timed automata,
+can also beneﬁt from this enconding.
+2. Timing analysis algorithm
+2.1. Overview
+The timing analysis algorithm is presented using the ex-
+ample in Figure 3. The input of the algorithm consists of
+three elements:
+•An implementation of a circuit, described as a netlist
+of gates. In the case of Fig. 3(a), it is a circuit with twoinputsaandb, and one output x.
+•A description of the expected interaction with the en-
+vironment. Fig. 3(b) shows a Signal Transition Graph
+describing how the environment changes the inputs ab
+and how it expects the circuit will modify the output x.
+•A correctness criterion. Typically, it is deﬁned as con-
+formance to the speciﬁcation and absence of hazards .
+However, any safety property can be used as the cor-
+rectness criterion.
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 3 ---
+From the ﬁrst two elements, it is possible to compute the un-
+timed state space of the circuit, as shown in Fig. 3(c). In this
+untimed state space, failure transitions that do not satisfy
+the correctness criterion can be identiﬁed. For example, thetransitionx+from the state
+abt
+xdoes not satisfy the crite-
+rion, as the rising of xis not expected after the rising of b.
+Therefore, this transition is a failure that should be avoided
+by the timing constraints computed by the algorithm.
+Timing analysis uses the f ollowing delay model. Wires
+are considered to have zero delay. Gates and events from
+the environment are given a bounded delay [d, D],w h e r e d
+andDare symbols s.t (0≤d≤D).I fa ne v e n t eis given
+a ﬁxed delay, i.e. (de=De), the notation δ(e)will be used
+instead (as in Fig. 2). Other gates/events might ﬁre in be-
+tween, as long as the upper delay bound is not exceeded. If
+the absence of hazards is a part of the correctness criterion,
+any gate/event that becomes enabled must be ﬁred beforebecoming disabled (otherwise it is considered a hazard).
+In order to characterize the timed behavior of the circuit,
+aclock is deﬁned for each gate and each environment event.
+In our example from Fig 3, there would be a clock for the
+OR gate (clock
+OR), another for the AND gate (clock AND)
+and one clock for each event from the environment ( aand
+b). These clocks keep track of the amount of time that a
+gate/event has been enabled. Its value is reset to zero whenit becomes enabled. When time elapses while a gate/event
+is enabled, its clock must be incremented. The values of the
+clocks can be represented using different formalisms, suchasconvex polyhedra [12,15], a system of linear inequalities.
+Fig. 3(d) shows a part of the timing analysis algorithm.
+In state
+abt
+x, there are only two enabled events: the en-
+vironment event b+and the OR gate ( t-). The clocks for
+these events are set to zero, as the events have become en-abled in this state. After a period of time, one of the two
+events should occur. If b+occurs before the OR gate ﬁres,
+the state becomes
+abt
+x. In this state, the following holds:
+db+≤clock OR≤Db+
+as the amount of time spent ﬁring b+is[db+,D b+].A l s o ,
+the upper bound of the OR gate has not been reached, as the
+OR gate is still enabled. Therefore, (clock OR≤DOR)also
+holds. In
+ abt
+xthe AND gate becomes enabled. Without
+timing constraints, this gate can ﬁre before the OR gate,
+leading to the previously mentioned failure. This failure
+can only happen if the following holds:
+db++dAND≤clock OR≤Db++DAND
+as the OR gate has remained enabled during the ﬁring of
+bothb+and the AND gate. Again, (clock OR≤DOR)
+should also be satisﬁed.
+The goal of the algorithm is the discovery of timing con-
+straints among the symbolic delays that can avoid the failure
+transitions. These constraints are the complement of the in-
+equalities required to reach the errors. In Fig. 3(d) thereare only two constraints on the symbolic delays required to
+reach the error (abstracting the clock variable). These con-
+straints are:
+db++dAND ≤Db++DAND ∧
+db++dAND ≤DOR
+The ﬁrst constraint is always true as (0≤db+≤Db+)
+and(0≤dAND ≤DAND)hold by deﬁnition. There-
+fore, the complement (false) is not a valid timing con-
+straint. However, the complement of the second constraint,
+(db++dAND>D OR), is feasible. Intuitively, it means
+that the circuit is correct if the OR gate is not slower than
+the rising time of bfollowed by a change in the AND gate.
+The following subsections describe the fundamental
+parts of the algorithm: how the values of clocks are up-dated when an event occurs (Section 2.2); how the values
+of clocks from different paths are combined (Section 2.3);
+and how the timing constraints are chosen (Section 2.4). A
+detailed description of the algorithm can be found in [10].
+2.2. Updating clocks values
+Firing an event modiﬁes the state of the system at two
+levels: untimed and timed.
+At the untimed level, the new values of signals change
+the enabled/disabled condition of environment events and
+gates. Events may become enabled, become disabled, re-main enabled or remain disabled. Each of these scenarios
+implies a different change to the clocks.
+Enabled before tDisabled before t
+Enabled after t
+ Increase Reset to zero
+Disabled after t
+ Abstract No change
+At the timed level, some time elapses between reaching
+a state and ﬁring a transition towards a new state. Thisamount of time, called step, is restricted by the lower and
+upper delay bounds of the enabled transitions and the val-
+ues of its clocks. More precisely, this step should satisfy thefollowing properties:
+•If the event being ﬁred is x, then its lower and up-
+per delay bounds should be fulﬁlled: (d
+x≤clock x+
+step≤Dx).
+•The upper delay bound of the other enabled events
+should not be exceeded:( ∀y:yis enabled :clock y+
+step≤Dy).
+From these principles, the algorithm to update the clocks
+when an event is ﬁred can be formulated as:
+1. Deﬁne a temporary variable step.
+2. Add the restrictions on step required by the event be-
+ing ﬁred and the events enabled/disabled in the previ-
+ous/next state.
+3. Reset the clocks of events that become enabled in the
+next state: clock := 0.
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 4 ---
+abtx
+abtxa c d
+ba
+bt
+x
+a−
+x+ a+x−
+b+b−b+
+{ clock(x+) = 0 /\t−
+t− x+   d(b+) <= clock(or) <= D(b+) /\
+   clock(or) <= D(or) }{ clock(b+) = 0 /\ clock(or)= 0 }
+{ clock(or) <= D(or) /\
+  d(b+) + d(and) <= clock(or) /\
+  clock(or) <= D(b+) + D(and) }abtx
+abtxabtx abtx
+abtxt+x+b−x−
+a−
+a+abtxabtx abtxb+
+b+t−abtx
+t− x+
+Figure 3. Example of the timing analysis algorithm: (a) Implementation of a circuit; (b) Signal Transition Graph
+describing the interaction with the environment; (c) Untimed state space, highlighting a transition that does not
+fulﬁll the speciﬁcation (d) Timing constraints computed by the algorithm.
+4. Increase all clocks of events that remain enabled in the
+next state: clock :=clock+step.
+5. Existentially abstract all clocks of events that become
+disabled (these clocks are no longer relevant).
+6. Existentially abstract the variable step.
+2.3. Combining clocks
+The timing analysis computes the set of values that
+clocks can take in each untimed state of the system. Com-
+puting the exact set is not practical because the set may bevery complex or even inﬁnite. Instead, an upper approxima-
+tion of this set will be computed. Upper approximations are
+conservative, so safety properties like the correctness crite-
+rion can still be checked.
+The computation of this upper approximation follows the
+abstract interpretation paradigm [11]. In abstract interpre-
+tation, the behavior of the system is encoded as a set of ﬁx-
+point equations that can be solved iteratively. The methodguarantees that (i) the solution can be found in a ﬁnite num-
+ber of steps and (ii) the discovered solution is an upper ap-
+proximation of the exact solution.
+The system of ﬁxpoint equations for an asynchronous
+circuit the following: For each state, there is one equationthat deﬁnes the clock values in terms of the clock values
+from the incoming transitions. For example, let T
+Sde-
+note the set of possible clock valuations in a state Sand
+let (TSx→) denote the possible clock valuations after ﬁring
+an event xfrom an state S. Then, the system of equations
+for the circuit in Figure 3 can be deﬁned as follows:
+Tabtx=InitValues ∪(Tabt
+xx+−→)
+T
+ab
+tx=(T
+abtxb+−→)∪(T
+abt
+xt−−→)
+Ta
+btx=(Tabtxb−−→)Ta
+bt
+x=(Ta
+btxx−−→)
+T
+abt
+x=(Ta
+bt
+xa−−→)T
+abtx=(T
+abt
+xt−−→)
+T
+abt
+x=(T
+abt
+xb+−→)Tab
+tx=(T
+ab
+txa+−→)
+Tabt
+x=(Tab
+txt+−→)
+Intuitively, each equation deﬁnes the clock values in a state
+as the union of clock values after its incoming transitions.In the initial state, the enabled clocks are set to zero, while
+the delays can have any value that satisﬁes the following
+invariant : for each event xwith delay [dx,D x],(0≤dx≤
+Dx). In the example from Figure 3 the values for clocks
+and delays in the initial state are:
+InitValues ={InitClocks ∧Invariant }
+InitClocks ={clock b−=0}
+Invariant ={(0≤da+≤Da+)∧(0≤da−≤Da−)∧
+(0≤db+≤Db+)∧(0≤db−≤Db−)∧
+(0≤dAND≤DAND)∧(0≤dOR≤DOR)}
+A solution to these equations can be computed using for-
+ward increasing [11] propagation. Initially, all states ex-
+cept the initial state do not have any reachable clock values.
+Then, all equations are applied, propagating some clock val-
+ues from the initial state to its successors, using the algo-
+rithm in Figure 4. Each iteration increases the solution in
+the sense that new reachable clock values are discovered.This computation continues until a ﬁxpoint is reached: fur-
+ther iterations do not discover new values. For instance the
+computation for state a
+btxwould proceed as follows:
+T0
+a
+btx=∅
+T1
+a
+btx=(T0
+abtxb−−→)={(clock AND=0 )∧Invariant }
+T2
+a
+btx=(T1
+abtxb−−→)=T1
+a
+btx→Fixpoint!
+Figure 3(d) shows some of the timing constraints that
+appear during the computation of these ﬁxpoint equations.For the sake of brevity, the constraints from the invariant do
+not appear.
+When a cycle in the state graph is translated into the
+equivalent equations, cyclic dependencies among equations
+may appear, e.g. T
+1=f(T2)andT2=g(T1). These de-
+pendencies are solved with a special operator called widen-
+ing(∇), which extrapolates the result of applying the equa-
+tions of the cycle an inﬁnite number of times. Using awidening is required to guarantee that a solution can be
+reached in a ﬁnite number of iterations. A typical widen-
+ing operator removes the constraints that are modiﬁed after
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 5 ---
+i:= 0
+do{
+forall states S
+Ti+1
+S:=Ti
+S∪(equation for Ti+1
+Susing Ti)
+if(cycle)Ti+1
+S:=Ti
+S∇Ti+1
+S
+i:=i+1
+}while (∃S:Ti+1
+S/negationslash=Ti
+S);
+Figure 4. Abstract interpretation algorithm.
+the cycle, assuming that they possibly could be modiﬁed
+again after another iteration of the cycle. For instance, if
+the valuation of clocks are:
+Ti
+S={(clock 1≤0)∧(clock 2≤x)}
+Ti+1
+S={(clock 1≤1)∧(clock 2≤x)}
+the widening Ti
+S∇Ti+1
+S will be {clock 2≤x}.T h e
+constraint (clock 1≤1)is removed assuming that the next
+iterations may alter it indeﬁnitely, as in (clock 1≤2)
+...(clock 1≤n). Notice that the removal of constraints
+may lead to a loss in precision, but the result is always an
+upper approximation.
+2.4. Choosing timing constraints
+In each failure transition, a set of constraints required for
+the reachability is computed by the timing analysis. Ab-
+stracting the values of the clocks, a set of necessary con-straints on the symbolic delays is obtained:
+ineq
+1∧ineq2∧...∧ineqn
+The timing constraints that avoid the failures are the com-
+plement of these inequalities:
+¬ineq1∨¬ineq2∨...∨¬ineqn
+These disjunctions can be used directly to check whether
+a set of known bounded delays satisﬁes the timing con-straints. However, other uses of the timing constraints may
+require a selection of speciﬁc constraints from the disjunc-
+tions to present the output of the veriﬁcation as a conjunc-
+tionof linear inequalities. This choice must be performed
+for each failure transition in the system, and it should at-
+tempt to select the least restrictive timing constraints. Also,
+the selected set of constraints should be non-contradictory.
+Several heuristics are used to select the best timing con-
+straints among the candidates. These heuristics favor the
+following kinds of constraints:
+•Constraints where a long sequence of delays must be
+slower than a shorter path, e.g. (δ
+x+δy+δz>δ t).
+•Constraints where environment events must be slower
+than internal events, e.g. (δb+>δ NOT+δAND).
+•Constraints that avoid several failure transitions of the
+circuit. Due to the concurrency in the circuit, a single
+error might be the cause of different failure transitions.
+For instance, if a transition where “ a+happens before
+b+” is an error, there can be several failure transitions
+derived from this single conceptual error.Currently, the timing constraints are selected automati-
+cally by a backtracking procedure based on these heuristics.
+This procedure computes the best ksets of consistent timing
+constraints according to the heuristics. Computing all thepossible combinations would also be possible but very inef-
+ﬁcient. This procedure is executed after the timing analysis,
+and it does not require repeating the timing analysis phase.
+In contrast, some related approaches [24] select one timing
+constraint at a time and repeat the timing analysis phase todetect new timing constraints.
+3. Parameters in timing analysis
+3.1. Related work
+In order to study properties in a timed system, the com-
+putation of the possible valuations of clocks is required. As
+considering each clock valuation individually is not feasi-ble, sets of clock valuation are analyzed collectively. For
+example, zones [14] are sets of clock valuations that can be
+characterized by constraints of the form (c
+1≤clk i≤c2)
+and(clk i−clk j≤ci). In parametric timed systems, sets of
+clock valuations similar to zones are difﬁcult to represent, asmore than two variables may appear in the same constraint.
+Some formalisms like convex polyhedra [15], Presburger
+arithmetics [4] and Parametric Difference Bound Matrices
+[5] can be used to represent these parametric zones. A hy-
+brid approach presented in [24] uses linear programming to
+compute conservative constant bounds on the values of the
+parameters, reducing the problem to regular timing analysis
+at the expense of computing metric timing constrants. Fi-nally, other approaches are based on decision diagrams [23].
+All these approaches have a very high complexity, which is
+very sensitive to the number of parameters.
+This section presents a formalism to represent parametric
+timed zones called octahedra [9]. An octahedron is a spe-
+cial class of convex polyhedra, deﬁned by linear inequal-
+ities with the following restriction: all coefﬁcients except
+the constant term must be unitary, i.e. {−1,0,+1}.T h e
+original implementation of octahedra was based on a de-
+cision diagram data structure called Octahedron Decision
+Diagram ( OhDD ). This implementatio n reduces the mem-
+ory usage with respect to convex polyhedra; this reduction
+is achieved by sacriﬁcing precision in the analysis, and also
+leads to large increase in CPU time. In this paper, a new
+set-based implementation is proposed, taking advantage of
+the time and memory efﬁciency of bit-vectors. Again, theimprovements in time and memory will require a loss of
+precision with respect to convex polyhedra.
+3.2. Unit inequalities
+Deﬁnition 1 (Unit inequality) Aunit inequality over a set
+of variables Xis a constraint of the form/summationtext
+x∈Px−/summationtext
+y∈Ny≥k
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 6 ---
+where PandNare sets of variables ( P⊆X,N ⊆X) and
+kis the constant term ( k∈ /C9). Any unit inequality can be
+characterized by the triple /angbracketleftP,N,k /angbracketright.
+Example: The constraint (x+z−y≥2)is a unit inequal-
+ity than can be characterized as the triple /angbracketleft{x, z},{y},2/angbracketright.
+Only well-formed unit inequalities where the sets PandN
+are disjoint will be considered. For instance, (a+b−b−d≥
+3)can be rewritten into the equivalent (a−d≥3).
+In the remaining of the paper, we will only consider unit
+inequalities over non-negative values (∀xi∈X:xi≥0).
+This restriction can be imposed because the variables of X
+model clocks and delays which cannot have negative values.Using this restriction will allow convenient deﬁnitions and
+an efﬁcient implementation of the underlying operations.
+Deﬁnition 2 (Implication) A unit inequality A=
+/angbracketleftP
+A,N A,kA/angbracketrightimplies a unit inequality B=/angbracketleftPB,N B,kB/angbracketright,
+noted A→B,i fBis true whenever Ais true. If both
+inequalities are deﬁned over non-negative variables, then
+Aimplies Bif and only if PA⊆PB,NB⊆NAand
+kA≥kB.
+Example: The inequality (x−y−z≥7)implies the
+inequality (x+t−y≥0)because
+(x−y−z≥7)∧(z≥0)→(x−y≥0)
+(x−y≥0)∧(t≥0)→(x+t−y≥0)
+However, the inequality (x+t−y≥0)does not imply
+(y≥3), for example.
+Deﬁnition 3 (Trivial and infeasible inequalities) A unit
+inequality I=/angbracketleftPI,N I,kI/angbracketrightover a set of non-negative
+variables is trivial (always true) if and only if NI=∅and
+k≤0. Conversely, it is infeasible (always false) if and only
+ifPI=∅andk>0.
+Example: The unit inequality (−x≥2)is infeasible
+because (x≥0). On the other side, a unit inequality like
+(x+y≥−1)will always be true as (x≥0)and(y≥0)
+imply (x+y≥0).
+Deﬁnition 4 (Unit combination) Theunit combination of
+two unit inequalities AandB(noted A⊕B) is the inequal-
+ity obtained by adding the left-hand sides and the right-
+hand sides of AandB,e . g .
+/summationtext
+x∈PAx−/summationtext
+y∈NAy≥kA
+⊕/summationtext
+x∈PBx−/summationtext
+y∈NBy≥kB
+/summationtext
+x∈PAx+/summationtext
+x∈PBx−/summationtext
+y∈NAy−/summationtext
+y∈NBy≥kA+kB
+A⊕Bwill be a unit inequality iff (PA∩PB=∅)and
+(NA∩NB=∅). However, if AandBare deﬁned over
+non-negative values, the restriction (NA∩NB=∅)is
+not required (see the example below). If A⊕Bis a
+unit inequality, then it can be characterized as the triple
+/angbracketleft(PA\NB)∪(PB\NA),(NA\PB)∪(NB\PA),kA+kB/angbracketright./0/0/0/0/0/0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0/0/0/0/0/0
+/1/1/1/1/1/1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1/1/1/1/1/1
+/0/0/0/0/0/0/0/0/0 /0/0/0/0/0/0 /0/0 /0/0/0/0/0/0 /0/0 /0/0/0/0/0/0 /0/0 /0/0/0/0/0/0 /0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1 /1/1/1/1/1/1 /1/1 /1/1/1/1/1/1 /1/1 /1/1/1/1/1/1 /1/1 /1/1/1/1/1/1 /1/1/1/1/1/1/1/1/1
+/0/0/0/0/0/0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0 /0/0/0/0 /0/0/0/0/0/0/0
+/1/1/1/1/1/1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1 /1/1/1/1 /1/1/1/1/1/1/1
+xy
+x + y    2x    3
+y    2
+A     Bx    3y    2
+/0/0/0 /0
+/1/1/1 /1
+/0/0/0 /0
+/1/1/1 /1A
+B=
+=
+=x + y 2
+Figure 5. A graphical example of the semantics of
+a strongest common constraint
+Example: The unit combination is a restricted version
+of the widely used linear combination of inequalities. For
+instance, the unit combination of inequalities (x+w−t≥
+2)and(t−y−z≥4)is(x+w−y−z≥6). In some cases,
+the unit combination will lead to non-unit inequalities. Forexample, the unit combination of (x+y≥2)and(x−
+z≥0)is the inequality (2x+y−z≥2), which is not a
+unit inequality. When the non-unit coefﬁcient is negative,the non-negativity of the variables can be used to remove
+the non-unit coefﬁcient. For example, the unit combination
+of(x−y≥2)and(t+w−y≥7)is the inequality
+(x+t+w−2y≥9)which is not unit. However, as
+(y≥0):
+x+t+w−2y≥9
+⊕ y≥0
+x+t+w−y≥9
+a unit inequality can be obtained. Notice that this strategy
+cannot be used when the non-unit coefﬁcient is positive, as
+a constraint of the form (−y≥0)is not available.
+Deﬁnition 5 (Strongest common constraint) The stron-
+gest common constraint of two unit inequalities AandB
+(noted as A/unionsqB) is another inequality Csuch that:
+•(A→C)∧(B→C)
+•∀D:(A→D∧B→D)⇒(C→D).
+If the two unit inequalities A=/angbracketleftPA,N A,kA/angbracketrightandB=
+/angbracketleftPB,N B,kB/angbracketrightare deﬁned over non-negative variables, then
+the strongest common constraint Ccan be deﬁned as C=
+/angbracketleftPA∪PB,N A∩NB,min(kA,kB)/angbracketright.
+Example: Given (x≥3)and(y≥2), the strongest
+common constraint is (x+y≥2),a s :
+(x≥3)∧(y≥0)→(x+y≥2)
+(y≥2)∧(x≥0)→(x+y≥2)
+The values represented by these constraints can be seen
+graphically in Figure 5. Notice that A/unionsqBdoes not compute
+a exact union of the inequalities, but an upper approxima-
+tion of that union similar to a convex hull. Contrary to aconvex hull, the resulting area can be described using only
+unit inequalities. This notion will be extended in the follow-
+ing section as the octahedral hull . Another small example
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 7 ---
+is(x+z−y−t≥9)and(y+z−t≥5), whose strongest
+common constraint is (x+y+z−t≥5).
+3.3. Octahedra
+An octahedron is the set of solutions to a system of unit
+inequalities over non-negative variables. Octahedra can beseen as a restricted case of convex polyhedra (system of lin-
+ear inequalities) or as a generalization of octagons [17] (unit
+inequalities with at most two variables). Figure 6(a) showsan example of a system of unit inequalities and the octahe-
+dron it represents.
+Several operations required in the timing analysis al-
+gorithm can be deﬁned over octahedra like a test of in-clusion, the intersection or the widening (see Fig. 6(b)-
+(c)). Deﬁning the union of octahedra is more complex,
+as octahedra are convex objects and therefore not closed
+under union. The result of the union operation is an up-
+per approximation: the smallest octahedra that includes theunion. This approximation is similar to the convex hull
+(C-hull) used in convex polyhedra, and it is called octa-
+hedral hull (O-hull). Figure 7 shows an example of this
+approximation. Notice that the convex hull is always an
+upper approximation of the union, and the octahedral hull
+is always an upper approximation of the convex hull, i.e.
+A∪B⊆C-hull (A, B)⊆O-hull (A, B).
+A more detailed presentation of octahedra and its opera-
+tions, together with proofs, can be found in [9]. Also in [9],
+an implementation based on decision diagrams is proposed.
+The next section presents another representation, based on
+bit-vectors, with a much better time/memory trade-off.
+3.4. Implementation of Octahedra
+An octahedron will be implemented as a ﬁnite list of unit
+inequalities, where each inequality /angbracketleftP,N,k /angbracketrightis represented
+by two bit-vectors (encoding PandNrespectively) plus
+the constant term. All transformations and tests that operate
+with inequalities will use the set-based deﬁnitions from Ta-
+ble ??. These deﬁnitions allow an efﬁcient implementation
+using the bit-wise operations of bit-vectors.
+The operations required in the timing analysis are: union
+(∪), intersection ( ∩), test for inclusion ( ⊆), widening ( ∇),
+unit assignment of a variable and existential quantiﬁcationof a variable. In octahedra, these operations can be deﬁned
+as transformations of the system of unit inequalities.
+Most of these operations require a satisﬁability test:
+given a unit inequality I=/angbracketleftP
+I,N I,kI/angbracketrightand an octahedron
+O, does Osatisfy I? A possible implementation of this test
+is the following:
+1. IfIis trivial, then Osatisﬁes I.
+2. IfIis infeasible, then Odoes not satisfy I.
+3. Let NObe the union of all the sets Nfrom the inequal-
+ities in O.I fNI/negationslash⊆NOthenOdoes not satisfy I.4. If the inequality Iis implied by any inequality from O,
+thenOsatisﬁes I.
+5. If the inequality Iis implied by a unit combination of
+up toninequalities from O,t h e nOsatisﬁes I.
+The intuitive meaning of step 3 is that a constraint with a
+variable that does not appear in any inequality of Owill not
+be satisﬁed by O. For instance, (x−y−z≥4)cannot be
+satisﬁed by (x≥4)∧(t≥4)as there are no restrictions on
+yorz. However, this shortcut can only be used for variables
+appearing with a negative coefﬁcient ( N) in the inequality.
+The non-negativity of variables allows us to add new vari-
+ables with a positive coefﬁcient. For example, (x+y≥4)
+is satisﬁed by (y≥8)even though the variable xdoes not
+appear explicitly, as the constraint (x≥0)is implicit.
+Step 5 also deserves additional comments. If all the com-
+binations of constraints in Oare considered, then the satis-
+ﬁability test is exact. However, considering all possible unit
+combinations is too computationally expensive. Instead, a
+good trade-off between precision and efﬁciency is achieved
+whenn=2, i.e. only the combinations of pairs of inequal-
+ities of Oare considered. As a consequence, the satisﬁabil-
+ity test will be approximate, while still being conservative :
+some satisﬁed constraints might be reported as unsatisﬁed,
+but not the other way around. In the timing analysis al-
+gorithm, this approximation may cause false negatives (in-
+ability to ﬁnd sufﬁcient timing constraints, even if they ex-
+ist) but it will never cause false positives (timing constraints
+will always avoid all errors).
+Intersection. The intersection of two octahedra
+A=B∩Cis deﬁned by the system of unit inequalities
+with all the inequalities from Aand all the inequalities from
+B. This is the only exact operation on octahedra.
+Union. The union of two octahedra A∪Bcan be ap-
+proximated as a system of unit inequalities that contains:
+•The inequalities from Asatisﬁed by B.
+•The inequalities from Bsatisﬁed by A.
+•The strongest common constraint of all pairs of in-
+equalities from AandB.
+T est of inclusion. An octahedra Ais included in an oc-
+tahedron B(A⊆B)if all the inequalities of Bare satisﬁed
+byA. Notice that the approximation in the satisﬁability test
+might lead to false negatives in the test of inclusion.
+Widening. Widening is the extrapolation operator used
+to guarantee the termination of the analysis in the presence
+of loops [11]. The widening of two octahedra A∇B,w h e r e
+Ais the initial property and Bis the property after one iter-
+ation, extrapolates the result of future iterations based on A
+andB. The widening A∇Bcan be deﬁned as:
+•If all the constraints in AandBhave a constant term
+k=0,t h e nA∪Bis a widening operator.
+•Otherwise, A∇Bcontains all the inequalities from A
+that are also satisﬁed by B.
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 8 ---
+1≤ x ≤7
+0≤ y ≤7
+−5≤ x−y≤6
+x+y≤9xx xx xyy y y y∆c a b
+B
+A
+U
+BAAABB
+A
+Figure 6. (a) An octahedron, (b) Intersection of octahedra and (c) Widening of octahedra.
+y
+xy
+xy
+x
+C−hull(A,B) O−hull(A,B) A U BB B BAA AA={(4≥x≥2)∧(7≥y≥4)}
+B={(5≥x≥1)∧(3≥y≥1)}
+C-hull ={(5≥x≥1)∧(7≥y≥1)∧
+(4x−y≥1)∧(−4x−y≥−23)}
+O-hull ={(5≥x≥1)∧(7≥y≥1)∧
+(x−y≥5)∧(−x−y≥−11)}
+Figure 7. Two upper approximations of the union: convex hull ( C-hull ) and octahedral hull ( O-hull )
+Unit assignment. Assignments of the form x/prime:=x+y
+are required in order to perform the timing analysis. After
+the assignment, we know that (x≥y)and we also know
+that the old value of xcan be characterized as x/prime−y.T h e r e -
+fore, the assignment should add the constraint (x≥y)to
+the system of inequalities of O, and replace each instance of
+xin the system of inequalities by x−y. This replacement
+is implemented in the following way:
+•Inequalities where x/negationslash∈Pandx/negationslash∈Nare not modiﬁed.
+•The unit combinations of all pairs of inequalities A⊕B
+ofOsuch that x∈PAandx∈NBare added to
+the system of linear inequalities. This step attempts
+to minimize the loss of precision: some inequalities
+might already contain xandyso replacing xbyx−y
+could produce a non-unit inequality. Considering theseunit combinations reduces the loss of information.
+•The inequalities I=/angbracketleftP
+I,N I,kI/angbracketrightwhere x∈PIare
+transformed according to y:
+–Ify∈PI,t h e nP/prime
+I=PI\{y}.
+–Ify∈NI,t h e nIis not modiﬁed.
+–Otherwise, N/prime
+I=NI∪{y}.
+•The inequalities I=/angbracketleftPI,N I,kI/angbracketrightwhere x∈NIare
+transformed according to y:
+–Ify∈PI,t h e nIis not modiﬁed.
+–Ify∈NI,t h e nN/prime
+I=NI\{y}.
+–Otherwise, P/prime
+I=PI∪{y}.
+After these changes, the constraint (x≥y)can be added to
+the system of inequalities.
+Existential quantiﬁcation. The quantiﬁcation of a vari-
+ablexwill attempt to remove all the known restrictions on
+xwhile keeping as much information as possible on the rest
+of variables. This procedure is implemented using a processcalled Fourier-Motzkin elimination [13].
+Inequalities where x/negationslash∈Pandx/negationslash∈Nare unaffected
+by this procedure. Regarding the remaining inequalities,Fourier-Motzkin proceeds by selecting one constraint where
+x∈Pand one constraint where x∈N. The unit combi-
+nation of these constraints will not contain variable x;i ft h ecombination is a unit inequality, it is added to the system
+of inequalities of O. The ﬁnal step is the removal of the
+inequalities of Othat do not hold after the quantiﬁcation.
+All inequalities where x∈Pmust be removed, while those
+withx∈Ncan be just modiﬁed so that N
+/prime=N\{x}.
+Again, the different behavior of PandNappears from the
+implicit constraint (x≥0)inO.
+Figures 6(b) and (c) and Figure 7 show graphical exam-
+ples of some of the operations on octahedra.
+4. Experimental results
+4.1. Asynchronous pipeline
+In order to compare the results with the previous ap-
+proaches, an example with a high degree of concurrency
+will be studied. The example is an asynchronous pipeline
+with a variable number of stages. The environment in-troduces data elements into the pipeline at a ﬁxed rate
+[d
+IN,D IN]. Each stage iof the pipeline performs some
+computation on the data which takes some time [di,D i].
+After this computation, the stage ipasses the data to the
+next stage i+1, provided that it is empty. Otherwise, the
+data remains in stage iuntil stage i+1becomes empty. Fi-
+nally, the environment reads the data from the last stage, a
+process that requires [dOUT,D OUT]time units.
+The correctness criterion for th is example is that the en-
+vironment should not be slowed down by the pipeline. More
+formally, this translates into the following safety property:
+“whenever the environment sends new data to the pipeline,
+the ﬁrst stage of the pipeline must be empty” . Figure 8
+shows an example of a pipeline with 4 stages, together with
+states that satisfy or fail to satisfy the safety property. A
+set of timing constraints that is sufﬁcient to guarantee thissafety property is the following:
+d
+IN>D 1∧...∧dIN>D N∧dIN>D OUT
+These constraints are equivalent to:
+dIN>m a x (D1,...,D N,D OUT)
+which means that the pipeline works correctly if the gener-
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 9 ---
+ackreq
+ackreqIN
+ackreqOUT
+(b)
+(c)(a)
+Figure 8. (a) Asynchronous pipeline with N=4
+stages, (b) correct behavior and (c) incorrect be-
+havior. Dots represent data elements.
+ation of data elements from the environment is slower than
+the slowest stage of the pipeline.
+These timing constraints can be computed using our ap-
+proach for pipelines with a different number of stages. Ta-ble 2 compares the results obtained with the bit-vector rep-
+resentation of octahedra to thos e obtained the decision dia-
+gram representation ( OhDD ) and convex polyhedra. The
+bit-vector representation offers better memory and CPU
+time results than convex polyhedra. Remarkably, octahe-dra represented with bit-vectors can be used to analyze
+pipelines with state spaces one order of magnitude larger
+than those analyzable with convex polyhedra. When com-pared to OhDD , bit-vectors are only inferior in terms of
+memory for the larger examples, but the much inferior CPU
+times outweighs this disadvantage.
+4.2. Asynchronous controllers
+Several asynchronous controllers from the literature have
+also been veriﬁed with our timing analysis algorithm. Likethe GasP example, these circuits are described as a netlist of
+gates, plus an environment speciﬁed with a STG. Gate and
+environment delays are described with a symbolic interval
+[d, D], while wire delay is assumed to be negligible.
+Figure 9 shows an asynchronous controller with the gen-
+erated timing constraints for correctness. The highlighted
+areas in the implementation correspond to the ﬁrst timing
+constraint. Notice that timing constraints enforce that a pathin the circuit must be slower than another path.
+Table 1 shows the experimental results for the veriﬁca-
+tion of these controllers. For each circuit, the table describes
+the size of the circuit (number of signals and gates), the size
+of the STG that describes the interaction with the environ-ment, the size of the untimed state space and the number
+of symbolic delays ( Σ) in the example. Regarding the solu-
+tion, polyhedra and octahedra implemented with bit-vectorsare compared using two criteria: efﬁciency and precision.
+With respect to efﬁciency, CPU time and peak memory
+usage are listed. The comparison is favorable to octahedra
+both in terms of memory and time. There is one example in
+the table with better CPU time results for convex polyhedra:the last entry, converta . In this speciﬁc circuit, timing con-
+straints with non-unit coefﬁcients are very useful, as some
+failures are reached when a speciﬁc path in the circuit is[d6,D6]
+x+a+ b+
+y+
+x−x+a−
+x− y+
+y−y−
+c−c+b−
+yx [d1,D1]
+[d2,D2]
+[d3,D3][d4,D4]
+[d7,D7]a
+bc[d5,D5]
+[2,9]
+[3,6][4,6]
+(D4+D5<d1+d6+2 )
+ ∧(D1<d2+d7+4 )
+Figure 9. The nowick example.
+traversed more than once. Even in this scenario, sufﬁcient
+unit timing constraints can be found. Moreover, the analysis
+with convex polyhedra must use additional approximations
+for this example, as it generates too many constraints andruns out of memory (as it happens in the desynch example),
+while octahedra do not have this problem.
+Quantifying the precision of the two approaches is not
+simple. Obviously, the timing constraints computed by con-
+vex polyhedra will be more precise and, therefore, less re-strictive. Two indicators have been measured to quantify
+the difference of precision: the number of constraints re-
+quired for correctness (C) and the number of states that sat-isfy these constraints (Sat). Intuitively, the second value
+hints the degree of restriction imposed by each set of con-
+straints. In ﬁve examples, both approaches compute exactly
+the same constraints (noted as = in the Table). For the other
+examples, the constraints computed by octahedra are morerestrictive. However, the collected data point out that the
+quality of the constraints computed by both methods is com-
+parable: there are not many additional constraints, nor they
+are overly restrictive.
+5. Conclusions
+A technique for the generation of gate-level timing con-
+straints in asynchronous circuits has been presented. Gate
+delays are parameters of the problem and the output tim-
+ing constraints describe the linear inequalities that shouldbe satisﬁed by the parameters to ensure correctness. Ex-
+perimental results have shown that the kind of linear con-
+straints that appear when analyzing timed circuits are repre-sented more efﬁciently using octahedra than convex polyhe-
+dra. Still, the complexity is very dependent on the number
+of symbolic delays. Future work will attempt to improve the
+current representation so that it scales up for larger circuits.
+References
+[1] R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P.-H.
+Ho, X. Nicollin, A. Olivero, J. Sifakis, and S. Yovine. The
+algorithmic analysis of hybrid systems. Theoretical Com-
+puter Science , pages 3–34, 1995.
+[2] R. Alur and D. L. Dill. A theory of timed automata. Theo-
+retical Computer Science , 126(2):183–235, 1994.
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+
+
+--- Page 10 ---
+Table 1. Experimental results for the asynchronous controllers
+Example
+ Circuit
+ STG
+ State space
+ Σ
+ Octahedra - This paper
+ Convex polyhedra
+Wires
+ Gates
+ Places
+ Trans
+ States
+ Trans
+ C
+ Sat
+ CPU
+ Mem
+ C
+ Sat
+ CPU
+ Mem
+nowick
+ 10
+ 7
+ 19
+ 14
+ 60
+ 119
+ 20
+ =
+ =
+ 0.0s
+ 2.6Mb
+ 2
+ 45
+ 0.8s
+ 83Mb
+gasp-ﬁfo
+ 9
+ 7
+ 10
+ 8
+ 66
+ 209
+ 12
+ 11
+ 22
+ 4.1s
+ 3.9Mb
+ 10
+ 28
+ 8.1s
+ 87Mb
+sbuf-read-ctl
+ 13
+ 10
+ 19
+ 16
+ 74
+ 157
+ 14
+ =
+ =
+ 0.1s
+ 2.9Mb
+ 4
+ 52
+ 1.2s
+ 83Mb
+rcv-setup
+ 9
+ 6
+ 14
+ 15
+ 72
+ 187
+ 12
+ =
+ =
+ 0.4s
+ 3.0Mb
+ 8
+ 49
+ 2.1s
+ 83Mb
+alloc-outbound
+ 15
+ 11
+ 21
+ 22
+ 82
+ 161
+ 19
+ 4
+ 61
+ 0.1s
+ 2.9Mb
+ 3
+ 62
+ 1.3s
+ 83Mb
+ebergen
+ 11
+ 9
+ 16
+ 14
+ 83
+ 188
+ 5
+ =
+ =
+ 0.1s
+ 2.9Mb
+ 5
+ 61
+ 1,3s
+ 83Mb
+Dﬂ i p - ﬂ o p
+ 6
+ 4
+ 16
+ 22
+ 146
+ 448
+ 8
+ =
+ =
+ 1.6s
+ 4.4Mb
+ 7
+ 112
+ 5.8s
+ 85Mb
+mp-forward-pkt
+ 13
+ 10
+ 24
+ 16
+ 194
+ 574
+ 12
+ 8
+ 82
+ 0.3s
+ 3.8Mb
+ 6
+ 89
+ 1.9s
+ 85Mb
+chu133
+ 12
+ 9
+ 17
+ 14
+ 288
+ 1082
+ 7
+ 5
+ 56
+ 1.3s
+ 5.5Mb
+ 3
+ 61
+ 1.3s
+ 85Mb
+desynch
+ 11
+ 8
+ 12
+ 8
+ 304
+ 934
+ 13
+ 6
+ 50
+ 8.0s
+ 4.4Mb
+ O/M
+ O/M
+ O/M
+ O/M
+converta
+ 14
+ 12
+ 16
+ 14
+ 396
+ 1341
+ 14
+ 13
+ 180
+ 138s
+ 15.0Mb
+ 13
+ 188
+ 20.4s
+ 92Mb
+Table 2. Comparison of CPU time and peak memory in the asynchronous pipeline example.
+Pipeline example
+ Convex Polyhedra [10]
+ OhDD [9]
+ This paper
+Stages
+ Σ
+ States
+ Trans
+ CPU
+ Mem
+ CPU
+ Mem
+ CPU
+ Mem
+2
+ 8
+ 36
+ 88
+ 0s
+ 64Mb
+ 1s
+ 5Mb
+ 0s
+ 1Mb
+3
+ 10
+ 108
+ 312
+ 2s
+ 67Mb
+ 17s
+ 8Mb
+ 2s
+ 3Mb
+4
+ 12
+ 324
+ 1080
+ 13s
+ 79Mb
+ 249s
+ 39Mb
+ 12s
+ 9Mb
+5
+ 14
+ 972
+ 3672
+ 259s
+ 147Mb
+ 1h5min
+ 57Mb
+ 123s
+ 48Mb
+6
+ 16
+ 2916
+ 12312
+ O/M
+ O/M
+ 39h44min
+ 83Mb
+ 18min
+ 245Mb
+7
+ 18
+ 8748
+ 40824
+ O/M
+ O/M
+ T/O
+ T/O
+ 2h6min
+ 1183Mb
+Σ= number of symbolic delays O/M = out of memory ( >1.5Gb) T/O = timeout ( >48h)
+[3] R. Alur, T. A. Henzinger, and M. Y . Vardi. Parametric real-
+time reasoning. In ACM Symposium on Theory of Comput-
+ing, pages 592–601, 1993.
+[4] T. Amon, G. Borriello, T. Hu, and J. Liu. Symbolic timing
+veriﬁcation of timing diagrams using Presburger formulas.
+InProc. Design Automation Conf. , pages 226–231, 1997.
+[5] A. Annichini, E. Asarin, and A. Bouajjani. Symbolic tech-
+niques for parametric reasoning about counter and clock sys-
+tems. In Computer Aided Veriﬁcation , pages 419–434, 2000.
+[6] W. J. Belluomini and C. J. Myers. Timed circuit veriﬁca-
+tion using TEL structures. IEEE Transactions on Comput-
+ers, 20(1):129–146, 2001.
+[7] S. Chakraborty, D. L. Dill, and K. Y . Yun. Min-max timing
+analysis and an application to asynchronous circuits. Pro-
+ceedings of the IEEE , 87(2):332–346, 1999.
+[8] T.-A. Chu. Synthesis of self-timed VLSI circuits from graph-
+theoretic speciﬁcations . PhD thesis, MIT, June 1987.
+[9] R. Claris´ o and J. Cortadella. The octahedron abstract do-
+main. In Proc. Static Analysis Symp. , pages 312–327, 2004.
+[10] R. Claris´ o and J. Cortadella. Veriﬁcation of timed circuits
+with symbolic delays. In Proc. of Asia and South Paciﬁc
+Design Automation Conf. , pages 628–633, 2004.
+[11] P. Cousot and R. Cousot. Abstract interpretation: a uniﬁed
+lattice model for static analysis of programs by construction
+or approximation of ﬁxpoints. In Proc. Symp. on Principles
+of Programming Languages , pages 238–252, 1977.
+[12] P. Cousot and N. Halbwachs. Automatic discovery of linear
+restraints among variables of a program. In Proc. Symp. on
+Principles of Programming Languages , pages 84–97, 1978.
+[13] G. Dantzig and B. Eaves. Fourier-motzkin elimination and
+its dual. Journal of combinatorial theory , 14:288–297, 1973.
+[14] D. L. Dill. Timing assumptions and veriﬁcation of ﬁnite-
+state concurrent systems. In Automatic Veriﬁcation Meth-
+ods for Finite State Systems , LNCS 407, pages 197–212.
+Springer-Verlag, 1989.[15] N. Halbwachs, Y .-E. Proy, and P. Roumanoff. Veriﬁcation
+of real-time systems using linear relation analysis. Formal
+Methods in System Design , 11(2):157–185, 1997.
+[16] T. A. Henzinger, Z. Manna, and A. Pnueli. Timed transi-
+tion systems. In Proc. REX Workshop Real-Time: Theory in
+Practice , volume 600 of LNCS , pages 226–251, 1992.
+[17] A. Min´ e. The octagon abstract domain. In Analysis, Slic-
+ing and Tranformation (in Working Conference on Reverse
+Engineering) , IEEE, pages 310–319. IEEE CS Press, 2001.
+[18] C. J. Myers, W. Belluomini, K. Killpack, E. Mercer, E. Pe-
+skin, and H. Zheng. Timed circuits: A new paradigm for
+high-speed design. In Proc. of Asia and South Paciﬁc De-
+sign Automation Conference , pages 335–340, 2001.
+[19] M. A. Pe˜ na, J. Cortadella, A. Kondratyev, and E. Pastor. For-
+mal veriﬁcation of safety properties in timed circuits. In
+Proc. Int. Symp. on Advanced Research in Asynchronous
+Circuits and Systems , pages 2–11, 2000.
+[20] S. Schuster, W. Reohr, P. Cook, D. Heidel, M. I. ato, and
+K. Jenkins. Asynchronous Interlocked Pipelined CMOS Cir-
+cuits Operating at 3.3−4.5GHz. In IEEE Int. Solid-State
+Circuits Conf. (ISSCC) , pages 292–293, Feb. 2000.
+[21] K. Stevens, R. Ginosar, and S. Rotem. Relative timing.
+InProc. Int. Symp. on Advanced Research in Asynchronous
+Circuits and Systems , pages 208–218, 1999.
+[22] I. Sutherland and S. Fairbanks. GasP: A minimal FIFO con-
+trol. In Proc. Int. Symp. on Advanced Research in Asyn-
+chronous Circuits and Systems , pages 46–53, 2001.
+[23] F. Wang. Symbolic parametric safety analysis of linear hy-
+brid systems with BDD-like data-structures. In Computer
+Aided Veriﬁcation , July 2004.
+[24] T. Yoneda, T. Kitai, and C. Myers. Automatic derivation of
+timing constraints by failure analysis. In Proc. Int. Confer-
+ence on Computer Aided Veriﬁcation , pages 195–208, 2002.
+Proceedings of the Fifth International Conference on Application of Concurrency to System Design (ACSD’05) 
+1550-4808/05 $ 20.00 IEEE
+

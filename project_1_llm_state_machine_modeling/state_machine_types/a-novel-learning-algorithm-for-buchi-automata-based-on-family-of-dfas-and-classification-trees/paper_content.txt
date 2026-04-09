@@ -1,0 +1,1580 @@
+--- Page 1 ---
+arXiv:1610.07380v2  [cs.FL]  17 Jan 2017ANovelLearning Algorithm for B ¨uchi Automata
+basedonFamily ofDFAs andClassiﬁcationTrees
+YongLi1,2,Yu-FangChen3, LijunZhang1,2, DepengLiu1,2
+1State KeyLaboratoryof Computer Science, Instituteof Soft ware, CAS
+2Universityof Chinese Academy of Sciences
+3Institute of InformationScience, Academia Sinica
+Abstract. In this paper, we propose a novel algorithm to learn a B¨ uchi a utoma-
+ton from a teacher who knows an ω-regular language. The algorithm is based on
+learning a formalism named family of DFAs (FDFAs) recently proposed by An-
+gluinandFisman[10].Themaincatchisthatweusea classiﬁcationtree structure
+instead of the standard observation table structure. The worst case storage space
+required by our algorithm is quadratically better than the t able-based algorithm
+proposed in [10]. We implement the ﬁrst publicly available l ibraryROLL(Reg-
+ular Omega Language Learning), which consists of all ω-regular learning algo-
+rithms available in the literature and the new algorithms pr oposed in this paper.
+Experimental results show that our tree-based algorithms h ave the best perfor-
+mance among others regarding the number of solvedlearning t asks.
+1 Introduction
+Sincethelast decade,learning-basedautomatainferencet echniques[7,11,30,35]have
+receivedsigniﬁcantattentionfromthecommunityofformal systemanalysis.Ingeneral,
+theprimaryapplicationsofautomatalearninginthecommun itycanbecategorizedinto
+two:improvingeﬃciencyandscalabilityofveriﬁcation [6,15,17,19,21,23,25,32]and
+synthesizingabstractsystemmodelforfurtheranalysis [1,5,16,18,22,24,26,34,36,39].
+Theformerusuallyisbasedontheso called assume-guarantee compositionalveri-
+ﬁcation approach, which divides a veriﬁcation task into sev eral subtasks via a compo-
+sition rule. Learningalgorithmsare appliedto construct e nvironmentalassumptionsof
+componentsintheruleautomatically.Forthelatter,autom atalearninghasbeenusedto
+automaticallygenerateinterfacemodelofcomputerprogra ms[5,22,26,36,40],amodel
+of system error traces for diagnosispurpose [16], behavior model of programsfor sta-
+tistical programanalysis[18],andmodel-basedtestingan dveriﬁcation[24,34,39].
+Besidestheclassical ﬁniteautomatalearningalgorithms, peoplealsoapplyandde-
+veloplearningalgorithmforrichermodelsfortheabovetwo applications.Forexample,
+learning algorithms for register automata [27,28] have bee n developed and applied to
+synthesissystemandprograminterfacemodels.Learningal gorithmfortimedautomata
+has been developed for automated compositional veriﬁcatio n for timed systems [32].
+However,all the results mentioned above are for checking safety properties or synthe-
+sizingﬁnite behavior models of systems/programs. B¨ uchi automaton is the standard
+modelfordescribinglivenesspropertiesofdistributedsy stems[4].Themodelhasbeen
+
+--- Page 2 ---
+appliedinautomatatheoreticalmodelchecking[38]todesc ribethepropertytobeveri-
+ﬁed.Itisalsooftenusedinthesynthesisofreactivesystem s.Moreover,B¨ uchiautomata
+havebeenusedasameanstoproveprogramtermination[31].H owever,unlikethecase
+forﬁniteautomatalearning,learningalgorithmsforB¨ uch iautomataareveryrarelyused
+inourcommunity.We believethisis apotentiallyfertilear eaforfurtherinvestigation.
+The ﬁrst learning algorithm for the full-class of ω-regular languages represented
+as B¨ uchi automata was described in [20], based on the L∗algorithm [7] and the result
+of [14]. Recently,AngluinandFisman proposea new learning algorithmforω-regular
+languages[10]usingaformalismcalleda familyofDFAs (FDFAs),basedontheresults
+of [33]. The main problem of applying their algorithm in veri ﬁcation and synthesis is
+that their algorithm requires a teacher for FDFAs. In this pa per, we show that their
+algorithmcanbeadaptedtosupportB¨ uchiautomatateacher s.
+We propose a novel ω-regular learning algorithm based on FDFAs and a classiﬁ-
+cation tree structure (inspired by the tree-based L∗algorithm in [30]). The worst case
+storage space required by our algorithm is quadratically be tter than the table-based al-
+gorithm proposed in [10]. Experimental results show that ou r tree-based algorithms
+havethebestperformanceamongothersregardingthenumber ofsolvedlearningtasks.
+Forregularlanguagelearning,therearerobustandpublicl yavailablelibraries,e.g.,
+libalf[12]andLearnLib [29].AsimilarlibraryisstilllackingforB¨ uchiautomata learn-
+ing. We implement the ﬁrst publicly available B¨ uchi automa ta learning library, named
+ROLL(RegularOmegaLanguageLearning, http://iscasmc.ios.ac.cn/roll ),which
+includesallB¨ uchiautomatalearningalgorithmsoftheful lclassofω-regularlanguages
+available in the literature and the ones proposed in this pap er. We compare the perfor-
+mance of those algorithms using a benchmark consists of 295 B ¨ uchi automata corre-
+spondingto all295LTLspeciﬁcationsavailablein B¨ uchiSt ore[37].
+To summarize, ourcontributionincludesthe following.(1) Adaptingthe algorithm
+of[10]tosupportB¨ uchiautomatateachers.(2)Anovellear ningalgorithmforω-regular
+language based on FDFAs and classiﬁcation trees. (3) The pub licly available library
+ROLLthat includes all B¨ uchi automata learning algorithms can b e found in the litera-
+ture.(4)AcomprehensiveempiricalevaluationofB¨ uchiau tomatalearningalgorithms.
+2 Preliminaries
+LetAandBbetwosets.We use A⊕Btodenotetheir symmetric diﬀerence,i.e.,theset
+(A\B)∪(B\A). LetΣbe a ﬁnite set called alphabet.We useǫto representan empty
+word.Thesetofallﬁnitewordsisdenotedby Σ∗,andthesetofallinﬁnitewords,called
+ω-words,isdenotedby Σω.Moreover,wealsodenoteby Σ+thesetΣ∗\{ǫ}.We use|u|
+todenotethelengthoftheﬁniteword u.Weuse[ i···j]todenotetheset{i,i+1,···,j}.
+We denote by w[i] thei-th letter of a word w. We usew[i..k] to denote the subword of
+wstarting at the i-th letter and ending at the k-th letter, inclusive, when i≤kand the
+empty wordǫwheni>k. Alanguage is a subset ofΣ∗and anω-language is a subset
+ofΣω. Words of the form uvωare called ultimately periodic words. We use a pair of
+ﬁnite words( u,v) to denotethe ultimatelyperiodicword w=uvω. We also call ( u,v)a
+decomposition ofw. Foranω-language L, letUP(L)={uvω|u∈Σ∗,v∈Σ+,uvω∈L},
+i.e.,all ultimatelyperiodicwordsin L.
+
+--- Page 3 ---
+Aﬁniteautomaton (FA)isatuple A=(Σ,Q,q0,F,δ)consistingofa ﬁnitealphabet
+Σ, a ﬁnite set Qof states, an initial state q0, a setF⊆Qof accepting states, and a
+transition relationδ⊆Q×Σ×Q. For convenience, we also use δ(q,a) to denote the
+set{q′|(q,a,q′)∈δ}. Arunof an FA on a ﬁnite word v=a1a2a3···anis a sequence
+of statesq0,q1,···,qnsuch that ( qi,ai+1,qi+1)∈δ. The run visaccepting ifqn∈F.
+A worduis accepting if it has an accepting run. The language of A, denoted by L(A),
+is the set{u∈Σ∗|uisacceptedby A}. Given two FAs AandB, one can construct a
+productFA A×Brecognizing L(A)∩L(B)usingastandardproductconstruction.
+Adeterministic ﬁnite automaton (DFA) is an FA such that δ(q,a)is a singleton for
+anyq∈Qanda∈Σ. For DFA, we write δ(q,a)=q′instead ofδ(q,a)={q′}. The
+transition can be lifted to words by deﬁning δ(q,ǫ)=qandδ(q,av)=δ(δ(q,a),v)for
+q∈Q,a∈Σandv∈Σ∗. We also use A(v)asashorthandfor δ(q0,v).
+AB¨ uchiautomaton (BA)hasthesamestructureasanFA,exceptthatitacceptson ly
+inﬁnitewords.ArunofaninﬁnitewordinaBAisaninﬁniteseq uenceofstatesdeﬁned
+similarly to the case of a ﬁnite word in an FA. An inﬁnite word wis accepted by a BA
+iﬀithasarunvisitingatleastoneacceptingstateinﬁnitelyo ften.Thelanguagedeﬁned
+by a BAA, denoted by L(A), is the set{w∈Σω|wisacceptedby A}. Anω-language
+L⊆Σωisω-regulariﬀthereexistsaBA Asuchthat L=L(A).
+Theorem1 (UltimatelyPeriodicWordsof ω-RegularLanguages[13]). Let L, L′be
+twoω-regularlanguages.Then L =L′if andonlyif UP (L)=UP(L′).
+Deﬁnition1 (Family of DFAs (FDFA) [10]). A family of DFAsF=(M,{Aq})over
+an alphabetΣconsists of a leading automaton M =(Σ,Q,q0,δ)and progress DFAs
+Aq=(Σ,Qq,sq,δq,Fq)foreachq∈Q.
+Noticethattheleadingautomaton MisaDFAwithoutacceptingstates.EachFDFA
+Fcharacterizesa set of ultimately periodicwords UP(F). Formally,an ultimately pe-
+riodic word wis inUP(F) iﬀit has a decomposition ( u,v)accepted byF. A decom-
+position ( u,v) is accepted byFiﬀM(uv)=M(u) andv∈L(AM(u)). An example of
+an FDFAFis depicted in Fig. 1. The leading automaton Mhas only one state ǫ. The
+progressautomatonof ǫisAǫ.Theword( ba)ωisinUP(F)becauseithasadecomposi-
+tion(ba,ba)suchthat M(ba·ba)=M(ba)andba∈L(AM(ba))=L(Aǫ).Itiseasytosee
+thatthe decomposition( bab,ab)is notacceptedby Fsinceab/nelementL(AM(bab))=L(Aǫ).
+ǫ startMa
+bǫ start aAǫ
+a,ba
+b
+Fig.1.Anexample of anFDFAFor anyω-regular language L, there
+exists an FDFAFsuch that UP(L)=
+UP(F) [10]. We show in Sec. 6 that it
+is not the case for the reverse direction.
+More precisely, in [10], three kinds of
+FDFAs are suggested as the canonical
+representation of ω-regular languages,
+namelyperiodicFDFA,syntactic FDFA
+andrecurrent FDFA.Theirformaldeﬁnitionsare givenintermsof rightcongruence .
+An equivalencerelation ∽onΣ∗is a right congruenceif x∽yimpliesxv∽yvfor
+everyx,y,v∈Σ∗. The indexof∽, denotedby|∽|,is the numberof equivalenceclasses
+of∽. We useΣ∗/∽todenotetheequivalenceclassesofthe rightcongruence ∽. Aﬁnite
+right congruence is a right congruence with a ﬁnite index. For a word v∈Σ∗, we use
+
+--- Page 4 ---
+the notation[ v]∽to representthe class of ∽in which vresidesand ignore the subscript
+∽when the context is clear. The right congruence ∽Lof a givenω-regular language L
+is deﬁned such that x∽Lyiﬀ∀w∈Σω.xw∈L⇐⇒yw∈L. The index of∽Lis ﬁnite
+because it is not larger than the number of states in a determi nistic Muller automaton
+recognizing L[33].
+Deﬁnition2 (CanonicalFDFA [10]). Givenanω-regularlanguage L, a periodic (re-
+spectively,syntacticandrecurrent) FDFAF=(M,{Aq})of L isdeﬁnedasfollows.
+TheleadingautomatonM isthetuple (Σ,Σ∗/∽L,[ǫ]∽L,δ),whereδ([u]∽L,a)=[ua]∽Lfor
+allu∈Σ∗anda∈Σ.
+We deﬁne the right congruences ≈u
+P,≈u
+S, and≈u
+Rfor progress automata Auof peri-
+odic,syntactic,andrecurrent FDFArespectively asfollows:
+x≈u
+Py iﬀ∀v∈Σ∗,u(xv)ω∈L⇐⇒u(yv)ω∈L,
+x≈u
+Sy iﬀux∽Luy and∀v∈Σ∗,uxv∽Lu=⇒(u(xv)ω∈L⇐⇒u(yv)ω∈L),and
+x≈u
+Ry iﬀ∀v∈Σ∗,uxv∽Lu∧u(xv)ω∈L⇐⇒uyv∽Lu∧u(yv)ω∈L.
+The progress automaton Auis the tuple (Σ,Σ∗/≈u
+K,[ǫ]≈u
+K,δK,FK), whereδK([u]≈u
+K,a)=
+[ua]≈u
+Kfor all u∈Σ∗and a∈Σ. The accepting states F Kis the set of equivalence
+classes[v]≈u
+Kforwhichuv∽Luanduvω∈LwhenK∈{S,R}andthesetofequivalence
+classes[v]≈u
+Kforwhichuvω∈L when K∈{P}.
+In this paper, by an abuse of notation, we use a ﬁnite word uto denote the state in a
+DFA inwhichtheequivalenceclass[ u]resides.
+Lemma 1 ([10]). LetFbe a periodic (syntactic, recurrent) FDFAof anω-regular
+languageL. ThenUP (F)=UP(L).
+Lemma 2 ([9]). LetFbe a periodic (syntactic,recurrent) FDFAof anω-regularlan-
+guage L. OnecanconstructaBArecognizing L from F.
+3 B¨uchi Automata Learning Frameworkbased onFDFA
+We begin with an introduction of the framework of learning BA recognizing an un-
+knownω-regularlanguage L.
+Overviewoftheframework: First,weassumethatwealreadyhaveaBAteacherwho
+knows the unknown ω-regular language Land answers membership andequivalence
+queries about L. More precisely, a membership query MemBA(uvω) asks ifuvω∈L.
+For an equivalence query EquBA(B), the BA teacher answers “yes” when L(B)=L,
+otherwiseitreturns“no”aswell asacounterexample uvω∈L⊕L(B).
+The framework depicted in Fig. 2 consists of two components, namely the FDFA
+learnerand the FDFA teacher. Note that one can place any FDFA learning algorithm
+to the FDFA learnercomponent.For instance,onecan use the F DFA learnerfrom[10]
+whichemploysa tabletostorequeryresults,ortheFDFA lear nerusingaclassiﬁcation
+tree proposed in this paper. The FDFA teacher can be any teach er who can answer
+membershipandequivalencequeriesaboutanunknownFDFA.
+
+--- Page 5 ---
+Member EquivalenceFDFAlearner FDFAteacherBA teacherTable-based [10]
+(Sec.4)
+Tree-based (Sec. 5)
+–Periodic FDFA
+–Syntactic FDFA
+–Recurrent FDFAFDFAFtoBAB(Sec.6)
+–Under-Approximation B
+–Over-Approximation B
+Analyze CE (Sec.7)
+–Under-Approximation B
+–Over-Approximation BFMemFDFA(u,v) MemBA(uvω)
+yes/no
+EquFDFA(F) EquBA(B)
+yes
+Output a BA recognizing the target languageno+uvω no+(u′,v′)
+Fig.2.Overview of the learning framework based on FDFA learning. T he components in
+boxesareresultsfromexistingworks.Thecomponents in boxesareournewcontributions.
+FDFA learners: The FDFA learners component will be introduced in Sec. 4 and 5 .
+We ﬁrst brieﬂy review the table-based FDFA learning algorit hms [10] in Sec. 4. Our
+tree-basedlearningalgorithmforcanonicalFDFAswillbei ntroducedinSec.5.Theal-
+gorithmisinspiredbythetree-based L∗learningalgorithm[30].Nevertheless,applying
+the tree structure to learn FDFAs is not a trivial task. For ex ample, instead of a binary
+tree used in [30], we need to use a K-ary tree to learn syntactic FDFAs. The use of
+K-ary tree complicates the procedure of reﬁning the classiﬁc ation tree and automaton
+construction.Moredetailswill beprovidedinSec. 5.
+FDFAteacher: Thetask ofthe FDFA teacheristo answer queries MemFDFA(u,v)and
+EquFDFA(F) posed by the FDFA learner. Answering MemFDFA(u,v) is easy. The FDFA
+teacherjustneedstoredirecttheresultof MemBA(uvω)totheFDFAlearner.Answering
+equivalencequery EquFDFA(F)ismoretricky.
+FromanFDFA Ftoa BAB:The FDFA teacher needs to transform an FDFA Fto a
+BABto pose an equivalence query EquBA(B). In Sec. 6, we show that, in general, it
+is impossible to build a BA Bfrom an FDFA Fsuch that UP(L(B))=UP(F). There-
+fore in Sec. 6, we propose two methods to approximate UP(F), namely the under-
+approximation method and the over-approximation method. As the name indicates,
+the under-approximation (respectively, over-approximat ion) method constructs a BA
+BfromFsuchthat UP(L(B))⊆UP(F)(respectively, UP(F)⊆UP(L(B))).Theunder-
+approximationmethod is modiﬁed from the algorithm in [14]. Note that if the FDFAs
+are the canonical representations, the BAs built by the unde r-approximation method
+recognize the same ultimately periodic words as the FDFAs, w hich makes it a com-
+
+--- Page 6 ---
+plete method for BA learning (Lem. 1 and 2). As for the over-ap proximationmethod,
+we cannot guarantee to get a BA Bsuch that UP(L(B))=UP(F) even if the Fis a
+canonical representation, which thus makes it an incomplet e method. However, in the
+worst case, the over-approximationmethod produces a BA who se number of states is
+onlyquadraticinthesizeoftheFDFA.Incontrast,thenumbe rofstatesintheBAcon-
+structedbythe under-approximationmethodis cubicin thes ize oftheFDFA.
+Counterexampleanalysis: IftheFDFAteacherreceives“no”andacounterexample uvω
+from the BA teacher, the FDFA teacher has to return “no” as wel l as a valid decom-
+position ( u′,v′) that can be used by the FDFA learner to reﬁne F. In Sec. 7, we show
+how the FDFA teacher choosesa pair ( u′,v′) fromuvωthat allowsFDFA learnerto re-
+ﬁne current FDFA F. As the dashed line with a label Fin Fig. 2 indicates, we use the
+currentconjecturedFDFA Fto analyzethe counterexample.The under-approximation
+methodandtheover-approximationmethodofFDFAtoBAtrans lationrequirediﬀerent
+counterexampleanalysisprocedures.Moredetailswill bep rovidedinSec.7.
+OncetheBAteacheranswers“yes”fortheequivalencequery EquBA(B),theFDFA
+teacherwill terminatethelearningprocedureandoutputsa BA recognizing L.
+4 Table-based Learning Algorithm forFDFAs
+Inthissection,we brieﬂyintroducethetable-basedlearne rforFDFAs[10]. Itemploys
+astructurecalled observationtable [7]toorganizetheresultsobtainedfromqueriesand
+propose candidate FDFAs. The table-based FDFA learner simu ltaneously runs several
+instances of DFA learners. The DFA learners are very similar to theL∗algorithm [7],
+exceptthattheyusedi ﬀerentconditionstodecideiftwostringsbelongtothesames tate
+(based on Def. 2). More precisely, the FDFA learner uses one D FA learner L∗
+Mfor the
+leadingautomaton M,andforeachstate uinM,oneDFAlearner L∗
+Auforeachprogress
+automaton Au. The table-based learning procedure works as follows. The l earnerL∗
+M
+ﬁrst closes the observation table by posing membership quer ies and then constructs
+a candidate for leading automaton M. For every state uinM, the table-based algo-
+rithm runs an instance of DFA learner L∗
+Auto ﬁnd the progress automaton Au. When
+all DFA learners propose candidate DFAs, the FDFA learner as sembles them to an
+FDFAF=(M,{Au}) and then poses an equivalence query for it. The FDFA teacher
+will either return “yes”which means the learning algorithm succeeds or return “no”
+accompanying with a counterexample. Once receiving the cou nterexample, the table-
+based algorithm will decide which DFA learner should reﬁne i ts candidate DFA. We
+referinterestedreadersto [10] formoredetailsofthetabl e-basedalgorithm.
+5 Tree-based Learning AlgorithmforFDFAs
+In this section, we provide our tree-based learning algorit hm for FDFAs. To that end,
+weﬁrstdeﬁnetheclassiﬁcationtreestructureforFDFAlear ninginSec.5.1andpresent
+thetree-basedalgorithminSec. 5.2.
+
+--- Page 7 ---
+5.1 ClassiﬁcationTreeStructurein Learning
+Here we present our classiﬁcation tree structure for FDFA le arning. Compared to the
+classiﬁcation tree deﬁned in [30], ours is not restricted to be a binary tree. Formally,
+a classiﬁcation tree is a tuple T=(N,r,Ln,Le) whereN=I∪Tis a set of nodes
+consistingoftheset Iofinternalnodes andtheset Tofterminalnodes ,thenode r∈N
+istherootofthetree, Ln:N→Σ∗∪(Σ∗×Σ∗)labelsaninternalnodewithan experiment
+and a terminal node with a state, andLe:N×D→Nmaps a parent node and a label
+toits correspondingchildnode,wheretheset oflabels Dwill bespeciﬁedbelow.
+During the learning procedure, we maintain a leading treeTfor the leading au-
+tomatonM, and for every state uinM, we keep a progress treeTufor the progress
+automaton Au. For every classiﬁcation tree, we deﬁne a tree experimentfu nctionTE:
+Σ∗×(Σ∗∪(Σ∗×Σ∗))→D.Intuitively, TE(x,e)computestheentryvalueatrow(state)
+xandcolumn(experiment) eofanobservationtableintable-basedlearningalgorithms .
+The labels of nodes in the classiﬁcation tree Tsatisfy the follow invariants: Let t∈T
+be a terminal node labeled with a state x=Ln(t). Lett′∈Ibe an ancestor node of t
+labeledwithanexperiment e=Ln(t′).Thenthechildof t′followingthelabel TE(x,e),
+i.e.,Le(t′,TE(x,e)),iseitherthenode toranancestornodeof t.
+Leading treeT:The leading treeTforMis a binary tree with labels D={F,T}.
+The tree experiment function TE(u,(x,y))=T iﬀuxyω∈L(recall the deﬁnition of
+∽Lin Sec. 2) where u,x,y∈Σ∗. Intuitively,each internal node ninTis labeled by an
+experiment xyωrepresented as ( x,y). For any word u∈Σ∗,uxyω∈L(oruxyω/nelementL)
+impliesthat theequivalenceclassof uliesin theT-subtree(orF-subtree)of n.
+Progress treeTu:The progress trees Tuand the correspondingfunction TE(x,e) are
+deﬁnedbasedontherightcongruences ≈u
+P,≈u
+S,and≈u
+RofcanonicalFDFAsin Def.2.
+PeriodicFDFA: The progresstree for periodic FDFA is also a binary tree labe led with
+D={F,T}.Theexperimentfunction TE(x,e)=T iﬀu(xe)ω∈Lwherex,e∈Σ∗.
+SyntacticFDFA: The progresstree for syntactic FDFA is a K-ary tree with labels D=
+Q×{A,B,C}whereQistheset ofstatesintheleadingautomaton M. Forallx,e∈Σ∗,
+theexperimentfunction TE(x,e)=(M(ux),t),wheret=Aiﬀu=M(uxe)∧u(xe)ω∈L,
+t=Biﬀu=M(uxe)∧u(xe)ω/nelementL, andt=C iﬀu/nequalM(uxe).
+For example, assuming that Mis constructed from the right congruence ∽L, for
+any two states xandysuch that TE(x,e)=TE(y,e)=(z,A), it must be the case that
+ux∽LuybecauseM(ux)=z=M(uy). Moreover,the experiment ecannot distinguish
+xandybecauseuxe∽Lu∽Luyeandbothu(xe)ω,u(ye)ω∈L.
+RecurrentFDFA: The progress tree for recurrent FDFA is a binary tree labeled with
+D={F,T}.Thefunction TE(x,e)=T iﬀu(xe)ω∈L∧u=M(uxe)wherex,e∈Σ∗.
+5.2 Tree-basedLearningAlgorithm
+The tree-based learning algorithm ﬁrst initializes the lea ding treeTand the progress
+treeTǫasatreewith onlyoneterminalnode rlabeledbyǫ.
+
+--- Page 8 ---
+From a classiﬁcation tree T=(N,r,Ln,Le), the learner constructs a candidate of
+a leading automaton M=(Σ,Q,ǫ,δ) or a progress automaton Au=(Σ,Q,ǫ,δ,F) as
+follow. The set of states is Q={Ln(t)|t∈T}. Givens∈Qanda∈Σ, the transition
+functionδ(s,a) is constructed by the following procedure. Initially the c urrent node
+n:=r. Ifnis a terminal node, it returns δ(s,a)=Ln(n). Otherwise, it picks a unique
+childn′ofnwithLe(n,TE(sa,Ln(n)))=n′, updatesthe currentnodeto n′, and repeats
+theprocedure4.By Def.2, theset ofacceptingstates Fofa progressautomatoncan be
+identiﬁed from the structure of Mwith the help of membership queries. For periodic
+FDFA,F={v|uvω∈L,v∈Q}and for syntactic and recurrentFDFA, F={v|uv∽M
+u,uvω∈L,v∈Q}.
+Whenever the learner has constructed an FDFA F=(M,{Au}), it will pose an
+equivalence query for F. If the teacher returns “no” and a counterexample ( u,v), the
+learnerhastoreﬁnetheclassiﬁcationtree andproposeanot hercandidateofFDFA.
+Deﬁnition3 (Counterexample for FDFA Learner). Given the conjectured FDFAF
+andthe targetlanguageL, we saythatthecounterexample
+–(u,v)ispositiveif uv∽Mu,uvω∈UP(L),and(u,v)isnotacceptedbyF,
+–(u,v)isnegativeif uv∽Mu,uvω/nelementUP(L),and(u,v)isacceptedbyF.
+Weremarkthatinourcaseallcounterexamples( u,v)fromtheFDFAteachersatisfy
+theconstraint uv∽Mu,whichcorrespondstothe normalizedfactorization formin[10].
+Counterexample guided reﬁnement of F:Below we show how to reﬁne the classi-
+ﬁcation trees based on a negative counterexample ( u,v). The case of a positive coun-
+terexample is symmetric. By deﬁnition, we have uv∼Mu,uvω/nelementUP(L) and (u,v) is
+accepted byF. Let ˜u=M(u), if ˜uvω∈UP(L), the reﬁnement of the leading tree is
+performed,otherwise ˜ uvω/nelementUP(L),thereﬁnementoftheprogresstreeisperformed.
+Reﬁnement for the leading tree: In the leading automaton Mof the conjectured
+FDFA, if a state phas a transition to a state qvia a letter a, i.e,q=M(pa), then
+pahas been assigned to the terminal node labeled by qduring the construction of M.
+If one also ﬁnds an experiment esuch that TE(q,e)/nequalTE(pa,e), then we know that q
+andpashouldnotbelongtothesamestateinaleadingautomaton.W. l.o.g.,weassume
+TE(q,e)=F. In such a case, the leading tree can be reﬁned by replacing th e terminal
+node labeled with qby a tree such that (i) its root is labeled by e, (ii) its left child is a
+terminalnodelabeledby q,and(iii)itsrightchildisaterminalnodelabeledby pa.
+Belowwediscusshowtoextracttherequiredstates p,qandexperiment e.Let|u|=
+nands0s1···snbe the run of Moveru. Note that s0=M(ǫ)=ǫandsn=M(u)=˜u.
+Fromthe factsthat ( u,v)is a negativecounterexampleand ˜ uvω∈UP(L)(thecondition
+to reﬁne the leading tree), we have TE(s0,(u[1···n],v))=F/nequalT=TE(sn,(ǫ,v))=
+TE(sn,(u[n+1···n],v)) because uvω/nelementUP(L) and ˜uvω∈UP(L). Recall that we have
+w[j···k]=ǫwhenj>k. Therefore, there must exist a smallest j∈[1···n] such
+4For syntactic FDFA, it can happen that δ(s,a) goes to a “new” terminal node. A new state for
+the FDFAis identiﬁedinsuch a case.
+
+--- Page 9 ---
+thatTE(sj−1,(u[j···n],v))/nequalTE(sj,(u[j+1···n],v)). It follows that we can use the
+experiment e=(u[j+1···n],v)todistinguish q=sjandpa=sj−1u[j].
+Example1. Consider a conjectured FDFA Fin Fig. 1 produced during the process of
+learningL=aω+bω. The corresponding leading tree Tand the progress tree Tǫare
+depicted on the left of Fig. 3. The dotted line is for the F labe l and the solid one is for
+the T label. Suppose the FDFA teacher returns a negative coun terexample( ab,b). The
+leading tree has to be reﬁned since M(ab)bω=bω∈L. We ﬁnd an experiment ( b,b)
+to diﬀerentiateǫandausing the procedureaboveandupdate the leadingtree TtoT′.
+Theleadingautomaton MconstructedfromT′is depictedonthe rightofFig.3.
+ǫT
+ǫ
+ǫ aTǫ
+CE(ab,b)(b,b)
+aǫT′
+ǫ start aM
+a
+ba
+b
+Fig.3.Reﬁnement of the leading tree andthe corresponding leading automaton
+Reﬁnement for the progress tree: Here we explain the case of periodic FDFAs. The
+othercasesaresimilarandweleavethedetailsinAppendixB .Recallthat ˜ uvω/nelementUP(L)
+andthusthealgorithmreﬁnestheprogresstree T˜u.Let|v|=nandh=s0s1···snbethe
+correspondingrun of A˜uoverv. Note that s0=A˜u(ǫ)=ǫandsn=A˜u(v)=˜v. We have
+˜u(˜v)ω∈UP(L) because ˜ vis an accepting state. From the facts that ˜ uvω/nelementUP(L) and
+˜u(˜v)ω∈UP(L),wehave TE(s0,v[1···n])=F/nequalT=TE(sn,ǫ)=TE(sn,v[n+1···n]).
+Therefore, there must exist a smallest j∈[1···n] such that TE(sj−1,v[j···n])/nequal
+TE(sj,v[j+1···n]). It follows that we can use the experiment e=v[j+1···n] to
+distinguish q=sj,pa=sj−1v[j] andreﬁnetheprogresstree T˜u.
+Optimization: Example1 also illustratesthefact that thecounterexample (ab,b)may
+notbeeliminatedrightawayafterthereﬁnement.Inthiscas e,itisstillavalidcounterex-
+ample(assumingthattheprogresstree Tǫremainsunchanged).Thusasanoptimization
+inourtool,onecanrepeatedlyusethecounterexampleuntil it iseliminated.
+6 From FDFA to B ¨uchi Automata
+ǫstartMa
+bǫstart a
+bAǫ
+a
+bb
+a
+a b
+Fig.4.An FDFAFsuch that UP(F) does
+not characterize an ω-regular languageSince the FDFA teacher exploits the BA
+teacher for answering equivalence queries, it
+needs ﬁrst to convert the given FDFA into a
+BA. Unfortunately,with the followingexam-
+ple, we show that in general, it is impossible
+to construct a preciseBABfor an FDFAF
+suchthat UP(L(B))=UP(F).
+Example2. Consider a non-canonical FDFA
+Fin Fig. 4, we have UP(F)=/uniontext∞
+n=0{a,b}∗·
+
+--- Page 10 ---
+(abn)ω.We assumethat UP(F)characterizesanω-regularlanguage L. It isknownthat
+the periodic FDFA recognizes exactly the ω-regular language and the index of each
+right congruenceis ﬁnite [10]. However,we can show that the right congruence≈ǫ
+Pof
+a periodicFDFA of Lis of inﬁnite index.Observethat abk/\e}atio\slash≈ǫ
+Pabjfor anyk,j≥1 and
+k/nequalj,becauseǫ·(abk·abk)ω∈UP(F)andǫ·(abj·abk)ω/nelementUP(F).Itfollowsthat≈ǫ
+Pis
+ofinﬁniteindex.We concludethat UP(F)cannotcharacterizean ω-regularlanguage.
+We circumvent the above problem by proposing two BAs B,B, which under- and
+over-approximate the ultimately periodic words of an FDFA. Given an FDFAF=
+(M,{Au}) withM=(Σ,Q,q0,δ) andAu=(Σ,Qu,su,δu,Fu) for allu∈Q, we deﬁne
+Ms
+v=(Σ,Q,s,δ,{v}) and (Au)s
+v=(Σ,Qu,s,δu,{v}), i.e., the DFA obtained from M
+andAuby setting their initial and accepting states as sand{v}, respectively. Deﬁne
+N(u,v)={vω|uv∽Mu∧v∈L((Au)suv)}.ThenUP(F)=/uniontext
+u∈Q,v∈FuL(Mq0
+u)·N(u,v).
+We construct BandBby approximatingthe set N(u,v). ForB, we ﬁrst deﬁne an FA
+P(u,v)=(Σ,Qu,v,su,v,{fu,v},δu,v)=Mu
+u×(Au)suvandletN(u,v)=L(P(u,v))ω. Thenone can
+constructa BA (Σ,Qu,v∪{f},su,v,{f},δu,v∪δf) recognizing N(u,v)wherefisa “fresh”
+stateandδf={(f,ǫ,su,v),(fu,v,ǫ,f)}.ForB,wedeﬁneanFA P(u,v)=Mu
+u×(Au)suv×(Au)v
+v
+and letN(u,v)=L(P(u,v))ω. One can construct a BA recognizing N(u,v)using a similar
+constructionto the case of N(u,v). In Def. 4 we show how to constructBAs BandBs.t.
+UP(L(B))=/uniontext
+u∈Q,v∈FuL(Mq0
+u)·N(u,v)andUP(L(B))=/uniontext
+u∈Q,v∈FuL(Mq0
+u)·N(u,v).
+Deﬁnition4. LetF=(M,{Au})be anFDFAwhere M=(Σ,Q,q0,δ)and Au=
+(Σ,Qu,su,Fu,δu)for every u∈Q. Let(Σ,Qu,v,su,v,{fu,v},δu,v)be a BA recognizing
+N(u,v)(respectively N(u,v)).ThentheBA B (respectively B) isdeﬁnedasthetuple
+Σ,Q∪/uniondisplay
+u∈Q,v∈FuQu,v,q0,/uniondisplay
+u∈Q,v∈Fu{fu,v},δ∪/uniondisplay
+u∈Q,v∈Fuδu,v∪/uniondisplay
+u∈Q,v∈Fu{(u,ǫ,su,v)}.
+Lemma 3 (Sizes and Languages of BandB).LetFbe an FDFA and B ,B be the
+BAs constructed from Fby Def. 4. Let n and k be the numbers of states in the leading
+automaton and the largest progress automatonof F. The number of states of B andB
+are inO(n2k3)andO(n2k2), respectively. Moreover, UP (L(B))⊆UP(F)⊆UP(L(B))
+andwe haveUP (L(B))=UP(F)whenFisacanonical FDFA.
+Thepropertiesbelowwill beusedlaterinanalyzingcounter examples.
+Lemma 4. Givenan FDFAF=(M,{Au}),andBtheBAconstructedfrom FbyDef.4.
+If(u,vk)is acceptedbyFforeveryk≥1,thenuvω∈UP(L(B)).
+Lemma 5. Given anω-word w∈UP(L(B)), there exists a decomposition (u,v)of w
+andn≥1suchthatv=v1·v2···vnandforalli∈[1···n],vi∈L(AM(u))anduv i∽Mu.
+Fig. 5 depicts the BAs BandBconstructed from the FDFA Fin Fig. 1. In the
+example,wecansee thatthe bω∈UP(F)whilebω/nelementUP(L(B)).
+
+--- Page 11 ---
+q0 start q1 q2
+q′
+2Ba
+bǫ a,ba
+bǫǫq0 start q1 q2
+q3q′
+2
+q4Ba
+bǫ a
+ba
+bǫ
+aba,bǫ
+Fig.5.NBABandBforFinFig.1
+7 Counterexample AnalysisforFDFA Teacher
+Duringthelearningprocedure,ifwefailedtheequivalence queryfortheBA B,theBA
+teacherwill returna counterexample uvωto theFDFA teacher.
+Deﬁnition5 (Counterexample for the FDFA Teacher). Given the conjectured BA
+B∈{B,B}, thetargetlanguageL, we say that
+–uvωisapositivecounterexample if uvω∈UP(L)anduvω/nelementUP(L(B)),
+–uvωisanegativecounterexample if uvω/nelementUP(L)anduvω∈UP(L(B)).
+Obviously, the above is di ﬀerent to the counterexample for the FDFA learner in
+Def.3.Belowweillustratethenecessityofthecounterexam pleanalysisbyanexample.
+Example3. Again,considertheconjecturedFDFA FdepictedinFig.1for L=aω+bω.
+Suppose the BA teacher returns a negative counterexample ( ba)ω. In order to remove
+(ba)ω∈UP(F), one has to ﬁnd a decompositionof ( ba)ωthatFaccepts, which is the
+goal of the counterexampleanalysis. Not all decomposition s of (ba)ωare accepted by
+F.Forinstance,( ba,ba)is acceptedwhile( bab,ab)isnot.
+A positive (respectively negative) counterexample uvωfor the FDFA teacher is
+spurious ifuvω∈UP(F) (respectively uvω/nelementUP(F)). Suppose we use the under-
+approximationmethodtoconstructtheBA BfromFdepictedinFig.5.TheBAteacher
+returnsaspuriouspositivecounterexample bω,whichisin UP(F)butnotin UP(L(B)).
+Weshowlaterthatinsuchacase,onecanalwaysﬁndadecompos ition,inthisexample
+(b,bb),asthecounterexampleforthe FDFAlearner.
+GivenFDFAF=(M,{Au}),inordertoanalyzethecounterexample uvω,wedeﬁne:
+–anFADu$vwithL(Du$v)={u′$v′|u′∈Σ∗,v′∈Σ+,uvω=u′v′ω},
+–anFAD1withL(D1)={u$v|u∈Σ∗,v∈Σ∗,uv∽Mu,v∈L(AM(u))},and
+–anFAD2withL(D2)={u$v|u∈Σ∗,v∈Σ∗,uv∽Mu,v/nelementL(AM(u))}.
+Here$isaletternotin Σ.Intuitively,Du$vacceptseverypossibledecomposition( u′,v′)
+ofuvω,D1recognizes every decomposition ( u′,v′) which is accepted by FandD2
+acceptseverydecomposition( u′,v′)whichisnotacceptedby Fyetu′v′∽Mu′.
+Given a BA Bconstructed by the under-approximation method to construc t a BA
+BfromF, we have that UP(L(B))⊆UP(F). Fig. 6(a) depicts all possible cases of
+uvω∈UP(L(B))⊕UP(L).
+
+--- Page 12 ---
+L BF
+uvωuvω uvω
+(a) Under-ApproximationL FB
+uvωuvω
+uvω
+(b) Over-Approximation
+Fig.6.The Case for Counterexample Analysis
+U1 :uvω∈UP(L)∧uvω/nelementUP(F)(Pointinred).Theword uvωisapositivecounterex-
+ample,onehastoﬁndadecomposition( u′,v′)suchthat u′v′∽Mu′andu′v′ω=uvω.
+Thiscanbeeasilydonebytakinga word u′$v′∈L(Du$v)∩L(D2).
+U2 :uvω/nelementUP(L)∧uvω∈UP(F) (Point in blue). The word uvωis a negative coun-
+terexample,oneneedstoﬁndadecomposition( u′,v′)ofuvωthatisacceptedby F.
+Thiscanbedonebytakinga word u′$v′∈L(Du$v)∩L(D1).
+U3 :uvω∈UP(L)∧uvω∈UP(F) (Point in green). The word uvωis a spurious
+positive counterexample. Suppose the decomposition ( u,v) ofuvωis accepted by
+F,accordingtoLem.4,theremustexistsome k≥1suchthat( u,vk)isnotaccepted
+byF.Thus,wecanalsousethesamemethodinU1togetacounterexa mple(u′,v′).
+We can also use the over-approximation construction to get a BABfromFsuch
+thatUP(F)⊆UP(L(B)),andallpossiblecasesforacounterexample uvω∈UP(L(B))⊕
+UP(L)isdepictedinFig. 6(b).
+O1 :uvω∈UP(L)∧uvω/nelementUP(F)(Pointinred).Theword uvωisapositivecounterex-
+amplethatcanbedealtwith thesamemethodforcaseU1.
+O2 :uvω/nelementUP(L)∧uvω∈UP(F) (Point in green). The word uvωis a negative
+counterexamplethatcanbedealt withthesamemethodforcas eU2.
+O3 :uvω/nelementUP(L)∧uvω/nelementUP(F) (Point in blue). In this case, uvωis a spurious
+negative counterexample. In such a case it is possible that w e cannot ﬁnd a valid
+decompositionof uvωto reﬁneF. By Lem. 5, we can ﬁnd a decomposition( u′,v′)
+ofuvωsuch that v′=v1v2···vn,u′vi∽Mu′, andvi∈L(AM(u′)) for some n≥1.
+It follows that ( u′,vi) is accepted byF. If we ﬁnd some i∈[1···n] such that
+u′vω
+i/nelementUP(L),thenwereturn( u′,vi),otherwise,thealgorithmabortswithanerror.
+Finally, we note that determining whether uvω∈UP(L) can be done by posing a
+membership query MemBA(uvω), and checking whether uvω∈UP(F) boils down to
+checking the emptiness of L(Du$v)∩L(D1). The construction for Du$v,D1, andD2,
+andthecorrectnessproofofcounterexampleanalysisaregi veninAppendixD.
+8 Complexity
+We discuss the complexityof tree-based FDFA learningalgor ithmsin Sec. 5. Let F=
+(M,{Au}) be the corresponding periodic FDFA of the ω-regular language L, and letn
+
+--- Page 13 ---
+be the number of states in the leading automaton Mandkbe the number of states in
+the largest progressautomaton Au. We remarkthatFis uniquelydeﬁnedfor Landthe
+table-based algorithm needs the same amount of equivalence queries as the tree-based
+one in the worst case. Given a counterexample( u,v) returned from the FDFA teacher,
+we deﬁneits lengthas|u|+|v|.
+Theorem2 (Query Complexity). Let(u,v)be the longest counterexample returned
+from theFDFAteacher. The number of equivalence queries needed for the tr ee-based
+FDFAlearning algorithm to learn the periodic FDFAof L is inO(n+nk), while the
+numberof membershipqueriesisin O((n+nk)·(|u|+|v|+(n+k)·|Σ|)).
+For the syntactic and recurrent FDFAs, the number of equivalence queries needed
+forthetree-based FDFAlearningalgorithmisin O(n+n3k),whilethenumberofmem-
+bershipqueriesisin O((n+n3k)·(|u|+|v|+(n+nk)·|Σ|)).
+The learning of syntactic and recurrent FDFAs requires more queries since once
+theirleadingautomatahavebeenmodiﬁed,theyneedtoredot helearningofallprogress
+automatafromscratch.
+Theorem3 (Space Complexity). Forall tree-basedalgorithms, the space requiredto
+learntheleadingautomatonisin O(n).Forlearningperiodic FDFA,thespacerequired
+for each progress automaton is in O(k), while for syntactic and recurrent FDFAs, the
+space required is in O(nk). For all table-basedalgorithms, the space required to lear n
+the leadingautomatonisin O((n+n·|Σ|)·n).Forlearningperiodic FDFA, the space
+required for each progress automaton is in O((k+k· |Σ|)·k), while for syntactic and
+recurrent FDFAs, thespacerequiredisin O((nk+nk·|Σ|)·nk).
+Theorem4 (Correctness and Termination). The BA learning algorithm based on
+the under-approximation method always terminates and retu rns a BA recognizing the
+unknownω-regularlanguageL inpolynomialtime.IftheBAlearningal gorithmbased
+on the over-approximation method terminates without repor ting an error, it returns a
+BArecognizing L.
+GivenacanonicalFDFA F,theunder-approximationmethodproducesaBA Bsuch
+thatUP(F)=UP(L(B)),thusintheworstcase,FDFAlearnerlearnsacanonicalFD FA
+and terminates. In practice, the algorithm very often ﬁnds a BA recognizing Lbefore
+convergingto acanonicalFDFA.
+9 Experimental results
+TheROLLlibrary (http://iscasmc.ios.ac.cn/roll ) is implemented in JAVA.
+The DFA operations in ROLLare delegated to the dk.brics.automaton package, and
+we use the RABIT tool [2,3] to check the equivalence of two BAs . We evaluate the
+performanceof ROLLusingthesmallestBAscorrespondingtoallthe295LTLspeci ﬁ-
+cationsavailableinB¨ uchiStore[37],wherethenumbersof statesintheBAsrangeover
+1to17andtransitionsrangeover0to123.Themachineweused fortheexperimentsis
+a2.5GHzIntelCorei7-6500with4GBRAM.Wesetthetimeoutpe riodto30minutes.
+
+--- Page 14 ---
+Table1.Overallexperimental results.Weshow theresults of285cas es where allalgorithms can
+ﬁnish the BA learning within the timeout period and list the n umber of cases cannot be solved
+(#Unsolved). The mark n∗/mdenotes that there are ncases terminate with an error (in the over-
+approximation method) and it ran out of time for m−ncases. The rows #St., #Tr., #MQ, and
+#EQ,arethenumbersofstates,transitions,membershipque ries,andequivalence queries.Time eq
+is the timespent inanswering equivalence queries and Time totalis the totalexecution time.
+Models L$LPeriodicLSyntacticLRecurrent
+Struct.&
+Approxi.Table TreeTable Tree Table Tree Table Tree
+under over under over under over under over under over under over
+#Unsolved 4 2 3 0/22 0/11 4*/50 3*/31 0/11 0/1
+#St. 3078 3078 2481 2468 2526 2417 2591 2591 2274 2274 2382 2382 2400 2400
+#Tr. 10.6k10.3k13.0k 13.0k 13.4k 12.8k 13.6k 13.6k 12.2k 12.2k 12.7k 12.7k 12.8k 12.8k
+#MQ 105k 114k 86k 85k 69k67k236k 238k 139k 139k 124k 124k 126k 126k
+#EQ 128120241382 1351 1950 1918 1399 1394 2805 2786 1430 1421 3037 3037
+Timeeq(s)146 817 580 92 186 159 111 115 8991149 149 462 465
+Timetotal(s)183 861 610 114 213 186 140 144 118120175 176 499 501
+EQ(%) 79.8 94.9 95.1 80.7 87.3 85.5 79.3 79.9 75.475.885.1 84.6 92.6 92.8
+The overall experimental results are given in Tab. 1. In this section, we use L$to
+denote theω-regular learning algorithm in [20], and LPeriodic,LSyntactic, andLRecurrent
+to represent the periodic,syntactic, and recurrent FDFA le arning algorithm introduced
+in Sec. 4 and 5. From the table, we can ﬁnd the following facts: (1) The BAs learned
+fromL$have more states but fewer transitions than their FDFA based counterpart.(2)
+LPeriodicuses fewer membership queries comparing to LSyntacticandLRecurrent. The rea-
+son is that LSyntacticandLRecurrentneed to restart the learning of all progress automata
+fromscratchwhentheleadingautomatonhasbeenmodiﬁed.(3 )Tree-basedalgorithms
+always solve more learning tasks than their table-based cou nterpart. In particular, the
+tree-based LSyntacticwiththeunder-approximationmethodsolvesall295learnin gtasks.
+0 10 20 30 40 50050100150200
+NumberofStepNumberofStates
+L$LPeriodicLSyntacticLRecurrent
+Fig.7.Growthof state counts inBAIn the experiment, we observe that table-
+basedL$has 4 cases cannot be ﬁnished within
+the timeout period, which is the largest number
+amount all learning algorithms5. We found that
+forthese4cases,theaveragetimerequiredfor L$
+togetanequivalencequeryresultismuchlonger
+than the FDFA algorithms. Under scrutiny, we
+found that the growth rate of the size (number
+of states) of the conjectured BAs generated by
+table-based L$is much faster than that of table-
+based FDFA learning algorithms. In Fig. 7, we
+illustrate the growth rate of the size (number of
+states) of the BAs generatedby each table-based
+learning algorithm using one learning task that cannot be so lved byL$within the
+timeout period. The ﬁgures of the other three learning tasks show the same trend and
+5Most of the unsolved tasks using the over-approximation met hod are caused by the situation
+that the FDFAteacher cannot ﬁnda validcounterexample for r eﬁnement.
+
+--- Page 15 ---
+henceareomitted.Anotherinterestingobservationisthat thesizesofBAsgeneratedby
+LSyntacticcan decrease in some iteration because the leading automato n is reﬁned and
+thusthealgorithmshavetoredothelearningofall progress automatafromscratch.
+It is a bit surprise to us that, in our experiment, the size of B AsBproduced by
+the over-approximation method is not much smaller than the B AsBproduced by the
+under-approximation method. Recall that the progress auto mata ofBcomes from the
+product of three DFAs Mu
+u×(Au)suv×(Au)v
+vwhile those for Bcomes from the product
+of only two DFAs Mu
+u×(Au)suv(Sec. 6). We found the reason is that very often the
+language of the product of three DFAs is equivalent to the lan guage of the product of
+twoDFAs,thuswegetthesameDFAafterapplyingDFAminimiza tions.Nevertheless,
+theover-approximationmethodisstillhelpfulfor LPeriodicandLRecurrent.ForLPeriodic,the
+over-approximation method solved more learning tasks than the under-approximation
+method. For LRecurrent, the over-approximationmethod solved one tough learning t ask
+thatisnotsolvedbythe under-approximationmethod.
+As we mentioned at the end of Sec. 5.2, a possible optimizatio n is to reuse the
+counterexampleand to avoid equivalencequeryas muchas pos sible. The optimization
+helpsthelearningalgorithmstosolveninemorecasesthatw erenotsolvedbefore.
+10 DiscussionandFuture works
+Regardingourexperiments,theBAsfromLTLspeciﬁcationsa reingeneralsimple;the
+averagesizesofthelearnedBAsarearound10states.Fromou rexperienceofapplying
+DFA learning algorithms,the performanceof tree-based alg orithmis signiﬁcantly bet-
+ter thanthetable-basedonewhenthe numberofstatesof thel earnedDFA islarge,say
+morethan1000.WebelievethiswillalsoapplytothecaseofB Alearning.Nevertheless,
+in ourcurrentexperiments,most ofthe time is spentin answe ringequivalencequeries.
+One possible direction to improve the scale of the experimen t is to use a PAC (proba-
+bly approximately correct) BA teacher [8] instead of an exac t one, so the equivalence
+queriescanbeansweredfasterbecausetheBAequivalencete stingwillbereplacedwith
+a bunchofBA membershiptestings.
+There are several avenues for future works. We believe the al gorithm and library
+of learningBAs shouldbe an interestingtool forthe communi tybecauseit enablesthe
+possibilityofmanyapplications.Forthenextstep,wewill investigatethepossibilityof
+applying BA learning to the problem of reactive system synth esis, which is known to
+bea verydiﬃcultproblemandlearning-basedapproachhasnotbeentried yet.
+There are learning algorithms for residual NFA [11], which i s a more compact
+canonical representation of regular languages than DFA. We think maybe one can
+also generalize the learning algorithm for family of DFAs to family of residual NFAs
+(FRNFA). To do this, one needs to show FRNFAs also recognize ω-regular language
+andﬁndsthecorrespondingrightcongruences.
+References
+1. F. Aarts, B. Jonsson, J. Uijen, and F. Vaandrager. Generat ing models of inﬁnite-state com-
+munication protocols usingregular inference withabstrac tion.FMSD, 46(1):1–41, 2015.
+
+--- Page 16 ---
+2. P.A.Abdulla, Y.-F.Chen, L.Clemente, L.Hol´ ık,C.Hong, R.Mayr, and T.Vojnar. Simula-
+tion Subsumption inRamsey-Based B¨ uchi Automata Universa lity and Inclusion Testing. In
+CAV,pages 132–147, 2010.
+3. P.A.Abdulla,Y.-F.Chen,L.Clemente,L.Hol´ ık,C.Hong, R.Mayr,andT.Vojnar. Advanced
+Ramsey-Based B¨ uchi Automata Inclusion Testing. In CONCUR ,pages 187–202, 2011.
+4. B. Alpern and F. B. Schneider. Recognizing safety and live ness.Distributed computing ,
+2(3):117–126, 1987.
+5. R.Alur,P. ˇCern` y,P.Madhusudan, andW.Nam. Synthesisofinterfacesp eciﬁcationsforJava
+classes. In POPL,pages 98–109, 2005.
+6. R. Alur, P. Madhusudan, and W. Nam. Symbolic compositiona l veriﬁcation by learning
+assumptions. In CAV,pages 548–562, 2005.
+7. D. Angluin. Learning Regular Sets from Queries and Counte rexamples. Inf. Comput. ,
+75(2):87–106, 1987.
+8. D.Angluin. Queries andConcept Learning. Mach. Learn. ,2(4):319–342, Apr. 1988.
+9. D. Angluin, U. Boker, and D. Fisman. Families of DFAs as Acc eptors of omega-Regular
+Languages. In MFCS, pages 11:1–11:14, 2016.
+10. D. Angluin and D. Fisman. Learning Regular Omega Languag es. InALT, pages 125–139,
+2014.
+11. B.Bollig,P.Habermehl,C.Kern,andM.Leucker. Angluin -styleLearningofNFA.In IJCAI,
+pages 1004–1009, 2009.
+12. B. Bollig, J.-P. Katoen, C. Kern, M. Leucker, D. Neider, a nd D. R. Piegdon. libalf: The
+Automata Learning Framework. In CAV,pages 360–364, 2010.
+13. J. R. B¨ uchi. On a decision method in restricted second or der arithmetic. volume 44, pages
+1–11, 1966.
+14. H.Calbrix,M.Nivat,andA.Podelski. UltimatelyPeriod icWordsofRational ω-Languages.
+InMFPS,pages 554–566, 1994.
+15. S. Chaki, E. Clarke, N. Sinha, and P. Thati. Automated ass ume-guarantee reasoning for
+simulationconformance. In CAV,pages 534–547, 2005.
+16. M.Chapman,H.Chockler,P.Kesseli,D.Kroening,O.Stri chman,andM.Tautschnig. Learn-
+ingthe Language of Error. In ATVA,pages 114–130, 2015.
+17. Y.-F. Chen, A. Farzan, E. M. Clarke, Y.-K. Tsay, and B.-Y. Wang. Learning minimal sepa-
+ratingDFA’sfor compositional veriﬁcation. In TACAS,pages 31–45, 2009.
+18. Y.-F. Chen, C. Hsieh, O. Leng´ al, T.-J. Lii, M.-H. Tsai, B .-Y. Wang, and F. Wang. PAC
+Learning-based VeriﬁcationandModel Synthesis. In ICSE,pages 714–724, 2016.
+19. J.M.Cobleigh, D.Giannakopoulou, andC.S.P˘ as˘ areanu . Learningassumptions forcompo-
+sitional veriﬁcation. In TACAS,pages 331–346, 2003.
+20. A. Farzan, Y.-F. Chen, E. M. Clarke, Y.-K. Tsay, and B.-Y. Wang. Extending Automated
+CompositionalVeriﬁcationtotheFullClassofOmega-Regul arLanguages. In TACAS,pages
+2–17, 2008.
+21. L. Feng, M. Kwiatkowska, and D. Parker. Automated learni ng of probabilistic assumptions
+for compositional reasoning. In ICSE,pages 2–17, 2011.
+22. D. Giannakopoulou, Z. Rakamari´ c, and V. Raman. Symboli c learning of component inter-
+faces. InSAS, pages 248–264, 2012.
+23. O.Grumberg and Y.Meller. Learning-Based Compositiona l Model Checking of Behavioral
+UML Systems. Dependable Software Systems Engineering , 45:117, 2016.
+24. A. Hagerer, H. Hungar, O. Niese, and B. Ste ﬀen. Model generation by moderated regular
+extrapolation. In FASE,pages 80–95, 2002.
+25. F. He, X. Gao, B. Wang, and L. Zhang. Leveraging Weighted A utomata in Compositional
+Reasoning about Concurrent ProbabilisticSystems. In POPL,pages 503–514, 2015.
+26. F. Howar, D. Giannakopoulou, and Z. Rakamari´ c. Hybrid l earning: interface generation
+through static,dynamic, andsymbolic analysis. In ISSTA, pages 268–279, 2013.
+
+--- Page 17 ---
+27. F. Howar, B. Ste ﬀen, B. Jonsson, and S. Cassel. Inferring Canonical Register Automata. In
+VMCAI,pages 251–266, 2012.
+28. M. Isberner, F. Howar, and B. Ste ﬀen. Learning register automata: from languages to pro-
+gram structures. Machine Learning , 96(1-2):65–98, 2014.
+29. M. Isberner, F. Howar, and B. Ste ﬀen. The open-source LearnLib. In CAV, pages 487–495,
+2015.
+30. M. J. Kearns and U. V. Vazirani. An Introduction to Computational Learning Theory . MIT
+Press,Cambridge, MA, USA,1994.
+31. C. S. Lee, N. D. Jones, and A. M. Ben-Amram. The size-chang e principle for program
+termination. In POPL,pages 81–92, 2001.
+32. S.-W.Lin,E. Andr´ e, Y. Liu,J. Sun, and J. S.Dong. Learni ngassumptions for composition-
+alveriﬁcation of timed systems. IEEE Transactions on Software Engineering , 40(2):137–
+153, 2014.
+33. O.MalerandL.Staiger. OnSyntacticCongruences forOme ga-Languages. In STACS,pages
+586–594, 1993.
+34. D. Peled, M. Y. Vardi, and M. Yannakakis. Black box checki ng.Journal of Automata,
+Languages and Combinatorics , 7(2):225–246, 2002.
+35. R.L.Rivest andR.E.Schapire. Inference of FiniteAutom ata UsingHomingSequences. In
+STOC,pages 411–420, 1989.
+36. J. Sun, H. Xiao, Y. Liu, S.-W. Lin, and S. Qin. TLV: abstrac tion through testing, learning,
+and validation. In FSE,pages 698–709, 2015.
+37. Y.-K.Tsay,M.-H.Tsai,J.-S.Chang, andY.-W.Chang. B¨ u chiStore:AnOpenRepositoryof
+B¨ uChi Automata. In TACAS,pages 262–266, 2011.
+38. M. Y. Vardi and P. Wolper. An automata-theoretic approac h to automatic program veriﬁca-
+tion. InLICS,pages 322–331, 1986.
+39. F. Wang, J. Wu, C. Huang, and K. Chang. Evolving a Test Orac le in Black-Box Testing. In
+FASE,pages 310–325, 2011.
+40. H.Xiao, J.Sun, Y. Liu,S.-W.Lin, andC.Sun. Tzuyu: Learn ingstateful typestates. In ASE,
+pages 432–442, 2013.
+
+--- Page 18 ---
+Appendix
+Inthissection,weﬁrstshowthatalthoughouracceptanceco nditiondeﬁnedinSec.2is
+diﬀerentfromthe originalonedeﬁned in [10], but the ultimatel y periodicwordsofthe
+FDFAwillbepreserved.Then,wegivethereﬁnementforthepr ogresstreesofsyntactic
+and recurrent FDFAs in Sec. B. In Sec. C, we present the proofs of the lemmas given
+in Sec.6. InSec.D, we providethe constructionsfortheFAs Du$v,D1andD2aswell
+asthecorrectnessproofofcounterexampleanalysis.We als ogivethecorrectnessproof
+andcomplexityofthetree-basedlearningalgorithmin Sec. E.
+A LanguagePreservation under Di ﬀerent Acceptance Conditions
+Recall that the original acceptance condition for periodic FDFA in [10] is that ( u,v)
+is accepted byFifv∈L(A˜u) where ˜u=M(u). While the original acceptance condi-
+tions for syntactic and recurrent FDFA in [10] are the same as the one deﬁned in this
+paper. More speciﬁcally, ( u,v) is accepted byFifM(uv)=M(u) andv∈L(AM(u)).
+The set of ultimately periodic words of an FDFA Fis deﬁned as UP(F)={uvω|
+(u,v)isacceptedbyF}. The acceptance condition for periodic FDFA used in this pa-
+per is diﬀerent from the original one in [10]. We prove that the accepta nce condition
+doesnotchangetheultimatelyperiodicwordsoftheperiodi cFDFAs.
+Lemma 6. LetFbeaperiodic(syntactic,recurrent) FDFAundertheacceptancecon-
+ditionin [10], thenUP (F)is preserved underthe acceptanceconditiondeﬁnedin this
+paper.
+Proof.We onlyneedto provethe preservationofultimatelyperiodi cwordsforthe pe-
+riodicFDFAs. Givena periodicFDFA F,theoriginalacceptanceconditionofperiodic
+FDFA requires that ( u,v) is accepted byFifv∈L(A˜u) where ˜u=M(u). Clearly, the
+acceptanceconditiondeﬁnedinthispaperimpliestheorigi nalacceptanceconditionfor
+the periodic FDFA. Therefore, we only need prove that if ( u,v) satisﬁes the original
+acceptancecondition,thenthereexistssomedecompositio n(x,y)ofω-worduvωwhich
+satisﬁesouracceptancecondition.Toachievethis,weﬁrst ﬁndanormalizedformaliza-
+tion(x,y)of(u,v)suchthat x=uvi,y=vjandxy∽Mxforsomei≥0,j≥1according
+to [10]. Further,it is knownthatperiodicFDFA is saturated inthe sense thatunderthe
+original acceptance condition, if ( u,v) is accepted byF, then every decomposition of
+uvωisacceptedbyF.Thereforewehavethat( x,y)isacceptedbyF,whichmeansthat
+y∈L(A˜x) where ˜x=M(x). Itfollowsthat ( x,y)isacceptedbyFunderouracceptance
+condition. /squaresolid
+We remarkthat in [10], they also deﬁne an acceptanceconditi oncalled normalized
+acceptance condition , which is able to make the syntactic and recurrent FDFAs satu -
+rated in the sense that if ( u,v) is accepted by the FDFA, then every decomposition of
+uvωis accepted by the FDFA. Since our goal is to learn a BA in this p aper, we do not
+requirethesaturationpropertyforalldecompositionsofa cceptedω-word.Thus,wedo
+notusethe normalizedacceptancecondition.
+
+--- Page 19 ---
+B Reﬁnement ofthe Progress Trees
+Suppose ˜u·vω/nelementUP(L) for negative counterexample ( u,v), we thus need reﬁne the
+progresstreeT˜u. Let|v|=nandh=s0s1···snbe the correspondingrun of voverA˜u.
+At the beginning, we have s0=ǫandsn=˜vwhere ˜v=A˜u(v) and ˜vis an accepting
+state inA˜u, which implies that ˜ u(˜v)ω∈UP(L). Our job here is to ﬁnd the smallest
+j∈[1···n] such that TE(sj−1,v[j···n])/nequalTE(sj,v[j+1···n])so that we canuse the
+experiment e=v[j+1···n] to diﬀerentiate pa=sj−1v[j] andq=sjsince currently
+sj=δ(sj−1,v[j]).
+Afterwards, the progress tree T˜ucan be reﬁned by replacing the terminal node la-
+beled with sjby a tree such that (i) its root is labeled by e=v[j+1···n], (ii) its
+TE(sj,v[j+1···n])-subtreeisaterminalnodelabeledby sj,and(iii)its TE(sj−1v[j],v[j+
+1···n])-subtreeisa terminalnodelabeledby sj−1v[j].
+In order to establish above result, we have to prove that TE(s0,v)/nequalTE(sn,ǫ) to
+ensure that there exists some j∈[1···n] such that TE(sj−1,v[j···n])/nequalTE(sj,v[j+
+1···n]).Theproofisasfollows.
+–For periodic FDFA, we have TE(ǫ,v)=F since ˜u(ǫ·v)ω/nelementUP(L). Since ˜vis an
+acceptingstate, wehave TE(˜v,ǫ)=T.
+–For syntactic FDFA, we notice that the counterexample requi resuv∽Mu, that is,
+˜u=M(uv)=M(u)=M(˜uv).
+First, we have TE(ǫ,v)=(M(˜u·ǫ),B)=(˜u,B), where B is obtained here since
+˜u=M(˜u·ǫ·v)and ˜u(ǫ·v)ω/nelementUP(L)accordingtothedeﬁnitionof TEinsyntactic
+FDFA.
+Since ˜vis an accepting state in syntactic FDFA, it follows that ˜ u=M(˜u˜v) and
+˜u(˜v)ω∈Laccording to Def. 2. Thus, we have TE(˜v,ǫ)=(M(˜u˜v),A)=(˜u,A)
+whereAis obtainedsince ˜ u=M(˜u·˜v·ǫ) and ˜u(˜v·ǫ)ω∈UP(L).
+–For recurrent FDFA, similar as in syntactic FDFA, we have TE(ǫ,v)=F and
+TE(˜v,ǫ)=T.
+We remark that, if the target is syntactic or recurrent FDFA, as long as the leading
+automaton Mchanges, we need to initialize the classiﬁcation tree Tuagain for every
+stateuin leading automaton since the labels on the edges depend on c urrent leading
+automaton M.
+C ProofsofLem. 3,Lem 4 andLem 5
+Lemma 4. Givenan FDFAF=(M,{Au}),andBtheBAconstructedfrom FbyDef.4.
+If(u,vk)is acceptedbyFforeveryk≥1,thenuvω∈UP(L(B)).
+Proof.From the assumption, we have uvk∽Muandvk∈L(A˜u) for any k≥1 where
+˜u=M(u). It must be the case that some accepting state, say finA˜u, will be visited
+twice after we read vnfrominitial state forsome n>|A˜u|withf=A˜u(vn) sinceA˜uis a
+ﬁnite automaton. In other words, there is a loop in the run of vnoverA˜u. Without loss
+ofgenerality,supposethereexist i,j≥1withi+j=nsuchthat f=A˜u(vi)=A˜u(vi+j).
+Inthefollowing,ourgoalistoﬁndsomeacceptingstate f′suchthat f′=A˜u(vk)=
+A˜u(v2k) for some k≥1. Fig. 8 depictshow to ﬁnd the acceptingstate f′alongthe loop
+pathinfollowingtwocases.
+
+--- Page 20 ---
+–j≥i.Letk=j.
+–j<i.Letk=l×jsuchthat k≥iwith thesmallest l≥1.
+s˜u start f f′j≥i
+vivj−i
+vis˜u start f f′j<i
+vivc
+vj−c
+Fig.8.Findingvk. Ifj≥i,we letk=j, otherwise let c=(l·j−i)%j≥0wherek=l·j≥ifor
+somel≥1
+Itiseasytocheckthat A˜u(vk)=A˜u(v2k)sinceprogressautomaton A˜uisdeterministic
+andthecorresponding f′isan acceptingstate.
+Itfollowsthat vkisacceptedbytheproduct P(˜u,f′)ofthreeautomata M˜u
+˜u,(A˜u)s˜u
+f′and
+(A˜u)f′
+f′wheres˜uistheinitialstateof A˜u.Inotherwords,ω-worduvωwillbeacceptedin
+Bsinceu·(vk)ω∈L(Mq0
+˜u)·(L(P(˜u,f′)))ω. /squaresolid
+Lemma 5. Given anω-word w∈UP(L(B)), there exists a decomposition (u,v)of w
+andn≥1suchthatv=v1·v2···vnandforalli∈[1···n],vi∈L(AM(u))anduv i∽Mu.
+Proof.Here we only consider ultimately periodic ω-words in B, so everyω-word can
+begivenbyadecomposition.
+SinceUP(L(B))=/uniontext
+u∈Q,p∈FuL(Mq0
+u)·(L(P(u,p)))ω, supposeω-wordw=uvω∈
+UP(L(B)), thenwcan be given by a decomposition ( u,v) such that u∈L(Mq0
+˜u) and
+v∈(L(P(˜u,p)))+forsome p∈F˜uwhere ˜u=M(u).Thus,we have v=v1···vnforsome
+n≥1suchthat vi∈L(P(˜u,p))forevery1≤i≤n.Inaddition,since P(˜u,p)=M˜u
+˜u×(A˜u)s˜up,
+we concludethat uv∽Muandvi∈L((A˜u)s˜up) for every1≤i≤nwheres˜uis the initial
+state inA˜u.
+Observe that pis the only accepting state of ( A˜u)s˜upand (A˜u)s˜upis obtained from A˜u
+by setting p∈F˜uas its only accepting state, we have that p=(A˜u)s˜up(vi)=A˜u(vi) for
+every1≤i≤nandpisanacceptingstate in A˜u.
+The remaining job is how to ﬁnd the accepting state pinA˜u. Suppose we have the
+counterexample uvωgivenbythedecomposition( u,v),fromwhichweconstructtheFA
+Du$vby the method in Sec. D.1. The number of states in Du$vis inO(|v|(|v|+|u|)). In
+addition, we can construct an FA Asuch that L(A)=/uniontext
+u∈Q,p∈FuL(Mq0
+u)·$·(L(Mu
+u×
+(Au)sup))+wheresuis the initial state of Au. By ﬁxing uandp, we get L(A(u,p))=
+L(Mq0
+u)·$·(L(Mu
+u×(Au)sup))+=L(Mq0
+u)·$·(L(P(u,p)))+. We get the corresponding u
+andpsuch that L(A(u,p)×Du$v)/nequal∅. There must exist such uandpotherwise uvω
+will not be accepted by B. To get all the fragment words vifromv, one only needs to
+run the ﬁnite word voverP(u,p). The time and space complexity of this procedure are
+inO(nk(n+nk)·(|v|(|v|+|u|))) andO((n+nk)·(|v|(|v|+|u|))) respectively where nis
+the numberof states in the leadingautomatonand kthe number of states in the largest
+progressautomaton.Thuswecompletetheproof. /squaresolid
+
+--- Page 21 ---
+Lemma 3 (Sizes and Languages of BandB).LetFbe an FDFA and B ,B be the
+BAs constructed from Fby Def. 4. Let n and k be the numbers of states in the leading
+automaton and the largest progress automatonof F. The number of states of B andB
+are inO(n2k3)andO(n2k2), respectively. Moreover, UP (L(B))⊆UP(F)⊆UP(L(B))
+andwe haveUP (L(B))=UP(F)whenFisacanonical FDFA.
+Proof.Inthe following,weprovethelemmabyfollowingcases.
+–Sizes ofBandB. In the under approximationconstruction,for every state uinM,
+there is a progress automaton Auof size at most k. It is easy to conclude that the
+automaton P(u,v)isofsizenk2forevery v∈Fu,soBisofsizen+nk·nk2∈O(n2k3).
+The over-approximationmethod di ﬀers in the construction of the automaton P(u,v)
+from the under-approximation method. It is easy to conclude that the automaton
+P(u,v)isofsize nkforevery v∈Fu, soBisofsize n+nk·nk∈O(n2k2).
+–UP(L(B))⊆UP(F).Supposeultimatelyperiodic ω-wordwisacceptedby B,there
+mustbeanacceptingrunin Binformof q0u− →˜uǫ− →s˜u,vv1−→fvǫ− →f′
+vǫ− →s˜u,v···.Then
+theω-wordwcanbedividedintotheformof u·ǫ·v1·ǫ·ǫ·v2···byǫ-transitions.
+According to the construction of B, we have u∈L(Mq0
+˜u) andvi∈L(P(˜u,v)) for any
+i≥1. Moreover,since P(˜u,v)is the product of three automata M˜u
+˜u, (A˜u)s˜uvand (A˜u)v
+v
+wheres˜uis the initial state in A˜u. It followsthat L(Mq0
+˜u)·(L(P(˜u,v)))∗=L(Mq0
+˜u) and
+(L(P(˜u,v)))+=L(P(˜u,v)).
+By Lem.5 in [14], there exist two words x∈L(Mq0
+˜u) andy∈L(P(˜u,v)) such that
+w=x·yω. In other words, we have ˜ u=M(x),xy∽Mxandy∈L(A˜u) , which
+impliesthat wisacceptedbyF.
+–UP(F)⊆UP(L(B)). Suppose anω-wordw∈UP(F), then there exists a decom-
+position ( u,v) ofwsuch that uv∽Muand ˜vis an accepting state where ˜ u=M(u)
+and ˜v=A˜u(v).Itfollowsthat v∈L(P(˜u,˜v))accordingtoDef.4.Inaddition,wehave
+u∈L(Mq0
+˜u),whichfollowsthat u·vω∈L(Mq0
+˜u)·(L(P(˜u,˜v)))ω=UP(L(B)).
+–UP(L(B))=UP(F)ifFisacanonicalFDFA.ForanyFDFA F,wehave UP(L(B))⊆
+UP(F). Thus, the remaining job is to prove that UP(F)⊆UP(L(B)) ifFis a
+canonical FDFA, which follows from Prop. 1 and Lem. 4. Thus, w e complete the
+proof.
+/squaresolid
+We presentProp.1, whichfollowsfromDef.2 ofthecanonical FDFAs.
+Proposition1. Let L be anω-regular language, F=(M,{Au})the correspondingpe-
+riodic (syntactic, recurrent) FDFAand u,v∈Σ∗. We have that if (u,v)is accepted by
+Fthen(u,vk)isalsoacceptedby Fforanyk≥1.
+Proof.Let ˜u=M(u)and˜vk=A˜u(vk),thenwehavethat vk≈˜u
+K˜vkforevery k≥1where
+K∈{P,S,R}. This is because˜vk=A˜u(˜vk)=A˜u(vk) which makes vkin the equivalence
+class [˜vk]. Our goal is to provethat ( u,vk) is also accepted by F, that is,uvk∽Muand
+˜vkis an accepting state for every k≥1. Since∽Mand∽Lis consistent in the three
+canonical FDFAs, so from the fact that ( u,v) is accepted byF, we have that uv∽Mu,
+i.e.,uv∽Lu. It follows that uvk∽Lufor every k≥1. Thus, the remaining proof is to
+provethat˜vkisanacceptingstate forevery k≥1inthe threecanonicalFDFAs.
+
+--- Page 22 ---
+–For periodic FDFA, since ( u,v) is accepted byF, i.e, ˜vis an acceptingstate in A˜u,
+then we have ˜ u(˜v)ω∈Laccording to Def. 2. By deﬁnition of ≈˜u
+Pand the fact that
+˜v≈˜u
+Pv, we have that ˜ u(v)ω∈L, i.e., ˜u(vk)ω∈Lfor every k≥1. Similarly, since
+˜u(vk)ω∈Landvk≈˜u
+P˜vk, we conclude that ˜ u(˜vk)ω∈L, which means that the state
+˜vkisanacceptingstate in A˜uforevery k≥1.
+–By the deﬁnition of ≈˜u
+R, ifx≈˜u
+Ry, then we have ˜ ux∽L˜u∧˜uxω∈L⇐⇒˜uy∽L
+˜u∧˜uyω∈Lfor anyx,y∈Σ∗. Sincex≈˜u
+Syimpliesx≈˜u
+Ry, we also have above
+resultifx≈˜u
+Sy. Inthefollowing,≈˜u
+Kcanbe replacedby ≈˜u
+Sand≈˜u
+R.
+For syntactic FDFA and recurrent FDFA, if ( u,v) is accepted byF, then ˜u˜v∽L˜u
+and ˜u(˜v)ω∈Laccording to Def. 2. By the fact that v≈˜u
+K˜v, if we set x=vand
+y=˜v, then we have that ˜ uv∽L˜uand ˜u(v)ω∈L, which implies that ˜ uvk∽L˜uand
+˜u(vk)ω∈Lforevery k≥1.
+Similarly, as vk≈˜u
+K˜vk, if we set x=vkandy=˜vk, we have that ˜ u˜vk∽L˜uand
+˜u(˜vk)ω∈L, whichfollowsthat˜vkisanacceptingstate in A˜uforevery k≥1./squaresolid
+D Finite Automaton Construction and Correctness for
+Counterexample Analysis
+D.1 Constructionfor Du$v
+In [14], they presenteda canonical representation L$={u$v|u∈Σ∗,v∈Σ+,uvω∈L}
+foraregularω-language L.Theoretically,wecanapplytheirmethodtoobtainthe Du$v
+automaton for anω-worduvωwhere the number of states in Du$vis inO(2|u|+|v|). In
+this section, we introduce a more e ﬀective way to build an automaton Du$vsuch that
+L(Du$v)={u$v|u∈Σ∗,v∈Σ+,uvω=w}for a givenω-wordwwith the number
+of states inO(|v|(|v|+|u|)). A similar construction for Du$vhas been proposed in [20],
+whichﬁrst computestheregularexpressiontorepresentall possibledecompositionsof
+uvωand then constructs a DFA from the regular expression. In thi s section, we give a
+directconstructionfor Du$vofuvωaswell asthecomplexityoftheconstruction.
+Fig. 9 depicts an example automaton Du$vforω-word (ab)ω. From the example,
+we can ﬁnd that both decompositions ( aba,ba) and (ababa,bababa) have the same
+periodic word ( ba)ω, which means that the second ﬁnite word of a decomposition ca n
+besimpliﬁedaslongaswe donotchangethe periodicword.
+q0 start q1 q2 q3
+q4 q5 q6 q7$
+aab
+a
+b
+$ ba
+b
+Fig.9.Du$vforω-word(aba,ba)
+
+--- Page 23 ---
+Formally, we give the deﬁnition of a smallest period in anω-wordwgiven by its
+decomposition( u,v)wherev∈Σ+. To that end,we needmore notations.We use u/triangleleftequalv
+to represent that there exists some j≥1 such that u=v[1···j] , and we say uis a
+preﬁxofv. We useu⊳vifu/triangleleftequalvandu/nequalv.
+Deﬁnition6 (Smallestperiod). Foranyω-wordwgivenby (u,v),wesayristhesmall-
+est periodof (u,v)if r/triangleleftequalv,rω=vωandforanyt⊳r, we havetω/nequalrω.
+Taketheω-word(ab)ωasanexample, abandbaarethesmallestperiodsofdecomposi-
+tion(ab,ab)and(aba,ba)respectively.Itisinterestingtoseethat |ab|=|ba|andabcan
+be transformed to baby shift the ﬁrst letter of abto its tail. In general, given ω-word
+w, the length of the smallest period is ﬁxed no matter how wis decomposed which is
+justiﬁedbyLem.7.
+Lemma 7. Given anω-word w, (u,v)and(x,y)are diﬀerent decompositionsof w and
+their corresponding smallest periods are r and t, respectiv ely. Then|r|=|t|=n and
+eitherthere exists j ≥2suchthatr=t[j···n]·t[1···j−1]orr=t.
+Proof.AccordingtoDef.6, w=uvω=urω=xyω=xtω. Weproveit bycontradiction.
+Without loss of generality,suppose |r|>|t|. If|u|=|x|, thenrω=tω, we then conclude
+thatris not a smallest period of ( u,v) sincet⊳r. Otherwise if|u|/nequal|x|, we can either
+provethat r=torﬁndsome j≥2suchthat z=t[j···n]·t[1···j−1]⊳randzω=rω
+infollowingcases.
+–|u|>|x|.Letk=(|u|−|x|)%|t|+1.Ifk=1,thenz=t, otherwise j=k;
+–|x|>|u|.Letk=(|r|−(|x|−|u|)%|r|)%|t|+1.Ifk=1, thenz=t, otherwise j=k;
+We depictthesituationwhere |u|>|x|in thefollowing.
+(u,r)u[1]u[2]···u[k]u[k+1]···u[m]·r·r·r···
+(x,t)x[1]x[2]···x[k]t[1]·····t[j−1]·z·z·z···
+From the assumption |t|<|r|, we have that z⊳r. However, since zω=rω, we
+concludethat risnotthesmallestperiodof( u,v).Contradiction.Thuswecompletethe
+proof. /squaresolid
+Lem.7 showsthat if the size of the smallest periodof an ω-wordwisn, then there
+are exactly ndiﬀerent smallest periods for w. In the following, we deﬁne the shortest
+formforadecompositionofan ω-word.
+Lemma 8. For any decomposition (u,v)of anω-word w, and y is its corresponding
+smallest period,then we canrewrite u =xyiandv=yjforsome i≥0,j≥1such that
+for any x′/triangleleftequalu with u=x′ykfor some 0≤k≤i, we have x′=xyi−k. We say such (x,y)
+istheshortestform for(u,v).
+Proof.This can be proved by Def. 6 and the fact that yω=vω, which can be further
+illustrated by the procedure of constructing ( x,y). To ﬁnd the shortest form of ( u,v),
+we need to ﬁrst ﬁnd the smallest period yof (u,v), which is illustrated by following
+procedure.At ﬁrst we initialize k=1.
+
+--- Page 24 ---
+–Step 1. Let y=v[1···k], we recursively check whether there exists some j≥1
+suchthat v=yj.Ifthereexistssuch j,wereturn yasthesmallestperiod.Otherwise
+we gotoStep2.
+–Step 2.We increase kby1 andgotoStep 1.
+Sincekstartsat 1,then ymust bethesmallest periodof( u,v)suchthat vω=yω.
+We ﬁndtheabove xoftheshortestforminthefollowingprocedure.
+–Step 1.Let x=u. Ifx=ǫ, orx=ythen we returnǫ. Otherwise we checkwhether
+thereexistssome k≥1suchthat x=x[1···k]·x[k+1···|x|]andy=x[k+1···|x|].
+Ifthereisnosuch k, wereturn xastheﬁnal result.OtherwisewegotoStep 2.
+–Step 2.We set u=x[1···k].
+One can easily conclude that xis the shortest preﬁx of usuch that u=xyifor some
+i≥0. /squaresolid
+Followingcorollaryisstraightforward.
+Corollary1. Giventwodecompositions (u1,v1)and(u2,v2)ofuvω.If(u1,v1)and(u2,v2)
+share the smallest period y, then they also have the same shor test form (x,y)where
+u1=xyi,u2=xyjforsomei,j≥0.
+Proof (Sketch). Ifweassumetheyhavedi ﬀerentshortestforms,theyshouldnotbetwo
+decompositionsofthesame ω-word. /squaresolid
+By Coro. 1, we can represent all decompositions of an ω-wordwwhich share the
+same smallest period ywith (xyi,yj) with some i≥0,j≥1. In addition, since the
+numberofdiﬀerentsmallestperiodsis |y|,wecanthusdenoteallthedecompositionsof
+wby the set/uniontext|y|
+k=1{(xkyi
+k,yj
+k)|i≥0,j≥1}where (xk,yk) is thek-th shortest formof w.
+Therefore,weprovidetheconstructionof Du$vasfollows.
+Construction ofDu$vNow we are ready to give the constructionof Du$vfor a single
+ω-wordwgivenby( u,v).Suppose( x,y)istheshortestformof( u,v),thenweconstruct
+Du$vas follows. Let k=1,n=|y|, and we ﬁrst construct an automaton D1such that
+L(D1)=xy∗$y+.
+–Step 1. If k=n, then we construct the Du$vsuch that L(Du$v)=/uniontextn
+i=1L(Di),
+otherwise,we gotoStep 2.
+–Step 2. We ﬁrst increase kby1. Let u′=x·y[1]andy′=y[2···n]·y[1]. We then
+gettheshortestform( x′,y′)of(u′,y′)wherethesecondelementis y′sincey′isthe
+smallest periodof( u′,y′)accordingtoLem.7.We thenconstructanautomaton Dk
+suchthat L(Dk)=x′y′∗$y′+andletx=x′,y=y′andgotoStep1.
+Suppose|x|=mand|y|=n, the DFA Athat accepts xy∗$y+can be constructed as
+follows.
+–Ifm=0, then we construct a DFA A=(Σ,{q0,···,q2n},q0,{q2n},δ) where we
+have thatδ(qk−1,y[k])=qkwhen 1≤k≤n−1,δ(qn−1,y[n])=q0,δ(q0,$)=qn,
+δ(qn−1+k,y[k])=qn+kwhen1≤k≤n,andδ(q2n,y[1])=qn+1.
+
+--- Page 25 ---
+–Otherwise m≥1, then we construct a DFA A=(Σ,{q0,···,q2n+m},q0,{qm+2n},δ)
+wherewehavethat δ(qk−1,x[k])=qkwhen1≤k≤m,δ(qm−1+k,y[k])=qm+kwhen
+1≤k≤n−1,δ(qm+n−1,y[n])=qm,δ(qm,$)=qm+n,δ(qm+n+k−1,y[k])=qm+n+k
+when1≤k≤n,andδ(qm+2n,y[1])=qm+n+1.
+Onecanvalidatethat L(A)=xy∗$y+andthenumberofstatesin Aisatmost|x|+2|y|+1.
+Proposition2. LetDu$vbe the DFA constructed from the decomposition (u,v)ofω-
+worduvω, then L(Du$v)={u′$v′|u′∈Σ∗,v′∈Σ+,u′v′ω=uvω}.
+Proof.
+⊆.Thisdirectioniseasysince L(Du$v)=/uniontextn
+i=1L(Di),weonlyneedtoprovethatforany
+1≤i≤n, ifu′$v′∈/uniontextn
+i=1L(Di), thenu′v′ω=uvω. Suppose L(Di)=xiy∗
+i$y+
+i, thus for
+anyu′$v′∈L(Di), we have u′=xiyj
+iandv′=yk
+ifor some j≥0,k≥1. It followsthat
+u′v′ω=uvωsincexiyω
+i=uvω.
+⊇. For any decomposition ( u′,v′) ofuvω, we can get its shortest form ( x′,y′) wherey′
+is the smallest periodof ( u′,v′) accordingto Lem. 8. Suppose ( x,y) is the ﬁrst shortest
+form used in theDu$vconstruction.By Lem. 7, we prove u′$v′is accepted byDu$vas
+follows.
+–y=y′. We have that u′=xyiandv′=yjfor some i≥0,j≥1, thusu′$v′∈
+L(D1)⊆L(Du$v).
+–y′=y[j···n]y[1···j−1] for some j≥2. We conclude that L(Dj)=x′y′∗$y′+
+since the shortest form is unique if we ﬁx the smallest period by Coro. 1, which
+followsthat u′$v′∈L(Dj)⊆L(Du$v).
+Therefore,wecompletethe proof. /squaresolid
+Proposition3. Given anω-word w given by (u,v), then the automaton Du$vhas at
+mostO(|v|(|u|+|v|)of states.
+For every automaton Disuch that L(Di)=xy∗$y+, the number of states in Diis at
+most|u|+2|r|+2 whereris the smallest period of ( u,v), thus the number of states in
+Du$visinO(|r|×(|r|+|u|))∈O(|v|(|u|+|v|).
+D.2 Constructionof D1andD2
+In this section, given an FDFA F=(M,{Au}), we provide the constructions for D1
+andD2. To ease the construction, we deﬁne two automata NuandNuwhich will be
+used in the constructionfor everystate uin the leading automaton M. Assume that we
+haveMu
+u, the corresponding progress automaton Au=(Σ,Qu,su,Fu,δu) and a DFA
+Au=(Σ,Qu,su,Qu\Fu,δu) built from Ausuch that L(Au)=Σ∗\L(Au). Note that the
+transitionδuiscompletein thesensethat δu(s,a)isdeﬁnedforevery s∈Qu,a∈Σ.
+–ForD1, we have Nu=Mu
+u×Au. Intuitively, we only keep the ﬁnite words which
+start atuand can go back to uin the leading automaton. In other words, L(Nu)=
+{v∈Σ∗|uv∽Mu,v∈L(Au)}.
+–ForD2,we have Nu=Mu
+u×Au.Similarly,wehave L(Nu)={v∈Σ∗|uv∽Mu,v/nelement
+L(Au)}.
+
+--- Page 26 ---
+Moreprecisely,Theconstructionisasfollows.
+Deﬁnition7. LetF={M,{Au}}be anFDFAwhere we have M=(Σ,Q,q0,δ)andfor
+every u∈Q, the corresponding progress automaton Au=(Σ,Qu,su,Fu,δu). Let N u
+(andNu) be given by (Σ,Qu,su,Fu,δu). The DFAD1(andD2) is deﬁned as the tuple
+(Σ∪{$},Q∪QAcc,q0,F,δ∪δAcc∪δ$)where
+QAcc=/uniondisplay
+u∈QQuand F=/uniondisplay
+u∈QFuandδAcc=/uniondisplay
+u∈Qδu
+δ$={(u,$,su)|u∈Q}
+where$isafresh symbol.
+InFig. 10,we depicttheDFA D1andD2constructedfromFinFig.1.
+q0 start q1 q2D1a
+b$ a,ba
+bq0 start q1 q2D2a
+b$ a,ba
+b
+Fig.10.D1andD2forFinFig. 1
+Proposition4. Givenan FDFAF=(M,{Au})andD1deﬁnedinDef.7,then L (D1)=
+{u$v|u∈Σ∗,v∈Σ∗,uv∽Mu,˜u=M(u),v∈L(A˜u)}.
+Proof.By Def. 7, it is easy to concludethat for any u∈Σ∗, then we have ˜ u=M(u)=
+D1(u). For any u,v∈Σ∗, we have that N˜u(v)=D1(u$v) where ˜u=M(u) sinceD1
+is a DFA. By acceptance condition, ( u,v) is accepted byFiﬀwe haveuv∽Muand
+v∈L(A˜u) where ˜u=M(u). Thus we just need to prove that ( u,v) is accepted byFiﬀ
+u$visacceptedbyD1.
+⊇. (u,v) is accepted byF, thenu$v∈L(D1). Byuv∽Muandv∈L(A˜u), we have that
+v∈L(N˜u), which follows that N˜u(v) is an accepting state. Since N˜u(v)=D1(u$v), we
+havethatD1(u$v)is anacceptingstate.Therefore, u$v∈L(D1).
+⊆. First, we have that L(D1)⊆Σ∗$Σ∗by Def. 7. For any u,v∈Σ∗, ifu$v∈L(D1),
+thenD1(u$v) is an accepting state. It follows that v∈L(N˜u) with ˜u=M(u). Since
+N˜u=M˜u
+˜u×A˜u, we havethat v∈L(M˜u
+˜u) andv∈L(A˜u),whichimpliesthat uv∽Muand
+v∈L(A˜u).Thus,we concludethat ( u,v)isacceptedbyF. /squaresolid
+Proposition5. Givenan FDFAFandD2thecorrespondingdeterministicautomaton,
+then L(D2)={u$v|u∈Σ∗,v∈Σ∗,uv∽Mu,˜u=M(u),v/nelementL(A˜u)}.
+Proof.By Def. 7, it is easy to concludethat for any u∈Σ∗, then we have ˜ u=M(u)=
+D2(u).For any u,v∈Σ∗, we have that N˜u(v)=D2(u$v)where ˜u=M(u) sinceD2is a
+DFA.
+
+--- Page 27 ---
+⊇. Assume that we have uv∽Muandv/nelementL(A˜u) where ˜u=M(u). Byuv∽Mu, we
+have that v∈L(M˜u
+˜u). Further, from v/nelementL(A˜u), we have that v∈L(A˜u). It follows that
+N˜u(v)isan acceptingstate. Since N˜u(v)=D2(u$v),thenD2(u$v)isan acceptingstate.
+Therefore, u$v∈L(D2).
+⊆. First, we have that L(D2)⊆Σ∗$Σ∗by Def. 7. For any u,v∈Σ∗, ifu$v∈L(D2),
+thenD2(u$v) is an accepting state. It follows that v∈L(N˜u) with ˜u=M(u). Since
+N˜u=M˜u
+˜u×A˜u, we havethat v∈L(M˜u
+˜u) andv∈L(A˜u), whichimpliesthat uv∽Muand
+v/nelementL(A˜u). /squaresolid
+Proposition6. Thenumbersofstatesin D1andD2are bothinO(n+n2k).
+Suppose nis the number of states in Mandkis the number of states in the largest
+progressautomaton,thenthenumberofstates in D1(D2)isinO(n+n2k).
+D.3 CorrectnessofCounterexampleAnalysisforFDFATeache r
+Given the counterexample uvωfor the FDFA teacher, we prove the decomposition
+(u′,v′) isacounterexampleforFDFA learnerdeﬁnedinDef.3 byfoll owingcases:
+–uvω∈UP(L)∧uvω/nelementUP(F).ByDef.3,weknowthat uvωisapositivecounterex-
+ample and we return a counterexample( u′,v′) such that u′$v′∈L(Du$v)∩L(D2).
+We ﬁrst need to prove that L(Du$v)∩L(D2) is not empty. Since uvω/nelementUP(F),
+thenanydecompositionof uvω,say(u,v),isnotacceptedby F.SinceMisaDFA,
+we can always ﬁnd a decomposition x=uviandy=vjfrom some i≥0,j≥1
+such that xy∽Mxaccording to [10]. Therefore ( x,y) is also a decomposition of
+uvωand it is not accepted by F, that is,y/nelementL(A˜x) where ˜x=M(x). It followsthat
+x$y∈L(D2) accordingto Thm. 5. Thus, we conclude that L(Du$v)∩L(D2) is not
+empty. We let u′=xandv′=y, and it is easy to validate that ( u′,v′) is a positive
+counterexampleforFDFAlearner.Thiscase isappliedforca seU1andO1.
+–uvω∈UP(L)∧uvω∈UP(F). In this case, uvωis a spurious positive coun-
+terexample,which happenswhen we use the under-approximat ionmethod to con-
+structtheB¨ uchiautomaton.Herewealsoreturnacounterex ample(u′,v′)suchthat
+u′$v′∈L(Du$v)∩L(D2). Sinceuvω∈UP(F), then there exists some decom-
+position of uvω, say (u,v), is accepted byF. We observe that uvω/nelementUP(L(B)),
+which follows that there exists some k≥1 such that ( u,vk) is not accepted by F
+by Lem. 4. By uv∽Mu, we also have that uvk∽MusinceMis a DFA. It fol-
+lowsthat u$vk∈L(D2).Therefore,weconcludethat L(Du$v)∩L(D2)isnotempty
+and for every ﬁnite word u′$v′∈L(Du$v)∩L(D2), we have ( u′,v′) is a positive
+counterexampleforFDFAlearner.Thiscase isappliedforU3 .
+–uvω/nelementUP(L)∧uvω∈UP(F). In this case, uvωis a negative counterexample,
+one has to return a counterexample( u′,v′) such that u′$v′∈L(Du$v)∩L(D1). We
+ﬁrst need to prove that L(Du$v)∩L(D1) is not empty. Since uvω∈UP(F), then
+there exists some decomposition ( u′,v′) ofuvωis accepted byF. It follows that
+u′$v′∈L(D1) by Thm. 4. Thus we conclude that L(Du$v)∩L(D1) is not empty.
+Moreover,it is easy to validatethat ( u′,v′) is a negativecounterexamplefor FDFA
+learner.Thiscase isappliedforU2 andO2.
+
+--- Page 28 ---
+–uvω/nelementUP(L)∧uvω/nelementUP(F).Inthiscase, uvωisaspuriousnegativecounterexam-
+ple, which happens when we use the over-approximationmetho d to construct the
+B¨ uchi automaton. It is possible that we cannot ﬁnd a valid de composition ( u′,v′)
+to reﬁneF. According to the proof of Lem. 5, one can construct a decompo sition
+(u,v)ofuvωandn≥1suchthat v=v1·v2···vnandforall i∈[1···n],vi∈L(AM(u))
+anduvi∽Mu.If we ﬁndsome i≥1such that uvω
+i/nelementUP(L),thenwe let u′=uand
+v′=vi.Clearly,( u′,v′)isanegativecounterexampleforFDFAlearner.Thiscaseis
+appliedforO3.
+E Correctness and TerminationofTree-based Algorithm
+Inthefollowing,weneedthenotioncallednormalizedfacto rizationintroducedin[10].
+Recall that given a decomposition ( u,v) ofω-worduvωand the leading automaton M,
+wecangetitsnormalizedfactorization( x,y)withrespectto Msuchthat x=uvi,y=vj
+andM(xy)=M(x) forsomesmallest i≥0,j≥1sinceMisﬁnite.
+E.1 CorrectnessofTree-basedAlgorithmforFDFA
+Lem.9establishesthe correctnessofourtree-basedalgori thmforperiodicFDFA.
+Lemma 9. Fortheleadingtreeinallthree FDFAsandtheprogresstreesintheperiodic
+FDFA, the tree-based algorithm will never classify two ﬁnite wor ds which are in the
+sameequivalenceclassintotwo di ﬀerentterminalnodes.
+Proof.We provebycontradiction.Supposetherearetwoﬁniteword x1,x2∈Σ∗which
+areinthesameequivalenceclassbuttheyarecurrentlyclas siﬁedintodiﬀerentterminal
+nodesin classiﬁcationtree T.
+–Tis the leading tree. We assume that x1∽Lx2. Suppose x1andx2have been
+assigned to terminal nodes t1andt2respectively with t1/nequalt2. Therefore, we can
+ﬁnd the least common ancestor nfromT, whereLn(n)=(y,v) is supposed to be
+anexperimenttodi ﬀerentiatex1andx2.Withoutlossofgenerality,weassumethat
+t1andt2are in the left and right subtrees of nrespectively. Therefore, we have
+TE(x1,(y,v))=F andTE(x2,(y,v))=T. It follows that x1(yv)ω/nelementUP(L) and
+x2(yv)ω∈UP(L),whichimpliesthat x1/\e}atio\slash∽Lx2.Contradiction.
+–T=Tuis a progress tree in periodic FDFA. We assume that x1≈u
+Px2. Similarly,
+supposex1andx2have been assigned to terminal nodes t1andt2ofTurespec-
+tively with t1/nequalt2. Therefore, we can ﬁnd the least common ancestor nfromTu,
+whereLn(n)=vissupposedtobeanexperimenttodi ﬀerentiatex1andx2.Without
+loss of generality, we assume that t1andt2are in the left and right subtrees of n
+respectively. Therefore, we have TE(x1,v)=F andTE(x2,v)=T. It follows that
+u(x1v)ω/nelementUP(L) andu(x2v)ω∈UP(L), which implies that x1/\e}atio\slash≈u
+Px2. Contradic-
+tion.
+/squaresolid
+
+--- Page 29 ---
+Lem. 9 cannot apply to the progress trees in syntactic and rec urrent FDFAs as the
+progresstreesheavilyrelyonthecurrentleadingautomato n.Inthefollowing,weprove
+the correctness of syntactic and recurrent FDFA. We say the l eading automaton Mis
+consistentwith∽Liﬀforanyx1,x2∈Σ∗, wehave M(x1)=M(x2)⇐⇒x1∽Lx2.
+Lemma 10. Fortheprogresstreesinthesyntacticandrecurrent FDFA,thetree-based
+algorithm will never classify two ﬁnite words which are in th e same equivalence class
+intotwo diﬀerentterminalnodesif theleadingautomaton M is consisten twith∽L.
+Ifthetree-basedalgorithmclassiﬁestwoﬁnitewordswhich areinthesameequiva-
+lenceclassintotwodi ﬀerentterminalnodes,then M isnotconsistentwith ∽Lcurrently.
+Proof.Intuitively, the progress trees Tuin syntactic and recurrent FDFAs are con-
+structedwithrespecttothecurrentleadingautomaton.Wep rovethelemmainfollowing
+cases.
+–Tuis a progresstree in syntactic FDFA. We assume that x1≈u
+Sx2. Suppose x1and
+x2have been assigned to terminal node t1andt2ofTurespectively.Therefore,we
+can ﬁnd the least common ancestor nfromTu, whereLn(n)=vis supposed to be
+an experimentto di ﬀerentiatex1andx2. Thus, by the deﬁnition of TEin syntactic
+FDFA, we can assume that d1:=TE(x1,v)=(M(ux1),m1) andd2:=TE(x2,v)=
+(M(ux2),m2) wherem1,m2∈{A,B,C}. Sincet1andt2are in diﬀerent subtrees of
+n,we thushave d1/nequald2,that is,M(ux1)/nequalM(ux2) orm1/nequalm2.
+1)First we assumethat Misconsistentwith∽L.
+•M(ux1)/nequalM(ux2). Sincex1≈u
+Sx2, we have ux1∽Lux2, which implies that
+M(ux1)=M(ux2).Contradiction.
+•m1/nequalm2. Sincex1≈u
+Sx2, we have ux1∽Lux2, which follows that M(ux1)=
+M(ux2) sinceMis consistent with ∽L. Moreover, we have that M(ux1v)=
+M(ux2v) sinceMis deterministic. We discuss the values of m1andm2in the
+following.
+∗u=M(ux1v). It follows that ux1v∽LusinceMis consistent with ∽L,
+whichimpliesthat u(x1v)ω∈UP(L)⇐⇒u(x2v)ω∈UP(L).Moreover,we
+haveu=M(ux2v)sinceux1∽Lux2.Therefore,weconcludethat m1,m2∈
+{A,B}by the deﬁnition of TE. Without loss of generality, we let m1=A
+andm2=B, which impliesthat u(x1v)ω∈UP(L) whileu(x2v)ω/nelementUP(L).
+Contradiction.
+∗u/nequalM(ux1v). Thus, we have m1=m2=C, which follows that d1=dn
+sinceM(ux1)=M(ux2). Contradiction.
+Therefore, t1andt2cannotbediﬀerentterminalnodes.
+2)Inthiscase, Misnotnecessarilyconsistentwith ∽L.
+•M(ux1)/nequalM(ux2). Lets1=M(ux1) ands2=M(ux2). We have that s1ands2
+are classiﬁed into di ﬀerent terminal nodes in the leading tree Tsinces1/nequals2
+andtheyaretwolabelsoftheterminalnodes.Itfollowsthat s1/\e}atio\slash∽Ls2byLem.9.
+Byx1≈u
+Sx2, we have ux1∽Lux2, which impliesthat s1/\e}atio\slash∽Lux1ors2/\e}atio\slash∽Lux2,
+otherwise we get s1∽Ls2. Without loss of generality, suppose s1/\e}atio\slash∽Lux1,
+then there exists some experiment( y,v) to diﬀerentiate them. However, ux1is
+currentlyassignedintotheequivalenceclassof s1sinces1=M(ux1).Itfollows
+thatMisnotconsistentwith ∽L.
+
+--- Page 30 ---
+•m1/nequalm2.
+1) We assume that ux1v∽Lu, then we have ux2v∽Lusinceux1∽Lux2by
+x1≈u
+Sx2, which implies that u(x1v)ω∈UP(L)⇐⇒u(x2v)ω∈UP(L). If
+Mis consistent with∽L, we conclude that m1=m2=Aorm1=m2=B.
+Contradiction.Therefore, Misnotconsistentwith ∽L.
+2)Weassumethat ux1v/\e}atio\slash∽Lu,thenwecanﬁndsomeexperiment( y,z)todiﬀer-
+entiatethem.Itfollowsthat ux2v/\e}atio\slash∽Lusincex1≈u
+Sx2andux1∽Lux2.Assume
+thatMisconsistentwith∽L,thenwehavethat u/nequalM(ux1v)andu/nequalM(ux2v),
+whichimpliesthat m1=m2=C.Contradiction.Thus, Misnotconsistentwith
+∽L.
+–Tuis a progress tree in recurrent FDFA. The analysis is similar as the syntactic
+FDFA.Weassumethat x1≈u
+Rx2.Suppose x1andx2havebeenassignedtoterminal
+nodet1andt2ofTurespectively.Therefore,wecanﬁndtheleastcommonancest or
+nfromTu, whereLn(n)=vis supposed to be an experiment to di ﬀerentiate x1
+andx2. Thus, we can assume that d1:=TE(x1,v) andd2:=TE(x2,v) where
+d1,d2∈{F,T}.Sincet1andt2arein diﬀerentsubtreesof n,wethushave d1/nequald2.
+1) We assume that Mis consistent with ∽L. Without loss of generality, suppose
+d1=F andd2=T. Sinced2=T, we havethat u=M(ux2v)andu(x2v)ω∈UP(L).
+It follows that ux2v∽LusinceMis consistent with∽L. Moreover, we conclude
+thatu=M(ux1v) andu(x1v)ω∈UP(L)by the fact that x1≈u
+Rx2. By the deﬁnition
+ofTE, we have d1=T. Contradiction. Therefore, t1andt2cannot be diﬀerent
+terminalnodes.
+2)Mis not necessarily consistent with ∽L. Without loss of generality, suppose
+d1=F andd2=T. Sinced2=T, we havethat u=M(ux2v)andu(x2v)ω∈UP(L).
+Assume that Mis consistent with ∽L, it follows that ux2v∽Lu. Moreover, we
+concludethat u=M(ux1v) andu(x1v)ω∈UP(L) by the fact that x1≈u
+Rx2. By the
+deﬁnition of TE, we have d1=T. Contradiction. Therefore, Mis not consistent
+with∽L.
+/squaresolid
+Oncetwoﬁnite wordswhichareinthe sameequivalenceclass h avebeenclassiﬁed
+into two terminal nodes in the progress tree, we can always pr ove that the leading au-
+tomaton is not consistent with ∽L. Therefore, the FDFA teacher is able to return some
+counterexampleto reﬁne the leadingautomaton.If the leadi ngautomatonchanges,the
+FDFA learner should learn all progress automata from scratc h with respect to current
+leadingautomaton.At acertainpoint,theleadingautomato nMwill beconsistentwith
+∽Lsinceit willbeaddedanewstate aftereveryreﬁnement.Thus ,weconcludethatthe
+equivalenceclassesin theprogresstreeswillﬁnallybe cla ssiﬁedcorrectly.
+Proposition7. Giventhe FDFAteacherthatisabletoanswermembershipandequiva-
+lencequeriesfor FDFA,thetree-based FDFAlearningalgorithmcancorrectlyclassify
+allﬁnitewords.
+E.2 ComplexityforTree-basedFDFALearningAlgorithm
+Thecounterexampleguidedreﬁnementfor Fshowsthat:
+
+--- Page 31 ---
+Corollary2. Given a counterexample (u,v)forFDFAlearner, the tree-based FDFA
+learner will either add a new state to the leading automaton M or the corresponding
+progressautomatonA˜u.
+Corollary. 2 is a critical property for the termination of th e tree-based FDFA learning
+algorithm since each time we either make progress for the lea ding automaton or the
+correspondingprogressautomaton.
+InLem.10,weencounterasituationwheretheprogresstreem ayclassifytwoﬁnite
+wordswhichareinthesameequivalenceclassintotwotermin alnodesif Misnotcon-
+sistent with∽L. Onemayworrythatif theFDFA teacherchoosestoreﬁnethepr ogress
+automatoncontinually,thereﬁnementmaynotterminate.Le m.11showsthatitwillter-
+minatesincethenumberofequivalenceclassesoftheprogre ssautomatawithrespectto
+Misﬁnite.Moreprecisely,ifweﬁxtheleadingautomaton M, weareactuallylearning
+aDFAinducedbytherightcongruence x≈u
+S′yiﬀM(ux)=M(uy)andforevery v∈Σ∗,
+ifM(uxv)=u,thenu(xv)ω∈L⇐⇒u(xv)ω∈L. Onecan easily verifythat x≈u
+S′yis a
+rightcongruence.We remarkthat if Mis consistent with∽L, thenx≈u
+S′yis equivalent
+tox≈u
+Sy.
+Lemma 11. Giventhenleadingautomaton M,thenforeverystateuin M,th eindexof
+≈u
+S′isboundedby|Q|·|≈u
+P|where Q isthestate set of M.
+Proof.We prove the lemma by giving the upper bound |Q|·|≈u
+P|of the index of≈u
+S′.
+We useqito denote the state which can be reached by ufor 1≤i≤nwherenis the
+numberofstatesreachableby u.We classifyany x∈Σ∗intoaequivalenceclassof ≈u
+S′
+asfollows.
+Weﬁrstﬁnd qi=M(ux).Sinceforevery y∈Σ∗withqi=M(uy),wehave M(uxv)=
+M(uyv), thus those experiments v∈Σ∗withM(uxv)/nequaluare not able to diﬀerentiate x
+andy. In other words, the value of M(uxv)=uis not necessary here. Therefore,if we
+onlyconsider x,y∈Σ∗withqi=M(ux)=M(uy),thecriteriontodecidewhether xand
+yare in thesame equivalenceclassis to judgewhetherforany v∈Σ∗,u(xv)ω∈L⇐⇒
+u(yv)ω∈L, whichis exactly the same deﬁnitionfor ≈u
+P. Thus,we can ﬁnd the notation
+(qi,[x]≈u
+P)touniquelyrepresenttheequivalenceclass[ x]≈u
+S′.Therefore,theindexofthe
+rightcongruence≈u
+S′isn·|≈u
+P|≤|Q|·|≈u
+P|. /squaresolid
+Similarly, if we ﬁx the leading automaton Mand learn recurrent FDFA, we are
+actually learning DFA induced by the right congruence x≈u
+R′yiﬀfor every v∈Σ∗,
+M(uxv)=u∧u(xv)ω∈L⇐⇒M(uyv)=u∧u(yv)ω∈L.Sincex≈u
+S′yimpliesx≈u
+R′y,
+it followsthat|≈u
+R′|issmallerthan|≈u
+S′|.
+The implication from x≈u
+S′ytox≈u
+R′ycan be easily established by assuming
+x≈u
+S′yand then for any v∈Σ∗, we have that uyv∽Mu∧u(yv)ω∈Lifuxv∽M
+u∧u(xv)ω∈L. First, assuming that uxv∽Mu∧u(xv)ω∈Landx≈u
+S′y, one can
+easilyconcludethat u(yv)ω∈L.Inaddition,onecancombinetheresult ux∽Muyfrom
+x≈u
+S′yand assumption uxv∽Mutogetherto prove uyv∽MusinceMis deterministic
+and∽Misanequivalencerelation.
+Lemma 12. Given the leadingautomaton M, then for every state u in M, the index of
+≈u
+R′isboundedby|Q|·|≈u
+P|where Q isthe stateset of M.
+
+--- Page 32 ---
+AssumethatF=(M,{Au}) isthe correspondingperiodicFDFA recognizing L. Let
+nbethenumberofstatesin MofFandkbethenumberofstatesinthelargestprogress
+automatonofF.
+Theorem2 (Query Complexity). Let(u,v)be the longest counterexample returned
+from theFDFAteacher. The number of equivalence queries needed for the tr ee-based
+FDFAlearning algorithm to learn the periodic FDFAof L is inO(n+nk), while the
+numberof membershipqueriesisin O((n+nk)·(|u|+|v|+(n+k)·|Σ|)).
+For the syntactic and recurrent FDFAs, the number of equivalence queries needed
+forthetree-based FDFAlearningalgorithmisin O(n+n3k),whilethenumberofmem-
+bershipqueriesisin O((n+n3k)·(|u|+|v|+(n+nk)·|Σ|)).
+Proof.Thm.2canbeconcludedfromLem.9,Coro.2,Lem.11,andLem.1 2.Suppose
+F=(M,{Au}isthecorrespondingperiodicFDFA recognizing L. Thenumberofstates
+inMisnandkisthenumberofthe largestprogressautomatonin F.
+Given a counterexample ( u,v), the number of membership queries is at most |u|if
+we reﬁne the leading automaton and is at most |v|if we reﬁne the progress automa-
+ton. Therefore, the number of membership queries used in ana lyzing counterexample
+is bounded by|u|+|v|. One can also use binary search to reduce the number of mem-
+bership queries used by counterexample analysis to log( |u|+|v|). Moreover, when the
+classiﬁcation tree has beenreﬁned,we needto construct the corresponding MorAM(u)
+again. Suppose the new added terminal node is labeled by p, the terminal node which
+needs to reﬁned is labelled by qand the experimentis e. We only need to computethe
+successorsof pandupdatethe successorsofthepredecessorsof q.
+–Computingthesuccessorsof pistocalculateδ(p,a)forevery a∈Σ,whichrequires
+|Σ|·hmembershipquerieswhere histhe heightoftheclassiﬁcationtree.
+–Updating the successors of the predecessors of qis to calculate TE(s,e) for every
+state label sanda∈Σsuch that currently we have δ(s,a)=q, which requires at
+most|Σ|·mmembership queries where mis the number of states in current Mor
+AM(u).
+Since the heightof the classiﬁcation tree is at most m, thusthe numberof membership
+queries needed for constructing the conjectured DFA is at mo st 2·m·|Σ|. It follows
+that for the tree-based algorithm,the numberof membership queriesused in the coun-
+terexample guided reﬁnement is bounded by |u|+|v|+2m·|Σ|. We remark that in the
+table-based algorithm, the number of membership queries us ed in the counterexample
+guidedreﬁnementisboundedby |u|+|v|+m+|Σ|·m+|Σ|.
+We givethe complexityofthetree-basedalgorithmasfollow s.
+–For periodic FDFA. During the learning procedure, when rece iving a counterex-
+ample for FDFA learner, the tree-based algorithm either add s a new state into the
+leadingautomatonorintothecorrespondingprogressautom aton.Thus,thenumber
+of the equivalence queries is bounded by n+nksince the number of states in the
+target periodicFDFA is boundedby n+nk. In periodicFDFA, we have m≤n+k
+since every time we either reﬁne the leading automaton or a pr ogress automaton.
+Therefore,thenumberofmembershipqueriesneededforthea lgorithmisbounded
+by (n+nk)·(|u|+|v|+2(n+k)·|Σ|)∈O((n+nk)·(|u|+|v|+(n+k)·|Σ|)) in the
+worst case.
+
+--- Page 33 ---
+–For syntactic and recurrent FDFA, when receiving a countere xample for FDFA
+learner, the tree-based algorithm will ﬁrst decide whether to reﬁne the leading au-
+tomaton or the progress automaton. If it decides to reﬁne the leading automaton,
+weneedtoinitializeallprogresstreeswithasinglenodela belledbyǫagain,sothe
+numberof states in the progressautomataof the FDFA may decr easeat that point,
+otherwise it reﬁnesthe progressautomatonand the numberof states in FDFA will
+increasebyone.
+In the worst case, the learner will try to learn the progress a utomata as much as
+possible. In other words, if current leading automaton has mstates, the number
+of states in every progress automaton is at most m·kaccording to Lem. 11 and
+Lem. 12. When all progress trees cannot be reﬁned any more, ei ther the learning
+taskﬁnishesortheFDFAteacherreturnsacounterexampleto reﬁnecurrentleading
+automaton. For the latter case, the number of states in the le ading automaton will
+increasebyone,thatis, m+1,andweneedtoredothelearningworkforallprogress
+trees. The number of states in all progress automata in the ne w FDFA is bounded
+by(m+1)2·k.Therefore,thenumberofequivalencequeriesneededfortr ee-based
+algorithmisboundedby(1 +1·1·k)+(1+2·2·k)+···(1+(n−1)·(n−1)·k)+
+(1+n·n·k)∈O(n+n3k). Similarly, in syntactic and recurrent FDFAs, we have
+thatm≤n+nksince the numberof states in a progressautomaton is bounded by
+nk.Itfollowsthatthenumberofmembershipqueriesneededfor thealgorithmisin
+O((n+n3k)·(|u|+|v|+2(n+nk)·|Σ|))∈O((n+n3k)·(|u|+|v|+(n+nk)·|Σ|))in
+theworst case.
+/squaresolid
+Theorem3 (Space Complexity). Forall tree-basedalgorithms, the space requiredto
+learntheleadingautomatonisin O(n).Forlearningperiodic FDFA,thespacerequired
+for each progress automaton is in O(k), while for syntactic and recurrent FDFAs, the
+space required is in O(nk). For all table-basedalgorithms, the space required to lear n
+the leadingautomatonisin O((n+n·|Σ|)·n).Forlearningperiodic FDFA, the space
+required for each progress automaton is in O((k+k· |Σ|)·k), while for syntactic and
+recurrent FDFAs, thespacerequiredisin O((nk+nk·|Σ|)·nk).
+Proof.As we mentioned in Sec. 4, the FDFA learner can be viewed as a le arner con-
+sisting of many component DFA learners. For a component DFA l earner, suppose the
+number of the states in the target DFA is m, for table-based component DFA learner,
+thesizeoftheobservationtableisin O((m+m·|Σ|)·m)sincethereare m+m·|Σ|rows
+and at most mcolumns in the observation table in the worst case. In contra st, for the
+tree-based component DFA learner, the numberof nodes in the classiﬁcation tree is in
+O(m) since the numberof terminal nodesin the classiﬁcation tre e ismand the number
+ofinternalnodesisat most m−1.
+–For the periodic FDFA, the number of states in the FDFA will in crease after each
+reﬁnementstep. Thus,it is easy to concludethat the space re quiredfor the leading
+automatonisinO(n)ifweusetree-basedlearningalgorithmandthespacerequi red
+by the table-based algorithm is in O((n+n·|Σ|)·n). Similarly, the space required
+bytree-basedlearningalgorithmtolearneachprogressaut omatonisinO(k),while
+fortable-basedalgorithm,thespacerequiredisin O((k+k·|Σ|)·k).
+
+--- Page 34 ---
+–For the syntactic and recurrent FDFA. The learning procedur e for the leading au-
+tomatonisthesameasperiodicautomaton.Thusthespacereq uiredbytable-based
+andtree-basedalgorithmremainthesame.
+Forlearningprogressautomaton,thenumberofstatesineac hprogressautomatonis
+atmostnkaccordingtoLem.11andLem.12.Therefore,fortable-based algorithm,
+the space requiredis in O((nk+nk· |Σ|)·nk). While for tree-based algorithm,the
+spacerequiredtolearneachprogressautomatonisin O(nk).
+/squaresolid
+Proposition8. InFDFAteacher, suppose n is the number of states in the leading au-
+tomaton and k is the number of states in the largest progress a utomaton in the input
+FDFAFandthereturnedcounterexampleuvωhasa decomposition (u,v).Then
+–the time and space complexity for building the BAs B andB are inO(n2k3)and
+O(n2k2)respectively,and
+–for the under approximation method, the time and space compl exity for analyzing
+thecounterexampleuvωareinO(n2k·(|v|(|v|+|u|)),whilefortheoverapproximation
+method, the time and space complexity for analyzing the coun terexample uvωare
+inO(n2k2·(|v|(|v|+|u|))andinO(n2k(|v|(|v|+|u|))respectively.
+Proof.Suppose the FDFA teacher currentlyneedsto answer the equiv alencequeryfor
+FDFAF=(M,{Au}).Thenthenumberofstatesin B(B)isinO(n+n2k3)(respectively,
+O(n+n2k2)).Inaddition,thenumberofstatesinFA D1andD2arebothinO(n+n2k)and
+the number of states in Du$vis at most|v|(|v|+|u|) given that ( u,v) is a decomposition
+of the returned counterexample uvω, which can be applied to the under and the over
+approximation except for case O3 in the over approximation. When we analyze the
+spuriousnegativecounterexample,thetime andspacecompl exityareinO(nk(n+nk)·
+(|v|(|v|+|u|)))andO((n+nk)·(|v|(|v|+|u|)))accordingtoLem.5.Therefore,wecomplete
+theproof. /squaresolid
+Theorem4 (CorrectnessandTermination). TheBAlearningalgorithmbasedonthe
+under-approximation method always terminates and returns a BA recognizing the un-
+knownω-regularlanguageLinpolynomialtime.IftheBAlearningal gorithmbasedon
+the over-approximation method terminates without reporti ng an error, it returns a BA
+recognizing L.
+Proof.If we use the under-approximation method to construct the B¨ uchi automaton,
+thentheBAlearningalgorithmwillneedtoﬁrstlearnacanon icalFDFAtogettheﬁnal
+B¨ uchiautomatonin theworstcase. Thistheoremisjustiﬁed byLem.2andLem.3. /squaresolid

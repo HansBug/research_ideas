@@ -1,0 +1,598 @@
+--- Page 1 ---
+Recursiv eMarkovChains, Stochastic Grammars,
+andMonotone Systems ofNonlinear Equations
+Kousha Etessami1andMihalis Yannak akis2
+1SchoolofInformatics, UniversityofEdinburgh
+2Departmen tofComputer Science, Colum biaUniversity
+Abstract. Weintroduceandstudy Recursiv eMarkovChains (RMCs),
+whichextend ordinary ¯nite state Markovchains withtheabilityto
+invokeother Markovchains inapotentially recursiv emanner. They o®er
+anatural abstract modelforprobabilistic programs withprocedures, and
+areaprobabilistic version ofRecursiv eState Machines. RMCs generalize
+Stochastic Context-F reeGrammars (SCFG)andmulti-typeBranc hing
+Processes, andareintimately related toProbabilistic Pushdo wnSystems.
+Wefocushereontermination andreachabilit yanalysis forRMCs. We
+presen tbothpositiveandnegativ eresults forthegeneral classofRMCs,
+aswellasforimportantsubclasses including SCFGs.
+1Introduction
+Weintroduceandstudy Recursive Markov Chains (RMCs), anatural model
+forsystems involving probabilit yandrecursion. Informally ,aRecursiv eMarkov
+Chain consists ofacollection of¯nite state componentMarkovchains (MC)
+whichcancalleachother inapotentially recursiv emanner. RMCs areanatural
+probabilistic version ofRecursiv eState Machines (RSMs) ([1,4]),withtransi-
+tionslabeledbyprobabilities. RSMs andclosely related modelslikePushdo wn
+Systems (PDSs) havebeenstudied extensiv elyinrecentresearc honmodelcheck-
+ingandprogram analysis, because oftheirapplications toveri¯cation ofsequen-
+tialprograms withprocedures. RMCs o®eranatural abstract modelforproba-
+bilistic procedural programs. Probabilistic modelsofprograms areofinterest for
+atleasttworeasons. First, theprogram mayuserandomization, inwhichcase
+thetransition probabilities re°ect therandom choices ofthealgorithm. Second,
+wemaywanttomodelandanalyse aprogram under statistical conditions on
+itsbehaviour (e.g., based onpro¯ling statistics oronstatistical assumptions),
+andtodetermine theprobabilit yofproperties ofinterest, e.g.,thattheprogram
+terminates, and/or thatitterminates inacertain state.
+Recursiv eMarkovchains areaninteresting andimportantmodelintheir
+ownright.RMCs provideasuccinct ¯nite represen tation foranatural class
+ofdenumerable MarkovChains thatgeneralize other well-studied models,such
+asStochastic Context-F reeGrammars (SCFGs)andMultit ypeBranc hingPro-
+cesses, andtheyareintimately related toProbabilistic Pushdo wnSystems (pPDSs).
+Single-exit RMCs ,thespecialcasewhere eachcomponentMChasexactly 1
+exit(terminating state), areinaprecise sense \equiv alent"toSCFGs.SCFGs
+
+--- Page 2 ---
+havebeenstudied extensiv ely,especially intheNatural Language Processing
+(NLP) comm unity,sincethe1970s (see,e.g.,[23]). Their theory isdirectly con-
+nected withthetheory ofmulti-typ eBranching Processes (MT-BPs) initiated
+byKolmogoro vandothers (see,e.g.,[18,20]).BPsareanimportantclassof
+stochastic processes. Their theory dates backtothe19thcenturyandthework
+ofGalton andWatson onpopulation dynamics. Multi-t ypeBPsandSCFGs
+havebeenapplied inawidevarietyofstochastic contextsbesides NLP,includ-
+ingpopulation genetics ([19]), modelsinmolecular biology including forRNA
+([27]), andthestudy ofnuclear chainreactions ([13]). Manyvariantsandex-
+tensions ofMT-BPs havealsobeenstudied. Despite thisextensiv estudy,some
+basic algorithmic questions aboutSCFGsandMT-BPs havenotbeensatisfac-
+torily answered.Forexample, istheprobabilit yoftermination ofagivenSCFG
+(i.e.,theprobabilit yofitslanguage) orMT-BP (i.e.theso-called probabilit yof
+extinction) ¸p?Isit=1?Canthese questions bedecided inpolynomial time
+ingeneral? What ifthere areonlyaconstan tnumberoftypesinthebranching
+process(non-terminals inthegrammar)? RMCs formanatural generalization of
+SCFGsandMT-BPs, howevertheirunderlying stochastic processes appearnot
+tohavebeenstudied intheirownrightintherichbranchingprocessliterature.
+Ourgoalinthispaperistoprovidee±cien talgorithms andtodetermine the
+computational complexit yofreachabilit yanalysis forRMCs. Namely ,weare
+interested in¯nding theprobabilit yofeventually reachingagiventerminating
+vertexoftheRMC starting fromagiveninitial vertex. Aswithordinary Markov
+chains, suchalgorithms areacorebuilding blockformodelcheckingandother
+analyses ofthese probabilistic systems. ForSCFGs(MT-BPs), thisamoun tsto
+analgorithm fordetermining theprobabilit yoftermination (extinction).
+Itturns outreachabilit yprobabilities forRMCs arecaptured bytheLeast
+Fixed Point(LFP) solution ofcertain monotone systems ofnonlinear polynomial
+equations. Weobserv ethatthesesolutions canbeirrational evenforSCFGs,and
+notsolvablebyradicals. Thuswecan'thopetocompute them exactly .
+Byappealing tothedeepresults onthecomplexit yofdecision procedures for
+theExisten tialTheory ofReals (see,e.g.,[6]),weshowthatforgeneral RMCs we
+candecide inPSPACEwhether theprobabilit yis·p,or=p,forsomerational
+p2[0;1],andwecanapproximate theprobabilities towithin anygivennumber
+ofbitsofprecision. ForanSCFGwhere thenumberofnon-terminals isbounded
+byaconstan t(oraMT-BP withabounded numberoftypes),wecananswer
+these questions inpolynomial time. Weshowthatthisholds moregenerally ,for
+RMCs where thetotalnumberofentriesandexitsofallcomponentsisbounded
+byaconstan t.Furthermore, weshowthatforsingle-exit RMCs withanarbitrary
+numberofcomponents(i.e.,forgeneral SCFGs),wecandecide iftheprobabilit y
+isexactly 1inP-time.
+Themonotone nonlinear systems forRMCs giverisetoanatural iterativ e
+numerical algorithm withwhichtoapproximate theLFP.Namely ,thesystem
+ofequations hastheformx=P(x),wherexisavector, suchthatthevectorof
+probabilities weareseeking isgivenbylimk!1Pk(0),whereP1(0)=P(0)and
+Pk+1(0)=P(Pk(0)).Weshowthatthisiteration canbeveryslowtoconverge.
+
+--- Page 3 ---
+Remark ablyhowever,weshowthatamulti-dimensional Newton's metho dcon-
+verges monotonically totheLFPonadecomp osedversion ofthesystem, and
+constitutes arapid \acceleration" ofthestandard iteration. Notethatinother
+contexts, ingeneral Newton's metho disnotguaran teedtoconverge;butwhen it
+doesconverge,typically itconverges veryfast.Wethusbelievethatinourcon-
+textNewton provides ane±cien tpractical metho dfornumerically estimating
+these probabilities forallRMCs.
+Lastly ,for\lowerbounds", weshowthatonecannothopetoimpro veour
+PSPACEupperbounds forRMCs without amajorbreakthrough, byestablish-
+ingaconnection toafundamen talopenproblem inthecomplexit yofnumerical
+computation: thesquare-ro otsumproblem. Thisproblem isknowntobein
+PSPACE,butitscontainmen teveninNPisalongstanding openproblem ¯rst
+posedin1976([16]), withapplications toanumberofareas including compu-
+tational geometry .Weshowthesquare-ro otsumproblem ispolynomial-time
+reducible totheproblem ofdetermining foranSCFGwhether thetermination
+probabilit yis·pforsomep2[0;1],andalsototheproblem ofdetermining
+whether a2-exit RMC terminates withprobabilit y1.
+Duetospace limitations, allproofsareomitted. Please seethefullpaper[15].
+Related Work.Theworkintheveri¯cation literature onalgorithmic analysis of
+pushdo wnsystems isextensiv e(see,e.g.,[3,10]).Recursiv estatemachines were
+introduced in[1,4]asamore direct graphical modelofprocedural programs,
+andtheiralgorithmic veri¯cation questions werethoroughly investigated. Are-
+centworkdirectly related tooursisbyEsparza, Kucera, andMayr[12].They
+consider modelcheckingforprobabilistic pushdo wnsystems (pPDSs). pPDSs
+andRMCs areintimately related models,andthere aree±cien tP-time trans-
+lations fromonetotheother. Aspartoftheirresults [12]showdecidabilit yof
+reachabilit yquestions forpPDSs byappealing toresults onthetheory ofreals.
+Inparticular, theyderiveEXPTIME upperbounds forreachabilit y.Ourwork
+wasdoneindependen tlyandconcurren tlywiththeirs (apreliminary draftofour
+workwasmade available totheauthors of[12]afterwelearned oftheirwork).
+Inanycase,although theirworkoverlaps brie°y withours,theirprimary focus
+isondecidabilit y(rather thanprecise complexit y)ofmodelcheckingproblems
+foraprobabilistic branching-time temporallogic, PCTL. Ourworkalsoanswers
+severalcomplexit yquestions raised intheirwork.Asmentioned earlier, SCFGs
+havebeenstudied extensiv elyintheNLPliterature (see,e.g.,[23]).Inparticular,
+theproblem ofconsistency ofaSCFG(whether itterminates withprobabilit y
+1)hasbeenstudied, anditsconnection totheextinction problem forMT-BPs is
+wellknown[18,7,17,9].However,noneoftherelevantreferences provideacom-
+pletealgorithm andcharacterization forconsistency .Another workonpPDSs is
+[2].They donotaddress algorithmic questions forreachabilit y.
+2Basics
+ARecursive Markov Chain (RMC) ,A,isatupleA=(A1;:::;Ak),where each
+component graphAi=(Ni;Bi;Yi;Eni;Exi;±i)consists of:
+
+--- Page 4 ---
+{AsetNiofnodes.
+{Asubset ofentry nodesEniµNi,andasubset ofexitnodesExiµNi.
+{AsetBiofboxes.LetB=[k
+i=1Bibethe(disjoin t)union ofallboxesofA.
+{AmappingYi:Bi7!f1;:::;kgthatassigns toeverybox(theindex of)one
+ofthecomponents,A1;:::;Ak.LetY=[k
+i=1Yidenote themapY:B7!
+f1;:::;kgwhichisconsisten twitheachYi,i.e.,YjBi=Yi,for1·i·k.
+{Toeachboxb2Bi,weassociateasetofcallports,Callb=f(b;en)jen2
+EnY(b)g,andasetofreturnports,Return b=f(b;ex)jex2ExY(b)g.
+{Atransition relation±i,where transitions areoftheform(u;pu;v;v)where:
+1.thesourceuiseither anon-exit nodeu2NinExi,orareturn port
+u=(b;ex)2Return b,whereb2Bi.
+2.Thedestination viseither anon-en trynodev2NinEni,oracallport
+v=(b;en)2Callb,whereb2Bi.
+3.pu;v2R>0isthetransition probabilit yfromutov.(Weassumepu;vis
+rational.)
+4.Consistency ofprobabilities :foreachu,P
+fv0j(u;pu;v0;v0)2±igpu;v0=1;
+unlessuisacallportorexitnode,neither ofwhichhaveoutgoing tran-
+sitions, inwhichcasebydefaultP
+v0pu;v0=0.
+Wewillusethetermvertex ofAitorefercollectiv elytoitssetofnodes,call
+ports,andreturn ports,andwedenote thissetbyQi,andweletQ=Sk
+i=1Qi
+bethesetofallvertices oftheRMCA.That is,thetransition relation±iisa
+setofprobabilit y-weighteddirected edges onthesetQiofvertices ofAi.Let
+±=[i±ibethesetofalltransitions ofA.
+AnRMCAde¯nes aglobal denumerable MarkovchainMA=(V;¢)as
+follows.Theglobal statesVµB¤£QofMAarepairsoftheformh¯;ui,where
+¯2B¤isa(possibly empty)sequence ofboxesandu2Qisavertex ofA.More
+precisely ,thestatesVandtransitions ¢arede¯ned inductiv elyasfollows:
+1.h²;ui2V,foru2Q.(²denotes theemptystring.)
+2.ifh¯;ui2Vand(u;pu;v;v)2±,thenh¯;vi2Vand(h¯;ui;pu;v;h¯;vi)2¢
+3.ifh¯;(b;en)i2V,(b;en)2Callb,then
+h¯b;eni2Vand(h¯;(b;en)i;1;h¯b;eni)2¢
+4.ifh¯b;exi2V,(b;ex)2Return b,then
+h¯;(b;ex)i2Vand(h¯b;exi;1;h¯;(b;ex)i)2¢
+Item1corresp ondstothepossible initial states, 2corresp ondstoatransition
+within acomponent,3iswhen anewcomponentisentered viaabox,4iswhen
+theprocessexitsacomponentandcontrolreturns tothecalling component.
+Some states ofMAareterminating states andhavenooutgoing transitions.
+These arestates h²;exi,whereexisanexitnode.IfwewishtoviewMAasa
+properMarkovchain,wecanconsider theterminating states asabsorbing states
+ofMA,withaself-lo opofprobabilit y1.
+RMCs where thecallgraphbetweencomponentsforms anacyclic graph are
+called HierarchicalMarkov Chains (HMCs). InthisspecialcaseMAis¯nite, but
+canbeexponentially larger thantheHMC whichspeci¯es it.
+Thecentralreachabilit yquestions. Ourgoalistoanswertermination and
+reachabilit yquestions forRMCs. Givenavertexu2Qiandanexitex2Exi,
+
+--- Page 5 ---
+bothinthesame componentAi,letq¤
+(u;ex)denote theprobabilit yofeventually
+reachingtheterminating stateh²;exi,starting attheinitial stateh²;ui.Com-
+puting probabilities q¤
+(u;ex)willallowustoe±cien tlyobtain other probabilities.
+Foragivenpairofverticesu;v2QoftheRMC, let[u;v]denote theproba-
+bilitythatstarting atstateh²;uiwewilleventually reachastateh¯;viforsome
+¯2B¤.Wecanobtain theprobabilities [u;v]based ontheprobabilities q¤
+(u;ex).
+Onewaytodothisisasfollows:addanewspecialexitex?
+itoeverycomponent
+AioftheRMC, removetheout-edges fromv2Qjandinstead addatransition
+v1!ex?
+j,andaddtransitions w1!ex?
+h,foreveryreturn portw=(b;ex?
+k),where
+b2Bh.Now,foru2Qi,[u;v]intheoriginal RMC isequal toq¤
+(u;ex?
+i)inthe
+revised RMC. (Intuitively,when weencoun tervwe\raise anexception", pop
+theentirecallstack,andexitthesystem.) There isalsoamore involvedway
+toobtain theprobabilit y[u;v]fromtheprobabilities q¤
+(u;ex)without increasing
+thenumberofexitsinanycomponent.Wecanthusfocuson¯nding e±cien t
+algorithms forthefollowingcentralquestions:
+(1)Qualitative reachabilit yproblem: Isq¤
+(u;ex)=1?
+(2)Quantitative reachabilit yproblems: Givenr2[0;1],isq¤
+(u;ex)¸r?Isq¤
+(u;ex)=
+r?Compute orapproximate theexact probabilities q¤
+(u;ex).
+Single-exit RMCs andStochastic Context-F reeGrammars. AStochastic
+Context-F reeGrammars (SCFG)isatupleG=(T;V;R;S1),whereTisaset
+ofterminal symbols,V=fS1;:::;Skgisasetofnon-terminals ,andRisaset
+ofrulesSip!®,whereSi2V,p2[0;1],and®2(V[T)¤,suchthatforevery
+non-terminal Si,P
+hpjj(Sipj!®j)2Ripj=1.Letp(Sj)denote theprobabilit ythat
+thegrammar, started atSj,willterminate andproducea¯nite string. SCFGs
+are\equiv alent"tosingle-exit RMCs inthefollowingsense.
+Proposition 1.Every SCFGGcanbetransforme dtoa1-exit RMCA,such
+thatjAj2O(jGj),andthereisabijection fromnon-terminals SjinGto
+componentsAjofA,eachwithasingle entryenjandexitexj,suchthat
+p(Sj)=q¤
+(enj;exj),forallj.Conversely, every1-exit RMCAcanbetransforme d
+toaSCFGGofsizeO(jAj),suchthatthereisamapfromverticesutonon-
+terminalsSuofG,suchthatifexisu'scomponent exit,thenq¤
+(u;ex)=p(Su).
+Thesystem ofnonlinear equations associated withanRMC. Consider
+theprobabilities q¤
+(u;ex)asunkno wns.Wecansetupasystem of(nonlinear)
+polynomial equations, suchthatthese probabilities mustbeasolution ofthe
+system, andinfactprecisely theLeastFixedPoint solution (whichwede¯ne).
+Letususeavariablex(u;ex)foreachunkno wnprobabilit yq¤
+(u;ex).Wewilloften
+¯nditconvenienttoindex thevariablesx(u;ex)according toa¯xedorder, sowe
+canrefertothem alsoasx1;:::;xn,witheachx(u;ex)identi¯ed withxjforsome
+j.Wethusobtain avector ofvariables: x=(x1x2:::xn)T.
+De¯nition 1.Given RMCA=(A1;:::;Ak),wede¯ne asystem ofpolynomial
+equations,SA,overthevariablesx(u;ex),whereu2Qiandex2Exi,for1·i·
+
+--- Page 6 ---
+k.Thesystem contains oneequation oftheformx(u;ex)=P(u;ex)(x),foreach
+variablex(u;ex).HereP(u;ex)(x)denotes amultivariate polynomial withpositive
+rational coe±cients. Thereare3casestodistinguish, basedonthe\type"of
+vertexu:
+1.TypeI:u=ex.Inthiscase:x(ex;ex)=1.
+2.TypeII:eitheru2Ninfexgoru=(b;ex0)isareturnport.Inthesecases:
+x(u;ex)=P
+fvj(u;pu;v;v)2±gpu;v¢x(v;ex):
+(Ifuhasnooutgoing transitions, thisequation isbyde¯nitionx(u;ex)=0.)
+3.TypeIII:u=(b;en)isacallport.Inthiscase:
+x((b;en);ex)=P
+ex02ExY(b)x(en;ex0)¢x((b;ex0);ex)
+Invectornotation, wedenoteSA=(xj=Pj(x)jj=1;:::;n)by:x=P(x).
+Notewecaneasily construct thesystem x=P(x)fromAinpolynomial time:
+P(x)hassizeO(jAjjExj2),where jExjdenotes themaxim umnumberofexitsof
+anycomponentofA.Wewillnowidentifyaparticular solution tothesystems
+x=P(x),called theLeastFixedPoint (LFP) solution, whichgivesusprecisely
+theprobabilities weareafter. Forvectors x;y2Rn,de¯ne thepartial-order
+x¹ytomean thatxj·yjforeverycoordinatej.ForDµRn,wecall
+amappingH:Rn7!Rnmonotone onD,if:forallx;y2D,ifx¹ythen
+H(x)¹H(y).De¯neP1(x)=P(x),andde¯nePk(x)=P(Pk¡1(x)),fork>1.
+Recall thatq¤
+(u;ex)denotes theprobabilit yofeventually reachingh²;existart-
+ingath²;uiinMA.Letq¤2Rndenote thecorresp ondingn-vector ofproba-
+bilities (using thesame indexing asusedforx).Fork¸0,letqkdenote the
+n-vectorofprobabilities whereqk
+(u;ex)istheprobabilit yofreachingh²;existart-
+ingath²;uiinatmostkstepsofMA,meaning viaapathinMAoflength at
+mostk.Let0(1)denote then-vector consisting of0(respectively,1)inevery
+coordinate. De¯ne x0=0,andfork¸1,de¯ne xk=P(xk¡1)=Pk(0).
+Theorem 1.Letx=P(x)bethesystemSAassociatedwithRMCA.
+1.P:Rn7!Rnismonotone onRn
+¸0.Hence,fork¸0,0¹xk¹xk+1.
+2.Forallk¸0,qk¹xk+1.
+3.q¤=P(q¤).Inotherwords,q¤isa¯xedpointofthemapP.
+4.Forallk¸0,xk¹q¤.
+5.q¤=limk!1xk.
+6.Forallq02Rn
+¸0,ifq0=P(q0),thenq¤¹q0.
+Inotherwords,q¤istheLeast Fixed Point,LFP(P),ofP:Rn
+¸07!Rn
+¸0.
+Wehavethusidenti¯edq¤asLFP(P)=limk!1xk.Wecan(naively)view
+Theorem 1asgiving aniterativ ealgorithm tocompute LFP(P),bycomputing
+theiterates xk=Pk(0),k!1,untilwethink weare\close enough". (Buthow
+doweknow?Please readon.)Wenowobserv eseveralunfortunate properties of
+SAthatpresen tobstacles fore±cien tlycomputing LFP(P).
+Theorem 2.Allfollowing RMCs, excepttheHMCs in(4),haveonecomponent,
+oneentryen,andoneexitex.
+
+--- Page 7 ---
+1.Irrational probabilities :thereisaRMC,A,suchthattheprobability q¤
+(en;ex)
+isanirrational number,andisinfactnot\solvable byradicals".Thus,
+computing LFP(P)exactly isnotpossible ingeneral.
+2.Slowconvergence :thereisaRMCsuchthatitrequiresanexponential number
+ofiterations, 2k¡3,togainkbitsofprecision.
+3.Qualitativ equestions notpurely structure-dep enden t:thereare2\struc-
+turally"identic alRMCs,A0andA00,thatonlydi®er invalues ofnon-zer o
+transition probabilities, butq¤
+(en;ex)=1inA0,whileq¤
+(en;ex)<1inA00.
+4.Verysmall &verylargeprobabilities :ThereisaHMC, withm+1compo-
+nents, andoftotalsizeO(m),wherecomponentAmhasentryenmandtwo
+exitsex0
+mandex00
+m,suchthatq¤
+(enm;ex0
+m)=1
+22mandq¤
+(enm;ex00
+m)=1¡1
+22m.
+These factsillustrate some ofcontrasts betweenRMCs and¯nite Markov
+chains (MCs). Forexample, for¯nite MCsreachabilit yprobabilities arerational
+values thataree±cien tlyrepresen table andcomputable; moreo ver,qualitativ e
+questions, suchaswhether astateisreachedwithprobabilit y1,onlydependon
+thestructure (edges) oftheMC,andnotonvalues oftransition probabilities.
+ForRMCA=(A1;:::;Ak),letµ=max i2f1;:::;kgminfjEnij;jExijg.Note
+thatq¤
+(u;ex)=0i®there isnopathinthegraphofMAfromh²;uitoh²;exi.
+Reachabilit yinRSMs wasstudied in[1,4],where itwasshownthattheproblem
+canbedecided inO(jAjµ2)time, thus:
+Theorem 3.(see[1,4])Given RMCA,wecandetermine intimeO(jAjµ2),
+forallverticesuandexitsex,whether ornotq¤
+(u;ex)=0.
+3RMCs andtheExisten tialTheory ofReals
+Wenowshowthatthecentralreachabilit yquestions forRMCs canbeanswered
+byappealing toalgorithms fordeciding theExistential TheoryoftheReals,
+ExTh (R).Thisconsists ofsentences inprenex form: 9x1;:::;xnR(x1;:::;xn),
+whereRisaboolean combination of\atomic predicates" oftheformfi(x)¢0,
+wherefiisamultivariate polynomial withrational coe±cien tsoverthevariables
+x=x1;:::;xn,and¢isacomparison operator (=;6=;¸;·;<;>).
+Beginning withTarski, algorithms fordeciding theFirst-Order Theory of
+Reals,Th(R),anditsexisten tialfragmen tExTh (R),havebeendeeply investi-
+gated. Inthecurren tstateoftheart,itisknownthatExTh (R)canbedecided
+inPSPACE[8,25,5].Furthermore itcanbedecided inexponentialtime, where
+theexponentdepends(linearly) onlyonthenumberofvariables; thusfora¯xed
+numberofvariables thealgorithm runsinpolynomial time.
+Supposewewanttodecide whether arational vectorc=[c1;:::;cn]Tis
+LFP(P).Consider thesentence:'´9x1;:::;xnVn
+i=1Pi(x1;:::;xn)=xi^Vn
+i=1xi=ci.'istruei®c=P(c).Toguaran teethatc=LFP(P),weaddition-
+allyneed:Ã´9x1;:::;xnVn
+i=1Pi(x1;:::;xn)=xi^Vn
+i=10·xi^Wn
+i=1xi<ci.
+Ãisfalsei®there isnosolution z2Rn
+¸0tox=P(x)suchthatc6¹z.Hence, to
+decide whether c=LFP(P),weonlyneedtwoqueries toadecision procedure
+forExTh (R).Namely ,wecheckthat'istrue,andhencec=P(c),andwe
+
+--- Page 8 ---
+thencheckthatÃisfalse, andhencec=LFP(P).Notethatallmulti-variate
+polynomials inoursystems x=P(x)have(multivariate) degreed·2.
+Theorem 4.Given aRMCAandgiven avectorofrational probabilities c,
+thereisaPSPACEalgorithm todecidewhether LFP(P)=c,aswellasto
+decidewhether q¤
+j¢cj,foranycomparison operator¢.Moreover,therunning
+timeofthealgorithm isO(jAjO(1)¢2O(n))wherenisthenumberofvariables in
+thesystem x=P(x).Hencetherunning timeispolynomial ifnisbounded.
+ExTh (R)givesusawaytoaskquestions like:\Isthere asolution tox=P(x)
+wherea·xi·b?"foranyrational numbersaandb,andifwewish,witheither
+inequalit yreplaced bystrict inequalit y.Since0¹LFP(P)¹1,wecanusesuch
+queries ina\binary search"to\narro win"onthevalueofeachcoordinate of
+LFP(P).Viasimple modi¯cations ofsentences likeÃ,wecangainoneextra bit
+ofprecision ontheexact valueofciwitheachextra query toExTh (R).So,if
+wewantjbitsofprecision foreachci,i=1;:::n,weneedtomakej¢nqueries.
+Thesizesofthequeries donotvarybymuch:onlywithanadditiv efactor ofat
+mostj-bits, toaccoun tfortheconstan tsaandb.Thisdiscussion yields:
+Theorem 5.Given RMCA,andanumberjinunary, thereisanalgorithm
+thatapproximates thecoordinates ofLFP(P)towithinjbitsofprecision in
+PSPACE.Therunning timeisO(j¢jAjO(1)¢2O(n)),wherenisthenumberof
+variables inx.
+With amore involvedconstruction wecanhandle inpolynomial timeall
+RMCs thathaveaconstan tnumberofcomponents,eachwithaconstan tnumber
+ofentriesandexits; thecomponentsthemselv escanbearbitrarily large.
+Theorem 6.Given anRMC withaboundedtotalnumberofentries andexits,
+wecandecideinpolynomial timewhether LFP(P)=c,orwhether q¤
+j¢cj,for
+anycomparison operator¢,andwecanapproximate eachprobability towithin
+anygivennumberofbitsofprecision. Inparticular, thisapplies toSCFGswith
+aboundednumberofterminals andMT-BPs withaboundednumberoftypes.
+4RMCs andNewton's metho d
+Thissection approac hese±cien tnumerical computation ofLFP(P),bystudying
+howaclassical numerical solution-¯nding metho dperforms onthesystems x=
+P(x).Newton's metho disaniterativ emetho dthatbeginswithaninitial guess
+ofasolution, andrepeatedly \revises" itinanattempt toapproac hanactual
+solution. Ingeneral, themetho dmaynotconvergetoasolution, butwhen it
+does,itistypically fast.Forexample, forthebadRMC ofTheorem 2.2,where the
+Iterativ ealgorithm converges exponentially slowly,onecanshowthatNewton's
+metho dconvergesexponentially faster, gaining onebitofprecision periteration.
+Recall that,givenaunivariate polynomialf(x)(ormoregenerally ,aunivariate
+di®eren tiable function), andaninitial guessx0forarootoff(x),Newton's
+metho dcomputes thesequencex0;x1;:::;xk,wherexk+1:=xk¡f(xk)
+f0(xk).There
+
+--- Page 9 ---
+isanaturaln-dimensional version ofNewton's metho d(see,e.g,[26]and[24]).
+Givenasuitably di®eren tiable mapF:Rn7!Rn,wewishto¯ndasolution to
+thesystemF(x)=0.Starting atsomex02Rn,themetho dworksbyiterating
+xk+1:=xk¡(F0(xk))¡1F(xk),whereF0(x)istheJacobian matrix ofpartial
+derivatives.Foreachc2Rn,F0(c)isareal-valued matrix whose (i;j)entryis
+thepolynomial@Fi
+@xjevaluated atc.Forthemetho dtobede¯ned,F0(xk)mustbe
+invertible ateachpointxkinthesequence. Evenwhen thexk'sarede¯ned anda
+solution exists, Newton's metho dneednotconverge,anddivergesevenforsome
+univariate polynomials ofdegree 3.Wealready knowoneconvergentiterativ e
+algorithm forcomputing LFP(P).Namely ,computing thesequence xj=Pj(0),
+j!1.Unfortunately ,wesawinThm. 2thatthisalgorithm canbeveryslow.
+Thequestion arises whether Newton's metho d,applied toF(x)=P(x)¡x,can
+guaran teeconvergence toLFP(P),anddosofaster. Thatisessentially whatwe
+establish inthissection.
+{Prepro cessthesystem x=P(x),eliminating allvariables x(u;ex)whereq¤
+(u;ex)=0.
+{Construct theDAGofSCCs, H,based ontheremaining system ofequations.
+{While (there isasinkSCC, C,remaining intheDAGH)
+²IfCisthetrivial SCC, C=f1g,thenassociatethevalue1withthisnode.
+Else, runNewton's metho d,starting at0,ontheequations forthesetof
+variables inC,where theseequations areaugmen tedbythevaluesofpreviously
+computed variables.
+Stopifa¯xed pointisreached,orwhen approximate solutions forCare
+considered \goodenough".
+Store these ¯nalvalues forthevariables inCandsubstitute these values for
+those variables inallremaining equations.
+²removeCfromtheDAG.
+Fig.1.Decomp osedNewton's metho d
+Wecannot ingeneral obtain convergence ofNewton's metho dfortheentire
+system x=P(x)atonce, because forinstance thecondition oninvertibilit yof
+theJacobian maynotholdingeneral. Butitturns outthatsuchanomalous
+cases canbeavoided: we¯rstprepro cessthesystem (inlinear timeinitssize,
+byTheorem 3)toremoveallvariablesx(u;ex)where q¤
+(u;ex)=0.Then weform
+agraphGwhose nodesaretheremaining variablesxiandtheconstan t1,and
+whose edges are(xi;xj)ifxjappearsinPi(x),andedge(xi;1)ifPi(x)´1.
+Wedecomposethegraph (andthesystem) intostrongly connected components
+(SCCs) andapply Newton's metho dseparately oneachSCCbottom-up, as
+showninFig.1. InFig.1wehavenotspeci¯ed explicitly howmanyiterations are
+performed. Forconcreteness inthefollowingtheorem, supposethatweperform
+kiterations foreverySCC. Letxkbetheresulting tuple ofvalues.
+Theorem 7.IntheDecomposedNewton 'sMethodofFig.1,thesequencexk;k!
+1,monotonic allyconvergestoq¤.Moreover,forallk¸0,xkºPk(0).
+Fromourproofitactually followsthatNewton's metho dingeneral consti-
+tutesarapid \acceleration" ofthestandard iteration,Pk(0),k!1.Inpartic-
+ular,for¯nite MCs, whichgenerate linear systems, thedecomp osedNewton's
+metho dconverges inoneiteration toLFP(P).
+
+--- Page 10 ---
+Input: ASCFGG,withstartnon-terminal S1.
+1.Removeallnonterminals unreac hable fromS1.
+2.Ifthere isany\useless" nonterminal left(i.e.,anonterminal thatdoesnotderive
+anyterminal string), return NO.
+3.Fortheremaining SCFG,let½bethemaxim umeigenvalueofthematrix B(1)
+(theJacobian matrix ofP(x),evaluated attheall1-vector).
+If½>1thenreturn NO;otherwise (i.e.,if½·1)return YES.
+Fig.2.SCFGconsistency algorithm
+51-exit RMCs andconsistency ofSCFGs
+AnSCFGiscalled consistent ifitgenerates aterminal string withprobabilit y1.
+Weprovideasimple, concrete e±cien talgorithm tocheckconsistency using the
+connection ofSCFG'sto1-exit RMC's andtomulti-typeBranc hingProcesses.
+MT-BPs modelthegrowthofapopulation ofobjectsofanumberofdistinct
+types.Theprobabilit yofextinction ofatypeinaMT-BP isrelated tothe
+probabilit yofthelanguage generated byaSCFG.Using thisconnection and
+classical results onbranchingprocesses, onecan\characterize" thequestion of
+termination ofaSCFGasaquestion related toeigenvalues ofcertain matrices
+associated withtheSCFG(see,e.g.,[18]and[7,17]).These \characterizations"
+unfortunately oftenomitspecialuncoveredcases(andsometimes containerrors,
+eg.[7])anddonotgiveacomplete algorithm.
+Ouralgorithm forcheckingSCFGconsistency isoutlined inFig.2.The
+matrixB(1)inthealgorithm isprecisely theJacobian matrix ofthesystem of
+polynomials P(x),fromsection 4,where wesubstitute 1foreveryvariablexi.To
+¯nish thealgorithm, weonlyneedtoshowthatwecantestinpolynomial time
+whether thespectral radius ofanon-negativ erational matrixB(1)is>1.There
+areanumberofwaystoshowthis.Oneisbyappealing totheexisten tialtheory of
+thereals. BythePerron-F robenius theorem (see[21]), themaxim ummagnitude
+eigenvalueofanon-negativ ematrix isalwaysreal.Recall thattheeigenvaluesof
+amatrixMaretherootsofthecharacteristic polynomialh(x)=Det(M¡xI).
+Thisunivariate polynomial canbecomputed inpolynomial time, andwecan
+testwhether½(B(1))>1bytesting the1-variable sentence inExTh (R):9x(x>
+1^h(x)=0).More e±cien tly,forthenon-negativ ematricesB(1)wecanalso
+useLinear Programming todecide whether½(B(1))>1.Furthermore, witha
+more involvedalgorithm (see[15])wecanclassify inonepassthetermination
+probabilit yofallthenonterminals (andallvertices ofa1-exit RMC).
+Theorem 8.Given a1-exit RMC,A,thereisapolynomial timealgorithm to
+determine, foreachvertexuandexitex,which ofthefollowing threecasesholds:
+(1)q¤
+(u;ex)=0,or(2)q¤
+(u;ex)=1,or(3)0<q¤
+(u;ex)<1.Inparticular,
+wecantestSCFGconsistency inpolynomial time.
+6RMCs andtheSquare-Ro otSumProblem
+Weshowthatthesquare-ro otsumproblem isreducible totheSCFGquantitativ e
+reachabilit yproblem, andtothegeneral RMC qualitativ ereachabilit yproblem.
+LetSQUARE-R OOT-SUM bethefollowingproblem: given(d1;:::;dn)2Nn
+
+--- Page 11 ---
+andk2N,decide whetherPn
+i=1pdi·k.Thecomplexit yofthisproblem is
+opensince 1976. Itisknowntobecontained inPSPACE(e.g., byappealto
+ExTh (R)),however,itisnotevenknowntobecontained inNP.Itisamajor
+openproblem inthecomplexit yofexact numerical algorithms, withapplications
+incomputational geometry andelsewhere. (See,e.g.,[16,29,22].)
+LetSCFG-PR OBbethefollowing problem: givenaSCFG(with rational
+edgeprobabilities) andgivenarational numberp2[0;1],decide whether the
+SCFGterminates (i.e.,produces a¯nite string) withprobabilit y¸p.
+Theorem 9.SQUARE-R OOT-SUM isP-time reducible toSCFG-PROB.
+Let2-EXIT-SURE bethefollowingproblem: givena2-exit RMC withrational
+edgeprobabilities, andanentry-exit pairenandexofsome component,decide
+whetherq¤
+(u;ex)=1.Wecanmodifytheaboveconstruction toshow:1
+Theorem 10.SQUARE-R OOTSUMisP-time reducible to2-EXIT-SURE.
+7Conclusions
+Weintroduced Recursiv eMarkovChains, andstudied basic algorithmic prob-
+lemsintheiranalysis involving termination andreachabilit y.Awidevarietyof
+techniques came intoplay,fromtheexisten tialtheory ofthereals, theory of
+branchingprocesses, numerical computing, etc.Anumberofquestions remain
+open,bothfortheproblems wehaveinvestigated andforfurther directions.
+Forexample, weprovedthatNewton's metho dconverges monotonically ,and
+dominates theiterativ ealgorithm. Weexpectthatthisisthepractical wayto
+approximate theprobabilities, andwebelievethatinfactNewton gainsibitsof
+precision inapolynomial numberofiterations intheunit-cost realRAM model.
+Moreo ver,thereductions fromthesquare-ro otsumproblem todeciding whether
+aprobabilit yis·pdoesnotpreclude thepossibilit ythatthese probabilities can
+beapproximate dtoibitsofprecision inP-time without yielding aP-time solu-
+tiontothesquare-ro otsumproblem. Indeed, sumofsquare-ro otsitselfcanbe
+soapproximated using Newton's metho d.
+Anumberoffurther directions areworthpursuing, building uponthiswork.
+Wehaveextended ourmetho dstoalgorithms fortheveri¯cation oflinear time
+properties ofRMC's ([14]). Another direction wearepursuing istheanalysis of
+Recursiv eMarkovDecision Processes andRecursiv eStochastic Games.
+References
+1.R.Alur, K.Etessami, andM.Yannak akis. Analysis ofrecursiv estate machines.
+InProc.of13thInt.Conf. onComputer-A idedVeri¯cation,pp.304{313, 2001.
+2.S.Abney ,D.McAllester, andF.Pereira. Relating probabilistic grammars and
+automata. Proc.37thAnn.Ass.forComp. Linguistics ,pp.542{549, 1999.
+1Theorem 10hasalsobeenobserv edindependen tlybyJ.Esparza &A.Kucera ([11])
+based onapreliminary draftofthispaperwhichincluded Theorem 9.
+
+--- Page 12 ---
+3.A.Bouajjani, J.Esparza, andO.Maler. Reachabilit yanalysis ofpushdo wnau-
+tomata: App's tomodelchecking. InCONCUR'97 ,pp.135{150, 1997.
+4.M.Benedikt, P.Godefroid, andT.Reps. Modelcheckingofunrestricted hierar-
+chicalstatemachines. InProc.ofICALP'01 ,LNCS 2076, pp.652{666, 2001.
+5.S.Basu, R.Pollack,andM.F.Roy.Onthecombinatorial andalgebraic complexit y
+ofquanti¯erelimination. J.oftheACM,43(6):1002{1045, 1996.
+6.S.Basu, F.Pollack,andM.F.Roy.Algorithms inRealAlgebraicGeometry .
+Springer, 2003.
+7.T.L.BoothandR.A.Thompson. Applying probabilit ymeasures toabstract
+languages. IEEE Transactions onComputers ,22(5):442{450, 1973.
+8.J.Canny.Some algebraic andgeometric computations inPSPACE.InProf.of
+20thACMSTOC ,pp.460{467, 1988.
+9.Z.ChiandS.Geman. Estimation ofprobabilistic context-free grammars. Compu-
+tational Linguistics ,1997.
+10.J.Esparza, D.Hansel, P.Rossmanith, andS.Schwoon.E±cien talgorithms for
+modelcheckingpushdo wnsystems. In12thCAV,LNCS 1855, pp.232{247, 2000.
+11.J.Esparza andA.Ku·cera.personal communic ation,2004.
+12.JavierEsparza, Anton¶³nKu·cera,andRichardMayr.Modelcheckingprobabilistic
+pushdo wnautomata. InLICS2004,2004.
+13.C.J.EverettandS.Ulam. Multiplicativ esystems, parti.,ii,andiii.Technical
+Report683,690,707, LosAlamos Scienti¯cLaboratory ,1948.
+14.K.Etessami andM.Yannak akis.Algorithmic veri¯cation ofrecursiv eprobabilistic
+systems. Technical report,SchoolofInformatics, U.ofEdinburgh, 2004.Submitte d.
+15.K.Etessami andM.Yannak akis.Recursiv eMarkovchains, stochastic grammars,
+andmonotone systems ofnon-linear equations. Technical report,SchoolofInfor-
+matics, UniversityofEdinburgh, 2004. (Fullpaper).
+16.M.R.Garey ,R.L.Graham, andD.S.Johnson. Some NP-complete geometric
+problems. In8thACMSTOC ,pp.10{22, 1976.
+17.U.Grenander. LecturesonPattern Theory,Vol.1.Springer-V erlag, 1976.
+18.T.E.Harris. TheTheoryofBranching Processes.Springer-V erlag, 1963.
+19.P.Jagers. Branching ProcesseswithBiologicalApplic ations .Wiley,1975.
+20.A.N.Kolmogoro vandB.A.Sevastyanov.Thecalculation of¯nalprobabilities
+forbranchingrandom processes. Dokaldy ,56:783{786, 1947. (Russian).
+21.P.Lancaster andM.Tismenetsky .TheTheoryofMatric es.Academic Press, 2nd
+edition, 1985.
+22.G.Malajovich.Ane®ectiv eversion ofKronec ker'stheorem onsimultaneous dio-
+phantineequations. Technical report,CityU.ofHong Kong, 1996.
+23.C.Manning andH.SchÄutze.Foundations ofStatistic alNaturalLanguage Process-
+ing.MITPress, 1999.
+24.J.M.Ortega andW.C. Rhein bolt.Iterativesolution ofnonline arequations in
+severalvariables .Academic Press, 1970.
+25.J.Renegar. Onthecomputational complexit yandgeometry ofthe¯rst-order
+theory ofthereals. parts i,ii,iii.J.ofSymbolicComputation ,pp.255{352, 1992.
+26.J.StoerandR.Bulirsc h.Introduction toNumeric alAnalysis .Springer, 1993.
+27.Y.Sakakibara, M.Brown,RHughey ,I.S.Mian, K.Sjolander, R.Underw ood,and
+D.Haussler. Stochastic context-free grammars fortRNA modeling. Nucleic Acids
+Research,22(23):5112{5120, 1994.
+28.B.A.Sevastyanov.Thetheory ofbranchingprocesses. UspehiMathemat. Nauk,
+6:47{99, 1951. (InRussian).
+29.P.Tiwari.Aproblem thatiseasier tosolveontheunit-cost algebraic ram.Journal
+ofComplexity ,pages 393{397, 1992.

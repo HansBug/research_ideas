@@ -1,0 +1,1987 @@
+--- Page 1 ---
+LogicalMethods inComputer Science
+Vol. 4(2:8) 2008, pp.1–36
+www.lmcs-online.orgSubmitted Sep. 20,2007
+Published Jun. 18,2008
+VISIBLY TREE AUTOMATA
+WITH MEMORY AND CONSTRAINTS∗
+HUBERT COMON-LUNDHa, FLORENT JACQUEMARDb, AND NICOLAS PERRINc
+aLSV, CNRS/ENS Cachan
+e-mail address : h.comon-lundh@aist.go.jp
+bINRIA Saclay & LSV (CNRS/ENS Cachan)
+e-mail address : ﬂorent.jacquemard@inria.fr
+cENS Lyon
+e-mail address : nicolas.perrin@ens-lyon.fr
+Abstract. Tree automata with one memory have been introduced in 2001. T hey gener-
+alize both pushdown (word) automata and the tree automata wi th constraints of equality
+between brothers of Bogaert and Tison. Though it has a decida ble emptiness problem,
+the main weakness of this model is its lack of good closure pro perties.
+We propose a generalization of the visibly pushdown automat a of Alur and Madhusu-
+dan to a family of tree recognizers which carry along their (b ottom-up) computation an
+auxiliary unbounded memory with a tree structure (instead o f a symbol stack). In other
+words, these recognizers, called Visibly Tree Automata wit h Memory (VTAM) deﬁne a
+subclass of tree automata with one memory enjoying Boolean c losure properties. We show
+in particular that they can be determinized and the problems like emptiness, member-
+ship, inclusion and universality are decidable for VTAM. Mo reover, we propose several
+extensions of VTAM whose transitions may be constrained by d iﬀerent kinds of tests be-
+tween memories and also constraints a la Bogaert and Tison. W e show that some of these
+classes of constrained VTAM keep the good closure and decida bility properties, and we
+demonstrate their expressiveness with relevant examples o f tree languages.
+Introduction
+The control ﬂow of programs with calls to functions can be abs tracted as pushdown
+systems. Thisallows to reducesomeprogramveriﬁcation pro blemsto problems(e.g. model-
+checking) on pushdownautomata. When it comes tofunctional languages with continuation
+passing style , the stack must contain information on continuations and ha s the structure of
+a dag (for jumps). Similarly, in the context of asynchronous concurrent programming lan-
+guages, for two concurrent threads the ordering of return is not determined (synchronized)
+1998 ACM Subject Classiﬁcation: F.1.1; F.1.2; I.2.2; I.2.3.
+Key words and phrases: Tree automata, Pushdown Automata, Alternating automata, S ymbolic con-
+straints, First-order theorem proving.
+∗Anextendedabstractcontainingsome oftheresultspresent edinthispaperhasappearedintheproceeding
+of FOSSACS’07.
+LOGICALMETHODS/D0INCOMPUTER SCIENCE DOI:10.2168/LMCS-4(2:8)2008c/circlecopyrtH. Comon-Lundh,F. Jacquemard,andN. Perrin
+CC/circlecopyrtCreativeCommons
+
+--- Page 2 ---
+2 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+and these threads can not be stacked. In these cases, the cont rol ﬂow is better modeled as
+a tree structure rather than a stack. That is why we are intere sted in tree automata with
+one memory, which generalize the pushdown (tree) automata, replacing the a stack with a
+tree. Here, a “memory” has to be understood as a storage devic e, whose structure is a tree.
+For instance, two memories would correspond to two storage d evices whose access would be
+independent.
+Thetree automata with one memory introduced in [7] compute bottom-up on a tree,
+with an auxiliary memory carrying a tree, as in former works s uch as [14]. Along a com-
+putation, at any node of the tree, the memory is updated incre mentally from the memory
+reached at the sons of the node. This update may consist in bui lding a new tree from the
+memories at the sons (this generalizes a push)or retrieving a subtree of one of the memories
+at the sons (this generalizes a pop). In addition, such autom ata may perform equality tests:
+a transition may be constrained to be performed, only when th e memories reached at some
+of the sons are identical. In this way, tree automata with one memory also generalize certain
+cases of tree automata with equality and disequality tests b etween brothers [4].
+Automata with one memory have been introduced in the context of the veriﬁcation of
+security protocols, where the messages exchanged are repre sented as trees. In the context of
+(functional or concurrent) programs, the creation of a thre ad, or acallcc, corresponds to a
+push, the termination of a thread or a callcccorresponds to a pop. The emptiness problem
+for such automata is in EXPTIME (note that for the extension w ith a second memory the
+emptiness problem becomes undecidable). However, the clas s of tree languages deﬁned by
+such automata is neither closed by intersection nor by compl ement. This is not surprising
+as they are strictly more general than context free language s.
+On the other hand, Alur and Madhusudan have introduced the no tion of visibility for
+pushdownautomata [2], whichisarelevant restriction inth econtext ofcontrol ﬂowanalysis.
+With this restriction, determinization is possibleandact ually theclass of languages is closed
+under Boolean operations.
+In this paper, we propose the new formalism of Visibly Tree Au tomata with Memory
+(VTAM). On one hand, it extends visibly pushdown languages t o the recognition of trees,
+and with a tree structure instead of a stack, following forme r approaches [14, 21, 10]. On the
+other hand, VTAM restrict tree automata with one memory, imp osing a visibility condition
+on the transitions: each symbol is assigned a given type of ac tion. When reading a symbol,
+the automaton can only perform the assigned type of action: p ush or pop.
+We ﬁrst show in Section 2 that VTAM can be determinized, using a proof similar to
+the proof of [2], and do have the good closure properties. The main diﬃculty here is to
+understandwhat is a good notion of visibility for trees, wit h memories instead of stacks. We
+also show that the problems of membership and emptiness are d ecidable in deterministic
+polynomial time for VTAM.
+In a second part of the paper (Section 3), we extended VTAM wit h constraints. Our
+constraints here are recognizable relations; a transition can be ﬁred only if the memory
+contents of the sons of the current node satisfy such a relati on. We give then a general
+theorem, expressing conditions on the relations, which ens ure the decidability of emptiness.
+Such conditions are shown to be necessary on one hand, and, on the other hand, we prove
+that they are satisﬁed by some examples, including syntacti c equality and disequality tests
+and structural equality and disequality tests. The case of V TAM with structural equality
+and disequality tests (this class is denoted VTAM≡
+/ne}ationslash≡) is particularly interesting, since the
+
+--- Page 3 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 3
+determinization and closure properties of Section 2 carry o ver this generalization, which we
+show in Section 3.4.2. The automata of VTAM≡
+/ne}ationslash≡also enjoy a good expressive power, as
+we show in Section 3.7 by presenting some non-trivial exampl es of languages in this class:
+well-balanced binary trees, red-black trees, powerlists. ..
+As an intermediate result, we show that, in case of equality t ests or structural equality
+tests, the language of memories that can be reached in a given state is always a regular
+language. This is a generalization of the well-known result that the set of stack contents
+in a pushdown automaton is always regular. To prove this, we o bserve that the memories
+contents are recognized by a two-way alternating tree autom aton with constraints. Then we
+show, using a saturation strategy, that two-way alternatin g tree automata with (structural)
+equality constraints are not more expressive than standard tree automata.
+Finally, in Section 4 we propose a class of visibly tree autom ata, which combines the
+structural constraints of VTAM≡
+/ne}ationslash≡, testing memory contents, with Bogaert-Tison constraints
+of [4] (equality and disequality tests between brothers sub terms) which operate on the term
+in input. We show that the tree automata of this class can be de terminized, are closed
+under Boolean operations and have a decidable emptiness pro blem.
+Related Work. Generalizations of pushdownautomata to trees (both for inp ut and stack)
+are proposed in [14, 21, 10]. Our contributions are the gener alization of the visibility
+condition of [2] to such tree automata – our VTAM (without con straints) strictly generalize
+the VP Languages of [2], and the addition of constraints on th e stack contents. The visibly
+tree automata of [1] use a word stack which is less general tha n a tree structured memory
+but the comparison with VTAM is not easy as they are alternati ng and compute top-down
+on inﬁnite trees.
+Independently, Chabin and Rety have proposed [5] a formalis m combining pushdown
+tree automata of [14] with the concept of visibly pushdown la nguages. Their automata
+recognize ﬁnite trees using a word stack. They have a decidab le emptiness problem and the
+corresponding tree languages (Visibly Pushdown Tree Langu ages, VPTL) are closed under
+Boolean operations. Following remarks of one of these two au thors, it appeared that VTAM
+and VPTL are incomparable, see Section 2.2.
+1.Preliminaries
+1.1.Term algebra. Asignature Σ is a ﬁnite set of function symbols with arity, denoted
+byf,g...We write Σ nthe subset of function symbols of Σ of arity n. Given an inﬁnite
+setXof variables, the set of terms built over Σ and Xis denoted T(Σ,X), and the subset
+of ground terms is denoted T(Σ). The set of variables occurring in a term t∈ T(Σ,X) is
+denotedvars(t). Asubstitution σis a mapping from XtoT(Σ,X) such that {x|σ(x)/\e}atio\slash=x},
+thesupportofσ, is ﬁnite. The application of a substitution σto a term tis written tσ.
+It is the homomorphic extension of σtoT(Σ,X). Thepositions Pos (t) in a term tare
+sequences of positive integers (Λ, the empty sequence, is th e root position). A subterm of
+tat position pis written t|p, and the replacement in tof the subterm at position pbyu
+denoted t[u]p.
+
+--- Page 4 ---
+4 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+1.2.Rewriting. We assume standard deﬁnitions and notations for term rewrit ing [11]. A
+term rewriting system (TRS) over a signature Σ is a ﬁnite set of rewrite rules ℓ→r, where
+ℓ∈ T(Σ,X) andr∈ T(Σ,vars(ℓ)). A term t∈ T(Σ,X) rewrites to sby a TRS R(denoted
+t→Rs) if there is a rewrite rule ℓ→r∈ R, a position poftand a substitution σsuch
+thatt|p=ℓσands=t[rσ]p. The transitive and reﬂexive closure of →Ris denoted − − →∗
+R.
+1.3.Tree Automata. Following deﬁnitions and notation of [8], we consider tree a utomata
+which compute bottom-up (from leaves to root) on (ﬁnite) gro und terms in T(Σ). At each
+stageofcomputationonatree t, atreeautomatonreadsthefunctionsymbol fatthecurrent
+position pintand updates its current state, according to fand to the respective states
+reached at the positions immediately under pint. Formally, a bottom-up tree automaton
+(TA)Aon a signature Σ is a tuple ( Q,Qf,∆) where Σ is the computation signature, Qis a
+ﬁnite set of nullary state symbols, disjoint from Σ, Qf⊆Qis the subset of ﬁnal states and
+∆ is a set of rewrite rules of the form: f(q1,...,qn)→q, wheref∈Σ andq1,...,qn∈Q.
+A termtisaccepted (we may also write recognized ) byAin state qiﬀt− − →∗
+∆q, and the
+language L(A,q) ofAin state qis the set of ground terms accepted in q. The language
+L(A) ofAis/uniontext
+q∈QfL(A,q) and a set of ground terms is called regularif it is the language
+of a TA.
+2.Visibly Tree Automata with Memory
+We propose in this section a subclass of the tree automata wit h one memory [7] which
+is stable under Boolean operations and has decidable emptin ess and membership problems.
+2.1.Deﬁnition of VTAM. Tree automata have been extended [14, 21, 10, 7] to carry an
+unbounded information along the states in computations. In [7], this information is stored
+in a tree structure and is called memory. We keep this terminology here, and call our
+recognizers tree automata with memory (TAM). For consistency with the above formalisms,
+the memory contents will be ground terms over a memory signature Γ.
+Like for TA we consider bottom-up computations of TAM in tree s; at each stage of
+computation on a tree t, a TAM, like a TA, reads the function symbol at the current
+position pintand updates its current state, according to the states reach ed immediately
+underp. Moreover, a conﬁguration of TAM contains not only a state bu t also a memory,
+which is a tree. The current memory is updated according to th e respective contents of
+memories reached in the nodes immediately under pint.
+As above, we use term rewrite systems in order to deﬁne the tra nsitions allowed in
+a TAM. For this purpose, we add an argument to state symbols, w hich will contain the
+memory. Hence, a conﬁguration of TAM in state qand whose memory content is the
+ground term m∈ T(Γ), is represented by the term q(m). We propose below a very general
+deﬁnition of TAM. It is similar to the one of [7], except that w e have here general patterns
+m1,...,m n,m, while these patterns are restricted in [7], for instance av oiding memory
+duplications. Since we aim at providing closure and decisio n properties, we will also impose
+(other) restrictions later on.
+Deﬁnition 2.1. A bottom-up tree automaton with memory (TAM) on a signature Σ is a
+tuple (Γ,Q,Qf,∆) where Γ is a memory signature, Qis a ﬁnite set of unary state symbols,
+disjoint from Σ ∪Γ,Qf⊆Qis the subset of ﬁnal states and ∆ is a set of rewrite rules of th e
+
+--- Page 5 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 5
+formf/parenleftbig
+q1(m1),...,qn(mn)/parenrightbig
+→q(m) wheref∈Σn,q1,...,qn,q∈Qandm1,...,m n,m∈
+T(Γ,X).
+The rules of ∆ are also called transition rules . A term tisaccepted byAin stateq∈Q
+and with memory m∈ T(Γ) iﬀt− − →∗
+∆q(m), and the language L(A,q) andmemory language
+M(A,q) ofAin stateqare respectively deﬁned by:
+L(A,q) =/braceleftbig
+t/vextendsingle/vextendsingle∃m∈ T(Γ), t− − →∗
+∆q(m)/bracerightbig
+M(A,q) =/braceleftbig
+m/vextendsingle/vextendsingle∃t∈ T(Σ), t− − →∗
+∆q(m)/bracerightbig
+.
+The language of Ais the union of languages of Ain its ﬁnal states, denoted: L(A) =/uniontext
+q∈QfL(A,q).
+Visibility Condition. The above formalism is of course far too expressive. As there are
+no restrictions on the operation performed on memory by the r ewrite rules, one can easily
+encodeaTuringmachine as aTAM. We shall now deﬁneadecidabl erestriction called visibly
+tree automata with memory (VTAM).
+First, we consider only three main families (later divided i nto the subcategories deﬁned
+inFigure1)ofoperationsonmemory. Weassumebelowacomput ationstepatsomeposition
+pof a term, where memories m1,...,m nhave been reached at the positions immediately
+belowp:
+PUSH: the new current memory mis built with a symbol h∈Γnpushedon the top of
+memories m1,...,m n:f/parenleftbig
+q1(m1),...,qn(mn)/parenrightbig
+→q/parenleftbig
+h(m1,...,m n)/parenrightbig
+. According to the
+terminology of [2], this corresponds to a callmove in a program represented by an au-
+tomaton.
+POP: the new current memory is a subterm of one of the memories rea ched so far:
+f/parenleftbig
+...,qi(h(m′
+1,...,m′
+k)),.../parenrightbig
+→q(m′
+j). The top symbol hofmiis also read. This corre-
+sponds to a function’s returnin a program.
+We have here to split POPoperations into four categories, depending on whether we
+pop on the memory at the left son or on the memory at the right so n and on whether we
+get the left son of that memory or its right son.
+INT(internal) : the new current memory is one of the memories reached:
+f/parenleftbig
+q1(m1),...,qn(mn)/parenrightbig
+→q(mi)
+This corresponds to an internal operation (neither call nor return) in a function of a
+program.
+Again, we need to split INToperations into three categories: one for constant symbols
+and two rules for binary symbols, depending on which of the tw o sons memories we keep.
+Next, we adhere to the visibility condition of [2]. The idea behind this restriction,
+which was already in [16], is that the symbol read by an automa ton (in a term in our case
+and [1], in a word in the case of [2]) corresponds to an instruc tion of a program, and hence
+belongs to one of the three above families (call, return or in ternal). Indeed, the eﬀect of
+the execution of a given instruction on the current program s tate (a stack for [2] or a tree
+in our case) will always be in the same family. In other words, in this context, the family of
+the memory operations performed by a transition is complete ly determined by the function
+symbol read.
+Let us assume from now on for the sake of simplicity the follow ing restriction on the
+arity of symbols:
+
+--- Page 6 ---
+6 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+PUSH a →q(c) a∈ΣPUSH
+PUSH f/parenleftbig
+q1(y1), q 2(y2)/parenrightbig
+→q/parenleftbig
+h(y1,y2)/parenrightbig
+f∈ΣPUSH
+POP11f/parenleftbig
+q1(h(y11,y12)), q2(y2)/parenrightbig
+→q(y11) f∈ΣPOP11
+f/parenleftbig
+q1(⊥), q 2(y2)/parenrightbig
+→q(⊥)
+POP12f/parenleftbig
+q1(h(y11,y12)), q2(y2)/parenrightbig
+→q(y12) f∈ΣPOP12
+f/parenleftbig
+q1(⊥), q 2(y2)/parenrightbig
+→q(⊥)
+POP21f/parenleftbig
+q1(y1), q 2(h(y21,y22))/parenrightbig
+→q(y21) f∈ΣPOP21
+f/parenleftbig
+q1(y1), q 2(⊥)/parenrightbig
+→q(⊥)
+POP22f/parenleftbig
+q1(y1), q 2(h(y21,y22))/parenrightbig
+→q(y22) f∈ΣPOP22
+f/parenleftbig
+q1(y1), q 2(⊥)/parenrightbig
+→q(⊥)
+INT0a →q(⊥) a∈ΣINT0
+INT1f/parenleftbig
+q1(y1), q 2(y2)/parenrightbig
+→q(y1) f∈ΣINT1
+INT2f/parenleftbig
+q1(y1), q 2(y2)/parenrightbig
+→q(y2) f∈ΣINT2
+whereq1,q2,q∈Q,y1,y2are distinct variables of X,c∈Γ2,h∈Γ2.
+Figure 1: VTAM transition categories.
+All the symbols of Σ and Γ have either arity 0 or 2.
+This is not a real restriction, and the results of this paper c an be extended straightforwardly
+to the case of function symbols with other arities. The signa ture Σ is partitioned in eight
+subsets:
+Σ = Σ PUSH⊎ΣPOP11⊎ΣPOP12⊎ΣPOP21⊎ΣPOP22⊎ΣINT0⊎ΣINT1⊎ΣINT2
+The eight corresponding categories of transitions (transi tions of the same category perform
+the same kind of operation on the memory) are deﬁned formally in Figure 1. In this ﬁgure,
+one constant symbol has a particular role:
+⊥is a special constant symbol in Γ, used to represent an empty m emory.
+Note that there are three categories for INT,INT0is for constant symbols and INT1,INT2
+are for binary symbols and diﬀer according to the memory which is kept. Similarly, there
+are four variants of POPtransitions, POP11,...,POP22. Moreover, each POPrule has a
+variant, which reads an empty memory ( i.e.the symbol ⊥).
+Deﬁnition 2.2. Avisibly tree automaton with memory (or VTAM for short) on Σ is a
+TAM (Γ,Q,Qf,∆) such that every rule of ∆ belongs to one of the above categor iesPUSH,
+POP11,POP12,POP21,POP22,INT0,INT1,INT2.
+2.2.Expressiveness, Comparison. Standard bottom-up tree automata are particular
+cases of VTAM (simply assume all the symbols of the signature inINT0orINT1).
+Now, let us try to explain more precisely the relation with th e visibly pushdown lan-
+guages of [2], when considering ﬁnite word languages.
+If the stack is empty in any accepting conﬁguration of some ﬁn ite word pushdown
+automaton A, then it is easy to compute a pushdown automaton /tildewideA, which accepts the
+reverses (mirror images) of the words accepted by A. Moreover, if Ais a visibly pushdown
+automaton, then /tildewideAis also a visibly pushdown automaton: it suﬃces to exchange t he push
+and pop symbols.
+
+--- Page 7 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 7
+For pushdown word languages, there is a well-known lemma sho wing that the recogni-
+tion by ﬁnal state is equivalent to the recognition by empty s tack. This equivalence however
+requires ǫ-transitions to empty the stack when a ﬁnal state is reached. There are however
+noǫ-transitions in visibly pushdown automata. So, if we consid er for instance the language
+of words w∈ {a,b}∗such that any preﬁx of wcontains more athanb’s, it is recognized by
+a visibly pushdown automaton. While, if we consider the mirr or image (all suﬃxes contain
+morea’s thanb’s), it is not recognized by a visibly pushdown automaton.
+In conclusion, as long as visibility is relevant, the way the automaton is moving is also
+relevant. This applies of course to trees as well: there is a d iﬀerence between top-down and
+bottom-up recognition.
+Now, if we encode a word as a tree on a unary alphabet, starting from right to left,
+VTAM generalize visibly pushdown automata: moving bottom- up in the tree corresponds
+to moving left-right in the word.
+VPTA transitions and VPTL are deﬁned in [5] in the same formal ism (rewrite rules) as
+in Figure 1, except that the rules are oriented in the other di rection (top-down computa-
+tions) and the memory contains a word, i.e. terms built with u nary function symbols and
+one constant (empty stack).
+As sketched above, since the automata of [5] work top-down, a language can be rec-
+ognized by a VTAM (which works bottom-up) and not by a VPTL. As a typical example,
+consider the trees containing only unary symbols a,band a constant 0 and such that all
+subterms contain more a’s thanb’s.
+But the converse is also true: there are similarly languages that are recognized by
+VPTA and not by VTAM (and there, constraints cannot help!)
+Now, if weconsider aslight modiﬁcation of VPTA, inwhich the automata work bottom-
+up (simply change the direction of transition rules), it is n ot clear that good properties
+(closure and decision) are preserved since, now, we get equa lity tests between memory
+contents, increasingtheoriginal expressivepower; wheng oing top-downwealways duplicate
+the memory content and send one copy to each son, while going b ottom-up we may have
+diﬀerent memory contents at two brother positions.
+2.3.Determinism. A VTAM Ais saidcomplete if every term of T(Σ) belongs to L(A,q)
+for at least one state q∈Q. Every VTAM can be completed (with a polynomial overhead)
+by the addition of a trash state. Hence, we shall consider fro m now on only complete
+VTAM.
+A VTAM A= (Γ,Q,Qf,∆) is said deterministic iﬀ:
+•for alla∈ΣINT0there is at most one rule in ∆ with left-member a,
+•for allf∈ΣPUSH∪ΣINT1∪ΣINT2, for allq1,q2∈Q, there is at most one rule in ∆ with
+left-member f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+,
+•for allf∈ΣPOP11∪ΣPOP12(respectively Σ POP21∪ΣPOP22), for allq1,q2∈Qand allh∈Γ,
+there is at most one rule in ∆ with left-member f/parenleftbig
+q1(h(y11,y12)),q2(y2)/parenrightbig
+(respectively
+f/parenleftbig
+q1(y1),q2(h(y21,y22))/parenrightbig
+).
+Theorem 2.3. For every VTAM A= (Γ,Q,Qf,∆)there exists a deterministic VTAM
+Adet= (Γdet,Qdet,Qdet
+f,∆det)such that L(A) =L(Adet), where|Qdet|and|Γdet|both are
+O/parenleftbig
+2|Q|2/parenrightbig
+.
+
+--- Page 8 ---
+8 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+Proof.We follow the technique of [2] for the determinization of vis ibly pushdown automata:
+we do a subset construction and postpone the application (to the memory) of PUSHrules,
+until a matching POPis met. The construction of [2] is extended in order to handle the
+branching structure of the term read and of the memory.
+With the visibility condition, for each symbol read, only on e kind of memory operation
+is possible. This permits a uniform construction of the rule s ofAdetfor each symbol of Σ.
+As we shall see below, Adetdoes not need to keep track of the contents of memory (of A)
+during its computation, it only needs to memorize informati on on the reachability of states
+ofA, following the path (in the term read) from the position of th ePUSHsymbol which has
+pushed the top symbol of the current memory (let us call it the last-memory-push-position )
+to the current position in the term. We let :
+Qdet:={0,1}×P(Q)×P(Q2)
+Qdet
+fis the subset of states whose second component contains a ﬁna l state of Qf. The ﬁrst
+component is a ﬂag indicating whether the memory is currentl y empty (value 0) or not
+(value 1). The second component is the subset of states of QthatAcan reach at current
+position, and thethird component is a binary relation on Qwhich contains ( q,q′) iﬀ starting
+from a state qand memory mat the last-memory-push-position, Acan reach the current
+position in state q′, and with the same memory m. We consider memory symbols made of
+pairs of states and PUSHsymbols:
+Γdet:=/parenleftbig
+Qdet/parenrightbig2×(ΣPUSH)
+The components of a symbol p∈Γdetrefer to the transition who pushed p: the ﬁrst and
+second components of pare respectively the left and right initial states of the tra nsition
+and the third component is the symbol read.
+The transition rules of ∆detare given below, according to the symbol read.
+INT. For every iand for every f∈ΣINTi, we have the following rules in ∆det:
+f/parenleftbig
+/a\}bracketle{tb1,R1,S1/a\}bracketri}ht(y1),/a\}bracketle{tb2,R2,S2/a\}bracketri}ht(y2)/parenrightbig
+→ /a\}bracketle{tb1,R,S/a\}bracketri}ht(y1)
+whereR:=/braceleftbig
+q/vextendsingle/vextendsingle∃q1∈R1,q2∈R2,f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+→q(y1)∈∆/bracerightbig
+, andSis the update of
+S1according to the INT1-transitions of ∆, when b1= 1 (the case b1= 0 is similar):
+S:=/braceleftbig
+(q,q′)/vextendsingle/vextendsingle∃q1∈Q,q2∈R2,(q,q1)∈S1andf/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+→q′(y1)∈∆/bracerightbig
+.
+The case f∈ΣINT2is similar.
+PUSH. For every f∈ΣPUSH, we have the following rules in ∆det:
+f/parenleftbig
+/a\}bracketle{tb1,R1,S1/a\}bracketri}ht(y1),/a\}bracketle{tb2,R2,S2/a\}bracketri}ht(y2)/parenrightbig
+→ /a\}bracketle{t1,R,IdQ/a\}bracketri}ht(p(y1,y2))
+whereR:=/braceleftbig
+q/vextendsingle/vextendsingle∃q1∈R1,q2∈R2,h∈Γ,f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+→q/parenleftbig
+h(y1,y2)/parenrightbig
+∈∆/bracerightbig
+,IdQ:=/braceleftbig
+(q,q)/vextendsingle/vextendsingleq∈Q/bracerightbig
+is used to initialize the memorization of state reachabilit y from the position
+of the symbol f, andp:=/angbracketleftbig
+/a\}bracketle{tb1,R1,S1/a\}bracketri}ht,/a\}bracketle{tb2,R2,S2/a\}bracketri}ht,f/angbracketrightbig
+. Note that the two states reached
+just below the position of application of this rule are pushe d on the top of the memory.
+They will be used later in order to update RandSwhen a matching POPsymbol is read.
+
+--- Page 9 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 9
+POP. For every f∈ΣPOP11, we have the following rules in ∆det:
+f/parenleftbig
+/a\}bracketle{tb1,R1,S1/a\}bracketri}ht(H(y11,y12)),/a\}bracketle{tb2,R2,S2/a\}bracketri}ht(y2)/parenrightbig
+→ /a\}bracketle{tb,R,S/a\}bracketri}ht(y11)
+whereH=/a\}bracketle{tQ1,Q2,g/a\}bracketri}ht, withQ1=/a\}bracketle{tb′
+1,R′
+1,S′
+1/a\}bracketri}ht ∈Qdet,Q2=/a\}bracketle{tb′
+2,R′
+2,S′
+2/a\}bracketri}ht ∈Qdet.
+b=b′
+1
+R=/braceleftbigg
+q/vextendsingle/vextendsingle/vextendsingle/vextendsingle∃q′
+1∈R′
+1,q′
+2∈R′
+2,(q0,q1)∈S1,q2∈R2,h∈Γ,g/parenleftbig
+q′
+1(y1),q′
+2(y2)/parenrightbig
+→
+q0/parenleftbig
+h(y1,y2)/parenrightbig
+∈∆,f/parenleftbig
+q1(h(y11,y12)),q2(y2)/parenrightbig
+→q(y11)∈∆/bracerightbigg
+S=/braceleftbigg
+(q,q′)/vextendsingle/vextendsingle/vextendsingle/vextendsingle∃q′
+1∈S′
+1(q),q′
+2∈R′
+2,(q0,q1)∈S1,q2∈R2,h∈Γ,g/parenleftbig
+q′
+1(y1),q′
+2(y2)/parenrightbig
+→q0/parenleftbig
+h(y1,y2)/parenrightbig
+∈∆,f/parenleftbig
+q1(h(y11,y12)),q2(y2)/parenrightbig
+→q′(y11)∈∆/bracerightbigg
+When aPOPsymbol is read, the top symbol of the memory, which is popped, contains the
+states reached just before the application of the matching PUSH. We use this information
+in order to update /a\}bracketle{tb1,R1,S1/a\}bracketri}htand/a\}bracketle{tb2,R2,S2/a\}bracketri}htto/a\}bracketle{tb,R,S/a\}bracketri}ht.
+The cases f∈ΣPOP12,f∈ΣPOP21,f∈ΣPOP22are similar.
+The above constructions ensure the three invariants stated above, after the deﬁnition
+ofQdetand corresponding to the three components of these states. I t follows that L(A) =
+L(Adet).
+2.4.Closure Properties. The tree automata with one memory of [7] are closed under
+union but not closed under intersection and complement (eve n their version without con-
+straints). The visibility condition makes possible these c losures for VTAM.
+Theorem 2.4. The class of tree languages of VTAM is closed under Boolean ope rations.
+One can construct VTAM for union, intersection and compleme nt of given VTAM languages
+whose sizes are respectively linear, quadratic and exponen tial in the size of the initial VTAM.
+Proof.LetA1= (Γ1,Q1,Qf,1,∆1) andA2= (Γ2,Q2,Qf,2,∆2) be two VTAM on Σ. We
+assume wlog that Q1andQ2are disjoint.
+For the union of the languages of A1andA2, we construct a VTAM A∪whose memory
+signature, state set, ﬁnal state set and rules set are the uni on of the respective memory
+signatures, state sets, ﬁnal state sets and rules sets of the two given VTAM. We have
+L(A∪) =L(A1)∪L(A2).
+A∪= (Γ1∪Γ2,Q1∪Q2,Qf,1∪Qf,2,∆1∪∆2)
+For the intersection of the languages of A1andA2, we construct a VTAM A∩whose
+memory signature, state set and ﬁnal state set are the Cartes ian product of the respective
+memory signatures, state sets and ﬁnal state sets of the two g iven VTAM.
+A∩= (Γ1×Γ2,Q1×Q2,Qf,1×Qf,2,∆∩)
+The rule set ∆ ∩of the intersection VTAM A∩is obtained by ”product” of rules of the two
+given VTAM with same function symbols. The product of rules m eans Cartesian products
+of the respective states and memory symbols pushed or popped . More precisely, ∆ ∩is the
+smallest set of rules such that:
+•if ∆1contains f/parenleftbig
+q11(y1),q12(y2)/parenrightbig
+→q1/parenleftbig
+h1(y1,y2)/parenrightbig
+and ∆ 2contains f/parenleftbig
+q21(y1),q22(y2)/parenrightbig
+→
+q2/parenleftbig
+h2(y1,y2)/parenrightbig
+, for some f∈ΣPUSH, then ∆ ∩contains f/parenleftbig
+/a\}bracketle{tq11,q21/a\}bracketri}ht(y1),/a\}bracketle{tq12,q22/a\}bracketri}ht(y2)/parenrightbig
+→
+/a\}bracketle{tq1,q2/a\}bracketri}ht/parenleftbig
+/a\}bracketle{th1,h2/a\}bracketri}ht(y1,y2)/parenrightbig
+.
+
+--- Page 10 ---
+10 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+•if ∆1contains f/parenleftbig
+q11(h1(y11,y12)/parenrightbig
+,q12(y2)/parenrightbig
+→q1(y11) and ∆ 2contains
+f/parenleftbig
+q21(h2(y11,y12)/parenrightbig
+,q22(y2)/parenrightbig
+→q2(y11) for some f∈ΣPOP11, then ∆ ∩contains
+f/parenleftbig
+/a\}bracketle{tq11,q2,1/a\}bracketri}ht(/a\}bracketle{th1,h2/a\}bracketri}ht(y11,y12)/parenrightbig
+,/a\}bracketle{tq12,q2,2/a\}bracketri}ht(y2)/parenrightbig
+→ /a\}bracketle{tq1,q2/a\}bracketri}ht(y11)
+•similarly for POP12,POP21andPOP22
+•if ∆1contains f/parenleftbig
+q11(y1),q21(y2)/parenrightbig
+→q1(y1) and ∆ 2contains f/parenleftbig
+q21(y1),q22(y2)/parenrightbig
+→q2(y1)
+for some f∈ΣINT1, then ∆ ∩contains f/parenleftbig
+/a\}bracketle{tq11,q2,1/a\}bracketri}ht(y1),/a\}bracketle{tq12,q2,2/a\}bracketri}ht(y2)/parenrightbig
+→ /a\}bracketle{tq1,q2/a\}bracketri}ht(y1)
+•and similarly for INT2,INT0.
+We have then L(A∩) =L(A1)∩L(A2). Note that the above product construction for A∩is
+possible only because the visibility condition ensures tha t two rules with the same function
+symbol in left-side will have the same form. Hence we can sync hronize memory operations
+on the same symbols.
+For the complement, we use the construction of Theorem 2.3 an d a completion (this
+operation preserves determinism), and take the complement of the ﬁnal state set of the
+VTAM obtained.
+2.5.Decision Problems. Every VTAM is a particular case of tree automaton with one
+memory of [7]. Since the emptiness problem (whether the lang uage accepted is empty or
+not) is decidable for this latter class, it is also decidable for VTAM. However, whereas this
+problem is EXPTIME-complete for the automata of [7], it is on ly PTIME for VTAM.
+Theorem 2.5. The emptiness problem is PTIME-complete for VTAM.
+Proof.Assume given a VTAM A= (Γ,Q,Qf,∆). By deﬁnition, for each state q∈Q, the
+language L(A,q) is empty iﬀ the memory language M(A,q) is empty. For each state q, we
+introduce a predicate symbol Pqand we construct Horn clauses in such a way that Pq(m)
+belongs to the least Herbrand model of this set of clauses, iﬀ the conﬁguration with state q
+and memory mis reachable by the automaton (i.e. m∈M(A,q)).
+For such a construction (already given in [7]), we simply for get the function symbol, as-
+sociatingtoatransitionrule f(q1(m1),q2(m2))→q(m)theHornclause Pq1(m1),Pq2(m2)⇒
+Pq(m). Then, according to the restrictions in Deﬁnition 2.2, we g et only Horn clauses of
+one of the following forms:
+⇒Pq(c)
+Pq1(y1),Pq2(y2)⇒Pq/parenleftbig
+h(y1,y2)/parenrightbig
+Pq1/parenleftbig
+h(y11,y12)/parenrightbig
+,Pq2(y2)⇒Pq(y11)
+Pq1/parenleftbig
+h(y11,y12)/parenrightbig
+,Pq2(y2)⇒Pq(y12)
+Pq1(⊥),Pq2(y2)⇒Pq(⊥)
+Pq1(y1),Pq2(y2)⇒Pq(y1)
+where all the variables are distinct. Such clauses belong to the class H3of [19], for which
+it is proved in [19] that emptiness is decidable in cubic time . It follows that emptiness of
+VTAM is decidable in cubic time.
+Hardness for PTIME follows from the PTIME-hardness of empti ness of ﬁnite tree au-
+tomata [8].
+
+--- Page 11 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 11
+Another proof relying on similar techniques, but for a moreg eneral result, will bestated
+in Lemma 3.7 and can be found in Appendix 5.
+Theuniversality is the problem of deciding whether a given automaton recogni zes
+all ground terms. Inclusion refers to the problem of deciding the inclusion between the
+respective languages of two given automata.
+Corollary 2.6. The universality and inclusion problem are EXPTIME-completef or VTAM.
+Proof.A VTAM Ais universal iﬀ the language of its complement automaton Ais empty,
+andL(A1)⊆L(A2) iﬀL(A1)∩L(A2) =∅. With the bounds given in Theorem 2.4 these
+problems can be decided in EXPTIME for VTAM (these operation s require a determiniza-
+tion of a given VTAM ﬁrst).
+The EXPTIME-hardness follows from the corresponding prope rty of ﬁnite tree au-
+tomata (see [8] for instance).
+Themembership problem is, given a term tand an automaton A, to know whether tis
+accepted by A.
+Corollary 2.7. The membership problem is decidable in PTIME for VTAM.
+Proof.Given a term twe can build a VTAM Atwhich recognizes exactly the language
+{t}. The intersection of Atwith the given VTAM Arecognizes a non empty language iﬀ t
+belongs to the language of A.
+3.Visibly Tree Automata with Memory and Constraints
+In the late eighties, some models of tree recognizers were ob tained by adding equality
+and disequality constraints in transitions of tree automat a. They have been proposed in
+order to solve problems with term rewrite systems or constra ints systems with non-linear
+patterns (terms with multiple occurrences of the same varia ble). The tree automata of [4]
+for instance can perform equality and disequality tests bet ween subterms located at brother
+positions of the input term.
+In the case of tree automata with memory, constraints are app lied to the memory
+contents. Indeed,eachbottom-upcomputationstepstartsw ithtwostatesandtwomemories
+(and ends with one state and one memory), and therefore, it is possible to compare the
+contents of these two memories, with respect to some binary r elation.
+We state ﬁrst the general deﬁnition of visibly tree automata with constraints on mem-
+ories (Section 3.1), then give suﬃcient conditions on the bi nary relation for the emptiness
+decidability (Section 3.2) and show that, if in general regu lar binary relations do not sat-
+isfy these conditions (and indeed, the corresponding class of constrained VTAM has an
+undecidable emptiness problem, Section 3.3) some relevant examples do satisfy them. In
+particular, we study in Section 3.4.2 the case of VTAM with st ructural equality constraints.
+They enjoy not only decision properties but also good closur e properties. Some relevant
+examples of tree languages recognized by constrained VTAM o f this class are presented at
+the end of the section.
+
+--- Page 12 ---
+12 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+INTR
+1f9/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −−−− →y1Ry2q(y1)f9∈ΣINTR
+1
+INTR
+2f10/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −−−− →y1Ry2q(y2)f10∈ΣINTR
+2
+INTR
+1f11/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q(y1)f11∈ΣINTR
+1
+INTR
+2f12/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q(y2)f12∈ΣINTR
+2
+Figure 2: New transition categories for VTAMR
+¬R.
+3.1.Deﬁnitions. Assume given a ﬁxed equivalence relation RonT(Γ). We consider now
+two new categories for the symbols of Σ: INTR
+1andINTR
+2, in addition to the eight previous
+categories of page 6. The new categories correspond to the co nstrained versions of the
+transition rules INT1andINT2presented in Figure 2. The constraint y1Ry2in the two ﬁrst
+rules of Figure 2 is called positiveand the constraint y1¬Ry2in the two last rules is called
+negative.
+We shall not extend the rules PUSHandPOPwith constraints for some rea-
+sons explained in section 3.5. A ground term trewrites to sby a constrained rule
+f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−− →y1cy2r(wherecis either Ror¬R) if there exists a position poft
+and a substitution σsuch that t|p=ℓσ,y1σcy2σands=t[rσ]p.
+For example, if Ris term equality, the transition is performed only when the m emory
+contents are identical.
+Deﬁnition 3.1. Avisibly tree automaton with memory and constraints (VTAMR
+¬R) on a
+signature Σ is a tuple (Γ ,R,Q,Q f,∆) where Γ, Q,Qfare deﬁned as for TAM, Ris an
+equivalence relation on T(Γ) and ∆ is a set of rewrite rules in one of the above categorie s:
+PUSH,POP11,POP12,POP21,POP22,INT0,INT1,INT2,INTR
+1,INTR
+2.
+We let VTAMRbe the subclass of VTAMR
+¬Rwith positive constraints only. The accep-
+tance of terms of T(Σ) and languages of term and memories are deﬁned and denoted as in
+Section 2.1.
+The deﬁnition of complete VTAMR
+¬Ris the same as for VTAM. As for VTAM, every
+VTAMR
+¬Rcan be completed (with a polynomial overhead) by the additio n of a trash state
+q⊥. The only subtle diﬀerence concerns the constrained rules: f or every f9∈INTR
+1and
+every states q1,q2,
+•if there is a rule f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−− →y1Ry2q(y1) and no rule of the form
+f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q′(y1), then we add f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q⊥(y1),
+•if there is a rule f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q(y1) and no rule of the form
+f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−− →y1Ry2q′(y1), then we add f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−− →y1Ry2q⊥(y1),
+•ifthereisnoruleoftheform f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−− →y1Ry2q(y1)orf9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2
+q′(y1), then we add f9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−− →y1Ry2q⊥(y1) andf9/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2
+q⊥(y1).
+The deﬁnition of deterministic VTAMR
+¬Ris based on the same conditions as for VTAM
+for thefunction symbolsin categories of PUSH0,PUSH,POP11, ...,POP22,INT1,INT2. For
+the function symbols of INTR
+1,INTR
+2, we have the following condition: for all f∈ΣINTR
+1∪
+ΣINTR
+2for allq1,q2∈Q, there are at most two rules in ∆ with left-member f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+,
+and if there are two, one has a positive constraint and the oth er has a negative constraint.
+
+--- Page 13 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 13
+We will see in Section 3.4 a subclass of VTAMR
+¬Rthat can be determinized (when Ris
+structural equality) and another one that cannot (when Ris syntactic equality).
+3.2.Suﬃcient Conditions for Emptiness Decision. We propose here a generic theo-
+rem ensuring emptiness decision for VTAMR
+¬R. The idea of this theorem is that under some
+condition on R, the transition rules with negative constraints can be elim inated.
+Theorem 3.2. LetRbe an equivalence relation satisfying these two properties :
+i.for every automaton AofVTAMRand for every state qofA, the memory language
+M(A,q)is eﬀectively a regular tree language,
+ii.for every term m∈ T(Γ), the cardinality of the equivalence class of mforRis ﬁnite
+and and its elements can be enumerated.
+Then the emptiness problem is decidable for VTAMR
+¬R.
+Proof.The proof relies on the following Lemma 3.3 which states that the negative con-
+straints in VTAMR
+¬Rcan be eliminated, while preserving the memory languages. T he elim-
+ination can be done thanks to the condition ii, by replacement of the rules of INT¬R
+1and
+INT¬R
+2by rules of INTR
+1andINTR
+2.
+Next, we can use iin order to decide emptiness for the VTAMRobtained by elimination
+of negative constraints. Indeed, for all states qofA, by deﬁnition, L(A,q) is empty iﬀ
+M(A,q) is empty.
+Lemma 3.3. LetRsatisfy the hypotheses iandiiof Theorem 3.2, and let A=
+(Γ,R,Q,Q f,∆)be aVTAMR
+¬R. There exists a VTAMRA+= (Γ,R,Q+,Qf,∆+)such
+thatQ⊆Q+, and for each q∈Q,M(A+,q) =M(A,q).
+Proof.The construction of A+is by induction on the number nof rules with negative
+constraints in ∆ and uses the bound on the size of equivalence classes, condition iiof the
+theorem.
+The result is immediate if n= 0.
+We assume that the result is true for n−1 rules, and show that we can get rid of a rule
+of ∆ with negative constraints (and replace it with rules unc onstrained or with positive
+constraints). Let us consider one such rule:
+f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −−−−− →y1¬Ry2q(y1) (3.1)
+We show that, under the induction hypothesis, we have the fol lowing lemma which will
+be used below in order to get rid of the rule (3.1).
+Lemma 3.4. Givenm1,...,m k∈M(A,q2), it is eﬀectively decidable whether M(A,q2)\
+{m1,...,m k}is empty or not and, in case it is not empty, we can eﬀectively b uild amk+1
+in this set.
+Proof.Let [mi]Rdenote the equivalence class of mi. By condition ii, every [mi]Ris ﬁnite,
+hence for each i≤k, we can build a VTAM Aiwith a state pisuch that M(Ai,pi) is the
+complement of [ mi]R. We add all the rules of AitoA, obtaining A′(we assume that the
+state sets of A1,...,Ak,Aare disjoint, and that the states of A1,...,Akare not ﬁnal in
+A′).
+SinceRis an equivalence relation, we have:
+y1¬Rmiiﬀy1/∈[mi]Riﬀ∃y2/∈[mi]R, y1Ry2
+
+--- Page 14 ---
+14 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+Hence, if y2=miis a witness for the rule (3.1), then we can apply instead a rul e:
+f/parenleftbig
+q1(y1),pi(y2)/parenrightbig
+− −−−− →y1Ry2q(y1) (3.2)
+Thenweaddto A′therules(3.2) asaboveandobtain A′′. Itcanbeshownthat M(A′′,q2) =
+M(A,q2).
+Letmk+1be a term of M(A′′,q2)\{m1,...,m k}of minimal size (if one exists). This
+termmk+1can be created in a run of A′′which does not use the rule (3.1). Otherwise, the
+witness for y2in the application of this rule would be a term of M(A′′,q2)\{m1,...,m k}
+smaller than mk+1(it cannot be one of {m1,...,m k}because for these particular values
+ofy2, we assume the application of (3.2)). It follows that mk+1∈M(A′′\(3.1),q2). This
+automaton A1=A′′\(3.1) has n−1 rules with negative constraints. Hence, by induction
+hypothesis, there is a VTAMRA+
+1withmk+1in its memory language M(A+
+1,q2). By
+condition i, this language is regular and we can build mk+1from a TA for this language.
+Now, let us come back to the proof that we can replace rule (3.1 ), while preserving the
+memory languages.
+IfM(A,q2) =∅(whichcan beeﬀectively decidedaccordingtolemma3.4)then therule(3.1)
+is useless and can be removed from Awithout changing its memory language. Note that
+the condition M(A,q2) =∅is decidable because by hypothesis i,M(A,q2) is regular.
+Otherwise, let m1∈M(A,q2) be built with Lemma 3.4 and let N1be the cardinal of the
+equivalence class [ m1]R. We apply N1times the construction of Lemma 3.4. There are
+three cases:
+(1) if we ﬁnd more than N1terms in M(A,q2), then one of them, say mkis not in [ m1]R.
+Then (3.1) is useless for the point of view of memory language s: whatever value for y1,
+we know a y2∈M(A,q2) which permits to ﬁre the rule. Indeed, if y1∈[m1]R, then we
+can choose y2=mk, and otherwise we choose y2=m1. Hence (3.1) can be replaced
+without changing the memory language by:
+f/parenleftbig
+q1(y1),q0(y2)/parenrightbig
+− →q(y1) (3.3)
+whereq0is any state of Asuch that M(A,q0)/\e}atio\slash=∅. We can then apply the induction
+hypothesis to the VTAMR
+¬Robtained.
+(2) if we ﬁnd less than N1terms in M(A,q2), but one is not in [ m1]R. The case is the same
+as above.
+(3) if we ﬁnd less than N1terms in M(A,q2), all in [ m1]R, it means that one of the appli-
+cations of Lemma 3.4 was not successful, and hence that we hav e found all the terms
+ofM(A,q2). It follows that the rule (3.1) can be ﬁred iﬀ y1/∈[m1]R, i.e. there exists
+y2/∈[m1]Rsuch that y1Ry2. Hence, we can replace (3.1) by
+f/parenleftbig
+q1(y1),p1(y2)/parenrightbig
+− −−−− →y1Ry2q(y1).
+Then we can apply the induction hypothesis.
+We present in Section 3.4 two examples of relations satisfyi ngi.andii.
+
+--- Page 15 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 15
+3.3.Regular Tree Relations. We ﬁrst consider the general case of VTAMR
+¬Rwhere the
+equivalence Ris based on an arbitrary regular binary relation on T(Γ). By regular binary
+relation, we mean a set of pairs of ground terms accepted by a t ree automaton computing
+simultaneously in both terms of the pair. More formally, we u se a coding of a pair of terms
+ofT(Σ) into a term of T/parenleftbig
+(Σ∪{⊥})2/parenrightbig
+, where⊥is a new constant symbol (not in Σ). This
+coding is deﬁned recursively by:
+• ⊗:T(Σ)∪{⊥}×T (Σ)∪{⊥} → T/parenleftbig
+(Σ∪{⊥})2/parenrightbig
+•for alla,b∈Σ0∪{⊥},a⊗b:=/a\}bracketle{ta,b/a\}bracketri}ht,
+•foralla∈Σ0∪⊥,f∈Σ2,t1,t2∈ T(Σ),f(t1,t2)⊗a:=/a\}bracketle{tf,a/a\}bracketri}ht(t1⊗⊥,t2⊗⊥)a⊗f(t1,t2) :=
+/a\}bracketle{ta,f/a\}bracketri}ht(⊥⊗t1,⊥⊗t2),
+•for allf,g∈Σ2,s1,s2,t1,t2∈ T(Σ),f(s1,s2)⊗g(t1,t2) :=/a\}bracketle{tf,g/a\}bracketri}ht(s1⊗t1,s2⊗t2).
+Then, a binary relation R⊆ T(Σ)×T(Σ) is called regular iﬀ the set {s⊗t/vextendsingle/vextendsingle(s,t)∈R}is
+regular. The above coding of pairs is unrelated to the produc t used in Theorem 2.4.
+Theorem 3.5. The membership problem for VTAMR
+¬Ris NP-complete when Ris a regular
+binary relation.
+Proof.Assumegivenagroundterm t∈ T(Σ)andaVTAMR
+¬RA= (Γ,R,Q,Q f,∆). Because
+of the visibly condition, for every subterm soft, we can compute in polynomial time in the
+size ofsthe shape denoted struct(s), which is an abstraction of the memory reached when
+Aruns ons. More precisely, struct(s) is an unlabeled tree, and every possible content of
+memory mreachable by Ain a computation s− − →∗
+∆q(m) is obtained by a labeling of the
+nodes of struct(s) with symbols of Γ. Note that for all subterm s, the size of struct(s) is
+smaller than the size of t.
+Let us guess a decoration of every node of twith a state of Qand a labeling of struct(s)
+(wheresis the subterm of tat the given node), such that the root of tis decorated with
+a ﬁnal state of Qf. We can check in polynomial time whether this decoration rep resents a
+run ofAontor not.
+The NP-hardness is a consequence of Theorem 3.9, which appli es to the particular case
+whereRis the syntactic equality between terms.
+Note that the NP algorithm works with every equivalence Rbased on a regular relation,
+but the the NP-hardness concerns only some cases of such rela tions. For instance, in
+Section 3.4, we will see one example of relation for which mem bership is NP-hard and
+another example for which it is in PTIME.
+The class of VTAMR
+¬RwhenRis a binary regular tree relation constitutes a nice and
+uniform framework. Note however the condition iiof Theorem 3.2 is not always true in
+this case. Actually, this class is too expressive.
+Theorem 3.6. Given a regular binary relation Rand an automaton AinVTAMR, the
+emptiness of L(A)is undecidable.
+Proof.We reduce the blank accepting problem for a deterministic Tu ring machine M. We
+encode conﬁgurations of Mas ”right-combs” (binary trees) built with the tape and stat e
+symbols of M, in ΣPUSH(hence binary) and a constant symbol εin ΣINT0. LetRbe the
+regular relation which accepts all the pairs of conﬁguratio nsc⊗c′such that c′is a successor
+ofcbyM. A sequence of conﬁgurations c0c1...cn(withn≥1) is encoded as a tree
+t=f(c0(f(c1,...f(cn−1,cn))), where fis a binary symbol of ΣINTR
+1.
+
+--- Page 16 ---
+16 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+We construct a VTAMRAwhich accepts exactly the term-representations tof com-
+putation sequences of Mstarting with the initial conﬁguration c0ofMand ending with
+a ﬁnal conﬁguration cnwith blank tape. Following the type of the function symbols, the
+rules ofAwill
+•push all the symbols read in subterms of tcorresponding to conﬁgurations,
+•compare, with R,ciandci+1(the memory contents in respectively the left and right
+branches) and store ciin the memory, with a transition applied at the top of a subter m
+f(ci,f(ci+1,...)).
+This way, Achecks that successive conﬁgurations in tcorrespond to transitions of M,
+hence that the language of Ais not empty iﬀ Maccepts the initial conﬁguration c0.
+3.4.Syntactic and Structural Equality and Disequality Constraints. We present
+now two examples of relations satisfying the conditions of T heorem 3.2: syntactic and
+structural term equality. The satisfaction of condition iwill be proved with the help of the
+following crux Lemma.
+Lemma 3.7. LetRbe a regular binary relation deﬁned by a TA whose state set is/braceleftbig
+Ri/vextendsingle/vextendsingle
+i={1..n}/bracerightbig
+and such that ∀i,j∃k,l,∀x,y,z. xR iy∧yRjz⇔xRky∧xRlz.
+LetA= (Γ,R,Q,Q f,∆)be a tree automaton with memory and constraints (not necessa rily
+visibly). Then it is possible to compute in exponential time a ﬁnite tree automaton A′, such
+that, for every state q∈Q, the language M(A,q)is the language accepted in some state
+ofA′.
+Proof.(Sketch) To prove this lemma, we ﬁrst observe that the M(A,q) (forq∈Q) are
+actually the least sets that satisﬁes the following conditi ons (we assume here for simplicity
+that the non-constant symbols are binary and display only so me of the implications; the
+others can be easily guessed):
+∀x,y,z. x ∈M(A,q1),y∈M(A,q2))⇒g(x,y)∈M(A,q)
+if there is a rule f(q1(x1),q2(x2))→q(g(x1,x2))
+g(x,y)∈M(A,q1),z∈M(A,q2)⇒x∈M(A,q)
+if there is a rule f(q1(g(x,y),q2(z))→q(x)
+x∈M(A,q1),y∈M(A,q2),R(x,y)⇒x∈M(A,q)
+if there is a rule f(q1(x),q2(y))− −− →xRyq(x)
+···
+In terms of automata, this means that M(A,q) is a language recognized by a two-way
+alternating tree automaton with regular binary constraint s. In other words, such languages
+are the least Herbrand model of a set of clauses of the form
+Q1(y1),Q2(y2),R(y1,y2)⇒Q3(y1) INT1,INT2
+Q1(y1),Q2(y2)⇒Q3(f(y1,y2))PUSH
+⇒Q1(a) INT0
+Q1(f(y1,y2)),Q2(y3)⇒Q3(y1) POP11,POP21
+Q1(f(y1,y2)),Q2(y3)⇒Q3(y2) POP12,POP22
+The lemma then shows that languages that are recognized by tw o-way alternating
+tree automata with some particular regular constraints, ar e also recognized by a ﬁnite
+
+--- Page 17 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 17
+tree automaton. This corresponds to classical reductions o f two-way automata to one-way
+automata (see e.g [8], chapter 7, [13], or [12, 6] for the ﬁrst relevant references). The idea
+of the reduction is to ﬁnd shortcuts: moving up and down yield s a move at the same
+level. Add such shortcuts as new rules, until getting a “comp lete set”. Then only keep
+the non-redundant rules: this yields a ﬁnite tree automaton . Such a procedure relies on
+the deﬁnitions of ordered strategies, redundancy and satur ation (aka complete sets), which
+are classical notions in automated ﬁrst-order theorem prov ing [13, 3, 20]. Indeed, formally,
+a “shortcut” must be a formula, which allows for smaller proo fs than the proof using the
+two original rules. A saturated set corresponds to a set of formulas whose all shortcuts are
+already in the set.
+The advantage of the clausal formalism is to enable an easy re presentation of the above
+shortcuts, as intermediary steps. Such shortcuts are claus es, but are not automata rules.
+Second, we may rely on completeness results for Horn clauses .
+That is why, only for the proof of this lemma, which follows an d extend the classical
+proofs adding some regular constraints, we switch to a ﬁrst- order logic formalization. The
+complete proof can be found in Appendix 5. As in the classical proofs, we saturate the
+set of clauses by resolution with selection and eager splitt ing. This saturation terminates,
+and the set of clauses corresponding to ﬁnite tree automata t ransitions in the saturated set
+recognizes the language M(A,q), which is therefore regular.
+The condition on Rin the lemma allows to break chains such as ∃x1,...,x n.xRx1∧
+x1Rx2∧···∧xnRy∧P(x,y), which would be a source of non-termination in the saturati on
+procedure. We may indeed replace such chains by ∃x1,...,x n.xR1x1∧xR2x2∧...∧xRnxn∧
+xR0y∧P(x,y), which can again be simpliﬁed into ∃x1.xSx1∧xR0y∧P(x,y) whereSis the
+intersection of R1,...,R n. Possible such intersections range in a ﬁnite set as the rela tionR
+is regular and the Ris are states of the automaton accepting R.
+Finally note that ﬁnding k,lin the lemma’s assumption can always be performed in an
+eﬀective way since Ris regular.
+3.4.1.Syntactic Constraints. We ﬁrst apply Lemma 3.7 to the class VTAM=
+/ne}ationslash=where = de-
+notes the equality between ground terms made of memory symbo ls. Note that it is a
+particular case of constrained VTAMR
+¬Rof the above section 3.3, since the term equality is
+a regular relation. The automata of the subclass with positi ve constraints only, VTAM=,
+are particular cases of tree automata with one memory of [7], and have therefore a decidable
+emptiness problem. We show below that VTAM=
+/ne}ationslash=fulﬁlls the hypotheses of Theorem 3.2,
+and hence that the emptiness is also decidable for the whole c lass.
+We can ﬁrst verify that the relation = checks the hypothesis o f Lemma 3.7, hence the
+condition iof Theorem 3.2. Moreover, the relation = obviously also chec ks the condition ii
+of Theorem 3.2.
+Corollary 3.8. The emptiness problem is decidable for VTAM=
+/ne}ationslash=.
+A careful analysis of the proof of Theorem 3.2 permits to conc lude to an EXPTIME
+complexity for this problem with VTAM=
+/ne}ationslash=.
+Theorem 3.9. The membership problem is NP-complete for VTAM=
+/ne}ationslash=.
+Proof.An NP algorithm is given in the proof of Theorem 3.5. For the NP -hardness, we use
+a logspace reduction of 3-SAT. Let us consider an instance of 3-SAT with npropositional
+
+--- Page 18 ---
+18 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+variables X1,...,X nand a conjunction of mclauses:
+m/logicalanddisplay
+i=1(αi,1∨αi,2∨αi,3)
+where every αi,jis either a variable Xk(k≤n) or a negation of variable ¬Xk. We assume
+wlog that every variable occurs at most once in a clause.
+Weconsideranencoding tofthegiveninstanceasatermoverthesignatureΣcontainin g
+the symbols: X1,...,X n(constants), id,false,¬(unary) and ∧and∨(binary). The
+encoding is:
+t:=C∧/bracketleftbig
+C∨[δ1,1(X1),...,δ1,n(Xn)],...,C ∨[δm,1(X1),...,δm,n(Xn)]/bracketrightbig
+whereC∧(resp.C∨) is a context built solely with ∧(resp.∨) and where every δi,jis either:
+•δi,j=id(interpreted as the identity) if one of αi,1,αi,2,αi,3isXj,
+•δi,j=¬if one of αi,1,αi,2,αi,3is¬Xj,
+•δi,j=false(interpreted as the constant function returning false) ifXjdoes not occur in
+αi,1,αi,2,αi,3.
+Now, let us partition the signature Σ with: X1,...,X n,∨ ∈PUSH,id,false,¬ ∈INT1
+and∧ ∈INT=
+1; and let consider the memory signature Γ = {0,1,∨}. We construct now a
+VTAM=A= (Γ,=,{q0,q1},{q1},∆) whose transition will, intuitively:
+•guess an assignment for each constant symbol Xkoft, by mean of a non-deterministic
+choice of one state q0orq1,
+•compute the value of twith these assignments,
+•push each tuple of assignment for each clause, in the context sC∨,
+•check the coherence of assignments by means of equality test s between the tuples pushed,
+in the context C∧.
+More formally, we have the following transitions in ∆:
+Xi→q0(0)
+Xi→q1(1) i≤n
+id(qε(y1))→qε(y1)
+false(qε(y1))→q0(y1)
+¬(qε(y1))→q1−ε(y1) with ε∈ {0,1}
+∨(qε1(y1),qε2(y2))→qε1∨ε2(∨(y1,y2))
+∧(qε1(y1),qε2(y2))− −−− →y1=y2qε1∧ε2(y1) with ε1,ε2∈ {0,1}
+We can verify that theaboveVTAM=Arecognizes tiﬀ theinstanceof 3-SAT hasasolution.
+VTAM=
+/ne}ationslash=is closed under union (using the same construction as before ) but not under
+complementation. This is a consequence of the following The orem.
+Theorem 3.10. The universality problem is undecidable for VTAM=
+/ne}ationslash=.
+Proof.We reduce the blank accepting problem for a deterministic Tu ring machine M. Like
+in the proof of Theorem 3.6, we encode conﬁgurations ofMas right-combs on a signature
+Σ containing the tape and state symbols of M, considered as binary symbols of Σ PUSHand
+a constant symbol εin ΣPUSH. A sequence of conﬁgurations c0,c1,...,cn(withn≥1) is
+encoded as a tree t=f(cn(f(cn−1,...f(c0,ε)))), where fis a binary symbol of Σ INT=
+1. Such
+atree is called a computation ofMifc0is theinitial conﬁguration, cnis aﬁnal conﬁguration
+
+--- Page 19 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 19
+ε→qǫ(ε)
+f(qB(y1),qε(y2))− −−− →y1/ne}ationslash=y2q(y1)
+f(qB(y1),q(y2))− −−− →y1=y2q(y1)f(qB(y1),q(y2))− −−− →y1/ne}ationslash=y2qf(y1)
+f(qB(y1),qf(y2))− −−− →y1=y2qf(y1)
+f(qB(y1),qf(y2))− −−− →y1/ne}ationslash=y2qf(y1)
+Figure 3: The VTAM=
+/ne}ationslash=A3in the proof of Theorem 3.10.
+ε− →qε(ε)f(q∀(y1),qε(y2))− −−− →y1/ne}ationslash=y2q∀(y1)
+f(q∀(y1),q∀(y2))− −−− →y1=y2q∀(y1)
+f(q✷(y1),q∀(y2))− −−− →y1=y2q✷(y1)f(q=(y1),q✷(y2))− −−− →y1/ne}ationslash=y2qf(y1)
+f(q∀(y1),qf(y2))− −−− →y1=y2qf(y1)
+Figure 4: The VTAM=
+/ne}ationslash=A4in the proof of Theorem 3.10.
+and for all 0 ≤i < n,ci+1is the successor of ciwithM. Moreover, we assume that all the
+cihave the same length (for this purpose we complete the repres entations of conﬁgurations
+with blank symbols).
+We want to construct a VTAM=
+/ne}ationslash=Awhich recognizes exactly the terms which are not
+computations of M. Hence, Arecognizes all the terms of T(Σ) iﬀMdoes not accept the
+initial blank conﬁguration.
+For the construction of A, let us ﬁrst observe that we can associate to Ma VTAM A✷
+which, while reading a conﬁguration ci, will push on the memory its successor ci+1. The
+existence of such an automaton is guaranteed by the ﬁrst fact that for each regular binary
+relationR, as deﬁned in Section 3.3, there exists a VTAM which, for each (s,t)∈R, will
+pushtwhile reading s, and by the second fact that the language of ci⊗ci+1, hence the
+relation of successor conﬁguration, are regular. Moreover , since only push operations are
+performed, we can ensure that A✷satisﬁes the visibly condition. Let us note q✷the ﬁnal
+state (which is assumed unique wlog) of the VTAM A✷. We also use the following VTAMs:
+A∀: a VTAM with (unique) ﬁnal state q∀which, while reading a conﬁguration ciwill push
+on the memory any conﬁguration with same length as ci,
+A=: a VTAM with ﬁnal state q=which, while reading a conﬁguration ciwill push cion the
+memory,
+AB: a VTAM with ﬁnal state qBwhich, while reading a conﬁguration ciwill push on the
+memory a conﬁguration with same length as ciand containing only blank symbols.
+The VTAM=
+/ne}ationslash=Ais the union of the following automata:
+A1: a VTAM=
+/ne}ationslash=recognizing the terms of T(Σ) which are not representations of sequences
+of conﬁgurations (malformed terms). Its language is actual ly a regular tree language.
+A2: a VTAM=
+/ne}ationslash=recognizing the sequences of conﬁgurations f(cn(f(cn−1,...f(c0,ε)))) such
+thatc0is not initial or cnis not ﬁnal. Again, this is a regular tree language.
+A3: a VTAM=
+/ne}ationslash=recognizing the sequences of conﬁgurations with two conﬁgu rations of diﬀer-
+entlengths. Itcontains thetransitionsrulesof ABandtheadditional transitionsdescribed
+in Figure 3, which perform this test.
+A4: a VTAM=
+/ne}ationslash=recognizing the sequences of conﬁgurations f(cn(f(cn−1,...f(c0,ε)))) such
+that all the cihave the same length but there exists 0 ≤i < nsuch that ci+1is not the
+successor of cibyM. This last VTAM=
+/ne}ationslash=contains the transitions of A✷,A∀,A=, and the
+additional transitions described in Figure 4.
+
+--- Page 20 ---
+20 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+With the transition rules in Figure 4, the automaton A4guesses a i < nand, while
+reading each of the conﬁgurations cjwithj≤i, it pushes the successor conﬁguration of cj,
+sayc′
+j(second column of ﬁgure 4). Then, while reading ci+1A4pushesci+1, and it checks
+thatc′
+iandci+1diﬀer. After that, when reading each of the remaining conﬁgur ations,A4
+pushesci+1(third column of ﬁgure 4).
+The VTAM=
+/ne}ationslash=A1toA4cover all the cases of term T(Σ) not being an accepting com-
+putation of Mstarting with the initial blank conﬁguration. Hence the lan guage of their
+unionAisT(Σ) iﬀMdoes not accept the initial blank conﬁguration.
+Corollary 3.11. VTAM=
+/ne}ationslash=is not eﬀectively closed under complementation.
+Proof.It is a consequence of Corollary 3.8 (emptiness decision) an d Theorem 3.10.
+3.4.2.Structural Constraints. Lemma 3.7 applies also to another class VTAM≡
+/ne}ationslash≡, where≡
+denotes structural equality of terms, deﬁned recursively a s the smallest equivalence relation
+on ground terms such that:
+•a≡bfor alla,bof arity 0,
+•f(s1,s2)≡g(t1,t2) ifs1≡t1ands2≡t2, for allf,gof arity 2.
+Note that it is a regular relation, and that it satisﬁes the hy pothesis of Lemma 3.7 and the
+condition iiof Theorem 3.2.
+Corollary 3.12. The emptiness problem is decidable for VTAM≡
+/ne}ationslash≡.
+Following the procedure in the proof of Theorem 3.2, we obtai n a 2-EXPTIME com-
+plexity for this problem and this class.
+The crucial property of the relations ≡and/\e}atio\slash≡is that, unlike the above class VTAM=
+/ne}ationslash=
+or the general VTAMR
+¬R, they ignore the labels of the contents of the memory. They ju st
+care of the structure of these memory terms. A beneﬁt of this p roperty of VTAM≡
+/ne}ationslash≡is that
+the decision of the membership problem drops to PTIME for thi s class.
+Theorem 3.13. The membership problem is decidable in PTIME for VTAM≡
+/ne}ationslash≡.
+Proof.LetA= (Γ,≡,Q,Qf,∆) be a VTAM≡
+/ne}ationslash≡on Σ and let tbe a term in T(Σ). Let sub(t)
+bethe set of subterms of tand let us construct a VTAM A′= (Γ,sub(t)×Q,{t}×Qf,∆′) on
+Σ′where the symbols of Σ′and Σ are the same, and we assume that the symbols in category
+INT≡
+1(resp.INT≡
+2) in the partition of Σ are in INT1(resp.INT2) in the partition of Σ′.
+The transitions of ∆′are obtained by the following transformation of the transit ions of ∆.
+We only describe the construction for the cases INT1andINT≡
+1with positive constraints.
+The other cases are similar.
+•for every f7(q1(y1),q2(y2))→q(y1)∈∆, we add to ∆′all the transitions:
+f7/parenleftbig
+/a\}bracketle{tq1,t1/a\}bracketri}ht(y1),/a\}bracketle{tq2,t2/a\}bracketri}ht(y2)/parenrightbig
+→/angbracketleftbig
+q,f(t1,t2)/angbracketrightbig
+(y1) such that f(t1,t2)∈sub(t),
+•for every f9(q1(y1),q2(y2))− −−− →y1≡y2q(y1)∈∆, we add to ∆′all the transitions as above (in
+this case, f9is assumed a symbol of category INT1in Σ′) such that moreover struct(t1) =
+struct(t2), where struct(s) is deﬁned, like in the proof of Theorem 3.5, as the shape
+(unlabeled tree) that will have the memory of AafterAprocessed s.
+The VTAM A′can be computed in time O(/bardblt/bardbl2×/bardblA/bardbl). It recognizes at most one term, t,
+and it recognizes tiﬀArecognizes t. Therefore, tis recognized by Aiﬀ the language of A′
+is not empty. This can be decided in PTIME according to Theore m 2.5.
+
+--- Page 21 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 21
+Even more interesting, the construction for determinizati on of Section 2.3 still works
+for VTAM≡
+/ne}ationslash≡.
+Theorem 3.14. For every VTAM≡
+/ne}ationslash≡A= (Γ,≡,Q,Qf,∆)there exists a deterministic
+VTAM≡
+/ne}ationslash≡Adet= (Γdet,≡,Qdet,Qdet
+f,∆det)such that L(A) =L(Adet), where |Qdet|and
+|Γdet|both are O/parenleftbig
+2|Q|2/parenrightbig
+.
+Proof.We use the same construction as in the proof of Theorem 2.3, wi th a direct extension
+of the construction for INTtoINT≡. The key property for handling constraints is that the
+structure of memory (hence the result of the structural test s) is independent from the non-
+deterministic choices of the automaton. With the visibilit y condition it only depends on
+the term read.
+Theorem 3.15. The class of tree languages of VTAM≡
+/ne}ationslash≡is closed under Boolean operations.
+One can construct VTAM≡
+/ne}ationslash≡for union, intersection and complement of given VTAM≡
+/ne}ationslash≡lan-
+guages whose sizes are respectively linear, quadratic and e xponential in the size of the initial
+VTAM≡
+/ne}ationslash≡.
+Proof.We use the same constructions as in Theorem 2.4 (VTAM) for uni on and intersec-
+tion. For the intersection, in the case of constrained rules we can safely keep the constraints
+in product rules, thanks to the visibility condition (as the structure of memory only de-
+pends on the term read, see the proof of Theorem 3.14). For ins tance, the product of
+theINT≡
+1rulesf9/parenleftbig
+q11(y1),q12(y2)/parenrightbig
+− −−− →y1≡y2q1(y1) andf9/parenleftbig
+q21(y1),q22(y2)/parenrightbig
+− −−− →y1≡y2q1(y1) is
+f9/parenleftbig
+/a\}bracketle{tq11,q21/a\}bracketri}ht(y1),/a\}bracketle{tq12,q22/a\}bracketri}ht(y2)/parenrightbig
+− −−− →y1≡y2/a\}bracketle{tq1,q2/a\}bracketri}ht(y1). The product of two INT/ne}ationslash≡
+1is constructed
+similarly. We do not need to consider the product of a rule INT≡
+1with a rule INT/ne}ationslash≡
+1, and
+vice-versa, because in this case the product is empty (no rul e is added to the VTAM≡
+/ne}ationslash≡for
+intersection). For the complementation, we use Theorem 3.1 4 and completion.
+Corollary 3.16. The universality and inclusion problems are decidable for VTAM≡
+/ne}ationslash≡.
+Proof.This is a consequence of Corollary 3.12 and Theorem 3.15.
+3.5.Constrained PUSHTransitions. Above, we always considered constraints in tran-
+sitions with INTsymbols only. We did not consider a constrained extension of the rules
+PUSH. Themain reason is that symbols of anew category PUSH≡, which test two memories
+for structural equality and then push a symbol on the top of th em, permit us to construct
+a constrained VTAM Awhose memory language M(A,q) is the set of well-balanced binary
+trees. This language is not regular, whereas the base of our e mptiness decision procedure
+is the result (Theorem 3.2, Lemma 3.7) of regularity of these languages for the classes
+considered.
+3.6.Contexts as Symbols and Signature Translations. Before looking for some ex-
+amples of VTAM≡
+/ne}ationslash≡languages, we show a ”trick” that (seemingly) adds expressi veness to
+VTAM≡
+/ne}ationslash≡. One symbol can perform either a PUSHor aPOPoperation, or make an INT
+transition (constrained or not), but it cannot combine seve ral of these operations. Here, we
+propose a way to combine several operations in one symbol, an d thus increase the expres-
+siveness of VTAM≡
+/ne}ationslash≡, without losing the good properties of this class.
+
+--- Page 22 ---
+22 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+The trick is to replace symbols by contexts. For instance a context g2(g1(·,·),g0) can
+replace a symbol of arity 2. Assume that g2is aPUSHsymbol,g1is anINT1symbol with
+test, and g0is anINT0symbol. This context ﬁrst performs a test on the memories of t he
+sons, and then a PUSHoperation on the memory kept by g1(and on the ⊥leaf created by
+g0). Such a combination is normally not possible, and replacin g symbols by contexts brings
+a lot of additional expressiveness.
+Here is how we precisely proceed: we want to recognize a langu age (on a signature Σ)
+with a VTAM, and we have then to choose the categories for each symbol of the signature
+(PUSH,POPij,INT≡
+1, ...). As we will see in the examples below, it might be useful in
+practice to have some extra categories combining the powers of two or more categories of
+VTAM≡
+/ne}ationslash≡. We can do that still with VTAM≡
+/ne}ationslash≡, by mean of an encoding of the terms of T(Σ).
+More precisely, we replace some symbols of the initial signa ture Σ by contexts built with
+new symbols. For instance, we replace a g∈Σ, which will perform the complex operation
+described above, by the context g2(g1(·,·),g0). Then, we will have to ensure that the new
+symbols (in our example g0,g1andg2) are only used to form the contexts encoding the
+symbols of Σ. This can easily be done with local information m aintained in the state
+of the automaton. The set of well formed terms, built with new symbols organized in
+allowed contexts, is a regular tree language. We will call th e VTAM≡
+/ne}ationslash≡signature obtained a
+translation of the initial signature. If Lis a tree language on Σ, then c(L) is the translation
+ofL.
+In summary, we have shown herea general method for addingnew categories of symbols
+corresponding to (relevant) combinations of operations of VTAM≡
+/ne}ationslash≡, and hence deﬁning
+extensions of VTAM≡
+/ne}ationslash≡with the same good properties as VTAM≡
+/ne}ationslash≡. Byrelevant, we mean
+that some combinations are excluded, like for instance, PUSH+ constraint ≡at the same
+time (see paragraph above). Such forbiddencombination can not behandledby our method.
+With similar encodings, we can deal with symbols of arity big ger than 2, e.g.g(·,·,·) can
+be replaced by g2(·,g1(·,·)).
+Note however ﬁrst that this encoding concerns the recognize d tree,not the memories .
+For instance, it is not possible to systematically encode th e syntactic equality as structural
+equality (on memories) in this way. And indeed, the decision results are drastically diﬀerent
+in the two cases.
+Also note that, even if c(L) is accepted by a VTAM, which implies that ¬c(L) is also
+accepted by a VTAM, it may well be the case that c(¬L) is not recognized by a VTAM.
+So, the above trick does not show that we can extend our result s to a wider class of tree
+languages.
+3.7.SomeVTAM≡
+/ne}ationslash≡Languages. The regular tree languages and VPL are particular cases
+of VTAM languages. We present in this section some other exam ples of relevant tree
+languages translatable, using the method of Section 3.6, in to VTAM≡
+/ne}ationslash≡languages.
+Well balanced binary trees. The VTAM≡
+/ne}ationslash≡with memory signature {f,⊥}, state set {q,qf},
+unique ﬁnal state qf, and whose rules follow accepts the (non-regular) language of well
+balanced binary trees build with ganda.
+Hereais a constant in Σ INT0, andgis in a new category, and is translated into the
+contextg2(g1(·,·),g0), where g2∈ΣPUSH,g1∈ΣINT≡
+1, andg0∈ΣINT0.
+
+--- Page 23 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 23
+a→qf(⊥)
+g0→q0(⊥)g1/parenleftbig
+qf(y1),qf(y2)/parenrightbig
+− −−− →y1≡y2q(y1)
+g2/parenleftbig
+q(y1),q0(y2)/parenrightbig
+−→qf/parenleftbig
+f(y1,y2)/parenrightbig
+Powerlists. A powerlist [18] is roughly a list of length 2n(forn≥0) whose elements are
+stored in the leaves of a balanced binary tree. For instance, the elements may be integers
+represented in unary notation with the unary successor symb olsand the constant 0, and
+the balanced binary tree on the top of them can be built with a b inary symbol g. This
+data structure has been used in [18] to specify data-paralle l algorithms based on divide-
+and-conquer strategy and recursion ( e.g.Batcher’s merge sort and fast Fourier transform).
+It is easy following the above construction to characterize translations of powerlists
+with a VTAM≡
+/ne}ationslash≡. We do not push on the ”leaves”, i.e.on the elements of the powerlist, and
+compute in the higher part (the complete binary tree) as abov e.
+Some equational properties of algebraic speciﬁcations of p owerlists have been studied in
+the context of automatic induction theorem proving and suﬃc ient completeness [17]. Tree
+automata with constraints have been acknowledged as a very p owerful formalism in this
+context (see e.g.[9]). We therefore believe that a characterization of power lists (and their
+complement language) with VTAM≡
+/ne}ationslash≡is useful for the automated veriﬁcation of algorithms
+on this data structure.
+Red-black trees. A red-black tree is a binary search tree following these prop erties:
+(1) every node is either red or black,
+(2) the root node is black,
+(3) all the leaves are black,
+(4) if a node is red, then both its sons are black,
+(5) every path from the root to a leaf contains the same number of black nodes.
+The four ﬁrst properties are local and can be checked with sta ndard TA rules. The
+ﬁfth property make the language red-black trees not regular and we need VTAM≡
+/ne}ationslash≡rules to
+recognize it. It can be checked by pushing all the black nodes read. We use for this purpose
+a symbol black∈ΣPUSH.
+When a red node is read, the number of black nodes in both its so ns are checked to be
+equal (by a test ≡on the corresponding memories) and only one corresponding m emory is
+kept. This is done with a symbol red∈ΣINT≡
+1.
+When a black node is read, the equality of number of black node s in its sons must also
+be tested, and a blackmust moreover be pushed on the top of the memory kept. It means
+that two operations must be combined. We can do that by deﬁnin g an appropriate context
+with the method of Section 3.6.
+In [15] a special class of tree automata is introduced and use d in a procedure for the
+veriﬁcation of C programs which handle balanced tree data st ructures, like red-black tree.
+Based on the above example, we think that, following the same approach, VTAM≡
+/ne}ationslash≡can also
+be used for similar purposes.
+
+--- Page 24 ---
+24 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+BTINT 1f13/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −− →1=2q(y1)f13∈ΣBTINT 1
+BTINT 2f14/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −− →1=2q(y2)f14∈ΣBTINT 2
+BTINT 1f15/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −− →1/ne}ationslash=2q(y1)f15∈ΣBTINT 1
+BTINT 2f16/parenleftbig
+q1(y1), q2(y2)/parenrightbig
+− −− →1/ne}ationslash=2q(y2)f16∈ΣBTINT 2
+Figure 5: New transition categories for BTVTAMR
+¬R.
+4.Visibly Tree Automata with Memory and Structural Constrain ts and
+Bogaert-Tison Constraints
+In Section 3, we have only considered VTAM with constraints t esting the memories
+contents. In this section, we go a bit further and add to VTAMR
+¬Rsome Bogaert-Tison
+constraints [4], i.e. equality and disequality tests betwe enbrothersubterms in the term
+read by the automaton.
+We consider two new categories for the symbols which we call BTINT 1andBTINT 2, for
+”Bogaert-Tison Internal”. Atransition withasymbolinone ofthesecategories will makeno
+test on the memory contents, but rather an equality or disequ ality test between the brother
+subterms directly under the current position of computatio n. In Figure 5, we describe the
+new transitions categories. We use the same notation as in [4 ] for the constraints. Note
+that again, we only allow Bogaert-Tison constraints in inte rnal rules.
+For instance, if f13(t1,t2) is a subterm of the input tree, and if t1leads toq1(m1), and
+t2toq2(m2), then the transition rule f13/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −− →1=2q(y1), of type BTINT 1can be
+applied at this position iﬀt1=t2.
+Deﬁnition 4.1. Avisibly tree automaton with memory and constraints and Boga ert-Tison
+tests(BTVTAMR
+¬R) on a signature Σ is a tuple (Γ ,R,Q,Q f,∆) where Γ, Q,Qfare deﬁned
+as for TAM, Ris an equivalence relation on T(Γ) and ∆ is a set of rewrite rules in one of
+the above categories: PUSH,POP11,POP12,POP21,POP22,INT0,INT1,INT2,INTR
+1,INTR
+2,
+BTINT 1,BTINT 2.
+The acceptance of terms of T(Σ) and languages of term and memories are deﬁned and
+denoted as in Section 2.1.
+The deﬁnition of complete BTVTAMR
+¬Ris the same as before. Every BTVTAMR
+¬R
+can be completed (with a polynomial overhead) by the additio n of a trash state q⊥(the
+construction is similar to the one for VTAMR
+¬Rin Section 3.1).
+The deﬁnition of deterministic BTVTAMR
+¬Ris based on the same conditions as for
+VTAMR
+¬Rfor the function symbols in categories PUSH0,PUSH,POP11, ...,POP22,INT1,
+INT2,INTR
+1,INTR
+2, and for the function symbols of BTINT 1,BTINT 2, we use the same kind
+of conditions as for INTR
+1,INTR
+2: for allf∈ΣBTINT 1∪ΣBTINT 2for allq1,q2∈Q, there are
+at most two rules in ∆ with left-member f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+, and if there are two, then their
+constraints have diﬀerent signs.
+Theorem 4.2. For every BTVTAM≡
+/ne}ationslash≡A= (Γ,≡,Q,Qf,∆)there exists a deterministic
+BTVTAM≡
+/ne}ationslash≡Adet= (Γdet,≡,Qdet,Qdet
+f,∆det)such that L(A) =L(Adet), where|Qdet|and
+|Γdet|both are O/parenleftbig
+2|Q|2/parenrightbig
+.
+
+--- Page 25 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 25
+Proof.We use, again, the same construction as in the proof of Theore m 2.3, with a direct
+extension of the construction for INTtoINT≡andBTINT. As mentioned in Theorem 3.14,
+the extension works for INT≡because the results of the tests are independent from the
+non-deterministic choices of the automaton. For BTINTit is exactly the same (the brother
+terms are not changed by the automaton!).
+Theorem 4.3. The class of tree languages of BTVTAM≡
+/ne}ationslash≡is closed under Boolean opera-
+tions.
+Proof.We use the same constructions as in Theorem 2.4 for union and i ntersection. For the
+intersection, as in Theorem 3.15, the constraints (even Bog aert-Tison tests) can be safely
+kept in product rules, thanks to the visibility condition. F or the complementation, we use
+Theorem 4.2 and complementation.
+The proof of the following theorem follows the same idea as th e proof for Bogaert-Tison
+automata [4], but we need here to take care of the structural c onstraints on the memory
+contents. A consequence is that the complexity of emptiness decision is much higher.
+Theorem 4.4. The emptiness problem is decidable for BTVTAM≡
+/ne}ationslash≡.
+Proof.LetAbe a BTVTAM≡
+/ne}ationslash≡. First we determinize it into Adetand assume that Adetis
+also complete. Then, we delete the rules BTINT 1of the form: f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −− →1=2q(y1).
+withq1distinct from q2(idem for BTINT 2rules) because they can’t be used (the automaton
+is deterministic so one term cannot lead to two diﬀerent state s).
+For the same reason, we change each rule BTINT 1of the form: f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+− −− →1/ne}ationslash=2
+q(y1) withq1distinct from q2(idem for BTINT/ne}ationslash=
+2rules) into the same rule but without the
+disequality test: f/parenleftbig
+q1(y1),q2(y2)/parenrightbig
+→q(y1).
+We call the newly obtained automaton Anew. It is still deterministic and recognizes
+the same language as Adet. Actually, the careful reader may notice that Anewis not a true
+BTVTAM≡
+/ne}ationslash≡, because some unconstrained rules may involve symbols in BTINTin this au-
+tomaton. However, it is just an intermediate step in the cons truction of another automaton
+A′below.
+Now, we consider the remaining BTINT 1orBTINT 2rules with negative Bogaert-Tison
+constraints, which are of the form: f/parenleftbig
+q1(y1),q1(y2)/parenrightbig
+− −− →1/ne}ationslash=2q(y1) (orq(y2)). We denote them
+byR1,...,Ri,...,RN, and denote by qithe state in the left member of Ri, for each i≤N.
+We also denote the corresponding BTINT 1orBTINT 2rules byS1,....,Si,...,SN. Note that,
+sinceAdetis deterministic and complete, we can associate to each rule ofBTINT i, whose
+constraint is negative, a unique rule of BTINT iwith a positive constraint and the same
+states in its left member. So, the state in the left member of Siis the same qias forRi.
+It is important to notice that if a rule Rican eﬀectively be used, then there must exist
+two distinct terms leading to the state qi(we will call them witnesses). If not, the rule can
+be removed.
+So, our purpose is now to ﬁnd, for each rule Ri, whether two witnesses exist or not.
+We letRbe initially {R1,...,R N}. Suppose that at least one Rirule can be used, and
+consider a run on a term tthat uses such a rule. We consider an innermost application o f
+a ruleRiin this run on a subterm f(t1,t2). The run on t1and the run on t2both lead to
+the state qi, without any use of an Rjrule.
+Let us remove all the Rirules from Anew, and we remove all the equality tests in the
+Sirules. Let A′be the resulting automaton. It is a deterministic VTAM≡
+/ne}ationslash≡(considering the
+
+--- Page 26 ---
+26 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+symbols in BTINTasINTsymbols in this new automaton), and each term in L(A′,qi) can
+be transformed (we will call it BT-transformation ) into a term in L(Anew,qi): each time
+we use a modiﬁed Sirule, for instance of type BTINT 1, on a subtree f(t1,t2), we replace
+t2witht1so that the equality test is satisﬁed (and the resulting memo ry is unchanged).
+Important: all the replacements must be performed bottom-u p.
+The proof of the emptiness decidability of VTAM≡
+/ne}ationslash≡(Corollary 3.12) is constructive,
+hence if we choose a reachable state qj, we can ﬁnd a term in L(A′,qj) to this state, and
+then convert it into a witness. So, we can ﬁnd a ﬁrst witness tA∈L(Anew,qj).
+If no witness can be found, then all the Rirules are useless and we can deﬁnitely
+remove them all. Otherwise, we still need to ﬁnd another witn ess, and if there is at least
+one such other witness, then one of them can be recognized wit hout using a Rirule. We
+can construct a VTAM≡
+/ne}ationslash≡recognizing all the terms whose BT-transformation leads to tA.
+To design it, we read tAtop-down (knowing the state of A′at each node), and each time
+we see a subterm f(t1,t2) to which a modiﬁed Sirule has to be applied, for instance a
+modiﬁed BTINT 1(resp.BTINT 2) rule, the right (resp. left) son of fonly needs to be a
+term inL(A′,qi), and the left (resp. right) son of fonly needs to be BT-transformed into
+t1(resp.t2). Once this VTAM≡
+/ne}ationslash≡is constructed, we can combine it with A′in order to
+obtain a VTAM≡
+/ne}ationslash≡recognizing all the terms leading A′toqj(the state reached by A′ontA)
+except the terms whose BT-transformation is tA. Then we ﬁnd another term in L(A′,qj)
+(if it exists) and its BT-transformation is not tA: it is actually another witness tB.
+When we have two witnesses for a rule Rj, we remove it from R, and we add this rule
+RjtoA′, but without the disequality test. The automaton A′keeps its good property: a
+termtleadingA′to some state qcan be BT-transformed into a term leading Anewto state
+q: when we ”meet” the use of a rule formerly in the set Ronf(t1,t1) during the bottom-up
+exploration of t, we replace the right (for a rule that was of type BTINT 1and with negative
+constraints) or the left son (otherwise) by a witness diﬀeren t fromt1, so that the disequality
+test is satisﬁed. Note that even if t1is a witness, we can do so because we have found two
+witnesses.
+With the new rule in A′we look for 2 witnesses for some remaining Rirule. Again, we
+can show that if a couple of witnesses exists, then at least on e couple can be found without
+any use of the remaining Rirules. When we ﬁnd a ﬁrst witness tAfor a remaining rule Rj,
+we can ﬁnd another one (if it exists) using approximately the same technique as previously:
+we read tAtop-down, and when we see a rule formerly in R, used on f(t1,t2) (e.g. a rule
+formerly of type BTINT 1with a negative constraint), we just go on recursively, sayi ng that
+the left son must be a term whose BT-transformation is t1, and the right son must beeither:
+•a term whose BT-transformation is t2,
+•or, if our BT-transformation would change f(t1,t1) intof(t1,t2), a term whose BT-
+transformation is t1.
+As previously, we construct a VTAM≡
+/ne}ationslash≡, fully using the Boolean closure of this class, that
+recognizes the terms in L(A′,qj) (the state reached by A′ontA), except those whose BT-
+transformation is tA, and therefore we can ﬁnd another witness (if it exists) tB.
+We continue to use this method, ﬁnding couples of witnesses, until there is no rule in
+the setRanymore, or until we are not able to ﬁnd a new couple of witness es anymore: in
+that latter case, we remove the remaining Rirules because they are useless.
+So, now we use the ﬁnal version of A′obtained in order to ﬁnd a term leading to a ﬁnal
+state, and since we have a couple of witnesses for each rule fo rmerly in the set R, we can
+
+--- Page 27 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 27
+BT-transform it into a term accepted by Anew(hence by A). If such a term does not exist,
+the language recognized by Anew(i.e. the language recognized by A) is empty.
+5.Conclusion
+Having a tree memory structure instead of a stack is sometime s more relevant (even
+when theinputfunctions symbols are only of arities 1 and 0). We have shown how to extend
+the visibly pushdown languages to such memory structures, k eeping determinization and
+closure properties of VPL. Our second contribution is then t o extend this automaton model,
+constraining the transition rules with some regular condit ions on memory contents. The
+structural equality and disequality tests appear to a be a go od class of constraints since
+we have then both decidability of emptiness and Boolean clos ure properties. Moreover,
+they can be combined (while keeping decidability and closur e results) with equality and
+disequality tests a la [4], operating on brothers subterms o f the term read.
+Several further studies can be done on the automata of this pa per. For instance, the
+problem of the closure of the corresponding tree languages u nder certain classes of term
+rewriting systems is particularly interesting, as it can be applied to the veriﬁcation of
+inﬁnite state systems with regular model checking techniques. It could be interesting as well
+to study how the deﬁnition of VTAM can be extended to deal with unranked trees, with the
+perspective of applications to problems related to semi-st ructured documents processing.
+Acknowledgments. The authors wish to thank Pierre R´ ety for having noted some m is-
+takes in the examples in the extended abstract, and for havin g sent us a basis of comparison
+of VTAM with (top down) Visibly Pushdown Tree Automata, and J ean Goubault-Larrecq
+for his suggestion to refer to H3[19] in the proof of Theorem 2.5, and the reviewers for their
+useful and numerous remarks and suggestions.
+References
+[1] R. Alur, S. Chaudhuri, and P. Madhusudan. Visibly pushdo wn tree languages. Available on:
+http://www.cis.upenn.edu/ ~swarat/pubs/vptl.ps , 2006.
+[2] R. Alur and P. Madhusudan. Visibly pushdown languages. I n L. Babai, editor, Proceedings of the 36th
+Annual ACM Symposium on Theory of Computing (STOC 2004) , pages 202–211. ACM, 2004.
+[3] L. Bachmair and H. Ganzinger. Resolution theorem provin g. In A. Robinson and A. Voronkov, editors,
+Handbook of Automated Reasoning , chapter 2. North Holland, 2001.
+[4] B. Bogaert and S. Tison. Equality and Disequality Constr aints on Direct Subterms in Tree Automata.
+In9th Symp. on Theoretical Aspects of Computer Science, STACS , volume 577 of LNCS, pages 161–171.
+Springer, 1992.
+[5] J. Chabin and P. R´ ety. Visibly pushdown languages and te rm rewriting. In Proc. 6th International
+Symposium Frontiers of Combining Systems (FroCoS) , volume 4720 of Lecture Notes in Computer
+Science, pages 252–266. Springer, 2007.
+[6] W. Charatonik and A. Podelski. Set constraints with inte rsection. In Proc. IEEE Symposium on Logic
+in Computer Science , Varsaw, 1997.
+[7] H. Comon and V. Cortier. Tree automata with one memory, se t constraints and cryptographic protocols.
+Theoretical Computer Science , 331(1):143–214, Feb. 2005.
+[8] H. Comon, M. Dauchet, R. Gilleron, F. Jacquemard, D. Lugi ez, S. Tison, and M. Tommasi. Tree
+Automata Techniques and Applications .http://www.grappa.univ-lille3.fr/tata , 1997.
+[9] H. Comon and F. Jacquemard. Ground reducibility is EXPTI ME-complete. Information and Compu-
+tation, 187(1):123–153, 2003.
+
+--- Page 28 ---
+28 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+[10] J.-L. Coquid´ e, M. Dauchet, R. Gilleron, and S. V´ agv¨ o lgyi. Bottom-up tree pushdown automata: clas-
+siﬁcation and connection with rewrite systems. Theoretical Computer Science , 127(1):69–98, 1994.
+[11] N. Dershowitz and J.-P. Jouannaud. Rewrite systems , chapter Handbook of Theoretical Computer
+Science, Volume B, pages 243–320. Elsevier, 1990.
+[12] T. Fr¨ uhwirth, E. Shapiro, M. Vardi, and E. Yardeni. Log ic programs as types for logic programs. In
+Proc. of the 6th IEEE Symposium on Logic in Computer Science , pages 300–309, 1991.
+[13] J. Goubault-Larrecq. R´ esolution ordonn´ ee avec s´ el ection et classes d´ ecidables en logique du premier
+ordre. Lecture Notes, 2006. avalaible at http://www.lsv.ens-cachan.fr/ ~goubault/SOresol.pdf .
+[14] I. Guessarian. Pushdown tree automata. Theory of Computing Systems , 16(1):237–263, 1983.
+[15] P. Habermehl, R. Iosif, and T. Vojnar. Automata-based v eriﬁcation of programs with tree updates.
+InProc. 12th Intern. Conf. on Tools and Algorithms for the Cons truction and Analysis of Systems
+(TACAS’06) , volume 3920 of LNCS, April 2006.
+[16] T. Jensen, D. L. M´ etayer, and T. Thorn. Veriﬁcation of c ontrol ﬂow based security policies. In Pro-
+ceedings of the IEEE Symposium on Research in Security and Pr ivacy, pages 89–103. IEEE Computer
+Society Press, 1999.
+[17] D. Kapur. Essays in Honor of Larry Wos , chapter Constructors can be Partial Too. MIT Press, 1997.
+[18] J. Misra. Powerlist: A structure for parallel recursio n.ACM Transactions on Programming Languages
+and Systems , 16(6):1737–1767, November 1994.
+[19] F. Nielson, H. R. Nielson, and H. Seidl. Normalizable ho rn clauses, strongly recognizable relations and
+spi. InProc. 9th Static Analysis Symposium (SAS) , volume 2477 of LNCS, pages 20–35, 2002.
+[20] R. Nieuwenhuis and A. Rubio. Paramodulation-based the orem proving. In A. Robinson and
+A. Voronkov, editors, Handbook of Automated Reasoning , chapter 7. North Holland, 2001.
+[21] K. M. Schimpf and J. Gallier. Tree pushdown automata. Journal of Computer and System Sciences ,
+30(1):25–40, 1985.
+
+--- Page 29 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 29
+Appendix: Two-way tree automata with structural equality c onstraints
+are as expressive as standard tree automata.
+In this section, we complete the proof of Lemma 3.7. We show ac tually a more general
+result: we consider two-way alternating tree automata with some regular constraints and
+show that the language they recognize is also accepted by a st andard tree automaton. This
+generalizes the proof for two-way alternating tree automat a (see e.g. [8] chapter 7) and the
+proof for two-way automata with equality tests [7], which it self relies on a transformation
+from two-way automata to one-way automata [6].
+Two-way automata are, as usual, automata that can move up and down and alter-
+nation consists (as usual) in spawning to copies of the tree i n diﬀerent states, requiring
+acceptance of both copies. In the logical formalism, altern ation simply corresponds to
+clausesq1(x),q2(x)→q(x), requiring to accept xboth in state q1and in state q2if one
+wants to accept xin stateq.
+For simplicity, we assume that all function symbols have ari ty 0 or 2. Lexical conven-
+tions:
+•f,g,h,... are ranging over symbols of arity 2. Unless explicitly state d they may denote
+identical symbols.
+•a,b,c...range over constants
+•x,x1,...,x i,...,y,...,y i,z,...,z i,...are (universally quantiﬁed) ﬁrst-order variables,
+•S,S1,S2,...,S i,...range over states symbols for a ﬁxed given tree automaton
+•Q,Q1,Q2,...,range over states symbols of the tree automaton with memory
+•R,R1,R2,...,range over state symbols of the binary recognizable relatio ns.
+We assume that Riare recognizable relations deﬁned by clauses of the form:
+(A) ⇒R(a,b)
+(B) S1(x),S2(y)⇒R(f(x,y),a)
+(C) S1(x),S2(y)⇒R(a,f(x,y))
+(D)R1(x1,x2),R2(y1,y2)⇒R3(f(x1,y1),g(x2,y2))
+(E) S1(x),S2(y)⇒S(f(x,y))
+(F) ⇒S(a)
+We assume wlog that there is a state S⊤in which all trees are accepted (a “trash state”).
+Moreover, we will need in what follows an additional propert y of theRi’s:
+∀i,j,∃k,l, R i(x,y)∧Rj(y,z)|=|Rk(x,y)∧Rl(x,z)
+Thisproperty is satisﬁed by thestructural equivalence, fo r which thereis only oneindex
+i:Ri=≡and we have indeed
+x≡y∧y≡z|=|x≡y∧x≡z
+It is also satisﬁed by the universal binary relation and by th e equality relation. That is why
+this generalizes corresponding results of [8, 7].
+Our automata are deﬁned by a ﬁnite set of clauses of the form:
+
+--- Page 30 ---
+30 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+(1)Q1(y1),Q2(y2),R(y1,y2)⇒Q3(y1)
+(2) Q1(y1),Q2(y2)⇒Q3(f(y1,y2))
+(2b) ⇒Q1(a)
+(3) Q1(f(y1,y2)),Q2(y3)⇒Q3(y1)
+(4) Q1(f(y1,y2)),Q2(y3)⇒Q3(y2)
+These clauses have a least Herbrand model. We write [[ Q]] the interpretation of Qin
+this model. This is the language recognized by the automaton in stateQ.
+The goal is to prove that, for every Q, [[Q]] is recognized by a ﬁnite tree automaton We
+use a selection strategy, with splitting and complete the ru les (1)-(4) above. We show that
+the completion terminates and that we get out of it a tree auto maton which accepts exactly
+the memory contents. Splitting will introduce nullary pred icate symbols (propositional
+variables).
+We consider the following selection strategy. Let E1be the set of literals which contain
+at least one function symbol and E2be the set of negative literals
+(1) If the clause contains a negative literal ¬R(u,v) or a negative literal ¬S(u) where either
+u,vis not a variable, then select such literals only. This case i s ruled out in what follows
+(2) If the clause contains at least one negated propositiona l variable, select the negated
+propositional variables only. This case is ruled out in what follows
+(3) IfE1∩E2/\e}atio\slash=∅, then select E1∩E2
+(4) IfE1/\e}atio\slash=∅andE1∩E2=∅, then select E1
+(5) IfE1=∅andE2/\e}atio\slash=∅, then select the negative literals ¬R(x,y) and¬S(x) if any,
+otherwise select E2
+(6) Otherwise, select the only literal of the clause
+In what follows (and precedes), selected literals are under lined.
+We introduce the procedure by starting to run the completion with the selection strat-
+egy, before showing the general form of the clauses we get.
+First, clauses of the form (3), (4) are replaced (using split ting) with clauses of the form
+(3)Q1(f(y1,y2)),NEQ2⇒Q3(y1)
+(4)Q1(f(y1,y2)),NEQ2⇒Q3(y2)
+(s1) Q2(x)⇒NEQ2
+Overlapping ( s1) and (2, 2b) may yield clauses of the form
+(s2)NEQ1,NEQ2⇒NEQ3
+(s3) ⇒NEQ
+together with new clauses of the form ( s1). Eventually, we may reach, using ( s3) and (3-4)
+clauses:
+(3b)Q1(f(y1,y2))⇒Q3(y1)
+(4b)Q1(f(y1,y2))⇒Q3(y2)
+(1) + (2) yields clauses of the form
+
+--- Page 31 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 31
+(5.1)Q1(y1),Q2(y2),Q3(g(y3,y4)),R1(y1,y3),R2(y2,y4)⇒Q4(f(y1,y2))
+(5.2) Q1(y1),Q2(y2),Q3(a),S1(y1),S2(y2)⇒Q4(f(y1,y2))
+(5.3) Q1(a)⇒Q2(b)
+(5.4) S1(y1),S2(y2),Q1(f(y1,y2))⇒Q2(a)
+(2) +(3b) and (2) + (4b) yield clauses of the form (after split ting):
+(6)NEQ3,Q1(y1)⇒Q2(y1)
+and eventually
+(6b)Q1(y1)⇒Q2(y1)
+(5.1) + (2) yields
+(7.1)Q1(y1),Q2(y2),Q3(y3),Q4(y4),R1(y1,y3),R2(y2,y4)⇒Q5(f(y1,y2))
+We split (7.1) : we introduce new predicate symbols QRj
+ideﬁned by
+Qi(y),Rj(x,y)⇒QRj
+i(x)
+Then clauses (7.1) becomes:
+(7.1)Q1(y1),Q2(y2),QR1
+3(y1),QR2
+4(y2)⇒Q5(f(y1,y2))
+(5.2) + (2b) yields clauses of the form
+(7.2)Q1(y1),Q2(y2),S1(y1),S2(y2)⇒Q3(f(y1,y2))
+(6b) + (2) yields new clauses of the form (2). (7.1) + (5.1) yie lds clauses of the form:
+(8.1)Q1(y1),Q2(y2),QR3
+3(y1),QR4
+4(y2),Q5(y3),Q6(y4),R1(y3,y1),R2(y4,y2)
+⇒Q7(f(y3,y4))
+At this point, we use the property of Rand split the clause:
+∃y1.Q1(y1)∧QR3
+3(y1)∧R1(y3,y1)|=|QR4
+1(y1)∧QR5
+3(y1)
+Hence clauses (9.1) can be rewritten into clauses of the form :
+(8.1)QR1
+1(y1),QR3
+3(y1),Q5(y1),QR2
+2(y2),QR4
+4(y2),Q6(y2)⇒Q7(f(y1,y2))
+Finally, if we let Qbe the set of predicate symbols consisting of
+•Symbols Si
+•Symbols Qi
+•Symbols QRj
+i
+For every subset SofQ, we introduce a propositional variable NES. Clauses are split,
+introducing new propositional variables (or predicate sym bolsQRj
+i) in such a way that in
+all clauses except split clauses, the variables occurring o n the left, also occur on the right
+of the clause. And, in split clauses, there is only one variab le occurring on the left and not
+on the right.
+We letCbe the set of clauses obtained by repeated applications of re solution with
+splitting, with the above selection strategy (a priori Ccould be inﬁnite). We claim that all
+
+--- Page 32 ---
+32 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+generated clauses are of one of the following forms (Where th ePi’s and the P′
+i’s belong to
+Q,Q’s states might actually be QRj
+i)
+1. Pop clauses. (the original clauses, which are not subsume d by the new clauses):
+(3)Q1(f(y1,y2)),NEQ2⇒Q3(y1)
+(4)Q1(f(y1,y2)),NEQ2⇒Q3(y2)
+(3b) Q1(f(y1,y2))⇒Q2(y1)
+(4b) Q1(f(y1,y2))⇒Q2(y2)
+Note that, clause (1) is a particular case of the alternating clauses below, since it can
+be written
+Q1(y1),QR
+2(y1)⇒Q3(y1)
+2. Push clauses.
+(P1)P1(x),...,P n(x),P′
+1(y),...,P′
+m(y)⇒Q(f(x,y))
+(P2) ⇒P(a)
+(P3)NES,P1(x),...,P n(x),P′
+1(y),...,P′
+m(y)⇒Q(f(x,y))
+(P4) NES⇒Q(a)
+3. Intermediate clauses.
+(I1)P1(x),...,P n(x),P′
+1(y),...,P′
+m(y),P′′
+1(f(x,y)),...,P′′
+k(f(x,y))⇒Q(f(x,y))
+(I2) P1(a),...,P n(a)⇒Q(a)
+(I3) S1(x1),S2(x2),Q1(a)⇒Q2(g(x1,x2))
+(I4) Q1(a)⇒Q2(b)
+4. Alternating clauses.
+(A1)NES,P1(x),...,P n(x)⇒Q(x)
+(A2)P1(x),...,P n(x)⇒Q(x)
+In addition, we have clauses obtained by splitting:
+5. Split clauses.
+(S1) Rj(x,y),Qi(y)⇒QRj
+i(x)
+(S1b) Rj(y,x),Qi(y)⇒Q−Rj
+i(x)
+(S2) R1(x1,y1),R2(x2,y2),Qi(f(y1,y2))⇒Q±Rj
+i(g(x1,x2))
+(S3) S1(x),S2(y),Qi(f(x,y))⇒Q±Rj
+i(a)
+(S4) P1(x),...,P n(x)⇒NE{P1,...,Pn}
+(S5)P1(x),...,P n(x),P′
+1(y),...,P′
+m(y),P′′
+1(f(x,y)),...,P′′
+k(f(x,y))⇒NES
+
+--- Page 33 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 33
+6. Propositional clauses.
+(E1)NES1,...,NESn⇒NES
+(E2) ⇒NES
+(E3)P1(a),...Pn(a)⇒NES
+Every resolution step using the selection strategy of two of the above clauses yield a
+clause in the above set
+POP+PUSH: yields an alternating clause ( A1) and a split clause ( S4).
+INT+PUSH: yields a Push clause or an intermediate clause
+alternating +PUSH: yields an intermediate clause ( I1) or (I2).
+split+R: yields a split clause ( S)2or (S3) or an intermediate clause ( I3) or (I4).
+(S2) +PUSH: yields clauses ( S1) and push clauses. Note that here, we use the property of
+the relation Rto split clauses, which may involve predicates QRj
+i.
+(S3)+PUSH: yields push clause and split clauses ( S4).
+(S4)+PUSH: yields split clauses ( S5) or propositional clause ( E3).
+(S5)+PUSH: yields split clauses ( S5) or propositional clause ( E1).
+It follows that all clauses of Care of the above form. Since there are only ﬁnitely many
+such clauses, Cis ﬁnite and computed in ﬁnite (exponential) time.
+Now, we let Abe the alternating tree automaton deﬁned by clauses ( P1) and (P2)
+(and automata clauses deﬁning the Sstates). Let, for any state Q, [[Q]]Abe the language
+accepted in state QbyA. We claim that [[ Q]] = [[A]].
+To prove this, we ﬁrst show (the proof is omitted here) that NE{P1,...,Pn}is inCiﬀ
+[[P1]]A∩...∩[[Pn]]A/\e}atio\slash=∅.
+Then observe that [[ Q]] is also the interpretation of Qin the least Herbrand model of C:
+indeed, all computations yielding Care correct. Since [[ Q]]A⊆[[Q]] is trivial, we only have
+to prove the converse inclusion. For every t∈[[Q]] there is a proof of Q(t) using the clauses
+inC.
+Assume, by contradiction, that there is a term tand a predicate symbol Qsuch that
+all proofs of Q(t) using the clauses in Cinvolve at least a clause, which is not an automaton
+clause. Then, considering an appropriate sub-proof, there is a term uand a predicate
+symbolPsuch that all proofs of P(u) involve at least one non-automaton clause and there
+is a proof of P(u) which uses exactly one non-automaton clause, at the last st ep of the
+proof.
+We investigate all possible cases for the last clause used in the proof of P(u) and derive
+a contradiction in each case.
+ClauseI1:The last step of the proof is
+P1(u1),...,P n(u1),P′
+1(u2),...,P′
+m(u2),P′′
+1(f(u1,u2)),...,P′′
+k(f(u1,u2))
+P(f(u1,u2))
+and we assume u=f(u1,u2). Assume also that, among the proofs we consider, kis
+minimal. (If k= 0 then we have a push clause, which is supposed not to be the ca se).
+By hypothesis, for all i,u1∈[[Pi]]A,u2∈[[P′
+i]]Aandf(u1,u2)∈[[P′′
+i]]A. In particular,
+if we consider the last clause used in the proof of P′′
+k(u):
+Q1(x),...,Q r(x),Q′
+1(y),...,Q′
+s(y)⇒P′′
+k(f(x,y))
+
+--- Page 34 ---
+34 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+belongs to C. Then, overlapping this clause with the above clause I1, the following clause
+belongs also to C:
+P1(x),...,P n(x),Q1(x),...,Q r(x),
+P′
+1(y),...,P′
+m(y),Q′
+1(y),...,Q′
+s(y),P′′
+1(f(x,y)),...,P′′
+k−1(f(x,y))⇒P(f(x,y))
+and therefore we have another proof of P(u):
+P1(u1),...,P n(u1),Q1(u1),...,Q r(u1)
+P′
+1(u2),...,P′
+m(u2),Q′
+1(u2),...,Q′
+s(u2),P′′
+1(f(u1,u2)),...,P′′
+k−1(f(u1,u2))
+P(f(u1,u2))
+which contradicts the minimality of k.
+Clause(A1):The last step of the proof is
+P1(u),...,P n(u)
+P(u)
+By hypothesis, the proofs of Pi(u) only use automata clauses: ∀i.u∈[[Pi]]A. Le the push
+rule
+Q1(x),...,Q m(x),Q′
+1(y),...,Q′
+p(y)⇒Pn(f(x,y))
+be the last clause used in the proof of P(u). Overlapping this clause and the clause A1
+above, there is another clause in Cyielding a proof of P(u):
+Q1(x),...,Q m(x),Q′
+1(y),...,Q′
+p(y),P1(f(x,y)),...,P n−1(f(x,y))⇒P(f(x,y))
+And we are back to the case of I1.
+Clause (3b):
+Q1(f(u,t))
+P(u)
+By hypothesis f(t,u)∈[[Q1]]A. Hence there is a push clause
+P1(x),...,P n(x),P′
+1(y),...,P′
+m(y)⇒Q1(f(x,y))
+such that t∈[[P1]]A∩...∩[[Pn]]Aandu∈[[P′
+1]]A∩...∩[[P′
+m]]A. By resolution on the clause
+(3b), there is also in Ca clause
+P1(x),...,P n(x),NE{P′
+1,...,P′m}⇒Q(x)
+However, since [[ P′
+1]]A∩...∩[[P′
+m]]A/\e}atio\slash=∅,NE{P′
+1,...,p′m}is also in Cand, by resolution again
+P1(x),...,P n(x)⇒Q(x)
+is a clause of C.
+Then we are back to the case of A1.
+Clause (3): The last step of the proof is
+Q1(f(u,t))NEQ2
+P(u)
+SinceNEQ2∈ Cin this case, by saturation of C, there is a clause Q1(x,y)⇒Q(x) inC,
+and we are back to the case of (3 b).
+
+--- Page 35 ---
+VISIBLY TREE AUTOMATA WITH MEMORY AND CONSTRAINTS 35
+Other cases: they are quite similar to the previous ones. Let us only consi der the case of
+clause (S2), which is slightly more complicated.
+R1(u1,v1)R2(u2,v2)Qi(f(v1,v2))
+QRj
+i(g(u1,u2))
+Assume moreover that u=g(u1,u2) is a minimal size term such that, for some Qi,Rj,
+QRj
+i(u) is provable using as a last step an inference S2, and is not provable by automata
+clauses only,
+As before, we consider the overlap between S2and a push clause. We get
+R1(x1,y1),R2(x2,y2),P1(y1),...,P n(y1),P′
+1(y2),...,P′
+m(y2)⇒QRj
+i(g(x1,x2))
+Hence, the following clauses belong to C(whenPi,P′
+iare not themselves predicates QR;
+otherwise, we have to use the property on Rrelations and split in another way, using the
+S⊤predicate, as shown later):
+R1(x1,y1),Pi(y1)⇒PR1
+i(x1)
+R2(x2,y2),P′
+i(y2)⇒P′
+iR2(x2)
+PR1
+1(x1),...,PR1n(x1),P′
+1R2(x2),...,P′
+mR2(x2)⇒QRj
+i(g(x1,x2))
+and we have the following proof of g(u1,u2):
+R1(u1,v1)P1(v1)
+PR1
+1(u1)···R1(u1,vn)Pn(v1)
+PR1n(u1)R2(u2,w1)P′
+2(w1)
+P′
+1R2(u2)···R2(u2,wm)P′
+m(wm)
+P′
+mR2(u2)
+QRj
+i(g(u1,u2))
+Now, by overlapping again R1(x1,y1) andR2(x2,y2) with their deﬁning clause, we
+compute “shortcut clauses” belonging to Cand get another proof (for instance assuming
+v1=f(v11,v12) andu1=h(u11,u12)):
+R11(u11,v11)R12(u12,v12)P1(f(v11,v12))
+PR1
+1(u1) ···R2(u2,w1)P′
+2(w1)
+P′
+1R2(u2)···R2(u2,wm)P′
+m(wm)
+P′
+mR2(u2)
+QRj
+i(g(u1,u2))
+By minimality of u,u1∈[[PR1
+1]]A. Similarly, for every i,u1∈[[PR1
+i]]A.u2∈[[P′
+iR2]]A
+and it follows that g(u1,u2)∈[[QRj
+i]]A.
+Finally, let us consider the case where some Piis itself a predicate symbol QR, in
+which case we do not have a predicate ( QR)R1. We use then the assumed property of the
+predicates Ri:R1(x,y)∧R(y,z)|=|R′
+1(x,y)∧R′(x,z), hence
+(∃u,∃v.R1(x,u)∧R(u,v)∧Q(v))|=|(∃u.R1(x,u)∧S⊤(u))∧(∃v.R(x,v)∧Q(v))
+Hence we need two split clauses instead of one:
+R′
+1(x,y)⇒SR′
+1
+⊤(x)
+R′(x,y),Q(y)⇒QR′(x)
+
+--- Page 36 ---
+36 H. COMON-LUNDH, F. JACQUEMARD, AND N. PERRIN
+AndR1(x1,y1),QR(y1) is replaced with SR′
+1
+⊤(x1),QR′(x1). Note that such a transforma-
+tion is not necessary when there is a single transitive binar y relation, as in our application:
+thenR(x,y)∧QR(y) is simply replaced with QR(x).
+To sum up: if there is a proof of P(u) using clauses of C, then, by saturation of the
+clauses of Cw.r.t. overlaps with push clauses, we can rewrite the proof i nto a proof using
+push clauses only: u∈[[P]]A. This proves that [[ P]] = [[P]]A.
+Finally, it is easy (and well-known) to compute a standard bo ttom-up automaton ac-
+cepting the same language as an alternating automaton; this only requires a subset con-
+struction. That is why the language accepted by our two-way a utomata with structural
+equality constraints is actually a recognizable language. The overall size of the resulting
+automaton (and its computation time) are simply exponentia l, but we know that, already
+for alternating automata, we cannot do better.
+This work is licensed under the Creative Commons Attributio n-NoDerivs License. To view
+a copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+lettertoCreativeCommons, 559NathanAbbottWay,Stanford ,California94305,USA.

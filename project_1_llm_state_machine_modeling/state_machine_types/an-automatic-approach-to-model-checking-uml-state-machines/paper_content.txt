@@ -1,0 +1,451 @@
+--- Page 1 ---
+An Automatic Approach to Model Checking UML State Machines
+Shao Jie Zhang
+NUS Graduate School for Integrative Sciences and Engineering
+National University of Singapore
+Singapore
+shaojiezhang@nus.edu.sgYang Liu
+School of Computing
+National University of Singapore
+Singapore
+liuyang@comp.nus.edu.sg
+Abstract —UML has become the dominant modeling lan-
+guage in software engineering arena. In order to reduce cost in-
+duced by design issues, it is crucial to detect model-level errors
+in the initial phase of software development. In this paper, wefocus on the formal veriﬁcation of dynamic behavior of UMLdiagrams. We present an approach to automatically verifyingmodels composed of UML state machines. Our approach is totranslate UML models to the input language of our home grownmodel checker PAT in such a way as to be transparent for users.Compared to previous efforts, our approach supports a morecomplete subset of state machine including fork, join, historyand submachine features. It alleviates the state explosionproblem by limiting the use of auxiliary variables. Additionally,this approach allows to check safety/liveness properties (withvarious fairness assumptions), trace reﬁnement relationshipsa n ds oo nw i t ht h eh e l po fP A T .
+Keywords -UML State Machines; Model Checking; PAT
+I. I NTRODUCTION
+The Uniﬁed Modeling Language (UML) [16] has been
+known as the de facto standard of software modeling lan-
+guage. However, the deﬁciency of precise and completesemantics, especially for dynamic behavior, impedes the
+ability to guarantee the correctness of UML models, which
+has raised many concerns on integrating formal methodswith the veriﬁcation.
+Model checking [3] is an automatic technique to verify
+whether a ﬁnite state model satisﬁes desirable properties byexhaustively exploring the state space of the model. It has
+been proved as a promising and effective formal approach
+to the veriﬁcation of hardware and software systems during
+the last two decades.
+UML state machines are used to describe the behavior
+and interaction of system components. It depicts the various
+states that an object may be in and the transitions between
+those states. This paper presents a translation approach toverifying UML state machines. In particular, this approach
+utilizes a home grown model checker PAT
+1[18] as the back
+end to take advantage of its powerful veriﬁcation capabil-ities [19], [20]. PAT also supports a wide range of mod-
+eling languages including CSP# (short for communicating
+sequential programs), which shares similar design principle
+1available at http://www.patroot.com
+Figure 1. Work Flow of Our Approach
+with integrated speciﬁcation languages like TCOZ [12], [11].Furthermore, our solution is fully automatic with no inter-vention on the user’s part. Our engineering efforts realize this
+approach into a prototype tool under the PAT framework.
+This tool takes XML Metadata Interchange (XMI), theObject Management Goup standard of exchanging UML
+diagrams, as the input format of UML speciﬁcation, which
+makes our tool independent of any modeling tools. Figure 1
+shows the work ﬂow of our approach.
+Our contributions are three-folds. Firstly, our approach
+supports a larger subset of UML state machines than most
+other works [1], including join, fork, history pseudo states,
+entry and exit points, which are commonly excluded or not
+well handled by previous works.
+Secondly, shared variables are extensively used to rep-
+resent every state and event occurrence in state-based in-
+termediate model, which arises the infamous state spaceexplosion problem and hence degrades the performance
+of model checking. This approach alleviates this problem
+in the way that system behavior is directly speciﬁed interms of processes and events, yet states are not explicitly
+represented.
+Lastly, the approach enjoys considerable beneﬁts from
+the model checker PAT. Its simulator allows users to per-
+form various simulation mechanisms on the input model:complete states generation, automatically random simula-
+tion, user interactive simulation, trace replay and so on.
+On the other hand, its veriﬁer enables users to checkdeadlock, reachability, trace reﬁnement relationship [18],
+linear temporal logic (LTL) properties with various fairness
+assumptions [19] and etc.
+The rest of the paper is organized as follows: related work
+is reviewed and discussed in Section II. In Section III, we
+
+--- Page 2 ---
+present an approach to translating UML state machines to
+CSP#. Then we demonstrate how our approach works on a
+case study in Section IV. Section V summarizes this workalong with possible future work.
+II. R
+ELATED WORK
+Many approaches of applying the model checking tech-
+nique to UML state machines have been proposed in the lit-erature, for example, a comprehensive survey is given in [1].
+Generally, these approaches translate UML speciﬁcation into
+an intermediate model of some well-known model checker,such as SMV [13], SPIN [7] and FDR [17]. In the following
+we categorize them based on the model checkers the use, and
+compare our work to the most relevant works in this area.
+The ﬁrst work based on SPIN model checker is presented
+in [9]. It presents a translation scheme for UML statediagrams into a Promela model and then invokes SPIN for
+veriﬁcation. This work is constrained within the basic ele-
+ments in state diagrams. Advanced modeling technique suchas fork, join, history states, entry and exit behavior of states,
+variables and multiple state machines are not considered.
+[10] presents a tool called vUML which transforms a UML
+state machine to a Promela model. The technical details
+are not explained in [10]. Clarke and Heinle propose anapproach to translating statecharts to the input language of
+symbolic model checker SMV in [4]. They map every state
+or event to a single variable. Inter-level transitions are ex-cluded in their works. [5] deﬁnes a semantics and a symbolic
+encoding of UML state machines, and performs veriﬁcation
+on NuSMV [2] model checker. They support deferring ofmessages, concurrent composite states and choice pseudo
+states.
+Closely related to our work is that of [15], [14], [21],
+which all utilizes CSP as the input language of the inter-
+mediate model for model checking. Due to the event drivenfeature of CSP, the fundamental principle that [15], [14],
+[21] and our work conform to is encoding an individual
+state as a CSP process and an event occurrence as a CSPevent. Ng and Butler in [15] present a tool to translate
+UML state diagrams into a classic CSP model. At the same
+time, they adopt class diagrams to explicitly specify the
+reﬁnement relation of different CSP processes. Then the
+reﬁnement relation of CSP models is veriﬁed in FDR modelchecker. In [14], they give a formalization of their approach
+and extend it to addressing inter-level transitions, implicit
+and explicit triggered transitions, interruption on on-goingactivities as well as entry and exit actions.
+Yeung et al improve the above-mentioned formalization
+in [21]. They enhance the deﬁnitions and mappings so as to
+generalize inter-level transition targets to nested targets and
+meanwhile support prioritizing transitions. Our approach im-proves their method by formalizing multiple nested sources
+and targets, i.e. join and fork pseudo states. Entry and
+exit points are supported for the ﬁrst time to handle theencapsulation and composition of state machines. History
+states and guard conditions are included in our works as
+well. Besides reﬁnement checking, the model checker PATenables us to check more kinds of properties.
+[8] proposes a probabilistic extension of UML state ma-
+chines. Desired properties are speciﬁed in probabilistic logic
+PCTL, and veriﬁed using the model checker Prism [6].
+III. O
+URAPPROACH
+In this section, we ﬁrst give a brief introduction to CSP#
+modeling language and elements of UML state machine.Then we illustrate the translation rules from state machines
+to CSP#.
+A. CSP#
+Hoare’s CSP is a formal language for describing patterns
+of interaction in concurrent systems [17]. CSP# inherits most
+of its high-level concurrency operators and extends with
+programmer-favored low-level constructs including sharedvariables and conditional choice.
+In the following, We list out the subset of CSP# that is
+considered in our work and discuss brieﬂy the semantics for
+each one of them.
+Deﬁnition A process P is deﬁned using the grammar:
+P::=Stop|Skip|e{prog}→ P|P
+1;P2|P12P2
+|P1|||P2|P1/bardblP2|[b]P|atomic {P}
+|P1/triangleP2|ch!exp→P|ch?x→P
+|case{b1:P1;b2:P2;···;default :P}
+|e::=name (.exp)∗
+where P,P1,P2are processes, eis a name representing an
+event with an optional sequential program prog ,b,b1,b2are
+boolean expressions, chis a channel, expis an expression,
+and xis a variable.
+Stop is the deadlock process, while Skip represents the
+process that terminates successfully. Event preﬁxing e→P
+performs eand afterwards behaves as process P.I f eis
+attached with a program such as updating shared variables,
+the program is executed atomically together with the oc-
+currence of the event. Sequential composition, P1;P2,
+behaves as P1until its termination and then behaves as P2.
+The choice P12P2is nondeterministically solved by the
+occurrence of an event. Parallel composition of processesP
+1/bardblP2synchronizes common events in the alphabets of
+both processes. Interleaving process P1|||P2runs processes
+independently except for communication through shared
+variables. Guarded process [b]Pexecutes only when its guard
+condition bis satisﬁed. Process P1/triangleP2behaves as P1until
+the occurrence of the ﬁrst event from P2. Regarding case
+process, the condition is evaluated one by one until a true
+one is found and then the corresponding process executes.In case no condition is true, the default process will execute.
+A process may have parameters, and an event may be in a
+compound form composed of variables.
+
+--- Page 3 ---
+Figure 2. An Example with Fork Pseudo State
+B. UML State Machine
+A state machine describes the lifetime of a single object.
+It contains states and transitions between them.The complete
+syntax and graphical notations are presented in [16].
+A state models a situation during which some invariant
+condition holds. It may have three kinds of optional behav-ior: entry /exit behavior is a sequence of actions always ex-
+ecuting to completion whenever this state is entered /exited;
+DoActivity behavior is executed while being in the state. It
+starts after entry and before exit, and can be interrupted by
+a triggered outgoing transition before completing its own
+actions.
+A state is distinguished as simple ,composite or
+submachine .A simple state does not have nested states. A
+composite one has one or more orthogonal regions, each of
+which contains substates. A submachine state speciﬁes the
+insertion of a state machine. Transitions in the containingstate machine use entry /exit points of the contained state
+machine as targets/sources.
+Besides the source and target states, a transition features
+an assortment of trigger ,guard and effect . Event is used as a
+trigger to activate the transition and can be parameterized to
+exchange data. A transition can be ﬁred only if the event is
+dispatched and guard , a side effect free boolean expression,
+is satisﬁed. Then effect behavior is performed during the
+transition.
+In addition, UML state machine offers various pseudo
+states to facilitate modeling complex behavior. For instance,join,fork and choice pseudo states specify the transitions
+originating from multiple sources or targeting multiple tar-
+gets; initial ,ﬁnal and history ones record special moments
+during the lifetime of an object.
+C. Translation Rules
+To generate a CSP# speciﬁcation from UML state ma-
+chines, we deﬁne a series of translation rules assuming the
+state machines are well-formed. Basically, a state maintains
+a one-to-one mapping with a process, both of which standfor the behavior pattern of an entity when it interacts with
+the environment. An event or action naturally corresponds
+to a CSP event. For convenience, an informal function
+Figure 3. An Example with Join Pseudo State
+f:UML →CSP #is deﬁned to illustrate the fundamental
+mapping rules as Table I shows. In the following, these rulesare used to translate advanced modeling behavior involving
+composite and submachine states.
+Fork state deals with the transition from a single source
+state to several substates in different regions of a composite
+state. When a transition from a fork state is ﬁred, control
+passes to all the target states. If one or more regions have
+no target, then the initial states of all the other regions are
+implicitly chosen as the targets. The translation rule for forkis more involved than the previous ones. Generally, it reuses
+the rule for transitions between states at the same level
+by lifting the fork transition to the composite state, withannotations to describe the actual target, so that the target
+states are always under the inﬂuence of the composite state’s
+own entry behavior and outgoing transitions. In detail, an n-
+parameterized process is used to represent the composite
+state with fork transitions, in which nis the number of
+regions and every parameter denotes which state in a regionis about to be activated. Therefore, a fork state speciﬁes the
+targets by evaluating parameters, and every parameter is set
+to zero by default to represent initial state for implicit entry.For example, the fork transition in Figure 2 is translated as
+follows:
+P
+S(i,j,k)2=enter astate →
+(Pr1(i)|||Pr2(j))|||Pr3(k));
+PFork =PS(2,0,1);
+···P
+r2(i)= case{(i== 1) : Ps3;(i== 2) : Ps4;
+default :Pinitial 2};
+Join state conversely speciﬁes the transition from sub-
+states in different regions of a composite state to a target
+state outside the composite state. A join transition is effective
+only if all the source states are active. If triggered, it resultsin all the active substates of the composite state executing
+their exit behavior starting with the innermost states. Inter-
+level transition is a special case of a fork/join transition with
+2PSdenotes the CSP# process representing the state, region or state
+machine S.
+
+--- Page 4 ---
+Table I
+BASIC TRANSLATION RULES FROM UML TOCSP#
+UML CSP# Comment
+System s f(s)= f(sm1)|||f(sm2)| | | ··· | | | f(smn)where sm1,sm2,···,smn
+are state machines.Replace interleave operator with paral-
+lel if broadcast events are deﬁned.
+State Machine sm f(sm)= f(i)where iis the topmost initial state of sm. Same for a region in composite state.
+Initial State i f(i)= f(t1)2f(t2)2···2f(tn)where t1,t2,···,tnare outgoing
+transitions from i.If there is only one transition without
+guard and effect, skip to the target.
+Final State i f(i)= Skip ;
+Transition trans f(trans )=[ guard ](event →(f(exit);f(effect );f(t)))where exit is
+exit behavior of source state and tis target state.Use compound event if event is param-
+eterized
+Effect effect f(effect )= atomic {e1→e2→ ··· → en}where e1,e2,···,enis a
+sequence of actions.Same for entry and exit behavior
+Simple state s f(s)= f(entry );f(doActivity )/triangle(f(t1)2f(t2)2···2f(tn)))
+where t1,t2,···,tnare outgoing transitions from s.
+DoActivity do f(do)= e1→e2→···→ enwhere e1,e2,···,enis a sequence of
+actions.
+Composite state cs f(cs)= f(entry ); ( f(r1)|||f(r2)··· | | | f(rn)|||f(doActivity ))/triangle
+(f(t1)2f(t2)2···2f(tn)))where t1,t2,···,tnare outgoing
+transitions and r1,r2,···,rnare regions in cs.Replace interleave operator with par-
+allel if synchronization events are de-ﬁned.
+Submachine state ss f(ss)= f(sm)where smis the state machine that ssrefers to.
+single target/source. Regarding the translation, a common
+event is added to force the exit behavior execution of allsource states in synchronization, such as the event join for
+the example in Figure 3.
+P
+S(i,j,k)= entryS 0→(Pr1(i)/bardblPr2(j))/bardblPr3(k));
+Ps2 =(e2→exitS 2→Skip )2
+(join→exitS 2→exitS 0→Pjoin);
+Ps4 =join→exitS 0→Pjoin;
+Ps5 =(e5→exitS 5→Skip )2
+(join→exitS 5→exitS 0→Pjoin);
+Pjoin =e6→PS6;
+Entry/Exit point is the entry/exit point of a state machine
+referred by a submachine state. A referred state machine isbehaviorally analogous to a subroutine: a transition to an
+entry point corresponds to a call to a subroutine; transitions
+in the referred state machine correspond to changes of the
+subroutine’s internal states; a transition to an exit point
+corresponds to transferring control to the containing statemachine. This behavior of subroutine can be described as
+synchronous channel communication that speciﬁes the trans-
+fer of control between state machines. As for the translationof the example in Figure 4, a channel chis deﬁned to carry
+two constants representing synchronous events: 0 is for the
+transition to the entry point active and 1 is for the one from
+the exit point aborted .
+P
+S1=e1→ch!0→Skip ;
+PS2=ch?1→PS3;
+PSM2=ch?0→starting →PS4;
+PS4=abort →ch!1→Skip ;
+History state adds “memory”to composite state by record-
+ing the last substate that was active prior to a transition from
+Figure 4. An Example with a Submachine State
+the composite state. As for its translation, an integer sharedvariable is used to record which substate is currently active.
+So when a transition jumps to the history state, it could
+ﬁnd the last active substate according to the value of thisvariable. More detail is shown in the following case study.
+IV . C
+ASE STUDY
+In this section, we demonstrate how to apply the trans-
+lation approach developed in Section III using a CD player
+case study.
+Figure 5 shows a UML state machine diagram model-
+ing a CD player. Initially, the player stays at compositestate NONPLAYING . Thus, the whole process starts at
+NONPLAYING .
+CDPLAYER () = NONPLAYING (0);
+The composite state NONPLAYING starts at CLOSED
+state, which denotes the CD drawer is closed. When a user
+
+--- Page 5 ---
+Figure 5. State Machine Speciﬁcation for a CD Player
+presses “load”button, the drawer opens. If he/she presses it
+again, the drawer closes and the track ready to be played and
+track is set to the ﬁrst one in CD. When the user presses
+“play”button, if no CD is in the drawer, then the drawerkeeps closed; otherwise, the player goes to BUSY state.
+Using the rules in Section III to map NONPLAYING state
+to a CSP# process we obtain the following CSP# program.
+//Variable declaration
+var present =false ,track =0 ;
+//Process deﬁnition
+NONPLAYING (i)=
+case{
+(i== 0) : CLOSED ()
+(i== 1) : OPEN ()
+}/triangle (
+([!present ](play→NONPLAYING (0)))
+2([present ](play→BUSY (0)))
+2(off→Skip ));
+CLOSED () = load
+→open{track =0 ; present =false}
+→OPEN ();
+OPEN () = load
+→close{track =1 ; present =true}
+→CLOSED ();
+When it enters BUSY state, the player ﬁrstly locates the
+track to play and starts to play one by one until the last trackis ﬁnished and after that the player goes back to CLOSED
+state. If “play”button is pressed with the player in BUSY
+state, the player enters the history state. In other words, itplays the current track if PLAYING is the last active substate;
+it restarts the current track but remains paused if PAUSED
+is the last one. Since history state is used, a shared variablejis deﬁned to retain the last visited substate. Its valuation
+behaves as the entry behavior of every substate. Thus, BUSYstate is described as the following.
+//N denotes the total number of tracks.
+var j =0 ;
+BUSY (i)=
+ﬁnd track start→
+case{(i== 0) : PLAYING ()
+(i== 1) : PAUSED ()}
+/triangle((load→NONPLAYING (1))
+2([track !=N]
+({track =track +1}→ BUSY (0)))
+2([track == N]NONPLAYING (0))
+2(stop→NONPLAYING (0))
+2(off→Skip )
+2(play→BUSY (j));
+PLAYING () ={j=0 ; }→ (play track →Skip )/triangle
+((pause →PAUSED ())2Skip );
+PAUSED () = {j=1 ; }→ pause →PLAYING ();
+So far, we have demonstrated how we could use the trans-
+lation rules deﬁned in this paper to describe the behavior of
+a CD player modeled using UML state machines. The CSP#
+model obtained from the formalization is fed into PAT forsimulation and model checking. Suppose now we want to
+check if the design adheres to some basic requirements of
+the system. For example, a CD player should guarantee twosafety properties.
+1) The number of any playing track is always within the
+amount of tracks in the current CD.
+2) It never plays when the player does not locate any
+track.
+We represent these two basic requirements in LTL as
+follows, where
+2reads as always.
+1)2((track >=0 )/logicalandtext(track <=N))
+2)2¬((track == 0)/logicalandtext(play track ))
+
+--- Page 6 ---
+The results from PAT suggest that the design satisﬁes the
+safety properties stated above. Also, other kinds of property
+assertions could be veriﬁed against the model with thehelp of PAT, such as liveness, fairness and trace reﬁnement
+properties. Take a liveness property as an example: a CD
+player should ensure that when there is a CD in the drawer, ifthe user presses ”play” button, then the player will eventually
+play some track. This liveness property is speciﬁed in LTL
+as the following, where
+3reads as eventually.
+2((present == true)/logicalandtextplay→3play track )
+When we model-check the property against the model, it
+turns out that the model satisﬁes it.
+V. C ONCLUSION
+In this paper we have deﬁned a translation scheme for a
+class of UML models composed of asynchronously execut-
+ing, hierarchical state machines. The main purpose of thisapproach is two-fold: ﬁrst, to provide a completely automatic
+approach for transforming a model of state machines to the
+input model of PAT model checker; second, to effectivelyhandle advanced modeling techniques in state machines such
+as fork, join, history and submachine features.
+In the near future we plan to support deferred events,
+time events and conduct more industrial case studies to
+evaluate our approach. We also wish to extend our approach
+by looking at UML sequence diagram. In addition, wewill investigate various reduction techniques to optimize the
+translation to make model checking state machines more
+efﬁcient.
+R
+EFERENCES
+[1] P. Bhaduri and S. Ramesh. Model Checking of State-
+chart Models: Survey and Research Directions. CoRR ,
+cs.SE/0407038, 2004.
+[2] A. Cimatti, E. M. Clarke, E. Giunchiglia, F. Giunchiglia,
+M. Pistore, M. Roveri, R. Sebastiani, and A. Tacchella.Nusmv 2: An opensource tool for symbolic model checking.
+InCAV , pages 359–364, 2002.
+[3] E. M. Clarke, O. Grumberg, and D. A. Peled. Model
+Checking . The MIT Press, 2000.
+[4] E. M. Clarke and W. Heinle. Modular translation of state-
+charts to smv. Technical report, Carnegie-Mellon UniversitySchool of Computer Science, 2000.
+[5] J. Dubrovin and T. Junttila. Symbolic model checking of
+hierarchical UML state machines. Technical Report B23,Helsinki University of Technology, Laboratory for TheoreticalComputer Science, Espoo, Finland, December 2007.
+[6] A. Hinton, M. Kwiatkowska, G. Norman, and D. Parker.
+Prism: A tool for automatic veriﬁcation of probabilisticsystems. In Proc. 12th International Conference on Tools
+and Algorithms for the Construction and Analysis of Systems(TACAS06), volume 3920 of LNCS , pages 441–444. Springer,
+2006.[7] G. J. Holzmann. The SPIN Model Checker: Primer and
+Reference Manual . Addison Wesley, 2003.
+[8] D. Jansen, H. Hermanns, and J. Katoen. A probabilistic
+extension of uml statecharts: Speciﬁcation and veriﬁcation.In W. Damm and E.-R. Olderog, editors, Formal Techniques
+in Real-Time and Fault-Tolerant Systems , Lecture Notes in
+Computer Science 2469, pages 355–374, Oldenburg, Ger-many, 2002. Springer.
+[9] D. Latella, I. Majzik, and M. Massink. Automatic Veriﬁcation
+of a Behavioural Subset of UML Statechart Diagrams Usingthe SPIN Model-checker. Formal Aspects of Computing ,
+V11(6):637–664, December 1999.
+[10] J. Lilius and I. P. Paltor. vUML: A Tool for Verifying UML
+Models. Automated Software Engineering, International Con-
+ference on , 0:255, 1999.
+[11] B. P. Mahony and J. S. Dong. Blending Object-Z and
+Timed CSP: An Introduction to TCOZ. In Proceedings of
+the 20th International Conference on Software Engineering
+(ICSE 1998) , pages 95–104, Kyoto, Japan, 1998.
+[12] B. P. Mahony and J. S. Dong. Timed Communicating Object
+Z.IEEE Transactions on Software Engineering , 26(2):150–
+177, 2000.
+[13] K. L. McMillan. Symbolic model checking: an approach to
+the state explosion problem . PhD thesis, Pittsburgh, PA, USA,
+1992.
+[14] M. Y . Ng and M. Butler. Towards formalizing uml state
+diagrams in csp. In In: 1st International Conference on
+Software Engineering and Formal Methods, IEEE ComputerSociety , pages 138–147, 2003.
+[15] M. Y . Ng and M. J. Butler. Tool Support for Visualizing CSP
+in UML. In ICFEM ’02 , pages 287–298, London, UK, 2002.
+Springer-Verlag.
+[16] OMG. Uniﬁed Modeling Language Superstructure Version
+2.2. http://www.omg.org/spec/UML/2.2/Superstructure/PDF/,Feburary 2009.
+[17] A. W. Roscoe. The Theory and Practice of Concurrency .
+Prentice-Hall, 1997.
+[18] J. Sun, Y . Liu, and J. S. Dong. Model Checking CSP
+Revisited: Introducing a Process Analysis Toolkit. In ISoLA
+2008 , pages 307–322. Springer, 2008.
+[19] J. Sun, Y . Liu, J. S. Dong, and J. Pang. PAT: Towards Flexible
+Veriﬁcation under Fairness. In CAV 2009 , pages 702–708,
+Grenoble, France, June 2009.
+[20] J. Sun, Y . Liu, J. S. Dong, and H. H. Wang. Specifying and
+Verifying Event-based Fairness Enhanced Systems. In ICFEM
+2008 , volume 5256 of LNCS , pages 318–337. Springer, 2008.
+[21] W. L. Yeung, K. R. P. H. Leung, J. Wang, and W. Dong.
+Improvements Towards Formalizing UML State Diagrams inCSP. In APSEC ’05 , pages 176–184, Washington, DC, USA,
+2005. IEEE Computer Society.

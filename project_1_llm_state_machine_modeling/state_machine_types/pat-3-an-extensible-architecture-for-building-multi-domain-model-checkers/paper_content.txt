@@ -1,0 +1,1104 @@
+--- Page 1 ---
+PAT 3: An Extensible Architecture for Building
+Multi-domain Model Checkers
+Y ang Liu
+National University of
+Singapore
+liuyang@comp.nus.edu.sgJun Sun
+Singapore University of
+Technology and Design
+sunjun@sutd.edu.sgJin Song Dong
+National University of
+Singapore
+dongjs@comp.nus.edu.sg
+ABSTRACT
+Model checking is emerging as an eﬀective software veriﬁca-
+tion method. Although it is desirable to have a dedicated
+model checker for each application domain, implementing
+one is rather challenging. In this work, we develop an ex-
+tensible and integrated architecture in PAT3 (PAT version
+3.*) to support the development of model checkers for wide
+range application domains. PAT3 adopts a layered design
+with an intermediate representation layer (IRL), which sep-
+arates modeling languages from model checking algorithms
+so that the algorithms can be shared by diﬀerent languages.
+IRL contains several common semantic models to support
+wide application domains, and builds both explicit mod-
+el checking and symbolic model checking under one roof.
+PAT3 architecture provides extensibility in many possible
+aspects: modeling languages, model checking algorithms, re-
+duction techniques and even IRLs. Various model checkers
+have been developed under this new architecture in recent
+months. This paper discusses the structure and extensibility
+of this new architecture.
+1. INTRODUCTION
+Software development has entered a mass production er-
+a. To ensure quality, software veriﬁcation is becoming a
+compulsory step in the software development life cycle, es-
+pecially for safety and critical systems. Among the princi-
+pal validation/veriﬁcation methods (e.g., simulation, testing
+and theorem proving), model checking [12] has emerged as
+a promising and powerful approach to automatically verify
+software systems. Model checking has been successfully used
+in practice to verify complex circuit design, communication
+protocols, driver software, software process models, software
+requirement models, architectural frameworks, design mod-
+els, product lines and system implementations.
+Model checking is the application of an automatic pro-
+cess to formally verify whether a model satisﬁes a proper-
+tyby exhaustively exploring the state space of the model.
+Till now, model checking has become a wide area includ-
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+Copyright 20XX ACM X-XXXXX-XX-X/XX/XX ...$10.00.ing many diﬀerent approaches (e.g., explicit model checking
+and symbolic model checking) catering for diﬀerent proper-
+ties (e.g., temporal logics, reﬁnement relationship, etc.) and
+state space reduction techniques (e.g., partial order reduc-
+tion, symmetry reduction, etc.). Applying model checking in
+a new application domain requires in-depth understanding
+of model checking techniques. Unfortunately, the complexi-
+ty prevents many domain experts, who may not be experts
+in the area of model checking, from successfully applying
+model checking to their domains. In the following, we ex-
+amine the challenges of adopting model checking techniques.
+Using existing model checkers
+The most commonly used approach is to use existing mod-
+el checkers (e.g. NuSMV [10], SPIN [18] and FDR [27]).
+The diﬃculty of this approach is explained below. First,
+the learning curve is steep. To precisely understand the se-
+mantics of the language and various veriﬁcation options is
+highly non-trivial. Second, existing model checkers may be
+ineﬃcient or insuﬃcient to model domain speciﬁc applica-
+tions, due to lack of language features or data structures.
+For example, multi-party barrier synchronization is diﬃcult
+to achieve in SPIN model checker. Translating a domain-
+speciﬁc model and properties into the input language of a
+general purpose model checker may often be ad hoc.
+Extending existing model checkers
+To support a new application domain, users often need to
+customize the existing model checkers for language exten-
+sion, diﬀerent state encoding, new veriﬁcation algorithms or
+reduction techniques. Existing tools are generally compli-
+cated and highly coupled in order to support eﬃcient veri-
+ﬁcation. For example, SPIN generates a veriﬁer program in
+C by combining code fragments (in string format) and user
+input model rather than direct veriﬁcation. The source code
+of PRISM [16] is mixed with Java and C++. To understand
+the source code is generally diﬃcult or infeasible.
+Developing a new model checker Developing a model
+checker from scratch is even more challenging. The basic
+functionalities of a model checker include language parsing,
+system simulation, veriﬁcation algorithms, state reduction
+techniques and counterexample generation and display. To
+ﬁnish all with a sound system requires years of eﬀorts. All
+established model checkers (e.g., SPIN, NuSMV, Uppaal [4]
+and PRISM) have 10 to 20 years history.
+To tackle the above challenges, we propose an extensible
+
+--- Page 2 ---
+framework called PAT3 (Process Analysis Toolkit version
+3) [1], which facilitates eﬀective incorporation of domain
+knowledge with model checking techniques. Starting from a
+simple model checker, PAT1 (version 1) [31] supported the
+model and veriﬁcation of concurrent state-rich systems with
+various fairness conditions. PAT2 (version 2) [23] focused
+on reusing the core model checking algorithms in the con-
+current module of PAT1, e.g. web service reasoning module.
+PAT3 (this work) does a complete architecture redesign that
+aims to support systematic construction of veriﬁcation sys-
+tems for wider application domains and extensions in various
+aspects. The contribution of this work is three-fold.
+Firstly, we propose a novel framework with layered ar-
+chitecture (see Fig. 1 in page 3). Previous development
+on model checkers focuses on eﬀectiveness with a specif-
+ic modeling language, e.g., SPIN, NuSMV, FDR, PRISM,
+etc. Extensibility is never a concern in these tools. Lat-
+er, the need for algorithm reuse and extensibility has been
+addressed by frameworks like Bogor [14], Model-Checking
+Kit [28], JPF [32], etc. These tools have the similar de-
+sign as PAT2, hence extensions and customizations are lim-
+ited (see Section 7 for details). Compared with these frame-
+works, PAT3’s architecture design has the following advan-
+tages. (1) The layered design reduces the coupling between
+diﬀerent components. Particularly, the intermediate layer
+separates modeling languages from veriﬁcation algorithm-
+s completely. This design facilitates the reuse of existing
+model checking techniques and easy extension of modeling
+languages. PAT supports three intermediate representations
+(i.e. Labeled Transition System, Timed Transition System
+and Markov Decision Process), which allow PAT3 to sup-
+port a wide range of modeling languages. To the best of our
+knowledge, PAT3 is the only model checker supporting veri-
+ﬁcation for a hierarchical modeling language for concurrent,
+real-time (with dense-time semantics) and probabilistic sys-
+tems1. (2) PAT3 has a modular design. Each application do-
+main (or modeling language) is encapsulated into a plug-in
+module, which is loaded dynamically at runtime. Currently,
+11 modules for diﬀerent application domains have been de-
+veloped, which demonstrates the practicality and scalability
+of our framework. (3) PAT3 integrates both explicit-state
+model checking and symbolic model checking (based on BD-
+D [8] or SAT solvers) under one roof, which allows users to
+leverage the advantages of diﬀerent veriﬁcation approaches.
+Especially, we develop a BDD library that is embedded in
+PAT3 for encoding compositional operators (e.g., interleave
+and choices operators). With it, users can generate BDD en-
+coding for concurrent systems without knowing the Boolean
+formulae.
+Secondly, PAT3 framework is specially designed for ex-
+tensibility, which provides the diﬀerent interfaces (APIs) for
+domain experts to create customized model checkers with
+minimum eﬀorts. These interfaces allow PAT3 to be ex-
+tended in the following ways.
+Translate external models into existing languages in
+PAT3 through module APIs.
+Extend the existing modeling languages with new syn-
+tax, data types or libraries.
+Extend PAT3 with domain speciﬁc model checking
+algorithms, state reduction techniques or abstraction
+1Probabilistic Timed Automata have a ﬂat structure.techniques.
+Create completely new module in PAT3 to support a
+new language with the help of module generator tool.
+Lastly, our engineering eﬀorts make PAT3 a self-contained
+environment to support composing, simulating and reason-
+ing of system models. It comes with cross-platform support,
+user friendly GUI, featured model editors and an animat-
+ed simulator. More importantly, PAT3 implements a rich
+library of model checking techniques2catering for checking
+a variety of properties, e.g., deadlock-freeness, divergence-
+freeness, reachability, linear temporal logic (LTL) (with dif-
+ferent fairness assumptions), reﬁnement checking, real-time
+veriﬁcation and probabilistic model checking, etc. Although
+PAT3 is designed for ﬂexibility, this ﬂexibility does not com-
+promise the performance. Advanced optimization techniques
+are implemented in PAT3, e.g., partial order reduction, pro-
+cess counter abstraction, bounded model checking, and par-
+allel model checking. We have used PAT3 to model and
+verify a variety of systems, ranging from recently proposed
+distributed algorithms, security protocols to real-world sys-
+tems like the pacemaker system. Previously unknown bugs
+have been discovered. The experiment results (see Section 6)
+show that PAT3 is capable of verifying systems with large
+number of states and outperforms the state-of-the-art model
+checkers in many cases.
+The remainder of this paper is organized as follows. Sec-
+tion 2 brieﬂy introduces model checking techniques. Sec-
+tion 3 presents the conceptual architecture of PAT3. Sec-
+tion 4 describes PAT3’s design and implementation details.
+Section 5 explains all the possible ways to extend PAT3.
+Section 6 presents experimental results to demonstrate the
+eﬀectiveness of PAT3. Section 7 reviews related work. Sec-
+tion 8 concludes the work with future works.
+2. PRELIMINARY
+Model checking [12] has been conceived as an automatic
+veriﬁcation technique for ﬁnite state systems. It performs an
+exhaustive search of the state space of a model to determine
+if some property is true or not. If the result is negative,
+the user is often provided with a counterexample. The most
+serious disadvantage of model checking is the state explosion
+problem. The size of the global state graph can be (at least)
+exponential in the size of the program text.
+2.1 Model Speciﬁcation
+System models can be speciﬁed in numerous diﬀerent ways.
+In theory any means of formally specifying a model could be
+used for the purpose of model checking. For diﬀerent mod-
+eling languages, though the syntax may vary dramatically,
+as long as they have the same semantic model , they can be
+veriﬁed using the same set of model checking algorithms.
+This is the foundation of our approach, i.e., to compile d-
+iﬀerent modeling languages into a set of common semantic
+models. Three commonly used semantic models for concur-
+rent system, real-time system and probabilistic system are
+explained below.
+LTS is arguably one of the most general semantic models
+for un-timed systems. For instance, it is the semantic model
+of FSM, Process Algebra, Graph Transition System and so
+on. A timed system often has a timed transition system as
+2Techniques developed in PAT3 can be found in [1].
+
+--- Page 3 ---
+its semantic model. TTS is the common semantic model of
+Timed Automata and timed process algebras. If probabilis-
+tic system behaviors are relevant, a probabilistic semantic
+model is necessary. In this paper, we focus on Markov deci-
+sion processes (MDP), which is expressive enough to capture
+probabilistic choices as well as concurrency.
+2.2 Property Speciﬁcation
+System properties can be speciﬁed in diﬀerent forms. A
+property can be speciﬁed in a dedicated language like tem-
+poral logics or in the same language which is used to spec-
+ify the system model. The former is veriﬁed by dedicated
+temporal-logic based model checking, whereas the latter is
+veriﬁed by reﬁnement checking. In the following, we show a
+‘semantic’ classiﬁcation, i.e., properties are divided into two
+categories: safety properties and liveness properties [3, 29].
+Safety
+Informally speaking, safety properties stipulate that “bad
+things” do not happen during system execution. A ﬁnite
+execution is suﬃcient evidence to the violation of a safety
+property. Hence, safety properties are often veriﬁed based
+on ﬁnite execution/trace semantics. Common safety prop-
+erties include deadlock-freeness, reachability, invariance, or
+properties expressed in the form of ﬁnite state automata.
+Common reﬁnement relationships like trace-reﬁnement can
+also be categorized as safety properties.
+Liveness
+There have been diﬀerent deﬁnitions of liveness [3, 29]. In
+this paper, we deﬁne liveness properties as those which are
+not safety properties. Informally speaking, liveness prop-
+erties stipulate that “good things” do happen eventually.
+A counterexample to a liveness property is often3an inﬁ-
+nite system execution, which forms a loop if the system has
+ﬁnitely many states. Therefore, liveness properties are often
+veriﬁed using loop-searching algorithms. Liveness properties
+are often speciﬁed using temporal logics, e.g. Computation
+Tree Logic (CTL) , LTL and CTL* . In theory, they can also
+be speciﬁed by ﬁnite state automata with fairness condition,
+e.g., B ¨uchi automata, Streett automata, etc.
+2.3 Model Checking Approaches
+Diﬀerent models or properties often lead to diﬀerent ded-
+icated model checking approaches, in the name of eﬃciency.
+Distinguished by how states are stored and manipulated,
+there are two main paradigms for model checking: explicit
+state model checking and symbolic model checking.
+The ﬁrst proposal of model checking relies on exhaustive
+search through explicit representations of reachable system
+states [12], which is known as explicit model checking . This
+approach is adopted by SPIN. However, it suﬀers from the
+state space explosion problem due to the exponential increas-
+ing of the explicit states.
+Symbolic model checking is introduced later to solve this
+problem by enumerating states symbolically (typically based
+on the notion of Binary Decision Diagrams (BDDs) [8, 9]),
+which avoids building the state space directly. This ap-
+proach is adopted by the tool NuSMV. It has been shown
+that indeed BDDs can serve as an eﬃcient representation
+of ﬁnite state machines and allow symbolic model checking
+to handle rather complex systems [5]. However, the worst
+3Not always with our deﬁnition of liveness.
+Figure 1: PAT3 System Architecture
+case boundaries of the size of BDDs (which depends on the
+variable ordering) are catastrophic [8].
+Bounded model checking [11] has been proposed as an al-
+ternative symbolic model checking approach. The idea is to
+encode ﬁnite state machines (and the property to be ver-
+iﬁed) as a Boolean formula. The property is satisﬁable if
+and only if the underlying state machine can realize a ﬁnite
+sequence of transitions that reaches states of interest, and
+then SAT solvers [2] can be used to produce counterexam-
+ples eﬃciently. If such a path segment cannot be found at a
+given length k, the search is continued for larger k.
+In addition, many state reduction techniques have been
+proposed and realized in many existing model checkers, such
+as partial order reduction, symmetry reduction, predicate
+abstraction, etc. One of the drawbacks of symbolic model
+checking is that reduction techniques developed for explicit
+model checking cannot be directly applied.
+3. CONCEPTUAL ARCHITECTURE
+During the development of PAT1 and PAT2, extensibil-
+ity becomes critical as we want to quickly apply existing
+model checking techniques to other application domains or
+implement new veriﬁcation techniques. Code reusing can
+both speedup the development and reduce maintenance ef-
+forts. To achieve this goal, we need a common interface
+to separate the veriﬁcation algorithms and domain speciﬁc
+modeling languages. Naturally, a prototype of a 3-layered
+design was adopted. To further articulate the architecture,
+we reﬁned the design to 4 layers according to the three step-
+s of model checking process (i.e., compilation, abstraction
+and veriﬁcation). To integrate symbolic model checking in-
+to the system, a separate interface and related veriﬁcation
+supports need to be developed. With several attempts, we
+arrived at an architecture design as shown in Figure 1. This
+goal of this design is to reduce the coupling between diﬀerent
+components (hence increases the reusability of lower layers
+and the extensibility of upper layers) and integrate explicit
+and symbolic model checking under one roof.
+3.1 Modeling Layer
+The top level of the architecture is the supported appli-
+cation domains (e.g., distributed system, service oriented
+computing, security protocols and so on). For each appli-
+cation domain, modeling layer identiﬁes the domain specif-
+ic language syntax, well-formedness rules as well as formal
+
+--- Page 4 ---
+operational semantics, which are all encapsulated in a sep-
+arate module . The main components in modeling layer are
+the language parser and model components (including syn-
+tax classes, variables, channels, etc.). Given an input model
+(in textual or graphic format), a parser checks the correct-
+ness of the syntax and generates model components. The
+(operational) semantics of the language shall be implement-
+ed in the syntax classes of the language constructs, which
+can be either explicit state representation or symbolic rep-
+resentation using Boolean formulae (details are explained in
+Section 4.2). For better encapsulation, all domain speciﬁc
+functions and components should be included in the model-
+ing layer.
+3.2 Abstraction Layer
+Model checking techniques generally only work with ﬁnite
+state systems. When a system has inﬁnitely many states
+according to its concrete operational semantics, (automat-
+ed) state abstraction is essential. For example, a real-time
+system always has inﬁnitely many states since there is an ar-
+bitrary small interval between any two time points. Hence
+abstraction techniques like zone abstraction [22] can be used
+to generate ﬁnite systems. Even when the state space is ﬁ-
+nite, eﬀective abstraction/reduction techniques may reduce
+the state space signiﬁcantly. For example, process counter
+abstraction [26] can group identical processes using process
+counter variables and ignore process identiﬁers (if they are
+irrelevant). In PAT3, the abstraction layer implements ab-
+straction techniques as independent functions, which map
+a concrete state to an abstract state. These functions are
+invoked during the state space exploration to generate ab-
+stract states. Abstraction/reduction techniques, like partial
+order reduction, are language or algorithm dependent, which
+are then treated diﬀerently (see Section 5.5 for details).
+3.3 Intermediate Representation Layer (IRL)
+IRL contains diﬀerent semantic models supported in PAT3.
+Each semantic model deﬁnes a state interface class with
+methods to drive the state space exploration. After compila-
+tion, the input model is converted to an initial state interface
+class. Then the state space can be generated on-the-ﬂy s-
+tarting from the initial state by following the operational
+semantics (and applying abstraction/reduction techniques).
+PAT3 supports all three semantic models mentioned in Sec-
+tion 2.1.
+For explicit model checking, the state interface class has
+a number of operations, which allow the underlying model
+checking algorithms to drive the execution of the system and
+collect information from system states. The most importan-
+t operation is the MoveOneStep method, which returns a
+set of transitions from the current system state. By repeat-
+edly invoking this method, the model checking algorithms
+explore the whole state space. In model checkers like K-
+it [28], the complete semantic model (i.e., Petri nets in Kit)
+needs to be constructed ﬁrst before the veriﬁcation. How-
+ever in PAT3, the veriﬁcation algorithms use MoveOneStep
+method to explore the state space on-the-y , i.e., only par-
+tial state space needs to be explored if a counterexample
+exists. Note that MoveOneStep method is implemented at
+modeling layer so as to capture the operational semantics
+of a language. Another important operation is the GetID
+method, which returns a unique (compact) identiﬁer for any
+system state. The idea is that the identiﬁer abstracts overthe system state information (e.g., variable values, channel
+buﬀers, program counter and so on) using primitive values
+(e.g., int or string). The state interface can also be used by
+the simulator to show the system state space graphically.
+For symbolic model checking, diﬀerent operations are de-
+ﬁned so that a symbolic representation is generated to cap-
+ture the language semantics, usually in the form of Boolean
+formulae. For instance, for BDD-based symbolic model check-
+ing, a method EncodeProcess is deﬁned for each language
+construct. The Boolean formulae are usually stored in the
+form of Binary Decision Diagram (BDD) for symbolic model
+checking or Conjunctive Normal Form (CNF) for bounded
+model checking.
+3.4 Analysis Layer
+This layer mainly contains reusable model checking algo-
+rithms. In the explicit model checking approach, a set of
+veriﬁcation algorithms have been developed for each seman-
+tic model in IRL. For example, deadlock checking, reacha-
+bility checking, LTL veriﬁcation with fairness assumptions,
+reﬁnement checking have been developed for LTS. The veri-
+ﬁcation algorithms only invoke state interface to explore the
+state space. Therefore, the modeling language is separated
+from the veriﬁcation algorithms completely. If the veriﬁ-
+cation result is false, a counterexample is produced, which
+can be visualized via the simulator. For the symbolic mod-
+el checking approach, symbolic veriﬁcation algorithms are
+developed for the generated BDD encoding of the system.
+Alternatively, SAT solvers can be used for solving CNF e-
+quations for bounded model checking.
+Remark.
+This layered framework separates the model checking pro-
+cess into independent steps, which reduces the coupling sig-
+niﬁcantly. In additional, other analysis techniques than mod-
+el checking can also be integrated in analysis layer. For
+example, model-based testing can be applied based on the
+state interfaces, especially the internal representations for
+explicit model checking (i.e., LTS, TTS, MDP).
+4. DESIGN AND IMPLEMENTATION
+Model checking involves functions like state-space explo-
+ration, process scheduling, and state management. In the
+actual implementation, these functions are highly tangled to
+achieve optimal performance. Inspired by Bogor project [14]4,
+we apply Design Pattern s [15] to encapsulate these func-
+tions. Hence, the coupling between the components is re-
+duced and then extensibility can be achieved. Diﬀerent from
+Bogor, we further apply this design strategy to module in-
+terface design. The dependency between common library
+and individual modules is minimized. We choose C# as the
+implementation language for the beneﬁts of Object-Oriented
+design and competitive performance.
+PAT3’s design is hierarchical, as reﬂected in the class dia-
+gram in Figure 2. The system consists of two basic packages,
+namely PAT :GUI andPAT :Common , and 11 module pack-
+ages. Each of the 11 modules implements necessary mod-
+ule interfaces and is packed into a plug-in DLL. The com-
+plete API can be found in both PAT tool and website [1].
+4Bogor system design covers partial components in
+PAT :Commom project. See Section 7 for detailed discus-
+sion.
+
+--- Page 5 ---
+Figure 2: Class Diagram of PAT3
+Note that abstract classes are preferred in PAT than in-
+terface mainly due to the performance reason in C#. We
+use the CSP module as a demonstrating example to explain
+the implementation. The modeling language in CSP mod-
+ule is called CSP# [30], which is an event-based modeling
+language for concurrent systems. CSP# is an extension of
+CSP [17] with shared variables and low-level programming
+constructs (e.g., assignment, if-then-else, while-loop, etc).
+The semantical model of CSP# is LTS.
+4.1 Shared Code Base
+PAT :GUI package implements main GUI and the plug-in
+architecture. GUI package loads the syntax ﬁles of diﬀer-
+ent modules during the system initialization, which stores
+the syntax information (e.g., keywords, folding, and auto-
+completion) and module information. When users want to
+perform syntax checking, simulation or veriﬁcation of an in-
+put model, the linked module (packed as one DLL) is loaded
+into the system dynamically using reﬂection technique and
+then the corresponding interface method is invoked.
+PAT :Common package contains module interfaces, com-
+mon GUI classes, expression classes and veriﬁcation libraries.
+Abstract class ModuleFacadeBase inPAT :Common pack-
+age deﬁnes the module interface. It behaves as the central
+gate communicating with the GUI package by adopting the
+Fa cade design pattern, e.g., check syntax, show simulator
+or model checker window. All modules must implement this
+interface in order to be recognized by the plug-in framework.
+Specication is the interface class for the internal representa-
+tion of system models. It also uses Fa cade pattern to com-
+municate with SimulatorGUI andModelCheckerGUI to pro-
+vide the information of the user input model. SimulatorGUI
+and ModelCheckerGUI are the graphic user interfaces for
+simulation and model checking. Specication is composed
+by system model and properties (named Assertion s in Fig-
+ure 2) which are to be veriﬁed. Because system model infor-
+mation is module dependent, Specication is only associated
+with Assertion s in the common package.
+The module interface implementation uses the Abstract
+Factory pattern, where ModuleFacadeBase is the abstract
+factory, and ModuleFacade classes in each modules are con-
+crete factories. The product is Specication interface, andthe concrete products are the actual Specication implemen-
+tations in modules. The clients of using the products are
+the GUI classes. The Expression andValue classes deﬁne
+the interfaces for a simple but general While language with
+variables and some primitive values. Though these classes
+should be implemented in the actual module, we move them
+to the common library so that they can be shared by all
+modules. Variable values need to be cloned if one state has
+more than one outgoing transition.
+Besides the module interfaces and shared libraries, PAT :
+Common package contains the intermediate layer and veri-
+ﬁcation algorithms in the analysis layer. In Figure 2, we use
+LTS as an example. The IRL here is just one abstract class
+LTSState , which implements a single transition with a target
+state in LTS deﬁnition. The transition’s label is stored in the
+Label property, and target state information (e.g., variable
+valuation, channel buﬀer, program counter and so on) shall
+be realized in the actual module since it is module related.
+MoveOneStep method generates all the possible transitions
+starting from the target state. GetID method returns the
+unique hashed string representation of the label and target
+state. If symbolic model checking is used, EncodeProcess
+method performs the encoding of the target state and out-
+going transitions to Boolean formulae that can be used by
+the symbolic model checker or SAT solvers. The three ab-
+stract methods shall be realized in the actual module and
+will be used by the veriﬁcation algorithms. It is clear that
+starting from an initial state, these methods are suﬃcient to
+generate the complete state space.
+Assertion class deﬁnes the interface for properties. It has
+one initial state, from where it explores the system state s-
+pace and produces a counterexample if the property is not
+satisﬁed. For LTS veriﬁcation, four assertions are supported
+as shown in Figure 2. We apply the Strategy pattern when
+designing the veriﬁcation algorithms. For example, for safe-
+ty properties (e.g., DeadlockAssertion ,RenementAssertion
+and ReachabilityAssertion ), three searching strategies are
+possible: depth-ﬁrst-search (DFS), breadth-ﬁrst-search (BF-
+S) and symbolic veriﬁcation algorithm. For liveness proper-
+ties (i.e., LTLAssertion ), two searching strategies are pos-
+sible: nested DFS [18] or Tarjan’s strongly-connected com-
+ponents searching algorithm. These strategies are selected
+
+--- Page 6 ---
+according to users’ choice during the run-time.
+Veriﬁcation algorithms need to keep track of visited states
+(StateManager ) or have a scheduler if the concurrent pro-
+cesses have diﬀerent priorities ( SchedulingManager ). They
+are linked with the Assertion so that the veriﬁcation algo-
+rithm can use them to store the states and perform process
+scheduling without worrying about the actual implementa-
+tion. These two classes also adopt the Strategy pattern
+since a number of state hashing and scheduling strategies
+are possible.
+To increase the reusability of the code, we create the
+generic version of popular algorithms using Template pat-
+tern. For example, DFS and BFS are searching algorithms
+used in all safety property veriﬁcation. To have a reusable
+implementation, we create a generic DFS (BFS) algorith-
+m with an abstract early termination condition. Diﬀerent
+algorithms implement the early termination condition dif-
+ferently. For instance, DeadlockAssertion ’s early termina-
+tion condition is that the current state is a deadlock state.
+ReachabilityAssertion ’s early termination condition is that
+the current state satisﬁes the desired condition.
+4.2 Encapsulated Module Design
+Each module is encapsulated in a stand alone package,
+which implements the module interface and speciﬁcation
+interface, and contains modeling layer’s components, i.e.,
+language parser (e.g., CSPParser ), variable valuation and
+channel buﬀer (stored in Valuation ) and language syntax
+classes.
+The language syntax classes in CSP module naturally for-
+m aComposite pattern by following the language grammar.
+Each language construct (e.g., parallel composition, sequen-
+tial compositions, choice process and so on) is implemented
+as a single class, which implements the Process interface
+with two key methods: MoveOneStep and EncodeProcess .
+These two methods implement the semantics of the lan-
+guage syntax for the two diﬀerent model checking approach-
+es.MoveOneStep method implements the operational se-
+mantics rules to realize the state transitions from current
+state to a list of target states. EncodeProcess performs the
+encoding of the syntax to Boolean formulae that can be used
+by the symbolic model checker or SAT solvers.
+The most important class to be implemented is CSPState
+class, which realizes the concrete transitions of the LTS. For
+CSP#, each system state contains the current valuation of
+variables, buﬀered elements in the channels and current ac-
+tive process [30]. This composition is exactly implemented
+in Figure 2. The MoveOneStep method (or EncodeState
+method) in CSPState class will invoke the MoveOneStep
+(orEncodeProcess ) method of the current active process by
+providing current variable valuation and channel buﬀer da-
+ta. This guarantees that LTS is generated by following the
+operational semantics. At this point, the modeling layer is
+completed.
+Most of the abstraction and reduction techniques are high-
+ly language dependent [20]. For example, diﬀerent timed
+operators in real-time systems shall update the zones in d-
+iﬀerent ways. Partial order reduction strategies require in-
+formation about processes, global variables, dependencies of
+transitions, etc. This restriction makes the abstraction layer
+hardly fully independent from modeling layer. Most of the
+abstraction and reduction techniques are embedded inside
+method MoveOneStep orEncodeState to produce a reducedstate space. In PAT3, we demonstrate these techniques by
+code samples and libraries so that our experiences can be
+reused.
+5. PAT3 EXTENSIONS
+In this section, we discuss the possible extensions of PAT3
+and related technical challenges. These extensions allow do-
+main experts to create customized model checkers in all lev-
+els, based on their knowledge of model checking.
+5.1 Easy Translation with Module Interface
+The easiest way of creating a model checker is to create
+a syntax rewriter from a domain speciﬁc language to an
+existing tool. Comparing with other model checkers, pro-
+gramming a language translator is straightforward in PAT3.
+Because PAT3 has well-deﬁned APIs for Specication fac¸ ade
+class and module language constructs, users only need to cre-
+ate the Specication model and generate the language con-
+structs objects using these APIs. For example, Specication
+class in CSP# module oﬀers the interfaces to create global
+variables, channels, processes and assertions. This approach
+requires no interaction with PAT3 codes. Most importantly,
+the target language model is automatically generated from
+theSpecication class, which can guarantee syntax correct-
+ness. The usefulness of this extension has been demonstrat-
+ed by the build-in translator from Promela to CSP# and
+the translator from UML state diagram to CSP#. Bogor’s
+extensions for two languages (Java and Cadena) are based
+on the translation approach.
+However, these are drawbacks for this approach. For ex-
+ample, the translation may not be optimal if special domain
+speciﬁc language features are present. In addition, reﬂect-
+ing analysis results (e.g., showing the counterexample trace)
+back to the domain model is often non-trivial.
+5.2 Extensible Data Type and Library
+Modules in PAT3 only support primitive types like in-
+teger, Boolean variables and arrays of integers. However,
+sometimes user deﬁned data type is necessary and can sim-
+plify the model substantially. In PAT :Common package,
+PAT3 deﬁnes the interface for variable valuations, which in-
+cludes state hashing methods, a to-string method for sim-
+ulator display and a deep-clone method for duplicating the
+values. PAT3 provides the functionality to create arbitrary
+data type by simply creating a C# class inheriting the Value
+interface, which can be imported into the model (based on
+the reﬂection mechanism in .NET) and used as normal vari-
+ables. Note that polymorphic in types is also possible in
+PAT3, i.e., user deﬁned types can be nested. This extension
+is not novel, Boger’s “language extension” uses the similar
+idea. To be more accurate, this extension is to support new
+data type rather than the extensions of modeling languages.
+This extension brings two beneﬁts. Firstly, data abstrac-
+tion can be achieved by controlling the data hashing function
+which may reduce the state space signiﬁcantly. For exam-
+ple, a check board can be presented by the position of pieces
+only. Therefore, a smaller state representation is possible
+by deﬁning board using a user deﬁned data type. Secondly,
+this method seamlessly links the implementation (in C#5)
+with the speciﬁcation modeling (in CSP#). This link gives
+5We use C# for simplicity of the implementation. Other
+languages like Java can also be linked with PAT3.
+
+--- Page 7 ---
+us the power to verify/test the real implementation by run-
+ning the speciﬁcation. For example, given a concurrent“Set”
+implementation, we can model the usages of the Set objects
+in CSP# model. This model can contains several process-
+es accessing the Set object concurrently, which is hard to
+write using test cases. During the veriﬁcation of CSP#
+model, the actually Set implementation is executed. Fur-
+thermore, PAT3 supports Microsoft Contracts speciﬁcation
+(i.e., method pre-condition/post-condition and class invari-
+ants) in the user deﬁned data types. During the veriﬁcation
+of CSP# model, the contracts methods will be also checked,
+which gives one more level of veriﬁcation.
+5.3 Language Extension
+In general, the input language of a model checker must
+be carefully designed, with preciseness, intuitiveness and ef-
+ﬁciency in mind. A minor syntax extension or modiﬁcation
+may require re-examination of the whole system. PAT3 fa-
+cilitates such extensions by adapting parsers for the new
+syntax and implementing the corresponding syntax class-
+es (refer to PAT :CSP package in Figure 2). For example,
+to support try-catch statement in CSP# module requires
+a new class implementing exception throw statement and a
+new class implementing try-catch semantics. PAT3’s layered
+design requires minimum change in the system and all mod-
+el checking algorithms developed can be reused. Knowledge
+about existing modules is required and a new parser may be
+created for the extended language features.
+5.4 Property Extension
+It is possible that a domain may have specialized prop-
+erties and require dedicated model checking algorithms for
+these properties. PAT3’s design allows seamless integration
+of new model checking algorithm and optimization tech-
+niques by simply creating a new assertion class, which in-
+herits the base Assertion class and implements its APIs. In
+addition, the counterexample generation method needs to be
+customized to instruct how to produce the counterexample.
+PAT3 oﬀers a number of algorithm templates like generic
+DFS and BFS algorithms to help the fast algorithms de-
+velopment. Furthermore, supporting functions, like LTL to
+B¨uchi/Rabin/Streett automata conversion which is essen-
+tial for LTL model checking, or DBM library which is for
+real-time system veriﬁcation, are provided in PAT3. With
+this design, we have successfully extended PAT3 with the
+algorithms for divergence checking, reﬁnement checking in
+real-time system module and new deadlock and probabilistic
+reachability checking in probabilistic systems.
+5.5 Abstraction Extension
+Abstraction techniques are often language dependent and
+hard to extend. As a result, abstraction techniques are to be
+encoded as part of language semantics, in the MoveOneStep
+orEncodeProcess methods of each language construct in
+each module. PAT3 oﬀers a framework for abstract-reﬁnement
+techniques. If over-approximation abstraction is applied,
+users must override the method to check whether a gen-
+erated counterexample is spurious and override the method
+to reﬁne the abstraction.
+Currently, PAT3 oﬀers one module independent abstrac-
+tion, i.e., process counter abstraction. Parameterized sys-
+tems are characterized by the presence of a large (or even un-
+bounded) number of behaviorally similar processes, and theyoften appear in distributed/concurrent systems. A common
+state space abstraction for checking parameterized system-
+s groups behaviorally similar processes rather than keeping
+track of all process identiﬁers. When a system has identi-
+cal concurrent processes, process counter abstraction can be
+implemented by invoking the library provided in PAT3 to
+update the counter and mark the group of identical process-
+es as abstracted. The veriﬁcation algorithms will automat-
+ically recognize this mark and check whether the generated
+counterexample is spurious due to the abstraction or a real
+counterexample. With the provided sample codes, counter
+abstraction can be implemented quickly and correctly.
+5.6 Module Extension
+Module extension is the last resort if the previous ap-
+proaches are not applicable. In this case, users need to im-
+plement module components and make connections with the
+intermediate layer. This approach is the most complicated
+compared with the ones discussed previously. Nevertheless,
+this approach gives the most ﬂexibility and eﬃciency as user-
+s control the language syntax and assertions to be support-
+ed, and abstraction/reduction techniques to be applied. To
+further simplify the process of building a module in PAT3,
+we have developed a module generator tool6. By providing
+module name, language syntax construct names and choic-
+es of assertions, module generator can automatically gener-
+ate the module project (in C#) with interface classes (e.g.
+ModuleFacade ,Specication , state interface etc.), language
+classes and code skeleton. With the generated code, users
+only need to create a parser and implement the operational
+semantics of the modeling language. Module extension in
+PAT3 requires only knowledge about the module interfaces
+and IRL layer. New module can be developed independently
+without the source code of PAT3. This approach is still fea-
+sible for domain experts who have only the basic knowledge
+on model checking, since veriﬁcation algorithms and reduc-
+tion techniques are separated from modeling languages.
+It is diﬃcult to quantify the eﬀort required to build a high-
+quality module in PAT3. We developed a Timed Automata
+(TA) module in PAT3 to experiment the eﬀort. With a ba-
+sic understanding of PAT3 tool design, we ﬁnished the TA
+module within a month. In total, users only need to imple-
+ment 7 classes to create this module, i.e., 2 interface classes
+(generated), 1 parser class, 3 language related components
+(partially generated) and 1 state interface (generated). Since
+1995, Uppaal [4] has been dedicated to support the mod-
+eling, simulation and veriﬁcation of Timed Automata. The
+TA module in PAT3 oﬀers similar functionalities with much
+less eﬀorts. Note that the performance of Uppaal is better
+than TA module because of its sophisticated optimization
+techniques. Nevertheless, this case study demonstrates the
+beneﬁt of layered design and adoption of design patterns.
+The complete work-through and code sample can be found
+in PAT3’s user manual.
+6. PERFORMANCE EVALUATION
+PAT3 is designed for reusability and extensibility. How-
+ever, performance is also a critical measurement for model
+checkers. As a result, choices between the performance and
+extensibility have to be made. For instance, the code for
+Tarjan’s strongly-connected components (SCC) algorithm is
+6The tool can be found under “Tools” in the PAT3 toolbar.
+
+--- Page 8 ---
+Model #Proc Property PAT3 (s)SPIN (s)
+Deadlockfree dining philosophy 10 deadlock-freeness 15.7 14.1
+same above 12 same above 232 -
+Leader election for complete network 6 LTL with weak fairness 26.7 229
+same above 8 same above 726 5720
+Token circulation protocol for rings 7 LTL with global strong fairness 13.7 N/A
+same above 9 same above 640 N/A
+5-valued register 2 linearizability 44.9 NA
+6-valued register 2 same above 297 NA
+Scalable Non-Zero Indicator of size 2 2 same above 322 NA
+Scalable Non-Zero Indicator of size 3 3 same above 6214 NA
+(A) LTS-based Model Checking
+Model #Proc Property PAT3 (s)Uppaal (s)Uppaal-o (s)
+Fischer’s mutual exclusion protocol 4 mutual exclusion 0.05 0.09 1.18
+same above 5 same above 0.15 0.19 696.4
+same above 6 same above 0.68 0.81 -
+CSMA/CD protocol 5 liveness LTL 0.22 0.26 39.15
+same above 7 same above 2.63 6.40 -
+same above 10 same above 34.3 181 -
+Railway control system 6 liveness LTL 5.24 0.43 -
+same above 8 same above 349 20.7 -
+(B) TTS-based Model Checking
+Model #Proc Property PAT3 (s)PRISM (s)
+Probabilistic N-process mutual exclusion 6 mutual exclusion 1.161 0.364
+same above 8 same above 8.624 0.937
+Probabilistic dining philosophy 5 deadlock-freeness 2.413 0.156
+same above 6 same above 25.775 0.672
+Shared coin randomized consensus algorithm 4 liveness LTL 0.379 21.9
+same above 6 same above 5.854 1755
+Probabilistic CSMA/CD protocol 2 liveness LTL 0.933 2.314
+same above 3 same above 6.284 7.233
+(C) MDP-based Model Checking
+Table 1: Performance evaluation on PAT3's model checking algorithms
+duplicated in many modules for performance reasons, which
+could be easily generalized as a Template algorithm.
+In the following, we evaluate the library of model check-
+ing algorithms implemented in PAT3. We compare PAT3’s
+performance with state-of-the-art model checkers. Table 1
+shows the performance of model checking algorithms based
+on LTS, TTS and MDP respectively. The experiment data
+are obtained using a PC with 2 Intel Xeon CPUs at 2.13GHz
+and 32GB RAM. N=Ameans not applicable due to either
+a language feature required by the system is missing or the
+kind of property is not supported; means either out of
+32GB memory or more than 4 hours. Note that all proper-
+ties are true so that all states are explored. PAT3 is avail-
+able at http://www.patroot.com . Experiments details can be
+found at http://www.comp.nus.edu.sg/ /x7Epat/system .
+Table 1(A) shows experimental results on applying LTS-
+based model checking algorithms to population protocols
+and concurrent data objects. PAT3’s performance is com-
+pared with SPIN. In the ﬁrst experiment with the classical
+dining philosopher example, SPIN marginally outperform-
+s PAT3 for 10 philosophers. It runs out of memory for 12,
+whereas PAT3 ﬁnishes it in 232 seconds. The experiments on
+the leader election protocol and token circulation protocol
+show that PAT3 outperforms SPIN if fairness assumption isrequired. The reason is that PAT3 implements an eﬃcient
+SCC-based LTL veriﬁcation algorithm that can check vari-
+ous fairness assumptions directly. However, SPIN’s nested-
+DFS method can only handle weak fairness. In the register
+and scalable non-zero indicator experiments, PAT3 performs
+trace reﬁnement checking to verify linearizability of concur-
+rent data objects, which is not supported in SPIN.
+Table 1(B) shows experimental results on applying TTS-
+based model checking algorithms (using zone abstraction) to
+benchmark real-time systems. PAT3’s performance is com-
+pared with the UPPAAL model checker. Three benchmark
+real-time systems are used. The column Uppaal shows the
+time of verifying the models using Uppaal . PAT is faster
+thanUppaal for the ﬁrst two examples due to the eﬀective
+zone abstraction technique. In the last example, Uppaal
+outperforms PAT3 by using the eﬀective optimization tech-
+niques named extrapolation . The column Uppaal-o shows
+the result of verifying the same models with extrapolation
+disabled. PAT3 outperforms Uppaal-o signiﬁcantly. This
+has lead to our ongoing work on realizing extrapolation in
+PAT3’s DBM package.
+Table 1(C) shows experimental results on applying MDP-
+based probabilistic model checking algorithms to probabilis-
+tic systems. PAT3’s performance is compared with the PRIS-
+
+--- Page 9 ---
+M model checker. We use the iterative method in calculat-
+ing the probability and set termination threshold as relative
+diﬀerence 106(exactly same as PRISM). In the experi-
+ments of probabilistic mutual exclusion algorithm and prob-
+abilistic dining philosopher example, PRISM outperforms
+PAT3. The main reason is that PRISM is based on BD-
+D, which handle large number of states in these examples.
+The next two experiments, however, show that PAT3 some-
+times outperforms PRISM for certain class of properties.
+The main reason is that PAT3 models have much less states
+than PRISM models thanks to the hierarchical modeling
+language in PAT3.
+We remark that the comparison above may not be com-
+pletely fair due to many reasons, e.g., diﬀerence in modeling
+languages or property speciﬁcation languages or the mod-
+el checking approaches. The above results thus should be
+used as an indication that PAT3 oﬀers comparable perfor-
+mance to existing model checkers. At same time, we are ex-
+perimenting new optimization techniques or state reduction
+techniques constantly, thanks to PAT3’s extensible architec-
+ture. In summary, PAT3 oﬀers a library of well-optimized
+model checking algorithms as well as a framework for devel-
+oping new model checkers.
+7. RELATED WORK
+There has been a large body of work on tools supporting
+veriﬁcation using model checking technique. We partially
+list the related model checkers according to the semantic
+models. For concurrent systems, LTS-based model checking
+in PAT3 is related to popular tools like SPIN [18], NuS-
+MV [10], FDR [27], etc. In terms of real-time veriﬁcation,
+TTS-based model checking in PAT3 is related to a num-
+ber of automatic veriﬁcation supports for Timed Automata,
+including Uppaal , KRONOS [6] and so on. For probabilis-
+tic systems, MDP-based model checking in PAT3 is related
+to probabilistic model checkers including PRISM and M-
+RMC [19]. Diﬀerent from these dedicated model checkers,
+PAT3 is more than one model checker for one language, in-
+stead, it is an extensible framework designed to facilitate
+development of new modeling/veriﬁcation techniques.
+As an extensible model checking framework, PAT3 is close-
+ly related to Bogor [14], the Model-Checking Kit [28], LT-
+SA [24] and SAL [13]. The most relevant tool is Bogor,
+which supports a modeling language close to Java. Bogor’s
+extensibility is reﬂected in the extensions to the user deﬁned
+data types7, veriﬁcation algorithms and optimization tech-
+niques. PAT3 improves Bogor’s design by separating system
+components using the layered design and the concept of s-
+tate interface, which allows extensions in all components.
+The support of the 3 semantic models is far beyond the ca-
+pability of Bogor. Furthermore, to develop a new module
+in Bogor can only base on the translation approach, which
+requires the new modeling language to be a sub-language
+of Bogor’s input language. Fully customized module devel-
+opment based on the semantic model is not supported in
+Bogor. Model-Checking Kit [28] is an open model checker
+framework supporting extensions in languages and veriﬁca-
+tion algorithms with the semantic model Petri nets. LTSA
+7Bogor claims it supports extensions in modeling language.
+But in fact, its extension is same as the data type extension
+in PAT3. Real language extension like add multi-party syn-
+chronization in Bogor is impossible without the change of
+parser and source code.allows extension in modeling language by compiling input
+languages (e.g., Message Sequence Chart or Web Service)
+into LTS. SAL is a collection of separate tools for perform-
+ing program analysis, theorem proving, and (both explicit
+and symbolic) model checking on transition systems. SAL’s
+input language is an LTS-like language, which is intend-
+ed to serve as the target for translators that extract the
+transition systems from other modeling languages. Com-
+pared with these three, PAT3’s semantic model is designed
+as state interfaces, which supports on-the-ﬂy veriﬁcation.
+In Kit, LTSA and SAL, the complete model needs to be
+converted into the semantic model ﬁrst before starting the
+veriﬁcation. Therefore, the whole model may need to be
+constructed ﬁrst even if the property to be checked is false.
+In addition to the diﬀerence mentioned above, PAT3 allows
+extensions for a wide range of modeling languages thanks to
+the three diﬀerent sematic models. PAT3 is also unique that
+it integrates explicit and symbolic model checking uniformly,
+which is never addressed in these tools. Note that in SAL,
+the symbolic model checkers and explicit model checkers are
+separate tools. Hence, there is no software design involved
+in SAL. Lastly, as shown in the experiments section, PAT3
+achieves competitive performance with the state-of-the-art
+model checkers, but still oﬀers the great extensibility. Other
+model checking frameworks related to PAT3 include the IF
+TOOLSET [7] and ESMC framework [21].
+A remotely related tool is Java Path Finder (JPF) [32],
+which is a ground-breaking model checker working directly
+on Java byte-code. JPF’s ﬂexibility has been demonstrated
+by the incorporation of a variety of search modes such as
+heuristic searches. Working directly on byte-code allows one
+to claim to some extent that the code being checked is the
+code that is actually going to be run. However, our goal
+with PAT3 is to provide an extensible modeling language
+that can support checking of artifacts at diﬀerent levels of
+abstraction. Thus, PAT3 oﬀers a compromise: it supports
+checking of programming language like C#, and yet, it is
+ﬂexible enough to be adapted to obtain dedicated checkers
+for diﬀerent modeling languages. For the performance, some
+initial experiments suggest that PAT3 is much faster than
+JPF, since JPF is running on the Java Virtual Machine.
+The BDD library in PAT3 is designed such that users on-
+ly need the minimum knowledge of BDD in order to use it.
+It is thus diﬀerent from approaches like JTLV [25], which
+are designed to allow ﬂexible control of BDD packages for
+advanced users. Furthermore, our library is intended to sup-
+port systematic encoding of (at least a large subset of) ex-
+isting compositional languages with ease.
+Compared with early versions of PAT (PAT1 [31] and
+PAT2 [23])8, the enhancement in PAT3 is dramatic. We
+restructure the architecture by introducing the 4-layered de-
+sign with a clear state interface design. TTS and MDP are
+introduced in the IRL. Symbolic model checking is also sup-
+ported in the framework. 11 modules have been developed
+in PAT3. PAT3 has come to a stable stage with solid testing
+and various applications. More than 100 built-in examples
+and hundreds of test cases are embedded in PAT3. It is
+now being used by a number of institutions as a research or
+educational tool.
+8Note that [31] and [23] are tool papers, which present the
+functionalities of PAT only.
+
+--- Page 10 ---
+8. CONCLUSION
+As model checking continues to grow in popularity, mod-
+el checking tools need to adapt so that they can eﬀectively
+support a broad range of system descriptions and property
+languages. One approach to overcoming the signiﬁcant cost
+of model checking is to exploit available domain knowledge
+of speciﬁc software artifacts to develop highly-optimized s-
+tate space representations, reductions and search algorithm-
+s. PAT3’s extensible, customizable tool architecture will
+help minimize the amount of model checking-speciﬁc knowl-
+edge that a domain expert needs to build cost-eﬀective anal-
+ysis capabilities. In addition, this approach can be repeated
+to build similar veriﬁcation framework.
+To show the practicality, we have implemented 11 domain-
+speciﬁc model checkers using PAT3, which can give signiﬁ-
+cant space and time reductions while reducing the cost of the
+implementation relative to other model checkers. Further-
+more, experiment results show that PAT3 does veriﬁcation
+eﬃciently. Our future works include integration of other
+model checking techniques (e.g., counterexample guided ab-
+straction reﬁnement, assume-guarantee model checking and
+veriﬁcation using SMT solvers), automatic module genera-
+tion based on syntax grammar and operational semantics
+rules as well as software component reuse to reduce the re-
+dundant code crossing diﬀerent modules.
+9. REFERENCES
+[1]PAT: Process Analysis Toolkit.
+http://www.patroot.com/.
+[2]SAT Competition. http://www.satcompetition.org/.
+[3]B. Alpern and F. B. Schneider. Recognizing Safety and
+Liveness. Distributed Computing , 2(3):117–126, 1987.
+[4]G. Behrmann, A. David, K. G. Larsen, J. H˚ akansson,
+P. Pettersson, Y. Wang, and M. Hendriks. UPPAAL
+4.0. In QEST 2006 , pages 125–126, 2006.
+[5]A. Biere, E. M. Clarke, R. Raimi, and Y. S. Zhu.
+Veriﬁying Safety Properties of a Power PC
+Microprocessor Using Symbolic Model Checking
+without BDDs. In CAV 1999 , pages 60–71. Springer,
+1999.
+[6]M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis,
+and S. Yovine. Kronos: A Model-Checking Tool for
+Real-Time Systems. In CAV 1998 , pages 546–550,
+1998.
+[7]M. Bozga, S. Graf, I. Ober, I. Ober, and J. Sifakis.
+Tools and Applications II: The IF Toolset. In SFM ,
+pages 237–246, 2004.
+[8]R. E. Bryant. Graph-Based Algorithms for Boolean
+Function Manipulation. IEEE Transactions on
+Computers , 35(8):677–691, 1986.
+[9]J. R. Burch, E. M. Clarke, K. L. McMillan, D. L. Dill,
+and L. J. Hwang. Symbolic Model Checking: 1020
+States and Beyond. Information and Computation ,
+98(2):142–170, 1992.
+[10]A. Cimatti, E. M. Clarke, E. Giunchiglia,
+F. Giunchiglia, M. Pistore, M. Roveri, R. Sebastiani,
+and A. Tacchella. NuSMV 2: An OpenSource Tool for
+Symbolic Model Checking. In CAV , pages 359–364,
+2002.
+[11]E. M. Clarke, A. Biere, R. Raimi, and Y. S. Zhu.
+Bounded Model Checking Using Satisﬁability Solving.
+Formal Methods in System Design , 19(1):7–34, 2001.[12]E. M. Clarke, O. Grumberg, and D. A. Peled. Model
+Checking . The MIT Press, 2000.
+[13]L. M. de Moura, S. Owre, H. Rueß, J. M. Rushby,
+N. Shankar, M. Sorea, and A. Tiwari. Sal 2. In CAV
+2004, pages 496–500, 2004.
+[14]M. B. Dwyer, J. Hatcliﬀ, M. Hoosier, and Robby.
+Building Your Own Software Model Checker Using the
+Bogor Extensible Model Checking Framework. In
+CAV , pages 148–152, 2005.
+[15]E. Gamma, R. Helm, R. E. Johnson, and J. Vlissides.
+Design Patterns: Elements of Reusable
+Object-Oriented Software . Addison-Wesley, 1995.
+[16]A. Hinton, M. Z. Kwiatkowska, G. Norman, and
+D. Parker. PRISM: A Tool for Automatic Veriﬁcation
+of Probabilistic Systems. In TACAS , pages 441–444,
+2006.
+[17]C. A. R. Hoare. Communicating Sequential Processes .
+International Series on Computer Science.
+Prentice-Hall, 1985.
+[18]G. J. Holzmann. The SPIN Model Checker: Primer
+and Reference Manual . Wiley, 2003.
+[19]J. Katoen, I. S. Zapreev, E. M. Hahn, H. Hermanns,
+and D. N. Jansen. The Ins and Outs of the
+Probabilistic Model Checker MRMC. In QEST 2009 ,
+pages 167–176, 2009.
+[20]M. Kattenbelt. Towards an explicit-state model
+checking framework, August 2006.
+[21]M. Kattenbelt, T. Ruys, and A. Rensink. An
+object-oriented framework for explicit-state model
+checking. In VVSS 2007 , pages 84–92, 2007.
+[22]K. G. Larsen, P. Pettersson, and Y. Wang. Uppaal in
+a Nutshell. International Journal on Software Tools
+for Technology Transfer , 1(1-2):134–152, 1997.
+[23]Y. Liu, J. Sun, and J. S. Dong. Developing Model
+Checkers Using PAT. In ATVA 2010 , pages 371–377,
+2010.
+[24]J. Magee and J. Kramer. Concurrency: State Models
+and Java Programs . Wiley, 1999.
+[25]A. Pnueli, Y. Sa’ar, and L. D. Zuck. Jtlv: A
+framework for developing veriﬁcation algorithms. In
+CAV 2010 , pages 171–174, 2010.
+[26]A. Pnueli, J. Xu, and L. Zuck. Liveness with (0, 1,
+infty)-Counter Abstraction. In CAV 2002 , pages
+107–122, 2002.
+[27]A. W. Roscoe. The Theory and Practice of
+Concurrency . Prentice-Hall, 1997.
+[28]C. Schr ¨oter, S. Schwoon, and J. Esparza. The
+model-checking kit. In ICATPN 2003 , pages 463–472,
+Berlin, Heidelberg, 2003. Springer-Verlag.
+[29]A. P. Sistla. Safety, Liveness and Fairness in Temporal
+Logic. Formal Asp. Comput. , 6(5):495–512, 1994.
+[30]J. Sun, Y. Liu, J. S. Dong, and C. Q. Chen.
+Integrating Speciﬁcation and Programs for System
+Modeling and Veriﬁcation. In TASE 2009 , pages
+127–135, 2009.
+[31]J. Sun, Y. Liu, J. S. Dong, and J. Pang. PAT:
+Towards Flexible Veriﬁcation under Fairness. In CAV
+2009, pages 702–708, Grenoble, France, June 2009.
+[32]W. Visser, K. Havelund, G. Brat, and S. Park. Model
+checking programs. In Automated Software
+Engineering Journal , pages 3–12, 2000.

@@ -1,0 +1,1312 @@
+--- Page 1 ---
+arXiv:0802.4237v3  [cs.LO]  9 Apr 2010Safety Alternating Automata on Data Words
+RANKO LAZI ´C
+Department of Computer Science, University of Warwick, UK
+A data word is a sequence of pairs of a letter from a ﬁnite alpha bet and an element from an
+inﬁnite set, where the latter can only be compared for equali ty. Safety one-way alternating
+automata with one register on inﬁnite data words are conside red, their nonemptiness is shown
+ExpSpace -complete, and their inclusion decidable but not primitive recursive. The same com-
+plexity bounds are obtained for satisﬁability and reﬁnemen t, respectively, for the safety fragment
+of linear temporal logic with freeze quantiﬁcation. Droppi ng the safety restriction, adding past
+temporal operators, or adding one more register, each cause s undecidability.
+Categories and Subject Descriptors: F.4.1 [ Mathematical Logic and Formal Languages ]:
+Formal Languages— Decision problems ; F.1.1 [ Computation by Abstract Devices ]: Models
+of Computation— Automata
+General Terms: Algorithms, Veriﬁcation
+1. INTRODUCTION
+Context. Logics and automata for words and trees over ﬁnite alphabets are rel-
+atively well-understood. Motivated partly by the need for formal v eriﬁcation and
+synthesis of inﬁnite-state systems, and the search for automat ed reasoning tech-
+niques for XML, there is an active and broad research programme o n logics and
+automata for words and trees which have richer structure.
+Segouﬁn’s survey [Segouﬁn 2006] is a summary of the substantial p rogress made
+on reasoning about data words and data trees. A data word is a wor d over a ﬁnite
+alphabet, with an equivalence relation on word positions. Implicitly, ev ery word
+position is labelled by an element (“datum”) from an inﬁnite set (“data domain”),
+but since the inﬁnite set is equipped only with the equality predicate, it suﬃces
+to know which word positions are labelled by equal data, and that is wh at the
+equivalence relation represents. Similarly, a data tree is a tree (cou ntable, unranked
+and ordered) whose every node is labelled by a letter from a ﬁnite alph abet, with
+an equivalence relation on the set of its nodes.
+It has been nontrivial to ﬁnd satisfactory speciﬁcation formalisms even for data
+words. First-order logic was considered in [Boja´ nczyk et al. 2006; David 2004], and
+related automata were studied further in [Bj¨ orklund and Schwent ick 2007]. The
+This paper is a revised and extended version of [Lazi´ c 2006] .
+This research was supported by grants from the EPSRC (GR/S52 759/01) and the Intel Corpora-
+tion, and by ENS Cachan.
+Permission to make digital/hard copy of all or part of this ma terial without fee for personal
+or classroom use provided that the copies are not made or dist ributed for proﬁt or commercial
+advantage, the ACM copyright/server notice, the title of th e publication, and its date appear, and
+notice is given that copying is by permission of the ACM, Inc. To copy otherwise, to republish,
+to post on servers, or to redistribute to lists requires prio r speciﬁc permission and/or a fee.
+c/circlecopyrt20YY ACM 0000-0000/20YY/0000-0001 $5.00
+ACM Journal Name, Vol. V, No. N, Month 20YY, Pages BD.
+
+--- Page 2 ---
+2·R. Lazi´ c
+logic has variables which range over word positions ( {0,...,l−1}orN), a unary
+predicate for each letter from the ﬁnite alphabet, and a binary pre dicatex∼yfor
+the equivalence relation that represents equality of data labels. FO2(∼,<,+1)
+denotes such a logic with two variables and binary predicates x+ 1 =yand
+x < y. Over ﬁnite and over inﬁnite data words, satisﬁability for FO2(∼,<,+1)
+was proved decidable and at least as hard as reachability for Petri n ets [Boja´ nczyk
+et al. 2006]. The latter problem is ExpSpace -hard [Lipton 1976], but its ele-
+mentarity is still an open question. Elementary complexity of satisﬁa bility can
+be obtained at the price of substantially reducing the navigational p ower: over ﬁ-
+nite data words, NExpTime -completeness for FO2(∼,<) was established in [David
+2004] and 3 NExpTime -membership for FO2(∼,+1) follows from [Boja´ nczyk et al.
+2006]. In the other direction, if FO2(∼,<,+1) is extended by one more variable,
++1 becomes expressible using <, but satisﬁability was shown undecidable already
+for FO3(∼,+1) [Boja´ nczyk et al. 2006].
+An alternative approach to reasoning about data words is based on automata
+with registers [Kaminski and Francez 1994]. A register is used for st oring a datum
+for later equality comparisons (i.e. an equivalence class for later mem bership test-
+ing). Nonemptiness of one-way nondeterministic register automat a over ﬁnite data
+words has relatively low complexity: NP-complete [Sakamoto and Ikeda 2000] or
+PSpace-complete [Demri and Lazi´ c 2009], depending on technical details o f their
+deﬁnition. Unfortunately, such automata fail to provide a satisfa ctory notion of
+regular language of ﬁnite data words, as they are not closed under complement
+[Kaminski and Francez 1994] and their nonuniversality is undecidable [Neven et al.
+2004]. To overcome those limitations, one-way alternating automat a with 1 regis-
+ter (for short, 1ARA 1) were proposed in [Demri and Lazi´ c 2009]: they are closed
+under Boolean operations, their nonemptiness over ﬁnite data wor ds is decidable,
+and future-time fragments of temporal logics such as LTL or the m odalµ-calculus
+extendedby1registerareeasilytranslatabletosuchautomata. H owever,nonempti-
+ness for 1ARA 1turned out to be not primitive recursive over ﬁnite data words, and
+undecidable (more precisely, Π0
+1-hard) over inﬁnite ones with the weak acceptance
+mechanism [Muller et al. 1986] and thus also with B¨ uchi or co-B¨ uchi acceptance.
+Contribution. We consider one-way alternating automata with 1 register with
+the safety acceptance mechanism over inﬁnite data words (i.e. dat aω-words). The
+languagesofsuchautomataaresafetyproperties[AlpernandSch neider1987]: every
+rejected data ω-word has a ﬁnite preﬁx such that every other data ω-word which
+extends it is also rejected. (Over ﬁnite data words, safety is not a restriction.)
+The main result is that nonemptiness of safety 1ARA 1is inExpSpace . We say
+that a sentence of LTL is safety iﬀ each occurrence of the ‘until’ op erator is under
+an odd number of negations. In particular, each ‘eventually’ (resp ., ‘always’) must
+be under an odd (resp., even) number of negations. By showing tha t the safety
+fragment of future-time LTL with 1 register is translatable in logarit hmic space
+to safety 1ARA 1, and that satisﬁability for the fragment is ExpSpace -hard, we
+conclude ExpSpace -completeness of both problems.
+TheExpSpace upper bound is surprising since even decidability is fragile: by
+[Demri and Lazi´ c 2009, Theorem 5.2], satisﬁability for future-time LTL with 1
+register on data ω-words is Π0
+1-hard, and from the proof of [Demri and Lazi´ c 2009,
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 3 ---
+Safety Alternating Automata on Data Words ·3
+Theorem 5.4], the same is true for the safety fragment if past temp oral operators
+or one more register are added (cf. related undecidability results in [Neven et al.
+2004; David 2004]). Moreover, nonemptiness of safety forward ( i.e. downward and
+rightward) alternating automata with 1 register on data trees was shown decidable
+but not elementary [Jurdzi´ nski and Lazi´ c 2007]. Another sett ing where decidability
+[Ouaknine and Worrell 2006] was obtained by restricting to safety s entences is
+that of metric temporal logic on timed ω-words, but the complexity is again not
+elementary [Bouyer et al. 2008].
+The proof of ExpSpace -membership is in two stages. The ﬁrst consists of trans-
+latingagivensafety1ARA 1Atoanondeterministicautomatonwithfaultycounters
+CAwhich is on ω-words over the alphabet of Aand which is nonempty iﬀ Ais.
+The counters of CAare faulty in the sense that they are subject to incrementing
+errors, i.e. they can spontaneously increase at any time. Although a nonemptiness-
+preserving translation from 1ARA 1with weak acceptance to counter automata
+with incrementing errors was given in [Demri and Lazi´ c 2009], applyin g it to safety
+1ARA 1produces automata with the B¨ uchi acceptance mechanism, wher e the latter
+ensures that certain loops cannot repeat inﬁnitely due to incremen ting errors. To
+obtain safety automata, we enrich the instruction set by nondeterministic trans-
+fers. When applied to a counter cand a set of counters C, such an instruction
+transfers the value of cto the counters in C, nondeterministically splitting it. Thus
+we obtain CAwhose nonemptiness amounts to existence of an inﬁnite computatio n
+from the initial state. However, a further observation on the res ulting automata
+is required: the counters of such an automaton are nonempty sub sets of a certain
+set (essentially, the set of states of the given safety 1ARA 1), and it suﬃces to use
+nondeterministic transfers which are simultaneous for all counter s and which have
+a certain distributivity property in terms of the partial-order stru cture of the set
+of all counters.
+The second stage of the proof is then an inductive counting argume nt which
+shows that CAis nonempty iﬀ it has a computation from the initial state of length
+doubly exponential in the size of A. Some of the techniques are also used in the
+proof that termination of channel machines with occurrence test ing and insertion
+errors is primitive recursive [Bouyer et al. 2008]. Although counters are simpler
+resources than channels, the class of machines considered do not have instructions
+which correspond to the nondeterministic transfers, and the set s of channels and
+messages (which are counterparts to the sets of counters) hav e no special structure.
+We also show that language inclusion between two safety 1ARA 1is decidable,
+and hence that reﬁnement (i.e., validity of implication) between two se ntences of
+safety future-time LTL with 1 registeris alsodecidable. Since the sa fety fragment is
+closed under conjunctions and disjunctions, it follows that satisﬁa bility is decidable
+for Boolean combinations of safety sentences. The latter is thus a competing logic
+to FO2(∼,<,+1) on data ω-words. They are incomparable in expressiveness: there
+exist properties involving the past (e.g. ‘every bis preceded by an awith the same
+datum’) which are expressible in FO2(∼,<,+1) but not by a Boolean combination
+of safety sentences (not even in future-time LTL with 1 register) , and the reverse
+is true of some constraints involving more than 2 word positions (e.g. ‘whenever
+ais followed by bwith the same datum, cdoes not occur in between’). However,
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 4 ---
+4·R. Lazi´ c
+as pointed out above, it is not known whether satisﬁability for FO2(∼,<,+1) is
+elementary, whereas we establish that already satisﬁability for neg ations of safety
+sentences is not primitive recursive, and hence also universality for safety 1ARA 1.
+2. PRELIMINARIES
+In this section, we deﬁne safety one-way alternating automata an d safety future-
+time linear temporal logic with 1 register on data ω-words, as well as the class
+of counter automata that will be used in the proof of ExpSpace -membership in
+Section 3. We also show some of their basic properties, in particular a logarithmic-
+space translation from the linear temporal logic to the alternating a utomata.
+2.1 Data Words
+Adataω-wordσover a ﬁnite alphabet Σ is an ω-word str(σ) over Σ together with
+an equivalence relation ∼σonN={0,1,...}. We write N/∼σfor the set of all
+classes of ∼σ. Fori∈N, we writeσ(i) for the letter at position i, and [i]∼σfor the
+class that contains i. Whenσis understood, we may write simply ∼instead of ∼σ.
+We shall sometimes refer to classes of ∼as ‘data’.
+In some places, weshall alsoneed the concept ofa ﬁnite data word. Fori>0, the
+i-preﬁx of a data ω-wordσis the ﬁnite data word whose letters are σ(0)···σ(i−1)
+and whose equivalence relation is ∼σrestricted to {0,...,i−1}.
+2.2 Register Automata
+The deﬁnition of safety one-way alternating 1-register automata below is based on
+the more general one of weak two-way alternating register autom ata in [Demri and
+Lazi´ c2009]. Aconﬁgurationofsuchanautomatonataposition iofadataω-wordσ
+willconsistofoneofﬁnitely manyautomatonstatesandaregisterv alueD∈N/∼.
+From it, depending on the state, the letter σ(i), and whether D= [i]∼(denoted
+↑) orD/\e}atio\slash= [i]∼(denoted /\e}atio\slash↑), the automaton chooses a pair Q′,Q′
+↓of sets of states.
+The resulting set of conﬁgurations at the next word position is {/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈
+Q′} ∪ {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:q′∈Q′
+↓}, i.e. the states in Q′are associated with the old register
+value, and the states in Q′
+↓with the class of position i. Following [Brzozowski and
+Leiss 1980], what choices of pairs of sets of states are possible will b e speciﬁed in
+each case by a positive Boolean formula. That formalisation, in contr ast to listing
+all possible such choices, will enable a logarithmic-space translation f rom safety
+future-time LTL with 1 register.
+An inﬁnite run of the automaton will consist, for each j∈N, of a setFjof all
+conﬁgurations at position j. For each j,Fj+1will be the union of some sets of
+conﬁgurations chosen as above for each conﬁguration in Fj. Hence, a conﬁguration
+will be rejecting when its set of possible choices is empty, and it will be a ccepting
+when it can choose Q′=Q′
+↓=∅. The deﬁnition of inﬁnite runs will ensure that
+they cannot contain rejecting conﬁgurations, so the safety acc eptance mechanism
+will amount to each inﬁnite run being considered accepting.
+Formally, for a ﬁnite set Q, let↓Q={↓q:q∈Q}, and let B+
+↓(Q) denote the
+set of all positive Boolean formulae over Q∪ ↓Q, where we assume that Qand
+↓Qare disjoint:
+ϕ::=q| ↓q| ⊤ | ⊥ |ϕ∧ϕ|ϕ∨ϕ
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 5 ---
+Safety Alternating Automata on Data Words ·5
+q q′q′′b
+ca ↓a
+bca
+b
+/negationslash↑
+cFig. 1. A register
+automaton
+Asafety one-way alternating automaton with 1register(shortly, safety 1ARA 1)
+Ais a tuple /a\}bracketle{tΣ,Q,qI,δ/a\}bracketri}htsuch that:
+—Σ is a ﬁnite alphabet;
+—Qis a ﬁnite set of states, and qI∈Qis the initial state;
+—δ: (Q×Σ×{↑,/\e}atio\slash↑})→ B+
+↓(Q) is a transition function.
+Satisfaction of a positive Booleanformula over Q∪ ↓Qby a pair of sets Q′,Q′
+↓⊆
+Qis deﬁned by structural recursion:
+Q′,Q′
+↓|=qdef⇔q∈Q′Q′,Q′
+↓|=⊤
+Q′,Q′
+↓|=↓qdef⇔q∈Q′
+↓Q′,Q′
+↓/\e}atio\slash|=⊥
+Q′,Q′
+↓|=ϕ∧ϕ′def⇔Q′,Q′
+↓|=ϕandQ′,Q′
+↓|=ϕ′
+Q′,Q′
+↓|=ϕ∨ϕ′def⇔Q′,Q′
+↓|=ϕorQ′,Q′
+↓|=ϕ′
+Aconﬁgurationof Aforadataword σisanelementof Q×({j: 0≤j <|σ|}/∼).
+For a position 0 ≤i <|σ|, and ﬁnite sets FandF′of conﬁgurations, we write
+Fσ,i−→F′iﬀ, for each /a\}bracketle{tq,D/a\}bracketri}ht ∈F, there exist Q/an}bracketle{tq,D/an}bracketri}ht,Q/an}bracketle{tq,D/an}bracketri}ht
+↓⊆Qwhich satisfy the
+formulaδ(q,σ(i),↑) ifD= [i]∼, or the formula δ(q,σ(i),/\e}atio\slash↑) ifD/\e}atio\slash= [i]∼, such that
+F′={/a\}bracketle{tq′,D/a\}bracketri}ht:/a\}bracketle{tq,D/a\}bracketri}ht ∈F∧q′∈Q/an}bracketle{tq,D/an}bracketri}ht} ∪ {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:/a\}bracketle{tq,D/a\}bracketri}ht ∈F∧q′∈Q/an}bracketle{tq,D/an}bracketri}ht
+↓}
+We say that Aaccepts a data ω-wordσover Σ iﬀ it has an inﬁnite run F0σ,0−→
+F1σ,1−→ ···whereF0={/a\}bracketle{tqI,[0]∼/a\}bracketri}ht}consists of the initial conﬁguration. We write
+L(A) for the language of A, i.e. the set of all data ω-words over Σ that Aaccepts.
+Example 2.1.Asafety1ARA 1withalphabet {a,b,c}andthreestatesisdepicted
+in Figure 1. It rejects a data ω-word iﬀ there is an occurrence of a, a subsequent
+occurrence of bwith the same datum, and an occurrence of cbetween them.
+The automaton is deterministic, except for the universal branchin g from state q
+at lettera. When behaviour does not depend on whether the class in the regist er
+equals the class of the current position, the two cases are not sho wn separately. In
+particular, wehave δ(q,a,↑) =δ(q,a,/\e}atio\slash↑) =q∧↓q′. The absenceofatransitionfrom
+q′′labelled by band↑means that we have rejection in that case, i.e. δ(q′′,b,↑) =⊥.
+AsetLofdataω-wordsoveran alphabet Σ is called safety[Alpern and Schneider
+1987] iﬀ it is closed under limits of ﬁnite preﬁxes, i.e. for each data ω-wordσ, if for
+eachi>0 there exists σ′
+i∈Lwith thei-preﬁxes of σandσ′
+iequal, then σ∈L.1
+1Hence, a set is safety iﬀ it is closed with respect to the Canto r metric, where the distance between
+two words is inversely proportional to the length of their lo ngest common preﬁx.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 6 ---
+6·R. Lazi´ c
+Proposition 2.2. The language of each safety 1ARA 1is safety.
+Proof. Suppose that Ais a safety 1ARA 1, and for each i >0 there exists
+σ′
+i∈L(A) such that the i-preﬁxes of σandσ′
+iare equal. For each i, letF′
+i,0σ′
+i,0−→
+F′
+i,1σ′
+i,1−→...be an inﬁnite run of AwithF′
+i,0={/a\}bracketle{tqI,[0]∼σ′
+i/a\}bracketri}ht}. For each 0 ≤j≤i,
+letF†
+i,jbe obtained from F′
+i,jby replacing each class D′ofσ′
+iwith the class Dof
+σsuch thatD′∩{0,...,i−1}=D∩{0,...,i−1}. Now, consider the tree formed
+by all the sequences /a\}bracketle{tF†
+i,j: 0≤j≤i/a\}bracketri}htfori>0. The tree is ﬁnitely branching, so
+by K¨ onig’s Lemma, it contains an inﬁnite path /a\}bracketle{tFj:j∈N/a\}bracketri}ht. It remains to observe
+thatF0σ,0−→F1σ,1−→...andF0={/a\}bracketle{tqI,[0]∼σ/a\}bracketri}ht}.
+Given safety 1ARA 1A1andA2with alphabet Σ, it is easy to construct an
+automaton which recognises L( A1)∩L(A2) (resp., L( A1)∪L(A2)). It suﬃces to
+form a disjoint union of A1andA2, and add a new initial state qIsuch that
+δ(qI,a,?) =δ(q1
+I,a,?)∧δ(q2
+I,a,?) (resp.,δ(qI,a,?) =δ(q1
+I,a,?)∨δ(q2
+I,a,?)) for
+eacha∈Σ and ?∈ {↑,/\e}atio\slash↑}, whereq1
+Iandq2
+Iare the initial states of A1andA2. We
+thus obtain:
+Proposition 2.3. Safety 1ARA 1are closed under ﬁnite intersections and ﬁnite
+unions, in logarithmic space.
+2.3 Linear Temporal Logic
+Safety LTL↓
+1(X,R) will denote the safety fragment of future-time linear temporal
+logic with 1 register, whose syntax is given below. Each formula is over a ﬁnite
+alphabet Σ, over which the atomic formulae arange. By restricting ourselves to
+formulae in negation normal form, the safety restriction amounts to the ‘release’
+temporal operator being available instead of its dual ‘until’. The form ulae may also
+contain the ‘next’ temporal operator. A freeze quantiﬁcation ↓φbinds each free
+occurrence of ↑inφ. Such an occurrence will evaluate to true iﬀ the word position
+at the time of the freeze quantiﬁcation and the word position when t he occurrence
+of↑is evaluated are in the same class.
+φ::=a| ⊤ | ⊥ |φ∧φ|φ∨φ|Xφ|φRφ| ↓φ| ↑ | /\e}atio\slash↑
+The ‘always’ temporal operator can be introduced by regarding Gφas an abbrevi-
+ation for ⊥Rφ.
+For a data ω-wordσover a ﬁnite alphabet Σ, a position i∈N, a register value
+D∈N/∼, and a formula φover Σ, writing σ,i|=Dφwill mean that φis satisﬁed
+byσatiwith respect to D. The satisfaction relation is deﬁned as follows, where
+we omit the Boolean cases.
+σ,i|=Dadef⇔σ(i) =a
+σ,i|=DXφdef⇔σ,i+1|=Dφ
+σ,i|=DφRψdef⇔either for all k≥i, σ,k|=Dψ,or for some j≥i,
+σ,j|=Dφand for allk∈ {i,...,j}, σ,k|=Dψ
+σ,i|=D↓φdef⇔σ,i|=[i]∼φ
+σ,i|=D↑def⇔i∈D
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 7 ---
+Safety Alternating Automata on Data Words ·7
+σ,i|=D/\e}atio\slash↑def⇔i /∈D
+Ifφis a sentence, i.e. contains no free occurrence of ↑, we may omit Dsince it is
+irrelevant and write σ,i|=φ. Let L(φ) denote the language of φ, i.e. the set of all
+dataω-words over Σ such that σ,0|=φ.
+Example 2.4.Consider the following sentence φover alphabet {a,b,c}:
+G(b∨c∨↓XG(a∨b∨XG(a∨c∨/\e}atio\slash↑)))
+We haveσ,0|=φiﬀ, for each occurrence of ainσand each later occurrence of c,
+there is no later still occurrence of bwith the same datum as the occurrence of a,
+i.e. iﬀσis accepted by the automaton in Example 2.1.
+Theorem 2.5. For each sentence φof safety LTL↓
+1(X,R), a safety 1ARA 1Aφ
+with the same alphabet and L(φ) = L(Aφ)is computable in logarithmic space.
+Proof. The translation is a straightforwardadaptation of the classical on e from
+LTL to alternating automata (cf. e.g. [Vardi 1996]).
+To deﬁne Aφwith alphabet Σ of φ, let the set of states Qconsist of all qφ′such
+thatφ′is eitherφ, orψfor a subformula Xψofφ, or a subformula ψRχofφ. Let
+the initial state be qφ. The transition function is obtained by restricting to Qthe
+function deﬁned below by structural recursion over the set of all qφ′whereφ′is
+a subformula of φ. The dual cases are omitted, and ? ranges over {↑,/\e}atio\slash↑}. In the
+formula for ↓ψ, each occurrence of a state q′without↓is substituted by ↓q′.
+δ(qa,a,?)def=⊤ δ(qψ∧χ,a,?)def=δ(qψ,a,?)∧δ(qχ,a,?)
+δ(qa,a′,?)def=⊥,fora′/\e}atio\slash=a δ(qXψ,a,?)def=qψ
+δ(q⊤,a,?)def=⊤ δ(qψRχ,a,?)def=δ(qχ,a,?)∧(δ(qψ,a,?)∨qψRχ)
+δ(q↑,a,↑)def=⊤ δ(q↓ψ,a,?)def=δ(qψ,a,↑)[↓q′/q′:q′∈Q]
+δ(q↑,a,/\e}atio\slash↑)def=⊥
+ThatAφis computable in logarithmic space follows by observing that, for each
+subformula φ′ofφ,a∈Σ, and ? ∈ {↑,/\e}atio\slash↑}, a single traversal of φ′suﬃces for
+computing δ(qφ′,a,?).
+Equality of the languages of φandAφis implied by the following claim: for
+each subformula φ′ofφ, dataω-wordσover Σ, position i∈N, and register value
+D∈N/∼, we haveσ,i|=Dφ′iﬀ, for some Q′,Q′
+↓⊆Qsuch thatQ′,Q′
+↓|=
+δ(qφ′,σ(i),↑) ifD= [i]∼, or such that Q′,Q′
+↓|=δ(qφ′,σ(i),/\e}atio\slash↑) ifD/\e}atio\slash= [i]∼,Aφhas
+an inﬁnite run from position i+1 ofσ, starting with
+{/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Q′} ∪ {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:q′∈Q′
+↓}
+(Ifqφ′is a state of Aφ, the latter is equivalent to Aφhaving a run from position
+iofσ, starting with {/a\}bracketle{tqφ′,D/a\}bracketri}ht}.) The claim is provable by structural induction on
+φ′. We treat explicitly the two interesting cases: φ′=ψRχandφ′=↓ψ.
+Supposeσ,i|=DψRχ. Ifσ,j|=Dψfor somej≥i, andσ,k|=Dχfor all
+k∈ {i,...,j}, then by the inductive hypothesis:
+(i) for some Q′,Q′
+↓⊆Qsuch thatQ′,Q′
+↓|=δ(qψ,σ(j),↑) ifD= [j]∼, or such that
+Q′,Q′
+↓|=δ(qψ,σ(j),/\e}atio\slash↑) ifD/\e}atio\slash= [j]∼,Aφhas an inﬁnite run F′
+j+1σ,j+1−→F′
+j+2σ,j+2−→
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 8 ---
+8·R. Lazi´ c
+···with
+F′
+j+1={/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Q′} ∪ {/a\}bracketle{tq′,[j]∼/a\}bracketri}ht:q′∈Q′
+↓}
+(ii) for allk∈ {i,...,j}, for someQk,Qk
+↓⊆Qsuch thatQk,Qk
+↓|=δ(qχ,σ(k),↑)
+ifD= [k]∼, or such that Qk,Qk
+↓|=δ(qχ,σ(k),/\e}atio\slash↑) ifD/\e}atio\slash= [k]∼,Aφhas an inﬁnite
+runFk
+k+1σ,k+1−→Fk
+k+2σ,k+2−→ ···with
+Fk
+k+1={/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Qk} ∪ {/a\}bracketle{tq′,[k]∼/a\}bracketri}ht:q′∈Qk
+↓}
+LettingF†
+l={/a\}bracketle{tqψRχ,D/a\}bracketri}ht} ∪/uniontext
+k∈{i,...,l−1}Fk
+lfor eachl∈ {i,...,j}, andF†
+l=
+/uniontext
+k∈{i,...,j}Fk
+l∪F′
+lfor eachl≥j+1, we have by (i) and (ii) that F†
+iσ,i−→F†
+i+1σ,i+1−→
+···andF†
+i={/a\}bracketle{tqψRχ,D/a\}bracketri}ht}, as required. If σ,k|=Dχfor allk≥i, the argument is
+simpler.
+For the converse, suppose Aφhas an inﬁnite run F†
+iσ,i−→F†
+i+1σ,i+1−→ ···withF†
+i=
+{/a\}bracketle{tqψRχ,D/a\}bracketri}ht}. If there exists j≥iwith/a\}bracketle{tqψRχ,D/a\}bracketri}ht/∈F†
+j+1, consider the minimum
+suchj. Sinceδ(qψRχ,a,?) =δ(qχ,a,?)∧(δ(qψ,a,?)∨qψRχ), we obtain:
+(iii) for some Q′,Q′
+↓⊆Qsuch thatQ′,Q′
+↓|=δ(qψ,σ(j),↑) ifD= [j]∼, or such
+thatQ′,Q′
+↓|=δ(qψ,σ(j),/\e}atio\slash↑) ifD/\e}atio\slash= [j]∼, we have
+{/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Q′} ∪ {/a\}bracketle{tq′,[j]∼/a\}bracketri}ht:q′∈Q′
+↓} ⊆F†
+j+1
+(iv) for all k∈ {i,...,j}, for someQk,Qk
+↓⊆Qsuch thatQk,Qk
+↓|=δ(qχ,σ(k),↑)
+ifD= [k]∼, or such that Qk,Qk
+↓|=δ(qχ,σ(k),/\e}atio\slash↑) ifD/\e}atio\slash= [k]∼, we have
+{/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Qk} ∪ {/a\}bracketle{tq′,[k]∼/a\}bracketri}ht:q′∈Qk
+↓} ⊆F†
+k+1
+By considering subruns starting with the sets of conﬁgurations in ( iii) and (iv),
+and the inductive hypothesis, it follows that σ,j|=Dψ, andσ,k|=Dχfor all
+k∈ {i,...,j}, soσ,i|=DψRχas required. If /a\}bracketle{tqψRχ,D/a\}bracketri}ht ∈F†
+j+1for allj≥i, the
+argument is again simpler.
+For caseφ′=↓ψ, we have σ,i|=D↓ψiﬀσ,i|=[i]∼ψ. By the inductive
+hypothesis, that is iﬀ:
+(v) for some Q†,Q†
+↓⊆Qsuch thatQ†,Q†
+↓|=δ(qψ,σ(i),↑),Aφhas an inﬁnite run
+from position i+1 ofσ, starting with {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:q′∈Q†∪Q†
+↓}.
+On the other hand, Aφhaving an inﬁnite run from position i+1 ofσ, starting with
+{/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Q′} ∪ {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:q′∈Q′
+↓}
+for someQ′,Q′
+↓⊆Qsuch thatQ′,Q′
+↓|=δ(q↓ψ,σ(i),↑) ifD= [i]∼, or such that
+Q′,Q′
+↓|=δ(q↓ψ,σ(i),/\e}atio\slash↑) ifD/\e}atio\slash= [i]∼, is equivalent to:
+(vi) for some Q′,Q′
+↓⊆Qsuch thatQ′,Q′
+↓|=δ(qψ,σ(i),↑)[↓q′/q′:q′∈Q],Aφ
+has an inﬁnite run from position i+1 ofσ, starting with
+{/a\}bracketle{tq′,D/a\}bracketri}ht:q′∈Q′} ∪ {/a\}bracketle{tq′,[i]∼/a\}bracketri}ht:q′∈Q′
+↓}
+It remains to observe that Q′,Q′
+↓|=δ(qψ,σ(i),↑)[↓q′/q′:q′∈Q] iﬀQ′
+↓=Q†∪Q†
+↓
+for someQ†,Q†
+↓|=δ(qψ,σ(i),↑), so (v) and (vi) are equivalent.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 9 ---
+Safety Alternating Automata on Data Words ·9
+2.4 Counter Automata
+We introduce below a class of nondeterministic automata on ω-words which have ε
+transitions and N-valued counters. The set of counters of such an automaton will
+have structure: there will be a ﬁnite set called the basis of the auto maton, and each
+counter will be a nonempty subset of the basis. In the course of a t ransition, the
+automaton will be able either to increment a counter, or to decreme nt a counter if
+nonzero, or to perform a simultaneous nondeterministic transfer with respect to a
+mappingffrom counters to sets of counters. The latter transfers the va lue of each
+countercto the counters in f(c), nondeterministically splitting it. However, only
+mappings which satisfy a distributivity constraint in terms of the str ucture of the
+set of counters may be used.
+The observation that simultaneous nondeterministic transfers ar ising from trans-
+lating safety 1ARA 1are distributive (cf. the proof of Theorem 3.2), and that dis-
+tributivity enables nonemptiness of the counter automata to be de cided in space
+exponential in basis size (cf. the proof of Theorem 3.3), are key co mponents of the
+paper.
+We shall only consider automata with no cycles of εtransitions, and they will
+recognise safety languages, so every inﬁnite run will accept some ω-word.
+The automata will be faulty in the sense that their counters may err oneously
+increase at any time.
+Formally, for a ﬁnite set XandC⊆ P(X)\ {∅}, letL(C) be the set of all
+instructions:
+—/a\}bracketle{tinc,c/a\}bracketri}htand/a\}bracketle{tdec,c/a\}bracketri}htforc∈C;
+—/a\}bracketle{ttransf,f/a\}bracketri}htfor mappings f:C→ P(C) which are distributive as follows: when-
+everc∈C,c⊆/uniontextk
+i=1ci, andc′
+i∈f(ci) for eachi= 1,...,k, there exists c′∈f(c)
+such thatc′⊆/uniontextk
+i=1c′
+i.
+Asafety powerset counter automaton with nondeterministic t ransfers and incre-
+menting errors (shortly, safety IPCANT )Cis a tuple /a\}bracketle{tΣ,Q,qI,X,C,δ/a\}bracketri}htsuch that:
+—Σ is a ﬁnite alphabet;
+—Qis a ﬁnite set of states, and qIis the initial state;
+—Xis a ﬁnite set called the basis, andC⊆ P(X)\{∅}is the set of counters;
+—δ⊆Q×(Σ⊎{ε})×L(C)×Qis a transition relation which does not contain a
+cycle ofεtransitions.
+A conﬁguration of Cis a pair /a\}bracketle{tq,v/a\}bracketri}ht, whereq∈Qandvis a counter valuation,
+i.e.v:C→N. We say that /a\}bracketle{tq,v/a\}bracketri}hthas an error-free transition labelled by w∈
+Σ⊎ {ε}and performing l∈L(C) to/a\}bracketle{tq′,v′/a\}bracketri}ht, and we write /a\}bracketle{tq,v/a\}bracketri}htw,l−→√/a\}bracketle{tq′,v′/a\}bracketri}ht, iﬀ
+/a\}bracketle{tq,w,l,q′/a\}bracketri}ht ∈δandv′can be obtained from vbyl. The latter is deﬁned as follows:
+—instructions /a\}bracketle{tinc,c/a\}bracketri}htand/a\}bracketle{tdec,c/a\}bracketri}hthavethestandardinterpretations,where /a\}bracketle{tdec,c/a\}bracketri}ht
+is ﬁrable iﬀ v(c)>0;
+—v′can be obtained from vby/a\}bracketle{ttransf,f/a\}bracketri}htiﬀ there exist Kc
+c′≥0 for eachc∈C
+andc′∈f(c), such that:
+for eachc∈C, v(c) =/summationtext
+c′∈f(c)Kc
+c′for eachc′∈C, v′(c′) =/summationtext
+f(c)∋c′Kc
+c′
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 10 ---
+10·R. Lazi´ c
+in particular, /a\}bracketle{ttransf,f/a\}bracketri}htis ﬁrable iﬀ v(c) = 0 whenever f(c) =∅.
+For counter valuations vandv√, we writev≤v√iﬀ, for allc,v(c)≤v√(c). To
+allow transitions of Cto contain incrementing errors, we deﬁne /a\}bracketle{tq,v/a\}bracketri}htw,l−→ /a\}bracketle{tq′,v′/a\}bracketri}htto
+mean that there exist v√andv′√withv≤v√,/a\}bracketle{tq,v√/a\}bracketri}htw,l−→√/a\}bracketle{tq′,v′√/a\}bracketri}htandv′√≤v′.
+Wesaythat Cacceptsanω-wordwoverΣiﬀ Chasarun /a\}bracketle{tq0,v0/a\}bracketri}htw0,l0−→ /a\}bracketle{tq1,v1/a\}bracketri}htw1,l1−→
+···where/a\}bracketle{tq0,v0/a\}bracketri}htis the initial conﬁguration /a\}bracketle{tqI,0/a\}bracketri}htandw=w0w1....
+Example 2.6.GivenY⊆X, letfY(c) =∅ifc∩Y/\e}atio\slash=∅, andfY(c) ={c}
+otherwise. Observe that fYis distributive. The instruction /a\}bracketle{ttransf,fY/a\}bracketri}htis ﬁrable
+iﬀ each counter which intersects Yis zero, and it does not change the value of any
+counter. Hence, we may write /a\}bracketle{tifz∩,Y/a\}bracketri}htinstead of /a\}bracketle{ttransf,fY/a\}bracketri}ht.
+SupposeC={{x}:x∈X}, i.e. the set of counters has no structure. The
+instruction /a\}bracketle{tifz∩,Y/a\}bracketri}htis ﬁrable iﬀ each counter {x}forx∈Yis zero. Observe that
+everyf:C→ P(C) is distributive. For instance, given c∈Cand nonempty C′⊆
+C, letfc,C′(c) =C′andfc,C′(c′) ={c′}forc′/\e}atio\slash=c. The instruction /a\}bracketle{ttransf,fc,C′/a\}bracketri}ht
+nondeterministically distributes the value of cto the counters in C′.
+ForCas above, let us say that a transition /a\}bracketle{tq,v/a\}bracketri}htw,l−→ /a\}bracketle{tq′,v′/a\}bracketri}htislazyiﬀ either
+/a\}bracketle{tq,v/a\}bracketri}htw,l−→√/a\}bracketle{tq′,v′/a\}bracketri}ht, orlis of the form /a\}bracketle{tdec,c/a\}bracketri}ht,v(c) = 0 andv′=v. Thus, in lazy
+transitions,onlyincrementingerrorswhichenabledecrementsofc ounterswithvalue
+0 may occur. The following straightforward proposition shows that restricting to
+lazy transitions does not aﬀect the languages of safety IPCANTs.
+Proposition 2.7. Whenever /a\}bracketle{tq,v/a\}bracketri}htw,l−→ /a\}bracketle{tq′,v′/a\}bracketri}htis a transition of a safety IP-
+CANTCandv†≤v, there exists a lazy transition /a\}bracketle{tq,v†/a\}bracketri}htw,l−→ /a\}bracketle{tq′,v′
+†/a\}bracketri}htofCsuch that
+v′
+†≤v′.
+A setLofω-words over an alphabet Σ is called safety[Alpern and Schneider
+1987] iﬀ it is closed under limits of ﬁnite preﬁxes, i.e. for each ω-wordw, if for each
+i>0 there exists w′
+i∈Lsuch that the i-preﬁxes of wandw′
+iare equal, then w∈L.
+For each safety IPCANT, the tree of all its lazy runs is ﬁnitely branc hing, so by
+simplifying the argument in the proof of Proposition 2.2, and by Propo sition 2.7,
+we obtain:
+Proposition 2.8. The language of each safety IPCANT is safety.
+3. UPPER BOUND
+This section contains a two-stage proof that nonemptiness of saf ety 1ARA 1is in
+ExpSpace . The ﬁrst theorem below shows that each such automaton Ais trans-
+latable to a safety IPCANT CAof at most exponential size, but whose basis size
+is polynomially (in fact, linearly) bounded. Nonemptiness is preserved , sinceCA
+accepts exactly the string projections of data ω-words in the language of A. By the
+second theorem, nonemptiness of CAis decidable in space exponential in its basis
+size and polynomial (in fact, polylogarithmic) in its alphabet size and nu mber of
+states, so space exponential in the size of Asuﬃces overall.
+We start with a piece of notation and a lemma about IPCANT. Suppose Cis
+a set of counters over a basis X. For counter valuations v√andv, let us write
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 11 ---
+Safety Alternating Automata on Data Words ·11
+v√⊑viﬀ there exists v†≤vwhich can be obtained from v√by performing
+/a\}bracketle{ttransf,c/mapsto→ {d:c⊆d}/a\}bracketri}ht. The lemma states that ⊑is downwards compatible
+with every simultaneous nondeterministic transfer.
+Lemma 3.1. Wheneverv√⊑vandv′is obtainable from vby some /a\}bracketle{ttransf,f/a\}bracketri}ht
+with distributive f, there exists v′√obtainable from v√by/a\}bracketle{ttransf,f/a\}bracketri}htand such that
+v′√⊑v′.
+Proof. We use the following shorthand: /tildewidev=/uniontext
+c∈C{/a\}bracketle{tc,1/a\}bracketri}ht,...,/a\}bracketle{tc,v(c)/a\}bracketri}ht}.
+The assumptions are equivalent to existence of: an injective ι:/tildewiderv√→/tildewidevsuch
+thatc⊆dwheneverι/a\}bracketle{tc,i/a\}bracketri}ht=/a\}bracketle{td,j/a\}bracketri}ht, and a bijective β:/tildewidev→/tildewidev′such thatf(d)∋d′
+wheneverβ/a\}bracketle{td,j/a\}bracketri}ht=/a\}bracketle{td′,j′/a\}bracketri}ht.
+For each /a\}bracketle{tc,i/a\}bracketri}ht ∈/tildewiderv√, we havec⊆dwhereι/a\}bracketle{tc,i/a\}bracketri}ht=/a\}bracketle{td,j/a\}bracketri}ht, andf(d)∋d′where
+β/a\}bracketle{td,j/a\}bracketri}ht=/a\}bracketle{td′,j′/a\}bracketri}ht, so by distributivity of f, there exists c′∈f(c) such that c′⊆d′.
+Hence, there exist a counter valuation v′√and a bijective β√:/tildewiderv√→/tildewiderv′√such that
+c′∈f(c) andc′⊆d′wheneverβ√/a\}bracketle{tc,i/a\}bracketri}ht=/a\}bracketle{tc′,i′/a\}bracketri}htand (β◦ι)/a\}bracketle{tc,i/a\}bracketri}ht=/a\}bracketle{td′,j′/a\}bracketri}ht. It
+remains to observe that β◦ι◦β−1√is an injection from/tildewiderv′√to/tildewidev′.
+Theorem 3.2. Given a safety 1ARA 1A, a safety IPCANT CAis computable
+in polynomial space, such that CAandAhave the same alphabet, the basis size of
+CAis linear in the number of states of A, andL(CA) ={str(σ) :σ∈L(A)}.
+Proof. The proof is an adaptation of the proof of [Demri and Lazi´ c 2009, Theo-
+rem 4.4], where it was shown how to translate in polynomial space weak 1ARA 1to
+B¨ uchi nondeterministic counter automata with εtransitions and incrementing er-
+rors, and whose instructions are increments, decrements and ze ro tests of individual
+counters. We show below essentially that, since Ais safety, zero tests of individual
+counters, cycles of εtransitions and the B¨ uchi acceptance condition can be elim-
+inated using nondeterministic transfers with a suitable basis and set of counters,
+resulting in a safety IPCANT.
+LetA=/a\}bracketle{tΣ,Q,qI,δ/a\}bracketri}ht. We ﬁrst introduce an abstraction which maps a ﬁnite set
+Fof conﬁgurations of Aat a position iof a data word σover Σ to a triple /a\}bracketle{ta,Q↑,♯/a\}bracketri}ht
+such that: a=σ(i),Q↑is the set of all states that occur in Fpaired with [ i]∼,
+and for each nonempty R⊆Q,♯(R) is the number of data D/\e}atio\slash= [i]∼for whichRis
+the set of all states that occur in Fpaired with D. Thus, the abstraction records
+only the letter at position i, and equalities among the datum at position iand data
+in conﬁgurations in F. We then observe that nonemptiness of Ais equivalent to
+existence of an inﬁnite sequence of abstract transitions which sta rts from a triple
+of the form /a\}bracketle{ta,{qI},0/a\}bracketri}ht. In other words, searching for a data ω-wordσover Σ and
+an inﬁnite run of Aonσcan be performed one position at a time, while keeping
+in memory only the information recorded by the abstraction.
+Formally, we deﬁne HAto be the set of all triples /a\}bracketle{ta,Q↑,♯/a\}bracketri}htfor whicha∈Σ,
+Q↑⊆Q, and♯:P(Q)\{∅} → N. For a data word σover Σ, a position 0 ≤i<|σ|,
+and ﬁnite set Fof conﬁgurations, let h(σ,i,F) =/a\}bracketle{tσ(i),QF,[i]∼
+↑,♯F,[i]∼/a\}bracketri}ht, where, for
+each nonempty R⊆Q:
+QF,D
+↑={q:/a\}bracketle{tq,D/a\}bracketri}ht ∈F}♯F,D(R) =|{D′/\e}atio\slash=D:QF,D′
+↑=R}|
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 12 ---
+12·R. Lazi´ c
+Toobtainasuccessorofamemberof HA,foreachconﬁgurationthatitrepresents,
+setsofstateswhichsatisfytheappropriatepositiveBooleanform ulainAarechosen,
+and then two cases are distinguished: either the datum at the next position occurs
+in the next set of conﬁgurations, or not. Thus, we write /a\}bracketle{ta,Q↑,♯/a\}bracketri}ht → /a\}bracketle{ta′,Q′
+↑,♯′/a\}bracketri}htiﬀ,
+for eachq∈Q↑, there exist Qq,Qq
+↓|=δ(q,a,↑), and for each nonempty R⊆Q,
+j∈ {1,...,♯(R)}andq∈R, there exist QR,j,q,QR,j,q
+↓|=δ(q,a,/\e}atio\slash↑), such that:
+—either♯′=♯†[Q′
+↑/mapsto→♯†(Q′
+↑)−1],
+—orQ′
+↑=∅and♯′=♯†,
+where, for each nonempty R′⊆Q,♯†(R′) is deﬁned as
+|{/a\}bracketle{tR,j/a\}bracketri}ht:/uniontext
+q∈RQR,j,q=R′}|+/braceleftbigg1,if/uniontext
+q∈Q↑Qq∪/uniontext
+q∈Q↑Qq
+↓∪/uniontext
+R,j/uniontext
+q∈RQR,j,q
+↓=R′
+0,otherwise
+We claim the following correspondence between inﬁnite sequences of transitions
+inHAfrom initial triples and inﬁnite runs of Afrom initial conﬁgurations:
+(*)/a\}bracketle{ta0,Q0
+↑,♯0/a\}bracketri}ht → /a\}bracketle{ta1,Q1
+↑,♯1/a\}bracketri}ht → ··· is an inﬁnite sequence of transitions in HA
+such thatQ0
+↑={qI}and♯0=0iﬀAhas an inﬁnite run F0σ,0−→F1σ,1−→ ···on
+a dataω-wordσover Σ such that F0={/a\}bracketle{tqI,[0]∼/a\}bracketri}ht}and/a\}bracketle{tai,Qi
+↑,♯i/a\}bracketri}ht=h(σ,i,Fi)
+for eachi∈N.
+One direction is straightforward, since h(σ,0,{/a\}bracketle{tqI,[0]∼/a\}bracketri}ht}) =/a\}bracketle{tσ(0),{qI},0/a\}bracketri}ht, and
+Fσ,i−→F′impliesh(σ,i,F)→h(σ,i+ 1,F′). For the other direction, suppose
+/a\}bracketle{ta0,Q0
+↑,♯0/a\}bracketri}ht → /a\}bracketle{ta1,Q1
+↑,♯1/a\}bracketri}ht → ···is an inﬁnite sequence of transitions in HA,Q0
+↑=
+{qI}and♯0=0. For eachi∈N, letσibe a data word over Σ of length i+1 and
+Fibe a set of conﬁgurations for σiwith/a\}bracketle{tai,Qi
+↑,♯i/a\}bracketri}ht=h(σi,i,Fi), chosen as follows:
+—We take str( σ0) =a0,∼σ0={/a\}bracketle{t0,0/a\}bracketri}ht}, andF0={/a\}bracketle{tqI,{0}/a\}bracketri}ht}.
+—GivenσiandFi, we choose σi+1andFi+1for whichσiis the (i+ 1)-preﬁx of
+σi+1,/a\}bracketle{tai+1,Qi+1
+↑,♯i+1/a\}bracketri}ht=h(σi+1,i+1,Fi+1), andFiσi,i−→Fi+1.
+Now, letσ†be the limit of the σi, i.e. such that for each i∈N,σiis the (i+1)-preﬁx
+ofσ†. For eachi∈N, letF†
+ibe the unique set of conﬁgurations for σ†that satisﬁes
+Fi={/a\}bracketle{tq,D∩{0,...,i}/a\}bracketri}ht:/a\}bracketle{tq,D/a\}bracketri}ht ∈F†
+i}
+Observe that |F†
+i|=|Fi|, soF†
+iis ﬁnite. Moreover, h(σ†,i,F†
+i) =h(σi,i,Fi), so
+h(σ†,i,F†
+i) =/a\}bracketle{tai,Qi
+↑,♯i/a\}bracketri}ht. Finally, since Fiσi,i−→Fi+1, we haveF†
+iσ†,i−→F†
+i+1.
+The nondeterministic procedure below guesses an inﬁnite sequence /a\}bracketle{ta0,Q0
+↑,♯0/a\}bracketri}ht →
+/a\}bracketle{ta1,Q1
+↑,♯1/a\}bracketri}ht → ···of transitions in HAsuch thatQ0
+↑={qI}and♯0=0in the fol-
+lowing manner: whenever the main loop has been performed itimes and execution
+is at the end of step (2), a,Q↑and the counters cstoreai,Qi
+↑and♯i(respectively),
+and all the counters dhave value 0. In the notation of the deﬁnition above of
+transitions in HA, eachd(R′,R′
+↓) is used to count the number of pairs /a\}bracketle{tR,j/a\}bracketri}htsuch
+that/uniontext
+q∈RQR,j,q=R′and/uniontext
+q∈RQR,j,q
+↓=R′
+↓. If one or more choices in steps (3)
+or (4) are not possible, the procedure blocks.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 13 ---
+Safety Alternating Automata on Data Words ·13
+(0) Setc(R) := 0 for each nonempty R⊆Q, andd(R,R↓) := 0 for each R,R↓⊆Q.
+(1) SetQ↑:={qI}.
+(2) Choose a∈Σ.
+(3) Whilec(R)>0 for some nonempty R⊆Q, do:
+—decrement c(R);
+—for eachq∈R, chooseQq,Qq
+↓|=δ(q,a,/\e}atio\slash↑);
+—increment d(/uniontext
+q∈RQq,/uniontext
+q∈RQq
+↓).
+(4) For each q∈Q↑, chooseQq,Qq
+↓|=δ(q,a,↑).
+(5) Increment c(/uniontext
+q∈Q↑Qq∪/uniontext
+q∈Q↑Qq
+↓∪/uniontext
+d(R,R↓)>0R↓).
+(6) Whiled(R,R↓)>0 for some R,R↓⊆Q, decrement d(R,R↓), and increment
+c(R) ifRis nonempty.
+(7) Either choose nonempty Q↑withc(Q↑)>0 and decrement c(Q↑), orQ↑:=∅.
+(8) Repeat from (2).
+By (*), we have that the procedure has an inﬁnite execution such t hat the letters
+chosenin step(2) are a0,a1,...iﬀAacceptsadata ω-wordσsuchthatai=σ(i) for
+eachi∈N. Therefore, in the remainder of the proof, we show that the proc edure is
+implementable by a safety IPCANT CAwhich is computable in polynomial space
+and whose basis size is linear in |Q|.
+ForR,R↓⊆Q, let
+R={∗} ∪ {q:q∈R}R,R↓={∗} ∪ {q:q∈R} ∪ {q↓:q∈R↓}
+We deﬁne the basis of CAasQ∪Q,Q(where we assume disjointness), and the
+counters of CAare:Rfor eachR⊆Q, andR,R↓for eachR,R↓⊆Q. The set
+of counters of CAis thus essentially P(Q)∪ P(Q)2. Note that, compared to the
+procedure above, CAhas the extra counter ∅.
+The states of CAare used for control, and for storing the letters from Σ as well
+as the elements and subsets of Q. Step (0) is implemented by default, and steps
+(1), (2), (4) and (8) are straightforward.
+Step (3) can be performed by a single simultaneous nondeterministic transfer,
+with the mapping
+{R/mapsto→ {/uniontext
+q∈RQq,/uniontext
+q∈RQq
+↓:∀q∈R(Qq,Qq
+↓|=δ(q,a,/\e}atio\slash↑))},
+R,R↓/mapsto→ {R,R↓}:R,R↓⊆Q}
+whosedistributivityisakeycomponentofthepaper. Toshowthatit holds, suppose
+R⊆/uniontextk
+i=1Ri, andQi,q,Qi,q
+↓|=δ(q,a,/\e}atio\slash↑) for eachi∈ {1,...,k}andq∈Ri. Given
+q∈R, letiqbe such that q∈Riq. We then have, as required:
+/uniontext
+q∈RQiq,q,/uniontext
+q∈RQiq,q
+↓⊆/uniontextk
+i=1/uniontext
+q∈RiQi,q,/uniontext
+q∈RiQi,q
+↓
+The following is an implementation of step (5):
+—SetR′:=/uniontext
+q∈Q↑Qq∪/uniontext
+q∈Q↑Qq
+↓.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 14 ---
+14·R. Lazi´ c
+—For each q∈Q, either perform the transfer that veriﬁes that each R,R↓with
+q∈R↓is zero (cf. Example 2.6), or choose R,R↓⊆Qwithq∈R↓, decrement
+R,R↓, increment R,R↓and setR′:=R′∪{q}.
+—Increment R′.
+For step (6), we use the transfer with the mapping
+{R/mapsto→ {R},R,R↓/mapsto→ {R}:R,R↓⊆Q}
+which is distributive since R,R↓⊆/uniontextk
+i=1Ri,Ri
+↓impliesR⊆/uniontextk
+i=1Ri.
+Finally, in step (7), if Q↑:=∅is performed, then either ∅is decremented or not.
+Observe therefore that the auxiliary counter ∅is transferred to ∅,∅in step (3),
+that∅,∅is transferred to ∅in step (6), and that those two counters do not aﬀect
+anything else.
+In step (2), CAperforms an atransition, and all other transitions are ε. However,
+the only cycle in the transition graph of CAcorresponds to the loop (2)–(8), so the
+requirement of no cycles of εtransitions is met.
+The only nontrivial aspect of computing CAin space polynomial in the size of A
+is the implementation of step (3). However, for each R⊆Q, the set
+{/uniontext
+q∈RQq,/uniontext
+q∈RQq
+↓:∀q∈R(Qq,Qq
+↓|=δ(q,a,/\e}atio\slash↑))}
+can be output by iterating over all mappings q/mapsto→ /a\}bracketle{tQq,Qq
+↓/a\}bracketri}htfromRtoP(Q)2.
+Each such mapping can be stored in space 2 |Q|2, and deciding Qq,Qq
+↓|=δ(q,a,/\e}atio\slash↑)
+amounts to evaluating a propositional formula.
+It remains to show that incrementing errors cannot cause CAto accept an ω-
+worda0a1...which it does not accept without incrementing errors. Informally,
+that is the case because incrementing errors in runs of CAamount to introductions
+of spurious threads into corresponding runs of A, which can only make acceptance
+harder.
+Suppose CAaccepts anω-worda0a1..., i.e. the implementation of the procedure
+abovehas an inﬁnite execution Ewhich may contain incrementing errorsand which
+chooses in step (2) the letters a0,a1,.... Below, we deﬁne an error-free inﬁnite
+executionE√such that the letters chosen in step (2) are also a0,a1,..., and we
+show by induction that the following are satisﬁed before each step:
+(i)v√⊑v(cf. Lemma 3.1), where vandv√are the current counter valuations in
+EandE√(respectively);
+(ii)Q√
+↑⊆Q↑, ifQ↑andQ√
+↑are deﬁned, where they are the current values of the
+variable in EandE√(respectively).
+Initially, we have that vandv√equal0, and thatQ↑andQ√
+↑are undeﬁned, so the
+inductive base is trivial. We also have that v√⊑vandv≤v′implyv√⊑v′, i.e.
+the⊑relation is preserved by incrementing errors in the second argumen t.
+Steps (1) and (2). E√performs the same transitions as E.
+Steps (3) and (6). E√performs the transfers as in Lemma 3.1.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 15 ---
+Safety Alternating Automata on Data Words ·15
+Step (4). For eachq∈Q√
+↑⊆Q↑, the sameQqandQq
+↓are chosen in E√as inE.
+Step (5). For eachq∈Q, if there exist R√
+andR√
+↓∋qsuch thatv√(R√,R√
+↓)>
+0, we have by (i) that there exist RandR↓∋qsuch thatv(R,R↓)>0. It follows
+thatR′√⊆R′, whereR′is the value of the variable after the implementation of
+step (5) is executed in E, andR′√is the value after the unique error-free execution
+inE√. Hence, (i) is preserved.
+Step (7). Letι:/tildewiderv√→/tildewidevbe an injection (cf. the proof of Lemma 3.1), and Q↑be
+the value chosen in E. IfQ↑is decremented and ι/a\}bracketle{tQ√
+↑,i/a\}bracketri}ht=/a\}bracketle{tQ↑,j/a\}bracketri}htfor someQ√
+↑,
+iandj(in particular, Q√
+↑⊆Q↑), then choose such Q√
+↑inE√and decrement Q√
+↑.
+Otherwise, choose ∅inE√without decrementing.
+That completes the deﬁnition of E√and the proof.
+Theorem 3.3. Nonemptiness of safety IPCANT is decidable in space exponen -
+tial in basis size and polylogarithmic in alphabet size and n umber of locations.
+Proof. Suppose C=/a\}bracketle{tΣ,Q,qI,X,C,δ/a\}bracketri}htis a safety IPCANT. By Proposition 2.7,
+Cis nonempty iﬀ it has an inﬁnite sequence of lazy transitions from the in itial
+conﬁguration.
+We deﬁne positive integers αiandUifori= 0,...,|X|as follows:
+α0=|Q|U0= 1αi+1= 2(|X|−i)αiU|C|
+iUi+1= 3αiU|C|
+i
+Letm= 2α|X|U|C|
+|X|. We shall show:
+(I) IfChas a sequence of m−1 lazy transitions from the initial conﬁguration, then
+it has an inﬁnite sequence.
+Therefore, nonemptiness of Ccan be decided nondeterministically by guessing a
+sequence of m−1 lazy transitions from the initial conﬁguration. In every such
+sequence, each transition increases the sum of all counters by at most 1, so no
+counter can exceed m−1. Sincem <222|X|2+|X|log(3|Q|)and|C|<2|X|, a single
+conﬁguration can be stored in space 2O(|X|2)O(log|Q|). To guess a sequence of
+lengthm−1,itsuﬃcestostoreatmosttwoconﬁgurations,thenumberoftr ansitions
+guessed so far, and a ﬁxed number of variables bounded by |C|= 22O(|X|)O(|Σ|·|Q|)
+for indexing the transition relation of C. Hence, nonemptiness of Cis decidable
+nondeterministically in space 2O(|X|2)O(log(|Σ| · |Q|)), so by Savitch’s Theorem,
+there is a deterministic algorithm of space complexity 2O(|X|2)O(log(|Σ|·|Q|)2).
+To show (I), suppose Chas a sequence of lazy transitions S=/a\}bracketle{tq1,v1/a\}bracketri}htw1,l1−→
+···wm−1,lm−1−→ /a\}bracketle{tqm,vm/a\}bracketri}htfrom the initial conﬁguration, but no inﬁnite sequence. By
+careful repeated uses of the pigeonhole principle and the distribut ivity of simul-
+taneous nondeterministic transfers, we shall obtain the contrad iction that Smust
+contain two equal conﬁgurations. To start with, some state must occur among
+q1,...,qmat leastm/|Q|times, so let q∈QandJ0⊆ {1,...,m}be such that
+|J0|=m/α0U|C|
+0andqj=qfor eachj∈J0. We claim:
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 16 ---
+16·R. Lazi´ c
+(II) There exist an enumeration x1,...,x |X|ofX, and fori= 1,...,|X|, mappings
+ui:Ci→ {0,...,Ui−1}whereCi={c∈C:xi∈c∧x1,...,xi−1/∈c},
+and subsets Jiof{1,...,m}of sizem/αiU|C|
+i, such that the following property
+holds for each 0 ≤i≤ |X|: for allj∈Ji, we have that qj=qand that for all
+1≤i′≤iandc∈Ci′,vj(c) =ui′(c).
+We establish (II) by proving the property inductively on iand simultaneously
+pickingxi,uiandJi. The case i= 0 is trivial. Assume that 0 ≤i<|X|and that
+xi′,ui′andJi′fori′= 1,...,ihave been picked so that the property holds for i.
+Let us call a subsequence of Sani-subsequence iﬀ there exist consecutive j,j′∈Ji
+(i.e. where there is no j′′∈Jiwithj <j′′<j′) such that the subsequence begins
+at/a\}bracketle{tqj,vj/a\}bracketri}htand ends at /a\}bracketle{tqj′,vj′/a\}bracketri}ht. LetJ′
+i⊆Jiconsist of the beginning positions
+of the|Ji|/2 =m/2αiU|C|
+ishortesti-subsequences. The length of the longest of
+thosei-subsequences must be at most 2 αiU|C|
+i, since otherwise there would be at
+least|Ji|/2i-subsequences of length more than m/(|Ji|/2). LetS†=/a\}bracketle{tqj,vj/a\}bracketri}htwj,lj−→
+···wj′−1,lj′−1−→ /a\}bracketle{tqj′,vj′/a\}bracketri}htbe ani-subsequence with j∈J′
+i. We havej′−j≤2αiU|C|
+i,
+qj=qj′=q, and for all 1 ≤i′≤iandc∈Ci′,vj(c) =vj′(c) =ui′(c). Recalling
+thatui′:Ci′→ {0,...,Ui′−1}, we obtain/summationtexti
+i′=1/summationtext
+c∈Ci′vj′(c)≤/summationtexti
+i′=1|Ci′|Ui′.
+To make progress, we prove:
+(III) There exists x′
+j/\e}atio\slash=x1,...,xisuch that, for each cwithx′
+j∈candx1,...,xi/∈
+c,vj(c)≤2αiU|C|
+i+/summationtexti
+i′=1|Ci′|Ui′.
+Suppose the contrary: for each x′/\e}atio\slash=x1,...,xi, there exists cx′such thatx′∈cx′,
+x1,...,xi/∈cx′, andvj(cx′)>2αiU|C|
+i+/summationtexti
+i′=1|Ci′|Ui′. LetHbe a directed acyclic
+graph on {j,...,j′}×C, deﬁned by letting the successors of /a\}bracketle{tk,d/a\}bracketri}htbe:
+—∅, ifk=j′;
+—{/a\}bracketle{tk+1,d′/a\}bracketri}ht:d′∈f(d)}, iflkis of the form /a\}bracketle{ttransf,f/a\}bracketri}ht;
+—{/a\}bracketle{tk+1,d/a\}bracketri}ht}, otherwise.
+Now, forc∈Candk∈ {j,...,j′}, letH(c,k) be the set of all dsuch that /a\}bracketle{tk,d/a\}bracketri}htis
+reachable in Hfrom/a\}bracketle{tj,c/a\}bracketri}ht. We have/summationtext
+d∈H(c,k)vk(d)≥vj(c)−(k−j) by induction
+onk. In particular, for each x′/\e}atio\slash=x1,...,xi, we have/summationtext
+d∈H(cx′,j′)vj′(d)≥vj(cx′)−
+(j′−j)>/summationtexti
+i′=1|Ci′|Ui′≥/summationtexti
+i′=1/summationtext
+c∈Ci′vj′(c), so there is some dx′∈H(cx′,j′)
+such thatx1,...,xi/∈dx′. LetHx′be a path in Hfrom/a\}bracketle{tj,cx′/a\}bracketri}htto/a\}bracketle{tj′,dx′/a\}bracketri}ht. For
+k∈ {j,...,j′}, letHx′(k) denote the counter at position kinHx′.
+Consider any cwithx1,...,xi/∈c. Observe that c⊆/uniontext{cx′:x′∈c}. LetHcbe
+a path inHfrom/a\}bracketle{tj,c/a\}bracketri}ht, obtained as follows. Assuming that k∈ {j,...,j′−1}and
+Hc(k)⊆/uniontext{Hx′(k) :x′∈c}:
+—iflkis of the form /a\}bracketle{ttransf,f/a\}bracketri}ht, by distributivity of fand the deﬁnition of H, we
+can pickHc(k+1)⊆/uniontext{Hx′(k+1) :x′∈c};
+—otherwise, we have Hx′(k+1) =Hx′(k) for eachx′∈c, and the only possibility
+isHc(k+1) =Hc(k).
+SinceHc(j′)⊆/uniontext{Hx′(j′) :x′∈c}, we conclude that x1,...,xi/∈Hc(j′).
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 17 ---
+Safety Alternating Automata on Data Words ·17
+Using the paths Hc, we now show that, from the ﬁnal conﬁguration of S†, the
+instructions in S†can be performed repeatedly to obtain an inﬁnite sequence of
+lazy transitions, which is a contradiction, so (III) holds. More prec isely, since
+vj(d) =vj′(d) for all 1 ≤i′≤iandd∈Ci′, andHc(j) =cfor allc, by (IV) below
+fromvj′fork=j,...,j′−1, there exist lazy transitions /a\}bracketle{tqj,vj′/a\}bracketri}htwj,lj−→ ···wj′−1,lj′−1−→
+/a\}bracketle{tqj′,v′
+j′/a\}bracketri}htsuch thatv′
+j′(d)≤vj′(d) for alld /∈ {Hc(j′) :x1,...,xi/∈c}. But
+{Hc(j′) :x1,...,xi/∈c} ⊆ {c:x1,...,xi/∈c}, so (IV) can be applied from v′
+j′
+fork=j,...,j′−1, etc.
+(IV) Suppose k∈ {j,...,j′−1}, andv′
+kis a counter valuation such that v′
+k(d)≤
+vk(d) for alld /∈ {Hc(k) :x1,...,xi/∈c}. There exists a lazy transition
+/a\}bracketle{tqk,v′
+k/a\}bracketri}htwk,lk−→ /a\}bracketle{tqk+1,v′
+k+1/a\}bracketri}htsuch thatv′
+k+1(d)≤vk+1(d) for alld /∈ {Hc(k+1) :
+x1,...,xi/∈c}.
+To show (IV), we distinguish between two cases:
+—Iflkis of the form /a\}bracketle{ttransf,f/a\}bracketri}ht, letKd
+d′≥0 for eachd∈Candd′∈f(d) satisfy
+for eachd∈C, vk(d) =/summationtext
+d′∈f(d)Kd
+d′
+for eachd′∈C, vk+1(d′) =/summationtext
+f(d)∋d′Kd
+d′
+Ford∈Csuch thatv′
+k(d)≤vk(d), pick any K′d
+d′≥0 such that v′
+k(d) =/summationtext
+d′∈f(d)K′d
+d′andK′d
+d′≤Kd
+d′for eachd′∈f(d). Ford∈Csuch thatv′
+k(d)>
+vk(d), we haved=Hc(k) for somecwithx1,...,xi/∈c, so we can set K′d
+d′=Kd
+d′
+for alld′∈f(d)\{Hc(k+1)}, andK′d
+Hc(k+1)=Kd
+Hc(k+1)+v′
+k(d)−vk(d). Now,
+for eachd′∈C, letv′
+k+1(d′) =/summationtext
+f(d)∋d′Kd
+d′, so that /a\}bracketle{tqk,v′
+k/a\}bracketri}htwk,lk−→ /a\}bracketle{tqk+1,v′
+k+1/a\}bracketri}ht
+lazily. Since K′d
+d′> Kd
+d′impliesd′∈ {Hc(k+ 1) :x1,...,xi/∈c}, we have
+v′
+k+1(d′)≤vk+1(d′) for alld′/∈ {Hc(k+1) :x1,...,xi/∈c}.
+—Otherwise, v′
+k+1is uniquely determined by the lazy transition /a\}bracketle{tqk,v′
+k/a\}bracketri}htwk,lk−→
+/a\}bracketle{tqk+1,v′
+k+1/a\}bracketri}ht, and has the required property as Hc(k+1) =Hc(k) for allc.
+For eachj∈J′
+i, letx′
+j/\e}atio\slash=x1,...,xibe as in (III). For each cwithx′
+j∈cand
+x1,...,xi/∈c, we havevj(c)< Ui+1. Letxi+1be such that there exists J′′
+i⊆J′
+i
+of size|J′
+i|/(|X|−i) =m/αi+1withxi+1=x′
+jfor allj∈J′′
+i. Thus, for all j∈J′′
+i
+andc∈Ci+1, we havevj(c)<Ui+1. Then letui+1:Ci+1→ {0,...,Ui+1−1}be
+such that there exists Ji+1⊆J′′
+iof sizem/αi+1U|C|
+i+1withvj(c) =ui+1(c) for all
+j∈Ji+1andc∈Ci+1. That completes the inductive proof of (II).
+Sincem= 2α|X|U|C|
+|X|, we havefrom (II) that Scontains two equal conﬁgurations,
+soChas an inﬁnite sequence of lazy transitions from the initial conﬁgura tion. That
+is a contradiction, so (I) is shown.
+By Theorems 3.2, 3.3 and 2.5, we obtain:
+Corollary 3.4. Safety 1ARA 1nonemptiness and safety LTL↓
+1(X,R)satisﬁabil-
+ity are in ExpSpace .
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 18 ---
+18·R. Lazi´ c
+4. LOWER BOUND
+Theorem 4.1. Safety 1ARA 1nonemptiness and safety LTL↓
+1(X,R)satisﬁability
+areExpSpace -hard.
+Proof. By Theorem 2.5, it suﬃces to show ExpSpace -hardness of satisﬁability
+forsafetyLTL↓
+1(X,R). WeshallreducefromthehaltingproblemforTuringmachines
+with exponentially long tapes. More precisely, a Turing machine Mis a tuple
+/a\}bracketle{tΣ,aB,Q,qI,δ/a\}bracketri}htsuch that:
+—Σ is a ﬁnite alphabet, and aB∈Σ denotes the blank symbol;
+—Qis a ﬁnite set of states, and qI∈Qis the initial state;
+—δ:Q×Σ→Q×Σ×{−1,1}is the transition function.
+If the size of Misn, we consider its computation on a tape of length 2n. More
+formally, a conﬁguration of Mis of the form /a\}bracketle{tq,i,w/a\}bracketri}htwhereq∈Qis the machine
+state, 0≤i<2nis the head position, and w∈Σ2nis the tape contents. The initial
+conﬁguration is /a\}bracketle{tqI,0,a2n
+B/a\}bracketri}ht. A conﬁguration /a\}bracketle{tq,i,w/a\}bracketri}hthas a transition iﬀ 0 ≤i+o<
+2nwhere/a\}bracketle{tq′,a,o/a\}bracketri}ht=δ(q,w(i)). In that case, wewrite /a\}bracketle{tq,i,w/a\}bracketri}ht → /a\}bracketle{tq′,i+o,w[i/mapsto→a]/a\}bracketri}ht.
+SinceMcan halt by requesting to move the head oﬀ an edge of the tape, it do es
+not need to have a special halting state.
+Thefollowingproblemis ExpSpace -complete: given M=/a\}bracketle{tΣ,aB,Q,qI,δ/a\}bracketri}htofsize
+n, isthecomputationfromtheinitialconﬁgurationwithtapelength2ninﬁnite? (To
+reduce in polynomial time from the same problem with tape length 2nk, extend the
+machine by unreachable states until it is of size nk.) We shall show that a sentence
+φMof safety LTL↓
+1(X,R) is computable in space logarithmic in n, such that the
+answer to the decision problem is ‘yes’ iﬀ φMis satisﬁable.
+Let/hatwideΣ ={/hatwidea:a∈Σ}. The alphabet of φMis/tildewideΣ =Q⊎{0d,1d:d∈ {1,...,n}}⊎
+Σ⊎/hatwideΣ. Toencodeatapecell, wewriteitspositionin binaryfollowedbyitscon tents.
+Aconﬁguration /a\}bracketle{tq,i,w/a\}bracketri}htisthen encoded bythe wordbelow, where /hatwideΣ isusedto mark
+the contents at head position. Let w(i,i) =/hatwidestw(i), andw(j,i) =w(j) forj/\e}atio\slash=i.
+q01···0n−10nw(0,i)01···0n−11nw(1,i)···11···1n−11nw(2n−1,i)
+The computation of Mfrom the initial conﬁguration with tape length 2nis
+inﬁnite iﬀ there exists a data ω-wordσover/tildewideΣ such that:
+(i) str(σ) is a sequence of encodings of conﬁgurations of M;
+(ii) str(σ) begins with the encoding of the initial conﬁguration /a\}bracketle{tqI,0,a2n
+B/a\}bracketri}ht;
+(iii) for every two consecutive encodings in str( σ) of conﬁgurations /a\}bracketle{tq,i,w/a\}bracketri}htand
+/a\}bracketle{tq′,i′,w′/a\}bracketri}ht, we have /a\}bracketle{tq,i,w/a\}bracketri}ht → /a\}bracketle{tq′,i′,w′/a\}bracketri}ht.
+Hence, it suﬃces to construct φMsuch thatσsatisﬁesφMiﬀ (i)–(iii) hold and:
+(iv) for every encoding in σof a tape cell, all the letters bdandw(j,i) are in the
+same class;
+(v) for every two encodings in σof tape cells with positions jandj′(occuring in
+one or two conﬁguration encodings), their classes are the same iﬀ j=j′.
+The purpose of (iv) and (v) is to enable navigation through σfor checking (i)–(iii)
+inφM, whose size will be only polynomial in n.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 19 ---
+Safety Alternating Automata on Data Words ·19
+For (i), we can split it into the following constraints, each of which is st raight-
+forward to express:
+—the ﬁrst letter is a state of M;
+—every state of Mis succeeded by 0 1···0n−10n;
+—everybnis succeeded by an element of Σ ⊎/hatwideΣ;
+—for every bdnot succeeded by 1 d+1···1n,bdoccursn+ 1 positions later (the
+next position has the same binary digit d);
+—for every 0 dsucceeded by 1 d+1···1n, 1d0d+1···0noccursn+1 positions later
+(the next position has the opposite binary digit d);
+—11···1n−11nfollowed by an element of Σ ⊎/hatwideΣ are succeeded by a state of M;
+—between every two consecutive occurrences of states of M, there is exactly one
+occurrence of an element of /hatwideΣ.
+Properties (ii) and (iv) are also straightforward. Before (iii), let us consider (v),
+which is equivalent to the following conjunction:
+(v.1) for every two encodings of tape cells, if their classes are the s ame then their
+positions are the same;
+(v.2) for every encoding of a tape cell, some tape cell in the next con ﬁguration
+encoding has the same class.
+The more involved is (v.1). It amounts to requiring that, for all d∈ {1,...,n}and
+b∈ {0,1}, it is not the case that there is an occurrence of bdand a subsequent
+occurrence of (1 −b)dwith the same datum:
+/logicalandtextn
+d=1/logicalandtext1
+b=0G(bd∨↓XG((1−b)d∨/\e}atio\slash↑))
+whereaabbreviates/logicalortext{a′:a′∈/tildewideΣ\{a}}.
+Property (iii) is now equivalent to asserting that the following hold for allq∈Q
+anda∈Σ, where /a\}bracketle{tq′,a′,o/a\}bracketri}ht=δ(q,a):
+(iii.1) whenever qoccurs with /hatwideain the same conﬁguration encoding, the next oc-
+currence of a state of Misq′;
+(iii.2) foreveryoccurrenceofsome b∈Σinaconﬁgurationencodingwhichcontains
+qand/hatwidea, the next occurrence in the same class of an element of Σ ⊎/hatwideΣ is an
+occurrence of bor/hatwideb;
+(iii.3) for every occurrence of /hatwideain a conﬁguration encoding containing q, the next
+occurrence in the same class of an element of Σ ⊎/hatwideΣ is an occurrence of a′, and
+npositions earlier (if o=−1) or later (if o= 1) an element of /hatwideΣ occurs.
+The most involved is (iii.3), and the two cases of o=−1 ando= 1 are similar.
+Letting/hatwideΣ and/hatwideΣ abbreviate/logicalortext{b:b∈/hatwideΣ}and/logicalortext{b:b∈/tildewideΣ\/hatwideΣ}(respectively),
+(iii.3) with o=−1 is expressed by:
+G/parenleftbigg
+q⇒ ¬/parenleftbigg
+/hatwideΣU/parenleftBig
+/hatwidea∧↓X/parenleftBig
+/hatwideΣU/parenleftbig/hatwideΣ∧Xn¬(a′∧↑)/parenrightbig/parenrightBig/parenrightBig/parenrightbigg/parenrightbigg
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 20 ---
+20·R. Lazi´ c
+To obtain a sentence of safety LTL↓
+1(X,R) in the strict sense, we convert to negation
+normal form:
+G/parenleftbigg
+q∨/parenleftbigg
+/hatwideΣR/parenleftBig
+/hatwidea∨↓X/parenleftBig
+/hatwideΣR/parenleftbig/hatwideΣ∨Xn(a′∧↑)/parenrightbig/parenrightBig/parenrightBig/parenrightbigg/parenrightbigg
+To output /tildewideΣ andφMgivenMas above, a ﬁxed number of counters which are
+bounded by nsuﬃce.
+5. INCLUSION AND REFINEMENT
+Using well-quasi-orderings, the proofs of Theorems 3.2 and 3.3, and that satisﬁa-
+bility over ﬁnite data words for LTL↓
+1(X,F) is not primitive recursive [Demri and
+Lazi´ c 2009, Theorem 5.2], we obtain the result below.
+We remark that, in a similar manner, one can show that the following “m odel-
+checking”problemsaredecidable andnotprimitiverecursive: wheth erthe language
+of a B¨ uchi one-way nondeterministic register automaton (with an y number of regis-
+ters) is included in the language of a safety 1ARA 1or a safety LTL↓
+1(X,R) sentence.
+Theorem 5.1. The following problems are decidable and not primitive recu rsive:
+—inclusion for safety 1ARA 1;
+—reﬁnement for safety LTL↓
+1(X,R).
+Proof. By Theorem 2.5, it suﬃces to establish that inclusion for safety 1ARA 1
+is decidable and that reﬁnement for safety LTL↓
+1(X,R) is not primitive recursive.
+For the former, suppose A1=/a\}bracketle{tΣ,Q1,q1
+I,δ1/a\}bracketri}htandA2=/a\}bracketle{tΣ,Q2,q2
+I,δ2/a\}bracketri}htare safety
+1ARA 1, where we need to determine whether L( A1)⊆L(A2).
+LetA2=/a\}bracketle{tΣ,Q2,q2
+I,δ2/a\}bracketri}htbe the dual automaton to A2, so that each formula
+δ2(r,a,?) is the dual to δ2(r,a,?), i.e. obtained by replacing every ⊤with⊥, every
+∧with∨, and vice versa. Let L( A2) denote the language of A2with respect to
+co-safety acceptance: a data ω-wordσover Σ is in L( A2) iﬀA2has a ﬁnite run
+F0σ,0−→F1σ,1−→ ···∅ whereF0={/a\}bracketle{tq2
+I,[0]∼/a\}bracketri}ht}. Considering A2(resp.,A2) as a weak
+alternating automaton whose every state is of even (resp., odd) p arity, we have by
+[L¨ oding and Thomas 2000, Theorem 1] that L( A2) is the complement of L( A2).
+Now, let A∩be the automaton for the intersection of A1andA2, obtained by
+adding a new initial state. More precisely, assuming that Q1andQ2are disjoint
+and do not contain qI, letA∩=/a\}bracketle{tΣ,{qI}∪Q1∪Q2,qI,δ∩/a\}bracketri}ht, where
+δ∩={/a\}bracketle{tqI,a,?/a\}bracketri}ht /mapsto→δ1(q1
+I,a,?)∧δ2(q2
+I,a,?) :a∈Σ,?∈ {↑,/\e}atio\slash↑}} ∪δ1∪δ2
+The acceptance condition of A∩is inherited from A1andA2: a dataω-wordσover
+Σ is in L( A∩) iﬀA∩has an inﬁnite run F0σ,0−→F1σ,1−→ ···whereF0={/a\}bracketle{tqI,[0]∼/a\}bracketri}ht}
+and there exists isuch thatFicontains only states in Q1. We then have that
+L(A∩) = L(A1)∩L(A2), so L(A∩) is empty iﬀ L( A1)⊆L(A2).
+LetC∩be the IPCANT computed from A∩as in the proofof Theorem3.2, except
+that the following step is added between steps (6) and (7), where q2
+∅is a new state
+and implementation is similar to that of step (5):
+(61
+2) Ifc(R) = 0 for all Rwhich intersect Q2, then pass through q2
+∅.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 21 ---
+Safety Alternating Automata on Data Words ·21
+We thus have that L( A∩) is nonempty iﬀ C∩has an inﬁnite run /a\}bracketle{tq0,v0/a\}bracketri}htw0,l0−→
+/a\}bracketle{tq1,v1/a\}bracketri}htw1,l1−→ ···where/a\}bracketle{tq0,v0/a\}bracketri}htis the initial conﬁguration and there exists isuch
+thatqi=q2
+∅.
+We deﬁne /precedesequalto be the following quasi-ordering on conﬁgurations of C∩:/a\}bracketle{tq,v/a\}bracketri}ht /precedesequal
+/a\}bracketle{tq′,v′/a\}bracketri}htiﬀq=q′andv≤v′. By Dickson’s Lemma [Dickson 1913], /precedesequalis awell-quasi-
+ordering: for every inﬁnite sequence s0,s1,..., there exist i<jsuch thatsi/precedesequalsj.
+Now, consider the following procedure:
+(i) LetSconsist of the initial conﬁguration of C∩.
+(ii) LetS′be the set of all successors of conﬁgurations in Sby lazy transitions.
+(iii) If for all s′∈S′there exists s∈Swiths/precedesequals′, then stop. Otherwise, set Sto
+S∪S′, and repeat from (ii).
+Since/precedesequalis a well-quasi-ordering, the procedure terminates. Let Slastdenote the
+value ofSat the termination. It is a ﬁnite set, and by Proposition 2.7, its upwar d
+closure⇑Slast={s′:∃s∈Slast(s/precedesequals′)}is the set of all conﬁgurations which C∩
+can reach from the initial conﬁguration.
+Toconcludedecidabilityofinclusionforsafety1ARA 1, itremainstoshowthatwe
+can decide whether ⇑Slastcontains a conﬁgurationwhose state is q2
+∅and from which
+C∩has an inﬁnite run. But that is the case iﬀ Slastcontains such a conﬁguration,
+and for any conﬁguration /a\}bracketle{tq,v/a\}bracketri}ht, we have by the proof of Theorem 3.3 that C∩has
+an inﬁnite run from /a\}bracketle{tq,v/a\}bracketri}htiﬀ it has a sequence of m−1 lazy transitions from /a\}bracketle{tq,v/a\}bracketri}ht,
+wheremis as computed in that proof.
+WenowturntoshowingthatalreadyvalidityforsafetyLTL↓
+1(X,R)isnotprimitive
+recursive. We reduce(in logarithmicspace)from satisﬁabilityoverﬁ nite datawords
+for LTL↓
+1(X,F), which is not primitive recursive by [Demri and Lazi´ c 2009, Theo-
+rem 5.2]. In negation normal form, the latter logic diﬀers from safet y LTL↓
+1(X,R) by
+having temporal operators ¯X,FandGinstead of R. Over ﬁnite data words, Xand
+its dual¯Xare distinct: at any ﬁnal word position and for any φ,Xφis false whereas
+¯Xφis true.
+ConsiderthefollowingtranslationfromformulaeofLTL↓
+1(X,F)innegationnormal
+form with alphabet Σ to formulae of co-safety LTL↓
+1(X,R) with alphabet Σ ⊎{×}.
+Only cases where the construct is modiﬁed are shown.
+t(Xφ) =X(t(φ)∧/logicalortext
+a∈Σa)t(Fφ) = (/logicalortext
+a∈Σa)U(t(φ)∧/logicalortext
+a∈Σa)
+t(¯Xφ) =X(t(φ)∨×)t(Gφ) = (t(φ)∧/logicalortext
+a∈Σa)U×
+Given a sentence φ, we have that a data ω-wordσover Σ⊎ {×}satisﬁesψφ=
+t(φ)∧(/logicalortext
+a∈Σa)∧(⊤U×) iﬀ there exists i >0 such that the i-preﬁx ofσdoes not
+contain×and satisﬁes φ, andσ(i) =×. It remains to observethat the dual of ψφis
+a sentence of safety LTL↓
+1(X,R), which is valid over data ω-words iﬀφis satisﬁable
+over ﬁnite data words.
+6. CONCLUDING REMARKS
+Satisﬁability (over timed ω-words) for the safety fragment of metric temporal logic
+(MTL) was shown decidable in [Ouaknine and Worrell 2006], and nonelem entary in
+[Bouyer et al. 2008] by reducing from termination of channel machin es with empti-
+ness testing and insertion errors. It would be interesting to invest igate whether
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 22 ---
+22·R. Lazi´ c
+ideas in the proof of Theorem 3.3 above can be combined with those in t he proof of
+primitive recursiveness of termination of channel machines with occ urrence testing
+and insertion errors [Bouyer et al. 2008] to obtain that satisﬁability for safety MTL
+is primitive recursive.
+Anotheropen questionis whethernonemptinessofsafetyforwar dalternatingtree
+automata with 1 register [Jurdzi´ nski and Lazi´ c 2007] is primitive recursive.
+ACKNOWLEDGMENTS
+I am grateful to St´ ephane Demri and James Worrell for helpful d iscussions.
+REFERENCES
+Alpern, B. and Schneider, F. B. 1987. Recognizing safety and liveness. Distr. Comput. 2, 3,
+117–126.
+Bj¨orklund, H. and Schwentick, T. 2007. On notions of regularity for data languages. In
+Fundamentals of Comput. Theory (FCT), 16th Int. Symp. Lect. Notes Comput. Sci., vol. 4639.
+Springer, 88–99.
+Boja´nczyk, M. ,David, C. ,Muscholl, A. ,Schwentick, T. ,and Segoufin, L. 2006. Two-
+variable logic on data trees and XML reasoning. In 25th ACM SIGACT-SIGMOD-SIGART
+Symp. on Princ. of Database Systems (PODS) . ACM, 10–19.
+Boja´nczyk, M. ,Muscholl, A. ,Schwentick, T. ,Segoufin, L. ,and David, C. 2006. Two-
+variable logic on words with data. In 21th IEEE Symp. on Logic in Comput. Sci. (LICS) .
+IEEE Comput. Soc., 7–16.
+Bouyer, P. ,Markey, N. ,Ouaknine, J. ,Schnoebelen, P. ,and Worrell, J. 2008. On termina-
+tion for faulty channel machines. In 25th Int. Symp. on Theor. Asp. of Comput. Sci. (STACS) .
+IBFI, Schloss Dagstuhl, Germany, 121–132.
+Brzozowski, J. A. and Leiss, E. L. 1980. On equations for regular languages, ﬁnite automata,
+and sequential networks. Theor. Comput. Sci. 10, 1, 19–35.
+David, C. 2004. Mots et donn´ ees inﬁnies. M.S. thesis, Laboratoire d’ Informatique Algorithmique:
+Fondements et Applications, Paris.
+Demri, S. and Lazi ´c, R.2009. LTL with the freeze quantiﬁer and register automata. ACM
+Trans. On Comp. Logic 10, 3.
+Dickson, L. 1913. Finiteness of the odd perfect and primitive abundant n umbers with distinct
+factors. Amer. J. Math. 35 , 413–422.
+Jurdzi´nski, M. and Lazi ´c, R.2007. Alternation-free modal mu-calculus for data trees. I n22nd
+IEEE Symp. on Logic in Comput. Sci. (LICS) . IEEE Comput. Soc., 131–140.
+Kaminski, M. and Francez, N. 1994. Finite-memory automata. Theor. Comput. Sci. 134, 2,
+329–363.
+Lazi´c, R.2006. Safely freezing LTL. In FSTTCS: Found. of Softw. Technology and Theor.
+Comput. Sci., 26th Int. Conf. Lect. Notes Comput. Sci., vol. 4337. Springer, 381–392.
+Lipton, R. J. 1976. The reachability problem requires exponential space . Tech. Rep. 62, Yale
+University.
+L¨oding, C. and Thomas, W. 2000. Alternating automata and logics over inﬁnite words. I n
+Theor. Comput. Sci., Int. Conf. (IFIP TCS) . Lect. Notes Comput. Sci., vol. 1878. Springer,
+521–535.
+Muller, D. E. ,Saoudi, A. ,and Schupp, P. E. 1986. Alternating automata, the weak monadic
+theory of the tree, and its complexity. In Automata, Lang. and Program., 13th Int. Coll.
+(ICALP) . Lect. Notes Comput. Sci., vol. 226. Springer, 275–283.
+Neven, F. ,Schwentick, T. ,and Vianu, V. 2004. Finite state machines for strings over inﬁnite
+alphabets. ACM Trans. On Comp. Logic 5, 3, 403–435.
+Ouaknine, J. and Worrell, J. 2006. Safety metric temporal logic is fully decidable. In Tools
+and Algorithms for the Constr. and Anal. of Systems (TACAS), 12th Int. Conf. Lect. Notes
+Comput. Sci., vol. 3920. Springer, 411–425.
+ACM Journal Name, Vol. V, No. N, Month 20YY.
+
+--- Page 23 ---
+Safety Alternating Automata on Data Words ·23
+Sakamoto, H. and Ikeda, D. 2000. Intractability of decision problems for ﬁnite-memor y au-
+tomata. Theor. Comput. Sci. 231, 2, 297–308.
+Segoufin, L. 2006. Automata and logics for words and trees over an inﬁnite alphabet. In Comput.
+Sci. Logic (CSL), 20th Int. Works. Lect. Notes Comput. Sci., vol. 4207. Springer, 41–57.
+Vardi, M. Y. 1996. An automata-theoretic approach to linear temporal lo gic. InBanﬀ Higher
+Order Works. Lect. Notes Comput. Sci., vol. 1043. Springer, 238–266.
+Received February 2008; revised March 2009; accepted April 2010
+ACM Journal Name, Vol. V, No. N, Month 20YY.
